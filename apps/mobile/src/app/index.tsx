@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -26,6 +26,10 @@ export default function IntroScreen() {
   const handleIndexChange = useCallback((index: number) => {
     setActiveIndex(index);
   }, []);
+
+  if (isMobileE2e) {
+    return <Redirect href="/login" />;
+  }
 
   return (
     <View style={styles.container}>

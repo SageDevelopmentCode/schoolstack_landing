@@ -11,6 +11,7 @@
     "expo": "~57.0.14",
     "expo-constants": "~57.0.12",
     "expo-device": "~57.0.1",
+    "expo-document-picker": "~57.0.1",
     "expo-font": "~57.0.1",
     "expo-glass-effect": "~57.0.1",
     "expo-image": "~57.0.3",
@@ -58,7 +59,10 @@
     "test:e2e:ios": "maestro test .maestro",
     "test:e2e:ios:build": "expo prebuild --platform ios && xcodebuild -workspace ios/MudKitchen.xcworkspace -scheme MudKitchen -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO",
     "test:e2e:ios:run": "bash scripts/run-e2e-ios.sh",
-    "test:e2e:android:run": "bash scripts/run-e2e-android.sh"
+    "test:e2e:android:run": "bash scripts/run-e2e-android.sh",
+    "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
+    "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
+    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"
   },
   "private": true,
   "expo": {

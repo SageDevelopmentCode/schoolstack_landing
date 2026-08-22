@@ -7,12 +7,13 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { buildMessageRenderItems } from "@/lib/messages/format-chat";
 import type { MessageThreadDetail } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
+import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
 
 export type MessagesComposeBanner =
-  | { variant: "info"; staffDisplayName: string }
+  | { variant: "info"; message: string }
   | { variant: "warning"; message: string };
 
 function MessageAttachments({
@@ -150,7 +151,16 @@ export default function MessagesThreadView({
             </button>
           ) : null}
           {embedded ? (
-            <MessagesAvatar name={thread.title} color={thread.color} size="lg" />
+            thread.listAvatars?.length === 2 ? (
+              <MessagesDualAvatar avatars={thread.listAvatars} size="lg" />
+            ) : (
+              <MessagesAvatar
+                name={thread.title}
+                color={thread.color}
+                photoUrl={thread.photoUrl}
+                size="lg"
+              />
+            )
           ) : null}
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
@@ -179,7 +189,12 @@ export default function MessagesThreadView({
         ) : thread.messages.length === 0 ? (
           embedded ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <MessagesAvatar name={thread.title} color={thread.color} size="lg" />
+              <MessagesAvatar
+                name={thread.title}
+                color={thread.color}
+                photoUrl={thread.photoUrl}
+                size="lg"
+              />
               <div>
                 <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
                   Say hello to {thread.title}
@@ -295,16 +310,7 @@ export default function MessagesThreadView({
             color: composeBanner.variant === "warning" ? C.warning : C.textSecondary,
           }}
         >
-          {composeBanner.variant === "info" ? (
-            <>
-              <span className="font-semibold" style={{ color: C.textPrimary }}>
-                You&apos;re replying as {composeBanner.staffDisplayName}.
-              </span>{" "}
-              The family will see your staff name, not the school office inbox.
-            </>
-          ) : (
-            composeBanner.message
-          )}
+          {composeBanner.message}
         </div>
       ) : null}
 

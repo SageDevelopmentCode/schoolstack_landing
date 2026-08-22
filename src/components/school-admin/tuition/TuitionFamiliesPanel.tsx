@@ -269,6 +269,10 @@ export default function TuitionFamiliesPanel({
   const [activeFamilyTab, setActiveFamilyTab] = useState<TuitionFamilyTabId>(
     DEFAULT_TUITION_FAMILY_TAB,
   );
+  const [familyCharges, setFamilyCharges] = useState<
+    Awaited<ReturnType<typeof listChargesForFamily>>
+  >([]);
+  const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
   const selectedFamilyIdRef = useRef<string | null>(null);
 
   const selectFamily = useCallback((familyId: string) => {
@@ -300,6 +304,21 @@ export default function TuitionFamiliesPanel({
     }
   }, [initialFamilyId, organizationId, supabase]);
 
+  const refreshFamilySummaries = useCallback(async () => {
+    const rows = await listFamilyBillingSummaries(supabase, organizationId);
+    setFamilies(rows);
+    return rows;
+  }, [organizationId, supabase]);
+
+  const refreshSelectedFamilyDetails = useCallback(async (familyId: string) => {
+    const [charges, payments] = await Promise.all([
+      listChargesForFamily(supabase, familyId),
+      listTuitionPaymentsForFamily(supabase, familyId),
+    ]);
+    setFamilyCharges(charges);
+    setFamilyPayments(payments);
+  }, [supabase]);
+
   useEffect(() => {
     queueMicrotask(() => {
       void loadFamilies();
@@ -325,14 +344,9 @@ export default function TuitionFamiliesPanel({
       }
       adminToast.success("Manual payment recorded");
       setManualPaymentCharge(null);
-      await loadFamilies();
+      await refreshFamilySummaries();
       if (selectedFamilyId) {
-        const [charges, payments] = await Promise.all([
-          listChargesForFamily(supabase, selectedFamilyId),
-          listTuitionPaymentsForFamily(supabase, selectedFamilyId),
-        ]);
-        setFamilyCharges(charges);
-        setFamilyPayments(payments);
+        await refreshSelectedFamilyDetails(selectedFamilyId);
       }
     } catch (err) {
       const message = formatActionError(err, "Failed to record manual payment.");
@@ -365,7 +379,10 @@ export default function TuitionFamiliesPanel({
         : "Charge marked sent. Email was not sent (mail not configured or family has no email).";
       setInvoiceNotice(notice);
       adminToast.success(payload.emailed ? "Invoice sent" : "Charge marked sent");
-      await loadFamilies();
+      await refreshFamilySummaries();
+      if (selectedFamilyId) {
+        await refreshSelectedFamilyDetails(selectedFamilyId);
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to send invoice.");
       setPanelError(message);
@@ -386,7 +403,10 @@ export default function TuitionFamiliesPanel({
         throw new Error(payload.error ?? "Failed to process refund.");
       }
       adminToast.success("Refund processed");
-      await loadFamilies();
+      await refreshFamilySummaries();
+      if (selectedFamilyId) {
+        await refreshSelectedFamilyDetails(selectedFamilyId);
+      }
     } catch (err) {
       const message = formatActionError(err, "Failed to process refund.");
       setPanelError(message);
@@ -498,11 +518,6 @@ export default function TuitionFamiliesPanel({
     }
     return { backgroundColor: C.elevated, color: C.textSecondary };
   };
-
-  const [familyCharges, setFamilyCharges] = useState<
-    Awaited<ReturnType<typeof listChargesForFamily>>
-  >([]);
-  const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
     if (!selectedFamilyId) return;

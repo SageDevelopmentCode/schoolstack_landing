@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -9,16 +8,15 @@ import {
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school-admin/messages/threads/[threadId]/messages";
 
 type RouteContext = { params: Promise<{ threadId: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { threadId } = await context.params;
 
   try {
@@ -49,7 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const user = await requireSchoolAdminUser(supabase, organizationId);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const staffMemberId = await getStaffMemberIdForUser(
       supabase,
       user.id,

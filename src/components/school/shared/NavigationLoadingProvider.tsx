@@ -16,6 +16,14 @@ const NAV_LOADING_STORAGE_KEY = "mk-nav-loading";
 const MIN_DISPLAY_MS = 200;
 const FALLBACK_TIMEOUT_MS = 10_000;
 
+function clearNavLoadingStorage() {
+  try {
+    sessionStorage.removeItem(NAV_LOADING_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures (private mode, etc.)
+  }
+}
+
 type NavigationLoadingContextValue = {
   startNavigation: (label?: string) => void;
 };
@@ -55,12 +63,18 @@ export default function NavigationLoadingProvider({
     }
   }, []);
 
+  const finalizeHide = useCallback(() => {
+    clearNavLoadingStorage();
+    setVisible(false);
+    startedAtRef.current = null;
+  }, []);
+
   const hideWithMinDuration = useCallback(() => {
     clearHideTimeout();
 
     const startedAt = startedAtRef.current;
     if (startedAt == null) {
-      setVisible(false);
+      finalizeHide();
       return;
     }
 
@@ -68,11 +82,10 @@ export default function NavigationLoadingProvider({
     const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
 
     hideTimeoutRef.current = window.setTimeout(() => {
-      setVisible(false);
-      startedAtRef.current = null;
+      finalizeHide();
       hideTimeoutRef.current = null;
     }, remaining);
-  }, [clearHideTimeout]);
+  }, [clearHideTimeout, finalizeHide]);
 
   const startNavigation = useCallback(
     (nextLabel = "Loading") => {
@@ -129,12 +142,11 @@ export default function NavigationLoadingProvider({
     if (!visible) return;
 
     const timeoutId = window.setTimeout(() => {
-      setVisible(false);
-      startedAtRef.current = null;
+      finalizeHide();
     }, FALLBACK_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
-  }, [visible]);
+  }, [finalizeHide, visible]);
 
   return (
     <NavigationLoadingContext.Provider value={{ startNavigation }}>

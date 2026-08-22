@@ -24,44 +24,50 @@ function buildThread(
   };
 }
 
-test("getAdminThreadSection classifies family-staff and family-office threads", () => {
-  const familyStaff = buildThread([
-    { id: "p1", kind: "family", familyId: "family-1", staffMemberId: null },
-    { id: "p2", kind: "staff_member", familyId: null, staffMemberId: "staff-1" },
+test("getAdminThreadSection classifies guardian-staff and guardian-office threads", () => {
+  const guardianStaff = buildThread([
+    { id: "p1", kind: "guardian", familyId: null, guardianId: "guardian-1", staffMemberId: null },
+    { id: "p2", kind: "staff_member", familyId: null, guardianId: null, staffMemberId: "staff-1" },
   ]);
-  const familyOffice = buildThread([
-    { id: "p3", kind: "family", familyId: "family-1", staffMemberId: null },
-    { id: "p4", kind: "school_office", familyId: null, staffMemberId: null },
+  const guardianOffice = buildThread([
+    { id: "p3", kind: "guardian", familyId: null, guardianId: "guardian-1", staffMemberId: null },
+    { id: "p4", kind: "school_office", familyId: null, guardianId: null, staffMemberId: null },
   ]);
 
-  assert.equal(getAdminThreadSection(familyStaff), "family_staff");
-  assert.equal(getAdminThreadSection(familyOffice), "family_office");
+  assert.equal(getAdminThreadSection(guardianStaff), "guardian_staff");
+  assert.equal(getAdminThreadSection(guardianOffice), "guardian_office");
 });
 
 test("buildAdminSectionedListItems groups threads under section headers", () => {
-  const familyStaff = buildThread(
+  const guardianStaff = buildThread(
     [
-      { id: "p1", kind: "family", familyId: "family-1", staffMemberId: null },
-      { id: "p2", kind: "staff_member", familyId: null, staffMemberId: "staff-1" },
+      { id: "p1", kind: "guardian", familyId: null, guardianId: "guardian-1", staffMemberId: null },
+      { id: "p2", kind: "staff_member", familyId: null, guardianId: null, staffMemberId: "staff-1" },
     ],
     { id: "thread-staff", lastMessageAt: "2026-08-09T10:00:00.000Z" },
   );
-  const familyOffice = buildThread(
+  const guardianOffice = buildThread(
     [
-      { id: "p3", kind: "family", familyId: "family-1", staffMemberId: null },
-      { id: "p4", kind: "school_office", familyId: null, staffMemberId: null },
+      { id: "p3", kind: "guardian", familyId: null, guardianId: "guardian-1", staffMemberId: null },
+      { id: "p4", kind: "school_office", familyId: null, guardianId: null, staffMemberId: null },
     ],
     { id: "thread-office", lastMessageAt: "2026-08-09T09:00:00.000Z" },
   );
 
-  const items = buildAdminSectionedListItems([familyOffice, familyStaff]);
+  const items = buildAdminSectionedListItems([guardianOffice, guardianStaff]);
 
   assert.deepEqual(
     items.map((item) => (item.type === "section" ? item.label : item.thread.id)),
     [
       "thread-office",
-      "Family & teachers",
+      "Parent & teacher conversations",
       "thread-staff",
     ],
+  );
+
+  const sectionItem = items.find((item) => item.type === "section");
+  assert.equal(
+    sectionItem?.type === "section" && sectionItem.description,
+    "For your review — messages between families and staff, not your school office inbox.",
   );
 });

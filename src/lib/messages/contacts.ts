@@ -1,14 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { listAssignedEnrolledStudents, formatEnrolledStudentSubtitle, listFamilyEnrolledStudents } from "@/lib/school-admin/enrolled-students";
+import { listAssignedEnrolledStudents, formatEnrolledStudentFirstNames, formatEnrolledStudentSubtitle, listFamilyEnrolledStudents } from "@/lib/school-admin/enrolled-students";
 import { listStaffMembers } from "@/lib/staff/staff-members";
 import { colorForKey } from "./format";
 import {
-  resolveTeacherFamilyThreadTitle,
+  guardianPhotoUrl,
+  resolveGuardianDisplayName,
   toMessageStudentRefs,
   toMessageStudentSummaries,
   type ParticipantDisplayContext,
 } from "./mappers";
+import { getGuardianIdForUser } from "./messages";
 import { loadFamilyGuardianDisplayMaps } from "./threads";
 import type { MessageContact } from "./types";
 
@@ -18,9 +20,12 @@ export async function listParentMessageContacts(
   organizationId: string,
   userId: string,
   schoolOfficeLabel: string,
-): Promise<{ familyId: string | null; contacts: MessageContact[] }> {
+): Promise<{ familyId: string | null; guardianId: string | null; contacts: MessageContact[] }> {
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   const familyId = familyIds[0] ?? null;
+  const guardianId = familyId
+    ? await getGuardianIdForUser(admin, userId, organizationId, familyId)
+    : null;
   const contacts: MessageContact[] = [];
 
   contacts.push({
@@ -32,7 +37,7 @@ export async function listParentMessageContacts(
   });
 
   if (!familyId) {
-    return { familyId, contacts };
+    return { familyId, guardianId, contacts };
   }
 
   const { data: students, error } = await admin
@@ -45,7 +50,8 @@ export async function listParentMessageContacts(
           id,
           first_name,
           last_name,
-          role_title
+          role_title,
+          profile_photo_url
         )
       )
     `,
@@ -67,12 +73,14 @@ export async function listParentMessageContacts(
                 first_name: string;
                 last_name: string;
                 role_title?: string | null;
+                profile_photo_url?: string | null;
               }
             | {
                 id: string;
                 first_name: string;
                 last_name: string;
                 role_title?: string | null;
+                profile_photo_url?: string | null;
               }[]
             | null;
         }
@@ -84,12 +92,14 @@ export async function listParentMessageContacts(
                 first_name: string;
                 last_name: string;
                 role_title?: string | null;
+                profile_photo_url?: string | null;
               }
             | {
                 id: string;
                 first_name: string;
                 last_name: string;
                 role_title?: string | null;
+                profile_photo_url?: string | null;
               }[]
             | null;
         }[]
@@ -114,11 +124,15 @@ export async function listParentMessageContacts(
       name: name || "Teacher",
       subtitle: staff.role_title ?? "Teacher",
       color: colorForKey(staffMemberId),
+      profilePhotoUrl:
+        typeof staff.profile_photo_url === "string" && staff.profile_photo_url.trim()
+          ? staff.profile_photo_url.trim()
+          : null,
     });
   }
 
   contacts.push(...teacherMap.values());
-  return { familyId, contacts };
+  return { familyId, guardianId, contacts };
 }
 
 export async function listTeacherMessageContacts(
@@ -158,20 +172,25 @@ export async function listTeacherMessageContacts(
   };
 
   const contacts: MessageContact[] = [];
-  for (const familyId of familyIds) {
+  for (const [guardianId, guardian] of guardianMaps.guardians) {
+    const familyId = guardian.familyId;
+    if (!familyId || !familyIds.includes(familyId)) continue;
     const enrolledStudents = enrolledStudentsByFamily.get(familyId) ?? [];
+    if (enrolledStudents.length === 0) continue;
     contacts.push({
-      key: `family:${familyId}`,
-      kind: "family",
+      key: `guardian:${guardianId}`,
+      kind: "guardian",
+      guardianId,
       familyId,
-      name: resolveTeacherFamilyThreadTitle(familyId, displayContext),
+      name: resolveGuardianDisplayName(guardianId, displayContext) ?? "Parent",
       subtitle:
         enrolledStudents.length > 0
           ? formatEnrolledStudentSubtitle(enrolledStudents)
           : undefined,
       subtitleStudents: toMessageStudentRefs(enrolledStudents),
       subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
-      color: colorForKey(familyId),
+      color: colorForKey(guardianId),
+      profilePhotoUrl: guardianPhotoUrl(guardianId, displayContext),
     });
   }
 
@@ -185,46 +204,74 @@ export async function listAdminMessageContacts(
 ): Promise<MessageContact[]> {
   const contacts: MessageContact[] = [];
 
-  const { data: families, error: familiesError } = await admin
-    .from("families")
-    .select("id, name")
+  const { data: guardianRows, error: guardiansError } = await admin
+    .from("guardians")
+    .select("id, first_name, last_name, family_id, profile_photo_url")
     .eq("organization_id", organizationId)
-    .order("name", { ascending: true })
+    .order("last_name", { ascending: true })
+    .order("first_name", { ascending: true })
     .limit(500);
 
-  if (familiesError) throw new Error(familiesError.message);
+  if (guardiansError) throw new Error(guardiansError.message);
 
-  const familyIds = (families ?? []).map((family) => String(family.id));
-  const guardianMaps = await loadFamilyGuardianDisplayMaps(
-    admin,
-    organizationId,
-    familyIds,
-  );
+  const familyIds = [
+    ...new Set(
+      (guardianRows ?? [])
+        .map((row) => (row.family_id ? String(row.family_id) : null))
+        .filter((familyId): familyId is string => Boolean(familyId)),
+    ),
+  ];
 
-  const displayContext: ParticipantDisplayContext = {
-    families: guardianMaps.families,
-    staffMembers: new Map(),
-    guardians: guardianMaps.guardians,
-    familyPrimaryGuardianIds: guardianMaps.familyPrimaryGuardianIds,
-    familyFirstGuardianIds: guardianMaps.familyFirstGuardianIds,
-    familyEnrolledStudents: new Map(),
-    schoolOfficeLabel: "",
-    currentUserId: "",
-  };
+  const enrolledStudentsByFamily =
+    familyIds.length > 0
+      ? await listFamilyEnrolledStudents(admin, organizationId, familyIds)
+      : new Map();
 
-  for (const family of families ?? []) {
-    const familyId = String(family.id);
+  for (const guardian of guardianRows ?? []) {
+    const guardianId = String(guardian.id);
+    const familyId = guardian.family_id ? String(guardian.family_id) : null;
+    const name = [guardian.first_name, guardian.last_name].filter(Boolean).join(" ");
+    const enrolledStudents = familyId ? enrolledStudentsByFamily.get(familyId) ?? [] : [];
+    if (enrolledStudents.length === 0) continue;
+
     contacts.push({
-      key: `family:${familyId}`,
-      kind: "family",
-      familyId,
-      name: resolveTeacherFamilyThreadTitle(familyId, displayContext),
-      subtitle: "Family",
-      color: colorForKey(familyId),
+      key: `guardian:${guardianId}`,
+      kind: "guardian",
+      guardianId,
+      familyId: familyId ?? undefined,
+      name: name || "Parent",
+      subtitle:
+        enrolledStudents.length > 0
+          ? formatEnrolledStudentFirstNames(enrolledStudents)
+          : "Parent",
+      subtitleStudents: toMessageStudentRefs(enrolledStudents),
+      subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
+      color: colorForKey(guardianId),
+      profilePhotoUrl:
+        typeof guardian.profile_photo_url === "string" && guardian.profile_photo_url.trim()
+          ? guardian.profile_photo_url.trim()
+          : null,
     });
   }
 
   const staffMembers = await listStaffMembers(admin, organizationId);
+  const { data: staffPhotoRows, error: staffPhotoError } = await admin
+    .from("staff_members")
+    .select("id, profile_photo_url")
+    .eq("organization_id", organizationId);
+
+  if (staffPhotoError) throw new Error(staffPhotoError.message);
+
+  const staffPhotoById = new Map<string, string | null>();
+  for (const row of staffPhotoRows ?? []) {
+    staffPhotoById.set(
+      String(row.id),
+      typeof row.profile_photo_url === "string" && row.profile_photo_url.trim()
+        ? row.profile_photo_url.trim()
+        : null,
+    );
+  }
+
   for (const staff of staffMembers) {
     if (staff.employmentStatus !== "active") continue;
     const name = [staff.firstName, staff.lastName].filter(Boolean).join(" ");
@@ -235,6 +282,7 @@ export async function listAdminMessageContacts(
       name: name || "Staff",
       subtitle: staff.roleTitle ?? staff.portalRole ?? "Staff",
       color: colorForKey(staff.id),
+      profilePhotoUrl: staffPhotoById.get(staff.id) ?? null,
     });
   }
 

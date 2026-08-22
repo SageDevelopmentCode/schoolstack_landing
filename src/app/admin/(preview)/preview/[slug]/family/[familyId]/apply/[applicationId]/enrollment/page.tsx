@@ -7,8 +7,8 @@ import {
   applicationBelongsToFamily,
   familyPreviewBasePath,
   getFamilyPreviewGuardianUserId,
-  getFamilyPreviewProfile,
 } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";

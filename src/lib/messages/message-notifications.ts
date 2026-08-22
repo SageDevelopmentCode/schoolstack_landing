@@ -40,7 +40,7 @@ export async function resolveThreadRecipients(
 ): Promise<Recipient[]> {
   const { data: participants, error } = await admin
     .from("message_thread_participants")
-    .select("participant_kind, family_id, staff_member_id")
+    .select("participant_kind, family_id, guardian_id, staff_member_id")
     .eq("thread_id", threadId)
     .eq("organization_id", organizationId);
 
@@ -60,6 +60,21 @@ export async function resolveThreadRecipients(
   };
 
   for (const participant of participants ?? []) {
+    if (participant.participant_kind === "guardian" && participant.guardian_id) {
+      const { data: guardian } = await admin
+        .from("guardians")
+        .select("user_id, email, family_id")
+        .eq("id", participant.guardian_id)
+        .maybeSingle();
+
+      addRecipient(
+        guardian?.user_id ? String(guardian.user_id) : null,
+        typeof guardian?.email === "string" ? guardian.email : null,
+        "parent",
+        guardian?.family_id ? String(guardian.family_id) : undefined,
+      );
+    }
+
     if (participant.participant_kind === "family" && participant.family_id) {
       const { data: guardians } = await admin
         .from("guardians")

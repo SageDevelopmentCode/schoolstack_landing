@@ -59,12 +59,28 @@ export async function loadFamilyGuardianDisplayMaps(
   familyIds: string[],
 ): Promise<{
   families: Map<string, { name: string }>;
-  guardians: Map<string, { firstName: string; lastName: string }>;
+  guardians: Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      familyId?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >;
   familyPrimaryGuardianIds: Map<string, string>;
   familyFirstGuardianIds: Map<string, string>;
 }> {
   const families = new Map<string, { name: string }>();
-  const guardians = new Map<string, { firstName: string; lastName: string }>();
+  const guardians = new Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      familyId?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >();
   const familyPrimaryGuardianIds = new Map<string, string>();
   const familyFirstGuardianIds = new Map<string, string>();
 
@@ -84,7 +100,7 @@ export async function loadFamilyGuardianDisplayMaps(
       .in("id", familyIds),
     admin
       .from("guardians")
-      .select("id, first_name, last_name, family_id, created_at")
+      .select("id, first_name, last_name, family_id, created_at, profile_photo_url")
       .eq("organization_id", organizationId)
       .in("family_id", familyIds)
       .order("created_at", { ascending: true }),
@@ -106,6 +122,11 @@ export async function loadFamilyGuardianDisplayMaps(
     guardians.set(guardianId, {
       firstName: String(row.first_name ?? ""),
       lastName: String(row.last_name ?? ""),
+      familyId,
+      profilePhotoUrl:
+        typeof row.profile_photo_url === "string" && row.profile_photo_url.trim()
+          ? row.profile_photo_url.trim()
+          : null,
     });
     if (familyId && !familyFirstGuardianIds.has(familyId)) {
       familyFirstGuardianIds.set(familyId, guardianId);
@@ -145,23 +166,60 @@ async function loadDisplayContext(
   schoolOfficeLabel: string,
   familyIds: string[],
   staffMemberIds: string[],
+  guardianIds: string[],
   options: LoadDisplayContextOptions = {},
 ): Promise<ParticipantDisplayContext> {
   const families = new Map<string, { name: string }>();
   const staffMembers = new Map<
     string,
-    { firstName: string; lastName: string; roleTitle?: string | null }
+    { firstName: string; lastName: string; roleTitle?: string | null; profilePhotoUrl?: string | null }
   >();
-  const guardians = new Map<string, { firstName: string; lastName: string }>();
+  const guardians = new Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      familyId?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >();
   const familyPrimaryGuardianIds = new Map<string, string>();
   const familyFirstGuardianIds = new Map<string, string>();
   const familyEnrolledStudents = new Map<string, AdminEnrolledStudentSummary[]>();
+  const familyIdSet = new Set(familyIds);
 
-  if (familyIds.length > 0) {
+  if (guardianIds.length > 0) {
+    const { data, error } = await admin
+      .from("guardians")
+      .select("id, first_name, last_name, family_id, profile_photo_url")
+      .eq("organization_id", organizationId)
+      .in("id", guardianIds);
+
+    if (error) throw new Error(error.message);
+
+    for (const row of data ?? []) {
+      const guardianId = String(row.id);
+      const familyId = row.family_id ? String(row.family_id) : null;
+      guardians.set(guardianId, {
+        firstName: String(row.first_name ?? ""),
+        lastName: String(row.last_name ?? ""),
+        familyId,
+        profilePhotoUrl:
+          typeof row.profile_photo_url === "string" && row.profile_photo_url.trim()
+            ? row.profile_photo_url.trim()
+            : null,
+      });
+      if (familyId) familyIdSet.add(familyId);
+    }
+  }
+
+  const mergedFamilyIds = [...familyIdSet];
+
+  if (mergedFamilyIds.length > 0) {
     const guardianMaps = await loadFamilyGuardianDisplayMaps(
       admin,
       organizationId,
-      familyIds,
+      mergedFamilyIds,
     );
 
     for (const [familyId, family] of guardianMaps.families) {
@@ -181,7 +239,7 @@ async function loadDisplayContext(
   if (staffMemberIds.length > 0) {
     const { data, error } = await admin
       .from("staff_members")
-      .select("id, first_name, last_name, role_title")
+      .select("id, first_name, last_name, role_title, profile_photo_url")
       .eq("organization_id", organizationId)
       .in("id", staffMemberIds);
 
@@ -192,15 +250,19 @@ async function loadDisplayContext(
         lastName: String(row.last_name ?? ""),
         roleTitle:
           typeof row.role_title === "string" ? row.role_title : null,
+        profilePhotoUrl:
+          typeof row.profile_photo_url === "string" && row.profile_photo_url.trim()
+            ? row.profile_photo_url.trim()
+            : null,
       });
     }
   }
 
-  if (options.viewer === "teacher" && familyIds.length > 0) {
+  if (options.viewer === "teacher" && mergedFamilyIds.length > 0) {
     const studentsByFamily = await loadFamilyEnrolledStudentsForMessages(
       admin,
       organizationId,
-      familyIds,
+      mergedFamilyIds,
     );
     for (const [familyId, students] of studentsByFamily) {
       familyEnrolledStudents.set(familyId, students);
@@ -221,12 +283,14 @@ async function loadDisplayContext(
 
 function collectIdsFromParticipants(
   participants: MessageThreadParticipantRow[],
-): { familyIds: string[]; staffMemberIds: string[] } {
+): { familyIds: string[]; staffMemberIds: string[]; guardianIds: string[] } {
   const familyIds = new Set<string>();
   const staffMemberIds = new Set<string>();
+  const guardianIds = new Set<string>();
 
   for (const participant of participants) {
     if (participant.family_id) familyIds.add(String(participant.family_id));
+    if (participant.guardian_id) guardianIds.add(String(participant.guardian_id));
     if (participant.staff_member_id) {
       staffMemberIds.add(String(participant.staff_member_id));
     }
@@ -235,6 +299,7 @@ function collectIdsFromParticipants(
   return {
     familyIds: [...familyIds],
     staffMemberIds: [...staffMemberIds],
+    guardianIds: [...guardianIds],
   };
 }
 
@@ -287,7 +352,7 @@ export async function getTotalUnreadCount(
   schoolOfficeLabel: string,
   viewer: "parent" | "teacher" | "admin",
   filter:
-    | { type: "family"; familyIds: string[] }
+    | { type: "guardian"; guardianIds: string[] }
     | { type: "staff"; staffMemberId: string }
     | { type: "admin" },
 ): Promise<number> {
@@ -341,6 +406,17 @@ export async function findOrCreateThread(
         organization_id: organizationId,
         participant_kind: participant.kind,
         family_id: participant.familyId,
+        guardian_id: null,
+        staff_member_id: null,
+      };
+    }
+    if (participant.kind === "guardian") {
+      return {
+        thread_id: threadId,
+        organization_id: organizationId,
+        participant_kind: participant.kind,
+        family_id: null,
+        guardian_id: participant.guardianId,
         staff_member_id: null,
       };
     }
@@ -350,6 +426,7 @@ export async function findOrCreateThread(
         organization_id: organizationId,
         participant_kind: participant.kind,
         family_id: null,
+        guardian_id: null,
         staff_member_id: participant.staffMemberId,
       };
     }
@@ -358,6 +435,7 @@ export async function findOrCreateThread(
       organization_id: organizationId,
       participant_kind: participant.kind,
       family_id: null,
+      guardian_id: null,
       staff_member_id: null,
     };
   });
@@ -378,20 +456,20 @@ export async function listThreadsForOrganization(
   schoolOfficeLabel: string,
   viewer: "parent" | "teacher" | "admin",
   filter:
-    | { type: "family"; familyIds: string[] }
+    | { type: "guardian"; guardianIds: string[] }
     | { type: "staff"; staffMemberId: string }
     | { type: "admin" },
 ): Promise<MessageThreadSummary[]> {
   let threadIds: string[] = [];
 
-  if (filter.type === "family") {
-    if (filter.familyIds.length === 0) return [];
+  if (filter.type === "guardian") {
+    if (filter.guardianIds.length === 0) return [];
     const { data, error } = await admin
       .from("message_thread_participants")
       .select("thread_id")
       .eq("organization_id", organizationId)
-      .eq("participant_kind", "family")
-      .in("family_id", filter.familyIds);
+      .eq("participant_kind", "guardian")
+      .in("guardian_id", filter.guardianIds);
 
     if (error) throw new Error(error.message);
     threadIds = [...new Set((data ?? []).map((row) => String(row.thread_id)))];
@@ -474,7 +552,7 @@ export async function listThreadsForOrganization(
     participantsByThread.set(threadId, list);
   }
 
-  const { familyIds, staffMemberIds } = collectIdsFromParticipants(
+  const { familyIds, staffMemberIds, guardianIds } = collectIdsFromParticipants(
     (participantRows ?? []) as MessageThreadParticipantRow[],
   );
 
@@ -485,6 +563,7 @@ export async function listThreadsForOrganization(
     schoolOfficeLabel,
     familyIds,
     staffMemberIds,
+    guardianIds,
     {
       viewer,
       currentStaffMemberId: filter.type === "staff" ? filter.staffMemberId : null,
@@ -562,7 +641,7 @@ export async function getThreadDetail(
     mapParticipantRow,
   );
 
-  const { familyIds, staffMemberIds } = collectIdsFromParticipants(
+  const { familyIds, staffMemberIds, guardianIds } = collectIdsFromParticipants(
     (participantRows ?? []) as MessageThreadParticipantRow[],
   );
 
@@ -578,6 +657,7 @@ export async function getThreadDetail(
       schoolOfficeLabel,
       familyIds,
       staffMemberIds,
+      guardianIds,
       { viewer, currentStaffMemberId: options.currentStaffMemberId ?? null },
     ),
     loadAttachmentsForMessages(admin, messageIds),

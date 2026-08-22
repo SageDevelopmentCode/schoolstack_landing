@@ -32,7 +32,7 @@ export default function RootLayout() {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !isMobileE2e) {
     return <View style={{ flex: 1, backgroundColor: Brand.bg }} />;
   }
 
@@ -56,7 +56,7 @@ export default function RootLayout() {
           options={{ animation: isMobileE2e ? 'none' : 'fade' }}
         />
         <Stack.Screen
-          name="school-admin"
+          name="school-admin/[slug]"
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
       </Stack>

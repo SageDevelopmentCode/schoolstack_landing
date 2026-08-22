@@ -950,6 +950,7 @@ function ParentBillingPageContent({
             className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${
               mobileView === "list" ? "hidden md:block" : "block"
             }`}
+            style={{ backgroundColor: C.bg }}
           >
             <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 pt-4 pb-6">
               {pageBanners}
@@ -1030,7 +1031,7 @@ function ParentBillingPageContent({
           </div>
         </div>
       ) : displayChild ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: C.bg }}>
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
             {pageBanners}
             <ParentBillingChildDetailPanel
@@ -1064,7 +1065,7 @@ function ParentBillingPageContent({
           </div>
         </div>
       ) : hasPageBanners ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: C.bg }}>
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
             {pageBanners}
           </div>

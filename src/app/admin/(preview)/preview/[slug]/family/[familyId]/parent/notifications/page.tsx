@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ParentNotificationSettingsPage from "@/components/school-parent/ParentNotificationSettingsPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getFamilyNotificationEmailSettings } from "@/lib/notifications/family-notification-emails";

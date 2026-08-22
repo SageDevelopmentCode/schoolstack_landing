@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  resolveGuardianDisplayName,
   resolveTeacherFamilyThreadTitle,
   resolveThreadTitle,
   type ParticipantDisplayContext,
@@ -14,8 +15,14 @@ function buildContext(
     families: new Map([["family-1", { name: "Cecilia Family" }]]),
     staffMembers: new Map(),
     guardians: new Map([
-      ["guardian-julius", { firstName: "Julius", lastName: "Cecilia" }],
-      ["guardian-jane", { firstName: "Jane", lastName: "Cecilia" }],
+      [
+        "guardian-julius",
+        { firstName: "Julius", lastName: "Cecilia", familyId: "family-1" },
+      ],
+      [
+        "guardian-jane",
+        { firstName: "Jane", lastName: "Cecilia", familyId: "family-1" },
+      ],
     ]),
     familyPrimaryGuardianIds: new Map([["family-1", "guardian-julius"]]),
     familyFirstGuardianIds: new Map([["family-1", "guardian-julius"]]),
@@ -102,7 +109,12 @@ test("resolveTeacherFamilyThreadTitle falls back to primary guardian when no gua
   );
 });
 
-test("resolveThreadTitle uses guardian name for admin family-staff threads", () => {
+test("resolveGuardianDisplayName returns guardian name directly", () => {
+  const context = buildContext();
+  assert.equal(resolveGuardianDisplayName("guardian-jane", context), "Jane Cecilia");
+});
+
+test("resolveThreadTitle uses guardian name for admin guardian-staff threads", () => {
   const context = buildContext({
     staffMembers: new Map([
       [
@@ -119,15 +131,17 @@ test("resolveThreadTitle uses guardian name for admin family-staff threads", () 
   const display = resolveThreadTitle(
     [
       {
-        id: "participant-family",
-        kind: "family",
-        familyId: "family-1",
+        id: "participant-guardian",
+        kind: "guardian",
+        familyId: null,
+        guardianId: "guardian-julius",
         staffMemberId: null,
       },
       {
         id: "participant-staff",
         kind: "staff_member",
         familyId: null,
+        guardianId: null,
         staffMemberId: "staff-1",
       },
     ],
@@ -141,4 +155,32 @@ test("resolveThreadTitle uses guardian name for admin family-staff threads", () 
   assert.equal(display.listAvatars?.[0]?.name, "Julius Cecilia");
   assert.equal(display.listAvatars?.[1]?.name, "Julius Staff");
   assert.notEqual(display.title, "Cecilia Family");
+});
+
+test("resolveThreadTitle uses guardian name for admin guardian-office threads", () => {
+  const context = buildContext();
+
+  const display = resolveThreadTitle(
+    [
+      {
+        id: "participant-guardian",
+        kind: "guardian",
+        familyId: null,
+        guardianId: "guardian-jane",
+        staffMemberId: null,
+      },
+      {
+        id: "participant-office",
+        kind: "school_office",
+        familyId: null,
+        guardianId: null,
+        staffMemberId: null,
+      },
+    ],
+    context,
+    "admin",
+  );
+
+  assert.equal(display.title, "Jane Cecilia");
+  assert.equal(display.subtitle, undefined);
 });

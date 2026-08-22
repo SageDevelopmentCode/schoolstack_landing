@@ -79,6 +79,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireSchoolAdminUser(
       supabase,
       String(application.organization_id),
+      request,
     );
 
     const currentStatus = String(application.status);
@@ -206,7 +207,11 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, String(application.organization_id));
+    await requireSchoolAdminUser(
+      supabase,
+      String(application.organization_id),
+      request,
+    );
 
     const currentStatus = String(application.status);
     const { getAllowedStatusTransitions, getApplicationDecisionActions } =

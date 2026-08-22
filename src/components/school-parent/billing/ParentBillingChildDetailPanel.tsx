@@ -69,7 +69,7 @@ export default function ParentBillingChildDetailPanel({
   const assignmentCharges = child.assignmentId
     ? charges.filter((charge) => charge.assignmentId === child.assignmentId)
     : [];
-  const scheduleCharges = sortChargesByDueDate(assignmentCharges);
+  const upcomingCharges = sortChargesByDueDate(openCharges);
 
   const childPayments = payments.filter(
     (payment) => payment.enrollmentId === child.childKey,
@@ -112,7 +112,11 @@ export default function ParentBillingChildDetailPanel({
       {child.balanceDueCents > 0 ? (
         <div
           className="rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+          style={{
+            backgroundColor: C.surface,
+            border: `1px solid ${C.border}`,
+            boxShadow: C.shadowCard,
+          }}
           data-testid={`parent-billing-child-due-card-${child.childKey}`}
         >
           <div>
@@ -197,9 +201,9 @@ export default function ParentBillingChildDetailPanel({
           <h3 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>
             Payment schedule
           </h3>
-          {scheduleCharges.length > 0 ? (
+          {upcomingCharges.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {scheduleCharges.slice(0, 4).map((charge) => (
+              {upcomingCharges.slice(0, 4).map((charge) => (
                 <ParentBillingChargeRow
                   key={charge.id}
                   C={C}
@@ -213,7 +217,7 @@ export default function ParentBillingChildDetailPanel({
                   readOnly={readOnly}
                 />
               ))}
-              {scheduleCharges.length > 4 || openCharges.length > 0 ? (
+              {upcomingCharges.length > 4 ? (
                 <button
                   type="button"
                   onClick={onOpenUpcomingCharges}
@@ -221,14 +225,13 @@ export default function ParentBillingChildDetailPanel({
                   style={{
                     backgroundColor: C.surface,
                     border: `1px solid ${C.border}`,
+                    boxShadow: C.shadowCard,
                   }}
                   data-testid="parent-billing-upcoming-charges-trigger"
                 >
                   <div className="min-w-0">
                     <p className="font-medium" style={{ color: C.textPrimary }}>
-                      {scheduleCharges.length > 4
-                        ? "View full schedule"
-                        : "View payment schedule"}
+                      View full schedule
                     </p>
                     {upcomingSummary ? (
                       <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
@@ -246,7 +249,9 @@ export default function ParentBillingChildDetailPanel({
             </div>
           ) : (
             <p className="text-sm" style={{ color: C.textTertiary }}>
-              No charges on the schedule yet.
+              {assignmentCharges.length > 0
+                ? "No upcoming charges."
+                : "No charges on the schedule yet."}
             </p>
           )}
         </section>

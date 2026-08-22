@@ -38,7 +38,11 @@ export default function ParentPaymentMethodCard({
   return (
     <div
       className="rounded-xl p-5 flex flex-col gap-3"
-      style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+      style={{
+        backgroundColor: C.surface,
+        border: `1px solid ${C.border}`,
+        boxShadow: C.shadowCard,
+      }}
       data-testid="parent-payment-method-card"
     >
       <div className="flex items-start justify-between gap-3">

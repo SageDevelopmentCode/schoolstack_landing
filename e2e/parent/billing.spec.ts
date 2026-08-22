@@ -301,13 +301,14 @@ test("parent billing page lets family choose payment schedule inline", async ({
   await page.getByText("Pay in full").click();
   await page.getByRole("button", { name: "Confirm payment schedule" }).click();
 
-  await expectUpcomingChargesTrigger(page);
-  await openUpcomingChargesPanel(page);
   await expect(
     page
-      .getByTestId("parent-billing-upcoming-charges-panel")
+      .getByTestId("parent-billing-child-detail-panel")
       .getByTestId("parent-billing-charge-row"),
   ).toHaveCount(1);
+  await expect(
+    page.getByTestId("parent-billing-upcoming-charges-trigger"),
+  ).toHaveCount(0);
 });
 
 test("parent billing page uses child tabs for multiple pending schedules", async ({

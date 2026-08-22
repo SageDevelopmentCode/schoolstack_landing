@@ -1,23 +1,24 @@
+import 'server-only';
+
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+import { getBearerAccessToken } from '@/lib/supabase/bearer-token';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export async function createClientFromRequest(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ') && supabaseUrl && supabaseKey) {
-    const accessToken = authHeader.slice('Bearer '.length).trim();
-    if (accessToken) {
-      return createSupabaseClient(supabaseUrl, supabaseKey, {
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+  const accessToken = getBearerAccessToken(request);
+  if (accessToken && supabaseUrl && supabaseKey) {
+    return createSupabaseClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
-      });
-    }
+      },
+    });
   }
 
   const cookieStore = await cookies();

@@ -74,7 +74,7 @@ Or from `apps/mobile`: `maestro test .maestro`
 
 | Flow | Covers |
 |------|--------|
-| `intro-to-login.yaml` | Intro → school login |
+| `intro-to-login.yaml` | Launch app → wait for school login screen (E2E auto-skips intro) |
 | `school-admin-logged-in.yaml` | School admin password login → dashboard |
 | `dashboard.yaml` | Dashboard shell |
 | `submissions-list.yaml` | Admissions list |
@@ -106,7 +106,8 @@ Password: `E2eTestPassword123!`
 | Metro not running | Start Expo with `.env.e2e.local` sourced |
 | Android cannot reach host | Use `10.0.2.2`, not `127.0.0.1`, in `.env.e2e.local` |
 | CI: `Connection reset` downloading `gradle-9.3.1-bin.zip` | Transient network on cache miss — re-run workflow; CI builds APK in a dedicated step with retries before the emulator starts |
-| Maestro can't find `id: …` on Android (Reanimated pressable) | `AnimatedPressable` often hides `testID` from UiAutomator — prefer visible label text in flows (e.g. `'Log in to continue'`) or put `testID` on an inner `View` with `collapsable={false}` |
+| Maestro can't find `Sign in to your school` on Android CI | Usually a **stale cached APK** from `restore-keys` partial hit — the workflow now validates an `.e2e-stamp` beside the APK and rebuilds when source/Maestro inputs change. Symptom: log shows `Using cached debug APK` but Maestro never reaches login. Re-run after the stamp fix lands, or delete `apps/mobile/android/app/build/outputs/apk/debug/` locally and rebuild |
+| Maestro can't find intro/login CTA on Android | Under `EXPO_PUBLIC_E2E=1`, the app redirects to `/login`; `intro-to-login.yaml` also taps `Log in to continue` when the intro is still visible. **CI** embeds JS in the debug APK (`debuggableVariants = []` in `build-android-debug-ci.sh`; no Metro on the emulator). **Local** dev uses Metro; set `ANDROID_E2E_USE_METRO=1` when running `run-e2e-android-ci.sh` |
 
 ## More detail
 

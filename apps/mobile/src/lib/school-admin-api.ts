@@ -7,10 +7,7 @@ type FetchSchoolAdminApiOptions = {
   body?: unknown;
 };
 
-export async function fetchSchoolAdminApi<T>(
-  path: string,
-  options: FetchSchoolAdminApiOptions = {},
-): Promise<T> {
+async function getAuthHeaders(includeJson = false): Promise<Record<string, string>> {
   const supabase = getSupabaseClient();
   const {
     data: { session },
@@ -20,13 +17,39 @@ export async function fetchSchoolAdminApi<T>(
     throw new Error('You must be signed in to continue.');
   }
 
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
+  };
+}
+
+export async function fetchSchoolAdminApi<T>(
+  path: string,
+  options: FetchSchoolAdminApiOptions = {},
+): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    },
+    headers: await getAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  if (!response.ok) {
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+  }
+
+  return payload;
+}
+
+export async function fetchSchoolAdminApiFormData<T>(
+  path: string,
+  formData: FormData,
+  method: 'POST' | 'PATCH' = 'POST',
+): Promise<T> {
+  const response = await fetch(`${siteUrl}${path}`, {
+    method,
+    headers: await getAuthHeaders(false),
+    body: formData,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };

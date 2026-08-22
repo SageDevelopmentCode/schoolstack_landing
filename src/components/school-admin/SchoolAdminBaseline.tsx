@@ -38,6 +38,7 @@ import { createClient } from "@/utils/supabase/client";
 import AdminPageContentShell from "@/components/school-admin/AdminPageContentShell";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
+import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import SchoolAdminProfileMenu from "@/components/school-admin/SchoolAdminProfileMenu";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 
@@ -133,13 +134,17 @@ function SidebarNavItem({
           <span className="text-sm font-medium truncate flex items-center gap-1">
             {item.name}
             {item.key === "messages" ? (
-              <MessagesNavBadge count={messagesUnreadCount} />
+              <MessagesNavBadge
+                count={messagesUnreadCount}
+                theme={{ accent: C.accent, accentLight: C.accentLight }}
+              />
             ) : null}
           </span>
         )}
         {!isExpanded && item.key === "messages" && messagesUnreadCount > 0 ? (
           <span
-            className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"
+            className="absolute top-1 right-1 h-2 w-2 rounded-full"
+            style={{ backgroundColor: C.accent }}
             aria-hidden
           />
         ) : null}
@@ -646,6 +651,10 @@ export default function SchoolAdminBaseline({
   };
 
   return (
+    <MessagesRefreshProvider
+      organizationId={organizationId}
+      enabled={messagesEnabled && !previewMode}
+    >
     <NavigationLoadingProvider>
     <div
       className="flex h-dvh w-full overflow-hidden"
@@ -705,5 +714,6 @@ export default function SchoolAdminBaseline({
       </main>
     </div>
     </NavigationLoadingProvider>
+    </MessagesRefreshProvider>
   );
 }

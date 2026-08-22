@@ -19,6 +19,7 @@ import type {
 } from "@/lib/school-admin/admissions-setup-status";
 import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
 import { createClient } from "@/utils/supabase/client";
+import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 
 type AdminDashboardPageProps = {
   organizationId: string;
@@ -97,44 +98,21 @@ export default function AdminDashboardPage({
   }, [refreshStatus]);
 
   const stripeStep = status.steps.find((step) => step.id === "stripe");
-  useEffect(() => {
-    if (stripeStep?.status !== "in_progress") return;
 
-    let cancelled = false;
-    let intervalId = 0;
+  const pollStripe = useCallback(async () => {
+    try {
+      await fetch("/api/stripe/connect/status");
+      await refreshStatus();
+    } catch {
+      // Ignore polling errors; the dashboard still shows the last known status.
+    }
+  }, [refreshStatus]);
 
-    const pollStripe = async () => {
-      if (document.visibilityState !== "visible") return;
-
-      try {
-        await fetch("/api/stripe/connect/status");
-        if (!cancelled) {
-          await refreshStatus();
-        }
-      } catch {
-        // Ignore polling errors; the dashboard still shows the last known status.
-      }
-    };
-
-    void pollStripe();
-    intervalId = window.setInterval(() => {
-      void pollStripe();
-    }, 60_000);
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !cancelled) {
-        void pollStripe();
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
-  }, [refreshStatus, stripeStep?.status]);
+  useVisibilityPolling(
+    pollStripe,
+    60_000,
+    stripeStep?.status === "in_progress",
+  );
 
   const timelineItems: DetailPanelStepTimelineItem[] = useMemo(
     () =>

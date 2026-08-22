@@ -89,7 +89,7 @@ export default function ParentBillingChargeRow({
       style={{
         backgroundColor: C.surface,
         border: `1px solid ${highlighted ? C.accent : C.border}`,
-        boxShadow: highlighted ? `0 0 0 2px ${C.accentLight}` : undefined,
+        boxShadow: highlighted ? `0 0 0 2px ${C.accentLight}` : C.shadowCard,
       }}
     >
       <div className="min-w-0 flex-1">

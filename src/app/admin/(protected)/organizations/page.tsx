@@ -283,7 +283,7 @@ export default function AdminOrganizationsPage() {
             Select an organization
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto p-6 space-y-6">
+          <div className="w-full max-w-6xl mx-auto p-6 space-y-6">
             <div>
               <h1 className="text-lg font-semibold text-admin-text ">
                 {selected.name}

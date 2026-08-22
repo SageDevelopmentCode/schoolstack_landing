@@ -5,9 +5,9 @@ import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnly
 import {
   applicationBelongsToFamily,
   familyPreviewBasePath,
-  getFamilyPreviewProfile,
   loadApplicationDetailForFamily,
 } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 

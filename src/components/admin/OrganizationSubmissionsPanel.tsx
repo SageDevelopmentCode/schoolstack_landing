@@ -12,10 +12,12 @@ import {
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
 import {
-  familyPreviewBasePath,
   findOwnerLinkedFamilyId,
-  schoolAdminPreviewBasePath,
 } from "@/lib/admissions/family-preview-access";
+import {
+  familyPreviewBasePath,
+  schoolAdminPreviewBasePath,
+} from "@/lib/admissions/preview-portal-options";
 import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import { createClient } from "@/utils/supabase/client";
 
@@ -131,8 +133,8 @@ export default function OrganizationSubmissionsPanel({
           No submissions for this school yet.
         </p>
       ) : (
-        <div className="overflow-x-auto -mx-1">
-          <table className="w-full min-w-[520px] text-sm font-secondary">
+        <div>
+          <table className="w-full text-sm font-secondary">
             <thead>
               <tr className="text-left text-xs text-admin-faint border-b border-admin-border">
                 <th className="px-2 py-2 font-semibold">Student</th>
@@ -162,15 +164,15 @@ export default function OrganizationSubmissionsPanel({
                       <p className="font-medium text-admin-text">
                         {submission.studentLabel ?? "—"}
                       </p>
-                      <p className="text-xs text-admin-muted mt-0.5 truncate max-w-[180px]">
+                      <p className="text-xs text-admin-muted mt-0.5 truncate">
                         {submission.formTitle}
                       </p>
                     </td>
                     <td className="px-2 py-2.5 align-top">
-                      <p className="text-admin-text truncate max-w-[160px]">
+                      <p className="text-admin-text truncate">
                         {submission.guardianName ?? "—"}
                       </p>
-                      <p className="text-xs text-admin-muted mt-0.5 truncate max-w-[160px]">
+                      <p className="text-xs text-admin-muted mt-0.5 truncate">
                         {submission.contactEmail ?? "—"}
                       </p>
                     </td>
@@ -192,7 +194,7 @@ export default function OrganizationSubmissionsPanel({
                     <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
                       {formatUpdatedAt(submission.updatedAt)}
                     </td>
-                    <td className="px-2 py-2.5 align-top text-right">
+                    <td className="px-2 py-2.5 align-top text-right whitespace-nowrap">
                       {previewHref && familyId ? (
                         <div className="flex flex-col items-end gap-1.5">
                           <a

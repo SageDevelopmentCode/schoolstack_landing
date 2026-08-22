@@ -31,6 +31,7 @@ export type MessageThreadParticipantRow = {
   organization_id: string;
   participant_kind: MessageParticipantKind;
   family_id: string | null;
+  guardian_id: string | null;
   staff_member_id: string | null;
 };
 
@@ -50,9 +51,22 @@ export type ParticipantDisplayContext = {
   families: Map<string, { name: string }>;
   staffMembers: Map<
     string,
-    { firstName: string; lastName: string; roleTitle?: string | null }
+    {
+      firstName: string;
+      lastName: string;
+      roleTitle?: string | null;
+      profilePhotoUrl?: string | null;
+    }
   >;
-  guardians: Map<string, { firstName: string; lastName: string }>;
+  guardians: Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      familyId?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >;
   familyPrimaryGuardianIds: Map<string, string>;
   familyFirstGuardianIds: Map<string, string>;
   familyEnrolledStudents: Map<string, AdminEnrolledStudentSummary[]>;
@@ -98,6 +112,39 @@ export function resolveGuardianDisplayName(
   const guardian = context.guardians.get(guardianId);
   if (!guardian) return null;
   return [guardian.firstName, guardian.lastName].filter(Boolean).join(" ") || null;
+}
+
+export function guardianPhotoUrl(
+  guardianId: string,
+  context: ParticipantDisplayContext,
+): string | null {
+  return context.guardians.get(guardianId)?.profilePhotoUrl ?? null;
+}
+
+export function familyGuardianPhotoUrl(
+  familyId: string,
+  context: ParticipantDisplayContext,
+  lastMessage?: PortalMessageRow | null,
+  messages?: PortalMessageRow[] | null,
+): string | null {
+  const messagingGuardianId = findLastGuardianMessageSenderId(lastMessage, messages);
+  if (messagingGuardianId) {
+    const messagingPhoto = guardianPhotoUrl(messagingGuardianId, context);
+    if (messagingPhoto) return messagingPhoto;
+  }
+
+  const primaryGuardianId = context.familyPrimaryGuardianIds.get(familyId);
+  if (primaryGuardianId) {
+    const primaryPhoto = guardianPhotoUrl(primaryGuardianId, context);
+    if (primaryPhoto) return primaryPhoto;
+  }
+
+  const firstGuardianId = context.familyFirstGuardianIds.get(familyId);
+  if (firstGuardianId) {
+    return guardianPhotoUrl(firstGuardianId, context);
+  }
+
+  return null;
 }
 
 function findLastGuardianMessageSenderId(
@@ -162,8 +209,23 @@ export function mapParticipantRow(
     id: String(row.id),
     kind: row.participant_kind,
     familyId: row.family_id ? String(row.family_id) : null,
+    guardianId: row.guardian_id ? String(row.guardian_id) : null,
     staffMemberId: row.staff_member_id ? String(row.staff_member_id) : null,
   };
+}
+
+function guardianFamilyId(
+  guardianId: string,
+  context: ParticipantDisplayContext,
+): string | null {
+  return context.guardians.get(guardianId)?.familyId ?? null;
+}
+
+function resolveGuardianThreadTitle(
+  guardianId: string,
+  context: ParticipantDisplayContext,
+): string {
+  return resolveGuardianDisplayName(guardianId, context) ?? "Parent";
 }
 
 export function resolveThreadTitle(
@@ -178,14 +240,40 @@ export function resolveThreadTitle(
   subtitleStudents?: MessageStudentRef[];
   subtitleStudentSummaries?: MessageStudentSummary[];
   listAvatars?: MessageThreadListAvatar[];
+  photoUrl?: string | null;
   color: string;
 } {
-  const familyParticipant = participants.find((p) => p.kind === "family");
+  const guardianParticipant = participants.find((p) => p.kind === "guardian");
+  const legacyFamilyParticipant = participants.find((p) => p.kind === "family");
   const staffParticipants = participants.filter((p) => p.kind === "staff_member");
   const hasOffice = participants.some((p) => p.kind === "school_office");
 
-  if (hasOffice && familyParticipant?.familyId) {
-    const family = context.families.get(familyParticipant.familyId);
+  if (hasOffice && guardianParticipant?.guardianId) {
+    const guardianId = guardianParticipant.guardianId;
+    const guardianName = resolveGuardianThreadTitle(guardianId, context);
+    if (viewer === "parent") {
+      return {
+        title: context.schoolOfficeLabel,
+        subtitle: "Admin",
+        color: "#4A6354",
+      };
+    }
+    if (viewer === "admin") {
+      return {
+        title: guardianName,
+        photoUrl: guardianPhotoUrl(guardianId, context),
+        color: "#4A6354",
+      };
+    }
+    return {
+      title: guardianName,
+      subtitle: context.schoolOfficeLabel,
+      color: "#4A6354",
+    };
+  }
+
+  if (hasOffice && legacyFamilyParticipant?.familyId) {
+    const family = context.families.get(legacyFamilyParticipant.familyId);
     if (viewer === "parent") {
       return {
         title: context.schoolOfficeLabel,
@@ -196,12 +284,17 @@ export function resolveThreadTitle(
     if (viewer === "admin") {
       return {
         title: resolveTeacherFamilyThreadTitle(
-          familyParticipant.familyId,
+          legacyFamilyParticipant.familyId,
           context,
           lastMessage,
           threadMessages,
         ),
-        subtitle: context.schoolOfficeLabel,
+        photoUrl: familyGuardianPhotoUrl(
+          legacyFamilyParticipant.familyId,
+          context,
+          lastMessage,
+          threadMessages,
+        ),
         color: "#4A6354",
       };
     }
@@ -231,11 +324,12 @@ export function resolveThreadTitle(
     return {
       title: staffName,
       subtitle: context.schoolOfficeLabel,
+      photoUrl: staff?.profilePhotoUrl ?? null,
       color: "#4A6354",
     };
   }
 
-  if (staffParticipants.length === 2 && !familyParticipant) {
+  if (staffParticipants.length === 2 && !guardianParticipant && !legacyFamilyParticipant) {
     const names = staffParticipants.map((participant) => {
       const staff = participant.staffMemberId
         ? context.staffMembers.get(participant.staffMemberId)
@@ -250,7 +344,67 @@ export function resolveThreadTitle(
     };
   }
 
-  if (familyParticipant?.familyId && staffParticipants.length === 1) {
+  if (guardianParticipant?.guardianId && staffParticipants.length === 1) {
+    const guardianId = guardianParticipant.guardianId;
+    const familyId = guardianFamilyId(guardianId, context);
+    const staff = staffParticipants[0]?.staffMemberId
+      ? context.staffMembers.get(staffParticipants[0].staffMemberId)
+      : null;
+    const staffName = staff
+      ? [staff.firstName, staff.lastName].filter(Boolean).join(" ")
+      : "Teacher";
+    const guardianName = resolveGuardianThreadTitle(guardianId, context);
+    const guardianPhoto = guardianPhotoUrl(guardianId, context);
+
+    if (viewer === "parent") {
+      return {
+        title: staffName,
+        subtitle: staff?.roleTitle ?? "Teacher",
+        photoUrl: staff?.profilePhotoUrl ?? null,
+        color: "#7FA888",
+      };
+    }
+
+    if (viewer === "teacher") {
+      const enrolledStudents =
+        familyId ? (context.familyEnrolledStudents.get(familyId) ?? []) : [];
+      return {
+        title: guardianName,
+        subtitle:
+          enrolledStudents.length > 0
+            ? formatEnrolledStudentSubtitle(enrolledStudents)
+            : undefined,
+        subtitleStudents: toMessageStudentRefs(enrolledStudents),
+        subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
+        photoUrl: guardianPhoto,
+        color: "#7FA888",
+      };
+    }
+
+    const staffParticipant = staffParticipants[0];
+    const staffMemberId = staffParticipant?.staffMemberId ?? null;
+
+    return {
+      title: `${guardianName}, ${staffName}`,
+      subtitle: undefined,
+      listAvatars: [
+        {
+          name: guardianName,
+          color: colorForKey(guardianId),
+          profilePhotoUrl: guardianPhoto,
+        },
+        {
+          name: staffName,
+          color: colorForKey(staffMemberId ?? staffName),
+          profilePhotoUrl: staff?.profilePhotoUrl ?? null,
+        },
+      ],
+      color: "#7FA888",
+    };
+  }
+
+  if (legacyFamilyParticipant?.familyId && staffParticipants.length === 1) {
+    const familyId = legacyFamilyParticipant.familyId;
     const staff = staffParticipants[0]?.staffMemberId
       ? context.staffMembers.get(staffParticipants[0].staffMemberId)
       : null;
@@ -262,16 +416,16 @@ export function resolveThreadTitle(
       return {
         title: staffName,
         subtitle: staff?.roleTitle ?? "Teacher",
+        photoUrl: staff?.profilePhotoUrl ?? null,
         color: "#7FA888",
       };
     }
 
     if (viewer === "teacher") {
-      const enrolledStudents =
-        context.familyEnrolledStudents.get(familyParticipant.familyId) ?? [];
+      const enrolledStudents = context.familyEnrolledStudents.get(familyId) ?? [];
       return {
         title: resolveTeacherFamilyThreadTitle(
-          familyParticipant.familyId,
+          familyId,
           context,
           lastMessage,
           threadMessages,
@@ -282,6 +436,12 @@ export function resolveThreadTitle(
             : undefined,
         subtitleStudents: toMessageStudentRefs(enrolledStudents),
         subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
+        photoUrl: familyGuardianPhotoUrl(
+          familyId,
+          context,
+          lastMessage,
+          threadMessages,
+        ),
         color: "#7FA888",
       };
     }
@@ -289,7 +449,13 @@ export function resolveThreadTitle(
     const staffParticipant = staffParticipants[0];
     const staffMemberId = staffParticipant?.staffMemberId ?? null;
     const guardianName = resolveTeacherFamilyThreadTitle(
-      familyParticipant.familyId,
+      familyId,
+      context,
+      lastMessage,
+      threadMessages,
+    );
+    const guardianPhoto = familyGuardianPhotoUrl(
+      familyId,
       context,
       lastMessage,
       threadMessages,
@@ -301,11 +467,13 @@ export function resolveThreadTitle(
       listAvatars: [
         {
           name: guardianName,
-          color: colorForKey(familyParticipant.familyId),
+          color: colorForKey(familyId),
+          profilePhotoUrl: guardianPhoto,
         },
         {
           name: staffName,
           color: colorForKey(staffMemberId ?? staffName),
+          profilePhotoUrl: staff?.profilePhotoUrl ?? null,
         },
       ],
       color: "#7FA888",
@@ -320,6 +488,7 @@ export function mapMessageRow(
   context: ParticipantDisplayContext,
 ): PortalMessage {
   let senderName = "Unknown";
+  let profilePhotoUrl: string | null = null;
 
   if (row.sender_kind === "org_admin") {
     senderName = context.schoolOfficeLabel;
@@ -328,6 +497,7 @@ export function mapMessageRow(
     senderName = guardian
       ? [guardian.firstName, guardian.lastName].filter(Boolean).join(" ")
       : "Parent";
+    profilePhotoUrl = guardian?.profilePhotoUrl ?? null;
   } else if (row.sender_kind === "guardian") {
     senderName = "Parent";
   } else if (row.sender_kind === "staff_member" && row.sender_staff_member_id) {
@@ -335,6 +505,7 @@ export function mapMessageRow(
     senderName = staff
       ? [staff.firstName, staff.lastName].filter(Boolean).join(" ")
       : "Staff";
+    profilePhotoUrl = staff?.profilePhotoUrl ?? null;
   }
 
   return {
@@ -344,6 +515,7 @@ export function mapMessageRow(
     senderUserId: String(row.sender_user_id),
     senderKind: row.sender_kind,
     senderName,
+    profilePhotoUrl,
     isOwn: row.sender_user_id === context.currentUserId,
     createdAt: row.created_at,
     timeLabel: formatMessageTime(row.created_at),
@@ -376,6 +548,7 @@ export function mapThreadSummary(
     subtitleStudents: display.subtitleStudents,
     subtitleStudentSummaries: display.subtitleStudentSummaries,
     listAvatars: display.listAvatars,
+    photoUrl: display.photoUrl,
     color: display.color,
     lastMessagePreview: lastMessage?.body ?? null,
     lastMessageAt: thread.last_message_at,

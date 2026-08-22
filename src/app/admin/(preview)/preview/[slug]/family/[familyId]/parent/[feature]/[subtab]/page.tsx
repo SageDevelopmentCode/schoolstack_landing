@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import {
   getParentPageLabel,
   getParentSubtabLabel,

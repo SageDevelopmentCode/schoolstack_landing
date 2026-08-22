@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { loadParentMessagesInbox } from "@/lib/messages/parent-messages";
 import {
   findOrCreateThread,
@@ -96,7 +97,8 @@ export async function POST(request: Request) {
       organizationId?: string;
       contact?: {
         key: string;
-        kind: "family" | "staff_member" | "school_office";
+        kind: "guardian" | "staff_member" | "school_office";
+        guardianId?: string;
         familyId?: string;
         staffMemberId?: string;
         name: string;
@@ -135,11 +137,26 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
+    const guardianId = await getGuardianIdForUser(
+      admin,
+      user.id,
+      organizationId,
+      familyId,
+    );
+    if (!guardianId) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "No guardian profile found for this account.",
+        code: "missing_guardian",
+      });
+    }
+
     const participants = await resolveParticipantsForContact(
       admin,
       organizationId,
       body.contact,
-      { familyId, viewer: "parent" },
+      { guardianId, viewer: "parent" },
     );
     const threadId = await findOrCreateThread(admin, organizationId, participants);
 

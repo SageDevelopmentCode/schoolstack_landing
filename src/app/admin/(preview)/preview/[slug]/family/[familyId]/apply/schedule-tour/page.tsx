@@ -4,9 +4,9 @@ import type { Metadata } from "next";
 import ScheduleTourExperience from "@/components/admissions/ScheduleTourExperience";
 import {
   familyPreviewBasePath,
-  getFamilyPreviewProfile,
   listFamilyApplicationsForFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import {
   familyHasScheduledCampusTour,
   hasPreEnrollmentApplication,

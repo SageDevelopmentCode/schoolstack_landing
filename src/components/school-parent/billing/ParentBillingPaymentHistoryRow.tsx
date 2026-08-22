@@ -36,6 +36,7 @@ export default function ParentBillingPaymentHistoryRow({
       style={{
         backgroundColor: C.surface,
         border: `1px solid ${C.border}`,
+        boxShadow: C.shadowCard,
         cursor: onClick ? "pointer" : "default",
       }}
       onMouseEnter={(event) => {

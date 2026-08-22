@@ -68,7 +68,10 @@ function NavLink({
       <Icon className="h-3.5 w-3.5" />
       {item.name}
       {item.key === "messages" ? (
-        <MessagesNavBadge count={messagesUnreadCount} />
+        <MessagesNavBadge
+          count={messagesUnreadCount}
+          theme={{ accent: C.accent, accentLight: C.accentLight }}
+        />
       ) : null}
     </Link>
   );
@@ -248,7 +251,10 @@ export default function SchoolTeacherHeader({
                         <Icon className="h-4 w-4" />
                         {item.name}
                         {item.key === "messages" ? (
-                          <MessagesNavBadge count={messagesUnreadCount} />
+                          <MessagesNavBadge
+          count={messagesUnreadCount}
+          theme={{ accent: C.accent, accentLight: C.accentLight }}
+        />
                         ) : null}
                       </Link>
                     );

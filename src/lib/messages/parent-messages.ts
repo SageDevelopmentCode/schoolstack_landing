@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { listParentMessageContacts } from "./contacts";
 import { listThreadsForOrganization } from "./threads";
 import type { MessagesInboxData } from "./types";
@@ -11,7 +12,7 @@ export async function loadParentMessagesInbox(
   schoolName: string,
 ): Promise<MessagesInboxData> {
   const schoolOfficeLabel = `${schoolName} Office`;
-  const { familyId, contacts } = await listParentMessageContacts(
+  const { familyId, guardianId, contacts } = await listParentMessageContacts(
     admin,
     supabase,
     organizationId,
@@ -19,18 +20,24 @@ export async function loadParentMessagesInbox(
     schoolOfficeLabel,
   );
 
-  const threads = familyId
-    ? await listThreadsForOrganization(
-        admin,
-        organizationId,
-        userId,
-        schoolOfficeLabel,
-        "parent",
-        { type: "family", familyIds: [familyId] },
-      )
-    : [];
+  const guardianIds =
+    guardianId
+      ? [guardianId]
+      : await getGuardianIdsForUser(admin, userId, organizationId);
 
-  return { threads, contacts };
+  const threads =
+    guardianIds.length > 0
+      ? await listThreadsForOrganization(
+          admin,
+          organizationId,
+          userId,
+          schoolOfficeLabel,
+          "parent",
+          { type: "guardian", guardianIds },
+        )
+      : [];
+
+  return { threads, contacts, guardianId };
 }
 
 export async function loadParentMessagesPreviewInbox(
@@ -106,14 +113,26 @@ export async function loadParentMessagesPreviewInbox(
   }
   contacts.push(...teacherMap.values());
 
-  const threads = await listThreadsForOrganization(
-    admin,
-    organizationId,
-    previewUserId,
-    schoolOfficeLabel,
-    "parent",
-    { type: "family", familyIds: [familyId] },
-  );
+  const { data: guardianRows, error: guardianError } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("family_id", familyId);
 
-  return { threads, contacts };
+  if (guardianError) throw new Error(guardianError.message);
+
+  const guardianIds = (guardianRows ?? []).map((row) => String(row.id));
+  const threads =
+    guardianIds.length > 0
+      ? await listThreadsForOrganization(
+          admin,
+          organizationId,
+          previewUserId,
+          schoolOfficeLabel,
+          "parent",
+          { type: "guardian", guardianIds },
+        )
+      : [];
+
+  return { threads, contacts, guardianId: guardianIds[0] ?? null };
 }

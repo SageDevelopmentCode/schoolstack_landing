@@ -6,7 +6,7 @@ import { Eye, X } from "lucide-react";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
-import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
+import { familyPreviewBasePath } from "@/lib/admissions/preview-portal-options";
 
 type FamilyPreviewShellProps = {
   schoolSlug: string;

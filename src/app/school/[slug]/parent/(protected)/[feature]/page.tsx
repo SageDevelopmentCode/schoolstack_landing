@@ -247,6 +247,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           schoolName={org.name}
           branding={org.branding}
           familyId={familyId}
+          guardianId={initialInbox.guardianId}
           initialInbox={initialInbox}
         />
       </SchoolParentPageShell>

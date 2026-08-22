@@ -1,24 +1,29 @@
 import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { SchoolAdminHeader } from '@/components/school-admin/school-admin-header';
+import { MoreMenuSheet } from '@/components/school-admin/more-menu-sheet';
 import {
+  FLOATING_TAB_BAR_HEIGHT,
   SchoolAdminFloatingTabBar,
   type SchoolAdminTab,
 } from '@/components/school-admin/school-admin-floating-tab-bar';
+import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
-
-const FLOATING_TAB_BAR_HEIGHT = 68;
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
   if (/\/students\/[^/]+$/.test(pathname)) return null;
+  if (/\/messages\/[^/]+$/.test(pathname)) return null;
+  if (pathname.includes('/more')) return 'more';
+  if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
   if (pathname.includes('/admissions/submissions')) return 'admissions';
   if (pathname.includes('/dashboard')) return 'dashboard';
@@ -29,6 +34,7 @@ function SchoolAdminLayoutContent() {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAdminTheme();
+  const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const {
     user,
@@ -40,8 +46,15 @@ function SchoolAdminLayoutContent() {
     exitSchoolAdmin,
   } = useAuth();
 
-  const activeTab = getActiveTab(pathname);
-  const showTabBar = activeTab !== null;
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  const pathTab = getActiveTab(pathname);
+  const activeTab = moreSheetOpen ? 'more' : pathTab;
+  const showTabBar = pathTab !== null;
+
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
     if (isLoading || !slug) return;
@@ -84,6 +97,12 @@ function SchoolAdminLayoutContent() {
 
   const handleTabChange = (tab: SchoolAdminTab) => {
     if (!slug) return;
+    if (tab === 'more') {
+      setMoreSheetOpen((open) => !open);
+      return;
+    }
+
+    setMoreSheetOpen(false);
     if (tab === 'dashboard') {
       router.replace(`/school-admin/${slug}/dashboard`);
       return;
@@ -92,7 +111,19 @@ function SchoolAdminLayoutContent() {
       router.replace(`/school-admin/${slug}/students`);
       return;
     }
+    if (tab === 'messages') {
+      router.replace(`/school-admin/${slug}/messages`);
+      return;
+    }
     router.replace(`/school-admin/${slug}/admissions/submissions`);
+  };
+
+  const handleSelectMoreItem = (itemId: 'transactions') => {
+    setMoreSheetOpen(false);
+    if (!slug) return;
+    if (itemId === 'transactions' && !pathname.includes('/more/transactions')) {
+      router.push(`/school-admin/${slug}/more/transactions`);
+    }
   };
 
   const organization = useMemo(() => {
@@ -126,8 +157,17 @@ function SchoolAdminLayoutContent() {
         <Slot />
       </View>
       {showTabBar && activeTab ? (
-        <SchoolAdminFloatingTabBar activeTab={activeTab} onChange={handleTabChange} />
+        <SchoolAdminFloatingTabBar
+          activeTab={activeTab}
+          onChange={handleTabChange}
+          messagesUnreadCount={unreadCount}
+        />
       ) : null}
+      <MoreMenuSheet
+        visible={moreSheetOpen}
+        onClose={() => setMoreSheetOpen(false)}
+        onSelect={handleSelectMoreItem}
+      />
     </SafeAreaView>
   );
 }
@@ -151,7 +191,12 @@ export default function SchoolAdminLayout() {
 
   return (
     <SchoolAdminThemeProvider branding={toOrganizationBranding(organization.branding)}>
-      <SchoolAdminLayoutContent />
+      <MessagesUnreadProvider
+        organizationId={organization.id}
+        schoolName={organization.name}
+        fetchUnreadCount={fetchMessagesUnreadCount}>
+        <SchoolAdminLayoutContent />
+      </MessagesUnreadProvider>
     </SchoolAdminThemeProvider>
   );
 }

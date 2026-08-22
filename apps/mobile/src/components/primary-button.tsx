@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Brand, Fonts, Radius } from '@/constants/theme';
+import { isMobileE2e } from '@/lib/e2e';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -102,6 +103,39 @@ export function PrimaryButton({
     }
     onPressOut?.(event);
   };
+
+  if (isNative && isMobileE2e) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        disabled={disabled}
+        testID={testID}
+        style={({ pressed }) => [
+          styles.buttonNativeOuter,
+          { opacity: disabled ? 0.5 : pressed ? 0.98 : 1 },
+          typeof style === 'function' ? style({ pressed, hovered: false }) : style,
+        ]}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        {...rest}>
+        <View
+          collapsable={false}
+          style={[
+            styles.fill,
+            { backgroundColor },
+            (isSurface || isClay) && styles.fillElevated,
+          ]}>
+          <ButtonLabel
+            label={label}
+            labelColor={labelColor}
+            isNative={isNative}
+            trailingIcon={trailingIcon}
+          />
+        </View>
+      </Pressable>
+    );
+  }
 
   if (isNative) {
     return (

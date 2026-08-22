@@ -11,7 +11,8 @@ import {
   threadDetailFromContact,
   threadDetailFromSummary,
 } from "@/lib/messages/thread-placeholders";
-import { useMessageRealtime } from "@/lib/messages/use-message-realtime";
+import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
+import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 import { registerWebPushSubscription } from "@/lib/messages/web-push-client";
 import type {
   MessageContact,
@@ -40,6 +41,7 @@ export type MessagesApiConfig = {
   organizationSlug: string;
   schoolName: string;
   familyId?: string;
+  guardianId?: string;
   viewer: "parent" | "teacher" | "admin";
 };
 
@@ -81,15 +83,17 @@ function mergeMessages(
   );
 }
 
-function isFamilyStaffThread(thread: MessageThreadSummary | MessageThreadDetail): boolean {
-  const hasFamily = thread.participants.some((participant) => participant.kind === "family");
+function isGuardianStaffThread(thread: MessageThreadSummary | MessageThreadDetail): boolean {
+  const hasParent = thread.participants.some(
+    (participant) => participant.kind === "guardian" || participant.kind === "family",
+  );
   const hasStaff = thread.participants.some(
     (participant) => participant.kind === "staff_member",
   );
   const hasOffice = thread.participants.some(
     (participant) => participant.kind === "school_office",
   );
-  return hasFamily && hasStaff && !hasOffice;
+  return hasParent && hasStaff && !hasOffice;
 }
 
 function resolveAdminComposeState(
@@ -102,7 +106,7 @@ function resolveAdminComposeState(
     return { disabled: readOnly, banner: null };
   }
 
-  if (!isFamilyStaffThread(thread)) {
+  if (!isGuardianStaffThread(thread)) {
     return { disabled: false, banner: null };
   }
 
@@ -110,7 +114,13 @@ function resolveAdminComposeState(
   if (displayName) {
     return {
       disabled: false,
-      banner: { variant: "info", staffDisplayName: displayName },
+      banner: {
+        variant: "info",
+        message:
+          "Parent & teacher conversation — for your review. Replies appear as " +
+          displayName +
+          ", not the school office inbox.",
+      },
     };
   }
 
@@ -119,7 +129,7 @@ function resolveAdminComposeState(
     banner: {
       variant: "warning",
       message:
-        "Link a staff profile to reply on teacher threads, or message via the school office inbox.",
+        "Parent & teacher conversation — for your review. Link a staff profile to reply, or message families via your school office inbox.",
     },
   };
 }
@@ -242,7 +252,9 @@ export default function MessagesInboxLayout({
     async (contact: MessageContact) => {
       const existing = threads.find((thread) => {
         const key = contactKeyForThread(thread.participants, api.viewer, {
-          familyId: api.familyId,
+          guardianId: api.guardianId,
+          staffMemberId:
+            teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null,
         });
         return key === contact.key;
       });
@@ -281,13 +293,15 @@ export default function MessagesInboxLayout({
     },
     [
       api.basePath,
-      api.familyId,
+      api.guardianId,
       api.organizationId,
       api.viewer,
       loadThread,
       readOnly,
       selectThread,
+      teacherPortal?.staffMemberId,
       threads,
+      viewerContext?.staffMemberId,
     ],
   );
 
@@ -432,13 +446,24 @@ export default function MessagesInboxLayout({
     [activeThreadId, loadThread],
   );
 
-  useMessageRealtime({
-    organizationId: api.organizationId,
-    activeThreadId,
-    enabled: !readOnly,
-    onThreadMessage,
-    onInboxChange: loadInbox,
-  });
+  const messagesRefresh = useMessagesRefresh();
+  const realtimeConnected = messagesRefresh?.realtimeConnected ?? false;
+
+  useEffect(() => {
+    if (!messagesRefresh || readOnly) return undefined;
+    return messagesRefresh.registerInboxConsumer({
+      activeThreadId,
+      onInboxChange: loadInbox,
+      onThreadMessage,
+    });
+  }, [activeThreadId, loadInbox, messagesRefresh, onThreadMessage, readOnly]);
+
+  const pollInbox = useCallback(() => {
+    void loadInbox();
+    if (activeThreadId) void loadThread(activeThreadId, { silent: true });
+  }, [activeThreadId, loadInbox, loadThread]);
+
+  useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
 
   useEffect(() => {
     if (!initialInbox) {
@@ -447,28 +472,6 @@ export default function MessagesInboxLayout({
       });
     }
   }, [initialInbox, loadInbox]);
-
-  useEffect(() => {
-    if (readOnly) return undefined;
-
-    const interval = window.setInterval(() => {
-      void loadInbox();
-      if (activeThreadId) void loadThread(activeThreadId, { silent: true });
-    }, 60_000);
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void loadInbox();
-        if (activeThreadId) void loadThread(activeThreadId, { silent: true });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [activeThreadId, loadInbox, loadThread, readOnly]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");
@@ -501,7 +504,9 @@ export default function MessagesInboxLayout({
     threads
       .map((thread) =>
         contactKeyForThread(thread.participants, api.viewer, {
-          familyId: api.familyId,
+          guardianId: api.guardianId,
+          staffMemberId:
+            teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null,
         }),
       )
       .filter(Boolean),
@@ -669,7 +674,7 @@ export default function MessagesInboxLayout({
               <motion.button
                 type="button"
                 onClick={() => setNewConversationOpen(true)}
-                disabled={newConversationContacts.length === 0}
+                disabled={contacts.length === 0}
                 className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium cursor-pointer transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: C.accent, color: "#ffffff" }}
                 aria-label="Start a new conversation"
@@ -743,7 +748,7 @@ export default function MessagesInboxLayout({
       {embedded ? (
         <MessagesNewConversationModal
           open={newConversationOpen}
-          contacts={newConversationContacts}
+          contacts={contacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
           C={C}

@@ -46,7 +46,11 @@ export async function GET(_request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, String(application.organization_id));
+    await requireSchoolAdminUser(
+      supabase,
+      String(application.organization_id),
+      _request,
+    );
 
     const preview = await getStartEnrollmentPreview(
       admin,
@@ -146,6 +150,7 @@ export async function POST(request: Request, context: RouteContext) {
     const user = await requireSchoolAdminUser(
       supabase,
       String(application.organization_id),
+      request,
     );
 
     const result = await startEnrollmentFromApplication(admin, {
