@@ -32,7 +32,7 @@ export default function RootLayout() {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !isMobileE2e) {
     return <View style={{ flex: 1, backgroundColor: Brand.bg }} />;
   }
 
