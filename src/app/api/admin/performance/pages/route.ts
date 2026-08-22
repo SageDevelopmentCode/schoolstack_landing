@@ -16,7 +16,7 @@ const ROUTE = "/api/admin/performance/pages";
 
 type LatestResultSummary = {
   id: string;
-  runId: string;
+  runId: string | null;
   status: string;
   skipReason: string | null;
   errorMessage: string | null;
@@ -26,7 +26,7 @@ type LatestResultSummary = {
   tbtMs: number | null;
   cls: number | null;
   speedIndexMs: number | null;
-  createdAt: string;
+  updatedAt: string;
 };
 
 async function loadLatestResults(
@@ -35,33 +35,19 @@ async function loadLatestResults(
 ) {
   const admin = createAdminClient();
 
-  const { data: runs, error: runsError } = await admin
-    .from("performance_audit_runs")
-    .select("id")
-    .eq("environment", environment)
-    .eq("form_factor", formFactor)
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  if (runsError) throw runsError;
-
-  const runIds = (runs ?? []).map((run) => run.id);
-  if (!runIds.length) return new Map<string, LatestResultSummary>();
-
   const { data: results, error: resultsError } = await admin
     .from("performance_audit_results")
     .select(
-      "id, run_id, page_id, status, skip_reason, error_message, performance_score, fcp_ms, lcp_ms, tbt_ms, cls, speed_index_ms, created_at",
+      "id, run_id, page_id, status, skip_reason, error_message, performance_score, fcp_ms, lcp_ms, tbt_ms, cls, speed_index_ms, updated_at",
     )
-    .in("run_id", runIds)
-    .order("created_at", { ascending: false });
+    .eq("environment", environment)
+    .eq("form_factor", formFactor);
 
   if (resultsError) throw resultsError;
 
   const latestByPage = new Map<string, LatestResultSummary>();
 
   for (const row of results ?? []) {
-    if (latestByPage.has(row.page_id)) continue;
     latestByPage.set(row.page_id, {
       id: row.id,
       runId: row.run_id,
@@ -74,7 +60,7 @@ async function loadLatestResults(
       tbtMs: row.tbt_ms,
       cls: row.cls,
       speedIndexMs: row.speed_index_ms,
-      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     });
   }
 

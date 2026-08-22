@@ -26,7 +26,7 @@ import { CANONICAL_SCHOOL_SLUG } from "@/lib/performance/page-manifest";
 
 type LatestResultSummary = {
   id: string;
-  runId: string;
+  runId: string | null;
   status: string;
   skipReason: string | null;
   errorMessage: string | null;
@@ -36,7 +36,7 @@ type LatestResultSummary = {
   tbtMs: number | null;
   cls: number | null;
   speedIndexMs: number | null;
-  createdAt: string;
+  updatedAt: string;
 };
 
 type PerformancePageRow = {
@@ -558,9 +558,7 @@ export default function AdminPerformancePage() {
     setDetailLoading(true);
 
     try {
-      const response = await fetch(
-        `/api/admin/performance/runs/${latest.runId}?resultId=${latest.id}`,
-      );
+      const response = await fetch(`/api/admin/performance/results/${latest.id}`);
       if (!response.ok) {
         if (selectedPageIdRef.current !== pageId) return;
         setDetailError("Failed to load audit details.");
@@ -568,17 +566,13 @@ export default function AdminPerformancePage() {
       }
 
       const payload = (await response.json()) as {
-        results?: Array<Record<string, unknown>>;
+        result?: Record<string, unknown>;
       };
 
       if (selectedPageIdRef.current !== pageId) return;
 
-      const match = (payload.results ?? []).find(
-        (row) => row.page_id === page.id || row.id === latest.id,
-      );
-
-      if (match) {
-        setSelectedDetail(mapResultRow(match));
+      if (payload.result) {
+        setSelectedDetail(mapResultRow(payload.result));
       } else {
         setDetailError("Audit result not found for this page.");
       }
@@ -658,7 +652,7 @@ export default function AdminPerformancePage() {
 
         <span className="rounded-admin-md border border-admin-border bg-admin-bg px-2.5 py-1 text-xs text-admin-muted">
           {environment === "ci"
-            ? "GitHub Actions PR audits"
+            ? "GitHub Actions main audits"
             : environment === "local"
               ? pendingLocalRuns > 0
                 ? `${pendingLocalRuns} pending local run${pendingLocalRuns === 1 ? "" : "s"}`
@@ -668,12 +662,12 @@ export default function AdminPerformancePage() {
 
         {environment === "ci" ? (
           <p className="w-full text-xs text-admin-faint">
-            CI results are uploaded automatically from pull request Lighthouse runs
+            CI results are uploaded automatically from main-branch Lighthouse runs
             (mobile and desktop). Marketing and admissions pages are public; school
             admin and parent portal pages are audited with E2E session cookies (not
             login redirects) for {CANONICAL_SCHOOL_SLUG}.
             {showCiDesktopEmptyNote
-              ? " Desktop CI data will appear after the next PR Lighthouse run."
+              ? " Desktop CI data will appear after the next main-branch Lighthouse run."
               : null}
           </p>
         ) : environment === "local" ? (
@@ -762,7 +756,7 @@ export default function AdminPerformancePage() {
                     <td className="px-4 py-3">{formatMs(latest?.fcpMs ?? null)}</td>
                     <td className="px-4 py-3">{formatMs(latest?.tbtMs ?? null)}</td>
                     <td className="px-4 py-3 text-admin-muted">
-                      {latest ? new Date(latest.createdAt).toLocaleString() : "—"}
+                      {latest ? new Date(latest.updatedAt).toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3 text-admin-muted">
                       {latest ? (
@@ -835,7 +829,7 @@ export default function AdminPerformancePage() {
 function mapResultRow(row: Record<string, unknown>): PerformanceResultDetail {
   return {
     id: String(row.id),
-    runId: String(row.run_id),
+    runId: row.run_id ? String(row.run_id) : null,
     pageId: String(row.page_id),
     label: String(row.label),
     category: String(row.category),
@@ -857,7 +851,7 @@ function mapResultRow(row: Record<string, unknown>): PerformanceResultDetail {
       : [],
     errorMessage:
       typeof row.error_message === "string" ? row.error_message : null,
-    createdAt: String(row.created_at),
+    createdAt: String(row.updated_at ?? row.created_at),
     rawReport: row.raw_report,
   };
 }

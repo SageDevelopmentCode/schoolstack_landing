@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { config } from "dotenv";
-import { metricsToResultRow } from "@/lib/performance/api-helpers";
+import { metricsToResultRow, upsertPerformanceAuditResult } from "@/lib/performance/api-helpers";
 import {
   buildLighthouseArgs,
   formatExecError,
@@ -113,9 +113,11 @@ async function processPendingRun() {
       const message = "Unknown page id in manifest.";
       log(`Failed ${pageId}: ${message}`);
 
-      await admin.from("performance_audit_results").insert({
+      await upsertPerformanceAuditResult(admin, {
         run_id: run.id,
         page_id: pageId,
+        environment: "local",
+        form_factor: formFactor,
         label: pageId,
         category: "unknown",
         url: "",
@@ -148,9 +150,11 @@ async function processPendingRun() {
         lighthousePayload as Parameters<typeof normalizeLighthouseResult>[0],
       );
 
-      await admin.from("performance_audit_results").insert({
+      await upsertPerformanceAuditResult(admin, {
         run_id: run.id,
         page_id: page.id,
+        environment: "local",
+        form_factor: formFactor,
         label: page.label,
         category: page.category,
         url,
@@ -168,9 +172,11 @@ async function processPendingRun() {
       if (!firstError) firstError = message;
       log(`Failed ${page.label}: ${message}`);
 
-      await admin.from("performance_audit_results").insert({
+      await upsertPerformanceAuditResult(admin, {
         run_id: run.id,
         page_id: page.id,
+        environment: "local",
+        form_factor: formFactor,
         label: page.label,
         category: page.category,
         url,

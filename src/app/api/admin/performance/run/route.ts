@@ -7,6 +7,7 @@ import {
   metricsToResultRow,
   parseFormFactor,
   parsePageIds,
+  upsertPerformanceAuditResult,
 } from "@/lib/performance/api-helpers";
 import {
   filterPagesForRun,
@@ -84,9 +85,11 @@ export async function POST(request: Request) {
       const url = resolvePageUrl(page.path, "production");
 
       if (shouldSkipOnProduction(page)) {
-        await admin.from("performance_audit_results").insert({
+        await upsertPerformanceAuditResult(admin, {
           run_id: run.id,
           page_id: page.id,
+          environment: "production",
+          form_factor: formFactor,
           label: page.label,
           category: page.category,
           url,
@@ -100,9 +103,11 @@ export async function POST(request: Request) {
       try {
         const { raw, metrics } = await runPageSpeedInsights(url, formFactor);
 
-        await admin.from("performance_audit_results").insert({
+        await upsertPerformanceAuditResult(admin, {
           run_id: run.id,
           page_id: page.id,
+          environment: "production",
+          form_factor: formFactor,
           label: page.label,
           category: page.category,
           url,
@@ -116,9 +121,11 @@ export async function POST(request: Request) {
 
         if (!firstError) firstError = message;
 
-        await admin.from("performance_audit_results").insert({
+        await upsertPerformanceAuditResult(admin, {
           run_id: run.id,
           page_id: page.id,
+          environment: "production",
+          form_factor: formFactor,
           label: page.label,
           category: page.category,
           url,

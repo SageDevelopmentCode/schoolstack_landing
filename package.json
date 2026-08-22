@@ -32,6 +32,7 @@
     "performance:ci:desktop": "PERFORMANCE_FORM_FACTOR=desktop lhci autorun",
     "performance:ci:prepare": "tsx scripts/prepare-performance-ci.ts",
     "performance:ci:upload": "tsx scripts/upload-lhci-results.ts",
+    "performance:notify-low-scores": "tsx scripts/notify-performance-low-scores.ts",
     "mobile": "npm run start --workspace @schoolstack/mobile",
     "mobile:ios": "npm run ios --workspace @schoolstack/mobile",
     "mobile:android": "npm run android --workspace @schoolstack/mobile",

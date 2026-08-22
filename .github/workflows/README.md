@@ -149,6 +149,17 @@ Lint, E2E, Mobile CI, Performance CI, and failed Vercel deploy checks post to Di
 
 GitHub Actions cannot read `.env.local`; the repository secret is required for CI notifications.
 
+### Optional: low Lighthouse score alerts (Performance CI)
+
+When main-branch Lighthouse uploads finish, Performance CI can post to a **separate** Discord channel if any page scores below **80**.
+
+1. Create a Discord webhook (e.g. `#performance-checks`).
+2. Add the URL to `.env.local` as `DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL` (local reference only).
+3. Add the URL as a GitHub Actions repository secret:
+   - Name: `DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL`
+
+Requires the same Supabase secrets as CI upload (`NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). Alerts run only after a successful Lighthouse job with pages audited; no message when all scores are ≥ 80.
+
 ### Optional: Supabase upload for CI results
 
 To surface PR Lighthouse scores in `/admin/performance` (CI tab), add repository secrets:
@@ -181,9 +192,9 @@ Common signals:
 | [lint.yml](./lint.yml) | Lint job fails |
 | [mobile.yml](./mobile.yml) | Mobile checks or Maestro E2E (Android/iOS) fails |
 | [e2e.yml](./e2e.yml) | E2E job fails |
-| [performance.yml](./performance.yml) | Lighthouse CI job fails |
+| [performance.yml](./performance.yml) | Lighthouse CI job fails; optional low-score alert when any page &lt; 80 |
 | [vercel-discord.yml](./vercel-discord.yml) | Vercel GitHub check fails |
 
 All five call the reusable [discord-notify.yml](./discord-notify.yml) workflow.
 
-Alerts are **failure-only** (no message on green builds).
+Alerts are **failure-only** for lint/E2E/mobile/Vercel (no message on green builds). Performance CI also posts on **low Lighthouse scores** when configured.

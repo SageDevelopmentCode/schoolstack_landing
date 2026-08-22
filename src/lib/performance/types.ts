@@ -64,8 +64,10 @@ export type PerformanceAuditRunRow = {
 
 export type PerformanceAuditResultRow = {
   id: string;
-  run_id: string;
+  run_id: string | null;
   page_id: string;
+  environment: AuditEnvironment;
+  form_factor: AuditFormFactor;
   label: string;
   category: string;
   url: string;
@@ -81,5 +83,7 @@ export type PerformanceAuditResultRow = {
   opportunities: PerformanceOpportunity[];
   raw_report: unknown;
   error_message: string | null;
+  source_ref: string | null;
   created_at: string;
+  updated_at: string;
 };

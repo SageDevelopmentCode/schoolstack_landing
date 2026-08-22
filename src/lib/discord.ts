@@ -12,6 +12,7 @@ const DISCORD_EMBED_COLORS = {
   error: 0xed4245,
   success: 0x22c55e,
   payment: 0xf59e0b,
+  warning: 0xf97316,
   admissions: 0x3b82f6,
   schedule: 0x8b5cf6,
   sales: 0x5865f2,
@@ -152,9 +153,10 @@ interface DiscordEmbedField {
   inline?: boolean;
 }
 
-interface DiscordEmbed {
+export interface DiscordEmbed {
   title: string;
   description?: string;
+  url?: string;
   color?: number;
   fields: DiscordEmbedField[];
   timestamp?: string;
@@ -270,6 +272,21 @@ async function sendTuitionBillingDiscordEmbed(
   if (!webhookUrl) {
     console.warn(
       "DISCORD_TUITION_BILLING_WEBHOOKS_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+export async function sendPerformanceChecksDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL is not set; skipping Discord notification.",
     );
     return;
   }
