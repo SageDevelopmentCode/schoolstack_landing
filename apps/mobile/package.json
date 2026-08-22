@@ -61,8 +61,8 @@
     "test:e2e:ios:run": "bash scripts/run-e2e-ios.sh",
     "test:e2e:android:run": "bash scripts/run-e2e-android.sh",
     "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
-    "build:production:ios": "bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
-    "build:production:android": "bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"
+    "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
+    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"
   },
   "private": true,
   "expo": {

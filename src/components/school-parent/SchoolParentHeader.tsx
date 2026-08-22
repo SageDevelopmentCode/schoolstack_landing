@@ -90,7 +90,10 @@ function NavLink({
         {item.name}
       </span>
       {item.key === "messages" ? (
-        <MessagesNavBadge count={messagesUnreadCount} />
+        <MessagesNavBadge
+          count={messagesUnreadCount}
+          theme={{ accent: C.accent, accentLight: C.accentLight }}
+        />
       ) : null}
     </NavigationLink>
   );
@@ -303,7 +306,10 @@ export default function SchoolParentHeader({
                           {item.name}
                         </span>
                         {item.key === "messages" ? (
-                          <MessagesNavBadge count={messagesUnreadCount} />
+                          <MessagesNavBadge
+          count={messagesUnreadCount}
+          theme={{ accent: C.accent, accentLight: C.accentLight }}
+        />
                         ) : null}
                       </NavigationLink>
                     );

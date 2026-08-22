@@ -26,6 +26,8 @@ You do **not** need `.env.e2e` or `.env.e2e.local` for normal development, lint,
 
 ## Releasing (TestFlight / App Store)
 
+**Runbook:** [DEPLOY.md](DEPLOY.md) (human reference). Agent skill: [`.agents/skills/mobile-eas-deploy/SKILL.md`](../../.agents/skills/mobile-eas-deploy/SKILL.md).
+
 Do **not** change `.env` before a production build. Use EAS build profiles in [`eas.json`](eas.json):
 
 1. Install EAS CLI: `npm i -g eas-cli` and `eas login`
@@ -35,14 +37,15 @@ Do **not** change `.env` before a production build. Use EAS build profiles in [`
    eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://..."
    eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "..."
    ```
-3. Build for production (sets `EXPO_PUBLIC_SITE_URL` to `https://trymudkitchen.com`):
+3. Build for production (`npm run build:production:*` sets `EXPO_PUBLIC_SITE_URL` for the local assert step; EAS workers also get it from `eas.json`):
    ```bash
    cd apps/mobile
    npm run build:production:ios
    # or: npm run build:production:android
    ```
+4. Submit after build: `eas submit --platform ios` or `eas submit --platform android`
 
-`npm run assert:production-env` fails if `EXPO_PUBLIC_SITE_URL` looks local (`localhost`, `192.168.x.x`, `:3000`, `:3100`). See [`.env.production.example`](.env.production.example) for documented production values.
+`npm run assert:production-env` fails if `EXPO_PUBLIC_SITE_URL` looks local (`localhost`, `192.168.x.x`, `:3000`, `:3100`). See [`.env.production.example`](.env.production.example) for documented production values (reference only — not loaded during EAS build).
 
 ## Quality checks
 

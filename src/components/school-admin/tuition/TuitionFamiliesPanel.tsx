@@ -269,6 +269,10 @@ export default function TuitionFamiliesPanel({
   const [activeFamilyTab, setActiveFamilyTab] = useState<TuitionFamilyTabId>(
     DEFAULT_TUITION_FAMILY_TAB,
   );
+  const [familyCharges, setFamilyCharges] = useState<
+    Awaited<ReturnType<typeof listChargesForFamily>>
+  >([]);
+  const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
   const selectedFamilyIdRef = useRef<string | null>(null);
 
   const selectFamily = useCallback((familyId: string) => {
@@ -514,11 +518,6 @@ export default function TuitionFamiliesPanel({
     }
     return { backgroundColor: C.elevated, color: C.textSecondary };
   };
-
-  const [familyCharges, setFamilyCharges] = useState<
-    Awaited<ReturnType<typeof listChargesForFamily>>
-  >([]);
-  const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
 
   useEffect(() => {
     if (!selectedFamilyId) return;

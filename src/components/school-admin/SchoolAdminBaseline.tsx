@@ -134,13 +134,17 @@ function SidebarNavItem({
           <span className="text-sm font-medium truncate flex items-center gap-1">
             {item.name}
             {item.key === "messages" ? (
-              <MessagesNavBadge count={messagesUnreadCount} />
+              <MessagesNavBadge
+                count={messagesUnreadCount}
+                theme={{ accent: C.accent, accentLight: C.accentLight }}
+              />
             ) : null}
           </span>
         )}
         {!isExpanded && item.key === "messages" && messagesUnreadCount > 0 ? (
           <span
-            className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"
+            className="absolute top-1 right-1 h-2 w-2 rounded-full"
+            style={{ backgroundColor: C.accent }}
             aria-hidden
           />
         ) : null}
