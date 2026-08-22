@@ -9,8 +9,10 @@ import {
   SchoolAdminFloatingTabBar,
   type SchoolAdminTab,
 } from '@/components/school-admin/school-admin-floating-tab-bar';
+import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 
@@ -19,6 +21,8 @@ const FLOATING_TAB_BAR_HEIGHT = 68;
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
   if (/\/students\/[^/]+$/.test(pathname)) return null;
+  if (/\/messages\/[^/]+$/.test(pathname)) return null;
+  if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
   if (pathname.includes('/admissions/submissions')) return 'admissions';
   if (pathname.includes('/dashboard')) return 'dashboard';
@@ -29,6 +33,7 @@ function SchoolAdminLayoutContent() {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAdminTheme();
+  const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const {
     user,
@@ -42,6 +47,10 @@ function SchoolAdminLayoutContent() {
 
   const activeTab = getActiveTab(pathname);
   const showTabBar = activeTab !== null;
+
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
     if (isLoading || !slug) return;
@@ -92,6 +101,10 @@ function SchoolAdminLayoutContent() {
       router.replace(`/school-admin/${slug}/students`);
       return;
     }
+    if (tab === 'messages') {
+      router.replace(`/school-admin/${slug}/messages`);
+      return;
+    }
     router.replace(`/school-admin/${slug}/admissions/submissions`);
   };
 
@@ -126,7 +139,11 @@ function SchoolAdminLayoutContent() {
         <Slot />
       </View>
       {showTabBar && activeTab ? (
-        <SchoolAdminFloatingTabBar activeTab={activeTab} onChange={handleTabChange} />
+        <SchoolAdminFloatingTabBar
+          activeTab={activeTab}
+          onChange={handleTabChange}
+          messagesUnreadCount={unreadCount}
+        />
       ) : null}
     </SafeAreaView>
   );
@@ -151,7 +168,12 @@ export default function SchoolAdminLayout() {
 
   return (
     <SchoolAdminThemeProvider branding={toOrganizationBranding(organization.branding)}>
-      <SchoolAdminLayoutContent />
+      <MessagesUnreadProvider
+        organizationId={organization.id}
+        schoolName={organization.name}
+        fetchUnreadCount={fetchMessagesUnreadCount}>
+        <SchoolAdminLayoutContent />
+      </MessagesUnreadProvider>
     </SchoolAdminThemeProvider>
   );
 }

@@ -6,11 +6,12 @@ import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius } from '@/constants/theme';
 
-export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students';
+export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages';
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
   onChange: (tab: SchoolAdminTab) => void;
+  messagesUnreadCount?: number;
 };
 
 const TABS: {
@@ -32,9 +33,19 @@ const TABS: {
     icon: 'people-outline',
     iconActive: 'people',
   },
+  {
+    id: 'messages',
+    label: 'Messages',
+    icon: 'chatbubble-outline',
+    iconActive: 'chatbubble',
+  },
 ];
 
-export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFloatingTabBarProps) {
+export function SchoolAdminFloatingTabBar({
+  activeTab,
+  onChange,
+  messagesUnreadCount = 0,
+}: SchoolAdminFloatingTabBarProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
 
@@ -43,6 +54,7 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
       <View style={styles.pill}>
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
+          const showUnreadBadge = tab.id === 'messages' && messagesUnreadCount > 0;
           return (
             <Pressable
               key={tab.id}
@@ -54,17 +66,26 @@ export function SchoolAdminFloatingTabBar({ activeTab, onChange }: SchoolAdminFl
                 active && { backgroundColor: theme.accentLight },
                 pressed && styles.tabPressed,
               ]}>
-              <Ionicons
-                name={active ? tab.iconActive : tab.icon}
-                size={20}
-                color={active ? theme.accent : theme.textTertiary}
-              />
+              <View style={styles.iconWrap}>
+                <Ionicons
+                  name={active ? tab.iconActive : tab.icon}
+                  size={20}
+                  color={active ? theme.accent : theme.textTertiary}
+                />
+                {showUnreadBadge ? (
+                  <View style={[styles.unreadDot, { backgroundColor: theme.accent }]}>
+                    <ThemedText type="badge" style={styles.unreadCount}>
+                      {messagesUnreadCount > 9 ? '9+' : String(messagesUnreadCount)}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
               <ThemedText
                 type="smallBold"
                 style={{
                   color: active ? theme.accent : theme.textTertiary,
-                  fontSize: 10,
-                  lineHeight: 12,
+                  fontSize: 9,
+                  lineHeight: 11,
                 }}>
                 {tab.label}
               </ThemedText>
@@ -95,10 +116,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     borderRadius: Radius.pill,
   },
   tabPressed: {
     opacity: 0.85,
+  },
+  iconWrap: {
+    position: 'relative',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  unreadCount: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    lineHeight: 10,
   },
 });

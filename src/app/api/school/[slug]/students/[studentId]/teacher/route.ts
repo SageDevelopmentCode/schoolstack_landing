@@ -65,7 +65,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    await requireSchoolAdminUser(supabase, organizationId, request);
 
     const staffMemberId =
       body.staffMemberId === undefined || body.staffMemberId === ""

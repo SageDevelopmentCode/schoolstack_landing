@@ -64,6 +64,7 @@ export async function POST(request: Request, context: RouteContext) {
     const user = await requireSchoolAdminUser(
       supabase,
       String(application.organization_id),
+      request,
     );
 
     const result = await markApplicationAsEnrolled(admin, {

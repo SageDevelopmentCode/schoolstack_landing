@@ -116,7 +116,7 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    await requireSchoolAdminUser(supabase, organizationId, request);
 
     const booking = await markPostSubmitStepCompleteManually(admin, {
       organizationId,
@@ -225,7 +225,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    await requireSchoolAdminUser(supabase, organizationId, request);
 
     const stepTitle = await resolveStepTitle(admin, applicationId, actionId);
 

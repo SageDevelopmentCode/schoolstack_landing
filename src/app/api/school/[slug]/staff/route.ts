@@ -60,7 +60,7 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    await requireSchoolAdminUser(supabase, organizationId, request);
 
     const staffMembers = await listStaffMembersWithLoginStatus(
       admin,
@@ -117,7 +117,7 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    await requireSchoolAdminUser(supabase, organizationId, request);
 
     const email = body.email?.trim();
     const firstName = body.firstName?.trim();

@@ -1,5 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
+import { getBearerAccessToken } from "@/lib/supabase/bearer-token";
 
 export class SchoolAdminAuthError extends Error {
   code: "unauthenticated" | "forbidden";
@@ -55,11 +56,15 @@ export async function canManageOrganization(
 export async function requireSchoolAdminUser(
   supabase: SupabaseClient,
   organizationId: string,
+  request?: Request,
 ): Promise<User> {
+  const accessToken = request ? getBearerAccessToken(request) : null;
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = accessToken
+    ? await supabase.auth.getUser(accessToken)
+    : await supabase.auth.getUser();
 
   if (error || !user) {
     throw new SchoolAdminAuthError(
