@@ -59,7 +59,10 @@
     "test:e2e:ios": "maestro test .maestro",
     "test:e2e:ios:build": "expo prebuild --platform ios && xcodebuild -workspace ios/MudKitchen.xcworkspace -scheme MudKitchen -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO",
     "test:e2e:ios:run": "bash scripts/run-e2e-ios.sh",
-    "test:e2e:android:run": "bash scripts/run-e2e-android.sh"
+    "test:e2e:android:run": "bash scripts/run-e2e-android.sh",
+    "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
+    "build:production:ios": "bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
+    "build:production:android": "bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"
   },
   "private": true,
   "expo": {

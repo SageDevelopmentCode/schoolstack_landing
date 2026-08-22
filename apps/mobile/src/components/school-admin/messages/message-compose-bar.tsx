@@ -21,6 +21,8 @@ type MessageComposeBarProps = {
   onSend: () => void;
   sending: boolean;
   disabled?: boolean;
+  /** When false, parent SafeAreaView already handles the home indicator inset. */
+  applyBottomSafeArea?: boolean;
 };
 
 export function MessageComposeBar({
@@ -31,10 +33,16 @@ export function MessageComposeBar({
   onSend,
   sending,
   disabled = false,
+  applyBottomSafeArea = false,
 }: MessageComposeBarProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
   const canSend = Boolean(value.trim() || files.length > 0);
+  const bottomPadding = applyBottomSafeArea
+    ? Math.max(insets.bottom, Spacing.two)
+    : disabled
+      ? Spacing.one
+      : Spacing.two;
 
   const handlePickFiles = async () => {
     if (disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS) return;
@@ -69,7 +77,7 @@ export function MessageComposeBar({
         {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
-          paddingBottom: Math.max(insets.bottom, Spacing.two),
+          paddingBottom: bottomPadding,
         },
       ]}>
       {files.length > 0 ? (

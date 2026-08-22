@@ -6,7 +6,9 @@ import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius } from '@/constants/theme';
 
-export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages';
+export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages' | 'more';
+
+export const FLOATING_TAB_BAR_HEIGHT = 68;
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
@@ -38,6 +40,12 @@ const TABS: {
     label: 'Messages',
     icon: 'chatbubble-outline',
     iconActive: 'chatbubble',
+  },
+  {
+    id: 'more',
+    label: 'More',
+    icon: 'ellipsis-horizontal-outline',
+    iconActive: 'ellipsis-horizontal',
   },
 ];
 
@@ -103,12 +111,13 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     alignItems: 'center',
+    zIndex: 30,
   },
   pill: {
     flexDirection: 'row',
     width: '100%',
-    maxWidth: 360,
-    gap: 8,
+    maxWidth: 400,
+    gap: 4,
   },
   tab: {
     flex: 1,
@@ -116,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     borderRadius: Radius.pill,
   },
   tabPressed: {

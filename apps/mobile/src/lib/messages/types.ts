@@ -1,8 +1,12 @@
-export type MessageParticipantKind = 'family' | 'staff_member' | 'school_office';
+export type MessageParticipantKind =
+  | 'family'
+  | 'guardian'
+  | 'staff_member'
+  | 'school_office';
 
 export type PortalMessageSenderKind = 'guardian' | 'staff_member' | 'org_admin';
 
-export type MessageContactKind = 'family' | 'staff_member' | 'school_office';
+export type MessageContactKind = 'guardian' | 'staff_member' | 'school_office';
 
 export type MessageStudentRef = {
   id: string;
@@ -30,6 +34,7 @@ export type MessageStudentSummary = {
 export type MessageContact = {
   key: string;
   kind: MessageContactKind;
+  guardianId?: string;
   familyId?: string;
   staffMemberId?: string;
   name: string;
@@ -37,12 +42,14 @@ export type MessageContact = {
   subtitleStudents?: MessageStudentRef[];
   subtitleStudentSummaries?: MessageStudentSummary[];
   color: string;
+  profilePhotoUrl?: string | null;
 };
 
 export type MessageThreadParticipant = {
   id: string;
   kind: MessageParticipantKind;
   familyId: string | null;
+  guardianId: string | null;
   staffMemberId: string | null;
 };
 
@@ -53,6 +60,7 @@ export type PortalMessage = {
   senderUserId: string;
   senderKind: PortalMessageSenderKind;
   senderName: string;
+  profilePhotoUrl?: string | null;
   isOwn: boolean;
   createdAt: string;
   timeLabel: string;
@@ -71,6 +79,7 @@ export type MessageAttachment = {
 export type MessageThreadListAvatar = {
   name: string;
   color: string;
+  profilePhotoUrl?: string | null;
 };
 
 export type MessageThreadSummary = {
@@ -81,6 +90,7 @@ export type MessageThreadSummary = {
   subtitleStudents?: MessageStudentRef[];
   subtitleStudentSummaries?: MessageStudentSummary[];
   listAvatars?: MessageThreadListAvatar[];
+  photoUrl?: string | null;
   color: string;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
@@ -102,6 +112,7 @@ export type MessagesInboxData = {
   threads: MessageThreadSummary[];
   contacts: MessageContact[];
   viewerContext?: MessagesViewerContext;
+  guardianId?: string | null;
 };
 
 export type StagedMessageFile = {

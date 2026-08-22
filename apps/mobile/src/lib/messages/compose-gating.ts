@@ -1,25 +1,28 @@
 import type { MessageThreadDetail } from '@/lib/messages/types';
 
-export type MessagesComposeBanner =
-  | { variant: 'info'; staffDisplayName: string }
-  | { variant: 'warning'; message: string };
-
-function isFamilyStaffThread(thread: MessageThreadDetail): boolean {
-  const hasFamily = thread.participants.some((participant) => participant.kind === 'family');
-  const hasStaff = thread.participants.some((participant) => participant.kind === 'staff_member');
-  const hasOffice = thread.participants.some((participant) => participant.kind === 'school_office');
-  return hasFamily && hasStaff && !hasOffice;
+function isGuardianStaffThread(thread: MessageThreadDetail): boolean {
+  const hasParent = thread.participants.some(
+    (participant) => participant.kind === 'guardian' || participant.kind === 'family',
+  );
+  const hasStaff = thread.participants.some(
+    (participant) => participant.kind === 'staff_member',
+  );
+  const hasOffice = thread.participants.some(
+    (participant) => participant.kind === 'school_office',
+  );
+  return hasParent && hasStaff && !hasOffice;
 }
 
 export function resolveAdminComposeState(
   thread: MessageThreadDetail | null,
+  readOnly: boolean,
   staffDisplayName?: string | null,
-): { disabled: boolean; banner: MessagesComposeBanner | null } {
-  if (!thread) {
-    return { disabled: true, banner: null };
+): { disabled: boolean; banner: { variant: 'info' | 'warning'; message: string } | null } {
+  if (readOnly || !thread) {
+    return { disabled: readOnly, banner: null };
   }
 
-  if (!isFamilyStaffThread(thread)) {
+  if (!isGuardianStaffThread(thread)) {
     return { disabled: false, banner: null };
   }
 
@@ -27,7 +30,13 @@ export function resolveAdminComposeState(
   if (displayName) {
     return {
       disabled: false,
-      banner: { variant: 'info', staffDisplayName: displayName },
+      banner: {
+        variant: 'info',
+        message:
+          'Parent & teacher conversation — for your review. Replies appear as ' +
+          displayName +
+          ', not the school office inbox.',
+      },
     };
   }
 
@@ -36,7 +45,7 @@ export function resolveAdminComposeState(
     banner: {
       variant: 'warning',
       message:
-        'Link a staff profile to reply on teacher threads, or message via the school office inbox.',
+        'Parent & teacher conversation — for your review. Link a staff profile to reply, or message families via your school office inbox.',
     },
   };
 }

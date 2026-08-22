@@ -231,6 +231,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           schoolName={org.name}
           branding={org.branding}
           familyId={familyId}
+          guardianId={initialInbox.guardianId}
           previewMode
           initialInbox={initialInbox}
         />

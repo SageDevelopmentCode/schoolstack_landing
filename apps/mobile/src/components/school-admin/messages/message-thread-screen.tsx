@@ -14,11 +14,11 @@ import { MessageThreadHeader } from '@/components/school-admin/messages/message-
 import { ThemedText } from '@/components/themed-text';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { resolveAdminComposeState } from '@/lib/messages/compose-gating';
 import { loadMessageThread, loadMessagesInbox, mergeMessages, sendMessage } from '@/lib/messages/api';
 import { buildMessageRenderItems } from '@/lib/messages/format-chat';
-import { useMessageRealtime } from '@/lib/messages/use-message-realtime';
+import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { RenderMessageItem } from '@/lib/messages/format-chat';
 import type { MessageThreadDetail, PortalMessage, StagedMessageFile } from '@/lib/messages/types';
 
@@ -85,24 +85,21 @@ export function MessageThreadScreen({
       });
   }, [loadThread, organizationId, schoolName]);
 
-  const onThreadMessageRef = useRef((incomingThreadId: string) => {
-    if (incomingThreadId === threadId) {
-      void loadThread({ silent: true });
-    }
-  });
-  onThreadMessageRef.current = (incomingThreadId: string) => {
-    if (incomingThreadId === threadId) {
-      void loadThread({ silent: true });
-    }
-  };
+  const { registerInboxConsumer } = useMessagesRealtime();
 
-  useMessageRealtime({
-    organizationId,
-    onInboxChange: () => {
-      void refreshUnreadCount();
-    },
-    onThreadMessage: (incomingThreadId) => onThreadMessageRef.current(incomingThreadId),
-  });
+  useEffect(() => {
+    return registerInboxConsumer({
+      activeThreadId: threadId,
+      onInboxChange: () => {
+        void refreshUnreadCount();
+      },
+      onThreadMessage: (incomingThreadId) => {
+        if (incomingThreadId === threadId) {
+          void loadThread({ silent: true });
+        }
+      },
+    });
+  }, [loadThread, refreshUnreadCount, registerInboxConsumer, threadId]);
 
   const renderItems = useMemo(
     () => (thread ? buildMessageRenderItems(thread.messages) : []),
@@ -111,7 +108,7 @@ export function MessageThreadScreen({
 
   const composeState = useMemo(() => {
     if (!thread) return { disabled: true, banner: null };
-    return resolveAdminComposeState(thread, staffDisplayName);
+    return resolveAdminComposeState(thread, false, staffDisplayName);
   }, [staffDisplayName, thread]);
 
   useEffect(() => {
@@ -195,9 +192,19 @@ export function MessageThreadScreen({
     if (item.type === 'day') {
       return (
         <View style={styles.daySeparator}>
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
-            {item.dayLabel}
-          </ThemedText>
+          <View
+            style={[
+              styles.dayPill,
+              styles.dayPillShadow,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}>
+            <ThemedText type="small" color={theme.textTertiary} style={styles.dayPillText}>
+              {item.dayLabel}
+            </ThemedText>
+          </View>
         </View>
       );
     }
@@ -251,9 +258,7 @@ export function MessageThreadScreen({
               color:
                 composeState.banner.variant === 'warning' ? theme.warning : theme.textSecondary,
             }}>
-            {composeState.banner.variant === 'info'
-              ? `You are replying as ${composeState.banner.staffDisplayName}.`
-              : composeState.banner.message}
+            {composeState.banner.message}
           </ThemedText>
         </View>
       ) : null}
@@ -266,16 +271,19 @@ export function MessageThreadScreen({
         </View>
       ) : null}
 
-      <FlatList
-        ref={listRef}
-        data={renderItems}
-        keyExtractor={(item) => (item.type === 'day' ? item.dayKey : item.message.id)}
-        renderItem={renderChatItem}
-        contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() => {
-          listRef.current?.scrollToEnd({ animated: false });
-        }}
-      />
+      <View style={[styles.messagesArea, { backgroundColor: theme.bg }]}>
+        <FlatList
+          ref={listRef}
+          data={renderItems}
+          keyExtractor={(item) => (item.type === 'day' ? item.dayKey : item.message.id)}
+          renderItem={renderChatItem}
+          contentContainerStyle={styles.messagesContent}
+          style={styles.messagesList}
+          onContentSizeChange={() => {
+            listRef.current?.scrollToEnd({ animated: false });
+          }}
+        />
+      </View>
 
       <MessageComposeBar
         value={input}
@@ -310,12 +318,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.two,
   },
+  messagesArea: {
+    flex: 1,
+  },
+  messagesList: {
+    flex: 1,
+  },
   messagesContent: {
+    paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
   daySeparator: {
     alignItems: 'center',
     paddingVertical: Spacing.two,
+  },
+  dayPill: {
+    borderRadius: Radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 4,
+  },
+  dayPillShadow: Platform.select({
+    ios: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 2,
+    },
+    default: {
+      elevation: 1,
+    },
+  }),
+  dayPillText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
   },
 });

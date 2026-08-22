@@ -50,6 +50,7 @@ export async function createMessageThread(
       contact: {
         key: contact.key,
         kind: contact.kind,
+        guardianId: contact.guardianId,
         familyId: contact.familyId,
         staffMemberId: contact.staffMemberId,
         name: contact.name,

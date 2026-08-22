@@ -104,3 +104,18 @@ export async function getGuardianIdForUser(
   if (error) throw new Error(error.message);
   return data?.id ? String(data.id) : null;
 }
+
+export async function getGuardianIdsForUser(
+  admin: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string[]> {
+  const { data, error } = await admin
+    .from("guardians")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => String(row.id));
+}

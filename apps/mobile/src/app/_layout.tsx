@@ -56,7 +56,7 @@ export default function RootLayout() {
           options={{ animation: isMobileE2e ? 'none' : 'fade' }}
         />
         <Stack.Screen
-          name="school-admin"
+          name="school-admin/[slug]"
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
       </Stack>

@@ -55,8 +55,8 @@ function senderKindLabel(kind: PortalMessageSenderKind): string {
 
 function threadTypeLabel(thread: MessageThreadSummary): string {
   const section = getAdminThreadSection(thread);
-  if (section === "family_office") return "Family & office";
-  if (section === "family_staff") return "Family & teacher";
+  if (section === "guardian_office") return "Parent & office";
+  if (section === "guardian_staff") return "Parent & teacher";
   return "Other";
 }
 
@@ -64,8 +64,8 @@ function threadTypeVariant(
   thread: MessageThreadSummary,
 ): "scheduled" | "success" | "neutral" {
   const section = getAdminThreadSection(thread);
-  if (section === "family_office") return "scheduled";
-  if (section === "family_staff") return "success";
+  if (section === "guardian_office") return "scheduled";
+  if (section === "guardian_staff") return "success";
   return "neutral";
 }
 

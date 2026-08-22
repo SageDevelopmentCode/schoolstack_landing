@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import { MessagesDualAvatar } from '@/components/school-admin/messages/messages-dual-avatar';
 import { AdminListCardPressable } from '@/components/school-admin/admin-list-card';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -19,7 +20,16 @@ export function MessageThreadRow({ thread, onPress }: MessageThreadRowProps) {
   return (
     <AdminListCardPressable onPress={onPress}>
       <View style={styles.row}>
-        <MessagesAvatar name={thread.title} color={thread.color} />
+        {thread.listAvatars?.length === 2 ? (
+          <MessagesDualAvatar avatars={thread.listAvatars} size="sm" />
+        ) : (
+          <MessagesAvatar
+            name={thread.title}
+            color={thread.color}
+            photoUrl={thread.photoUrl}
+            size="sm"
+          />
+        )}
         <View style={styles.content}>
           <View style={styles.topLine}>
             <ThemedText

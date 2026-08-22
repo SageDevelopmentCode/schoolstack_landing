@@ -2,7 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFamilyIdsForUser, userIsOrgAdmin } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { dispatchMessageNotifications } from "@/lib/messages/message-notifications";
-import { getGuardianIdForUser, postPortalMessage } from "@/lib/messages/messages";
+import {
+  getGuardianIdForUser,
+  getGuardianIdsForUser,
+  postPortalMessage,
+} from "@/lib/messages/messages";
 import { participantsFromContact } from "@/lib/messages/participants-from-contact";
 import {
   findOrCreateThread,
@@ -29,20 +33,31 @@ export async function assertParentCanAccessThread(
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   if (familyIds.length === 0) throw new Error("No family found for this account.");
 
+  const guardianIds = await getGuardianIdsForUser(admin, userId, organizationId);
+
   const { data: participants, error } = await admin
     .from("message_thread_participants")
-    .select("family_id, participant_kind")
+    .select("family_id, guardian_id, participant_kind")
     .eq("thread_id", threadId)
     .eq("organization_id", organizationId);
 
   if (error) throw new Error(error.message);
 
-  const allowed = (participants ?? []).some(
-    (row) =>
+  const allowed = (participants ?? []).some((row) => {
+    if (
+      row.participant_kind === "guardian" &&
+      row.guardian_id &&
+      guardianIds.includes(String(row.guardian_id))
+    ) {
+      return true;
+    }
+
+    return (
       row.participant_kind === "family" &&
       row.family_id &&
-      familyIds.includes(String(row.family_id)),
-  );
+      familyIds.includes(String(row.family_id))
+    );
+  });
 
   if (!allowed) throw new Error("You do not have access to this thread.");
   return familyIds[0];
@@ -87,44 +102,60 @@ export async function resolveParticipantsForContact(
   organizationId: string,
   contact: MessageContactInput,
   context: {
+    guardianId?: string | null;
     familyId?: string | null;
     staffMemberId?: string | null;
     viewer: "parent" | "teacher" | "admin";
   },
 ): Promise<MessageParticipantInput[]> {
   if (context.viewer === "parent") {
-    const familyIds = context.familyId ? [context.familyId] : [];
-    if (!familyIds.length) throw new Error("No family found for this account.");
-    return participantsFromContact(contact, { familyId: familyIds[0] });
+    if (!context.guardianId) {
+      throw new Error("No guardian profile found for this account.");
+    }
+    return participantsFromContact(contact, { guardianId: context.guardianId });
   }
 
   if (context.viewer === "teacher") {
     if (!context.staffMemberId) throw new Error("Staff profile not found.");
-    if (contact.kind === "family" && contact.familyId) {
+    if (contact.kind === "guardian" && contact.guardianId) {
+      const { data: guardian, error: guardianError } = await admin
+        .from("guardians")
+        .select("family_id")
+        .eq("id", contact.guardianId)
+        .eq("organization_id", organizationId)
+        .maybeSingle();
+
+      if (guardianError) throw new Error(guardianError.message);
+      if (!guardian?.family_id) {
+        throw new Error("You can only message guardians of your assigned students.");
+      }
+
       const { data: student, error } = await admin
         .from("students")
         .select("id")
         .eq("organization_id", organizationId)
-        .eq("family_id", contact.familyId)
+        .eq("family_id", guardian.family_id)
         .eq("assigned_teacher_id", context.staffMemberId)
         .limit(1)
         .maybeSingle();
 
       if (error) throw new Error(error.message);
-      if (!student) throw new Error("You can only message families of your assigned students.");
+      if (!student) {
+        throw new Error("You can only message guardians of your assigned students.");
+      }
     }
     return participantsFromContact(contact, {
-      familyId: contact.familyId,
+      guardianId: contact.guardianId,
       staffMemberId: context.staffMemberId,
     });
   }
 
   if (contact.kind === "school_office") {
-    throw new Error("Select a family to open the school office thread.");
+    throw new Error("Select a parent to open the school office thread.");
   }
 
-  if (contact.kind === "family" && contact.familyId) {
-    return participantsFromContact(contact, { familyId: contact.familyId });
+  if (contact.kind === "guardian" && contact.guardianId) {
+    return participantsFromContact(contact, {});
   }
 
   if (contact.kind === "staff_member" && contact.staffMemberId) {

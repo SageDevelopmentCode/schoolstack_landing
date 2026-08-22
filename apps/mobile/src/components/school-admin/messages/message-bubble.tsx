@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import type { PortalMessage } from '@/lib/messages/types';
+
+const BUBBLE_RADIUS = Radius.lg;
+const BUBBLE_TAIL_RADIUS = 4;
 
 type MessageBubbleProps = {
   message: PortalMessage;
@@ -21,9 +24,28 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const theme = useAdminTheme();
   const isOwn = message.isOwn;
-  const bubbleColor = isOwn ? theme.accent : theme.input;
-  const textColor = isOwn ? '#FFFFFF' : theme.textPrimary;
-  const metaColor = isOwn ? 'rgba(255,255,255,0.8)' : theme.textTertiary;
+
+  const bubbleStyle = isOwn
+    ? {
+        backgroundColor: theme.accent,
+        borderTopLeftRadius: BUBBLE_RADIUS,
+        borderTopRightRadius: BUBBLE_RADIUS,
+        borderBottomLeftRadius: BUBBLE_RADIUS,
+        borderBottomRightRadius: BUBBLE_TAIL_RADIUS,
+        borderWidth: 0,
+      }
+    : {
+        backgroundColor: theme.surface,
+        borderTopLeftRadius: BUBBLE_RADIUS,
+        borderTopRightRadius: BUBBLE_RADIUS,
+        borderBottomLeftRadius: BUBBLE_TAIL_RADIUS,
+        borderBottomRightRadius: BUBBLE_RADIUS,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.border,
+      };
+
+  const bodyColor = isOwn ? '#FFFFFF' : theme.textSecondary;
+  const timeColor = isOwn ? 'rgba(255,255,255,0.75)' : theme.textTertiary;
 
   return (
     <View
@@ -35,18 +57,17 @@ export function MessageBubble({
       <View
         style={[
           styles.bubble,
-          {
-            backgroundColor: bubbleColor,
-            opacity: message.pending ? 0.7 : 1,
-          },
+          styles.bubbleShadow,
+          bubbleStyle,
+          { opacity: message.pending ? 0.75 : 1 },
         ]}>
         {showSenderName ? (
-          <ThemedText type="smallBold" style={{ color: metaColor, marginBottom: 2 }}>
+          <ThemedText type="smallBold" color={theme.accent} style={styles.senderName}>
             {message.senderName}
           </ThemedText>
         ) : null}
         {message.body ? (
-          <ThemedText type="default" style={{ color: textColor }}>
+          <ThemedText type="default" color={bodyColor} style={styles.body}>
             {message.body}
           </ThemedText>
         ) : null}
@@ -91,7 +112,8 @@ export function MessageBubble({
                   <ThemedText
                     type="small"
                     numberOfLines={1}
-                    style={{ color: isOwn ? '#FFFFFF' : theme.accent, flex: 1 }}>
+                    color={isOwn ? '#FFFFFF' : theme.accent}
+                    style={styles.fileName}>
                     {attachment.fileName}
                   </ThemedText>
                 </Pressable>
@@ -99,8 +121,8 @@ export function MessageBubble({
             })}
           </View>
         ) : null}
-        <ThemedText type="small" style={{ color: metaColor, marginTop: 4, alignSelf: 'flex-end' }}>
-          {message.timeLabel}
+        <ThemedText type="small" color={timeColor} style={styles.time}>
+          {message.pending ? 'Sending…' : message.timeLabel}
         </ThemedText>
       </View>
     </View>
@@ -109,7 +131,7 @@ export function MessageBubble({
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingHorizontal: Spacing.four,
+    alignSelf: 'stretch',
   },
   wrapperOwn: {
     alignItems: 'flex-end',
@@ -121,11 +143,34 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   bubble: {
-    maxWidth: '82%',
-    borderRadius: Radius.lg,
+    maxWidth: '75%',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     gap: 2,
+  },
+  bubbleShadow: Platform.select({
+    ios: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+    },
+    default: {
+      elevation: 1,
+    },
+  }),
+  senderName: {
+    marginBottom: 2,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  time: {
+    marginTop: 4,
+    alignSelf: 'flex-end',
+    fontSize: 10,
+    lineHeight: 14,
   },
   attachments: {
     marginTop: Spacing.two,
@@ -141,5 +186,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
     maxWidth: 220,
+  },
+  fileName: {
+    flex: 1,
   },
 });

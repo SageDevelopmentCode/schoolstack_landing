@@ -3,30 +3,30 @@ import type { MessageContactInput, MessageParticipantInput } from "./types";
 export function participantsFromContact(
   contact: MessageContactInput,
   context: {
-    familyId?: string | null;
+    guardianId?: string | null;
     staffMemberId?: string | null;
   },
 ): MessageParticipantInput[] {
   if (contact.kind === "school_office") {
-    if (!context.familyId) {
-      throw new Error("A family is required to message the school office.");
+    if (!context.guardianId) {
+      throw new Error("A guardian profile is required to message the school office.");
     }
     return [
-      { kind: "family", familyId: context.familyId },
+      { kind: "guardian", guardianId: context.guardianId },
       { kind: "school_office" },
     ];
   }
 
-  if (contact.kind === "family") {
-    if (!contact.familyId) throw new Error("Family contact is missing familyId.");
+  if (contact.kind === "guardian") {
+    if (!contact.guardianId) throw new Error("Guardian contact is missing guardianId.");
     if (context.staffMemberId) {
       return [
-        { kind: "family", familyId: contact.familyId },
+        { kind: "guardian", guardianId: contact.guardianId },
         { kind: "staff_member", staffMemberId: context.staffMemberId },
       ];
     }
     return [
-      { kind: "family", familyId: contact.familyId },
+      { kind: "guardian", guardianId: contact.guardianId },
       { kind: "school_office" },
     ];
   }
@@ -35,9 +35,9 @@ export function participantsFromContact(
     throw new Error("Staff contact is missing staffMemberId.");
   }
 
-  if (context.familyId) {
+  if (context.guardianId) {
     return [
-      { kind: "family", familyId: context.familyId },
+      { kind: "guardian", guardianId: context.guardianId },
       { kind: "staff_member", staffMemberId: contact.staffMemberId },
     ];
   }
@@ -59,17 +59,31 @@ export function participantsFromContact(
 }
 
 export function contactKeyForThread(
-  threadParticipants: { kind: string; familyId: string | null; staffMemberId: string | null }[],
+  threadParticipants: {
+    kind: string;
+    familyId: string | null;
+    guardianId: string | null;
+    staffMemberId: string | null;
+  }[],
   viewer: "parent" | "teacher" | "admin",
-  context: { familyId?: string | null; staffMemberId?: string | null },
+  context: {
+    guardianId?: string | null;
+    staffMemberId?: string | null;
+  },
 ): string | null {
   const hasOffice = threadParticipants.some((p) => p.kind === "school_office");
-  const familyParticipant = threadParticipants.find((p) => p.kind === "family");
+  const guardianParticipant = threadParticipants.find((p) => p.kind === "guardian");
+  const legacyFamilyParticipant = threadParticipants.find((p) => p.kind === "family");
   const staffParticipants = threadParticipants.filter((p) => p.kind === "staff_member");
 
-  if (hasOffice && familyParticipant?.familyId) {
+  if (hasOffice && guardianParticipant?.guardianId) {
     if (viewer === "parent") return "school_office";
-    return `family:${familyParticipant.familyId}`;
+    return `guardian:${guardianParticipant.guardianId}`;
+  }
+
+  if (hasOffice && legacyFamilyParticipant?.familyId) {
+    if (viewer === "parent") return "school_office";
+    return `family:${legacyFamilyParticipant.familyId}`;
   }
 
   if (hasOffice && staffParticipants[0]?.staffMemberId) {
@@ -79,7 +93,7 @@ export function contactKeyForThread(
 
   if (hasOffice) return "school_office";
 
-  if (staffParticipants.length === 2 && !familyParticipant) {
+  if (staffParticipants.length === 2 && !guardianParticipant && !legacyFamilyParticipant) {
     const other = staffParticipants.find(
       (p) => p.staffMemberId && p.staffMemberId !== context.staffMemberId,
     );
@@ -90,8 +104,20 @@ export function contactKeyForThread(
     return `staff:${staffParticipants[0].staffMemberId}`;
   }
 
-  if (familyParticipant?.familyId) {
-    return `family:${familyParticipant.familyId}`;
+  if (guardianParticipant?.guardianId) {
+    if (
+      viewer === "admin" &&
+      !hasOffice &&
+      staffParticipants.length === 1 &&
+      staffParticipants[0]?.staffMemberId
+    ) {
+      return `guardian:${guardianParticipant.guardianId}:staff:${staffParticipants[0].staffMemberId}`;
+    }
+    return `guardian:${guardianParticipant.guardianId}`;
+  }
+
+  if (legacyFamilyParticipant?.familyId) {
+    return `family:${legacyFamilyParticipant.familyId}`;
   }
 
   return null;

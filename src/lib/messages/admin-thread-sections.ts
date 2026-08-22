@@ -1,15 +1,28 @@
 import type { MessageThreadSummary } from "./types";
 
-export type AdminThreadSection = "family_staff" | "family_office";
+export type AdminThreadSection = "guardian_staff" | "guardian_office";
 
 export type AdminConversationListItem =
-  | { type: "section"; key: string; label: string }
+  | { type: "section"; key: string; label: string; description?: string }
   | { type: "thread"; thread: MessageThreadSummary };
 
-const SECTION_LABELS: Record<"family_staff" | "other", string> = {
-  family_staff: "Family & teachers",
+const SECTION_LABELS: Record<"guardian_staff" | "other", string> = {
+  guardian_staff: "Parent & teacher conversations",
   other: "Other",
 };
+
+const SECTION_DESCRIPTIONS: Partial<Record<"guardian_staff" | "other", string>> = {
+  guardian_staff:
+    "For your review — messages between families and staff, not your school office inbox.",
+};
+
+function hasParentSideParticipant(
+  participants: MessageThreadSummary["participants"],
+): boolean {
+  return participants.some(
+    (participant) => participant.kind === "guardian" || participant.kind === "family",
+  );
+}
 
 function sortThreadsByRecency(threads: MessageThreadSummary[]): MessageThreadSummary[] {
   return [...threads].sort((a, b) => {
@@ -22,9 +35,7 @@ function sortThreadsByRecency(threads: MessageThreadSummary[]): MessageThreadSum
 export function getAdminThreadSection(
   thread: MessageThreadSummary,
 ): AdminThreadSection | null {
-  const hasFamily = thread.participants.some(
-    (participant) => participant.kind === "family",
-  );
+  const hasParent = hasParentSideParticipant(thread.participants);
   const hasStaff = thread.participants.some(
     (participant) => participant.kind === "staff_member",
   );
@@ -32,12 +43,12 @@ export function getAdminThreadSection(
     (participant) => participant.kind === "school_office",
   );
 
-  if (hasFamily && hasStaff && !hasOffice) {
-    return "family_staff";
+  if (hasParent && hasStaff && !hasOffice) {
+    return "guardian_staff";
   }
 
-  if (hasFamily && hasOffice && !hasStaff) {
-    return "family_office";
+  if (hasParent && hasOffice && !hasStaff) {
+    return "guardian_office";
   }
 
   return null;
@@ -46,11 +57,11 @@ export function getAdminThreadSection(
 export function buildAdminSectionedListItems(
   threads: MessageThreadSummary[],
 ): AdminConversationListItem[] {
-  const familyStaffThreads = sortThreadsByRecency(
-    threads.filter((thread) => getAdminThreadSection(thread) === "family_staff"),
+  const guardianStaffThreads = sortThreadsByRecency(
+    threads.filter((thread) => getAdminThreadSection(thread) === "guardian_staff"),
   );
-  const familyOfficeThreads = sortThreadsByRecency(
-    threads.filter((thread) => getAdminThreadSection(thread) === "family_office"),
+  const guardianOfficeThreads = sortThreadsByRecency(
+    threads.filter((thread) => getAdminThreadSection(thread) === "guardian_office"),
   );
   const otherThreads = sortThreadsByRecency(
     threads.filter((thread) => getAdminThreadSection(thread) === null),
@@ -58,19 +69,20 @@ export function buildAdminSectionedListItems(
 
   const items: AdminConversationListItem[] = [];
 
-  if (familyOfficeThreads.length > 0) {
-    for (const thread of familyOfficeThreads) {
+  if (guardianOfficeThreads.length > 0) {
+    for (const thread of guardianOfficeThreads) {
       items.push({ type: "thread", thread });
     }
   }
 
-  if (familyStaffThreads.length > 0) {
+  if (guardianStaffThreads.length > 0) {
     items.push({
       type: "section",
-      key: "section-family_staff",
-      label: SECTION_LABELS.family_staff,
+      key: "section-guardian_staff",
+      label: SECTION_LABELS.guardian_staff,
+      description: SECTION_DESCRIPTIONS.guardian_staff,
     });
-    for (const thread of familyStaffThreads) {
+    for (const thread of guardianStaffThreads) {
       items.push({ type: "thread", thread });
     }
   }

@@ -96,7 +96,12 @@ export function NewConversationSheet({
                 styles.contactRow,
                 { borderBottomColor: theme.border, opacity: pressed ? 0.85 : 1 },
               ]}>
-              <MessagesAvatar name={item.name} color={item.color} />
+              <MessagesAvatar
+                name={item.name}
+                color={item.color}
+                photoUrl={item.profilePhotoUrl}
+                size="sm"
+              />
               <View style={styles.contactText}>
                 <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
                   {item.name}

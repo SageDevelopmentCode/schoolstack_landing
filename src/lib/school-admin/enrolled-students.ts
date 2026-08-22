@@ -123,6 +123,15 @@ export function formatEnrolledStudentSubtitle(
   return students.map(formatEnrolledStudentName).join(" · ");
 }
 
+export function formatEnrolledStudentFirstNames(
+  students: AdminEnrolledStudentSummary[],
+): string {
+  return students
+    .map((student) => student.firstName.trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function formatStudentGrade(grade: string | null | undefined): string | null {
   if (!grade) return null;
   const normalized = grade.trim().toLowerCase();

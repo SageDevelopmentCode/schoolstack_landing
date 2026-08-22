@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { getTotalUnreadCount } from "./threads";
 
@@ -14,8 +14,8 @@ export async function getParentMessagesUnreadCount(
   const hasAccess = await userHasEnrolledAccess(supabase, userId, organizationId);
   if (!hasAccess) return 0;
 
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
-  if (familyIds.length === 0) return 0;
+  const guardianIds = await getGuardianIdsForUser(admin, userId, organizationId);
+  if (guardianIds.length === 0) return 0;
 
   return getTotalUnreadCount(
     admin,
@@ -23,7 +23,7 @@ export async function getParentMessagesUnreadCount(
     userId,
     `${schoolName} Office`,
     "parent",
-    { type: "family", familyIds },
+    { type: "guardian", guardianIds },
   );
 }
 

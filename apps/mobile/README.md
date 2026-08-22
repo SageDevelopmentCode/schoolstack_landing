@@ -12,15 +12,37 @@ npm run mobile:ios      # iOS simulator
 npm run mobile:android  # Android emulator
 ```
 
-Copy Supabase keys from the web `.env.local` into [`apps/mobile/.env`](.env):
+Copy Supabase keys from the web `.env.local` into [`apps/mobile/.env`](.env). See [`.env.example`](.env.example):
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
-EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com
+EXPO_PUBLIC_SITE_URL=http://192.168.x.x:3000   # your Mac LAN IP, not localhost
 ```
 
+Find your LAN IP: `ipconfig getifaddr en0`. The mobile app calls your Next.js API at `EXPO_PUBLIC_SITE_URL`; use the same Supabase project as the web app.
+
 You do **not** need `.env.e2e` or `.env.e2e.local` for normal development, lint, unit tests, or CI.
+
+## Releasing (TestFlight / App Store)
+
+Do **not** change `.env` before a production build. Use EAS build profiles in [`eas.json`](eas.json):
+
+1. Install EAS CLI: `npm i -g eas-cli` and `eas login`
+2. Set production Supabase secrets (once per project):
+   ```bash
+   cd apps/mobile
+   eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://..."
+   eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "..."
+   ```
+3. Build for production (sets `EXPO_PUBLIC_SITE_URL` to `https://trymudkitchen.com`):
+   ```bash
+   cd apps/mobile
+   npm run build:production:ios
+   # or: npm run build:production:android
+   ```
+
+`npm run assert:production-env` fails if `EXPO_PUBLIC_SITE_URL` looks local (`localhost`, `192.168.x.x`, `:3000`, `:3100`). See [`.env.production.example`](.env.production.example) for documented production values.
 
 ## Quality checks
 

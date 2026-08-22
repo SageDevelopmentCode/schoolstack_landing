@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -21,7 +21,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { buildAdminSectionedListItems } from '@/lib/messages/admin-thread-sections';
 import { loadMessagesInbox, createMessageThread } from '@/lib/messages/api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
-import { useMessageRealtime } from '@/lib/messages/use-message-realtime';
+import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { AdminConversationListItem } from '@/lib/messages/admin-thread-sections';
 import type { MessageContact, MessageThreadSummary, MessagesInboxData } from '@/lib/messages/types';
 
@@ -78,20 +78,22 @@ export function MessagesListScreen({
     }, [loadInbox, refreshUnreadCount, threads.length]),
   );
 
-  const onInboxChangeRef = useRef(() => {
-    void loadInbox({ silent: true });
-    void refreshUnreadCount();
-  });
-  onInboxChangeRef.current = () => {
-    void loadInbox({ silent: true });
-    void refreshUnreadCount();
-  };
+  const { registerInboxConsumer } = useMessagesRealtime();
 
-  useMessageRealtime({
-    organizationId,
-    onInboxChange: () => onInboxChangeRef.current(),
-    onThreadMessage: () => onInboxChangeRef.current(),
-  });
+  useFocusEffect(
+    useCallback(() => {
+      return registerInboxConsumer({
+        activeThreadId: null,
+        onInboxChange: () => {
+          void loadInbox({ silent: true });
+          void refreshUnreadCount();
+        },
+        onThreadMessage: () => {
+          // Inbox changes are handled via onInboxChange.
+        },
+      });
+    }, [loadInbox, refreshUnreadCount, registerInboxConsumer]),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -131,12 +133,21 @@ export function MessagesListScreen({
   const renderItem = ({ item }: { item: AdminConversationListItem }) => {
     if (item.type === 'section') {
       return (
-        <View style={styles.sectionHeader}>
-          <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
-            {item.label}
-          </ThemedText>
-          <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
+        <View>
+          <View style={styles.sectionHeader}>
+            <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
+            <ThemedText type="small" style={{ color: theme.textTertiary }}>
+              {item.label}
+            </ThemedText>
+            <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
+          </View>
+          {item.description ? (
+            <ThemedText
+              type="small"
+              style={[styles.sectionDescription, { color: theme.textTertiary }]}>
+              {item.description}
+            </ThemedText>
+          ) : null}
         </View>
       );
     }
@@ -255,6 +266,11 @@ const styles = StyleSheet.create({
   sectionLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
+  },
+  sectionDescription: {
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingBottom: Spacing.one,
   },
   emptyState: {
     paddingTop: Spacing.six,

@@ -124,7 +124,12 @@ export default function MessagesNewConversationModal({
                         : { ...committeeTransition, delay: index * 0.04 }
                     }
                   >
-                    <MessagesAvatar name={contact.name} color={contact.color} size="sm" />
+                    <MessagesAvatar
+                      name={contact.name}
+                      color={contact.color}
+                      photoUrl={contact.profilePhotoUrl}
+                      size="sm"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
                         {contact.name}

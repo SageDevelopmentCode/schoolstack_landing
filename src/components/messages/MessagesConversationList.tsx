@@ -8,12 +8,13 @@ import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 
 export type MessagesConversationListItem =
-  | { type: "section"; key: string; label: string }
+  | { type: "section"; key: string; label: string; description?: string }
   | { type: "thread"; thread: MessageThreadSummary }
   | { type: "contact"; contact: MessageContact };
 
 function renderSectionHeader(
   label: string,
+  description: string | undefined,
   embedded: boolean,
   C: AdminThemeTokens,
 ) {
@@ -27,17 +28,32 @@ function renderSectionHeader(
           </p>
           <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
         </div>
+        {description ? (
+          <p
+            className="mt-2 text-center text-[11px] leading-relaxed"
+            style={{ color: C.textTertiary }}
+          >
+            {description}
+          </p>
+        ) : null}
       </div>
     );
   }
 
   return (
-    <p
-      className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-      style={{ color: C.textTertiary }}
-    >
-      {label}
-    </p>
+    <div className="px-3 pt-3 pb-1">
+      <p
+        className="text-[10px] font-semibold uppercase tracking-wider"
+        style={{ color: C.textTertiary }}
+      >
+        {label}
+      </p>
+      {description ? (
+        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+          {description}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -82,7 +98,9 @@ export default function MessagesConversationList({
         items.map((item, itemIndex) => {
           if (item.type === "section") {
             return (
-              <div key={item.key}>{renderSectionHeader(item.label, embedded, C)}</div>
+              <div key={item.key}>
+                {renderSectionHeader(item.label, item.description, embedded, C)}
+              </div>
             );
           }
 
@@ -110,6 +128,8 @@ export default function MessagesConversationList({
             item.type === "thread" ? item.thread.unreadCount : 0;
           const color =
             item.type === "thread" ? item.thread.color : item.contact.color;
+          const photoUrl =
+            item.type === "thread" ? item.thread.photoUrl : item.contact.profilePhotoUrl;
           const isActive = activeKey === key;
           const hasUnread = unread > 0;
           const shouldShowSubtitle =
@@ -160,7 +180,12 @@ export default function MessagesConversationList({
                 {listAvatars?.length === 2 ? (
                   <MessagesDualAvatar avatars={listAvatars} size="sm" />
                 ) : (
-                  <MessagesAvatar name={title} color={color} size="sm" />
+                  <MessagesAvatar
+                    name={title}
+                    color={color}
+                    photoUrl={photoUrl}
+                    size="sm"
+                  />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center gap-2">

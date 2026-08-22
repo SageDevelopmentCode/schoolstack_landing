@@ -3,13 +3,17 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import { MessagesDualAvatar } from '@/components/school-admin/messages/messages-dual-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Spacing } from '@/constants/theme';
 import type { MessageThreadSummary } from '@/lib/messages/types';
 
 type MessageThreadHeaderProps = {
-  thread: Pick<MessageThreadSummary, 'title' | 'subtitle' | 'color'>;
+  thread: Pick<
+    MessageThreadSummary,
+    'title' | 'subtitle' | 'color' | 'photoUrl' | 'listAvatars'
+  >;
   backLabel?: string;
 };
 
@@ -30,7 +34,16 @@ export function MessageThreadHeader({ thread, backLabel = 'Messages' }: MessageT
         </ThemedText>
       </Pressable>
       <View style={styles.center}>
-        <MessagesAvatar name={thread.title} color={thread.color} size="sm" />
+        {thread.listAvatars?.length === 2 ? (
+          <MessagesDualAvatar avatars={thread.listAvatars} size="sm" />
+        ) : (
+          <MessagesAvatar
+            name={thread.title}
+            color={thread.color}
+            photoUrl={thread.photoUrl}
+            size="sm"
+          />
+        )}
         <View style={styles.titleBlock}>
           <ThemedText type="smallBold" numberOfLines={1} style={{ color: theme.textPrimary }}>
             {thread.title}

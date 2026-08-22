@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -17,6 +17,14 @@ export function useMessageRealtime({
   onInboxChange,
   onConnectionChange,
 }: UseMessageRealtimeOptions) {
+  const onInboxChangeRef = useRef(onInboxChange);
+  const onThreadMessageRef = useRef(onThreadMessage);
+  const onConnectionChangeRef = useRef(onConnectionChange);
+
+  onInboxChangeRef.current = onInboxChange;
+  onThreadMessageRef.current = onThreadMessage;
+  onConnectionChangeRef.current = onConnectionChange;
+
   useEffect(() => {
     if (!enabled || !organizationId) return undefined;
 
@@ -34,8 +42,8 @@ export function useMessageRealtime({
         (payload: { new: { thread_id?: string } }) => {
           const threadId = String((payload.new as { thread_id?: string }).thread_id ?? '');
           if (!threadId) return;
-          onInboxChange();
-          onThreadMessage(threadId);
+          onInboxChangeRef.current();
+          onThreadMessageRef.current(threadId);
         },
       )
       .on(
@@ -47,21 +55,22 @@ export function useMessageRealtime({
           filter: `organization_id=eq.${organizationId}`,
         },
         () => {
-          onInboxChange();
+          onInboxChangeRef.current();
         },
       )
       .subscribe((status: string) => {
-        if (!onConnectionChange) return;
+        const onConnection = onConnectionChangeRef.current;
+        if (!onConnection) return;
         if (status === 'SUBSCRIBED') {
-          onConnectionChange(true);
+          onConnection(true);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          onConnectionChange(false);
+          onConnection(false);
         }
       });
 
     return () => {
-      onConnectionChange?.(false);
+      onConnectionChangeRef.current?.(false);
       void supabase.removeChannel(channel);
     };
-  }, [enabled, onConnectionChange, onInboxChange, onThreadMessage, organizationId]);
+  }, [enabled, organizationId]);
 }

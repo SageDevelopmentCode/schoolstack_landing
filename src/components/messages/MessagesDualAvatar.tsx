@@ -25,6 +25,20 @@ export default function MessagesDualAvatar({
   const label = `${first.name} and ${second.name}`;
   const ringClass = `ring-2 ${ringClassName}`;
 
+  const renderAvatar = (avatar: MessageThreadListAvatar) => {
+    const photoUrl = avatar.profilePhotoUrl?.trim() ?? "";
+    if (photoUrl) {
+      return (
+        <img
+          src={photoUrl}
+          alt={`Photo of ${avatar.name}`}
+          className="h-full w-full object-cover"
+        />
+      );
+    }
+    return initialsFromName(avatar.name);
+  };
+
   return (
     <div
       className="relative h-8 w-[2.75rem] shrink-0"
@@ -32,18 +46,18 @@ export default function MessagesDualAvatar({
       role="img"
     >
       <div
-        className={`absolute left-0 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ${ringClass}`}
+        className={`absolute left-0 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white overflow-hidden ${ringClass}`}
         style={{ backgroundColor: first.color }}
         aria-hidden
       >
-        {initialsFromName(first.name)}
+        {renderAvatar(first)}
       </div>
       <div
-        className={`absolute left-4 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white ${ringClass}`}
+        className={`absolute left-4 top-0 ${sizeClass} flex items-center justify-center rounded-full font-semibold text-white overflow-hidden ${ringClass}`}
         style={{ backgroundColor: second.color }}
         aria-hidden
       >
-        {initialsFromName(second.name)}
+        {renderAvatar(second)}
       </div>
     </div>
   );
