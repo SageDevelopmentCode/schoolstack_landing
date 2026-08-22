@@ -9,7 +9,7 @@ import type { PerformanceOpportunity } from "@/lib/performance/types";
 
 type PerformanceResultDetail = {
   id: string;
-  runId: string;
+  runId: string | null;
   pageId: string;
   label: string;
   category: string;

@@ -10,7 +10,10 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { config } from "dotenv";
-import { metricsToResultRow } from "@/lib/performance/api-helpers";
+import {
+  metricsToResultRow,
+  upsertPerformanceAuditResult,
+} from "@/lib/performance/api-helpers";
 import {
   getPerformancePageManifest,
   resolvePageUrl,
@@ -145,8 +148,12 @@ async function main() {
   }
 
   const admin = createAdminClient();
-  const pageIds: string[] = [];
-  const resultRows: Array<Record<string, unknown>> = [];
+  const formFactor = resolveFormFactor();
+  const commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "local";
+  const branch = process.env.GITHUB_REF_NAME ?? "unknown";
+  const sourceRef = `${commit} on ${branch}`;
+
+  let uploadedCount = 0;
 
   for (const entry of representative) {
     if (!entry.url || !entry.jsonPath) continue;
@@ -157,21 +164,23 @@ async function main() {
       continue;
     }
 
-    pageIds.push(page.id);
+    const url = resolvePageUrl(page.path, "local");
 
     try {
       const lighthousePayload = await loadLighthouseReport(entry.jsonPath);
       const metrics = normalizeLighthouseResult(
         lighthousePayload as Parameters<typeof normalizeLighthouseResult>[0],
       );
-      const url = resolvePageUrl(page.path, "local");
 
-      resultRows.push({
+      await upsertPerformanceAuditResult(admin, {
         page_id: page.id,
+        environment: "ci",
+        form_factor: formFactor,
         label: page.label,
         category: page.category,
         url,
         status: "success",
+        source_ref: sourceRef,
         ...metricsToResultRow(metrics),
         raw_report: lighthousePayload,
       });
@@ -179,55 +188,28 @@ async function main() {
       const message =
         error instanceof Error ? error.message : "Failed to parse Lighthouse report.";
 
-      resultRows.push({
+      await upsertPerformanceAuditResult(admin, {
         page_id: page.id,
+        environment: "ci",
+        form_factor: formFactor,
         label: page.label,
         category: page.category,
-        url: resolvePageUrl(page.path, "local"),
+        url,
         status: "failed",
+        source_ref: sourceRef,
         error_message: message,
       });
     }
+
+    uploadedCount += 1;
   }
 
-  if (!pageIds.length) {
+  if (!uploadedCount) {
     log("No manifest matches for Lighthouse CI URLs — skipping upload.");
     return;
   }
 
-  const commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "local";
-  const branch = process.env.GITHUB_REF_NAME ?? "unknown";
-  const formFactor = resolveFormFactor();
-
-  const { data: run, error: runError } = await admin
-    .from("performance_audit_runs")
-    .insert({
-      environment: "ci",
-      status: "completed",
-      page_ids: pageIds,
-      form_factor: formFactor,
-      completed_count: resultRows.length,
-      error_message: `CI run ${commit} (${formFactor}) on ${branch}`,
-    })
-    .select("id")
-    .single();
-
-  if (runError || !run) {
-    throw runError ?? new Error("Failed to create performance audit run.");
-  }
-
-  const { error: resultsError } = await admin.from("performance_audit_results").insert(
-    resultRows.map((row) => ({
-      run_id: run.id,
-      ...row,
-    })),
-  );
-
-  if (resultsError) {
-    throw resultsError;
-  }
-
-  log(`Uploaded ${resultRows.length} result(s) to run ${run.id}.`);
+  log(`Upserted ${uploadedCount} result(s) for CI (${formFactor}).`);
 }
 
 void main().catch((error) => {

@@ -1,0 +1,1 @@
+export const PERFORMANCE_LOW_SCORE_THRESHOLD = 80;

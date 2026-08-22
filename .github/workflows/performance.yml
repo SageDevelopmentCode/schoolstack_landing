@@ -1,8 +1,6 @@
 name: Performance
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
 
@@ -32,7 +30,7 @@ jobs:
 
   lighthouse:
     needs: changes
-    if: github.event_name == 'push' || needs.changes.outputs.perf == 'true'
+    if: needs.changes.outputs.perf == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -73,11 +71,7 @@ jobs:
       - name: Resolve Lighthouse pages
         id: pages
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            PATHS=$(npx tsx scripts/resolve-performance-ci-pages.ts --full)
-          else
-            PATHS=$(npx tsx scripts/resolve-performance-ci-pages.ts --base origin/${{ github.base_ref }})
-          fi
+          PATHS=$(npx tsx scripts/resolve-performance-ci-pages.ts --full)
           echo "PERFORMANCE_CI_PAGE_PATHS=$PATHS" >> "$GITHUB_ENV"
           PAGE_COUNT=$(echo "$PATHS" | wc -w | tr -d ' ')
           echo "count=$PAGE_COUNT" >> "$GITHUB_OUTPUT"
@@ -166,6 +160,19 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Notify Discord on low Lighthouse scores
+        if: success() && steps.pages.outputs.count != '0'
+        run: npm run performance:notify-low-scores
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL: ${{ secrets.DISCORD_PERFORMANCE_CHECKS_WEBHOOK_URL }}
 
       - name: Upload Lighthouse CI reports
         if: always() && steps.pages.outputs.count != '0'
