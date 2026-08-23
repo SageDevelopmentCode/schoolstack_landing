@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -19,6 +20,8 @@ type DetailStepTimelineProps = {
   items: DetailStepTimelineItem[];
   showStatusText?: boolean;
   rowSpacing?: number;
+  onItemPress?: (id: string) => void;
+  activeItemId?: string;
 };
 
 function statusLabel(status: DetailStepTimelineStatus): string {
@@ -103,6 +106,8 @@ export function DetailStepTimeline({
   items,
   showStatusText = true,
   rowSpacing = Spacing.three,
+  onItemPress,
+  activeItemId,
 }: DetailStepTimelineProps) {
   const theme = useAdminTheme();
 
@@ -110,12 +115,59 @@ export function DetailStepTimeline({
     <View style={styles.container}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
+        const isActive = activeItemId === item.id;
         const connectorColor =
           item.status === 'completed' || item.status === 'waived'
             ? theme.success
             : item.status === 'in_progress'
               ? theme.accent
               : theme.border;
+
+        const content = (
+          <View
+            style={[
+              styles.content,
+              !isLast && { paddingBottom: rowSpacing },
+              isActive && {
+                backgroundColor: theme.accentLight,
+                borderRadius: 10,
+                paddingHorizontal: Spacing.two,
+                marginLeft: -Spacing.two,
+              },
+            ]}>
+            <View style={styles.titleRow}>
+              <ThemedText type="smallBold" style={{ color: theme.textPrimary, flex: 1 }}>
+                {index + 1}. {item.title}
+              </ThemedText>
+              {isActive ? (
+                <View style={[styles.viewingPill, { backgroundColor: theme.surface }]}>
+                  <ThemedText type="smallBold" style={{ color: theme.accent, fontSize: 10 }}>
+                    Viewing
+                  </ThemedText>
+                </View>
+              ) : null}
+              {showStatusText ? (
+                <ThemedText type="small" style={{ color: statusColor(item.status, theme) }}>
+                  {statusLabel(item.status)}
+                </ThemedText>
+              ) : null}
+              {onItemPress ? (
+                <Ionicons name="chevron-forward" size={14} color={theme.textTertiary} />
+              ) : null}
+            </View>
+            {item.kindLabel ? (
+              <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                {item.kindLabel}
+                {item.optional ? ' · Optional' : ''}
+              </ThemedText>
+            ) : null}
+            {item.meta ? (
+              <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                {item.meta}
+              </ThemedText>
+            ) : null}
+          </View>
+        );
 
         return (
           <View key={item.id} style={styles.row}>
@@ -125,33 +177,16 @@ export function DetailStepTimeline({
                 <View style={[styles.connector, { backgroundColor: connectorColor }]} />
               ) : null}
             </View>
-            <View
-              style={[
-                styles.content,
-                !isLast && { paddingBottom: rowSpacing },
-              ]}>
-              <View style={styles.titleRow}>
-                <ThemedText type="smallBold" style={{ color: theme.textPrimary, flex: 1 }}>
-                  {index + 1}. {item.title}
-                </ThemedText>
-                {showStatusText ? (
-                  <ThemedText type="small" style={{ color: statusColor(item.status, theme) }}>
-                    {statusLabel(item.status)}
-                  </ThemedText>
-                ) : null}
-              </View>
-              {item.kindLabel ? (
-                <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                  {item.kindLabel}
-                  {item.optional ? ' · Optional' : ''}
-                </ThemedText>
-              ) : null}
-              {item.meta ? (
-                <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  {item.meta}
-                </ThemedText>
-              ) : null}
-            </View>
+            {onItemPress ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onItemPress(item.id)}
+                style={({ pressed }) => [styles.pressableContent, pressed && { opacity: 0.85 }]}>
+                {content}
+              </Pressable>
+            ) : (
+              content
+            )}
           </View>
         );
       })}
@@ -184,6 +219,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: -4,
   },
+  pressableContent: {
+    flex: 1,
+  },
   content: {
     flex: 1,
     paddingTop: 2,
@@ -194,5 +232,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
     marginBottom: 4,
+  },
+  viewingPill: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
 });

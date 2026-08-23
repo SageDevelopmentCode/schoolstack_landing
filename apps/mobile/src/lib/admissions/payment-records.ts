@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
 export type PaymentType = 'application_fee' | 'enrollment_checklist' | 'tuition';
+export type PaymentMethodType = 'card' | 'us_bank_account';
 
 export type PaymentRecordDisplayRow = {
   id: string;
@@ -9,6 +10,9 @@ export type PaymentRecordDisplayRow = {
   paymentType: PaymentType;
   label: string | null;
   amountCents: number;
+  chargedAmountCents: number | null;
+  processingFeeCents: number | null;
+  paymentMethodType: PaymentMethodType | null;
   status: PaymentStatus;
   paidAt: string | null;
   createdAt: string;
@@ -42,6 +46,11 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   refunded: 'Refunded',
 };
 
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethodType, string> = {
+  card: 'Card',
+  us_bank_account: 'ACH',
+};
+
 const ORGANIZATION_PAYMENTS_LIMIT = 500;
 
 type PaymentRowSource = {
@@ -50,6 +59,9 @@ type PaymentRowSource = {
   paymentType: PaymentType;
   label: string | null;
   amountCents: number;
+  chargedAmountCents: number | null;
+  processingFeeCents: number | null;
+  paymentMethodType: PaymentMethodType | null;
   status: PaymentStatus;
   paidAt: string | null;
   createdAt: string;
@@ -57,12 +69,21 @@ type PaymentRowSource = {
 };
 
 function rowToPayment(row: Record<string, unknown>): PaymentRowSource {
+  const paymentMethodType = row.payment_method_type;
   return {
     id: String(row.id),
     applicationId: typeof row.application_id === 'string' ? row.application_id : null,
     paymentType: (row.payment_type as PaymentType) ?? 'application_fee',
     label: typeof row.label === 'string' ? row.label : null,
     amountCents: Number(row.amount_cents ?? 0),
+    chargedAmountCents:
+      typeof row.charged_amount_cents === 'number' ? row.charged_amount_cents : null,
+    processingFeeCents:
+      typeof row.processing_fee_cents === 'number' ? row.processing_fee_cents : null,
+    paymentMethodType:
+      paymentMethodType === 'card' || paymentMethodType === 'us_bank_account'
+        ? paymentMethodType
+        : null,
     status: (row.status as PaymentStatus) ?? 'pending',
     paidAt: typeof row.paid_at === 'string' ? row.paid_at : null,
     createdAt: String(row.created_at),
@@ -158,6 +179,9 @@ async function enrichPaymentDisplayRows(
       paymentType: record.paymentType,
       label: record.label,
       amountCents: record.amountCents,
+      chargedAmountCents: record.chargedAmountCents,
+      processingFeeCents: record.processingFeeCents,
+      paymentMethodType: record.paymentMethodType,
       status: record.status,
       paidAt: record.paidAt,
       createdAt: record.createdAt,
@@ -236,7 +260,7 @@ export function summarizePaymentRows(rows: PaymentRecordDisplayRow[]): PaymentRo
 }
 
 const PAYMENT_SELECT =
-  'id, application_id, payment_type, label, amount_cents, status, paid_at, created_at, payer_user_id';
+  'id, application_id, payment_type, label, amount_cents, charged_amount_cents, processing_fee_cents, payment_method_type, status, paid_at, created_at, payer_user_id';
 
 export async function listOrganizationPayments(
   supabase: SupabaseClient,

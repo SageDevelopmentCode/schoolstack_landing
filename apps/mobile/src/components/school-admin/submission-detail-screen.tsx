@@ -4,6 +4,9 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AdminSectionDivider } from '@/components/admin/admin-section-divider';
 import { DetailTabBar, type DetailTab } from '@/components/school-admin/detail-tab-bar';
+import { ApplicationFormStepDetailSheet } from '@/components/school-admin/submission-detail/application-form-step-detail-sheet';
+import { EnrollmentChecklistStepDetailSheet } from '@/components/school-admin/submission-detail/enrollment-checklist-step-detail-sheet';
+import { PaymentDetailSheet } from '@/components/school-admin/submission-detail/payment-detail-sheet';
 import {
   SubmissionApplicationStepsSection,
   SubmissionDecisionSection,
@@ -23,6 +26,10 @@ import { SubmissionDetailScreenSkeleton } from '@/components/school-admin/submis
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { loadApplicationDetail, type ApplicationDetail } from '@/lib/admissions/application-detail';
+import {
+  buildApplicationFormSteps,
+  computeApplicationFormStepStatuses,
+} from '@/lib/admissions/application-form-steps';
 import {
   getOrgApplicationSubmissionById,
   listFamilyAdmissionHistory,
@@ -81,6 +88,10 @@ export function SubmissionDetailScreen({
 
   const [payments, setPayments] = useState<PaymentRecordDisplayRow[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
+
+  const [selectedApplicationStepId, setSelectedApplicationStepId] = useState<string | null>(null);
+  const [selectedEnrollmentItemId, setSelectedEnrollmentItemId] = useState<string | null>(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
 
   const showEnrollmentStatus = currentStatus === 'enrolling' || hasChecklist;
 
@@ -262,6 +273,40 @@ export function SubmissionDetailScreen({
     [applicationId, router, slug],
   );
 
+  const applicationStepsWithStatus = useMemo(() => {
+    if (!detail || !submission) return [];
+    const steps = buildApplicationFormSteps(detail.schema, detail.feeConfig);
+    return computeApplicationFormStepStatuses(steps, {
+      applicationStatus: currentStatus,
+      stepIndex: detail.stepIndex,
+      feeStatus: submission.feeStatus,
+    });
+  }, [currentStatus, detail, submission]);
+
+  const selectedApplicationStep = useMemo(
+    () => applicationStepsWithStatus.find((step) => step.id === selectedApplicationStepId) ?? null,
+    [applicationStepsWithStatus, selectedApplicationStepId],
+  );
+
+  const selectedEnrollmentItem = useMemo(
+    () => enrollmentChecklist?.items.find((item) => item.id === selectedEnrollmentItemId) ?? null,
+    [enrollmentChecklist?.items, selectedEnrollmentItemId],
+  );
+
+  const selectedEnrollmentInstance = useMemo(() => {
+    if (!enrollmentChecklist || !selectedEnrollmentItemId) return null;
+    return (
+      enrollmentChecklist.instances.find(
+        (instance) => instance.templateItemId === selectedEnrollmentItemId,
+      ) ?? null
+    );
+  }, [enrollmentChecklist, selectedEnrollmentItemId]);
+
+  const selectedPayment = useMemo(
+    () => payments.find((payment) => payment.id === selectedPaymentId) ?? null,
+    [payments, selectedPaymentId],
+  );
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
@@ -291,6 +336,8 @@ export function SubmissionDetailScreen({
       applicationStatus={currentStatus}
       submittedAt={submission.submittedAt}
       feeEnabled={submission.feeEnabled}
+      onItemPress={setSelectedApplicationStepId}
+      activeItemId={selectedApplicationStepId ?? undefined}
     />
   );
 
@@ -325,6 +372,8 @@ export function SubmissionDetailScreen({
                 checklist={enrollmentChecklist}
                 loading={enrollmentLoading}
                 error={enrollmentError}
+                onItemPress={setSelectedEnrollmentItemId}
+                activeItemId={selectedEnrollmentItemId ?? undefined}
               />
             ) : (
               applicationFormSection
@@ -355,10 +404,34 @@ export function SubmissionDetailScreen({
 
         {activeTab === 'payments' ? (
           <View style={styles.tabContent}>
-            <SubmissionPaymentsSection payments={payments} loading={paymentsLoading} />
+            <SubmissionPaymentsSection
+              payments={payments}
+              loading={paymentsLoading}
+              onPaymentPress={setSelectedPaymentId}
+              activePaymentId={selectedPaymentId ?? undefined}
+            />
           </View>
         ) : null}
       </ScrollView>
+
+      <ApplicationFormStepDetailSheet
+        visible={selectedApplicationStepId != null}
+        step={selectedApplicationStep}
+        detail={detail}
+        feeStatus={submission.feeStatus}
+        onClose={() => setSelectedApplicationStepId(null)}
+      />
+      <EnrollmentChecklistStepDetailSheet
+        visible={selectedEnrollmentItemId != null}
+        item={selectedEnrollmentItem}
+        instance={selectedEnrollmentInstance}
+        onClose={() => setSelectedEnrollmentItemId(null)}
+      />
+      <PaymentDetailSheet
+        visible={selectedPaymentId != null}
+        payment={selectedPayment}
+        onClose={() => setSelectedPaymentId(null)}
+      />
     </View>
   );
 }

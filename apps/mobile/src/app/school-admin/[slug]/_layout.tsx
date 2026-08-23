@@ -22,6 +22,7 @@ function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
   if (/\/students\/[^/]+$/.test(pathname)) return null;
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
+  if (/\/more\/staff\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
@@ -118,11 +119,19 @@ function SchoolAdminLayoutContent() {
     router.replace(`/school-admin/${slug}/admissions/submissions`);
   };
 
-  const handleSelectMoreItem = (itemId: 'transactions') => {
+  const handleSelectMoreItem = (itemId: 'transactions' | 'schedule' | 'staff') => {
     setMoreSheetOpen(false);
     if (!slug) return;
     if (itemId === 'transactions' && !pathname.includes('/more/transactions')) {
       router.push(`/school-admin/${slug}/more/transactions`);
+      return;
+    }
+    if (itemId === 'schedule' && !pathname.includes('/more/schedule')) {
+      router.push(`/school-admin/${slug}/more/schedule`);
+      return;
+    }
+    if (itemId === 'staff' && !pathname.includes('/more/staff')) {
+      router.push(`/school-admin/${slug}/more/staff`);
     }
   };
 

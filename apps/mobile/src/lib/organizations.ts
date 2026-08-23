@@ -2,6 +2,27 @@ import { mergeBrandingFromRaw } from '@/lib/organization-settings/merge-branding
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import { getSupabaseClient } from '@/lib/supabase';
 
+const LIST_LIVE_ORGANIZATIONS_TIMEOUT_MS = 15_000;
+
+export const SUPABASE_UNREACHABLE_MESSAGE =
+  "Can't reach Supabase. Check EXPO_PUBLIC_SUPABASE_URL and restart Metro with --clear.";
+
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error: unknown) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
 export type OrganizationStatus = 'onboarding' | 'live' | 'paused' | 'churned';
 
 export type OrganizationBrandingView = {
@@ -79,7 +100,7 @@ function mapOrganizationRow(row: {
   };
 }
 
-export async function listLiveOrganizations(): Promise<LiveOrganization[]> {
+async function fetchLiveOrganizations(): Promise<LiveOrganization[]> {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
@@ -100,6 +121,14 @@ export async function listLiveOrganizations(): Promise<LiveOrganization[]> {
   if (error) throw error;
 
   return (data ?? []).map((row) => mapOrganizationRow(row));
+}
+
+export async function listLiveOrganizations(): Promise<LiveOrganization[]> {
+  return withTimeout(
+    fetchLiveOrganizations(),
+    LIST_LIVE_ORGANIZATIONS_TIMEOUT_MS,
+    SUPABASE_UNREACHABLE_MESSAGE,
+  );
 }
 
 export async function listAllOrganizations(): Promise<AdminOrganization[]> {

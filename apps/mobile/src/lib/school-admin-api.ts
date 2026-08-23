@@ -92,11 +92,42 @@ export async function markApplicationEnrolled(applicationId: string): Promise<vo
   });
 }
 
+export type StaffPortalRole = 'teacher' | 'staff';
+
+export type StaffEmploymentStatus = 'active' | 'inactive' | 'on_leave';
+
 export type StaffMemberRecord = {
   id: string;
+  organizationId: string;
+  userId: string | null;
   firstName: string;
   lastName: string;
-  employmentStatus: 'active' | 'inactive' | 'on_leave';
+  email: string | null;
+  roleTitle: string | null;
+  employmentStatus: StaffEmploymentStatus;
+  portalRole: StaffPortalRole | null;
+  membershipStatus: 'invited' | 'active' | 'disabled' | null;
+  isLinked: boolean;
+  hasEverSignedIn?: boolean;
+  lastSignInAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateStaffMemberInput = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  roleTitle: string;
+  portalRole: StaffPortalRole;
+};
+
+export type UpdateStaffMemberInput = {
+  firstName: string;
+  lastName: string;
+  roleTitle: string;
+  employmentStatus: StaffEmploymentStatus;
+  portalRole: StaffPortalRole;
 };
 
 export async function fetchStaffMembers(slug: string): Promise<StaffMemberRecord[]> {
@@ -104,6 +135,51 @@ export async function fetchStaffMembers(slug: string): Promise<StaffMemberRecord
     `/api/school/${slug}/staff`,
   );
   return payload.staffMembers ?? [];
+}
+
+export async function createStaffMember(
+  slug: string,
+  input: CreateStaffMemberInput,
+): Promise<StaffMemberRecord> {
+  const payload = await fetchSchoolAdminApi<{ staffMember: StaffMemberRecord }>(
+    `/api/school/${slug}/staff`,
+    { method: 'POST', body: input },
+  );
+  return payload.staffMember;
+}
+
+export async function updateStaffMember(
+  slug: string,
+  staffMemberId: string,
+  input: UpdateStaffMemberInput,
+): Promise<StaffMemberRecord> {
+  const payload = await fetchSchoolAdminApi<{ staffMember: StaffMemberRecord }>(
+    `/api/school/${slug}/staff/${staffMemberId}`,
+    { method: 'PATCH', body: input },
+  );
+  return payload.staffMember;
+}
+
+export async function deactivateStaffPortalAccess(
+  slug: string,
+  staffMemberId: string,
+): Promise<StaffMemberRecord> {
+  const payload = await fetchSchoolAdminApi<{ staffMember: StaffMemberRecord }>(
+    `/api/school/${slug}/staff/${staffMemberId}`,
+    { method: 'PATCH', body: { action: 'deactivatePortalAccess' } },
+  );
+  return payload.staffMember;
+}
+
+export async function reactivateStaffPortalAccess(
+  slug: string,
+  staffMemberId: string,
+): Promise<StaffMemberRecord> {
+  const payload = await fetchSchoolAdminApi<{ staffMember: StaffMemberRecord }>(
+    `/api/school/${slug}/staff/${staffMemberId}`,
+    { method: 'PATCH', body: { action: 'reactivatePortalAccess' } },
+  );
+  return payload.staffMember;
 }
 
 export async function assignStudentTeacher(
@@ -115,4 +191,32 @@ export async function assignStudentTeacher(
     method: 'PATCH',
     body: { staffMemberId },
   });
+}
+
+export type AdminEnrolledStudentSummary = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  grade: string | null;
+  dateOfBirth: string | null;
+  status: string;
+  familyId: string;
+  familyName: string | null;
+  primaryContactName: string | null;
+  primaryContactEmail: string | null;
+  programNames: string[];
+  enrolledAt: string;
+  assignedTeacherId: string | null;
+  assignedTeacherName: string | null;
+  profilePhotoUrl: string | null;
+};
+
+export async function fetchStaffAssignedStudents(
+  slug: string,
+  staffMemberId: string,
+): Promise<AdminEnrolledStudentSummary[]> {
+  const payload = await fetchSchoolAdminApi<{ students: AdminEnrolledStudentSummary[] }>(
+    `/api/school/${slug}/staff/${staffMemberId}/students`,
+  );
+  return payload.students ?? [];
 }

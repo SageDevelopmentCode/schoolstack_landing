@@ -1,4 +1,8 @@
-import { getPortalHeading, getPortalLabel } from '@/lib/auth/resolve-portal';
+import {
+  getAccountRoleLabel,
+  getPortalHeading,
+  getPortalLabel,
+} from '@/lib/auth/resolve-portal';
 
 describe('getPortalLabel', () => {
   it('returns platform admin label', () => {
@@ -22,5 +26,22 @@ describe('getPortalHeading', () => {
     expect(getPortalHeading('school_admin')).toBe('School Admin');
     expect(getPortalHeading('teacher')).toBe('Teacher Portal');
     expect(getPortalHeading('parent_apply')).toBe('Parent / Apply Portal');
+  });
+});
+
+describe('getAccountRoleLabel', () => {
+  it('returns null when portal type is missing', () => {
+    expect(getAccountRoleLabel(null, false)).toBeNull();
+  });
+
+  it('returns Platform Admin for platform admin sessions viewing a school', () => {
+    expect(getAccountRoleLabel('school_admin', true)).toBe('Platform Admin');
+  });
+
+  it('returns short role labels for each portal type', () => {
+    expect(getAccountRoleLabel('platform_admin', false)).toBe('Platform Admin');
+    expect(getAccountRoleLabel('school_admin', false)).toBe('School Admin');
+    expect(getAccountRoleLabel('teacher', false)).toBe('Staff');
+    expect(getAccountRoleLabel('parent_apply', false)).toBe('Parent');
   });
 });

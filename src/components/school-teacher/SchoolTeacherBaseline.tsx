@@ -20,6 +20,8 @@ type SchoolTeacherBaselineProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: StaffUserProfile;
+  previewMode?: boolean;
+  previewBasePath?: string;
   children: ReactNode;
 };
 
@@ -30,11 +32,13 @@ export default function SchoolTeacherBaseline({
   branding,
   features,
   userProfile,
+  previewMode = false,
+  previewBasePath,
   children,
 }: SchoolTeacherBaselineProps) {
   const pathname = usePathname();
   const isMessagesPage = isTeacherMessagesPath(pathname);
-  const messagesEnabled = Boolean(features.teacher?.messages);
+  const messagesEnabled = Boolean(features.teacher?.messages) && !previewMode;
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const bodyFont =
     branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
@@ -55,6 +59,8 @@ export default function SchoolTeacherBaseline({
         branding={branding}
         features={features}
         userProfile={userProfile}
+        previewMode={previewMode}
+        previewBasePath={previewBasePath}
       />
 
       <main

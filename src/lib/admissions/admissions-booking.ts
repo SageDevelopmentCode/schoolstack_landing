@@ -15,7 +15,6 @@ import {
   resolveShadowDaySchedulingMode,
 } from "./admissions-org-settings";
 import {
-  ALL_DAY_TIME_SLOT,
   eachDateInRange,
   getWholeDaySlotIdForDate,
   listBookableObservationDates,
@@ -23,6 +22,7 @@ import {
   listOccupiedObservationDays,
 } from "./admissions-observation-availability";
 import {
+  ALL_DAY_TIME_SLOT,
   extractStudentGradeFromResponses,
   formatObservationSlotLabel,
   formatObservationSlotTimeLabel,

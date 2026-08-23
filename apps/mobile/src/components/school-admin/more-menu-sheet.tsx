@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -10,11 +12,14 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useAuth } from '@/contexts/auth-context';
+import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { Radius, Spacing } from '@/constants/theme';
 
-export type MoreMenuItemId = 'transactions';
+export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -34,15 +39,46 @@ const MENU_ITEMS: {
     subtitle: 'Payment history',
     icon: 'card-outline',
   },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    subtitle: 'Tours, events, and visits',
+    icon: 'calendar-outline',
+  },
+  {
+    id: 'staff',
+    label: 'Staff',
+    subtitle: 'Roster and portal access',
+    icon: 'people-outline',
+  },
 ];
 
 const SHEET_SLIDE_OFFSET = 400;
 const OPEN_DURATION_MS = 280;
 const CLOSE_DURATION_MS = 220;
 
+function getDisplayName(user: User): string {
+  const fullName = user.user_metadata?.full_name;
+  if (typeof fullName === 'string' && fullName.trim()) {
+    return fullName.trim();
+  }
+  const emailLocalPart = user.email?.split('@')[0]?.trim();
+  if (emailLocalPart) {
+    return emailLocalPart;
+  }
+  return 'Account';
+}
+
 export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps) {
+  const router = useRouter();
   const theme = useAdminTheme();
+  const { user, portalType, isPlatformAdminSession, signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
+  const roleLabel = useMemo(
+    () => getAccountRoleLabel(portalType, isPlatformAdminSession),
+    [portalType, isPlatformAdminSession],
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
@@ -81,6 +117,12 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: sheetTranslateY.value }],
   }));
+
+  const handleSignOut = async () => {
+    onClose();
+    await signOut();
+    router.replace('/login/admin');
+  };
 
   return (
     <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
@@ -138,6 +180,41 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
               <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
             </Pressable>
           ))}
+
+          {user ? (
+            <View style={[styles.accountSection, { borderTopColor: theme.border }]}>
+              <View style={styles.row}>
+                <MessagesAvatar name={displayName} color={theme.accent} size="md" />
+                <View style={styles.rowCopy}>
+                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                    {displayName}
+                  </ThemedText>
+                  {roleLabel ? (
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {roleLabel}
+                    </ThemedText>
+                  ) : null}
+                  {user.email ? (
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {user.email}
+                    </ThemedText>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign out"
+                  onPress={() => void handleSignOut()}
+                  style={({ pressed }) => [
+                    styles.signOutButton,
+                    pressed && { opacity: 0.7 },
+                  ]}>
+                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    Sign out
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>
@@ -195,5 +272,12 @@ const styles = StyleSheet.create({
   rowCopy: {
     flex: 1,
     gap: 2,
+  },
+  accountSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  signOutButton: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.two,
   },
 });

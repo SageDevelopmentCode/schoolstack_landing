@@ -15,11 +15,25 @@ describe('parseApplicationFormSchema', () => {
 
   it('parses sections and acknowledgments', () => {
     const schema = parseApplicationFormSchema({
-      sections: [{ id: 'student', title: 'Student info', fields: [] }],
+      sections: [
+        {
+          id: 'student',
+          title: 'Student info',
+          fields: [{ id: 'first', label: 'First name', type: 'text', required: true }],
+        },
+      ],
       acknowledgments: [{ id: 'ack-1', label: 'I agree' }],
     });
 
-    expect(schema.sections).toEqual([{ id: 'student', title: 'Student info' }]);
+    expect(schema.sections).toEqual([
+      {
+        id: 'student',
+        title: 'Student info',
+        description: undefined,
+        allowMultiple: false,
+        fields: [{ id: 'first', label: 'First name', type: 'text', required: true }],
+      },
+    ]);
     expect(schema.acknowledgments).toEqual([{ id: 'ack-1', label: 'I agree' }]);
   });
 });

@@ -8,7 +8,7 @@ import { Radius } from '@/constants/theme';
 
 export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages' | 'more';
 
-export const FLOATING_TAB_BAR_HEIGHT = 68;
+export const FLOATING_TAB_BAR_HEIGHT = 60;
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
@@ -58,7 +58,7 @@ export function SchoolAdminFloatingTabBar({
   const insets = useSafeAreaInsets();
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 8 }]}>
+    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 4 }]}>
       <View style={styles.pill}>
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
@@ -124,9 +124,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 2,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
   },
   tabPressed: {
     opacity: 0.85,

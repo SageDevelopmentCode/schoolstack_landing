@@ -3,13 +3,13 @@
 import { useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import {
+  ALL_DAY_TIME_SLOT,
   formatGradeValuesLabel,
   formatObservationSlotLabel,
   formatObservationSlotTimeLabel,
   getShadowDayTimeWindowPresets,
   type ObservationSlot,
 } from "@/lib/admissions/admissions-observation-slots";
-import { ALL_DAY_TIME_SLOT } from "@/lib/admissions/admissions-observation-availability";
 import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";

@@ -160,3 +160,22 @@ export function getPortalHeading(portalType: PortalType): string {
       return 'Parent / Apply Portal';
   }
 }
+
+export function getAccountRoleLabel(
+  portalType: PortalType | null,
+  isPlatformAdminSession: boolean,
+): string | null {
+  if (!portalType) return null;
+  if (isPlatformAdminSession) return 'Platform Admin';
+
+  switch (portalType) {
+    case 'platform_admin':
+      return 'Platform Admin';
+    case 'school_admin':
+      return 'School Admin';
+    case 'teacher':
+      return 'Staff';
+    case 'parent_apply':
+      return 'Parent';
+  }
+}

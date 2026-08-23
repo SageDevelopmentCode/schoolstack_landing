@@ -15,6 +15,8 @@ export default function MoreLayout() {
         headerTitleStyle: { color: theme.textPrimary },
       }}>
       <Stack.Screen name="transactions" />
+      <Stack.Screen name="schedule" />
+      <Stack.Screen name="staff" />
     </Stack>
   );
 }

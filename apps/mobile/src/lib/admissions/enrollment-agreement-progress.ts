@@ -46,3 +46,16 @@ export function getAgreementSectionProgressLabel(
   const sectionWord = total === 1 ? 'section' : 'sections';
   return `${signedCount} of ${total} ${sectionWord} signed`;
 }
+
+export function signaturesBySectionId(
+  signatures: AgreementSectionSignature[],
+): Map<string, AgreementSectionSignature> {
+  return new Map(signatures.map((signature) => [signature.sectionId, signature]));
+}
+
+export function parseAgreementConsentValue(
+  responses: Record<string, unknown> | null | undefined,
+): string | null {
+  const value = responses?.consentValue;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
