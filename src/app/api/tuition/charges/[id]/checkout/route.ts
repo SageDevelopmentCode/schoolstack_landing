@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -14,7 +13,8 @@ import { getStudentNameForCharge } from "@/lib/tuition/tuition-charge-student";
 import { buildTuitionCheckoutLineItem, buildTuitionCheckoutLineItems } from "@/lib/tuition/tuition-checkout-line-item";
 import { createAdmissionsCheckoutSession, createTuitionCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import { getStripeClient, getSiteUrl } from "@/lib/stripe/client";
+import { buildTuitionCheckoutReturnUrls, parseCheckoutReturnTo } from "@/lib/stripe/checkout-return-urls";
+import { getStripeClient } from "@/lib/stripe/client";
 import { isCheckoutPaymentMethod, quoteProcessingFee } from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
@@ -30,8 +30,8 @@ import {
   expireOpenCheckoutSession,
   pendingCheckoutMatchesRequest,
 } from "@/lib/stripe/pending-checkout-session";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/tuition/charges/[id]/checkout";
 
@@ -40,8 +40,7 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { id: chargeId } = await context.params;
 
   try {
@@ -52,6 +51,7 @@ export async function POST(request: Request, context: RouteContext) {
       paymentMethod?: unknown;
       orgSlug?: string;
       amountCents?: unknown;
+      returnTo?: unknown;
     };
 
     if (!isCheckoutPaymentMethod(body.paymentMethod)) {
@@ -252,9 +252,12 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     const orgSlug = typeof body.orgSlug === "string" ? body.orgSlug : "school";
-    const baseUrl = getSiteUrl();
-    const successUrl = `${baseUrl}/school/${orgSlug}/parent/billing?paid=1`;
-    const cancelUrl = `${baseUrl}/school/${orgSlug}/parent/billing?cancelled=1`;
+    const returnTo = parseCheckoutReturnTo(body.returnTo);
+    const { successUrl, cancelUrl } = buildTuitionCheckoutReturnUrls({
+      orgSlug,
+      returnTo,
+      flow: "payment",
+    });
 
     const tuitionMetadata = {
       payment_type: "tuition",

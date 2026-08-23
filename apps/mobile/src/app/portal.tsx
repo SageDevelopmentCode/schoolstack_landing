@@ -32,6 +32,16 @@ export default function PortalScreen() {
 
     if (portalType === 'school_admin' && selectedSchool) {
       router.replace(`/school-admin/${selectedSchool.slug}/dashboard`);
+      return;
+    }
+
+    if (portalType === 'parent_apply') {
+      router.replace('/parent-apply-gate');
+      return;
+    }
+
+    if (portalType === 'parent' && selectedSchool) {
+      router.replace(`/parent/${selectedSchool.slug}/home`);
     }
   }, [isLoading, user, portalType, selectedSchool, router]);
 
@@ -43,7 +53,7 @@ export default function PortalScreen() {
     );
   }
 
-  if (portalType === 'platform_admin' || portalType === 'school_admin') {
+  if (portalType === 'platform_admin' || portalType === 'school_admin' || portalType === 'parent_apply' || portalType === 'parent') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Brand.accent} />

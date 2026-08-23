@@ -12,6 +12,7 @@ describe('getPortalLabel', () => {
   it('includes school name for school portals', () => {
     expect(getPortalLabel('school_admin', 'Rooted Meadows')).toBe('Rooted Meadows Admin');
     expect(getPortalLabel('teacher', 'Rooted Meadows')).toBe('Rooted Meadows Staff Portal');
+    expect(getPortalLabel('parent', 'Rooted Meadows')).toBe('Rooted Meadows Family Portal');
     expect(getPortalLabel('parent_apply', 'Rooted Meadows')).toBe('Rooted Meadows Family Portal');
   });
 
@@ -25,6 +26,7 @@ describe('getPortalHeading', () => {
     expect(getPortalHeading('platform_admin')).toBe('Platform Admin');
     expect(getPortalHeading('school_admin')).toBe('School Admin');
     expect(getPortalHeading('teacher')).toBe('Teacher Portal');
+    expect(getPortalHeading('parent')).toBe('Family Portal');
     expect(getPortalHeading('parent_apply')).toBe('Parent / Apply Portal');
   });
 });
@@ -42,6 +44,7 @@ describe('getAccountRoleLabel', () => {
     expect(getAccountRoleLabel('platform_admin', false)).toBe('Platform Admin');
     expect(getAccountRoleLabel('school_admin', false)).toBe('School Admin');
     expect(getAccountRoleLabel('teacher', false)).toBe('Staff');
+    expect(getAccountRoleLabel('parent', false)).toBe('Parent');
     expect(getAccountRoleLabel('parent_apply', false)).toBe('Parent');
   });
 });

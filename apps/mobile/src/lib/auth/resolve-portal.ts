@@ -1,8 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { userHasEnrolledAccess } from '@/lib/admissions/parent-portal-access';
 import type { LiveOrganization } from '@/lib/organizations';
 
-export type PortalType = 'platform_admin' | 'school_admin' | 'teacher' | 'parent_apply';
+export type PortalType =
+  | 'platform_admin'
+  | 'school_admin'
+  | 'teacher'
+  | 'parent'
+  | 'parent_apply';
 
 export type ResolvedPortal = {
   portalType: PortalType;
@@ -129,6 +135,9 @@ export async function resolvePortalForSchool(
   }
 
   if (await userHasParentAccess(supabase, userId, organizationId)) {
+    if (await userHasEnrolledAccess(supabase, userId, organizationId)) {
+      return { portalType: 'parent', school };
+    }
     return { portalType: 'parent_apply', school };
   }
 
@@ -143,6 +152,7 @@ export function getPortalLabel(portalType: PortalType, schoolName?: string | nul
       return `${schoolName ?? 'School'} Admin`;
     case 'teacher':
       return `${schoolName ?? 'School'} Staff Portal`;
+    case 'parent':
     case 'parent_apply':
       return `${schoolName ?? 'School'} Family Portal`;
   }
@@ -156,6 +166,8 @@ export function getPortalHeading(portalType: PortalType): string {
       return 'School Admin';
     case 'teacher':
       return 'Teacher Portal';
+    case 'parent':
+      return 'Family Portal';
     case 'parent_apply':
       return 'Parent / Apply Portal';
   }
@@ -175,6 +187,7 @@ export function getAccountRoleLabel(
       return 'School Admin';
     case 'teacher':
       return 'Staff';
+    case 'parent':
     case 'parent_apply':
       return 'Parent';
   }

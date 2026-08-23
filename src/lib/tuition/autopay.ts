@@ -41,6 +41,15 @@ import {
 const STALE_PAYMENT_METHOD_MESSAGE =
   "Saved payment method is no longer valid for autopay. Please re-save your card on the billing page.";
 
+async function ensurePaymentMethodAllowRedisplay(
+  stripe: ReturnType<typeof getStripeClient>,
+  paymentMethodId: string,
+): Promise<void> {
+  await stripe.paymentMethods.update(paymentMethodId, {
+    allow_redisplay: "always",
+  });
+}
+
 export async function setAutopayEnabled(
   supabase: SupabaseClient,
   organizationId: string,
@@ -190,6 +199,7 @@ export async function trySaveTuitionPaymentMethod(
   if (!paymentMethodId) return;
 
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  await ensurePaymentMethodAllowRedisplay(stripe, paymentMethodId);
   const displayFields = extractPaymentMethodDisplayFields(paymentMethod);
 
   const { data: billingAccount, error: billingError } = await supabase
@@ -244,6 +254,7 @@ export async function savePaymentMethodFromSetupIntent(
   if (!paymentMethodId) return null;
 
   const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  await ensurePaymentMethodAllowRedisplay(stripe, paymentMethodId);
   const displayFields = extractPaymentMethodDisplayFields(paymentMethod);
 
   const { data: billingAccount, error: billingError } = await supabase

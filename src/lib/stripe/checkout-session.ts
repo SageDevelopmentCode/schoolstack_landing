@@ -8,6 +8,15 @@ import {
 } from "@/lib/stripe/processing-fee";
 import { getStripeClient } from "@/lib/stripe/client";
 
+const SAVED_PAYMENT_METHOD_OPTIONS = {
+  payment_method_save: "enabled" as const,
+  allow_redisplay_filters: ["always", "limited", "unspecified"] as const,
+};
+
+const PAYMENT_METHOD_DATA = {
+  allow_redisplay: "always" as const,
+};
+
 export type CreateAdmissionsCheckoutSessionInput = {
   netAmountCents: number;
   paymentMethod: CheckoutPaymentMethod;
@@ -92,9 +101,8 @@ export async function createCombinedAdmissionsCheckoutSession(
     mode: "payment",
     customer: input.stripeCustomerId,
     payment_method_types: paymentMethodTypes,
-    saved_payment_method_options: {
-      payment_method_save: "enabled",
-    },
+    saved_payment_method_options: SAVED_PAYMENT_METHOD_OPTIONS,
+    payment_method_data: PAYMENT_METHOD_DATA,
     line_items: input.lineItems.map((lineItem, index) => ({
       quantity: 1,
       price_data: {
@@ -195,9 +203,8 @@ export async function createAdmissionsCheckoutSession(
     mode: "payment",
     customer: input.stripeCustomerId,
     payment_method_types: paymentMethodTypes,
-    saved_payment_method_options: {
-      payment_method_save: "enabled",
-    },
+    saved_payment_method_options: SAVED_PAYMENT_METHOD_OPTIONS,
+    payment_method_data: PAYMENT_METHOD_DATA,
     line_items: [
       {
         quantity: 1,
@@ -275,9 +282,8 @@ export async function createTuitionCheckoutSession(
     mode: "payment",
     customer: input.stripeCustomerId,
     payment_method_types: paymentMethodTypes,
-    saved_payment_method_options: {
-      payment_method_save: "enabled",
-    },
+    saved_payment_method_options: SAVED_PAYMENT_METHOD_OPTIONS,
+    payment_method_data: PAYMENT_METHOD_DATA,
     line_items: input.lineItems.map((lineItem) => ({
       quantity: 1,
       price_data: {
