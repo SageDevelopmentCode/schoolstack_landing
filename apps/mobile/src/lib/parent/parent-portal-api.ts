@@ -25,7 +25,7 @@ async function getAuthHeaders(includeJson = false): Promise<Record<string, strin
   };
 }
 
-async function fetchParentApi<T>(
+export async function fetchParentApi<T>(
   path: string,
   options: FetchParentApiOptions = {},
 ): Promise<T> {
@@ -33,6 +33,25 @@ async function fetchParentApi<T>(
     method: options.method ?? 'GET',
     headers: await getAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  if (!response.ok) {
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+  }
+
+  return payload;
+}
+
+export async function fetchParentApiFormData<T>(
+  path: string,
+  formData: FormData,
+  method: 'POST' | 'PATCH' = 'POST',
+): Promise<T> {
+  const response = await fetch(`${siteUrl}${path}`, {
+    method,
+    headers: await getAuthHeaders(false),
+    body: formData,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };

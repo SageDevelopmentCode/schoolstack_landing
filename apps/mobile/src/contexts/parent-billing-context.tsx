@@ -106,13 +106,9 @@ export function ParentBillingProvider({
     const nextCached = billingCache.get(key) ?? null;
     setData(nextCached);
     setHasLoaded(Boolean(nextCached));
-    setIsLoading(!nextCached);
+    setIsLoading(false);
     setError(null);
-
-    if (!nextCached) {
-      void load();
-    }
-  }, [key, load]);
+  }, [key]);
 
   const value = useMemo(
     () => ({

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
@@ -9,14 +8,13 @@ import {
   resolveParticipantsForContact,
   userHasEnrolledAccess,
 } from "@/lib/messages/api-helpers";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/messages/threads";
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId")?.trim() ?? "";
   const schoolName = searchParams.get("schoolName")?.trim() ?? "School";
@@ -76,8 +74,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },

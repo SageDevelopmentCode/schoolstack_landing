@@ -26,6 +26,7 @@ import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
 
 function getActiveTab(pathname: string): ParentTab | null {
   if (pathname.includes('/more')) return 'more';
+  if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/calendar')) return 'calendar';
   if (pathname.includes('/billing')) return 'billing';

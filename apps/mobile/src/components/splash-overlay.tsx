@@ -5,11 +5,13 @@ import { StyleSheet } from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { Brand } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
 
 const SPLASH_FALLBACK_MS = 2000;
 
 export function SplashOverlay() {
+  const { isLoading } = useAuth();
   const [visible, setVisible] = useState(!isMobileE2e);
   const opacity = useSharedValue(isMobileE2e ? 0 : 1);
 
@@ -20,22 +22,31 @@ export function SplashOverlay() {
       return;
     }
 
-    const fallbackTimer = setTimeout(() => {
-      setVisible(false);
-    }, SPLASH_FALLBACK_MS);
+    let dismissed = false;
 
-    SplashScreen.hideAsync().then(() => {
-      opacity.value = withTiming(0, { duration: 450 }, (finished) => {
-        if (finished) {
-          runOnJS(setVisible)(false);
-        }
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
+
+      void SplashScreen.hideAsync().then(() => {
+        opacity.value = withTiming(0, { duration: 450 }, (finished) => {
+          if (finished) {
+            runOnJS(setVisible)(false);
+          }
+        });
       });
-    });
+    };
+
+    const fallbackTimer = setTimeout(dismiss, SPLASH_FALLBACK_MS);
+
+    if (!isLoading) {
+      dismiss();
+    }
 
     return () => {
       clearTimeout(fallbackTimer);
     };
-  }, [opacity]);
+  }, [isLoading, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

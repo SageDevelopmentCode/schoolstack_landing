@@ -11,6 +11,10 @@ import {
 } from 'react';
 
 import {
+  clearPersistedParentHomeCache,
+  prefetchParentHome,
+} from '@/contexts/parent-home-context';
+import {
   resolvePlatformAdmin,
   resolvePortalForSchool,
   type PortalType,
@@ -102,6 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(persisted.portalType);
     setSelectedSchool(persisted.selectedSchool);
     setIsPlatformAdminSession(persisted.isPlatformAdminSession);
+
+    if (persisted.portalType === 'parent' && persisted.selectedSchool) {
+      void prefetchParentHome(persisted.selectedSchool.id, persisted.selectedSchool.slug);
+    }
   }, []);
 
   useEffect(() => {
@@ -140,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPortalType(null);
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
-        void clearPortalState();
+        void Promise.all([clearPortalState(), clearPersistedParentHomeCache()]);
       }
     });
 
@@ -156,6 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(platformAdminSession);
     await persistPortalState(portal, platformAdminSession);
+
+    if (portal.portalType === 'parent' && portal.school) {
+      void prefetchParentHome(portal.school.id, portal.school.slug);
+    }
   }, []);
 
   const enterSchoolAsPlatformAdmin = useCallback(async (school: LiveOrganization) => {
@@ -185,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
-    await clearPortalState();
+    await Promise.all([clearPortalState(), clearPersistedParentHomeCache()]);
   }, [supabase.auth]);
 
   const value = useMemo(
