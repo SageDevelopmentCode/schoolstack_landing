@@ -83,11 +83,6 @@ export default function StaffAssignedStudentsSection({
     });
   }, [loadAssignedStudents]);
 
-  useEffect(() => {
-    setShowAssign(false);
-    setEnrolledStudents(null);
-  }, [staffMemberId]);
-
   const loadEnrolledStudents = useCallback(async () => {
     if (enrolledStudents != null) return enrolledStudents;
 

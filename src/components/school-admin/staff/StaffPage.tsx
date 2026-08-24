@@ -826,6 +826,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
 
                 {activeDetailTab === "students" ? (
                   <StaffAssignedStudentsSection
+                    key={selectedMember.id}
                     slug={slug}
                     organizationId={organizationId}
                     staffMemberId={selectedMember.id}
