@@ -218,6 +218,7 @@ export function SubmissionApplicationStepsSection({
   feeEnabled,
   onItemPress,
   activeItemId,
+  timelineRowSpacing,
 }: {
   detail: ApplicationDetail;
   feeStatus: string;
@@ -226,6 +227,7 @@ export function SubmissionApplicationStepsSection({
   feeEnabled: boolean;
   onItemPress?: (stepId: string) => void;
   activeItemId?: string;
+  timelineRowSpacing?: number;
 }) {
   const subtitleParts: string[] = [];
   if (applicationStatus !== 'draft' && submittedAt) {
@@ -257,6 +259,7 @@ export function SubmissionApplicationStepsSection({
       <DetailProgressBar completed={progress.completed} total={progress.total} />
       <DetailStepTimeline
         items={items}
+        rowSpacing={timelineRowSpacing}
         showStatusText={progress.completed < progress.total}
         onItemPress={onItemPress}
         activeItemId={activeItemId}

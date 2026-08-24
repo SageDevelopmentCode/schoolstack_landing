@@ -22,6 +22,21 @@ export function parentMoreRoute(slug: string, item: ParentMoreMenuItemId): Href 
   return `/parent/${slug}/more/${item}` as Href;
 }
 
+export function parentChildrenRoute(slug: string, applicationId?: string): Href {
+  if (applicationId) {
+    return parentChildDetailRoute(slug, applicationId);
+  }
+  return parentMoreRoute(slug, 'children');
+}
+
+export function parentChildDetailRoute(slug: string, applicationId: string): Href {
+  return `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}` as Href;
+}
+
+export function isParentChildDetailPath(pathname: string): boolean {
+  return /\/more\/children\/[^/]+$/.test(pathname);
+}
+
 const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   portal: (slug) => parentTabRoute(slug, 'home'),
   home: (slug) => parentTabRoute(slug, 'home'),

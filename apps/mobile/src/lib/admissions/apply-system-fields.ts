@@ -14,3 +14,45 @@ export const STUDENT_GRADE_OPTIONS = [
   { value: '11', label: '11th Grade' },
   { value: '12', label: '12th Grade' },
 ];
+
+export type ExtractedStudentData = {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  grade: string;
+};
+
+function parseResponses(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const result: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (key === '__progress') continue;
+    if (typeof entry === 'string') {
+      result[key] = entry;
+    } else if (entry != null) {
+      result[key] = String(entry);
+    }
+  }
+  return result;
+}
+
+export function extractStudentFromResponses(responses: unknown): ExtractedStudentData | null {
+  const record = parseResponses(responses);
+  const firstName = record.student_first_name?.trim() ?? '';
+  const lastName = record.student_last_name?.trim() ?? '';
+  const dateOfBirth = record.student_date_of_birth?.trim() ?? '';
+  const grade = record.student_grade?.trim() ?? '';
+
+  if (!firstName || !lastName || !dateOfBirth || !grade) {
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    return null;
+  }
+
+  return { firstName, lastName, dateOfBirth, grade };
+}

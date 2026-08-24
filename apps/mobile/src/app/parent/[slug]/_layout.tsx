@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
+  isParentChildDetailPath,
   parentMoreRoute,
   parentTabRoute,
   type ParentMoreMenuItemId,
@@ -28,6 +29,7 @@ import {
 import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
 
 function getActiveTab(pathname: string): ParentTab | null {
+  if (isParentChildDetailPath(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/messages')) return 'messages';

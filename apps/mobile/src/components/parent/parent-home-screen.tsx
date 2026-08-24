@@ -22,6 +22,7 @@ import {
   getParentFeatureRoute,
   getQuickActionIconStyle,
   parentCalendarEventRoute,
+  parentChildrenRoute,
   parentMoreRoute,
   parentTabRoute,
 } from '@/lib/parent/parent-nav';
@@ -199,7 +200,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
                 <ParentChildCard
                   key={child.applicationId}
                   child={child}
-                  onViewDetails={() => router.push(parentMoreRoute(slug, 'children'))}
+                  onViewDetails={() => router.push(parentChildrenRoute(slug, child.applicationId))}
                 />
               ))}
             </View>
