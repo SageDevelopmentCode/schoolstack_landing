@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useCallback,
@@ -14,6 +13,11 @@ import {
   fetchParentHomeData,
   type ParentHomeData,
 } from '@/lib/parent/parent-portal-api';
+import {
+  DEFAULT_PARENT_PORTAL_CACHE_TTL_MS,
+  createParentPortalCache,
+  resolveParentPortalProviderInit,
+} from '@/lib/parent/parent-portal-cache';
 
 type ParentHomeContextValue = {
   data: ParentHomeData | null;
@@ -27,109 +31,35 @@ type ParentHomeContextValue = {
 
 const ParentHomeContext = createContext<ParentHomeContextValue | null>(null);
 
-const DISK_CACHE_PREFIX = 'parent_home:';
-
-const homeCache = new Map<string, ParentHomeData>();
-const fetchPromises = new Map<string, Promise<ParentHomeData>>();
-
-type DiskCacheEntry = {
-  cachedAt: number;
-  data: ParentHomeData;
-};
+const homeCache = createParentPortalCache<ParentHomeData>('parent_home:');
 
 function cacheKey(organizationId: string, slug: string): string {
   return `${organizationId}:${slug}`;
 }
 
-function diskCacheKey(key: string): string {
-  return `${DISK_CACHE_PREFIX}${key}`;
-}
-
-async function readDiskCache(key: string): Promise<ParentHomeData | null> {
-  try {
-    const raw = await AsyncStorage.getItem(diskCacheKey(key));
-    if (!raw) return null;
-
-    const entry = JSON.parse(raw) as DiskCacheEntry;
-    if (!entry?.data) return null;
-
-    return entry.data;
-  } catch {
-    return null;
-  }
-}
-
-async function writeDiskCache(key: string, data: ParentHomeData): Promise<void> {
-  const entry: DiskCacheEntry = { cachedAt: Date.now(), data };
-  await AsyncStorage.setItem(diskCacheKey(key), JSON.stringify(entry));
-}
-
-async function fetchAndCacheParentHome(
+function fetchAndCacheParentHome(
   organizationId: string,
   slug: string,
   options?: { refresh?: boolean },
 ): Promise<ParentHomeData> {
   const key = cacheKey(organizationId, slug);
-  const isRefresh = options?.refresh ?? false;
-
-  if (!isRefresh) {
-    const memoryCached = homeCache.get(key);
-    if (memoryCached) return memoryCached;
-
-    const inFlight = fetchPromises.get(key);
-    if (inFlight) return inFlight;
-  }
-
-  const promise = fetchParentHomeData(organizationId, slug)
-    .then(async (data) => {
-      homeCache.set(key, data);
-      await writeDiskCache(key, data);
-      fetchPromises.delete(key);
-      return data;
-    })
-    .catch((error) => {
-      fetchPromises.delete(key);
-      throw error;
-    });
-
-  if (!isRefresh) {
-    fetchPromises.set(key, promise);
-  }
-
-  return promise;
+  return homeCache.fetchAndCache(key, () => fetchParentHomeData(organizationId, slug), options);
 }
 
 export function prefetchParentHome(organizationId: string, slug: string): Promise<void> {
-  return fetchAndCacheParentHome(organizationId, slug).then(
-    () => undefined,
-    () => undefined,
-  );
+  const key = cacheKey(organizationId, slug);
+  return homeCache.prefetch(key, () => fetchParentHomeData(organizationId, slug));
 }
 
 export async function hydrateParentHomeFromDisk(
   organizationId: string,
   slug: string,
 ): Promise<ParentHomeData | null> {
-  const key = cacheKey(organizationId, slug);
-  const memoryCached = homeCache.get(key);
-  if (memoryCached) return memoryCached;
-
-  const diskCached = await readDiskCache(key);
-  if (diskCached) {
-    homeCache.set(key, diskCached);
-  }
-  return diskCached;
+  return homeCache.hydrateFromDisk(cacheKey(organizationId, slug));
 }
 
 export async function clearPersistedParentHomeCache(): Promise<void> {
-  homeCache.clear();
-  fetchPromises.clear();
-
-  const keys = await AsyncStorage.getAllKeys();
-  const parentHomeKeys = keys.filter((key) => key.startsWith(DISK_CACHE_PREFIX));
-  if (parentHomeKeys.length > 0) {
-    await AsyncStorage.multiRemove(parentHomeKeys);
-  }
+  homeCache.clearMemory();
 }
 
 type ParentHomeProviderProps = {
@@ -140,7 +70,7 @@ type ParentHomeProviderProps = {
 
 export function ParentHomeProvider({ children, organizationId, slug }: ParentHomeProviderProps) {
   const key = cacheKey(organizationId, slug);
-  const cached = homeCache.get(key) ?? null;
+  const cached = homeCache.get(key);
 
   const [data, setData] = useState<ParentHomeData | null>(cached);
   const [isLoading, setIsLoading] = useState(!cached);
@@ -202,30 +132,21 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
     let cancelled = false;
 
     async function init() {
-      const memoryCached = homeCache.get(key) ?? null;
-      if (memoryCached) {
-        setData(memoryCached);
-        setHasLoaded(true);
-        setIsLoading(false);
-      } else {
-        const diskCached = await hydrateParentHomeFromDisk(organizationId, slug);
-        if (cancelled) return;
+      const resolved = await resolveParentPortalProviderInit(key, homeCache, () =>
+        hydrateParentHomeFromDisk(organizationId, slug),
+      );
+      if (cancelled) return;
 
-        if (diskCached) {
-          setData(diskCached);
-          setHasLoaded(true);
-          setIsLoading(false);
-        } else {
-          setData(null);
-          setHasLoaded(false);
-          setIsLoading(true);
-        }
-      }
-
+      setData(resolved.data);
+      setHasLoaded(resolved.hasLoaded);
+      setIsLoading(resolved.isLoading);
       setError(null);
 
-      const hasCachedData = Boolean(homeCache.get(key));
-      if (hasCachedData) {
+      if (!resolved.shouldBackgroundRefresh) {
+        return;
+      }
+
+      if (resolved.data) {
         setIsRefreshing(true);
       }
 
@@ -233,9 +154,8 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
         await fetchAndCacheParentHome(organizationId, slug);
         if (cancelled) return;
 
-        const nextData = homeCache.get(key) ?? null;
-        setData(nextData);
-        setHasLoaded(Boolean(nextData));
+        setData(homeCache.get(key));
+        setHasLoaded(Boolean(homeCache.get(key)));
         setError(null);
       } catch (loadError) {
         if (!cancelled && !homeCache.get(key)) {

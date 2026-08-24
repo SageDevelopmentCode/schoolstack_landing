@@ -6,6 +6,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-n
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PrimaryButton } from '@/components/primary-button';
+import { ParentCalendarEventRow } from '@/components/parent/calendar/parent-calendar-event-row';
 import { ParentChildCard } from '@/components/parent/parent-child-card';
 import { ParentEnrollmentAmendmentBanner } from '@/components/parent/parent-enrollment-amendment-banner';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
@@ -20,14 +21,11 @@ import {
   getOnboardingItemRoute,
   getParentFeatureRoute,
   getQuickActionIconStyle,
+  parentCalendarEventRoute,
   parentMoreRoute,
   parentTabRoute,
 } from '@/lib/parent/parent-nav';
 import type { ResolvedParentOnboardingItem } from '@/lib/parent/parent-portal-api';
-import {
-  getEventDisplayStyle,
-  SCHOOL_EVENT_TYPE_LABELS,
-} from '@/lib/school-events/event-labels';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 
 type ParentHomeScreenProps = {
@@ -44,16 +42,6 @@ function greetingPrefix(): string {
 function firstName(displayName: string): string {
   const part = displayName.trim().split(/\s+/).filter(Boolean)[0];
   return part ?? displayName;
-}
-
-function formatEventDate(date: string): string {
-  const [year, month, day] = date.split('-').map(Number);
-  const parsed = new Date(year, (month ?? 1) - 1, day ?? 1);
-  return parsed.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
 }
 
 export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
@@ -295,10 +283,10 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           ) : (
             <View style={styles.eventsList}>
               {data.upcomingEvents.map((event: OrganizationEvent) => (
-                <EventRow
+                <ParentCalendarEventRow
                   key={event.id}
                   event={event}
-                  onPress={() => router.replace(parentTabRoute(slug, 'calendar'))}
+                  onPress={() => router.replace(parentCalendarEventRoute(slug, event.id))}
                 />
               ))}
             </View>
@@ -313,41 +301,6 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
         onSelectItem={(item) => void handleOnboardingItem(item)}
       />
     </>
-  );
-}
-
-function EventRow({ event, onPress }: { event: OrganizationEvent; onPress: () => void }) {
-  const theme = useAdminTheme();
-  const colors = getEventDisplayStyle(event);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.eventRow,
-        {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-          ...adminCardShadow(theme),
-          opacity: pressed ? 0.92 : 1,
-        },
-      ]}>
-      <View style={styles.eventCopy}>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }} numberOfLines={1}>
-          {event.title}
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textTertiary, marginTop: 2 }}>
-          {formatEventDate(event.date)}
-          {!event.isAllDay && event.time ? ` · ${event.time}` : ''}
-        </ThemedText>
-      </View>
-      <View style={[styles.eventBadge, { backgroundColor: colors.bg }]}>
-        <ThemedText type="badge" style={{ color: colors.text, fontSize: 9 }}>
-          {SCHOOL_EVENT_TYPE_LABELS[event.type].toUpperCase()}
-        </ThemedText>
-      </View>
-    </Pressable>
   );
 }
 
@@ -447,23 +400,5 @@ const styles = StyleSheet.create({
   },
   eventsList: {
     gap: Spacing.two,
-  },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-  },
-  eventCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  eventBadge: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
   },
 });

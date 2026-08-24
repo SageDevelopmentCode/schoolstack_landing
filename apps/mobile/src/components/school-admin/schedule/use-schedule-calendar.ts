@@ -102,6 +102,21 @@ export function useScheduleCalendar({
     });
   }, []);
 
+  const goToToday = useCallback(() => {
+    const { year, month } = todayMonthYearInTimezone(timezone);
+    setViewYear(year);
+    setViewMonth(month);
+    setSelectedDate(todayKeyInTimezone(timezone));
+  }, [timezone]);
+
+  const goToDate = useCallback((dateKey: string) => {
+    const [year, month] = dateKey.split('-').map(Number);
+    if (!year || !month) return;
+    setViewYear(year);
+    setViewMonth(month - 1);
+    setSelectedDate(dateKey);
+  }, []);
+
   return {
     today,
     timezone,
@@ -113,6 +128,8 @@ export function useScheduleCalendar({
     setSelectedDate,
     prevMonth,
     nextMonth,
+    goToToday,
+    goToDate,
     monthRange,
     calendarColors,
   };

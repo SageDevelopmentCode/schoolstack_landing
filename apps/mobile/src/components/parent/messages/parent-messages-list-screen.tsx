@@ -16,24 +16,20 @@ import {
 } from '@/components/parent/messages/parent-message-thread-row';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
 import { ThemedText } from '@/components/themed-text';
-import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { Radius, Spacing } from '@/constants/theme';
-import {
-  createParentMessageThread,
-  loadParentMessagesInbox,
-} from '@/lib/messages/parent-api';
+import { createParentMessageThread } from '@/lib/messages/parent-api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
-import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import type { MessageContact } from '@/lib/messages/types';
 
 type ParentMessagesListScreenProps = {
   organizationId: string;
   organizationSlug: string;
-  schoolName: string;
 };
 
-function sortThreadsByRecency(threads: MessageThreadSummary[]): MessageThreadSummary[] {
+function sortThreadsByRecency<T extends { lastMessageAt: string | null }>(threads: T[]): T[] {
   return [...threads].sort((a, b) => {
     const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
     const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -44,51 +40,25 @@ function sortThreadsByRecency(threads: MessageThreadSummary[]): MessageThreadSum
 export function ParentMessagesListScreen({
   organizationId,
   organizationSlug,
-  schoolName,
 }: ParentMessagesListScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
-  const { refreshUnreadCount } = useMessagesUnread();
+  const {
+    threads,
+    contacts,
+    guardianId,
+    isLoading,
+    isRefreshing,
+    error,
+    refresh,
+  } = useParentMessagesInbox();
 
-  const [threads, setThreads] = useState<MessageThreadSummary[]>([]);
-  const [contacts, setContacts] = useState<MessageContact[]>([]);
-  const [guardianId, setGuardianId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [startingConversation, setStartingConversation] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const sortedThreads = useMemo(() => sortThreadsByRecency(threads), [threads]);
-
-  const loadInbox = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const inbox = await loadParentMessagesInbox(organizationId, schoolName);
-        setThreads(inbox.threads);
-        setContacts(inbox.contacts);
-        setGuardianId(inbox.guardianId ?? null);
-        await refreshUnreadCount();
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [organizationId, refreshUnreadCount, schoolName],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadInbox({ silent: threads.length > 0 });
-      void refreshUnreadCount();
-    }, [loadInbox, refreshUnreadCount, threads.length]),
-  );
+  const displayError = actionError ?? error;
 
   const { registerInboxConsumer } = useMessagesRealtime();
 
@@ -97,19 +67,17 @@ export function ParentMessagesListScreen({
       return registerInboxConsumer({
         activeThreadId: null,
         onInboxChange: () => {
-          void loadInbox({ silent: true });
-          void refreshUnreadCount();
+          void refresh({ silent: true });
         },
         onThreadMessage: () => {
           // Inbox changes are handled via onInboxChange.
         },
       });
-    }, [loadInbox, refreshUnreadCount, registerInboxConsumer]),
+    }, [refresh, registerInboxConsumer]),
   );
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    void loadInbox({ silent: true });
+    void refresh({ silent: true });
   };
 
   const openThread = (threadId: string) => {
@@ -120,6 +88,7 @@ export function ParentMessagesListScreen({
     if (startingConversation) return;
     setStartingConversation(true);
     setNewConversationOpen(false);
+    setActionError(null);
 
     try {
       const existing = threads.find((thread) => {
@@ -133,10 +102,12 @@ export function ParentMessagesListScreen({
       }
 
       const threadId = await createParentMessageThread(organizationId, contact);
-      await loadInbox({ silent: true });
+      await refresh({ silent: true });
       openThread(threadId);
     } catch (selectError) {
-      setError(selectError instanceof Error ? selectError.message : 'Failed to start conversation.');
+      setActionError(
+        selectError instanceof Error ? selectError.message : 'Failed to start conversation.',
+      );
     } finally {
       setStartingConversation(false);
     }
@@ -167,15 +138,15 @@ export function ParentMessagesListScreen({
         </Pressable>
       </View>
 
-      {error ? (
+      {displayError ? (
         <View style={styles.errorWrap}>
           <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
+            {displayError}
           </ThemedText>
         </View>
       ) : null}
 
-      {loading && threads.length === 0 ? (
+      {isLoading && threads.length === 0 ? (
         <ParentMessagesListSkeleton />
       ) : (
         <FlatList
@@ -197,10 +168,14 @@ export function ParentMessagesListScreen({
           )}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.accent} />
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.accent}
+            />
           }
           ListEmptyComponent={
-            error ? null : (
+            displayError ? null : (
               <View style={styles.emptyState}>
                 <ThemedText type="default" style={{ color: theme.textSecondary, textAlign: 'center' }}>
                   No conversations yet. Tap New to message your school office or your child's teachers.

@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ParentPlaceholderScreen } from '@/components/parent/parent-placeholder-screen';
+import { ParentCalendarScreen } from '@/components/parent/calendar/parent-calendar-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function ParentCalendarRoute() {
@@ -10,11 +10,6 @@ export default function ParentCalendarRoute() {
   if (!slug || !selectedSchool) return null;
 
   return (
-    <ParentPlaceholderScreen
-      slug={slug}
-      schoolName={selectedSchool.name}
-      title="Calendar / events"
-      description="View school events and your family calendar — coming soon in the mobile app."
-    />
+    <ParentCalendarScreen organizationId={selectedSchool.id} />
   );
 }

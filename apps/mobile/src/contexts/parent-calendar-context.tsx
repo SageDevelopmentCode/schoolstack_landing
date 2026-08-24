@@ -10,16 +10,16 @@ import {
 } from 'react';
 
 import {
-  fetchParentBillingData,
-  type ParentBillingData,
+  fetchParentCalendarData,
+  type ParentCalendarData,
 } from '@/lib/parent/parent-portal-api';
 import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
 
-type ParentBillingContextValue = {
-  data: ParentBillingData | null;
+type ParentCalendarContextValue = {
+  data: ParentCalendarData | null;
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
@@ -28,54 +28,54 @@ type ParentBillingContextValue = {
   refresh: () => Promise<void>;
 };
 
-const ParentBillingContext = createContext<ParentBillingContextValue | null>(null);
+const ParentCalendarContext = createContext<ParentCalendarContextValue | null>(null);
 
-const billingCache = createParentPortalCache<ParentBillingData>('parent_billing:');
+const calendarCache = createParentPortalCache<ParentCalendarData>('parent_calendar:');
 
 function cacheKey(organizationId: string, slug: string): string {
   return `${organizationId}:${slug}`;
 }
 
-function fetchAndCacheParentBilling(
+function fetchAndCacheParentCalendar(
   organizationId: string,
   slug: string,
   options?: { refresh?: boolean },
-): Promise<ParentBillingData> {
+): Promise<ParentCalendarData> {
   const key = cacheKey(organizationId, slug);
-  return billingCache.fetchAndCache(
+  return calendarCache.fetchAndCache(
     key,
-    () => fetchParentBillingData(organizationId, slug),
+    () => fetchParentCalendarData(organizationId, slug),
     options,
   );
 }
 
-export function prefetchParentBilling(organizationId: string, slug: string): Promise<void> {
+export function prefetchParentCalendar(organizationId: string, slug: string): Promise<void> {
   const key = cacheKey(organizationId, slug);
-  return billingCache.prefetch(key, () => fetchParentBillingData(organizationId, slug));
+  return calendarCache.prefetch(key, () => fetchParentCalendarData(organizationId, slug));
 }
 
-export async function hydrateParentBillingFromDisk(
+export async function hydrateParentCalendarFromDisk(
   organizationId: string,
   slug: string,
-): Promise<ParentBillingData | null> {
-  return billingCache.hydrateFromDisk(cacheKey(organizationId, slug));
+): Promise<ParentCalendarData | null> {
+  return calendarCache.hydrateFromDisk(cacheKey(organizationId, slug));
 }
 
-type ParentBillingProviderProps = {
+type ParentCalendarProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
 };
 
-export function ParentBillingProvider({
+export function ParentCalendarProvider({
   children,
   organizationId,
   slug,
-}: ParentBillingProviderProps) {
+}: ParentCalendarProviderProps) {
   const key = cacheKey(organizationId, slug);
-  const cached = billingCache.get(key);
+  const cached = calendarCache.get(key);
 
-  const [data, setData] = useState<ParentBillingData | null>(cached);
+  const [data, setData] = useState<ParentCalendarData | null>(cached);
   const [isLoading, setIsLoading] = useState(!cached);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ export function ParentBillingProvider({
       }
 
       const run = async () => {
-        const hasCachedData = Boolean(billingCache.get(key) ?? data);
+        const hasCachedData = Boolean(calendarCache.get(key) ?? data);
         if (isRefresh) {
           setIsRefreshing(true);
         } else if (!hasCachedData) {
@@ -101,13 +101,13 @@ export function ParentBillingProvider({
         setError(null);
 
         try {
-          const nextData = await fetchAndCacheParentBilling(organizationId, slug, {
+          const nextData = await fetchAndCacheParentCalendar(organizationId, slug, {
             refresh: isRefresh,
           });
           setData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load billing.');
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load calendar.');
         } finally {
           setIsLoading(false);
           setIsRefreshing(false);
@@ -137,8 +137,8 @@ export function ParentBillingProvider({
     let cancelled = false;
 
     async function init() {
-      const resolved = await resolveParentPortalProviderInit(key, billingCache, () =>
-        hydrateParentBillingFromDisk(organizationId, slug),
+      const resolved = await resolveParentPortalProviderInit(key, calendarCache, () =>
+        hydrateParentCalendarFromDisk(organizationId, slug),
       );
       if (cancelled) return;
 
@@ -156,15 +156,15 @@ export function ParentBillingProvider({
       }
 
       try {
-        await fetchAndCacheParentBilling(organizationId, slug);
+        await fetchAndCacheParentCalendar(organizationId, slug);
         if (cancelled) return;
 
-        setData(billingCache.get(key));
-        setHasLoaded(Boolean(billingCache.get(key)));
+        setData(calendarCache.get(key));
+        setHasLoaded(Boolean(calendarCache.get(key)));
         setError(null);
       } catch (loadError) {
-        if (!cancelled && !billingCache.get(key)) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load billing.');
+        if (!cancelled && !calendarCache.get(key)) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load calendar.');
         }
       } finally {
         if (!cancelled) {
@@ -195,14 +195,14 @@ export function ParentBillingProvider({
   );
 
   return (
-    <ParentBillingContext.Provider value={value}>{children}</ParentBillingContext.Provider>
+    <ParentCalendarContext.Provider value={value}>{children}</ParentCalendarContext.Provider>
   );
 }
 
-export function useParentBilling(): ParentBillingContextValue {
-  const context = useContext(ParentBillingContext);
+export function useParentCalendar(): ParentCalendarContextValue {
+  const context = useContext(ParentCalendarContext);
   if (!context) {
-    throw new Error('useParentBilling must be used within ParentBillingProvider');
+    throw new Error('useParentCalendar must be used within ParentCalendarProvider');
   }
   return context;
 }

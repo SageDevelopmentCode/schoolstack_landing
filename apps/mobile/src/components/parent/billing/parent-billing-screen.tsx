@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -63,11 +63,7 @@ type PendingPayment =
 
 export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
   const theme = useAdminTheme();
-  const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useParentBilling();
-
-  useLayoutEffect(() => {
-    ensureLoaded();
-  }, [ensureLoaded]);
+  const { data, isLoading, isRefreshing, error, refresh } = useParentBilling();
 
   const [activeChildKey, setActiveChildKey] = useState(PARENT_BILLING_SUMMARY_TAB);
   const [dismissedAutopayFailure, setDismissedAutopayFailure] = useState(false);

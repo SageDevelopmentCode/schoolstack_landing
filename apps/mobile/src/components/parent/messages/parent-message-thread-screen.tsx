@@ -67,7 +67,7 @@ export function ParentMessageThreadScreen({
             messages: mergeMessages(detail.messages, optimistic),
           };
         });
-        await refreshUnreadCount();
+        await refreshUnreadCount({ force: true });
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
       } finally {
@@ -87,7 +87,7 @@ export function ParentMessageThreadScreen({
     return registerInboxConsumer({
       activeThreadId: threadId,
       onInboxChange: () => {
-        void refreshUnreadCount();
+        void refreshUnreadCount({ force: true });
       },
       onThreadMessage: (incomingThreadId) => {
         if (incomingThreadId === threadId) {

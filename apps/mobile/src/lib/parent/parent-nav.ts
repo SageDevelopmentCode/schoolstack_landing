@@ -14,6 +14,10 @@ export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): H
   return `/parent/${slug}/${tab}` as Href;
 }
 
+export function parentCalendarEventRoute(slug: string, eventId: string): Href {
+  return `/parent/${slug}/calendar?eventId=${encodeURIComponent(eventId)}` as Href;
+}
+
 export function parentMoreRoute(slug: string, item: ParentMoreMenuItemId): Href {
   return `/parent/${slug}/more/${item}` as Href;
 }

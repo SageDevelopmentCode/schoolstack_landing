@@ -10,10 +10,10 @@ import {
   type ReactNode,
 } from 'react';
 
-import {
-  clearPersistedParentHomeCache,
-  prefetchParentHome,
-} from '@/contexts/parent-home-context';
+import { prefetchParentBilling } from '@/contexts/parent-billing-context';
+import { prefetchParentCalendar } from '@/contexts/parent-calendar-context';
+import { prefetchParentHome } from '@/contexts/parent-home-context';
+import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import {
   resolvePlatformAdmin,
   resolvePortalForSchool,
@@ -22,6 +22,7 @@ import {
 } from '@/lib/auth/resolve-portal';
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
+import { clearAllPersistedParentPortalCaches } from '@/lib/parent/parent-portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -43,6 +44,15 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function prefetchParentPortalData(school: LiveOrganization): void {
+  void Promise.all([
+    prefetchParentHome(school.id, school.slug),
+    prefetchParentCalendar(school.id, school.slug),
+    prefetchParentBilling(school.id, school.slug),
+    prefetchParentMessagesInbox(school.id, school.name),
+  ]);
+}
 
 async function persistPortalState(portal: ResolvedPortal, isPlatformAdminSession: boolean) {
   await SecureStore.setItemAsync(PORTAL_TYPE_KEY, portal.portalType);
@@ -108,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsPlatformAdminSession(persisted.isPlatformAdminSession);
 
     if (persisted.portalType === 'parent' && persisted.selectedSchool) {
-      void prefetchParentHome(persisted.selectedSchool.id, persisted.selectedSchool.slug);
+      prefetchParentPortalData(persisted.selectedSchool);
     }
   }, []);
 
@@ -148,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPortalType(null);
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
-        void Promise.all([clearPortalState(), clearPersistedParentHomeCache()]);
+        void Promise.all([clearPortalState(), clearAllPersistedParentPortalCaches()]);
       }
     });
 
@@ -166,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persistPortalState(portal, platformAdminSession);
 
     if (portal.portalType === 'parent' && portal.school) {
-      void prefetchParentHome(portal.school.id, portal.school.slug);
+      prefetchParentPortalData(portal.school);
     }
   }, []);
 
@@ -197,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
-    await Promise.all([clearPortalState(), clearPersistedParentHomeCache()]);
+    await Promise.all([clearPortalState(), clearAllPersistedParentPortalCaches()]);
   }, [supabase.auth]);
 
   const value = useMemo(

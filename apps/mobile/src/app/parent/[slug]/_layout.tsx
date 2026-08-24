@@ -9,9 +9,12 @@ import {
   PARENT_FLOATING_TAB_BAR_HEIGHT,
   ParentFloatingTabBar,
 } from '@/components/parent/parent-floating-tab-bar';
+import { MessagesRealtimeProvider, useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
 import { ParentBillingProvider } from '@/contexts/parent-billing-context';
+import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
+import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
@@ -31,6 +34,19 @@ function getActiveTab(pathname: string): ParentTab | null {
   if (pathname.includes('/calendar')) return 'calendar';
   if (pathname.includes('/billing')) return 'billing';
   if (pathname.includes('/home')) return 'home';
+  return null;
+}
+
+function ParentMessagesInboxRealtimeBridge() {
+  const { refresh } = useParentMessagesInbox();
+  const { subscribeMessagesUpdated } = useMessagesRealtime();
+
+  useEffect(() => {
+    return subscribeMessagesUpdated(() => {
+      void refresh({ silent: true });
+    });
+  }, [refresh, subscribeMessagesUpdated]);
+
   return null;
 }
 
@@ -169,12 +185,21 @@ export default function ParentLayout() {
     <SchoolAdminThemeProvider branding={toOrganizationBranding(loadedOrg.branding)}>
       <ParentHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
         <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-          <MessagesUnreadProvider
-            organizationId={loadedOrg.id}
-            schoolName={loadedOrg.name}
-            fetchUnreadCount={fetchParentMessagesUnreadCount}>
-            <ParentLayoutContent />
-          </MessagesUnreadProvider>
+          <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+            <MessagesRealtimeProvider organizationId={loadedOrg.id}>
+              <ParentMessagesInboxProvider
+                organizationId={loadedOrg.id}
+                schoolName={loadedOrg.name}>
+                <MessagesUnreadProvider
+                  organizationId={loadedOrg.id}
+                  schoolName={loadedOrg.name}
+                  fetchUnreadCount={fetchParentMessagesUnreadCount}>
+                  <ParentMessagesInboxRealtimeBridge />
+                  <ParentLayoutContent />
+                </MessagesUnreadProvider>
+              </ParentMessagesInboxProvider>
+            </MessagesRealtimeProvider>
+          </ParentCalendarProvider>
         </ParentBillingProvider>
       </ParentHomeProvider>
     </SchoolAdminThemeProvider>

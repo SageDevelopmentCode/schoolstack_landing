@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
-import type { OrganizationEvent } from '@/lib/school-events/types';
+import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -125,6 +125,18 @@ export async function fetchParentHomeData(
 ): Promise<ParentHomeData> {
   const query = new URLSearchParams({ organizationId, slug }).toString();
   return fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
+}
+
+export type ParentCalendarData = ParentCalendarInitialData & {
+  timezone: string;
+};
+
+export async function fetchParentCalendarData(
+  organizationId: string,
+  slug: string,
+): Promise<ParentCalendarData> {
+  const query = new URLSearchParams({ organizationId, slug }).toString();
+  return fetchParentApi<ParentCalendarData>(`/api/parent-portal/calendar?${query}`);
 }
 
 export async function fetchParentMessagesUnreadCount(
