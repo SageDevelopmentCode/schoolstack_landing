@@ -323,3 +323,29 @@ export async function setAutopayEnabled(input: {
     body: input,
   });
 }
+
+export type ParentNotificationSettings = {
+  familyId: string;
+  loginEmail: string | null;
+  configuredEmails: string[];
+  effectiveEmails: string[];
+  sources: string[];
+};
+
+export async function fetchParentNotificationSettings(
+  organizationId: string,
+): Promise<ParentNotificationSettings> {
+  return fetchParentApi<ParentNotificationSettings>(
+    `/api/parent-portal/notification-settings?organizationId=${encodeURIComponent(organizationId)}`,
+  );
+}
+
+export async function updateParentNotificationSettings(
+  organizationId: string,
+  emails: string[],
+): Promise<ParentNotificationSettings> {
+  return fetchParentApi<ParentNotificationSettings>('/api/parent-portal/notification-settings', {
+    method: 'PATCH',
+    body: { organizationId, emails },
+  });
+}

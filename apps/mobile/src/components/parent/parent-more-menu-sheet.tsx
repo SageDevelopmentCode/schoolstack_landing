@@ -1,5 +1,4 @@
 import type { User } from '@supabase/supabase-js';
-import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
@@ -16,6 +15,7 @@ import { MessagesAvatar } from '@/components/school-admin/messages/messages-avat
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useParentHome } from '@/contexts/parent-home-context';
 import { Radius, Spacing } from '@/constants/theme';
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
 
@@ -23,6 +23,7 @@ type ParentMoreMenuSheetProps = {
   visible: boolean;
   onClose: () => void;
   onSelect: (itemId: ParentMoreMenuItemId) => void;
+  onSelectAccount: () => void;
 };
 
 const MENU_ITEMS: {
@@ -79,15 +80,30 @@ function getDisplayName(user: User): string {
   return 'Account';
 }
 
-export function ParentMoreMenuSheet({ visible, onClose, onSelect }: ParentMoreMenuSheetProps) {
-  const router = useRouter();
+export function ParentMoreMenuSheet({
+  visible,
+  onClose,
+  onSelect,
+  onSelectAccount,
+}: ParentMoreMenuSheetProps) {
   const theme = useAdminTheme();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const { data: homeData, ensureLoaded } = useParentHome();
   const insets = useSafeAreaInsets();
-  const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
+  const displayName = useMemo(() => {
+    const profileName = homeData?.userProfile.displayName?.trim();
+    if (profileName) return profileName;
+    return user ? getDisplayName(user) : '';
+  }, [homeData?.userProfile.displayName, user]);
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
+
+  useEffect(() => {
+    if (visible) {
+      ensureLoaded();
+    }
+  }, [visible, ensureLoaded]);
 
   useEffect(() => {
     if (visible) {
@@ -123,12 +139,6 @@ export function ParentMoreMenuSheet({ visible, onClose, onSelect }: ParentMoreMe
   const sheetAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: sheetTranslateY.value }],
   }));
-
-  const handleSignOut = async () => {
-    onClose();
-    await signOut();
-    router.replace('/login');
-  };
 
   return (
     <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
@@ -186,34 +196,27 @@ export function ParentMoreMenuSheet({ visible, onClose, onSelect }: ParentMoreMe
 
           {user ? (
             <View style={[styles.accountSection, { borderTopColor: theme.border }]}>
-              <View style={styles.row}>
-                <MessagesAvatar name={displayName} color={theme.accent} size="md" />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Account for ${displayName}`}
+                onPress={onSelectAccount}
+                style={({ pressed }) => [
+                  styles.row,
+                  pressed && { backgroundColor: theme.elevated },
+                ]}>
+                <MessagesAvatar
+                  name={displayName}
+                  color={theme.accent}
+                  photoUrl={homeData?.userProfile.profilePhotoUrl}
+                  size="md"
+                />
                 <View style={styles.rowCopy}>
                   <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
                     {displayName}
                   </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Family account
-                  </ThemedText>
-                  {user.email ? (
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      {user.email}
-                    </ThemedText>
-                  ) : null}
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Sign out"
-                  onPress={() => void handleSignOut()}
-                  style={({ pressed }) => [
-                    styles.signOutButton,
-                    pressed && { opacity: 0.7 },
-                  ]}>
-                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                    Sign out
-                  </ThemedText>
-                </Pressable>
-              </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+              </Pressable>
             </View>
           ) : null}
         </Animated.View>
@@ -276,9 +279,5 @@ const styles = StyleSheet.create({
   },
   accountSection: {
     borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  signOutButton: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
   },
 });

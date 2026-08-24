@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function ParentMessagesLayout() {
   const theme = useAdminTheme();
@@ -9,6 +10,7 @@ export default function ParentMessagesLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        animation: detailStackAnimation(),
         contentStyle: { backgroundColor: theme.bg },
         headerStyle: { backgroundColor: theme.surface },
         headerTintColor: theme.accent,

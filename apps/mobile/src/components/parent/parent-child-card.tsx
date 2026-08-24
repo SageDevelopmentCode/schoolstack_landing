@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ScalePressable } from '@/components/scale-pressable';
 import { StudentPhoto } from '@/components/school-admin/student-photo';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -29,11 +30,11 @@ export function ParentChildCard({ child, onViewDetails }: ParentChildCardProps) 
           ...adminCardShadow(theme),
         },
       ]}>
-      <Pressable
+      <ScalePressable
         accessibilityRole="button"
         accessibilityLabel={`View details for ${child.studentName}`}
         onPress={onViewDetails}
-        style={({ pressed }) => [styles.mainRow, pressed && { opacity: 0.9 }]}>
+        style={styles.mainRow}>
         <StudentPhoto name={child.studentName} photoUrl={child.profilePhotoUrl} size="lg" />
         <View style={styles.mainCopy}>
           <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
@@ -49,7 +50,7 @@ export function ParentChildCard({ child, onViewDetails }: ParentChildCardProps) 
             <Ionicons name="arrow-forward" size={12} color={theme.accent} />
           </View>
         </View>
-      </Pressable>
+      </ScalePressable>
 
       <View style={[styles.badge, { backgroundColor: badgeStyle.backgroundColor }]}>
         <Ionicons

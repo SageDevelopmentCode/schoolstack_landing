@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,7 +17,6 @@ import {
   SubmissionApplicationStepsSection,
   SubmissionEnrollmentStepsSection,
 } from '@/components/school-admin/submission-detail-sections';
-import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useParentHome } from '@/contexts/parent-home-context';
@@ -38,7 +36,6 @@ import {
   loadEnrollmentChecklistForApplication,
   type LoadedEnrollmentChecklist,
 } from '@/lib/admissions/enrollment-checklist';
-import { resolveWebUrl, schoolApplicationUrl } from '@/lib/admissions/school-apply-url';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
 import {
   StudentProfilePhotoUploadError,
@@ -75,16 +72,6 @@ function calculateAge(value: string): number | null {
     (now.getMonth() === birth.getMonth() && now.getDate() >= birth.getDate());
   if (!hasHadBirthdayThisYear) age -= 1;
   return age >= 0 ? age : null;
-}
-
-function childApplicationLabel(child: FamilyChildOverview): string {
-  return child.isEnrolled || child.status === 'enrolling'
-    ? 'Enrollment checklist'
-    : 'View application';
-}
-
-function childApplicationEnrollment(child: FamilyChildOverview): boolean {
-  return child.isEnrolled || child.status === 'enrolling';
 }
 
 function ProfileTabToggle({
@@ -279,15 +266,6 @@ export function ParentChildDetailScreen({
     [detail?.studentId, organizationId, refresh],
   );
 
-  const handleOpenApplication = useCallback(async () => {
-    const url = schoolApplicationUrl(slug, applicationId, {
-      enrollment: childOverview ? childApplicationEnrollment(childOverview) : false,
-    });
-    await openBrowserAsync(resolveWebUrl(url), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-    });
-  }, [slug, applicationId, childOverview]);
-
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View
@@ -316,8 +294,10 @@ export function ParentChildDetailScreen({
           <EditableStudentPhoto
             name={fullName}
             photoUrl={profilePhotoUrl}
+            shape="square"
             editable={canUploadPhoto}
             uploading={photoUploading}
+            showEditHint={canUploadPhoto}
             onPhotoSelected={(uri, mimeType) => void handlePhotoSelected(uri, mimeType)}
           />
           <View style={styles.heroCopy}>
@@ -397,20 +377,6 @@ export function ParentChildDetailScreen({
                 />
               ) : null}
             </View>
-
-            {childOverview ? (
-              <PrimaryButton
-                label={childApplicationLabel(childOverview)}
-                onPress={() => void handleOpenApplication()}
-                style={styles.applicationCta}
-              />
-            ) : (
-              <PrimaryButton
-                label="View application"
-                onPress={() => void handleOpenApplication()}
-                style={styles.applicationCta}
-              />
-            )}
           </>
         ) : null}
       </ScrollView>
@@ -506,8 +472,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.four,
-  },
-  applicationCta: {
-    marginTop: Spacing.two,
   },
 });

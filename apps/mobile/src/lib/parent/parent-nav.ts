@@ -22,6 +22,10 @@ export function parentMoreRoute(slug: string, item: ParentMoreMenuItemId): Href 
   return `/parent/${slug}/more/${item}` as Href;
 }
 
+export function parentAccountRoute(slug: string): Href {
+  return `/parent/${slug}/more/account` as Href;
+}
+
 export function parentChildrenRoute(slug: string, applicationId?: string): Href {
   if (applicationId) {
     return parentChildDetailRoute(slug, applicationId);

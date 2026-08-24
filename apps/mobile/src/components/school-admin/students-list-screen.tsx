@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   TextInput,
   View,
@@ -14,16 +15,14 @@ import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/
 import { StudentsListSkeleton } from '@/components/school-admin/students-list-skeleton';
 import { StudentTeacherAssignPicker } from '@/components/school-admin/student-teacher-assign-picker';
 import { ThemedText } from '@/components/themed-text';
+import { useSchoolAdminStudents } from '@/contexts/school-admin-students-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import {
   assignStudentTeacher,
   formatEnrolledStudentName,
   formatStudentGrade,
-  listOrgEnrolledStudents,
-  listOrgStaffMembers,
   type AdminEnrolledStudentSummary,
-  type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -60,49 +59,25 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
   const theme = useAdminTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const {
+    students,
+    staffMembers,
+    isLoading,
+    isRefreshing,
+    error,
+    staffError,
+    refresh,
+  } = useSchoolAdminStudents();
 
-  const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>([]);
-  const [staffMembers, setStaffMembers] = useState<OrgStaffMemberRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [staffError, setStaffError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [assigningStudentId, setAssigningStudentId] = useState<string | null>(null);
   const [pickerStudent, setPickerStudent] = useState<AdminEnrolledStudentSummary | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   const activeStaff = useMemo(
     () => staffMembers.filter((member) => member.employmentStatus === 'active'),
     [staffMembers],
   );
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setStaffError(null);
-    try {
-      const nextStudents = await listOrgEnrolledStudents(supabase, organizationId);
-      setStudents(nextStudents);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load students.');
-      setStudents([]);
-    } finally {
-      setLoading(false);
-    }
-
-    try {
-      const nextStaff = await listOrgStaffMembers(supabase, organizationId);
-      setStaffMembers(nextStaff);
-    } catch (loadError) {
-      setStaffMembers([]);
-      setStaffError(
-        loadError instanceof Error ? loadError.message : 'Failed to load staff for teacher assignment.',
-      );
-    }
-  }, [organizationId, supabase]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
 
   const filteredStudents = useMemo(
     () => students.filter((student) => matchesSearch(student, searchQuery)),
@@ -115,28 +90,25 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
 
   const handleAssignTeacher = async (studentId: string, staffMemberId: string | null) => {
     setAssigningStudentId(studentId);
+    setAssignError(null);
     try {
-      const result = await assignStudentTeacher(supabase, {
+      await assignStudentTeacher(supabase, {
         organizationId,
         studentId,
         staffMemberId,
       });
-      setStudents((current) =>
-        current.map((student) =>
-          student.id === studentId
-            ? {
-                ...student,
-                assignedTeacherId: result.assignedTeacherId,
-                assignedTeacherName: result.assignedTeacherName,
-              }
-            : student,
-        ),
-      );
+      await refresh({ silent: true });
     } catch (assignError) {
-      setError(assignError instanceof Error ? assignError.message : 'Failed to assign teacher.');
+      setAssignError(
+        assignError instanceof Error ? assignError.message : 'Failed to assign teacher.',
+      );
     } finally {
       setAssigningStudentId(null);
     }
+  };
+
+  const handleRefresh = () => {
+    void refresh({ silent: true });
   };
 
   const listHeader = useMemo(
@@ -167,6 +139,12 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
           </ThemedText>
         ) : null}
 
+        {assignError ? (
+          <ThemedText type="small" style={{ color: theme.error }}>
+            {assignError}
+          </ThemedText>
+        ) : null}
+
         {staffError ? (
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
             {staffError}
@@ -174,10 +152,10 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
         ) : null}
       </View>
     ),
-    [error, searchQuery, staffError, theme],
+    [assignError, error, searchQuery, staffError, theme],
   );
 
-  if (loading) {
+  if (isLoading && students.length === 0) {
     return <StudentsListSkeleton />;
   }
 
@@ -202,6 +180,13 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={ListSeparator}
         ListHeaderComponent={listHeader}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.accent}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>

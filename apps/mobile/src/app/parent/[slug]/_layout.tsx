@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { ParentMoreMenuSheet } from '@/components/parent/parent-more-menu-sheet';
 import {
   PARENT_FLOATING_TAB_BAR_HEIGHT,
@@ -21,6 +22,7 @@ import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
   isParentChildDetailPath,
+  parentAccountRoute,
   parentMoreRoute,
   parentTabRoute,
   type ParentMoreMenuItemId,
@@ -110,7 +112,26 @@ function ParentLayoutContent() {
     if (!slug) return;
     const target = parentMoreRoute(slug, itemId);
     if (!pathname.includes(`/more/${itemId}`)) {
-      router.push(target);
+      const isMainTab = pathTab !== null && pathTab !== 'more';
+      if (isMainTab) {
+        router.replace(target);
+      } else {
+        router.push(target);
+      }
+    }
+  };
+
+  const handleSelectAccount = () => {
+    setMoreSheetOpen(false);
+    if (!slug) return;
+    const target = parentAccountRoute(slug);
+    if (!pathname.includes('/more/account')) {
+      const isMainTab = pathTab !== null && pathTab !== 'more';
+      if (isMainTab) {
+        router.replace(target);
+      } else {
+        router.push(target);
+      }
     }
   };
 
@@ -135,7 +156,9 @@ function ParentLayoutContent() {
           styles.content,
           showTabBar ? { paddingBottom: PARENT_FLOATING_TAB_BAR_HEIGHT } : null,
         ]}>
-        <Slot />
+        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+          <Slot />
+        </AnimatedTabContent>
       </View>
       {showTabBar && activeTab ? (
         <ParentFloatingTabBar
@@ -148,6 +171,7 @@ function ParentLayoutContent() {
         visible={moreSheetOpen}
         onClose={() => setMoreSheetOpen(false)}
         onSelect={handleSelectMoreItem}
+        onSelectAccount={handleSelectAccount}
       />
     </SafeAreaView>
   );

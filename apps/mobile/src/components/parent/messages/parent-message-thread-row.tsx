@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ScalePressable } from '@/components/scale-pressable';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { MessagesDualAvatar } from '@/components/school-admin/messages/messages-dual-avatar';
 import { ThemedText } from '@/components/themed-text';
@@ -21,15 +22,10 @@ export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadR
   const hasUnread = thread.unreadCount > 0;
 
   return (
-    <Pressable
+    <ScalePressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.rowPressable,
-        {
-          backgroundColor: pressed ? theme.surface : theme.bg,
-        },
-      ]}>
+      style={[styles.rowPressable, { backgroundColor: theme.bg }]}>
       <View style={styles.row}>
         {thread.listAvatars?.length === 2 ? (
           <MessagesDualAvatar avatars={thread.listAvatars} size="sm" />
@@ -80,7 +76,7 @@ export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadR
           </View>
         ) : null}
       </View>
-    </Pressable>
+    </ScalePressable>
   );
 }
 
