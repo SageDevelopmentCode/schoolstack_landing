@@ -8,10 +8,11 @@ import {
 } from "@/lib/stripe/processing-fee";
 import { getStripeClient } from "@/lib/stripe/client";
 
-const SAVED_PAYMENT_METHOD_OPTIONS = {
-  payment_method_save: "enabled" as const,
-  allow_redisplay_filters: ["always", "limited", "unspecified"] as const,
-};
+const SAVED_PAYMENT_METHOD_OPTIONS: Stripe.Checkout.SessionCreateParams.SavedPaymentMethodOptions =
+  {
+    payment_method_save: "enabled",
+    allow_redisplay_filters: ["always", "limited", "unspecified"],
+  };
 
 const PAYMENT_METHOD_DATA = {
   allow_redisplay: "always" as const,
