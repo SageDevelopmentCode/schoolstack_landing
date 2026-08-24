@@ -8,6 +8,10 @@ import {
   parseApplicationFormStepIndex,
   summarizeApplicationFormProgress,
 } from '@/lib/admissions/application-form-steps';
+import type {
+  ApplicationFormFeeConfig,
+  ApplicationFormSchema,
+} from '@/lib/admissions/application-form-schema';
 import { applicationStatusLabel, FEE_STATUS_LABELS } from '@/lib/admissions/application-status-ui';
 
 export type PostSubmitSummaryTone = 'complete' | 'scheduled' | 'pending' | 'none';
@@ -143,15 +147,9 @@ type PostSubmitConfig = {
   actions: PostSubmitAction[];
 };
 
-type FeeConfig = {
-  enabled: boolean;
-  label?: string;
-};
+type FeeConfig = ApplicationFormFeeConfig;
 
-type FormSchema = {
-  sections: Array<{ id: string; title: string }>;
-  acknowledgments?: Array<{ id: string; label: string }>;
-};
+type FormSchema = ApplicationFormSchema;
 
 function parseStringRecord(value: unknown): Record<string, string> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

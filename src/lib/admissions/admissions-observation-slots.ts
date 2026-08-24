@@ -7,11 +7,12 @@ import {
   ADMISSIONS_TIME_SLOT_GROUPS,
   type AdmissionsTimeSlotPeriod,
 } from "./admissions-availability";
-import { ALL_DAY_TIME_SLOT } from "./admissions-observation-availability";
 import {
   STUDENT_GRADE_OPTIONS,
   type ApplySystemFieldId,
 } from "./apply-system-fields";
+
+export const ALL_DAY_TIME_SLOT = "ALL_DAY";
 
 export type ObservationSlot = {
   id: string;

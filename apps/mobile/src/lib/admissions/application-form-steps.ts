@@ -1,12 +1,7 @@
-type ApplicationFormSchema = {
-  sections: Array<{ id: string; title: string }>;
-  acknowledgments?: Array<{ id: string; label: string }>;
-};
-
-type ApplicationFormFeeConfig = {
-  enabled: boolean;
-  label?: string;
-};
+import type {
+  ApplicationFormFeeConfig,
+  ApplicationFormSchema,
+} from '@/lib/admissions/application-form-schema';
 
 const PROGRESS_KEY = '__progress';
 

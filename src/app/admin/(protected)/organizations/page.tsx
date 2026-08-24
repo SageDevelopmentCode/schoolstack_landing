@@ -9,6 +9,7 @@ import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsE
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
 import OrganizationParentPortalPanel from "@/components/admin/OrganizationParentPortalPanel";
+import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
@@ -20,7 +21,8 @@ type OrganizationDetailTab =
   | "overview"
   | "notifications"
   | "submissions"
-  | "parent-portal";
+  | "parent-portal"
+  | "teacher-portal";
 
 const ORGANIZATION_DETAIL_TABS: {
   id: OrganizationDetailTab;
@@ -30,6 +32,7 @@ const ORGANIZATION_DETAIL_TABS: {
   { id: "notifications", label: "Notifications" },
   { id: "submissions", label: "Submissions" },
   { id: "parent-portal", label: "Parent portal" },
+  { id: "teacher-portal", label: "Teacher portal" },
 ];
 
 type Organization = {
@@ -534,6 +537,13 @@ export default function AdminOrganizationsPage() {
 
             {activeDetailTab === "parent-portal" ? (
               <OrganizationParentPortalPanel organizationId={selected.id} />
+            ) : null}
+
+            {activeDetailTab === "teacher-portal" ? (
+              <OrganizationTeacherPortalPanel
+                organizationId={selected.id}
+                organizationSlug={selected.slug}
+              />
             ) : null}
           </div>
         )}

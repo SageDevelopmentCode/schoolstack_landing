@@ -1,31 +1,23 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack } from 'expo-router';
 
-import { MessagesRealtimeProvider } from '@/contexts/messages-realtime-context';
-import { useAuth } from '@/contexts/auth-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function MessagesLayout() {
   const theme = useAdminTheme();
-  const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { selectedSchool } = useAuth();
-
-  if (!selectedSchool || selectedSchool.slug !== slug) {
-    return null;
-  }
 
   return (
-    <MessagesRealtimeProvider organizationId={selectedSchool.id}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.bg },
-          headerStyle: { backgroundColor: theme.surface },
-          headerTintColor: theme.accent,
-          headerTitleStyle: { color: theme.textPrimary },
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="[threadId]" options={{ headerShown: false }} />
-      </Stack>
-    </MessagesRealtimeProvider>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: detailStackAnimation(),
+        contentStyle: { backgroundColor: theme.bg },
+        headerStyle: { backgroundColor: theme.surface },
+        headerTintColor: theme.accent,
+        headerTitleStyle: { color: theme.textPrimary },
+      }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="[threadId]" options={{ headerShown: false }} />
+    </Stack>
   );
 }

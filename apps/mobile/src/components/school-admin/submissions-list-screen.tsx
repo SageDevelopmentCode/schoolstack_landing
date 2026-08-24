@@ -1,18 +1,16 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { SubmissionListItem } from '@/components/school-admin/submission-list-item';
 import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
 import { SubmissionStatusFilters } from '@/components/school-admin/submission-status-filters';
+import { SubmissionsListSkeleton } from '@/components/school-admin/submissions-list-skeleton';
 import { ThemedText } from '@/components/themed-text';
+import { useSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL } from '@/lib/admissions/application-status-ui';
-import {
-  listOrgApplicationSubmissions,
-  type AdminApplicationSubmission,
-} from '@/lib/admissions/application-submissions';
-import { getSupabaseClient } from '@/lib/supabase';
+import type { AdminApplicationSubmission } from '@/lib/admissions/application-submissions';
 import { Spacing } from '@/constants/theme';
 
 type SubmissionsListScreenProps = {
@@ -20,31 +18,11 @@ type SubmissionsListScreenProps = {
   slug: string;
 };
 
-export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListScreenProps) {
+export function SubmissionsListScreen({ organizationId: _organizationId, slug }: SubmissionsListScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
-  const supabase = useMemo(() => getSupabaseClient(), []);
-  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { submissions, isLoading, isRefreshing, error, refresh } = useSchoolAdminSubmissions();
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const loadSubmissions = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await listOrgApplicationSubmissions(supabase, organizationId);
-      setSubmissions(data);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load submissions.');
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, supabase]);
-
-  useEffect(() => {
-    void loadSubmissions();
-  }, [loadSubmissions]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -69,15 +47,15 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
     router.push(`/school-admin/${slug}/admissions/submissions/${submission.id}`);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={theme.accent} />
-      </View>
-    );
+  const handleRefresh = () => {
+    void refresh({ silent: true });
+  };
+
+  if (isLoading && submissions.length === 0) {
+    return <SubmissionsListSkeleton />;
   }
 
-  if (error) {
+  if (error && submissions.length === 0) {
     return (
       <View style={styles.centered}>
         <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -102,6 +80,13 @@ export function SubmissionsListScreen({ organizationId, slug }: SubmissionsListS
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={AdminListSeparator}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.accent}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.centered}>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>

@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function MoreLayout() {
   const theme = useAdminTheme();
@@ -9,12 +10,15 @@ export default function MoreLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        animation: detailStackAnimation(),
         contentStyle: { backgroundColor: theme.bg },
         headerStyle: { backgroundColor: theme.surface },
         headerTintColor: theme.accent,
         headerTitleStyle: { color: theme.textPrimary },
       }}>
       <Stack.Screen name="transactions" />
+      <Stack.Screen name="schedule" />
+      <Stack.Screen name="staff" />
     </Stack>
   );
 }

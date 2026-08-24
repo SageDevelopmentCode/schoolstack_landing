@@ -39,6 +39,8 @@ type SchoolTeacherHeaderProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   userProfile: StaffUserProfile;
+  previewMode?: boolean;
+  previewBasePath?: string;
 };
 
 function NavLink({
@@ -84,6 +86,8 @@ export default function SchoolTeacherHeader({
   branding,
   features,
   userProfile,
+  previewMode = false,
+  previewBasePath,
 }: SchoolTeacherHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -105,10 +109,11 @@ export default function SchoolTeacherHeader({
         slug,
         features.teacher,
         features.feature_nav?.teacher,
+        previewBasePath,
       ),
-    [slug, features.teacher, features.feature_nav?.teacher],
+    [slug, features.teacher, features.feature_nav?.teacher, previewBasePath],
   );
-  const messagesEnabled = Boolean(features.teacher.messages);
+  const messagesEnabled = Boolean(features.teacher.messages) && !previewMode;
   const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
     "/api/teacher-portal/messages",
     organizationId,
@@ -128,6 +133,8 @@ export default function SchoolTeacherHeader({
 
   const handlePhotoUpload = useCallback(
     async (file: File) => {
+      if (previewMode) return;
+
       setPhotoUploading(true);
 
       try {
@@ -149,7 +156,7 @@ export default function SchoolTeacherHeader({
         setPhotoUploading(false);
       }
     },
-    [organizationId],
+    [organizationId, previewMode],
   );
 
   useEffect(() => {
@@ -286,9 +293,9 @@ export default function SchoolTeacherHeader({
                       photoUrl={profilePhotoUrl}
                       size="lg"
                       theme={C}
-                      editable
+                      editable={!previewMode}
                       uploading={photoUploading}
-                      showEditHint
+                      showEditHint={!previewMode}
                       onFileSelect={(file) => void handlePhotoUpload(file)}
                     />
                     <div className="min-w-0 flex-1 pt-0.5">
@@ -303,20 +310,22 @@ export default function SchoolTeacherHeader({
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => void handleSignOut()}
-                  disabled={signingOut}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                >
-                  {!signingOut ? (
-                    <LogOut className="h-4 w-4 text-gray-500" />
-                  ) : null}
-                  <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                    Log out
-                  </ButtonLoadingLabel>
-                </button>
+                {!previewMode ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => void handleSignOut()}
+                    disabled={signingOut}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {!signingOut ? (
+                      <LogOut className="h-4 w-4 text-gray-500" />
+                    ) : null}
+                    <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
+                      Log out
+                    </ButtonLoadingLabel>
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>

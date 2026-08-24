@@ -22,6 +22,7 @@ export type ApplicationDetail = {
   formTitle: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  feeStatus: string;
   stepIndex: number;
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
@@ -61,6 +62,7 @@ export async function loadApplicationDetail(
       `
       id,
       status,
+      fee_status,
       submitted_at,
       student_id,
       responses,
@@ -122,6 +124,7 @@ export async function loadApplicationDetail(
     formTitle: String(form?.title ?? 'Application'),
     schema,
     feeConfig,
+    feeStatus: String(data.fee_status ?? 'not_required'),
     stepIndex: parseApplicationFormStepIndex(data.responses),
     responses: parseStringRecord(data.responses),
     acknowledgments: parseBooleanRecord(data.acknowledgments),

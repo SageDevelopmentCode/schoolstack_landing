@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import type { ApplicationSection } from '@/lib/admissions/application-form-schema';
 import {
   getAgreementSectionProgressLabel,
   parseAgreementSectionSignatures,
@@ -15,7 +16,31 @@ export type EnrollmentChecklistItemType =
 
 export type EnrollmentChecklistItemStatus = 'not_started' | 'in_progress' | 'completed' | 'waived';
 
+export type ChecklistPaymentLineItem = {
+  id: string;
+  label: string;
+  amountCents: number;
+};
+
+export type ChecklistPaymentConfig = {
+  label: string;
+  amountCents: number;
+  lineItems?: ChecklistPaymentLineItem[];
+};
+
+export type ChecklistAcknowledgmentConfig = {
+  body: string;
+  options?: Array<{ value: string; label: string }>;
+};
+
+export type ChecklistFileUploadConfig = {
+  accept: string;
+  maxFiles: number;
+  helpText: string;
+};
+
 const CHECKLIST_VARIANT_METADATA_KEY = 'variant';
+const METADATA_PAYMENT_LINE_ITEMS = 'paymentLineItems';
 
 type ChecklistVariantResolution = {
   templateItemId: string;
@@ -38,14 +63,21 @@ export type EnrollmentChecklistItem = {
   metadata: Record<string, unknown>;
   document?: {
     kind: string;
-    sections?: Array<{ id: string; title: string }>;
+    fileName?: string;
+    sections?: Array<{ id: string; title: string; body?: string }>;
+    consentOptions?: Array<{ value: string; label: string }>;
   };
+  formSchema?: ApplicationSection;
+  payment?: ChecklistPaymentConfig;
+  acknowledgment?: ChecklistAcknowledgmentConfig;
+  fileUpload?: ChecklistFileUploadConfig;
 };
 
 export type EnrollmentChecklistItemInstance = {
   templateItemId: string;
   status: EnrollmentChecklistItemStatus;
   responses: Record<string, unknown> | null;
+  paymentStatus?: 'not_required' | 'pending' | 'paid' | 'waived';
 };
 
 export type LoadedEnrollmentChecklist = {
@@ -97,12 +129,105 @@ function isVariantItemSelected(
   return resolution?.templateItemId === item.id;
 }
 
+function paymentLineItemsFromMetadata(
+  metadata: Record<string, unknown>,
+): ChecklistPaymentLineItem[] | undefined {
+  const raw = metadata[METADATA_PAYMENT_LINE_ITEMS];
+  if (!Array.isArray(raw)) return undefined;
+  const lineItems = raw
+    .filter(isRecord)
+    .map((item) => ({
+      id: String(item.id ?? ''),
+      label: String(item.label ?? ''),
+      amountCents:
+        typeof item.amountCents === 'number' && Number.isFinite(item.amountCents)
+          ? item.amountCents
+          : 0,
+    }))
+    .filter((item) => item.id);
+  return lineItems.length > 0 ? lineItems : undefined;
+}
+
+function acknowledgmentFromMetadata(
+  metadata: Record<string, unknown>,
+): ChecklistAcknowledgmentConfig | undefined {
+  const raw = metadata.acknowledgment;
+  if (!isRecord(raw)) return undefined;
+  const config: ChecklistAcknowledgmentConfig = {
+    body:
+      typeof raw.body === 'string'
+        ? raw.body
+        : 'By signing below, I confirm that the information provided is accurate.',
+  };
+  if (Array.isArray(raw.options)) {
+    config.options = raw.options
+      .filter(isRecord)
+      .map((option) => ({
+        value: String(option.value ?? ''),
+        label: String(option.label ?? ''),
+      }))
+      .filter((option) => option.value && option.label);
+  }
+  return config;
+}
+
+function fileUploadFromMetadata(
+  metadata: Record<string, unknown>,
+): ChecklistFileUploadConfig | undefined {
+  const raw = metadata.fileUpload;
+  if (!isRecord(raw)) return undefined;
+  return {
+    accept: typeof raw.accept === 'string' ? raw.accept : '.pdf,.jpg,.jpeg,.png',
+    maxFiles: typeof raw.maxFiles === 'number' ? raw.maxFiles : 3,
+    helpText:
+      typeof raw.helpText === 'string' ? raw.helpText : 'Upload required documents.',
+  };
+}
+
+function parseFormSchema(raw: unknown): ApplicationSection | undefined {
+  if (!isRecord(raw)) return undefined;
+  const id = typeof raw.id === 'string' ? raw.id : '';
+  const title = typeof raw.title === 'string' ? raw.title : '';
+  if (!id) return undefined;
+
+  const fields = Array.isArray(raw.fields)
+    ? raw.fields
+        .filter(isRecord)
+        .map((field) => ({
+          id: String(field.id ?? ''),
+          label: String(field.label ?? ''),
+          type: String(field.type ?? 'text') as ApplicationSection['fields'][number]['type'],
+          required: field.required === true,
+          options: Array.isArray(field.options)
+            ? field.options
+                .filter(isRecord)
+                .map((option) => ({
+                  value: String(option.value ?? ''),
+                  label: String(option.label ?? ''),
+                }))
+                .filter((option) => option.value && option.label)
+            : undefined,
+        }))
+        .filter((field) => field.id && field.label)
+    : [];
+
+  return {
+    id,
+    title,
+    fields,
+    allowMultiple: raw.allowMultiple === true,
+  };
+}
+
 function documentFromTemplateRow(
   kind: string,
   content: Record<string, unknown>,
 ): EnrollmentChecklistItem['document'] | undefined {
   if (kind === 'pdf') {
-    return { kind: 'pdf' };
+    return {
+      kind: 'pdf',
+      fileName: typeof content.fileName === 'string' ? content.fileName : undefined,
+    };
   }
 
   const sections = Array.isArray(content.sections)
@@ -111,10 +236,26 @@ function documentFromTemplateRow(
         .map((section) => ({
           id: String(section.id ?? ''),
           title: String(section.title ?? ''),
+          body: typeof section.body === 'string' ? section.body : undefined,
         }))
     : [];
 
-  return { kind: 'inline_sections', sections };
+  const document: NonNullable<EnrollmentChecklistItem['document']> = {
+    kind: 'inline_sections',
+    sections,
+  };
+
+  if (Array.isArray(content.consentOptions)) {
+    document.consentOptions = content.consentOptions
+      .filter(isRecord)
+      .map((option) => ({
+        value: String(option.value ?? ''),
+        label: String(option.label ?? ''),
+      }))
+      .filter((option) => option.value && option.label);
+  }
+
+  return document;
 }
 
 function parseTemplateItem(row: Record<string, unknown>): EnrollmentChecklistItem {
@@ -123,31 +264,55 @@ function parseTemplateItem(row: Record<string, unknown>): EnrollmentChecklistIte
   const documentTemplate = Array.isArray(documentTemplates)
     ? documentTemplates[0]
     : documentTemplates;
+  const feeDefinitions = row.fee_definitions;
+  const feeDefinition = Array.isArray(feeDefinitions) ? feeDefinitions[0] : feeDefinitions;
   const type = String(row.type ?? 'form') as EnrollmentChecklistItemType;
 
-  let document: EnrollmentChecklistItem['document'];
-  if (
-    (type === 'document_sign' || type === 'document_sign_pdf') &&
-    isRecord(documentTemplate)
-  ) {
-    document = documentFromTemplateRow(
-      String(documentTemplate.kind ?? ''),
-      isRecord(documentTemplate.content) ? documentTemplate.content : {},
-    );
-  }
-
-  return {
+  const item: EnrollmentChecklistItem = {
     id: String(row.id),
     label: String(row.label ?? 'Checklist item'),
     type,
     required: row.required !== false,
     sortOrder: typeof row.sort_order === 'number' ? row.sort_order : 0,
     metadata,
-    document,
   };
+
+  if (
+    (type === 'document_sign' || type === 'document_sign_pdf') &&
+    isRecord(documentTemplate)
+  ) {
+    item.document = documentFromTemplateRow(
+      String(documentTemplate.kind ?? ''),
+      isRecord(documentTemplate.content) ? documentTemplate.content : {},
+    );
+  }
+
+  if (type === 'form' && row.form_schema) {
+    item.formSchema = parseFormSchema(row.form_schema);
+  }
+
+  if (type === 'file_upload') {
+    item.fileUpload = fileUploadFromMetadata(metadata);
+  }
+
+  if (type === 'payment' && isRecord(feeDefinition)) {
+    const lineItems = paymentLineItemsFromMetadata(metadata);
+    item.payment = {
+      label: String(feeDefinition.label ?? 'Payment'),
+      amountCents: Number(feeDefinition.amount_cents ?? 0),
+      ...(lineItems ? { lineItems } : {}),
+    };
+  }
+
+  if (type === 'acknowledgment') {
+    item.acknowledgment = acknowledgmentFromMetadata(metadata);
+  }
+
+  return item;
 }
 
 function parseInstance(row: Record<string, unknown>): EnrollmentChecklistItemInstance {
+  const paymentStatus = row.payment_status;
   return {
     templateItemId: String(row.template_item_id),
     status: String(row.status ?? 'not_started') as EnrollmentChecklistItemStatus,
@@ -155,6 +320,13 @@ function parseInstance(row: Record<string, unknown>): EnrollmentChecklistItemIns
       row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)
         ? (row.responses as Record<string, unknown>)
         : null,
+    paymentStatus:
+      paymentStatus === 'not_required' ||
+      paymentStatus === 'pending' ||
+      paymentStatus === 'paid' ||
+      paymentStatus === 'waived'
+        ? paymentStatus
+        : undefined,
   };
 }
 
@@ -215,6 +387,25 @@ export function checklistItemTypeLabel(type: EnrollmentChecklistItemType): strin
   }
 }
 
+export function checklistItemStatusLabel(status: EnrollmentChecklistItemStatus): string {
+  switch (status) {
+    case 'completed':
+      return 'Complete';
+    case 'in_progress':
+      return 'In progress';
+    case 'waived':
+      return 'Waived';
+    default:
+      return 'Not started';
+  }
+}
+
+export function hasPaymentBreakdown(
+  payment: ChecklistPaymentConfig | undefined,
+): payment is ChecklistPaymentConfig & { lineItems: ChecklistPaymentLineItem[] } {
+  return Boolean(payment?.lineItems && payment.lineItems.length > 0);
+}
+
 export function buildEnrollmentTimelineMeta(
   item: EnrollmentChecklistItem,
   instance: EnrollmentChecklistItemInstance | undefined,
@@ -231,6 +422,8 @@ export function buildEnrollmentTimelineMeta(
   }
   return undefined;
 }
+
+export { parseAgreementSectionSignatures };
 
 export async function loadEnrollmentChecklistForApplication(
   supabase: SupabaseClient,
@@ -256,14 +449,16 @@ export async function loadEnrollmentChecklistForApplication(
         required,
         sort_order,
         metadata,
-        document_templates ( id, kind, content )
+        form_schema,
+        document_templates ( id, kind, content ),
+        fee_definitions ( id, label, amount_cents, code )
       `,
       )
       .eq('template_id', checklist.templateId)
       .order('sort_order', { ascending: true }),
     supabase
       .from('enrollment_checklist_items')
-      .select('template_item_id, status, responses')
+      .select('template_item_id, status, responses, payment_status')
       .eq('checklist_id', checklist.checklistId)
       .order('created_at', { ascending: true }),
   ]);

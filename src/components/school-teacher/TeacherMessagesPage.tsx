@@ -13,6 +13,7 @@ type TeacherMessagesPageProps = {
   branding: OrganizationBranding;
   staffMemberId: string | null;
   initialInbox?: MessagesInboxData;
+  previewMode?: boolean;
 };
 
 export default function TeacherMessagesPage({
@@ -22,6 +23,7 @@ export default function TeacherMessagesPage({
   branding,
   staffMemberId,
   initialInbox,
+  previewMode = false,
 }: TeacherMessagesPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const teacherPortal = useMemo(
@@ -61,6 +63,7 @@ export default function TeacherMessagesPage({
           C={C}
           variant="embedded"
           teacherPortal={teacherPortal}
+          readOnly={previewMode}
         />
       </Suspense>
     </div>

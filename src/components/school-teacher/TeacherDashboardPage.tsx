@@ -22,6 +22,8 @@ type TeacherDashboardPageProps = {
   userProfile: StaffUserProfile;
   roleTitle: string | null;
   portalRole: StaffPortalRole | null;
+  previewMode?: boolean;
+  teacherBasePath?: string;
 };
 
 function portalRoleLabel(role: StaffPortalRole | null): string {
@@ -74,16 +76,21 @@ export default function TeacherDashboardPage({
   userProfile,
   roleTitle,
   portalRole,
+  previewMode = false,
+  teacherBasePath,
 }: TeacherDashboardPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const loginUrl = `${SITE_URL}${schoolTeacherLoginPath(slug)}`;
 
   const quickLinks = useMemo(
     () =>
-      buildTeacherNavItems(slug, features.teacher, features.feature_nav?.teacher).filter(
-        (item) => item.key !== "dashboard",
-      ),
-    [slug, features.teacher, features.feature_nav?.teacher],
+      buildTeacherNavItems(
+        slug,
+        features.teacher,
+        features.feature_nav?.teacher,
+        teacherBasePath,
+      ).filter((item) => item.key !== "dashboard"),
+    [slug, features.teacher, features.feature_nav?.teacher, teacherBasePath],
   );
 
   const firstName = userProfile.displayName.trim().split(/\s+/)[0] || "there";
@@ -110,8 +117,9 @@ export default function TeacherDashboardPage({
           Your staff portal
         </h2>
         <p className="mt-2 text-sm" style={{ color: C.textSecondary }}>
-          You&apos;re signed in to {schoolName}&apos;s staff portal. More classroom tools
-          are on the way — for now, bookmark this page for quick access.
+          {previewMode
+            ? `Previewing ${schoolName}'s staff portal as ${userProfile.displayName}.`
+            : `You're signed in to ${schoolName}'s staff portal. More classroom tools are on the way — for now, bookmark this page for quick access.`}
         </p>
         <dl className="mt-4 space-y-3 text-sm">
           <div>

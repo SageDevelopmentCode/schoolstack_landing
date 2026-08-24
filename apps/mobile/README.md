@@ -22,6 +22,12 @@ EXPO_PUBLIC_SITE_URL=http://192.168.x.x:3000   # your Mac LAN IP, not localhost
 
 Find your LAN IP: `ipconfig getifaddr en0`. The mobile app calls your Next.js API at `EXPO_PUBLIC_SITE_URL`; use the same Supabase project as the web app.
 
+### Environment file precedence
+
+Expo loads `.env` first, then `.env.local` (later wins). For normal development, use only [`apps/mobile/.env`](.env).
+
+**Do not** put Maestro E2E config in `.env.local`. Use `.env.e2e.local` and `source` it manually when running E2E (see below). A `.env.local` with Android emulator URLs (`10.0.2.2`) will override remote Supabase and leave the iOS simulator stuck on the school login skeleton.
+
 You do **not** need `.env.e2e` or `.env.e2e.local` for normal development, lint, unit tests, or CI.
 
 ## Releasing (TestFlight / App Store)

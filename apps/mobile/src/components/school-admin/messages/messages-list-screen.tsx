@@ -15,15 +15,16 @@ import { MessageThreadRow } from '@/components/school-admin/messages/message-thr
 import { MessagesListSkeleton } from '@/components/school-admin/messages/messages-list-skeleton';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
 import { ThemedText } from '@/components/themed-text';
+import { useSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { buildAdminSectionedListItems } from '@/lib/messages/admin-thread-sections';
-import { loadMessagesInbox, createMessageThread } from '@/lib/messages/api';
+import { createMessageThread } from '@/lib/messages/api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { AdminConversationListItem } from '@/lib/messages/admin-thread-sections';
-import type { MessageContact, MessageThreadSummary, MessagesInboxData } from '@/lib/messages/types';
+import type { MessageContact } from '@/lib/messages/types';
 
 type MessagesListScreenProps = {
   organizationId: string;
@@ -34,49 +35,20 @@ type MessagesListScreenProps = {
 export function MessagesListScreen({
   organizationId,
   organizationSlug,
-  schoolName,
+  schoolName: _schoolName,
 }: MessagesListScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
   const { refreshUnreadCount } = useMessagesUnread();
+  const { threads, contacts, isLoading, isRefreshing, error, refresh } =
+    useSchoolAdminMessagesInbox();
 
-  const [threads, setThreads] = useState<MessageThreadSummary[]>([]);
-  const [contacts, setContacts] = useState<MessagesInboxData['contacts']>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [startingConversation, setStartingConversation] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const listItems = useMemo(() => buildAdminSectionedListItems(threads), [threads]);
-
-  const loadInbox = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const inbox = await loadMessagesInbox(organizationId, schoolName);
-        setThreads(inbox.threads);
-        setContacts(inbox.contacts);
-        await refreshUnreadCount();
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [organizationId, refreshUnreadCount, schoolName],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadInbox({ silent: threads.length > 0 });
-      void refreshUnreadCount();
-    }, [loadInbox, refreshUnreadCount, threads.length]),
-  );
+  const displayError = actionError ?? error;
 
   const { registerInboxConsumer } = useMessagesRealtime();
 
@@ -85,19 +57,19 @@ export function MessagesListScreen({
       return registerInboxConsumer({
         activeThreadId: null,
         onInboxChange: () => {
-          void loadInbox({ silent: true });
+          void refresh({ silent: true });
           void refreshUnreadCount();
         },
         onThreadMessage: () => {
           // Inbox changes are handled via onInboxChange.
         },
       });
-    }, [loadInbox, refreshUnreadCount, registerInboxConsumer]),
+    }, [refresh, refreshUnreadCount, registerInboxConsumer]),
   );
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    void loadInbox({ silent: true });
+    void refresh({ silent: true });
+    void refreshUnreadCount();
   };
 
   const openThread = (threadId: string) => {
@@ -108,6 +80,7 @@ export function MessagesListScreen({
     if (startingConversation) return;
     setStartingConversation(true);
     setNewConversationOpen(false);
+    setActionError(null);
 
     try {
       const existing = threads.find((thread) => {
@@ -121,10 +94,13 @@ export function MessagesListScreen({
       }
 
       const threadId = await createMessageThread(organizationId, contact);
-      await loadInbox({ silent: true });
+      await refresh({ silent: true });
+      await refreshUnreadCount();
       openThread(threadId);
     } catch (selectError) {
-      setError(selectError instanceof Error ? selectError.message : 'Failed to start conversation.');
+      setActionError(
+        selectError instanceof Error ? selectError.message : 'Failed to start conversation.',
+      );
     } finally {
       setStartingConversation(false);
     }
@@ -184,15 +160,15 @@ export function MessagesListScreen({
         </Pressable>
       </View>
 
-      {error ? (
+      {displayError ? (
         <View style={styles.errorWrap}>
           <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
+            {displayError}
           </ThemedText>
         </View>
       ) : null}
 
-      {loading && threads.length === 0 ? (
+      {isLoading && threads.length === 0 ? (
         <MessagesListSkeleton />
       ) : (
         <FlatList
@@ -201,10 +177,14 @@ export function MessagesListScreen({
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.accent} />
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.accent}
+            />
           }
           ListEmptyComponent={
-            error ? null : (
+            displayError ? null : (
               <View style={styles.emptyState}>
                 <ThemedText type="default" style={{ color: theme.textSecondary, textAlign: 'center' }}>
                   No conversations yet. Tap New to start messaging families and staff.

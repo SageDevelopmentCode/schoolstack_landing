@@ -216,12 +216,18 @@ export function SubmissionApplicationStepsSection({
   applicationStatus,
   submittedAt,
   feeEnabled,
+  onItemPress,
+  activeItemId,
+  timelineRowSpacing,
 }: {
   detail: ApplicationDetail;
   feeStatus: string;
   applicationStatus: string;
   submittedAt: string | null;
   feeEnabled: boolean;
+  onItemPress?: (stepId: string) => void;
+  activeItemId?: string;
+  timelineRowSpacing?: number;
 }) {
   const subtitleParts: string[] = [];
   if (applicationStatus !== 'draft' && submittedAt) {
@@ -251,7 +257,13 @@ export function SubmissionApplicationStepsSection({
       title={detail.formTitle}
       description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}>
       <DetailProgressBar completed={progress.completed} total={progress.total} />
-      <DetailStepTimeline items={items} showStatusText={progress.completed < progress.total} />
+      <DetailStepTimeline
+        items={items}
+        rowSpacing={timelineRowSpacing}
+        showStatusText={progress.completed < progress.total}
+        onItemPress={onItemPress}
+        activeItemId={activeItemId}
+      />
     </DetailSection>
   );
 }
@@ -260,10 +272,14 @@ export function SubmissionEnrollmentStepsSection({
   checklist,
   loading,
   error,
+  onItemPress,
+  activeItemId,
 }: {
   checklist: LoadedEnrollmentChecklist | null;
   loading: boolean;
   error: string | null;
+  onItemPress?: (itemId: string) => void;
+  activeItemId?: string;
 }) {
   const theme = useAdminTheme();
   const instanceByTemplateId = useMemo(
@@ -312,6 +328,8 @@ export function SubmissionEnrollmentStepsSection({
         items={items}
         rowSpacing={Spacing.five}
         showStatusText={checklist.progress.completed < checklist.progress.total}
+        onItemPress={onItemPress}
+        activeItemId={activeItemId}
       />
     </DetailSection>
   );
@@ -444,9 +462,13 @@ export function SubmissionHistorySection({
 export function SubmissionPaymentsSection({
   payments,
   loading,
+  onPaymentPress,
+  activePaymentId,
 }: {
   payments: PaymentRecordDisplayRow[];
   loading: boolean;
+  onPaymentPress?: (paymentId: string) => void;
+  activePaymentId?: string;
 }) {
   const theme = useAdminTheme();
 
@@ -476,26 +498,56 @@ export function SubmissionPaymentsSection({
     <DetailSection
       title="Payments"
       description="Application fees and enrollment charges for this application.">
-      {payments.map((payment) => (
-        <View key={payment.id} style={[styles.paymentRow, { borderColor: theme.border }]}>
-          <View style={styles.paymentHeader}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary, flex: 1 }}>
-              {payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType]}
+      {payments.map((payment) => {
+        const isActive = activePaymentId === payment.id;
+        const row = (
+          <>
+            <View style={styles.paymentHeader}>
+              <ThemedText type="smallBold" style={{ color: theme.textPrimary, flex: 1 }}>
+                {payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType]}
+              </ThemedText>
+              <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                {formatPaymentAmount(payment.amountCents)}
+              </ThemedText>
+            </View>
+            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+              {PAYMENT_STATUS_LABELS[payment.status]} · {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
             </ThemedText>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              {formatPaymentAmount(payment.amountCents)}
-            </ThemedText>
-          </View>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {PAYMENT_STATUS_LABELS[payment.status]} · {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
-          </ThemedText>
-          {payment.payerEmail ? (
-            <ThemedText type="small" style={{ color: theme.textTertiary }}>
-              {payment.payerEmail}
-            </ThemedText>
-          ) : null}
-        </View>
-      ))}
+            {payment.payerEmail ? (
+              <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                {payment.payerEmail}
+              </ThemedText>
+            ) : null}
+          </>
+        );
+
+        if (!onPaymentPress) {
+          return (
+            <View
+              key={payment.id}
+              style={[styles.paymentRow, { borderColor: theme.border }]}>
+              {row}
+            </View>
+          );
+        }
+
+        return (
+          <Pressable
+            key={payment.id}
+            accessibilityRole="button"
+            onPress={() => onPaymentPress(payment.id)}
+            style={({ pressed }) => [
+              styles.paymentRow,
+              {
+                borderColor: isActive ? theme.accent : theme.border,
+                backgroundColor: isActive ? theme.accentLight : 'transparent',
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}>
+            {row}
+          </Pressable>
+        );
+      })}
     </DetailSection>
   );
 }
@@ -547,7 +599,9 @@ const styles = StyleSheet.create({
   paymentRow: {
     gap: 4,
     paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
   },
   paymentHeader: {
     flexDirection: 'row',

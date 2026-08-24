@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ScalePressable } from '@/components/scale-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius } from '@/constants/theme';
 
 export type SchoolAdminTab = 'dashboard' | 'admissions' | 'students' | 'messages' | 'more';
 
-export const FLOATING_TAB_BAR_HEIGHT = 68;
+export const FLOATING_TAB_BAR_HEIGHT = 60;
 
 type SchoolAdminFloatingTabBarProps = {
   activeTab: SchoolAdminTab;
@@ -58,22 +59,19 @@ export function SchoolAdminFloatingTabBar({
   const insets = useSafeAreaInsets();
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 8 }]}>
+    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 4 }]}>
       <View style={styles.pill}>
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
           const showUnreadBadge = tab.id === 'messages' && messagesUnreadCount > 0;
           return (
-            <Pressable
+            <ScalePressable
               key={tab.id}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
+              pressedScale={0.94}
               onPress={() => onChange(tab.id)}
-              style={({ pressed }) => [
-                styles.tab,
-                active && { backgroundColor: theme.accentLight },
-                pressed && styles.tabPressed,
-              ]}>
+              style={[styles.tab, active && { backgroundColor: theme.accentLight }]}>
               <View style={styles.iconWrap}>
                 <Ionicons
                   name={active ? tab.iconActive : tab.icon}
@@ -97,7 +95,7 @@ export function SchoolAdminFloatingTabBar({
                 }}>
                 {tab.label}
               </ThemedText>
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </View>
@@ -124,12 +122,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 2,
-    borderRadius: Radius.pill,
-  },
-  tabPressed: {
-    opacity: 0.85,
+    borderRadius: Radius.md,
   },
   iconWrap: {
     position: 'relative',

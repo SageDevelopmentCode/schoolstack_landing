@@ -26,6 +26,7 @@ type TeacherMyStudentsPageProps = {
   slug: string;
   staffMemberId: string | null;
   initialStudents?: AdminEnrolledStudentSummary[];
+  previewMode?: boolean;
 };
 
 const STUDENTS_PAGE_SIZE = 50;

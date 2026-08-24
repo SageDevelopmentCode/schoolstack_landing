@@ -23,13 +23,13 @@ import {
   toggleObservationDay,
 } from "@/lib/admissions/admissions-observation-availability";
 import {
+  ALL_DAY_TIME_SLOT,
   createObservationSlot,
   deleteObservationSlot,
   listObservationSlotsForDateRange,
   listOccupiedObservationSlotIds,
   type ObservationSlot,
 } from "@/lib/admissions/admissions-observation-slots";
-import { ALL_DAY_TIME_SLOT } from "@/lib/admissions/admissions-observation-availability";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";

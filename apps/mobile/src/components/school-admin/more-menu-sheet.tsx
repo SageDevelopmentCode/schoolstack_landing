@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
@@ -10,11 +12,15 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import { OrganizationLogo } from '@/components/organization-logo';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useAuth } from '@/contexts/auth-context';
+import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { Radius, Spacing } from '@/constants/theme';
 
-export type MoreMenuItemId = 'transactions';
+export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -34,15 +40,47 @@ const MENU_ITEMS: {
     subtitle: 'Payment history',
     icon: 'card-outline',
   },
+  {
+    id: 'schedule',
+    label: 'Schedule',
+    subtitle: 'Tours, events, and visits',
+    icon: 'calendar-outline',
+  },
+  {
+    id: 'staff',
+    label: 'Staff',
+    subtitle: 'Roster and portal access',
+    icon: 'people-outline',
+  },
 ];
 
 const SHEET_SLIDE_OFFSET = 400;
 const OPEN_DURATION_MS = 280;
 const CLOSE_DURATION_MS = 220;
 
+function getDisplayName(user: User): string {
+  const fullName = user.user_metadata?.full_name;
+  if (typeof fullName === 'string' && fullName.trim()) {
+    return fullName.trim();
+  }
+  const emailLocalPart = user.email?.split('@')[0]?.trim();
+  if (emailLocalPart) {
+    return emailLocalPart;
+  }
+  return 'Account';
+}
+
 export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps) {
+  const router = useRouter();
   const theme = useAdminTheme();
+  const { user, portalType, isPlatformAdminSession, selectedSchool, exitSchoolAdmin, signOut } =
+    useAuth();
   const insets = useSafeAreaInsets();
+  const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
+  const roleLabel = useMemo(
+    () => getAccountRoleLabel(portalType, isPlatformAdminSession),
+    [portalType, isPlatformAdminSession],
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
@@ -82,6 +120,18 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     transform: [{ translateY: sheetTranslateY.value }],
   }));
 
+  const handleSignOut = async () => {
+    onClose();
+    await signOut();
+    router.replace('/login/admin');
+  };
+
+  const handleBackToOrganizations = async () => {
+    onClose();
+    await exitSchoolAdmin();
+    router.replace('/platform-admin/organizations');
+  };
+
   return (
     <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -108,11 +158,49 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
           <View style={styles.handleRow}>
             <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
           </View>
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
+
+          <View
+            style={[
+              styles.header,
+              {
+                borderBottomColor: theme.border,
+                borderBottomWidth:
+                  isPlatformAdminSession && selectedSchool ? 0 : StyleSheet.hairlineWidth,
+              },
+            ]}>
             <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
               More
             </ThemedText>
           </View>
+
+          {isPlatformAdminSession && selectedSchool ? (
+            <View
+              style={[
+                styles.platformAdminRow,
+                {
+                  backgroundColor: theme.accentLight,
+                  borderBottomColor: theme.border,
+                },
+              ]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Back to organizations"
+                onPress={() => void handleBackToOrganizations()}
+                style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}>
+                <Ionicons name="chevron-back" size={18} color={theme.accent} />
+                <ThemedText type="small" style={{ color: theme.accent }}>
+                  Organizations
+                </ThemedText>
+              </Pressable>
+              <View accessibilityLabel={selectedSchool.name}>
+                <OrganizationLogo
+                  logoSrc={selectedSchool.branding.logoSrc}
+                  logoAlt={selectedSchool.branding.logoAlt}
+                  name={selectedSchool.name}
+                />
+              </View>
+            </View>
+          ) : null}
 
           {MENU_ITEMS.map((item) => (
             <Pressable
@@ -138,6 +226,41 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
               <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
             </Pressable>
           ))}
+
+          {user ? (
+            <View style={[styles.accountSection, { borderTopColor: theme.border }]}>
+              <View style={styles.row}>
+                <MessagesAvatar name={displayName} color={theme.accent} size="md" />
+                <View style={styles.rowCopy}>
+                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                    {displayName}
+                  </ThemedText>
+                  {roleLabel ? (
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {roleLabel}
+                    </ThemedText>
+                  ) : null}
+                  {user.email ? (
+                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                      {user.email}
+                    </ThemedText>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Sign out"
+                  onPress={() => void handleSignOut()}
+                  style={({ pressed }) => [
+                    styles.signOutButton,
+                    pressed && { opacity: 0.7 },
+                  ]}>
+                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                    Sign out
+                  </ThemedText>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
       </View>
     </Modal>
@@ -172,11 +295,27 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: Radius.pill,
   },
+  platformAdminRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginLeft: -4,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
   header: {
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: 'row',
@@ -195,5 +334,12 @@ const styles = StyleSheet.create({
   rowCopy: {
     flex: 1,
     gap: 2,
+  },
+  accountSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  signOutButton: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.two,
   },
 });

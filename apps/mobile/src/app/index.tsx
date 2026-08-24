@@ -12,6 +12,7 @@ import { MudKitchenLogo } from '@/components/mudkitchen-logo';
 import { PrimaryButton } from '@/components/primary-button';
 import { INTRO_SLIDE_INTERVAL_MS, INTRO_SLIDES } from '@/constants/intro-slides';
 import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
 
 const logoEntering = isMobileE2e ? undefined : FadeInDown.duration(500);
@@ -21,6 +22,7 @@ const ctaEntering = isMobileE2e ? undefined : FadeInUp.duration(500).delay(240);
 export default function IntroScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, portalType, isLoading } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleIndexChange = useCallback((index: number) => {
@@ -28,6 +30,18 @@ export default function IntroScreen() {
   }, []);
 
   if (isMobileE2e) {
+    return <Redirect href="/login" />;
+  }
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (user && portalType) {
+    return <Redirect href="/portal" />;
+  }
+
+  if (user) {
     return <Redirect href="/login" />;
   }
 

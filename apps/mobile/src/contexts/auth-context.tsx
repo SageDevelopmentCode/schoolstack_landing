@@ -10,6 +10,13 @@ import {
   type ReactNode,
 } from 'react';
 
+import { prefetchParentBilling } from '@/contexts/parent-billing-context';
+import { prefetchParentCalendar } from '@/contexts/parent-calendar-context';
+import { prefetchParentHome } from '@/contexts/parent-home-context';
+import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
+import { prefetchSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
+import { prefetchSchoolAdminStudents } from '@/contexts/school-admin-students-context';
+import { prefetchSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
 import {
   resolvePlatformAdmin,
   resolvePortalForSchool,
@@ -18,6 +25,7 @@ import {
 } from '@/lib/auth/resolve-portal';
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
+import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -39,6 +47,23 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+function prefetchParentPortalData(school: LiveOrganization): void {
+  void Promise.all([
+    prefetchParentHome(school.id, school.slug),
+    prefetchParentCalendar(school.id, school.slug),
+    prefetchParentBilling(school.id, school.slug),
+    prefetchParentMessagesInbox(school.id, school.name),
+  ]);
+}
+
+function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
+  void Promise.all([
+    prefetchSchoolAdminSubmissions(school.id),
+    prefetchSchoolAdminStudents(school.id),
+    prefetchSchoolAdminMessagesInbox(school.id, school.name),
+  ]);
+}
 
 async function persistPortalState(portal: ResolvedPortal, isPlatformAdminSession: boolean) {
   await SecureStore.setItemAsync(PORTAL_TYPE_KEY, portal.portalType);
@@ -102,6 +127,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(persisted.portalType);
     setSelectedSchool(persisted.selectedSchool);
     setIsPlatformAdminSession(persisted.isPlatformAdminSession);
+
+    if (persisted.portalType === 'parent' && persisted.selectedSchool) {
+      prefetchParentPortalData(persisted.selectedSchool);
+    }
+
+    if (persisted.portalType === 'school_admin' && persisted.selectedSchool) {
+      prefetchSchoolAdminPortalData(persisted.selectedSchool);
+    }
   }, []);
 
   useEffect(() => {
@@ -140,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPortalType(null);
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
-        void clearPortalState();
+        void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
       }
     });
 
@@ -156,6 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(platformAdminSession);
     await persistPortalState(portal, platformAdminSession);
+
+    if (portal.portalType === 'parent' && portal.school) {
+      prefetchParentPortalData(portal.school);
+    }
+
+    if (portal.portalType === 'school_admin' && portal.school) {
+      prefetchSchoolAdminPortalData(portal.school);
+    }
   }, []);
 
   const enterSchoolAsPlatformAdmin = useCallback(async (school: LiveOrganization) => {
@@ -167,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(true);
     await persistPortalState(portal, true);
+    prefetchSchoolAdminPortalData(school);
   }, []);
 
   const exitSchoolAdmin = useCallback(async () => {
@@ -185,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
-    await clearPortalState();
+    await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
   }, [supabase.auth]);
 
   const value = useMemo(

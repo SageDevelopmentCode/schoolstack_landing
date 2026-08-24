@@ -6,8 +6,9 @@ import { Loader2, Plus, Search, X } from "lucide-react";
 import ParentPortalLoginBadge, {
   type ParentPortalLoginDisplayStatus,
 } from "@/components/admissions/ParentPortalLoginBadge";
-import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
+import StaffAssignedStudentsSection from "@/components/school-admin/staff/StaffAssignedStudentsSection";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import CopyableUrlRow from "@/components/ui/CopyableUrlRow";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -26,6 +27,15 @@ type StaffPageProps = {
   branding: OrganizationBranding;
   slug: string;
 };
+
+type StaffDetailTab = "profile" | "portal" | "students" | "contact";
+
+const STAFF_DETAIL_TABS: { id: StaffDetailTab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "portal", label: "Portal" },
+  { id: "students", label: "Students" },
+  { id: "contact", label: "Contact" },
+];
 
 function staffDisplayName(member: StaffMemberRecord): string {
   return (
@@ -295,7 +305,7 @@ function AddStaffModal({ C, open, slug, onClose, onAdded }: AddStaffModalProps) 
   );
 }
 
-export default function StaffPage({ branding, slug }: StaffPageProps) {
+export default function StaffPage({ branding, slug, organizationId }: StaffPageProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -313,6 +323,8 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
   const [editEmploymentStatus, setEditEmploymentStatus] =
     useState<StaffEmploymentStatus>("active");
   const [saveLoading, setSaveLoading] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] =
+    useState<StaffDetailTab>("profile");
 
   const inputStyle: React.CSSProperties = useMemo(
     () => ({
@@ -343,6 +355,10 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
       setIsEditing(false);
     });
   }, [selectedId, staffMembers, resetEditForm]);
+
+  useEffect(() => {
+    queueMicrotask(() => setActiveDetailTab("profile"));
+  }, [selectedId]);
 
   const loadStaff = useCallback(async () => {
     setLoading(true);
@@ -619,195 +635,224 @@ export default function StaffPage({ branding, slug }: StaffPageProps) {
                 )}
               </div>
 
-              <div className="space-y-6">
-                <section>
-                  <h3
-                    className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
+              <div
+                className="mb-4 flex gap-1 border-b"
+                style={{ borderColor: C.border }}
+                role="tablist"
+                aria-label="Staff detail sections"
+              >
+                {STAFF_DETAIL_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeDetailTab === tab.id}
+                    onClick={() => setActiveDetailTab(tab.id)}
+                    className="px-3 py-2 text-xs font-medium transition-colors"
+                    style={{
+                      color:
+                        activeDetailTab === tab.id ? C.accent : C.textSecondary,
+                      borderBottom:
+                        activeDetailTab === tab.id
+                          ? `2px solid ${C.accent}`
+                          : "2px solid transparent",
+                      marginBottom: -1,
+                    }}
                   >
-                    Profile
-                  </h3>
-                  {isEditing ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-6">
+                {activeDetailTab === "profile" ? (
+                  <section>
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                              First name
+                            </span>
+                            <input
+                              required
+                              value={editFirstName}
+                              onChange={(event) => setEditFirstName(event.target.value)}
+                              className="w-full rounded-md border px-3 py-2 text-sm"
+                              style={inputStyle}
+                            />
+                          </label>
+                          <label className="block space-y-1">
+                            <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                              Last name
+                            </span>
+                            <input
+                              required
+                              value={editLastName}
+                              onChange={(event) => setEditLastName(event.target.value)}
+                              className="w-full rounded-md border px-3 py-2 text-sm"
+                              style={inputStyle}
+                            />
+                          </label>
+                        </div>
                         <label className="block space-y-1">
                           <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                            First name
+                            Job title
                           </span>
                           <input
                             required
-                            value={editFirstName}
-                            onChange={(event) => setEditFirstName(event.target.value)}
+                            value={editRoleTitle}
+                            onChange={(event) => setEditRoleTitle(event.target.value)}
                             className="w-full rounded-md border px-3 py-2 text-sm"
                             style={inputStyle}
                           />
                         </label>
                         <label className="block space-y-1">
                           <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                            Last name
+                            Employment status
                           </span>
-                          <input
-                            required
-                            value={editLastName}
-                            onChange={(event) => setEditLastName(event.target.value)}
+                          <select
+                            value={editEmploymentStatus}
+                            onChange={(event) =>
+                              setEditEmploymentStatus(
+                                event.target.value as StaffEmploymentStatus,
+                              )
+                            }
                             className="w-full rounded-md border px-3 py-2 text-sm"
                             style={inputStyle}
-                          />
+                          >
+                            <option value="active">Active</option>
+                            <option value="on_leave">On leave</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                          <p className="text-[11px]" style={{ color: C.textTertiary }}>
+                            To revoke sign-in access, deactivate on the Portal tab.
+                          </p>
                         </label>
                       </div>
-                      <label className="block space-y-1">
-                        <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                          Job title
-                        </span>
-                        <input
-                          required
-                          value={editRoleTitle}
-                          onChange={(event) => setEditRoleTitle(event.target.value)}
-                          className="w-full rounded-md border px-3 py-2 text-sm"
-                          style={inputStyle}
-                        />
-                      </label>
-                      <label className="block space-y-1">
-                        <span className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                          Employment status
-                        </span>
-                        <select
-                          value={editEmploymentStatus}
-                          onChange={(event) =>
-                            setEditEmploymentStatus(
-                              event.target.value as StaffEmploymentStatus,
-                            )
-                          }
-                          className="w-full rounded-md border px-3 py-2 text-sm"
-                          style={inputStyle}
-                        >
-                          <option value="active">Active</option>
-                          <option value="on_leave">On leave</option>
-                          <option value="inactive">Inactive</option>
-                        </select>
-                        <p className="text-[11px]" style={{ color: C.textTertiary }}>
-                          To revoke sign-in access, use Deactivate portal access below.
-                        </p>
-                      </label>
-                    </div>
-                  ) : (
+                    ) : (
+                      <dl className="space-y-2 text-sm">
+                        <div>
+                          <dt style={{ color: C.textTertiary }}>Name</dt>
+                          <dd style={{ color: C.textPrimary }}>
+                            {staffDisplayName(selectedMember)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt style={{ color: C.textTertiary }}>Job title</dt>
+                          <dd style={{ color: C.textPrimary }}>
+                            {selectedMember.roleTitle || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt style={{ color: C.textTertiary }}>Employment status</dt>
+                          <dd style={{ color: C.textPrimary }}>
+                            {employmentStatusLabel(selectedMember.employmentStatus)}
+                          </dd>
+                        </div>
+                      </dl>
+                    )}
+                  </section>
+                ) : null}
+
+                {activeDetailTab === "portal" ? (
+                  <section>
                     <dl className="space-y-2 text-sm">
                       <div>
-                        <dt style={{ color: C.textTertiary }}>Name</dt>
-                        <dd style={{ color: C.textPrimary }}>
-                          {staffDisplayName(selectedMember)}
+                        <dt style={{ color: C.textTertiary }}>Role</dt>
+                        {isEditing ? (
+                          <dd className="mt-1">
+                            <select
+                              value={editPortalRole}
+                              onChange={(event) =>
+                                setEditPortalRole(event.target.value as StaffPortalRole)
+                              }
+                              className="w-full max-w-xs rounded-md border px-3 py-2 text-sm"
+                              style={inputStyle}
+                            >
+                              <option value="teacher">Teacher</option>
+                              <option value="staff">Staff</option>
+                            </select>
+                          </dd>
+                        ) : (
+                          <dd style={{ color: C.textPrimary }}>
+                            {portalRoleLabel(selectedMember.portalRole)}
+                          </dd>
+                        )}
+                      </div>
+                      <div>
+                        <dt style={{ color: C.textTertiary }}>Sign-in status</dt>
+                        <dd className="mt-1">
+                          <ParentPortalLoginBadge
+                            status={staffPortalLoginBadgeStatus(selectedMember)}
+                            C={C}
+                          />
                         </dd>
                       </div>
                       <div>
-                        <dt style={{ color: C.textTertiary }}>Job title</dt>
-                        <dd style={{ color: C.textPrimary }}>
-                          {selectedMember.roleTitle || "—"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt style={{ color: C.textTertiary }}>Employment status</dt>
-                        <dd style={{ color: C.textPrimary }}>
-                          {employmentStatusLabel(selectedMember.employmentStatus)}
+                        <dt style={{ color: C.textTertiary }}>Sign-in URL</dt>
+                        <dd>
+                          <CopyableUrlRow url={loginUrl} C={C} />
                         </dd>
                       </div>
                     </dl>
-                  )}
-                </section>
 
-                <section>
-                  <h3
-                    className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Contact
-                  </h3>
-                  <dl className="space-y-2 text-sm">
-                    <div>
-                      <dt style={{ color: C.textTertiary }}>Email</dt>
-                      <dd style={{ color: C.textPrimary }}>
-                        {selectedMember.email || "—"}
-                      </dd>
-                      {isEditing ? (
-                        <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
-                          Email cannot be changed here.
-                        </p>
-                      ) : null}
-                    </div>
-                  </dl>
-                </section>
-
-                <section>
-                  <h3
-                    className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Portal access
-                  </h3>
-                  <dl className="space-y-2 text-sm">
-                    <div>
-                      <dt style={{ color: C.textTertiary }}>Role</dt>
-                      {isEditing ? (
-                        <dd className="mt-1">
-                          <select
-                            value={editPortalRole}
-                            onChange={(event) =>
-                              setEditPortalRole(event.target.value as StaffPortalRole)
-                            }
-                            className="w-full max-w-xs rounded-md border px-3 py-2 text-sm"
-                            style={inputStyle}
-                          >
-                            <option value="teacher">Teacher</option>
-                            <option value="staff">Staff</option>
-                          </select>
-                        </dd>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {selectedMember.membershipStatus === "disabled" ||
+                      selectedMember.employmentStatus === "inactive" ? (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => void handlePortalAction("reactivatePortalAccess")}
+                          className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
+                          style={getAdminButtonStyle(C, "primary")}
+                        >
+                          Reactivate portal access
+                        </button>
                       ) : (
-                        <dd style={{ color: C.textPrimary }}>
-                          {portalRoleLabel(selectedMember.portalRole)}
-                        </dd>
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() => setConfirmDeactivate(true)}
+                          className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
+                          style={getAdminButtonStyle(C, "secondary")}
+                        >
+                          Deactivate portal access
+                        </button>
                       )}
                     </div>
-                    <div>
-                      <dt style={{ color: C.textTertiary }}>Sign-in status</dt>
-                      <dd className="mt-1">
-                        <ParentPortalLoginBadge
-                          status={staffPortalLoginBadgeStatus(selectedMember)}
-                          C={C}
-                        />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt style={{ color: C.textTertiary }}>Sign-in URL</dt>
-                      <dd>
-                        <CopyableUrlRow url={loginUrl} C={C} />
-                      </dd>
-                    </div>
-                  </dl>
+                  </section>
+                ) : null}
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedMember.membershipStatus === "disabled" ||
-                    selectedMember.employmentStatus === "inactive" ? (
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => void handlePortalAction("reactivatePortalAccess")}
-                        className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
-                        style={getAdminButtonStyle(C, "primary")}
-                      >
-                        Reactivate portal access
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={() => setConfirmDeactivate(true)}
-                        className="rounded-md px-3 py-2 text-xs font-medium disabled:opacity-60"
-                        style={getAdminButtonStyle(C, "secondary")}
-                      >
-                        Deactivate portal access
-                      </button>
-                    )}
-                  </div>
-                </section>
+                {activeDetailTab === "students" ? (
+                  <StaffAssignedStudentsSection
+                    key={selectedMember.id}
+                    slug={slug}
+                    organizationId={organizationId}
+                    staffMemberId={selectedMember.id}
+                    staffIsActive={selectedMember.employmentStatus === "active"}
+                    C={C}
+                    embedded
+                  />
+                ) : null}
+
+                {activeDetailTab === "contact" ? (
+                  <section>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt style={{ color: C.textTertiary }}>Email</dt>
+                        <dd style={{ color: C.textPrimary }}>
+                          {selectedMember.email || "—"}
+                        </dd>
+                        {isEditing ? (
+                          <p className="mt-1 text-[11px]" style={{ color: C.textTertiary }}>
+                            Email cannot be changed here.
+                          </p>
+                        ) : null}
+                      </div>
+                    </dl>
+                  </section>
+                ) : null}
               </div>
             </div>
           )}

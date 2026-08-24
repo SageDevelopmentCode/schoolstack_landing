@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
@@ -8,8 +8,8 @@ import {
   getFamilyNotificationEmailSettings,
   updateFamilyNotificationEmails,
 } from "@/lib/notifications/family-notification-emails";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/notification-settings";
 
@@ -19,7 +19,7 @@ type PatchBody = {
 };
 
 async function resolveAuthorizedFamily(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   userId: string,
   organizationId: string,
 ): Promise<string | null> {
@@ -35,8 +35,7 @@ async function resolveAuthorizedFamily(
 }
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
@@ -91,8 +90,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },

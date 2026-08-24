@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   AuthError,
@@ -16,7 +15,8 @@ import {
 } from "@/lib/stripe/pending-checkout-session";
 import { createCombinedAdmissionsCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import { getStripeClient, getSiteUrl } from "@/lib/stripe/client";
+import { buildTuitionCheckoutReturnUrls, parseCheckoutReturnTo } from "@/lib/stripe/checkout-return-urls";
+import { getStripeClient } from "@/lib/stripe/client";
 import { isCheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import {
   getOrganizationPaymentAccount,
@@ -30,14 +30,13 @@ import {
   validateCombinedTuitionChargeIds,
 } from "@/lib/tuition/combined-tuition-payment";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/tuition/charges/combined-checkout";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   try {
     const user = await requireAuthenticatedUser(supabase);
@@ -47,6 +46,7 @@ export async function POST(request: Request) {
       paymentMethod?: unknown;
       orgSlug?: string;
       chargeIds?: unknown;
+      returnTo?: unknown;
     };
 
     if (!isCheckoutPaymentMethod(body.paymentMethod)) {
@@ -255,9 +255,12 @@ export async function POST(request: Request) {
       .join(",");
     const paymentIdsValue = paymentIds.join(",");
     const orgSlug = typeof body.orgSlug === "string" ? body.orgSlug : "school";
-    const baseUrl = getSiteUrl();
-    const successUrl = `${baseUrl}/school/${orgSlug}/parent/billing?paid=1`;
-    const cancelUrl = `${baseUrl}/school/${orgSlug}/parent/billing?cancelled=1`;
+    const returnTo = parseCheckoutReturnTo(body.returnTo);
+    const { successUrl, cancelUrl } = buildTuitionCheckoutReturnUrls({
+      orgSlug,
+      returnTo,
+      flow: "payment",
+    });
 
     const { session } = await createCombinedAdmissionsCheckoutSession({
       lineItems: candidates.map((candidate) => ({

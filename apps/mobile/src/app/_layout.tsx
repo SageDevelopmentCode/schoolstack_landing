@@ -52,11 +52,19 @@ export default function RootLayout() {
         />
         <Stack.Screen name="portal" options={{ animation: isMobileE2e ? 'none' : 'fade' }} />
         <Stack.Screen
+          name="parent-apply-gate"
+          options={{ animation: isMobileE2e ? 'none' : 'fade' }}
+        />
+        <Stack.Screen
           name="platform-admin"
           options={{ animation: isMobileE2e ? 'none' : 'fade' }}
         />
         <Stack.Screen
           name="school-admin/[slug]"
+          options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="parent/[slug]"
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
       </Stack>

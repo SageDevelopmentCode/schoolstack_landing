@@ -4,14 +4,21 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { SchoolAdminHeader } from '@/components/school-admin/school-admin-header';
+import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { MoreMenuSheet } from '@/components/school-admin/more-menu-sheet';
 import {
   FLOATING_TAB_BAR_HEIGHT,
   SchoolAdminFloatingTabBar,
   type SchoolAdminTab,
 } from '@/components/school-admin/school-admin-floating-tab-bar';
+import { MessagesRealtimeProvider, useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
+import {
+  SchoolAdminMessagesInboxProvider,
+  useSchoolAdminMessagesInbox,
+} from '@/contexts/school-admin-messages-inbox-context';
+import { SchoolAdminStudentsProvider } from '@/contexts/school-admin-students-context';
+import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissions-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
@@ -22,11 +29,25 @@ function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
   if (/\/students\/[^/]+$/.test(pathname)) return null;
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
+  if (/\/more\/staff\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
   if (pathname.includes('/admissions/submissions')) return 'admissions';
   if (pathname.includes('/dashboard')) return 'dashboard';
+  return null;
+}
+
+function SchoolAdminMessagesInboxRealtimeBridge() {
+  const { refresh } = useSchoolAdminMessagesInbox();
+  const { subscribeMessagesUpdated } = useMessagesRealtime();
+
+  useEffect(() => {
+    return subscribeMessagesUpdated(() => {
+      void refresh({ silent: true });
+    });
+  }, [refresh, subscribeMessagesUpdated]);
+
   return null;
 }
 
@@ -43,7 +64,6 @@ function SchoolAdminLayoutContent() {
     isPlatformAdminSession,
     isLoading,
     enterSchoolAsPlatformAdmin,
-    exitSchoolAdmin,
   } = useAuth();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -90,11 +110,6 @@ function SchoolAdminLayoutContent() {
     user,
   ]);
 
-  const handleBackToOrganizations = async () => {
-    await exitSchoolAdmin();
-    router.replace('/platform-admin/organizations');
-  };
-
   const handleTabChange = (tab: SchoolAdminTab) => {
     if (!slug) return;
     if (tab === 'more') {
@@ -118,11 +133,26 @@ function SchoolAdminLayoutContent() {
     router.replace(`/school-admin/${slug}/admissions/submissions`);
   };
 
-  const handleSelectMoreItem = (itemId: 'transactions') => {
+  const handleSelectMoreItem = (itemId: 'transactions' | 'schedule' | 'staff') => {
     setMoreSheetOpen(false);
     if (!slug) return;
-    if (itemId === 'transactions' && !pathname.includes('/more/transactions')) {
-      router.push(`/school-admin/${slug}/more/transactions`);
+
+    const routes = {
+      transactions: `/school-admin/${slug}/more/transactions`,
+      schedule: `/school-admin/${slug}/more/schedule`,
+      staff: `/school-admin/${slug}/more/staff`,
+    } as const;
+
+    const target = routes[itemId];
+    const pathSegment = itemId === 'staff' ? '/more/staff' : `/more/${itemId}`;
+
+    if (!pathname.includes(pathSegment)) {
+      const isMainTab = pathTab !== null && pathTab !== 'more';
+      if (isMainTab) {
+        router.replace(target);
+      } else {
+        router.push(target);
+      }
     }
   };
 
@@ -142,19 +172,14 @@ function SchoolAdminLayoutContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
-      {isPlatformAdminSession ? (
-        <SchoolAdminHeader
-          organization={organization}
-          showBackToOrganizations={showTabBar}
-          onBackToOrganizations={handleBackToOrganizations}
-        />
-      ) : null}
       <View
         style={[
           styles.content,
           showTabBar ? { paddingBottom: FLOATING_TAB_BAR_HEIGHT } : null,
         ]}>
-        <Slot />
+        <AnimatedTabContent transitionKey={showTabBar ? pathTab : null}>
+          <Slot />
+        </AnimatedTabContent>
       </View>
       {showTabBar && activeTab ? (
         <SchoolAdminFloatingTabBar
@@ -191,12 +216,23 @@ export default function SchoolAdminLayout() {
 
   return (
     <SchoolAdminThemeProvider branding={toOrganizationBranding(organization.branding)}>
-      <MessagesUnreadProvider
-        organizationId={organization.id}
-        schoolName={organization.name}
-        fetchUnreadCount={fetchMessagesUnreadCount}>
-        <SchoolAdminLayoutContent />
-      </MessagesUnreadProvider>
+      <MessagesRealtimeProvider organizationId={organization.id}>
+        <SchoolAdminSubmissionsProvider organizationId={organization.id}>
+          <SchoolAdminStudentsProvider organizationId={organization.id}>
+            <SchoolAdminMessagesInboxProvider
+              organizationId={organization.id}
+              schoolName={organization.name}>
+              <MessagesUnreadProvider
+                organizationId={organization.id}
+                schoolName={organization.name}
+                fetchUnreadCount={fetchMessagesUnreadCount}>
+                <SchoolAdminMessagesInboxRealtimeBridge />
+                <SchoolAdminLayoutContent />
+              </MessagesUnreadProvider>
+            </SchoolAdminMessagesInboxProvider>
+          </SchoolAdminStudentsProvider>
+        </SchoolAdminSubmissionsProvider>
+      </MessagesRealtimeProvider>
     </SchoolAdminThemeProvider>
   );
 }

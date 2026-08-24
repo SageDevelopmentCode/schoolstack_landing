@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
+import { ScalePressable } from '@/components/scale-pressable';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
@@ -36,12 +38,9 @@ type AdminListCardPressableProps = {
 
 export function AdminListCardPressable({ children, onPress }: AdminListCardPressableProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.pressableBody, pressed && { opacity: 0.92 }]}>
+    <ScalePressable accessibilityRole="button" onPress={onPress} style={styles.pressableBody}>
       {children}
-    </Pressable>
+    </ScalePressable>
   );
 }
 

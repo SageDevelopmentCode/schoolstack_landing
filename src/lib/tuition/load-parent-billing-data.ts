@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import {
   filterChargesForFamilyGuardian,
@@ -44,15 +45,15 @@ export type ParentBillingInitialData = {
   showTaxCreditPaymentBanner: boolean;
 };
 
-export async function loadParentBillingInitialData(input: {
-  organizationId: string;
-  familyId: string;
-  slug: string;
-  userId: string;
-}): Promise<ParentBillingInitialData> {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-
+export async function loadParentBillingInitialDataWithClient(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    familyId: string;
+    slug: string;
+    userId: string;
+  },
+): Promise<ParentBillingInitialData> {
   const guardianId = await resolveGuardianIdForUser(supabase, {
     familyId: input.familyId,
     userId: input.userId,
@@ -134,4 +135,15 @@ export async function loadParentBillingInitialData(input: {
     initialChildKey: pickInitialChildKey(familySummary.children),
     showTaxCreditPaymentBanner,
   };
+}
+
+export async function loadParentBillingInitialData(input: {
+  organizationId: string;
+  familyId: string;
+  slug: string;
+  userId: string;
+}): Promise<ParentBillingInitialData> {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  return loadParentBillingInitialDataWithClient(supabase, input);
 }

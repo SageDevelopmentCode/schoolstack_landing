@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -9,19 +8,18 @@ import { ensureBillingAccount } from "@/lib/tuition/assignments";
 import { resolveGuardianIdForUser } from "@/lib/tuition/payment-settlement";
 import { createTuitionSetupCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
-import { getSiteUrl } from "@/lib/stripe/client";
+import { buildTuitionCheckoutReturnUrls, parseCheckoutReturnTo } from "@/lib/stripe/checkout-return-urls";
 import {
   getOrganizationPaymentAccount,
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/tuition/payment-method/setup";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   try {
     const user = await requireAuthenticatedUser(supabase);
@@ -31,6 +29,7 @@ export async function POST(request: Request) {
       organizationId?: unknown;
       familyId?: unknown;
       orgSlug?: unknown;
+      returnTo?: unknown;
     };
 
     const organizationId =
@@ -78,9 +77,12 @@ export async function POST(request: Request) {
       email: user.email,
     });
 
-    const baseUrl = getSiteUrl();
-    const successUrl = `${baseUrl}/school/${orgSlug}/parent/billing?card_saved=1`;
-    const cancelUrl = `${baseUrl}/school/${orgSlug}/parent/billing?card_cancelled=1`;
+    const returnTo = parseCheckoutReturnTo(body.returnTo);
+    const { successUrl, cancelUrl } = buildTuitionCheckoutReturnUrls({
+      orgSlug,
+      returnTo,
+      flow: "setup",
+    });
 
     const session = await createTuitionSetupCheckoutSession({
       stripeCustomerId,

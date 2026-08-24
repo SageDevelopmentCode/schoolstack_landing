@@ -64,6 +64,12 @@ describe("createAdmissionsCheckoutSession", () => {
       "app_test_123",
     );
     assert.equal(capturedParams?.line_items?.[0]?.price_data?.unit_amount, result.quote.grossAmountCents);
+    assert.deepEqual(capturedParams?.saved_payment_method_options?.allow_redisplay_filters, [
+      "always",
+      "limited",
+      "unspecified",
+    ]);
+    assert.equal(capturedParams?.payment_method_data?.allow_redisplay, "always");
   });
 
   it("uses us_bank_account payment method types for ACH", async () => {
