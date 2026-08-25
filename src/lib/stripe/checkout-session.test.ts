@@ -69,7 +69,8 @@ describe("createAdmissionsCheckoutSession", () => {
       "limited",
       "unspecified",
     ]);
-    assert.equal(capturedParams?.payment_method_data?.allow_redisplay, "always");
+    assert.equal(capturedParams?.saved_payment_method_options?.payment_method_save, "enabled");
+    assert.equal(capturedParams?.payment_method_data, undefined);
   });
 
   it("uses us_bank_account payment method types for ACH", async () => {
