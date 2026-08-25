@@ -2,8 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
 import ParentToaster from "@/components/school-parent/ParentToaster";
+import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
@@ -45,12 +47,14 @@ export default function ApplyPortalPageShell({
   fullBleed = false,
   fillHeight = false,
 }: ApplyPortalPageShellProps) {
+  const pathname = usePathname();
   const previewPortalOptions = usePreviewPortalOptions();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
       ? previewPortalOptions
       : portalOptions;
+  const showHelpButton = Boolean(organizationId);
 
   const shell = (
     <>
@@ -75,7 +79,20 @@ export default function ApplyPortalPageShell({
           {children}
         </ApplyPortalPageMain>
       </ApplyPortalPageLayout>
-      <ParentToaster C={C} />
+
+      {organizationId ? (
+        <PortalHelpFab
+          C={C}
+          organizationId={organizationId}
+          userEmail={userEmail}
+          currentPath={pathname}
+          submitEndpoint="/api/admissions/support-requests"
+          visible={showHelpButton}
+          readOnly={previewMode}
+        />
+      ) : null}
+
+      <ParentToaster C={C} helpButtonVisible={showHelpButton} />
     </>
   );
 

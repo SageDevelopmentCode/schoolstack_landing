@@ -49,6 +49,7 @@ export type AdminSupportRequestModalProps = {
   currentPath?: string;
   submitEndpoint?: string;
   documentationHref?: string;
+  readOnly?: boolean;
 };
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
@@ -114,6 +115,7 @@ export default function AdminSupportRequestModal({
   currentPath,
   submitEndpoint = "/api/school-admin/support-requests",
   documentationHref,
+  readOnly = false,
 }: AdminSupportRequestModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [topic, setTopic] = useState<TopicValue>("general");
@@ -205,7 +207,7 @@ export default function AdminSupportRequestModal({
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!description.trim() || submitting) return;
+    if (readOnly || !description.trim() || submitting) return;
 
     setSubmitting(true);
     setSubmitError(null);
@@ -253,7 +255,8 @@ export default function AdminSupportRequestModal({
     }
   }
 
-  const canSubmit = description.trim().length > 0 && !submitting;
+  const fieldsDisabled = submitting || readOnly;
+  const canSubmit = description.trim().length > 0 && !fieldsDisabled;
   const style = inputStyle(C);
 
   return (
@@ -379,6 +382,20 @@ export default function AdminSupportRequestModal({
                   className="flex-1 space-y-4 overflow-y-auto"
                   style={{ padding: "16px 20px" }}
                 >
+                  {readOnly ? (
+                    <div
+                      className="rounded-lg border px-4 py-3 text-xs leading-relaxed"
+                      style={{
+                        borderColor: C.secondaryBtnBorder,
+                        backgroundColor: C.accentLight,
+                        color: C.textSecondary,
+                      }}
+                      role="status"
+                    >
+                      Preview mode — submissions are disabled.
+                    </div>
+                  ) : null}
+
                   {documentationHref ? (
                     <div
                       className="rounded-lg border px-4 py-3"
@@ -414,7 +431,7 @@ export default function AdminSupportRequestModal({
                       id="support-topic"
                       C={C}
                       value={topic}
-                      disabled={submitting}
+                      disabled={fieldsDisabled}
                       onChange={(value) => setTopic(value as TopicValue)}
                       options={TOPIC_OPTIONS.map((option) => ({
                         value: option.value,
@@ -431,7 +448,7 @@ export default function AdminSupportRequestModal({
                     <textarea
                       id="support-description"
                       value={description}
-                      disabled={submitting}
+                      disabled={fieldsDisabled}
                       onChange={(event) => setDescription(event.target.value)}
                       placeholder="What were you trying to do? What happened instead?"
                       rows={5}
@@ -454,19 +471,19 @@ export default function AdminSupportRequestModal({
                         style={{
                           borderColor: C.borderStrong,
                           backgroundColor: "#FFFFFF",
-                          cursor: submitting ? "not-allowed" : "pointer",
-                          opacity: submitting ? 0.7 : 1,
+                          cursor: fieldsDisabled ? "not-allowed" : "pointer",
+                          opacity: fieldsDisabled ? 0.7 : 1,
                         }}
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => {
                           event.preventDefault();
-                          if (submitting) return;
+                          if (fieldsDisabled) return;
                           if (event.dataTransfer.files.length) {
                             addFiles(event.dataTransfer.files);
                           }
                         }}
                         onClick={() => {
-                          if (!submitting) fileInputRef.current?.click();
+                          if (!fieldsDisabled) fileInputRef.current?.click();
                         }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
@@ -552,7 +569,7 @@ export default function AdminSupportRequestModal({
                               <button
                                 type="button"
                                 onClick={() => removeAttachment(item.id)}
-                                disabled={submitting}
+                                disabled={fieldsDisabled}
                                 className="shrink-0 rounded p-1 disabled:opacity-50"
                                 style={{
                                   color: C.textTertiary,
@@ -572,7 +589,7 @@ export default function AdminSupportRequestModal({
                           <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={submitting}
+                            disabled={fieldsDisabled}
                             className="mt-3 rounded-md border px-3 py-2 text-sm font-semibold disabled:opacity-50"
                             style={getAdminButtonStyle(C, "neutral")}
                           >
@@ -587,7 +604,7 @@ export default function AdminSupportRequestModal({
                       type="file"
                       multiple
                       accept={ACCEPTED_FILE_TYPES}
-                      disabled={submitting}
+                      disabled={fieldsDisabled}
                       className="hidden"
                       onChange={(event) => {
                         if (event.target.files?.length) {
