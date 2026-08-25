@@ -7,6 +7,7 @@ import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
 import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
+import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import { attemptPostSignInRedirect } from "@/lib/auth/resolve-post-sign-in-redirect";
 import type { BootstrapApplicantResult } from "@/lib/admissions/applicant-bootstrap";
 import {
@@ -136,6 +137,7 @@ export default function PublicApplicationFormClient({
   const [priorFieldValues, setPriorFieldValues] = useState<Record<string, string>>({});
   const [importGeneration, setImportGeneration] = useState(0);
   const [hasOtherApplications, setHasOtherApplications] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const resumeWithApplication = useCallback(
     async (nextApplicationId: string) => {
@@ -151,6 +153,8 @@ export default function PublicApplicationFormClient({
           setPhase("auth");
           return;
         }
+
+        setUserEmail(user.email?.trim() || null);
 
         const loaded = await loadApplicationDraft(supabase, nextApplicationId);
         const otherApplications = await familyHasOtherApplications(
@@ -473,34 +477,50 @@ export default function PublicApplicationFormClient({
 
   if (phase === "form" && applicationId && (draft || submitted)) {
     return (
-      <ApplicationFormPageShell branding={branding}>
-        <ApplicationFormExperience
-          key={`${applicationId}-${importGeneration}`}
-          branding={branding}
-          schoolName={schoolName}
-          title={title}
-          intro={intro}
-          schema={schema}
-          feeConfig={feeConfig}
-          mode="live"
-          applicationId={applicationId}
+      <>
+        <ApplicationFormPageShell branding={branding}>
+          <ApplicationFormExperience
+            key={`${applicationId}-${importGeneration}`}
+            branding={branding}
+            schoolName={schoolName}
+            title={title}
+            intro={intro}
+            schema={schema}
+            feeConfig={feeConfig}
+            mode="live"
+            applicationId={applicationId}
+            organizationId={organizationId}
+            initialValues={draft?.responses}
+            initialAcknowledgments={draft?.acknowledgments}
+            initialStepIndex={draft?.stepIndex ?? 0}
+            initialFeeStatus={draft?.feeStatus ?? "not_required"}
+            initialStatus={draft?.status ?? (submitted ? "submitted" : "draft")}
+            paymentReturnPending={paymentReturnPending}
+            schoolSlug={schoolSlug}
+            copyableApplications={copyableApplications}
+            priorFieldValues={priorFieldValues}
+            onImportResponses={handleImportResponses}
+            onSaveDraft={draft ? handleSaveDraft : undefined}
+            onSubmitted={() => setSubmitted(true)}
+            showExitToApplyDashboard={hasOtherApplications}
+            onExitToApplyDashboard={handleExitToApplyDashboard}
+            helpButton={{
+              organizationId,
+              userEmail,
+              currentPath: pathname,
+              submitEndpoint: "/api/admissions/support-requests",
+            }}
+          />
+        </ApplicationFormPageShell>
+        <PortalHelpFab
+          C={C}
           organizationId={organizationId}
-          initialValues={draft?.responses}
-          initialAcknowledgments={draft?.acknowledgments}
-          initialStepIndex={draft?.stepIndex ?? 0}
-          initialFeeStatus={draft?.feeStatus ?? "not_required"}
-          initialStatus={draft?.status ?? (submitted ? "submitted" : "draft")}
-          paymentReturnPending={paymentReturnPending}
-          schoolSlug={schoolSlug}
-          copyableApplications={copyableApplications}
-          priorFieldValues={priorFieldValues}
-          onImportResponses={handleImportResponses}
-          onSaveDraft={draft ? handleSaveDraft : undefined}
-          onSubmitted={() => setSubmitted(true)}
-          showExitToApplyDashboard={hasOtherApplications}
-          onExitToApplyDashboard={handleExitToApplyDashboard}
+          userEmail={userEmail}
+          currentPath={pathname}
+          submitEndpoint="/api/admissions/support-requests"
+          className="max-sm:hidden"
         />
-      </ApplicationFormPageShell>
+      </>
     );
   }
 

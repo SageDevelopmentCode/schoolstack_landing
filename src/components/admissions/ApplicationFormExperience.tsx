@@ -8,6 +8,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CopyableApplication } from "@/lib/admissions/application-copy";
 import ApplyPortalBranding from "@/components/admissions/ApplyPortalBranding";
+import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import ApplicationFieldInput from "@/components/admissions/ApplicationFieldInput";
 import ApplicationCheckboxInput from "@/components/admissions/ApplicationCheckboxInput";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
@@ -68,6 +69,12 @@ export type ApplicationFormExperienceProps = {
   onSubmitted?: () => void;
   showExitToApplyDashboard?: boolean;
   onExitToApplyDashboard?: () => void | Promise<void>;
+  helpButton?: {
+    organizationId: string;
+    userEmail?: string | null;
+    currentPath?: string;
+    submitEndpoint: string;
+  };
 };
 
 const stepVariants = {
@@ -167,6 +174,7 @@ export default function ApplicationFormExperience({
   onSubmitted,
   showExitToApplyDashboard = false,
   onExitToApplyDashboard,
+  helpButton,
 }: ApplicationFormExperienceProps) {
   const isLive = mode === "live";
   const canPersist = isLive && Boolean(applicationId && onSaveDraft);
@@ -605,18 +613,36 @@ export default function ApplicationFormExperience({
               className="min-w-0"
               schoolLogoClassName="h-7 w-auto max-w-[min(200px,70vw)] object-contain sm:h-8"
             />
-            {showExitToApplyDashboard && canPersist && onExitToApplyDashboard ? (
-              <button
-                type="button"
-                onClick={() => void handleSaveAndContinueLater()}
-                disabled={saving}
-                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-normal transition hover:underline disabled:opacity-50"
-                style={{ color: C.textTertiary }}
-              >
-                <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
-                  Save & Continue later
-                </ButtonLoadingLabel>
-              </button>
+            {helpButton ||
+            (showExitToApplyDashboard && canPersist && onExitToApplyDashboard) ? (
+              <div className="flex items-center justify-between gap-3 sm:contents">
+                {showExitToApplyDashboard && canPersist && onExitToApplyDashboard ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveAndContinueLater()}
+                    disabled={saving}
+                    className="inline-flex shrink-0 items-center gap-1.5 text-xs font-normal transition hover:underline disabled:opacity-50"
+                    style={{ color: C.textTertiary }}
+                  >
+                    <ButtonLoadingLabel loading={saving} loadingLabel="Saving…">
+                      Save & Continue later
+                    </ButtonLoadingLabel>
+                  </button>
+                ) : (
+                  <span className="sm:hidden" aria-hidden />
+                )}
+                {helpButton ? (
+                  <PortalHelpFab
+                    C={C}
+                    organizationId={helpButton.organizationId}
+                    userEmail={helpButton.userEmail}
+                    currentPath={helpButton.currentPath}
+                    submitEndpoint={helpButton.submitEndpoint}
+                    variant="inline"
+                    className="sm:hidden"
+                  />
+                ) : null}
+              </div>
             ) : null}
           </div>
 

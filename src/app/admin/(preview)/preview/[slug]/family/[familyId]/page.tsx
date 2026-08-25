@@ -148,6 +148,7 @@ export default async function FamilyPreviewApplyPage({
       branding={org.branding}
       schoolName={org.name}
       schoolSlug={slug}
+      organizationId={org.id}
       timezone={timezone}
       applications={applications}
       applicationsWithTasks={applicationsWithTasks}

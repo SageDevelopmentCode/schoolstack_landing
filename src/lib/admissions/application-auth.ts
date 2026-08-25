@@ -45,6 +45,25 @@ export function applicationOwnershipFilter(
   return `family_id.in.(${familyIds.join(",")}),created_by_user_id.eq.${userId}`;
 }
 
+export async function userHasApplyPortalAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  if (familyIds.length > 0) return true;
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("created_by_user_id", userId)
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export async function userOwnsApplication(
   supabase: SupabaseClient,
   userId: string,
