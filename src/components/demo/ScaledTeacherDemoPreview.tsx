@@ -13,6 +13,18 @@ const LOADERS: Record<string, () => Promise<{ default: DemoComponent }>> = {
     import("@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos").then(
       (m) => ({ default: m.LazyAustinMicroSchoolTeacherDashboardDemo }),
     ),
+  "kinder-academy-prep-school": () =>
+    import(
+      "@/components/demo/kinderacademyprep/lazyKinderAcademyPrepSchoolDemos"
+    ).then((m) => ({
+      default: m.LazyKinderAcademyPrepSchoolTeacherDashboardDemo,
+    })),
+  "kats-community-microschool": () =>
+    import(
+      "@/components/demo/katscommunity/lazyKatsCommunityMicroschoolDemos"
+    ).then((m) => ({
+      default: m.LazyKatsCommunityMicroschoolTeacherDashboardDemo,
+    })),
   "kineo-school": () =>
     import("@/components/demo/kineoschool/lazyKineoSchoolDemos").then((m) => ({
       default: m.LazyKineoSchoolTeacherDashboardDemo,

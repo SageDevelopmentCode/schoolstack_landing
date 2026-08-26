@@ -24,6 +24,7 @@ import {
   sendApplicationSubmittedConfirmation,
   sendApplicationSubmittedOwnerNotification,
   sendPostSubmitVisitConfirmation,
+  sendPostSubmitVisitOwnerNotification,
 } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
@@ -257,11 +258,111 @@ function resolvePostSubmitStepTitle(
   return POST_SUBMIT_ACTION_TEMPLATES[booking.actionType]?.label ?? "Scheduled visit";
 }
 
+function resolveVisitDurationLabel(booking: ScheduledVisitRecord): string {
+  return booking.schedulingMode === "whole_day"
+    ? formatVisitDayCountLabel(
+        booking.visitDayCount ??
+          Math.max(1, Math.round(booking.durationMinutes / (24 * 60))),
+      )
+    : formatDurationLabel(booking.durationMinutes);
+}
+
+export function buildPostSubmitVisitNotificationTasks(input: {
+  booking: ScheduledVisitRecord;
+  contact: ApplicantContact | null;
+  notifyEmails: string[];
+  schoolName: string;
+  schoolSlug: string;
+  stepTitle: string;
+  timezoneLabel: string;
+  applicationId: string;
+  studentName?: string;
+}): Array<() => Promise<unknown>> {
+  const {
+    booking,
+    contact,
+    notifyEmails,
+    schoolName,
+    schoolSlug,
+    stepTitle,
+    timezoneLabel,
+    applicationId,
+    studentName,
+  } = input;
+
+  const whenLabel = formatScheduledVisitWhenLabel(booking);
+  const durationLabel = resolveVisitDurationLabel(booking);
+  const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
+  const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
+
+  const tasks: Array<() => Promise<unknown>> = [
+    () =>
+      notifyPostSubmitVisitScheduled({
+        schoolName,
+        email: contact?.email ?? "unknown",
+        applicationId,
+        actionType: booking.actionType,
+        stepTitle,
+        scheduledDate: booking.scheduledDate,
+        endDate: booking.endDate,
+        startTimeSlot: booking.startTimeSlot,
+        schedulingMode: booking.schedulingMode,
+        visitDayCount: booking.visitDayCount,
+        visitDates: booking.visitDates,
+        timezoneLabel,
+        firstName: contact?.firstName,
+        lastName: contact?.lastName,
+        studentName,
+      }),
+    ...notifyEmails.map(
+      (email) => () =>
+        sendPostSubmitVisitOwnerNotification({
+          email,
+          schoolName,
+          stepTitle,
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          studentName,
+          contactName: contact?.displayName,
+          contactEmail: contact?.email,
+          submissionAdminUrl,
+        }),
+    ),
+  ];
+
+  if (contact) {
+    for (const email of contact.emails) {
+      tasks.push(() =>
+        sendPostSubmitVisitConfirmation({
+          name: contact.displayName,
+          email,
+          schoolName,
+          stepTitle,
+          scheduledDate: booking.scheduledDate,
+          endDate: booking.endDate,
+          startTimeSlot: booking.startTimeSlot,
+          schedulingMode: booking.schedulingMode,
+          visitDayCount: booking.visitDayCount,
+          timezoneLabel,
+          durationMinutes: booking.durationMinutes,
+          whenLabel,
+          durationLabel,
+          applyDashboardUrl,
+        }),
+      );
+    }
+  }
+
+  return tasks;
+}
+
 export async function sendPostSubmitVisitScheduledNotifications(
   admin: SupabaseClient,
   applicationId: string,
   booking: ScheduledVisitRecord,
 ): Promise<void> {
+  let organizationId: string | undefined;
   try {
     const { data: application, error } = await admin
       .from("applications")
@@ -273,7 +374,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
         family_id,
         created_by_user_id,
         primary_guardian_id,
-        application_form_versions (post_submit_config)
+        application_form_versions (post_submit_config, notification_config)
       `,
       )
       .eq("id", applicationId)
@@ -284,6 +385,8 @@ export async function sendPostSubmitVisitScheduledNotifications(
       console.warn("Post-submit visit notifications: application not found", applicationId);
       return;
     }
+
+    organizationId = String(application.organization_id);
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
@@ -300,22 +403,23 @@ export async function sendPostSubmitVisitScheduledNotifications(
     const contact = await resolveApplicantContact(admin, application);
     if (!contact) {
       console.warn("Post-submit visit notifications: no applicant contact", applicationId);
-      return;
     }
 
     const formVersion = application.application_form_versions as
-      | { post_submit_config?: unknown }
-      | { post_submit_config?: unknown }[]
+      | { post_submit_config?: unknown; notification_config?: unknown }
+      | { post_submit_config?: unknown; notification_config?: unknown }[]
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
     const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
+    const notificationConfig = parseApplicationFormNotificationConfig(
+      form?.notification_config,
+    );
     const stepTitle = resolvePostSubmitStepTitle(postSubmitConfig, booking);
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
     const timezone = typeof org.timezone === "string" ? org.timezone : "America/Chicago";
     const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
-    const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
 
     const responses =
       application.responses && typeof application.responses === "object" && !Array.isArray(application.responses)
@@ -327,50 +431,28 @@ export async function sendPostSubmitVisitScheduledNotifications(
       else if (value != null) stringResponses[key] = String(value);
     }
     const studentName = extractStudentLabel(stringResponses) ?? undefined;
+    const notifyEmails = [...new Set(notificationConfig.submission_notify_emails)];
 
-    const notificationResults = await Promise.allSettled([
-      notifyPostSubmitVisitScheduled({
-        schoolName,
-        email: contact.email,
-        applicationId,
-        actionType: booking.actionType,
-        stepTitle,
-        scheduledDate: booking.scheduledDate,
-        endDate: booking.endDate,
-        startTimeSlot: booking.startTimeSlot,
-        schedulingMode: booking.schedulingMode,
-        visitDayCount: booking.visitDayCount,
-        visitDates: booking.visitDates,
-        timezoneLabel,
-        firstName: contact.firstName,
-        lastName: contact.lastName,
-        studentName,
-      }),
-      ...contact.emails.map((email) =>
-        sendPostSubmitVisitConfirmation({
-          name: contact.displayName,
-          email,
-          schoolName,
-          stepTitle,
-          scheduledDate: booking.scheduledDate,
-          endDate: booking.endDate,
-          startTimeSlot: booking.startTimeSlot,
-          schedulingMode: booking.schedulingMode,
-          visitDayCount: booking.visitDayCount,
-          timezoneLabel,
-          durationMinutes: booking.durationMinutes,
-          whenLabel: formatScheduledVisitWhenLabel(booking),
-          durationLabel:
-            booking.schedulingMode === "whole_day"
-              ? formatVisitDayCountLabel(
-                  booking.visitDayCount ??
-                    Math.max(1, Math.round(booking.durationMinutes / (24 * 60))),
-                )
-              : formatDurationLabel(booking.durationMinutes),
-          applyDashboardUrl,
-        }),
-      ),
-    ]);
+    const notificationTasks = buildPostSubmitVisitNotificationTasks({
+      booking,
+      contact,
+      notifyEmails,
+      schoolName,
+      schoolSlug,
+      stepTitle,
+      timezoneLabel,
+      applicationId,
+      studentName,
+    });
+
+    if (notificationTasks.length === 0) {
+      console.warn("Post-submit visit notifications: no notification tasks", applicationId);
+      return;
+    }
+
+    const notificationResults = await Promise.allSettled(
+      notificationTasks.map((task) => task()),
+    );
     await logSettledNotificationFailures(admin, {
       organizationId: application.organization_id,
       operation: "post_submit_visit_notifications",
@@ -380,7 +462,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
   } catch (error) {
     console.error("Post-submit visit notifications failed:", error);
     await logNotificationFailure(admin, {
-      organizationId: undefined,
+      organizationId,
       operation: "post_submit_visit_notifications",
       entityType: "application",
       entityId: applicationId,

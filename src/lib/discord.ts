@@ -167,7 +167,7 @@ export type ApplyAuthMode = "create" | "login";
 async function sendDiscordEmbedToWebhook(
   webhookUrl: string,
   embed: DiscordEmbed,
-  options?: { content?: string },
+  options?: { content?: string; strict?: boolean },
 ) {
   const response = await fetch(webhookUrl, {
     method: "POST",
@@ -185,7 +185,11 @@ async function sendDiscordEmbedToWebhook(
   });
 
   if (!response.ok) {
-    console.error("Discord webhook failed:", response.status, await response.text());
+    const message = `Discord webhook failed: ${response.status} ${await response.text()}`;
+    if (options?.strict) {
+      throw new Error(message);
+    }
+    console.error(message);
   }
 }
 
@@ -686,12 +690,23 @@ export async function notifyPostSubmitVisitScheduled(payload: {
     );
   }
 
-  await sendAdmissionsDiscordEmbed({
-    title: `📅 ${visitTitle}`,
-    description: `**${payload.schoolName}** · ${when}`,
-    color: DISCORD_EMBED_COLORS.schedule,
-    fields,
-  });
+  const webhookUrl = resolveAdmissionsDiscordWebhookUrl();
+  if (!webhookUrl) {
+    throw new Error(
+      "Admissions Discord webhook is not configured (DISCORD_E2E_ALERTS_WEBHOOK_URL or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL)",
+    );
+  }
+
+  await sendDiscordEmbedToWebhook(
+    webhookUrl,
+    {
+      title: `📅 ${visitTitle}`,
+      description: `**${payload.schoolName}** · ${when}`,
+      color: DISCORD_EMBED_COLORS.schedule,
+      fields,
+    },
+    { strict: true },
+  );
 }
 
 const ROLES: Record<string, string> = {

@@ -7,6 +7,14 @@ import {
   prefetchAustinMicroSchoolWebsiteDemo,
 } from "@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos";
 import {
+  LazyKinderAcademyPrepSchoolWebsiteDashboardDemo,
+  prefetchKinderAcademyPrepSchoolWebsiteDemo,
+} from "@/components/demo/kinderacademyprep/lazyKinderAcademyPrepSchoolDemos";
+import {
+  LazyKatsCommunityMicroschoolWebsiteDashboardDemo,
+  prefetchKatsCommunityMicroschoolWebsiteDemo,
+} from "@/components/demo/katscommunity/lazyKatsCommunityMicroschoolDemos";
+import {
   LazyKineoSchoolWebsiteDashboardDemo,
   prefetchKineoSchoolWebsiteDemo,
 } from "@/components/demo/kineoschool/lazyKineoSchoolDemos";
@@ -118,6 +126,8 @@ export default function ScaledWebsiteDemoPreview({
 }: Props) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
+  const isKinderAcademyPrepSchool = demoSlug === "kinder-academy-prep-school";
+  const isKatsCommunityMicroschool = demoSlug === "kats-community-microschool";
   const isAustinMicroSchool = demoSlug === "austin-micro-school";
   const isKineoSchool = demoSlug === "kineo-school";
   const isHiltonHorizons = demoSlug === "hilton-horizons-academy";
@@ -144,7 +154,9 @@ export default function ScaledWebsiteDemoPreview({
   const isOneAcreFarm = demoSlug === "one-acre-farm";
 
   useEffect(() => {
-    if (isAustinMicroSchool) prefetchAustinMicroSchoolWebsiteDemo();
+    if (isKinderAcademyPrepSchool) prefetchKinderAcademyPrepSchoolWebsiteDemo();
+    else if (isKatsCommunityMicroschool) prefetchKatsCommunityMicroschoolWebsiteDemo();
+    else if (isAustinMicroSchool) prefetchAustinMicroSchoolWebsiteDemo();
     else if (isKineoSchool) prefetchKineoSchoolWebsiteDemo();
     else if (isLabLearning) prefetchLabLearningWebsiteDemo();
     else if (isOneAcreFarm) prefetchOneAcreFarmWebsiteDemo();
@@ -169,7 +181,7 @@ export default function ScaledWebsiteDemoPreview({
     else if (isTheWoodlandsMicroschool) prefetchTheWoodlandsMicroschoolWebsiteDemo();
     else if (isWonderHere) prefetchWonderHereWebsiteDemo();
     else prefetchAthenaWebsiteDemo();
-  }, [isAustinMicroSchool, isKineoSchool, isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
+  }, [isKinderAcademyPrepSchool, isKatsCommunityMicroschool, isAustinMicroSchool, isKineoSchool, isLabLearning, isOneAcreFarm, isTrueNorth, isCreationAcres, isParadiseEarthAcademy, isLuffLearning, isLighthouseHomeschool, isSpringRiverSchool, isArizonaGiftedAcademy, isPrestigeHomeschoolAcademy, isRootedMeadows, isAscendMicroSchool, isHomeworkHub, isMicahMissionSchool, isHiltonHorizons, isZoeLearningHouse, isMonarchHills, isWonderingOaks, isWildHeartsAdventure, isNaturesSchoolhouse, isTheWoodlandsMicroschool, isWonderHere]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -183,7 +195,11 @@ export default function ScaledWebsiteDemoPreview({
     return () => ro.disconnect();
   }, []);
 
-  const DemoComponent = isAustinMicroSchool
+  const DemoComponent = isKinderAcademyPrepSchool
+    ? LazyKinderAcademyPrepSchoolWebsiteDashboardDemo
+    : isKatsCommunityMicroschool
+    ? LazyKatsCommunityMicroschoolWebsiteDashboardDemo
+    : isAustinMicroSchool
     ? LazyAustinMicroSchoolWebsiteDashboardDemo
     : isKineoSchool
     ? LazyKineoSchoolWebsiteDashboardDemo

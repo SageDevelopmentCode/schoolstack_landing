@@ -108,7 +108,7 @@ export async function POST(request: Request, context: RouteContext) {
       slotIds,
     );
 
-    void sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
+    await sendPostSubmitVisitScheduledNotifications(admin, applicationId, booking);
 
     const whenLabel = formatScheduledVisitWhenLabel(booking);
 

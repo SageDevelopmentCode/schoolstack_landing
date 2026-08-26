@@ -121,7 +121,7 @@ Naming conventions: [reference.md](reference.md#naming-conventions).
 
 ## Phase 4 — Walkthrough
 
-Append `{camelCase}WalkthroughPlaceholder` (8 steps) to `src/data/school-demos/walkthrough-placeholder.ts`:
+Append `{camelCase}WalkthroughPlaceholder` (9 steps) to `src/data/school-demos/walkthrough-placeholder.ts`:
 
 1. discover (website)
 2. inquire (form)
@@ -130,9 +130,10 @@ Append `{camelCase}WalkthroughPlaceholder` (8 steps) to `src/data/school-demos/w
 5. parent-enrollment (parent)
 6. parent-pays-tuition (parent)
 7. teacher-attendance (teacher)
-8. get-in-touch (contact)
+8. mobile-app (mobile)
+9. get-in-touch (contact)
 
-Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
+Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
 
 ## Phase 5 — Scaled preview wiring (required)
 
@@ -145,10 +146,31 @@ Add slug branch **before Athena fallback** in all four:
 
 Each needs: import from `lazy*Demos`, `is{Slug}` check, prefetch in `useEffect`, component in ternary chain (first branch).
 
+## Phase 5b — Mobile showcase (required)
+
+1. Create `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` using shared `SchoolMobileAppShowcase` + `createMicroschoolMobileSlides` from `src/components/demo/mobile/`.
+2. Pass school `ADMIN_COLORS.accent`, founder/guide name for messages, and optional `schoolName` for the admissions slide header.
+3. Register slug in `MOBILE_SHOWCASE_LOADERS` inside `src/components/demo/ScaledMobileAppPreview.tsx`.
+
+### Mobile slide requirements (5 tabs)
+
+Microschool demos use **Parent · Admin · Teacher** tabs (not committees):
+
+| Tab | Audience | Must include |
+|---|---|---|
+| Messages | Parent | Thread UI with teacher name, online indicator, unread badge |
+| Tuition | Parent | Gradient balance card, child filter pills, invoice list, per-row Pay + Pay All, paid state |
+| Admissions | Admin | Submission cards, flow/status filters, tags, tap-to-detail sheet with Send application link CTA |
+| Attendance | Teacher | 8–10 students, day navigator, search, Present / Pickup / Absent action buttons per row |
+| Students | Teacher | Full roster with avatars, status pills, guardian contact, expandable profile chips |
+
+Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide components live under `src/components/demo/mobile/slides/`.
+
 ## Phase 6 — Verify
 
 - [ ] `npm run build` — route appears as `/demo/{slug}`
 - [ ] Walkthrough loads all 4 previews with correct branding
+- [ ] Walkthrough step 8 loads mobile preview with school accent + hint tooltip
 - [ ] Teacher program tabs match `{slug}-teacher-demo.ts` labels
 - [ ] Testimonials render (correct shape, not trust-item shape)
 - [ ] Logo readable on nav/hero background

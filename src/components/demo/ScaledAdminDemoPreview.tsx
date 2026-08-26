@@ -21,6 +21,18 @@ const ADMIN_DEMO_LOADERS: Record<
     import("@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos").then(
       (m) => ({ default: m.LazyAustinMicroSchoolAdminDashboardDemo }),
     ),
+  "kinder-academy-prep-school": () =>
+    import(
+      "@/components/demo/kinderacademyprep/lazyKinderAcademyPrepSchoolDemos"
+    ).then((m) => ({
+      default: m.LazyKinderAcademyPrepSchoolAdminDashboardDemo,
+    })),
+  "kats-community-microschool": () =>
+    import(
+      "@/components/demo/katscommunity/lazyKatsCommunityMicroschoolDemos"
+    ).then((m) => ({
+      default: m.LazyKatsCommunityMicroschoolAdminDashboardDemo,
+    })),
   "kineo-school": () =>
     import("@/components/demo/kineoschool/lazyKineoSchoolDemos").then((m) => ({
       default: m.LazyKineoSchoolAdminDashboardDemo,

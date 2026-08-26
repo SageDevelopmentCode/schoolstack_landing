@@ -1,11 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
-import RootedMeadowsMobileAppShowcase from "@/components/demo/rootedmeadows/mobile/RootedMeadowsMobileAppShowcase";
-import { MOBILE_DESIGN_HEIGHT } from "@/components/demo/rootedmeadows/mobile/MobilePhoneFrame";
+import { MOBILE_DESIGN_HEIGHT } from "@/components/demo/mobile/MobilePhoneFrame";
 
 const SHOWCASE_HEIGHT = MOBILE_DESIGN_HEIGHT + 160;
+
+const MOBILE_SHOWCASE_LOADERS: Record<
+  string,
+  () => Promise<{ default: ComponentType }>
+> = {
+  "rooted-meadows": () =>
+    import("@/components/demo/rootedmeadows/mobile/RootedMeadowsMobileAppShowcase"),
+  "kats-community-microschool": () =>
+    import(
+      "@/components/demo/katscommunity/KatsCommunityMicroschoolMobileAppShowcase"
+    ),
+  "kinder-academy-prep-school": () =>
+    import(
+      "@/components/demo/kinderacademyprep/KinderAcademyPrepSchoolMobileAppShowcase"
+    ),
+};
 
 export default function ScaledMobileAppPreview({
   demoSlug = "rooted-meadows",
@@ -15,6 +30,28 @@ export default function ScaledMobileAppPreview({
   const outerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [scale, setScale] = useState(0.7);
+  const [ShowcaseComponent, setShowcaseComponent] = useState<ComponentType | null>(
+    null,
+  );
+
+  const loader = MOBILE_SHOWCASE_LOADERS[demoSlug];
+
+  useEffect(() => {
+    const load = MOBILE_SHOWCASE_LOADERS[demoSlug];
+    if (!load) {
+      setShowcaseComponent(null);
+      return;
+    }
+
+    let cancelled = false;
+    void load().then((module) => {
+      if (!cancelled) setShowcaseComponent(() => module.default);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [demoSlug]);
 
   useEffect(() => {
     const el = outerRef.current;
@@ -32,7 +69,7 @@ export default function ScaledMobileAppPreview({
     return () => ro.disconnect();
   }, []);
 
-  if (demoSlug !== "rooted-meadows") {
+  if (!loader || !ShowcaseComponent) {
     return (
       <DemoPreviewFrame variant="mobile">
         <div className="flex h-full items-center justify-center text-sm text-gray-500">
@@ -54,7 +91,7 @@ export default function ScaledMobileAppPreview({
             transformOrigin: "center center",
           }}
         >
-          <RootedMeadowsMobileAppShowcase />
+          <ShowcaseComponent />
         </div>
       </div>
     </DemoPreviewFrame>

@@ -52,9 +52,31 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 - [ ] `src/components/demo/{folder}/{Brand}TeacherDashboardDemo.tsx`
 - [ ] `src/components/demo/{folder}/lazy{Brand}Demos.tsx`
 
+### Mobile showcase (2 touch points)
+
+- [ ] `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx`
+- [ ] `src/components/demo/ScaledMobileAppPreview.tsx` — `MOBILE_SHOWCASE_LOADERS` entry
+
+#### Mobile slide checklist (microschool demos)
+
+Five tabs in order: **Messages** (Parent) · **Tuition** (Parent) · **Admissions** (Admin) · **Attendance** (Teacher) · **Students** (Teacher).
+
+Do **not** use a Committees tab for microschool demos — use the Admin Admissions submissions slide instead (Rooted Meadows prototype keeps its own committees slide).
+
+| Slide | Key UI |
+|---|---|
+| Messages | Teacher thread, unread badge, message bubbles |
+| Tuition | Balance card, child filters, Pay / Pay All, paid rows |
+| Admissions | Lead cards, flow/status filters, detail sheet |
+| Attendance | 8–10 students, day nav, Present/Pickup/Absent buttons |
+| Students | Avatars, status, guardian contact, profile chips |
+
+Factory: `createMicroschoolMobileSlides({ accentColor, teacherName, teacherTitle?, schoolName? })`.
+Shared roster/leads: `src/components/demo/mobile/mobileDemoData.ts`.
+
 ### Walkthrough (1 touch point)
 
-- [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder`
+- [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder` (9 steps, including `mobile-app` before contact)
 
 ### Scaled wiring (4 files)
 
@@ -74,7 +96,7 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 - [ ] Supabase `demo_slug` mapping
 - [ ] `src/app/research/data.ts` entry
 
-**Total: ~22 files/touch points**
+**Total: ~24 files/touch points**
 
 ## Color reconciliation
 
