@@ -16,9 +16,39 @@ export type ScheduleMonthCalendarColors = {
   accentLight: string;
   text: string;
   textFaint: string;
+  textSecondary?: string;
+  border?: string;
+  bg?: string;
   warning: string;
   warningBg: string;
 };
+
+type EditableDayState =
+  | 'selected'
+  | 'disabled'
+  | 'openBooked'
+  | 'open'
+  | 'bookedOnly'
+  | 'closed';
+
+function getEditableDayState({
+  isSelected,
+  isPast,
+  hasSlots,
+  isBooked,
+}: {
+  isSelected: boolean;
+  isPast: boolean;
+  hasSlots: boolean;
+  isBooked: boolean;
+}): EditableDayState {
+  if (isSelected) return 'selected';
+  if (isPast) return 'disabled';
+  if (hasSlots && isBooked) return 'openBooked';
+  if (hasSlots) return 'open';
+  if (isBooked) return 'bookedOnly';
+  return 'closed';
+}
 
 type ScheduleMonthCalendarProps = {
   viewYear: number;
@@ -32,6 +62,8 @@ type ScheduleMonthCalendarProps = {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   colors?: ScheduleMonthCalendarColors;
+  /** Admin availability mode: closed days are dashed and tappable */
+  editable?: boolean;
 };
 
 export function ScheduleMonthCalendar({
@@ -46,6 +78,7 @@ export function ScheduleMonthCalendar({
   onPrevMonth,
   onNextMonth,
   colors: colorsProp,
+  editable = false,
 }: ScheduleMonthCalendarProps) {
   const theme = useAdminTheme();
   const colors = colorsProp ?? {
@@ -53,6 +86,9 @@ export function ScheduleMonthCalendar({
     accentLight: theme.accentLight,
     text: theme.textPrimary,
     textFaint: theme.textTertiary,
+    textSecondary: theme.textSecondary,
+    border: theme.border,
+    bg: theme.bg,
     warning: theme.warning,
     warningBg: theme.warningBg,
   };
@@ -97,14 +133,96 @@ export function ScheduleMonthCalendar({
               const key = monthDateKey(viewYear, viewMonth, day);
               const isPast = minDate ? key < minDate : false;
               const isSelected = selectedDate === key;
-              const isAvailable = availableDates?.has(key) ?? false;
+              const hasSlots = availableDates?.has(key) ?? false;
               const isBooked = bookedDates?.has(key) ?? false;
               const hasEvents = eventDates?.has(key) ?? false;
+
+              if (editable) {
+                const state = getEditableDayState({
+                  isSelected,
+                  isPast,
+                  hasSlots,
+                  isBooked,
+                });
+
+                let backgroundColor = 'transparent';
+                let borderColor = 'transparent';
+                let borderWidth = 1.5;
+                let borderStyle: 'solid' | 'dashed' = 'solid';
+                let textColor = colors.text;
+
+                switch (state) {
+                  case 'selected':
+                    backgroundColor = colors.accent;
+                    borderColor = colors.accent;
+                    textColor = '#FFFFFF';
+                    break;
+                  case 'open':
+                    backgroundColor = colors.accentLight;
+                    borderColor = colors.accent;
+                    borderWidth = 2;
+                    textColor = colors.accent;
+                    break;
+                  case 'openBooked':
+                    backgroundColor = colors.accentLight;
+                    borderColor = colors.accent;
+                    borderWidth = 2;
+                    textColor = colors.accent;
+                    break;
+                  case 'bookedOnly':
+                    backgroundColor = colors.warningBg;
+                    borderColor = colors.warning;
+                    borderWidth = 2;
+                    textColor = colors.warning;
+                    break;
+                  case 'closed':
+                    backgroundColor = colors.bg ?? theme.bg;
+                    borderColor = colors.border ?? theme.border;
+                    borderStyle = 'dashed';
+                    textColor = colors.textSecondary ?? colors.textFaint;
+                    break;
+                  case 'disabled':
+                  default:
+                    textColor = colors.textFaint;
+                    break;
+                }
+
+                return (
+                  <Pressable
+                    key={key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected, disabled: isPast }}
+                    disabled={isPast}
+                    onPress={() => onSelectDate(key)}
+                    style={[
+                      styles.dayCell,
+                      {
+                        backgroundColor,
+                        borderColor,
+                        borderWidth,
+                        borderStyle,
+                        opacity: isPast ? 0.35 : 1,
+                      },
+                    ]}>
+                    <ThemedText type="smallBold" style={{ color: textColor }}>
+                      {day}
+                    </ThemedText>
+                    {state === 'openBooked' ? (
+                      <View
+                        style={[
+                          styles.bookedStripe,
+                          { backgroundColor: colors.warning },
+                        ]}
+                      />
+                    ) : null}
+                  </Pressable>
+                );
+              }
 
               let backgroundColor = 'transparent';
               if (isSelected) backgroundColor = colors.accentLight;
               else if (isBooked) backgroundColor = colors.warningBg;
-              else if (isAvailable) backgroundColor = colors.accentLight;
+              else if (hasSlots) backgroundColor = colors.accentLight;
 
               return (
                 <Pressable
@@ -185,6 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     borderWidth: 1.5,
     paddingVertical: Spacing.one,
+    overflow: 'hidden',
   },
   dotRow: {
     flexDirection: 'row',
@@ -196,5 +315,13 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
+  },
+  bookedStripe: {
+    position: 'absolute',
+    left: 6,
+    right: 6,
+    bottom: 4,
+    height: 3,
+    borderRadius: 2,
   },
 });

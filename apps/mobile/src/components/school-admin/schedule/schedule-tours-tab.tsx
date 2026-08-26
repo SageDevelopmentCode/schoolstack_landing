@@ -3,6 +3,7 @@ import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-nativ
 
 import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
 import { ScheduleMonthCalendar } from '@/components/school-admin/schedule/schedule-month-calendar';
+import { ScheduleAvailabilityLegend } from '@/components/school-admin/schedule/schedule-availability-legend';
 import { TourSlotDaySheet } from '@/components/school-admin/schedule/tour-slot-day-sheet';
 import { useScheduleCalendar } from '@/components/school-admin/schedule/use-schedule-calendar';
 import { ThemedText } from '@/components/themed-text';
@@ -164,7 +165,9 @@ export function ScheduleToursTab({
           onPrevMonth={calendar.prevMonth}
           onNextMonth={calendar.nextMonth}
           colors={calendar.calendarColors}
+          editable
         />
+        <ScheduleAvailabilityLegend openLabel="Open slots" />
       </ScrollView>
 
       <TourSlotDaySheet

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { DAY_NAMES, dateKey, isPastDate } from "@/lib/demo-scheduler";
 
 export interface CalendarGridColors {
@@ -5,8 +6,82 @@ export interface CalendarGridColors {
   accentLight: string;
   text: string;
   textFaint: string;
+  textSecondary?: string;
+  border?: string;
+  bg?: string;
   warning?: string;
   warningBg?: string;
+}
+
+type EditableDayState =
+  | "selected"
+  | "disabled"
+  | "openBooked"
+  | "open"
+  | "bookedOnly"
+  | "closed";
+
+function getEditableDayState({
+  isSelected,
+  isSelectable,
+  hasSlots,
+  isBooked,
+}: {
+  isSelected: boolean;
+  isSelectable: boolean;
+  hasSlots: boolean;
+  isBooked: boolean;
+}): EditableDayState {
+  if (isSelected) return "selected";
+  if (!isSelectable) return "disabled";
+  if (hasSlots && isBooked) return "openBooked";
+  if (hasSlots) return "open";
+  if (isBooked) return "bookedOnly";
+  return "closed";
+}
+
+function getEditableDayStyle(
+  state: EditableDayState,
+  colors: CalendarGridColors,
+): CSSProperties {
+  switch (state) {
+    case "selected":
+      return { backgroundColor: colors.accent, color: "#FFFFFF" };
+    case "open":
+      return {
+        backgroundColor: colors.accentLight,
+        color: colors.accent,
+        border: `2px solid ${colors.accent}`,
+        fontWeight: 600,
+        cursor: "pointer",
+      };
+    case "openBooked":
+      return {
+        backgroundColor: colors.accentLight,
+        color: colors.accent,
+        border: `2px solid ${colors.accent}`,
+        fontWeight: 600,
+        cursor: "pointer",
+      };
+    case "bookedOnly":
+      return {
+        backgroundColor: colors.warningBg ?? colors.accentLight,
+        color: colors.warning ?? colors.accent,
+        border: `2px solid ${colors.warning ?? colors.accent}`,
+        fontWeight: 600,
+        cursor: "pointer",
+      };
+    case "closed":
+      return {
+        backgroundColor: colors.bg ?? "transparent",
+        color: colors.textSecondary ?? colors.text,
+        border: `1.5px dashed ${colors.border ?? colors.textFaint}`,
+        cursor: "pointer",
+      };
+    case "disabled":
+    default:
+      return { color: colors.textFaint, cursor: "default" };
+  }
 }
 
 export function CalendarGrid({
@@ -81,37 +156,62 @@ export function CalendarGrid({
           const isSelected = selectedDates?.has(key) ?? selected === key;
 
           if (colors) {
+            const editableState = editable
+              ? getEditableDayState({ isSelected, isSelectable, hasSlots, isBooked })
+              : null;
+            const showBookedStripe =
+              editable &&
+              editableState === "openBooked" &&
+              !isSelected;
+            const showBookedDot =
+              !editable && isBooked && !isSelected;
+
             return (
               <button
                 key={key}
                 type="button"
                 disabled={!isSelectable}
                 onClick={() => isSelectable && onSelect(key)}
-                className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150`}
+                className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150 ${
+                  editable && isSelectable && editableState === "closed"
+                    ? "enabled:hover:brightness-[0.97]"
+                    : editable && isSelectable && editableState !== "disabled"
+                      ? "enabled:hover:brightness-95"
+                      : ""
+                }`}
                 style={
-                  isSelected
-                    ? { backgroundColor: colors.accent, color: "#FFFFFF" }
-                    : isSelectable
-                      ? hasSlots
-                        ? {
-                            backgroundColor: colors.accentLight,
-                            color: colors.accent,
-                            cursor: "pointer",
-                          }
-                        : isBooked
+                  editable && editableState
+                    ? getEditableDayStyle(editableState, colors)
+                    : isSelected
+                      ? { backgroundColor: colors.accent, color: "#FFFFFF" }
+                      : isSelectable
+                        ? hasSlots
                           ? {
-                              backgroundColor: colors.warningBg ?? colors.accentLight,
-                              color: colors.warning ?? colors.accent,
+                              backgroundColor: colors.accentLight,
+                              color: colors.accent,
                               cursor: "pointer",
                             }
-                        : { color: colors.text, cursor: "pointer" }
-                      : { color: colors.textFaint, cursor: "default" }
+                          : isBooked
+                            ? {
+                                backgroundColor: colors.warningBg ?? colors.accentLight,
+                                color: colors.warning ?? colors.accent,
+                                cursor: "pointer",
+                              }
+                            : { color: colors.text, cursor: "pointer" }
+                        : { color: colors.textFaint, cursor: "default" }
                 }
               >
                 <span>{day}</span>
-                {isBooked && !isSelected ? (
+                {showBookedStripe ? (
                   <span
-                    className="absolute bottom-1 h-1 w-1 rounded-full"
+                    className="absolute inset-x-1.5 bottom-1 h-[3px] rounded-full"
+                    style={{ backgroundColor: colors.warning ?? colors.accent }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                {showBookedDot ? (
+                  <span
+                    className="absolute bottom-1 h-1.5 w-1.5 rounded-full"
                     style={{ backgroundColor: colors.warning ?? colors.accent }}
                     aria-hidden="true"
                   />
