@@ -33,10 +33,10 @@ flowchart TD
   Inputs["Website + Logo + Guide"] --> Research["Phase0: Scrape and reconcile brand"]
   Research --> Data["Phase1: school-demos data files"]
   Data --> Route["Phase2: app/demo/slug"]
-  Data --> Components["Phase3: Dashboard components"]
-  Components --> Lazy["lazy loader"]
+  Data --> Components["Phase3: Dashboard configs + website wrapper"]
+  Components --> Registry["dashboard-registry.ts"]
   Data --> Walkthrough["Phase4: walkthrough placeholder"]
-  Lazy --> Scaled["Phase5: Scaled previews"]
+  Registry --> Scaled["Phase5: Scaled previews (shared loaders)"]
   Walkthrough --> Shell["SchoolDemoShell"]
   Route --> Shell
   Scaled --> Shell
@@ -77,45 +77,15 @@ src/app/demo/{slug}/
 
 Copy from `src/app/demo/luff-learning/`.
 
-## Phase 3 — Dashboard components
+## Phase 3 — Dashboard data (no TSX forks)
 
-Create `src/components/demo/{folder}/`:
+Shared portal UI: `src/components/demo/shared/School*DashboardDemo.tsx`.
 
-| File | Pattern |
-|---|---|
-| `{Brand}WebsiteDashboardDemo.tsx` | Thin wrapper → `WebsiteDashboardDemo` + config |
-| `{Brand}AdminDashboardDemo.tsx` | Fork latest admin demo (~24k lines) |
-| `{Brand}ParentDashboardDemo.tsx` | Fork parent demo |
-| `{Brand}TeacherDashboardDemo.tsx` | Fork teacher demo |
-| `lazy{Brand}Demos.tsx` | Cached `dynamic()` imports + prefetch helpers |
+Per school, add configs to `dashboard-registry.ts` via `{slug}-admin-demo.ts`, `{slug}-parent-demo.ts`, `{slug}-teacher-demo.ts`, and optional `admin-content/{slug}.ts`.
 
-**Fork source:** copy from `lighthousehomeschool/` or `lufflearning/` (whichever is newest), then bulk-replace:
+Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
 
-- Component names, import paths, `*_ADMIN_*` / `*_PARENT_*` / `*_TEACHER_*` constants
-- School name, location, email, phone
-- Teacher program IDs to match `{slug}-teacher-demo.ts`
-- High-visibility mock data only (leads, subtitle, tuition labels, calendar events)
-
-Do **not** rewrite admin dashboard UI from scratch.
-
-### Bulk-replace commands (example)
-
-After copying Lighthouse → Luff files:
-
-```bash
-# Copy
-cp src/components/demo/lighthousehomeschool/LighthouseHomeschoolAdminDashboardDemo.tsx \
-   src/components/demo/{folder}/{Brand}AdminDashboardDemo.tsx
-# Repeat for parent, teacher
-
-# Replace (adjust names per school)
-sed -i '' \
-  -e 's/LighthouseHomeschool/{Brand}/g' \
-  -e 's/lighthouse-admin-demo/{slug}-admin-demo/g' \
-  -e 's/LIGHTHOUSE_/{PREFIX}_/g' \
-  -e 's/Lighthouse Homeschool Academy/{School Name}/g' \
-  src/components/demo/{folder}/{Brand}*.tsx
-```
+**Do not** fork admin/parent/teacher dashboard TSX.
 
 Naming conventions: [reference.md](reference.md#naming-conventions).
 
@@ -137,14 +107,13 @@ Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme s
 
 ## Phase 5 — Scaled preview wiring (required)
 
-Add slug branch **before Athena fallback** in all four:
+Register the school slug in:
 
-- `src/components/demo/ScaledWebsiteDemoPreview.tsx`
-- `src/components/demo/ScaledAdminDemoPreview.tsx`
-- `src/components/demo/ScaledParentDemoPreview.tsx`
-- `src/components/demo/ScaledTeacherDemoPreview.tsx`
+- `src/data/school-demos/dashboard-registry.ts` (admin/parent/teacher configs)
+- `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` (`WEBSITE_DEMO_LOADERS` — if new website wrapper path)
+- `src/components/demo/ScaledMobileAppPreview.tsx` (`MOBILE_SHOWCASE_LOADERS`)
 
-Each needs: import from `lazy*Demos`, `is{Slug}` check, prefetch in `useEffect`, component in ternary chain (first branch).
+Admin/parent/teacher previews use shared loaders automatically once configs are in the registry. **Rooted Meadows** keeps custom dashboard forks.
 
 ## Phase 5b — Mobile showcase (required)
 

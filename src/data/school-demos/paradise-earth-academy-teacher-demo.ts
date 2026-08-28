@@ -19,3 +19,19 @@ export const PARADISE_EARTH_ACADEMY_TEACHER_PROGRAM_ORDER = [
   "horsemanship",
   "electives",
 ] as const;
+
+
+import { PARADISE_EARTH_ACADEMY_ADMIN_LOGO } from "./paradise-earth-academy-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const paradiseEarthAcademyTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "paradise-earth-academy",
+  logo: PARADISE_EARTH_ACADEMY_ADMIN_LOGO,
+  accent: PARADISE_EARTH_ACADEMY_TEACHER_ACCENT,
+  accentHover: PARADISE_EARTH_ACADEMY_TEACHER_ACCENT_HOVER,
+  programLabels: PARADISE_EARTH_ACADEMY_TEACHER_PROGRAM_LABELS,
+  programOrder: PARADISE_EARTH_ACADEMY_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: PARADISE_EARTH_ACADEMY_TEACHER_OFFICE,
+  },
+};

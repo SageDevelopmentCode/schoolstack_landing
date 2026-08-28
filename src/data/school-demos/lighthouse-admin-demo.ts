@@ -27,3 +27,21 @@ export const LIGHTHOUSE_ADMIN_COLORS = {
   textPrimary: "#333333",
   textSecondary: "#5f6b76",
 } as const;
+
+import { adminContentOverrides as lighthouseHomeschoolAdminContentOverrides } from "./admin-content/lighthouse-homeschool";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const lighthouseHomeschoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "lighthouse-homeschool",
+  logo: LIGHTHOUSE_ADMIN_LOGO,
+  colors: LIGHTHOUSE_ADMIN_COLORS,
+  compactRows: LIGHTHOUSE_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Lighthouse Homeschool Academy",
+    schoolShortName: "Lighthouse Homeschool",
+    officeName: "Lighthouse Homeschool Academy Office",
+    locationSubtitle: "Lighthouse Homeschool Academy — Fairview Park, OH · 2026–27 Enrollment",
+  },
+  contentOverrides: lighthouseHomeschoolAdminContentOverrides,
+};

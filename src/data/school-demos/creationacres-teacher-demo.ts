@@ -21,3 +21,19 @@ export const CREATION_ACRES_TEACHER_PROGRAM_ORDER = [
   "outdoor_hybrid",
   "nanoschool",
 ] as const;
+
+
+import { CREATION_ACRES_ADMIN_LOGO } from "./creationacres-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const creationAcresTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "creation-acres",
+  logo: CREATION_ACRES_ADMIN_LOGO,
+  accent: CREATION_ACRES_TEACHER_ACCENT,
+  accentHover: CREATION_ACRES_TEACHER_ACCENT_HOVER,
+  programLabels: CREATION_ACRES_TEACHER_PROGRAM_LABELS,
+  programOrder: CREATION_ACRES_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: CREATION_ACRES_TEACHER_OFFICE,
+  },
+};

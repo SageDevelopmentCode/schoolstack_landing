@@ -27,3 +27,21 @@ export const PARADISE_EARTH_ACADEMY_ADMIN_COLORS = {
   textPrimary: "#333333",
   textSecondary: "#666666",
 } as const;
+
+import { adminContentOverrides as paradiseEarthAcademyAdminContentOverrides } from "./admin-content/paradise-earth-academy";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const paradiseEarthAcademyAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "paradise-earth-academy",
+  logo: PARADISE_EARTH_ACADEMY_ADMIN_LOGO,
+  colors: PARADISE_EARTH_ACADEMY_ADMIN_COLORS,
+  compactRows: PARADISE_EARTH_ACADEMY_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Paradise Earth Academy",
+    schoolShortName: "Paradise Earth",
+    officeName: "Paradise Earth Academy Office",
+    locationSubtitle: "Paradise Earth Academy — Gilbert, AZ · 2026–27 Enrollment",
+  },
+  contentOverrides: paradiseEarthAcademyAdminContentOverrides,
+};

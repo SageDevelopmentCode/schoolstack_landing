@@ -26,3 +26,21 @@ export const CREATION_ACRES_ADMIN_COLORS = {
   textPrimary: "#2F2A22",
   textSecondary: "#6F6558",
 } as const;
+
+import { adminContentOverrides as creationAcresAdminContentOverrides } from "./admin-content/creation-acres";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const creationAcresAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "creation-acres",
+  logo: CREATION_ACRES_ADMIN_LOGO,
+  colors: CREATION_ACRES_ADMIN_COLORS,
+  compactRows: CREATION_ACRES_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Creation Acres Montessori",
+    schoolShortName: "Creation Acres",
+    officeName: "Creation Acres Montessori Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: creationAcresAdminContentOverrides,
+};

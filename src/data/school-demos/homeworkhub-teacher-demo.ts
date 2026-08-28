@@ -23,3 +23,19 @@ export const HOMEWORK_HUB_TEACHER_PROGRAM_ORDER = [
   "summer_26",
   "homework_hotline",
 ] as const;
+
+
+import { HOMEWORK_HUB_ADMIN_LOGO } from "./homeworkhub-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const homeworkHubTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "homework-hub",
+  logo: HOMEWORK_HUB_ADMIN_LOGO,
+  accent: HOMEWORK_HUB_TEACHER_ACCENT,
+  accentHover: HOMEWORK_HUB_TEACHER_ACCENT_HOVER,
+  programLabels: HOMEWORK_HUB_TEACHER_PROGRAM_LABELS,
+  programOrder: HOMEWORK_HUB_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: HOMEWORK_HUB_TEACHER_OFFICE,
+  },
+};

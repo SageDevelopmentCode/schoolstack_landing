@@ -10,134 +10,30 @@ import type {
 import type { DemoTuitionOverride } from "@/data/school-demos/tuition-override";
 
 const DESIGN_WIDTH = 1440;
+const ROOTED_MEADOWS_SLUG = "rooted-meadows";
 
 type AdminDemoComponent = ComponentType<Record<string, unknown>>;
 
-const ADMIN_DEMO_LOADERS: Record<
-  string,
-  () => Promise<{ default: AdminDemoComponent }>
-> = {
-  "austin-micro-school": () =>
-    import("@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos").then(
-      (m) => ({ default: m.LazyAustinMicroSchoolAdminDashboardDemo }),
-    ),
-  "kinder-academy-prep-school": () =>
-    import(
-      "@/components/demo/kinderacademyprep/lazyKinderAcademyPrepSchoolDemos"
-    ).then((m) => ({
-      default: m.LazyKinderAcademyPrepSchoolAdminDashboardDemo,
-    })),
-  "kats-community-microschool": () =>
-    import(
-      "@/components/demo/katscommunity/lazyKatsCommunityMicroschoolDemos"
-    ).then((m) => ({
-      default: m.LazyKatsCommunityMicroschoolAdminDashboardDemo,
-    })),
-  "kineo-school": () =>
-    import("@/components/demo/kineoschool/lazyKineoSchoolDemos").then((m) => ({
-      default: m.LazyKineoSchoolAdminDashboardDemo,
-    })),
-  "hilton-horizons-academy": () =>
-    import("@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos").then((m) => ({
-      default: m.LazyHiltonHorizonAdminDashboardDemo,
-    })),
-  "zoe-learning-house": () =>
-    import("@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos").then(
-      (m) => ({ default: m.LazyZoeLearningHouseAdminDashboardDemo }),
-    ),
-  "monarch-hills-education": () =>
-    import("@/components/demo/monarchhills/lazyMonarchHillsDemos").then((m) => ({
-      default: m.LazyMonarchHillsAdminDashboardDemo,
-    })),
-  "wondering-oaks-learning": () =>
-    import(
-      "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos"
-    ).then((m) => ({ default: m.LazyWonderingOaksLearningAdminDashboardDemo })),
-  "wild-hearts-adventure": () =>
-    import(
-      "@/components/demo/wildheartsadventure/lazyWildHeartsAdventureDemos"
-    ).then((m) => ({ default: m.LazyWildHeartsAdventureAdminDashboardDemo })),
-  "natures-schoolhouse": () =>
-    import(
-      "@/components/demo/natureschoolhouse/lazyNaturesSchoolhouseDemos"
-    ).then((m) => ({ default: m.LazyNaturesSchoolhouseAdminDashboardDemo })),
-  "the-woodlands-microschool": () =>
-    import(
-      "@/components/demo/thewoodlandsmicroschool/lazyTheWoodlandsMicroschoolDemos"
-    ).then((m) => ({
-      default: m.LazyTheWoodlandsMicroschoolAdminDashboardDemo,
-    })),
-  "wonderhere-lakeland": () =>
-    import("@/components/demo/wonderhere/lazyWonderHereDemos").then((m) => ({
-      default: m.LazyWonderHereAdminDashboardDemo,
-    })),
-  "micahs-mission-school": () =>
-    import("@/components/demo/micahmission/lazyMicahMissionDemos").then((m) => ({
-      default: m.LazyMicahMissionAdminDashboardDemo,
-    })),
-  "homework-hub": () =>
-    import("@/components/demo/homeworkhub/lazyHomeworkHubDemos").then((m) => ({
-      default: m.LazyHomeworkHubAdminDashboardDemo,
-    })),
-  "ascend-micro-school": () =>
-    import("@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos").then(
-      (m) => ({ default: m.LazyAscendMicroschoolAdminDashboardDemo }),
-    ),
-  "rooted-meadows": () =>
-    import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then((m) => ({
-      default: m.LazyRootedMeadowsAdminDashboardDemo,
-    })),
-  "prestige-homeschool-academy": () =>
-    import(
-      "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos"
-    ).then((m) => ({
-      default: m.LazyPrestigeHomeschoolAcademyAdminDashboardDemo,
-    })),
-  "spring-river-school": () =>
-    import("@/components/demo/springriverschool/lazySpringRiverSchoolDemos").then(
-      (m) => ({ default: m.LazySpringRiverSchoolAdminDashboardDemo }),
-    ),
-  "arizona-gifted-academy": () =>
-    import(
-      "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos"
-    ).then((m) => ({ default: m.LazyArizonaGiftedAcademyAdminDashboardDemo })),
-  "lighthouse-homeschool": () =>
-    import(
-      "@/components/demo/lighthousehomeschool/lazyLighthouseHomeschoolDemos"
-    ).then((m) => ({ default: m.LazyLighthouseHomeschoolAdminDashboardDemo })),
-  "luff-learning": () =>
-    import("@/components/demo/lufflearning/lazyLuffLearningDemos").then((m) => ({
-      default: m.LazyLuffLearningAdminDashboardDemo,
-    })),
-  "paradise-earth-academy": () =>
-    import(
-      "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos"
-    ).then((m) => ({ default: m.LazyParadiseEarthAcademyAdminDashboardDemo })),
-  "creation-acres": () =>
-    import("@/components/demo/creationacres/lazyCreationAcresDemos").then((m) => ({
-      default: m.LazyCreationAcresAdminDashboardDemo,
-    })),
-  "true-north": () =>
-    import("@/components/demo/truenorth/lazyTrueNorthDemos").then((m) => ({
-      default: m.LazyTrueNorthAdminDashboardDemo,
-    })),
-  "lab-learning": () =>
-    import("@/components/demo/lablearning/lazyLabLearningDemos").then((m) => ({
-      default: m.LazyLabLearningAdminDashboardDemo,
-    })),
-  "one-acre-farm": () =>
-    import("@/components/demo/oneacrefarm/lazyOneAcreFarmDemos").then((m) => ({
-      default: m.LazyOneAcreFarmAdminDashboardDemo,
-    })),
-  "athena-microacademy": () =>
-    import("@/components/demo/athena/lazyAthenaDemos").then((m) => ({
-      default: m.LazyAthenaAdminDashboardDemo,
-    })),
-};
+type LoadedAdminDemo =
+  | { kind: "shared"; slug: string }
+  | { kind: "rooted-meadows" }
+  | { kind: "custom"; slug: string; Component: AdminDemoComponent };
 
-function loadAdminDemo(slug: string): Promise<{ default: AdminDemoComponent }> {
-  const loader = ADMIN_DEMO_LOADERS[slug] ?? ADMIN_DEMO_LOADERS["athena-microacademy"];
-  return loader();
+function loadAdminDemo(slug: string): Promise<LoadedAdminDemo> {
+  if (slug === ROOTED_MEADOWS_SLUG) {
+    return import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then(
+      (m) => ({
+        kind: "custom" as const,
+        slug,
+        Component: m.LazyRootedMeadowsAdminDashboardDemo as AdminDemoComponent,
+      }),
+    );
+  }
+
+  return import("@/components/demo/shared/lazySchoolAdminDemo").then(() => ({
+    kind: "shared" as const,
+    slug,
+  }));
 }
 
 export default function ScaledAdminDemoPreview({
@@ -201,20 +97,30 @@ export default function ScaledAdminDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
-  const [loadedDemo, setLoadedDemo] = useState<{
-    slug: string;
-    Component: AdminDemoComponent;
-  } | null>(null);
-  const isRootedMeadows = demoSlug === "rooted-meadows";
-  const DemoComponent =
-    loadedDemo?.slug === demoSlug ? loadedDemo.Component : null;
+  const [loadedDemo, setLoadedDemo] = useState<LoadedAdminDemo | null>(null);
+  const [SharedAdmin, setSharedAdmin] = useState<ComponentType<
+    Record<string, unknown>
+  > | null>(null);
+  const isRootedMeadows = demoSlug === ROOTED_MEADOWS_SLUG;
 
   useEffect(() => {
     let cancelled = false;
-    void loadAdminDemo(demoSlug).then((mod) => {
-      if (!cancelled) {
-        setLoadedDemo({ slug: demoSlug, Component: mod.default });
+    void loadAdminDemo(demoSlug).then(async (loaded) => {
+      if (cancelled) return;
+      if (loaded.kind === "shared") {
+        const mod = await import("@/components/demo/shared/lazySchoolAdminDemo");
+        if (!cancelled) {
+          setSharedAdmin(
+            () =>
+              mod.LazySchoolAdminDashboardDemo as ComponentType<
+                Record<string, unknown>
+              >,
+          );
+          setLoadedDemo(loaded);
+        }
+        return;
       }
+      if (!cancelled) setLoadedDemo(loaded);
     });
     return () => {
       cancelled = true;
@@ -233,6 +139,46 @@ export default function ScaledAdminDemoPreview({
     return () => ro.disconnect();
   }, []);
 
+  const demoProps = {
+    initialPage: (initialAdminPage ?? "leads") as
+      | "dashboard"
+      | "leads"
+      | "myschool"
+      | "budget"
+      | "marketing"
+      | "impersonate",
+    initialAdmissionsTab,
+    initialSelectedLeadId,
+    initialSelectedLeadStatus,
+    initialSelectedLeadApplicationSectionIndex,
+    initialSelectedFlowId,
+    animateNewSubmission,
+    autoSendEnrollmentLink,
+    autoSendEnrollmentLinkDelayMs,
+    openInitialLeadDetail,
+    hideLeadDetailEnrollmentAction,
+    highlightSendEnrollmentLeadId,
+    ...(isRootedMeadows
+      ? {
+          initialMySchoolTab,
+          initialSelectedTuitionFamilyId,
+          openInitialTuitionAdjustModal,
+          openInitialTuitionAdjustModalDelayMs,
+          tuitionOverride,
+          onTuitionOverrideApplied,
+          initialCommitteeId,
+          initialCommitteeAdminView,
+          initialCommitteeSection,
+          openCreateCommitteeModal,
+          openCreateCommitteeModalDelayMs,
+          highlightCreateWorkspace,
+          openSendAugustSignupModal,
+          openSendAugustSignupModalDelayMs,
+          openArchiveCommitteeModal,
+        }
+      : {}),
+  };
+
   return (
     <DemoPreviewFrame variant="admin">
       <div ref={outerRef} className="relative h-full overflow-hidden">
@@ -244,50 +190,11 @@ export default function ScaledAdminDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          {DemoComponent ? (
-            <DemoComponent
-              initialPage={
-                (initialAdminPage ?? "leads") as
-                  | "dashboard"
-                  | "leads"
-                  | "myschool"
-                  | "budget"
-                  | "marketing"
-                  | "impersonate"
-              }
-              initialAdmissionsTab={initialAdmissionsTab}
-              initialSelectedLeadId={initialSelectedLeadId}
-              initialSelectedLeadStatus={initialSelectedLeadStatus}
-              initialSelectedLeadApplicationSectionIndex={
-                initialSelectedLeadApplicationSectionIndex
-              }
-              initialSelectedFlowId={initialSelectedFlowId}
-              animateNewSubmission={animateNewSubmission}
-              autoSendEnrollmentLink={autoSendEnrollmentLink}
-              autoSendEnrollmentLinkDelayMs={autoSendEnrollmentLinkDelayMs}
-              openInitialLeadDetail={openInitialLeadDetail}
-              hideLeadDetailEnrollmentAction={hideLeadDetailEnrollmentAction}
-              highlightSendEnrollmentLeadId={highlightSendEnrollmentLeadId}
-              {...(isRootedMeadows
-                ? {
-                    initialMySchoolTab,
-                    initialSelectedTuitionFamilyId,
-                    openInitialTuitionAdjustModal,
-                    openInitialTuitionAdjustModalDelayMs,
-                    tuitionOverride,
-                    onTuitionOverrideApplied,
-                    initialCommitteeId,
-                    initialCommitteeAdminView,
-                    initialCommitteeSection,
-                    openCreateCommitteeModal,
-                    openCreateCommitteeModalDelayMs,
-                    highlightCreateWorkspace,
-                    openSendAugustSignupModal,
-                    openSendAugustSignupModalDelayMs,
-                    openArchiveCommitteeModal,
-                  }
-                : {})}
-            />
+          {loadedDemo?.kind === "shared" && SharedAdmin ? (
+            <SharedAdmin demoSlug={demoSlug} {...demoProps} />
+          ) : null}
+          {loadedDemo?.kind === "custom" ? (
+            <loadedDemo.Component {...demoProps} />
           ) : null}
         </div>
       </div>

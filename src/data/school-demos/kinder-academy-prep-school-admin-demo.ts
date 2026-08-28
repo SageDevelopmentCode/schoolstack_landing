@@ -27,3 +27,21 @@ export const KINDER_ACADEMY_PREP_SCHOOL_ADMIN_COLORS = {
   textPrimary: "#1D2939",
   textSecondary: "#475467",
 } as const;
+
+import { adminContentOverrides as kinderAcademyPrepSchoolAdminContentOverrides } from "./admin-content/kinder-academy-prep-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const kinderAcademyPrepSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "kinder-academy-prep-school",
+  logo: KINDER_ACADEMY_PREP_SCHOOL_ADMIN_LOGO,
+  colors: KINDER_ACADEMY_PREP_SCHOOL_ADMIN_COLORS,
+  compactRows: KINDER_ACADEMY_PREP_SCHOOL_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Kinder Academy Prep School",
+    schoolShortName: "Kinder Academy",
+    officeName: "Kinder Academy Prep School Office",
+    locationSubtitle: "Kinder Academy Prep School — Georgetown, TX · 2026–27 Enrollment",
+  },
+  contentOverrides: kinderAcademyPrepSchoolAdminContentOverrides,
+};

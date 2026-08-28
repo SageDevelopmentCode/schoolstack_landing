@@ -17,3 +17,19 @@ export const MONARCH_HILLS_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { MONARCH_HILLS_ADMIN_LOGO } from "./monarchhills-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const monarchHillsEducationTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "monarch-hills-education",
+  logo: MONARCH_HILLS_ADMIN_LOGO,
+  accent: MONARCH_HILLS_TEACHER_ACCENT,
+  accentHover: MONARCH_HILLS_TEACHER_ACCENT_HOVER,
+  programLabels: MONARCH_HILLS_TEACHER_PROGRAM_LABELS,
+  programOrder: MONARCH_HILLS_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: MONARCH_HILLS_TEACHER_OFFICE,
+  },
+};

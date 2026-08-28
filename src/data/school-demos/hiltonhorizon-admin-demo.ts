@@ -25,3 +25,21 @@ export const HILTON_HORIZON_ADMIN_COLORS = {
   textPrimary: "#1F2937",
   textSecondary: "#6B7280",
 } as const;
+
+import { adminContentOverrides as hiltonHorizonsAcademyAdminContentOverrides } from "./admin-content/hilton-horizons-academy";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const hiltonHorizonsAcademyAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "hilton-horizons-academy",
+  logo: HILTON_HORIZON_ADMIN_LOGO,
+  colors: HILTON_HORIZON_ADMIN_COLORS,
+  compactRows: HILTON_HORIZON_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Hilton Horizons Academy",
+    schoolShortName: "Hilton Horizons",
+    officeName: "Hilton Horizons Academy Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: hiltonHorizonsAcademyAdminContentOverrides,
+};

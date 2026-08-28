@@ -27,3 +27,21 @@ export const THE_WOODLANDS_ADMIN_COLORS = {
   textPrimary: "#2F312B",
   textSecondary: "#6A6F73",
 } as const;
+
+import { adminContentOverrides as theWoodlandsMicroschoolAdminContentOverrides } from "./admin-content/the-woodlands-microschool";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const theWoodlandsMicroschoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "the-woodlands-microschool",
+  logo: THE_WOODLANDS_ADMIN_LOGO,
+  colors: THE_WOODLANDS_ADMIN_COLORS,
+  compactRows: THE_WOODLANDS_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "The Woodlands Microschool",
+    schoolShortName: "The Woodlands",
+    officeName: "The Woodlands Microschool Office",
+    locationSubtitle: "The Woodlands Microschool — Conroe, TX · 2026–27 Enrollment",
+  },
+  contentOverrides: theWoodlandsMicroschoolAdminContentOverrides,
+};

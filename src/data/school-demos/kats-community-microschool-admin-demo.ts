@@ -27,3 +27,21 @@ export const KATS_COMMUNITY_MICROSCHOOL_ADMIN_COLORS = {
   textPrimary: "#1F2A2E",
   textSecondary: "#647174",
 } as const;
+
+import { adminContentOverrides as katsCommunityMicroschoolAdminContentOverrides } from "./admin-content/kats-community-microschool";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const katsCommunityMicroschoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "kats-community-microschool",
+  logo: KATS_COMMUNITY_MICROSCHOOL_ADMIN_LOGO,
+  colors: KATS_COMMUNITY_MICROSCHOOL_ADMIN_COLORS,
+  compactRows: KATS_COMMUNITY_MICROSCHOOL_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Kat's Community Microschool",
+    schoolShortName: "Kat's Community",
+    officeName: "Kat's Community Microschool Office",
+    locationSubtitle: "Kat's Community Microschool — Phoenix, AZ · 2026–27 Enrollment",
+  },
+  contentOverrides: katsCommunityMicroschoolAdminContentOverrides,
+};

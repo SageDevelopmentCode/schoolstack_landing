@@ -17,3 +17,19 @@ export const MICAH_MISSION_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { MICAH_MISSION_ADMIN_LOGO } from "./micahmission-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const micahsMissionSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "micahs-mission-school",
+  logo: MICAH_MISSION_ADMIN_LOGO,
+  accent: MICAH_MISSION_TEACHER_ACCENT,
+  accentHover: MICAH_MISSION_TEACHER_ACCENT_HOVER,
+  programLabels: MICAH_MISSION_TEACHER_PROGRAM_LABELS,
+  programOrder: MICAH_MISSION_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: MICAH_MISSION_TEACHER_OFFICE,
+  },
+};

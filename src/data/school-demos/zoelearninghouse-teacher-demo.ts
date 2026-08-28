@@ -17,3 +17,19 @@ export const ZOE_LEARNING_HOUSE_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { ZOE_LEARNING_HOUSE_ADMIN_LOGO } from "./zoelearninghouse-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const zoeLearningHouseTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "zoe-learning-house",
+  logo: ZOE_LEARNING_HOUSE_ADMIN_LOGO,
+  accent: ZOE_LEARNING_HOUSE_TEACHER_ACCENT,
+  accentHover: ZOE_LEARNING_HOUSE_TEACHER_ACCENT_HOVER,
+  programLabels: ZOE_LEARNING_HOUSE_TEACHER_PROGRAM_LABELS,
+  programOrder: ZOE_LEARNING_HOUSE_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ZOE_LEARNING_HOUSE_TEACHER_OFFICE,
+  },
+};

@@ -23,3 +23,19 @@ export const ONE_ACRE_FARM_TEACHER_PROGRAM_ORDER = [
   "sensory_saturday",
   "strides_autism",
 ] as const;
+
+
+import { ONE_ACRE_FARM_ADMIN_LOGO } from "./oneacrefarm-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const oneAcreFarmTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "one-acre-farm",
+  logo: ONE_ACRE_FARM_ADMIN_LOGO,
+  accent: ONE_ACRE_FARM_TEACHER_ACCENT,
+  accentHover: ONE_ACRE_FARM_TEACHER_ACCENT_HOVER,
+  programLabels: ONE_ACRE_FARM_TEACHER_PROGRAM_LABELS,
+  programOrder: ONE_ACRE_FARM_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ONE_ACRE_FARM_TEACHER_OFFICE,
+  },
+};

@@ -26,3 +26,43 @@ export const ASCEND_MICROSCHOOL_ADMIN_COLORS = {
   textPrimary: "#1A202C",
   textSecondary: "#4A5568",
 } as const;
+
+import { adminContentOverrides as ascendMicroSchoolAdminContentOverrides } from "./admin-content/ascend-micro-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const ascendMicroSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "ascend-micro-school",
+  logo: {
+  src: "/images/demo/ascendmicroschool/cropped-Ascend-Micro-School-11-1.webp",
+  alt: "Ascend Micro School",
+  width: 220,
+  height: 58,
+  logoOnDarkClassName: "",
+},
+  colors: {
+  bg: "#FFFFFF",
+  border: "#E2E8F0",
+  borderStrong: "#CBD5E0",
+  accent: "#165C9A",
+  accentBright: "#124A7C",
+  accentLight: "rgba(22, 92, 154, 0.10)",
+  secondaryBtnBorder: "rgba(22, 92, 154, 0.22)",
+  accentGlow: "rgba(22, 92, 154, 0.12)",
+  accentMid: "#124A7C",
+  accentDark: "#0F3D66",
+  clay: "#F4B53F",
+  clayBg: "rgba(244, 181, 63, 0.12)",
+  clayBorder: "rgba(244, 181, 63, 0.30)",
+  textPrimary: "#1A202C",
+  textSecondary: "#4A5568",
+} as SchoolAdminDemoConfig["colors"],
+  compactRows: 5,
+  copy: {
+    schoolName: "Ascend Micro School",
+    schoolShortName: "Ascend Micro",
+    officeName: "Ascend Micro School Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: ascendMicroSchoolAdminContentOverrides,
+};

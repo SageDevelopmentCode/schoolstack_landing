@@ -27,3 +27,21 @@ export const KINEO_SCHOOL_ADMIN_COLORS = {
   textPrimary: "#1E1E2A",
   textSecondary: "#5A6B7D",
 } as const;
+
+import { adminContentOverrides as kineoSchoolAdminContentOverrides } from "./admin-content/kineo-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const kineoSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "kineo-school",
+  logo: KINEO_SCHOOL_ADMIN_LOGO,
+  colors: KINEO_SCHOOL_ADMIN_COLORS,
+  compactRows: KINEO_SCHOOL_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "The Kineo School",
+    schoolShortName: "The Kineo",
+    officeName: "The Kineo School Office",
+    locationSubtitle: "The Kineo School — Kirkland, WA · 2026–27 Enrollment",
+  },
+  contentOverrides: kineoSchoolAdminContentOverrides,
+};

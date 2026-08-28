@@ -19,3 +19,19 @@ export const WONDERHERE_TEACHER_PROGRAM_ORDER = [
   "farm_programs",
   "summer_camps",
 ] as const;
+
+
+import { WONDERHERE_ADMIN_LOGO } from "./wonderhere-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const wonderhereLakelandTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "wonderhere-lakeland",
+  logo: WONDERHERE_ADMIN_LOGO,
+  accent: WONDERHERE_TEACHER_ACCENT,
+  accentHover: WONDERHERE_TEACHER_ACCENT_HOVER,
+  programLabels: WONDERHERE_TEACHER_PROGRAM_LABELS,
+  programOrder: WONDERHERE_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: WONDERHERE_TEACHER_OFFICE,
+  },
+};

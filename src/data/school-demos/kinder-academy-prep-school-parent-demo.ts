@@ -10,3 +10,21 @@ export const KINDER_ACADEMY_PREP_SCHOOL_PARENT_SCHOOL_NAME =
 export const KINDER_ACADEMY_PREP_SCHOOL_PARENT_SCHOOL_SHORT = "KAPS";
 export const KINDER_ACADEMY_PREP_SCHOOL_PARENT_OFFICE =
   "Kinder Academy Prep School Office";
+
+
+import { KINDER_ACADEMY_PREP_SCHOOL_ADMIN_LOGO } from "./kinder-academy-prep-school-admin-demo";
+import type { SchoolParentDemoConfig } from "./demo-dashboard-types";
+
+export const kinderAcademyPrepSchoolParentDemoConfig: SchoolParentDemoConfig = {
+  slug: "kinder-academy-prep-school",
+  logo: KINDER_ACADEMY_PREP_SCHOOL_ADMIN_LOGO,
+  colors: {
+    accent: KINDER_ACADEMY_PREP_SCHOOL_PARENT_ACCENT,
+    accentHover: KINDER_ACADEMY_PREP_SCHOOL_PARENT_ACCENT_HOVER,
+  },
+  copy: {
+    schoolName: KINDER_ACADEMY_PREP_SCHOOL_PARENT_SCHOOL_NAME,
+    schoolShortName: KINDER_ACADEMY_PREP_SCHOOL_PARENT_SCHOOL_SHORT,
+    officeName: KINDER_ACADEMY_PREP_SCHOOL_PARENT_OFFICE,
+  },
+};

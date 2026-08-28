@@ -19,3 +19,19 @@ export const WILD_HEARTS_TEACHER_PROGRAM_ORDER = [
   "summer_adventures",
   "specialty",
 ] as const;
+
+
+import { WILD_HEARTS_ADMIN_LOGO } from "./wild-hearts-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const wildHeartsAdventureTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "wild-hearts-adventure",
+  logo: WILD_HEARTS_ADMIN_LOGO,
+  accent: WILD_HEARTS_TEACHER_ACCENT,
+  accentHover: WILD_HEARTS_TEACHER_ACCENT_HOVER,
+  programLabels: WILD_HEARTS_TEACHER_PROGRAM_LABELS,
+  programOrder: WILD_HEARTS_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: WILD_HEARTS_TEACHER_OFFICE,
+  },
+};

@@ -27,3 +27,21 @@ export const WILD_HEARTS_ADMIN_COLORS = {
   textPrimary: "#121D33",
   textSecondary: "#5A6B7D",
 } as const;
+
+import { adminContentOverrides as wildHeartsAdventureAdminContentOverrides } from "./admin-content/wild-hearts-adventure";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const wildHeartsAdventureAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "wild-hearts-adventure",
+  logo: WILD_HEARTS_ADMIN_LOGO,
+  colors: WILD_HEARTS_ADMIN_COLORS,
+  compactRows: WILD_HEARTS_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Wild Hearts Adventure Co.",
+    schoolShortName: "Wild Hearts",
+    officeName: "Wild Hearts Adventure Co. Office",
+    locationSubtitle: "Wild Hearts Adventure Co. — Spring / Summer Adventures",
+  },
+  contentOverrides: wildHeartsAdventureAdminContentOverrides,
+};

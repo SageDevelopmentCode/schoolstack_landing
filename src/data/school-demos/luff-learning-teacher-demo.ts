@@ -19,3 +19,19 @@ export const LUFF_LEARNING_TEACHER_PROGRAM_ORDER = [
   "creative_dramatics",
   "fine_arts_friday",
 ] as const;
+
+
+import { LUFF_LEARNING_ADMIN_LOGO } from "./luff-learning-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const luffLearningTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "luff-learning",
+  logo: LUFF_LEARNING_ADMIN_LOGO,
+  accent: LUFF_LEARNING_TEACHER_ACCENT,
+  accentHover: LUFF_LEARNING_TEACHER_ACCENT_HOVER,
+  programLabels: LUFF_LEARNING_TEACHER_PROGRAM_LABELS,
+  programOrder: LUFF_LEARNING_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: LUFF_LEARNING_TEACHER_OFFICE,
+  },
+};

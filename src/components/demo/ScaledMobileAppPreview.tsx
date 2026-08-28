@@ -30,22 +30,24 @@ export default function ScaledMobileAppPreview({
   const outerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [scale, setScale] = useState(0.7);
-  const [ShowcaseComponent, setShowcaseComponent] = useState<ComponentType | null>(
-    null,
-  );
+  const [loadedShowcase, setLoadedShowcase] = useState<{
+    slug: string;
+    Component: ComponentType;
+  } | null>(null);
 
   const loader = MOBILE_SHOWCASE_LOADERS[demoSlug];
+  const ShowcaseComponent =
+    loadedShowcase?.slug === demoSlug ? loadedShowcase.Component : null;
 
   useEffect(() => {
     const load = MOBILE_SHOWCASE_LOADERS[demoSlug];
-    if (!load) {
-      setShowcaseComponent(null);
-      return;
-    }
+    if (!load) return;
 
     let cancelled = false;
     void load().then((module) => {
-      if (!cancelled) setShowcaseComponent(() => module.default);
+      if (!cancelled) {
+        setLoadedShowcase({ slug: demoSlug, Component: module.default });
+      }
     });
 
     return () => {

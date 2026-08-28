@@ -16,3 +16,19 @@ export const KINDER_ACADEMY_PREP_SCHOOL_TEACHER_PROGRAM_ORDER = [
   "prek_k",
   "grades_1_3",
 ] as const;
+
+
+import { KINDER_ACADEMY_PREP_SCHOOL_ADMIN_LOGO } from "./kinder-academy-prep-school-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const kinderAcademyPrepSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "kinder-academy-prep-school",
+  logo: KINDER_ACADEMY_PREP_SCHOOL_ADMIN_LOGO,
+  accent: KINDER_ACADEMY_PREP_SCHOOL_TEACHER_ACCENT,
+  accentHover: KINDER_ACADEMY_PREP_SCHOOL_TEACHER_ACCENT_HOVER,
+  programLabels: KINDER_ACADEMY_PREP_SCHOOL_TEACHER_PROGRAM_LABELS,
+  programOrder: KINDER_ACADEMY_PREP_SCHOOL_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: KINDER_ACADEMY_PREP_SCHOOL_TEACHER_OFFICE,
+  },
+};

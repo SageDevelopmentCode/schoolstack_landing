@@ -44,13 +44,17 @@ Given school **Luff Learning Fine Arts Academy** and slug **`luff-learning`**:
 - [ ] `src/app/demo/{slug}/page.tsx`
 - [ ] `src/app/demo/{slug}/layout.tsx`
 
-### Components (5 files)
+### Components (2 files + optional mobile)
 
 - [ ] `src/components/demo/{folder}/{Brand}WebsiteDashboardDemo.tsx`
-- [ ] `src/components/demo/{folder}/{Brand}AdminDashboardDemo.tsx`
-- [ ] `src/components/demo/{folder}/{Brand}ParentDashboardDemo.tsx`
-- [ ] `src/components/demo/{folder}/{Brand}TeacherDashboardDemo.tsx`
-- [ ] `src/components/demo/{folder}/lazy{Brand}Demos.tsx`
+- [ ] `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` (microschool demos)
+
+### Dashboard configs (register in `dashboard-registry.ts`)
+
+- [ ] `{slug}-admin-demo.ts` → `{camelCase}AdminDemoConfig`
+- [ ] `{slug}-parent-demo.ts` → `{camelCase}ParentDemoConfig`
+- [ ] `{slug}-teacher-demo.ts` → `{camelCase}TeacherDemoConfig`
+- [ ] `admin-content/{slug}.ts` (only if admin mock leads/events/emails differ from Luff)
 
 ### Mobile showcase (2 touch points)
 
@@ -78,12 +82,12 @@ Shared roster/leads: `src/components/demo/mobile/mobileDemoData.ts`.
 
 - [ ] `src/data/school-demos/walkthrough-placeholder.ts` — append `{camelCase}WalkthroughPlaceholder` (9 steps, including `mobile-app` before contact)
 
-### Scaled wiring (4 files)
+### Scaled wiring (4 files — slug maps to shared loaders; no per-school lazy files)
 
-- [ ] `src/components/demo/ScaledWebsiteDemoPreview.tsx`
-- [ ] `src/components/demo/ScaledAdminDemoPreview.tsx`
-- [ ] `src/components/demo/ScaledParentDemoPreview.tsx`
-- [ ] `src/components/demo/ScaledTeacherDemoPreview.tsx`
+- [ ] `src/components/demo/ScaledWebsiteDemoPreview.tsx` — uses `lazySchoolWebsiteDemo`
+- [ ] `src/components/demo/ScaledAdminDemoPreview.tsx` — uses `lazySchoolAdminDemo` + registry
+- [ ] `src/components/demo/ScaledParentDemoPreview.tsx` — uses `lazySchoolParentDemo` + registry
+- [ ] `src/components/demo/ScaledTeacherDemoPreview.tsx` — uses `lazySchoolTeacherDemo` + registry
 
 ### Assets
 

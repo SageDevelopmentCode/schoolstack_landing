@@ -17,3 +17,19 @@ export const ASCEND_MICROSCHOOL_TEACHER_PROGRAM_ORDER = [
   "homeschool_drop_in",
   "summer_26",
 ] as const;
+
+
+import { ASCEND_MICROSCHOOL_ADMIN_LOGO } from "./ascendmicroschool-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const ascendMicroSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "ascend-micro-school",
+  logo: ASCEND_MICROSCHOOL_ADMIN_LOGO,
+  accent: ASCEND_MICROSCHOOL_TEACHER_ACCENT,
+  accentHover: ASCEND_MICROSCHOOL_TEACHER_ACCENT_HOVER,
+  programLabels: ASCEND_MICROSCHOOL_TEACHER_PROGRAM_LABELS,
+  programOrder: ASCEND_MICROSCHOOL_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ASCEND_MICROSCHOOL_TEACHER_OFFICE,
+  },
+};

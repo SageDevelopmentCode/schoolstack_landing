@@ -17,3 +17,19 @@ export const NATURES_SCHOOLHOUSE_TEACHER_PROGRAM_ORDER = [
   "discovery_days",
   "teen_lounge",
 ] as const;
+
+
+import { NATURES_SCHOOLHOUSE_ADMIN_LOGO } from "./natures-schoolhouse-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const naturesSchoolhouseTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "natures-schoolhouse",
+  logo: NATURES_SCHOOLHOUSE_ADMIN_LOGO,
+  accent: NATURES_SCHOOLHOUSE_TEACHER_ACCENT,
+  accentHover: NATURES_SCHOOLHOUSE_TEACHER_ACCENT_HOVER,
+  programLabels: NATURES_SCHOOLHOUSE_TEACHER_PROGRAM_LABELS,
+  programOrder: NATURES_SCHOOLHOUSE_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: NATURES_SCHOOLHOUSE_TEACHER_OFFICE,
+  },
+};

@@ -26,3 +26,21 @@ export const TRUE_NORTH_ADMIN_COLORS = {
   textPrimary: "#222222",
   textSecondary: "#6B7280",
 } as const;
+
+import { adminContentOverrides as trueNorthAdminContentOverrides } from "./admin-content/true-north";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const trueNorthAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "true-north",
+  logo: TRUE_NORTH_ADMIN_LOGO,
+  colors: TRUE_NORTH_ADMIN_COLORS,
+  compactRows: TRUE_NORTH_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "True North",
+    schoolShortName: "True North",
+    officeName: "True North Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Lower School",
+  },
+  contentOverrides: trueNorthAdminContentOverrides,
+};
