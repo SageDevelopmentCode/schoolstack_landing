@@ -15,6 +15,7 @@ import {
   validatePublicSlug,
   validateSubmissionNotifyEmails,
   type ApplicationFormNotificationConfig,
+  type ApplicationFormSchema,
 } from "./application-form-schema";
 import {
   ensureApplySystemSchema,
