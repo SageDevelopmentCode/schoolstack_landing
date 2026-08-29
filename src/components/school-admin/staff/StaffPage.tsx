@@ -830,6 +830,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
                     slug={slug}
                     organizationId={organizationId}
                     staffMemberId={selectedMember.id}
+                    staffMemberName={staffDisplayName(selectedMember)}
                     staffIsActive={selectedMember.employmentStatus === "active"}
                     C={C}
                     embedded

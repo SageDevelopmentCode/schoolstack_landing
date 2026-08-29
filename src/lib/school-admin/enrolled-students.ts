@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
 import { STUDENT_GRADE_OPTIONS } from "@/lib/admissions/apply-system-fields";
 
+export type AssignedTeacher = {
+  id: string;
+  name: string;
+};
+
 export type AdminEnrolledStudentSummary = {
   id: string;
   firstName: string;
@@ -15,8 +20,8 @@ export type AdminEnrolledStudentSummary = {
   primaryContactEmail: string | null;
   programNames: string[];
   enrolledAt: string;
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
+  assignedTeachers: AssignedTeacher[];
+  assignedTeacherNames: string;
   profilePhotoUrl: string | null;
 };
 
@@ -42,8 +47,8 @@ export type EnrolledStudentDetail = {
   enrollments: EnrolledStudentEnrollment[];
   applicationId: string | null;
   applicationStatus: string | null;
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
+  assignedTeachers: AssignedTeacher[];
+  assignedTeacherNames: string;
   profilePhotoUrl: string | null;
 };
 
@@ -60,12 +65,6 @@ const ENROLLED_ENROLLMENT_SELECT = `
     status,
     family_id,
     profile_photo_url,
-    assigned_teacher_id,
-    staff_members:assigned_teacher_id (
-      id,
-      first_name,
-      last_name
-    ),
     families (
       name,
       primary_email,
@@ -146,6 +145,27 @@ export function formatStaffMemberName(member: {
   return formatPersonName(member.firstName, member.lastName) || "Staff member";
 }
 
+export function formatAssignedTeacherNames(
+  teachers: AssignedTeacher[],
+): string {
+  return teachers.map((teacher) => teacher.name).join(", ");
+}
+
+export function formatAssignedTeachersLabel(
+  teachers: AssignedTeacher[],
+): string {
+  if (teachers.length === 0) return "Unassigned";
+  if (teachers.length <= 2) return formatAssignedTeacherNames(teachers);
+  return `${teachers[0].name}, ${teachers[1].name} +${teachers.length - 2}`;
+}
+
+export function studentHasAssignedTeacher(
+  student: Pick<AdminEnrolledStudentSummary, "assignedTeachers">,
+  staffMemberId: string,
+): boolean {
+  return student.assignedTeachers.some((teacher) => teacher.id === staffMemberId);
+}
+
 export class StudentTeacherAssignmentError extends Error {
   code: string;
   status: number;
@@ -158,15 +178,27 @@ export class StudentTeacherAssignmentError extends Error {
   }
 }
 
-export type AssignStudentTeacherInput = {
+export type SetStudentTeachersInput = {
   organizationId: string;
   studentId: string;
-  staffMemberId: string | null;
+  staffMemberIds: string[];
 };
 
-export type AssignStudentTeacherResult = {
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
+export type SetStudentTeachersResult = {
+  assignedTeachers: AssignedTeacher[];
+  assignedTeacherNames: string;
+};
+
+export type AssignStudentsToStaffInput = {
+  organizationId: string;
+  staffMemberId: string;
+  studentIds: string[];
+};
+
+export type UnassignStudentFromStaffInput = {
+  organizationId: string;
+  staffMemberId: string;
+  studentId: string;
 };
 
 export { studentStatusLabel };
@@ -211,7 +243,7 @@ type EnrollmentAggregate = {
   programNameSet: Set<string>;
 };
 
-type StudentRowWithTeacher = {
+type StudentRow = {
   id?: string;
   first_name?: string;
   last_name?: string;
@@ -220,19 +252,6 @@ type StudentRowWithTeacher = {
   status?: string;
   family_id?: string;
   profile_photo_url?: string | null;
-  assigned_teacher_id?: string | null;
-  staff_members?:
-    | {
-        id?: string;
-        first_name?: string;
-        last_name?: string;
-      }
-    | {
-        id?: string;
-        first_name?: string;
-        last_name?: string;
-      }[]
-    | null;
   families?:
     | {
         name?: string;
@@ -247,38 +266,71 @@ type StudentRowWithTeacher = {
     | null;
 };
 
-function parseAssignedTeacher(student: StudentRowWithTeacher): {
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
-} {
-  const assignedTeacherId =
-    typeof student.assigned_teacher_id === "string" &&
-    student.assigned_teacher_id.trim() !== ""
-      ? student.assigned_teacher_id
-      : null;
+async function fetchTeacherAssignmentsByStudentIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, AssignedTeacher[]>> {
+  const result = new Map<string, AssignedTeacher[]>();
+  if (studentIds.length === 0) return result;
 
-  const staffMember = unwrapRelation(student.staff_members);
-  if (!staffMember?.id) {
-    return { assignedTeacherId, assignedTeacherName: null };
+  const { data, error } = await supabase
+    .from("student_teacher_assignments")
+    .select(
+      `
+      student_id,
+      staff_members!inner (
+        id,
+        first_name,
+        last_name
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .in("student_id", studentIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    const studentId = String(row.student_id);
+    const staffMember = unwrapRelation(
+      row.staff_members as
+        | { id?: string; first_name?: string; last_name?: string }
+        | { id?: string; first_name?: string; last_name?: string }[]
+        | null,
+    );
+    if (!staffMember?.id) continue;
+
+    const teacher: AssignedTeacher = {
+      id: String(staffMember.id),
+      name: formatStaffMemberName({
+        firstName: String(staffMember.first_name ?? ""),
+        lastName: String(staffMember.last_name ?? ""),
+      }),
+    };
+
+    const list = result.get(studentId) ?? [];
+    list.push(teacher);
+    result.set(studentId, list);
   }
 
-  const name = formatStaffMemberName({
-    firstName: String(staffMember.first_name ?? ""),
-    lastName: String(staffMember.last_name ?? ""),
-  });
+  for (const [studentId, teachers] of result) {
+    result.set(
+      studentId,
+      [...teachers].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+  }
 
-  return {
-    assignedTeacherId: String(staffMember.id),
-    assignedTeacherName: name,
-  };
+  return result;
 }
 
 function mapEnrollmentRowToAggregate(
   row: Record<string, unknown>,
   primaryContactsByFamilyId: Map<string, { name: string | null; email: string | null }>,
+  teachersByStudentId: Map<string, AssignedTeacher[]>,
 ): EnrollmentAggregate | null {
   const student = unwrapRelation(
-    row.students as StudentRowWithTeacher | StudentRowWithTeacher[] | null,
+    row.students as StudentRow | StudentRow[] | null,
   );
 
   if (!student?.id) return null;
@@ -301,10 +353,11 @@ function mapEnrollmentRowToAggregate(
 
   const firstName = String(student.first_name ?? "");
   const lastName = String(student.last_name ?? "");
-  const { assignedTeacherId, assignedTeacherName } = parseAssignedTeacher(student);
+  const studentId = String(student.id);
+  const assignedTeachers = teachersByStudentId.get(studentId) ?? [];
 
   const summary: AdminEnrolledStudentSummary = {
-    id: String(student.id),
+    id: studentId,
     firstName,
     lastName,
     grade: typeof student.grade === "string" ? student.grade : null,
@@ -317,8 +370,8 @@ function mapEnrollmentRowToAggregate(
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
     enrolledAt,
-    assignedTeacherId,
-    assignedTeacherName,
+    assignedTeachers,
+    assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
     profilePhotoUrl:
       typeof student.profile_photo_url === "string" &&
       student.profile_photo_url.trim() !== ""
@@ -361,26 +414,33 @@ async function aggregateEnrolledStudentSummaries(
   rows: Record<string, unknown>[],
 ): Promise<AdminEnrolledStudentSummary[]> {
   const familyIds = new Set<string>();
+  const studentIds = new Set<string>();
 
   for (const row of rows) {
     const student = unwrapRelation(
-      row.students as { family_id?: string } | { family_id?: string }[] | null,
+      row.students as { id?: string; family_id?: string } | { id?: string; family_id?: string }[] | null,
     );
     if (student?.family_id) {
       familyIds.add(String(student.family_id));
     }
+    if (student?.id) {
+      studentIds.add(String(student.id));
+    }
   }
 
-  const primaryContactsByFamilyId = await fetchPrimaryContactsByFamilyId(
-    supabase,
-    organizationId,
-    [...familyIds],
-  );
+  const [primaryContactsByFamilyId, teachersByStudentId] = await Promise.all([
+    fetchPrimaryContactsByFamilyId(supabase, organizationId, [...familyIds]),
+    fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [...studentIds]),
+  ]);
 
   const aggregates = new Map<string, EnrollmentAggregate>();
 
   for (const row of rows) {
-    const aggregate = mapEnrollmentRowToAggregate(row, primaryContactsByFamilyId);
+    const aggregate = mapEnrollmentRowToAggregate(
+      row,
+      primaryContactsByFamilyId,
+      teachersByStudentId,
+    );
     if (!aggregate) continue;
 
     const studentId = aggregate.summary.id;
@@ -480,12 +540,23 @@ export async function listAssignedEnrolledStudents(
     500,
   );
 
+  const { data: assignmentRows, error: assignmentError } = await supabase
+    .from("student_teacher_assignments")
+    .select("student_id")
+    .eq("organization_id", organizationId)
+    .eq("staff_member_id", staffMemberId);
+
+  if (assignmentError) throw assignmentError;
+
+  const studentIds = (assignmentRows ?? []).map((row) => String(row.student_id));
+  if (studentIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("enrollments")
     .select(ENROLLED_ENROLLMENT_SELECT)
     .eq("organization_id", organizationId)
     .eq("status", "enrolled")
-    .eq("students.assigned_teacher_id", staffMemberId)
+    .in("student_id", studentIds)
     .order("created_at", { ascending: true })
     .limit(limit);
 
@@ -515,12 +586,6 @@ export async function loadEnrolledStudentDetail(
       status,
       family_id,
       profile_photo_url,
-      assigned_teacher_id,
-      staff_members:assigned_teacher_id (
-        id,
-        first_name,
-        last_name
-      ),
       families (
         name,
         primary_email,
@@ -555,6 +620,7 @@ export async function loadEnrolledStudentDetail(
   const [
     { data: enrollmentRows, error: enrollmentsError },
     { data: applicationRows, error: applicationsError },
+    teachersByStudentId,
   ] = await Promise.all([
     supabase
       .from("enrollments")
@@ -578,6 +644,7 @@ export async function loadEnrolledStudentDetail(
       .eq("student_id", studentId)
       .order("updated_at", { ascending: false })
       .limit(1),
+    fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [studentId]),
   ]);
 
   if (enrollmentsError) throw enrollmentsError;
@@ -606,9 +673,7 @@ export async function loadEnrolledStudentDetail(
   );
 
   const latestApplication = applicationRows?.[0];
-  const studentWithTeacher = studentRow as StudentRowWithTeacher;
-  const { assignedTeacherId, assignedTeacherName } =
-    parseAssignedTeacher(studentWithTeacher);
+  const assignedTeachers = teachersByStudentId.get(studentId) ?? [];
 
   return {
     id: String(studentRow.id),
@@ -636,8 +701,8 @@ export async function loadEnrolledStudentDetail(
     applicationStatus: latestApplication?.status
       ? String(latestApplication.status)
       : null,
-    assignedTeacherId,
-    assignedTeacherName,
+    assignedTeachers,
+    assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
     profilePhotoUrl:
       typeof studentRow.profile_photo_url === "string" &&
       studentRow.profile_photo_url.trim() !== ""
@@ -653,12 +718,11 @@ export async function teacherHasAssignedStudentInFamily(
   familyId: string,
 ): Promise<boolean> {
   const { data, error } = await supabase
-    .from("enrollments")
-    .select("id, students!inner(id)")
+    .from("student_teacher_assignments")
+    .select("id, students!inner(family_id)")
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
+    .eq("staff_member_id", staffMemberId)
     .eq("students.family_id", familyId)
-    .eq("students.assigned_teacher_id", staffMemberId)
     .limit(1);
 
   if (error) throw error;
@@ -707,18 +771,64 @@ export async function loadTeacherAssignedStudentDetail(
     studentId,
   );
 
-  if (!detail || detail.assignedTeacherId !== staffMemberId) {
+  if (!detail || !studentHasAssignedTeacher(detail, staffMemberId)) {
     return null;
   }
 
   return detail;
 }
 
-export async function assignStudentTeacher(
+async function validateActiveStaffMembers(
   supabase: SupabaseClient,
-  input: AssignStudentTeacherInput,
-): Promise<AssignStudentTeacherResult> {
-  const { organizationId, studentId, staffMemberId } = input;
+  organizationId: string,
+  staffMemberIds: string[],
+): Promise<AssignedTeacher[]> {
+  const uniqueIds = [...new Set(staffMemberIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("staff_members")
+    .select("id, first_name, last_name, status")
+    .eq("organization_id", organizationId)
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+
+  if ((data ?? []).length !== uniqueIds.length) {
+    throw new StudentTeacherAssignmentError(
+      "Staff member not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  const teachers: AssignedTeacher[] = [];
+  for (const row of data ?? []) {
+    if (row.status !== "active") {
+      throw new StudentTeacherAssignmentError(
+        "Only active staff members can be assigned.",
+        "invalid_staff",
+        400,
+      );
+    }
+
+    teachers.push({
+      id: String(row.id),
+      name: formatStaffMemberName({
+        firstName: String(row.first_name ?? ""),
+        lastName: String(row.last_name ?? ""),
+      }),
+    });
+  }
+
+  return teachers.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function setStudentTeachers(
+  supabase: SupabaseClient,
+  input: SetStudentTeachersInput,
+): Promise<SetStudentTeachersResult> {
+  const { organizationId, studentId, staffMemberIds } = input;
 
   const { data: studentRow, error: studentError } = await supabase
     .from("students")
@@ -736,51 +846,109 @@ export async function assignStudentTeacher(
     );
   }
 
-  let assignedTeacherName: string | null = null;
+  const assignedTeachers = await validateActiveStaffMembers(
+    supabase,
+    organizationId,
+    staffMemberIds,
+  );
 
-  if (staffMemberId) {
-    const { data: staffRow, error: staffError } = await supabase
-      .from("staff_members")
-      .select("id, first_name, last_name, status")
-      .eq("organization_id", organizationId)
-      .eq("id", staffMemberId)
-      .maybeSingle();
+  const { error: deleteError } = await supabase
+    .from("student_teacher_assignments")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("student_id", studentId);
 
-    if (staffError) throw staffError;
-    if (!staffRow) {
-      throw new StudentTeacherAssignmentError(
-        "Staff member not found.",
-        "not_found",
-        404,
+  if (deleteError) throw deleteError;
+
+  if (assignedTeachers.length > 0) {
+    const { error: insertError } = await supabase
+      .from("student_teacher_assignments")
+      .insert(
+        assignedTeachers.map((teacher) => ({
+          organization_id: organizationId,
+          student_id: studentId,
+          staff_member_id: teacher.id,
+        })),
       );
-    }
 
-    if (staffRow.status !== "active") {
-      throw new StudentTeacherAssignmentError(
-        "Only active staff members can be assigned.",
-        "invalid_staff",
-        400,
-      );
-    }
-
-    assignedTeacherName = formatStaffMemberName({
-      firstName: String(staffRow.first_name ?? ""),
-      lastName: String(staffRow.last_name ?? ""),
-    });
+    if (insertError) throw insertError;
   }
 
-  const { error: updateError } = await supabase
-    .from("students")
-    .update({ assigned_teacher_id: staffMemberId })
-    .eq("organization_id", organizationId)
-    .eq("id", studentId);
-
-  if (updateError) throw updateError;
-
   return {
-    assignedTeacherId: staffMemberId,
-    assignedTeacherName,
+    assignedTeachers,
+    assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
   };
+}
+
+export async function assignStudentsToStaff(
+  supabase: SupabaseClient,
+  input: AssignStudentsToStaffInput,
+): Promise<void> {
+  const { organizationId, staffMemberId, studentIds } = input;
+  const uniqueStudentIds = [...new Set(studentIds.filter(Boolean))];
+  if (uniqueStudentIds.length === 0) return;
+
+  await validateActiveStaffMembers(supabase, organizationId, [staffMemberId]);
+
+  const { data: studentRows, error: studentError } = await supabase
+    .from("students")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("id", uniqueStudentIds);
+
+  if (studentError) throw studentError;
+  if ((studentRows ?? []).length !== uniqueStudentIds.length) {
+    throw new StudentTeacherAssignmentError(
+      "Student not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  const { error: insertError } = await supabase
+    .from("student_teacher_assignments")
+    .upsert(
+      uniqueStudentIds.map((studentId) => ({
+        organization_id: organizationId,
+        student_id: studentId,
+        staff_member_id: staffMemberId,
+      })),
+      { onConflict: "student_id,staff_member_id", ignoreDuplicates: true },
+    );
+
+  if (insertError) throw insertError;
+}
+
+export async function unassignStudentFromStaff(
+  supabase: SupabaseClient,
+  input: UnassignStudentFromStaffInput,
+): Promise<void> {
+  const { organizationId, staffMemberId, studentId } = input;
+
+  const { error } = await supabase
+    .from("student_teacher_assignments")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("student_id", studentId)
+    .eq("staff_member_id", staffMemberId);
+
+  if (error) throw error;
+}
+
+/** @deprecated Use setStudentTeachers instead */
+export async function assignStudentTeacher(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    studentId: string;
+    staffMemberId: string | null;
+  },
+): Promise<SetStudentTeachersResult> {
+  return setStudentTeachers(supabase, {
+    organizationId: input.organizationId,
+    studentId: input.studentId,
+    staffMemberIds: input.staffMemberId ? [input.staffMemberId] : [],
+  });
 }
 
 export function formatEnrolledDate(value: string): string {

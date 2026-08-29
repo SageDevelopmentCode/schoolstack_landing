@@ -13,8 +13,9 @@ import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import { StaffStudentAssignPicker } from '@/components/school-admin/staff/staff-student-assign-picker';
 import {
-  assignStudentTeacher,
+  assignStudentsToStaffApi,
   fetchStaffAssignedStudents,
+  unassignStudentFromStaffApi,
   type AdminEnrolledStudentSummary,
 } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
@@ -66,13 +67,13 @@ export function StaffAssignedStudentsSection({
     void loadStudents();
   }, [loadStudents]);
 
-  const handleAssign = async (studentId: string) => {
+  const handleAssign = async (studentIds: string[]) => {
     setAssigning(true);
     try {
-      await assignStudentTeacher(slug, studentId, staffMemberId);
+      await assignStudentsToStaffApi(slug, staffMemberId, studentIds);
       await loadStudents();
     } catch (assignError) {
-      Alert.alert('Error', formatStaffApiError(assignError, 'Failed to assign student.'));
+      Alert.alert('Error', formatStaffApiError(assignError, 'Failed to assign students.'));
     } finally {
       setAssigning(false);
     }
@@ -96,7 +97,7 @@ export function StaffAssignedStudentsSection({
   const handleUnassign = async (studentId: string) => {
     setRemovingStudentId(studentId);
     try {
-      await assignStudentTeacher(slug, studentId, null);
+      await unassignStudentFromStaffApi(slug, staffMemberId, studentId);
       setStudents((current) => current.filter((row) => row.id !== studentId));
     } catch (unassignError) {
       Alert.alert('Error', formatStaffApiError(unassignError, 'Failed to unassign student.'));
@@ -191,11 +192,12 @@ export function StaffAssignedStudentsSection({
       <StaffStudentAssignPicker
         visible={pickerOpen}
         staffMemberName={staffMemberName}
+        staffMemberId={staffMemberId}
         organizationId={organizationId}
         assignedStudentIds={students.map((student) => student.id)}
-        assigning={assigning}
+        saving={assigning}
         onClose={() => setPickerOpen(false)}
-        onAssign={handleAssign}
+        onSave={handleAssign}
       />
     </View>
   );

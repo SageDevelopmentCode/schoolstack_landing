@@ -9,7 +9,11 @@ import {
   loadApplicationDetailForFamily,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
-import type { ChildProfileData } from "@/lib/admissions/parent-portal-access";
+import {
+  loadAssignedTeachersForStudent,
+  type ChildProfileData,
+} from "@/lib/admissions/parent-portal-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -54,6 +58,8 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
     familyId,
   );
 
+  const admin = createAdminClient();
+
   // Preview uses admin-scoped loaders; preload so client RLS does not block panel opens.
   const childProfileEntries = await Promise.all(
     familyChildren.map(async (child) => {
@@ -71,7 +77,10 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
         ),
       ]);
       if (!application) return null;
-      return [child.applicationId, { application, checklist }] as const;
+      const assignedTeachers = application.studentId
+        ? await loadAssignedTeachersForStudent(admin, org.id, application.studentId)
+        : [];
+      return [child.applicationId, { application, checklist, assignedTeachers }] as const;
     }),
   );
 

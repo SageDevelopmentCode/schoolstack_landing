@@ -36,7 +36,7 @@ type StudentDetailPanelProps = {
   assigningTeacher?: boolean;
   onAssignTeacher: (
     studentId: string,
-    staffMemberId: string | null,
+    staffMemberIds: string[],
   ) => Promise<void>;
   onClose: () => void;
 };
@@ -152,13 +152,14 @@ export default function StudentDetailPanel({
             </div>
             <div>
               <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
-                Teacher
+                Teachers
               </dt>
               <dd className="mt-1">
                 <StudentTeacherAssignSelect
                   C={C}
                   studentId={student.id}
-                  assignedTeacherId={student.assignedTeacherId}
+                  studentName={formatEnrolledStudentName(student)}
+                  assignedTeachers={student.assignedTeachers}
                   activeStaff={activeStaff}
                   staffPath={staffPath}
                   disabled={assigningTeacher}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
-import StaffStudentAssignSelect from "@/components/school-admin/staff/StaffStudentAssignSelect";
+import StaffStudentAssignSheet from "@/components/school-admin/staff/StaffStudentAssignSheet";
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
@@ -19,6 +19,7 @@ type StaffAssignedStudentsSectionProps = {
   slug: string;
   organizationId: string;
   staffMemberId: string;
+  staffMemberName: string;
   staffIsActive: boolean;
   C: AdminThemeTokens;
   embedded?: boolean;
@@ -28,6 +29,7 @@ export default function StaffAssignedStudentsSection({
   slug,
   organizationId,
   staffMemberId,
+  staffMemberName,
   staffIsActive,
   C,
   embedded = false,
@@ -38,14 +40,12 @@ export default function StaffAssignedStudentsSection({
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAssign, setShowAssign] = useState(false);
+  const [assignSheetOpen, setAssignSheetOpen] = useState(false);
   const [enrolledStudents, setEnrolledStudents] = useState<
     AdminEnrolledStudentSummary[] | null
   >(null);
   const [loadingEnrolled, setLoadingEnrolled] = useState(false);
-  const [assigningStudentId, setAssigningStudentId] = useState<string | null>(
-    null,
-  );
+  const [assigning, setAssigning] = useState(false);
   const [unassigningStudentId, setUnassigningStudentId] = useState<
     string | null
   >(null);
@@ -103,23 +103,21 @@ export default function StaffAssignedStudentsSection({
     }
   }, [enrolledStudents, organizationId, supabase]);
 
-  const handleToggleAssign = async () => {
-    if (!showAssign) {
-      await loadEnrolledStudents();
-    }
-    setShowAssign((open) => !open);
+  const handleOpenAssignSheet = async () => {
+    await loadEnrolledStudents();
+    setAssignSheetOpen(true);
   };
 
-  const handleAssignStudent = async (studentId: string) => {
-    setAssigningStudentId(studentId);
+  const handleAssignStudents = async (studentIds: string[]) => {
+    setAssigning(true);
 
     try {
       const response = await fetch(
-        `/api/school/${slug}/students/${studentId}/teacher`,
+        `/api/school/${slug}/staff/${staffMemberId}/students`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ staffMemberId }),
+          body: JSON.stringify({ studentIds }),
         },
       );
 
@@ -127,37 +125,44 @@ export default function StaffAssignedStudentsSection({
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(payload?.error ?? "Failed to assign student.");
+        throw new Error(payload?.error ?? "Failed to assign students.");
       }
 
-      const result = (await response.json()) as {
-        assignedTeacherId: string | null;
-        assignedTeacherName: string | null;
-      };
-
-      adminToast.success("Student assigned.");
-      setShowAssign(false);
+      adminToast.success(
+        studentIds.length === 1
+          ? "Student assigned."
+          : `${studentIds.length} students assigned.`,
+      );
       await loadAssignedStudents();
 
       if (enrolledStudents) {
         setEnrolledStudents((current) =>
-          (current ?? []).map((row) =>
-            row.id === studentId
-              ? {
-                  ...row,
-                  assignedTeacherId: result.assignedTeacherId,
-                  assignedTeacherName: result.assignedTeacherName,
-                }
-              : row,
-          ),
+          (current ?? []).map((row) => {
+            if (!studentIds.includes(row.id)) return row;
+            const alreadyAssigned = row.assignedTeachers.some(
+              (teacher) => teacher.id === staffMemberId,
+            );
+            if (alreadyAssigned) return row;
+            return {
+              ...row,
+              assignedTeachers: [
+                ...row.assignedTeachers,
+                { id: staffMemberId, name: staffMemberName },
+              ].sort((a, b) => a.name.localeCompare(b.name)),
+              assignedTeacherNames: [
+                ...row.assignedTeachers.map((teacher) => teacher.name),
+                staffMemberName,
+              ].join(", "),
+            };
+          }),
         );
       }
     } catch (assignError) {
       adminToast.error(
-        formatActionError(assignError, "Failed to assign student."),
+        formatActionError(assignError, "Failed to assign students."),
       );
     } finally {
-      setAssigningStudentId(null);
+      setAssigning(false);
     }
   };
 
@@ -166,11 +171,11 @@ export default function StaffAssignedStudentsSection({
 
     try {
       const response = await fetch(
-        `/api/school/${slug}/students/${studentId}/teacher`,
+        `/api/school/${slug}/staff/${staffMemberId}/students`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ staffMemberId: null }),
+          body: JSON.stringify({ action: "unassign", studentId }),
         },
       );
 
@@ -186,11 +191,19 @@ export default function StaffAssignedStudentsSection({
 
       if (enrolledStudents) {
         setEnrolledStudents((current) =>
-          (current ?? []).map((row) =>
-            row.id === studentId
-              ? { ...row, assignedTeacherId: null, assignedTeacherName: null }
-              : row,
-          ),
+          (current ?? []).map((row) => {
+            if (row.id !== studentId) return row;
+            const assignedTeachers = row.assignedTeachers.filter(
+              (teacher) => teacher.id !== staffMemberId,
+            );
+            return {
+              ...row,
+              assignedTeachers,
+              assignedTeacherNames: assignedTeachers
+                .map((teacher) => teacher.name)
+                .join(", "),
+            };
+          }),
         );
       }
     } catch (unassignError) {
@@ -225,7 +238,7 @@ export default function StaffAssignedStudentsSection({
         {staffIsActive ? (
           <button
             type="button"
-            onClick={() => void handleToggleAssign()}
+            onClick={() => void handleOpenAssignSheet()}
             disabled={loadingEnrolled}
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium disabled:opacity-60"
             style={{ color: C.accent }}
@@ -239,22 +252,6 @@ export default function StaffAssignedStudentsSection({
           </button>
         ) : null}
       </div>
-
-      {showAssign && staffIsActive ? (
-        <div
-          className="mb-4 rounded-md border p-3"
-          style={{ borderColor: C.border, backgroundColor: C.surface }}
-        >
-          <StaffStudentAssignSelect
-            C={C}
-            staffMemberId={staffMemberId}
-            enrolledStudents={enrolledStudents ?? []}
-            disabled={!staffIsActive}
-            assigning={assigningStudentId != null}
-            onAssign={handleAssignStudent}
-          />
-        </div>
-      ) : null}
 
       {loading ? (
         <div className="flex items-center gap-2 py-4 text-sm" style={{ color: C.textTertiary }}>
@@ -322,6 +319,17 @@ export default function StaffAssignedStudentsSection({
           Assign and unassign are disabled while this staff member is inactive.
         </p>
       ) : null}
+
+      <StaffStudentAssignSheet
+        open={assignSheetOpen}
+        onClose={() => setAssignSheetOpen(false)}
+        staffMemberName={staffMemberName}
+        staffMemberId={staffMemberId}
+        enrolledStudents={enrolledStudents ?? []}
+        saving={assigning}
+        C={C}
+        onSave={handleAssignStudents}
+      />
     </section>
   );
 }

@@ -118,9 +118,29 @@ export interface ApplicationFormPostSubmitConfig {
   actions: PostSubmitAction[];
 }
 
+export interface ApplicationFormDraftRemindersConfig {
+  enabled: boolean;
+  delay_hours: number;
+  contact_email: string | null;
+}
+
 export interface ApplicationFormNotificationConfig {
   submission_notify_emails: string[];
+  draft_reminders: ApplicationFormDraftRemindersConfig;
 }
+
+export const DRAFT_REMINDER_DELAY_PRESETS: {
+  label: string;
+  hours: number;
+}[] = [
+  { label: "24 hours", hours: 24 },
+  { label: "48 hours", hours: 48 },
+  { label: "3 days", hours: 72 },
+  { label: "5 days", hours: 120 },
+  { label: "7 days", hours: 168 },
+];
+
+export const DEFAULT_DRAFT_REMINDER_DELAY_HOURS = 72;
 
 export const MAX_SUBMISSION_NOTIFY_EMAILS = 10;
 export const MAX_APPLICATION_FIELD_LABEL_LENGTH = 500;
@@ -187,8 +207,47 @@ export function defaultApplicationFormPostSubmitConfig(): ApplicationFormPostSub
   return { actions: [] };
 }
 
+export function defaultApplicationFormDraftRemindersConfig(): ApplicationFormDraftRemindersConfig {
+  return {
+    enabled: false,
+    delay_hours: DEFAULT_DRAFT_REMINDER_DELAY_HOURS,
+    contact_email: null,
+  };
+}
+
 export function defaultApplicationFormNotificationConfig(): ApplicationFormNotificationConfig {
-  return { submission_notify_emails: [] };
+  return {
+    submission_notify_emails: [],
+    draft_reminders: defaultApplicationFormDraftRemindersConfig(),
+  };
+}
+
+function parseDraftReminderDelayHours(raw: unknown): number {
+  const hours = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(hours)) {
+    return DEFAULT_DRAFT_REMINDER_DELAY_HOURS;
+  }
+
+  const preset = DRAFT_REMINDER_DELAY_PRESETS.find((entry) => entry.hours === hours);
+  return preset?.hours ?? DEFAULT_DRAFT_REMINDER_DELAY_HOURS;
+}
+
+function parseDraftRemindersConfig(raw: unknown): ApplicationFormDraftRemindersConfig {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return defaultApplicationFormDraftRemindersConfig();
+  }
+
+  const record = raw as Record<string, unknown>;
+  const contactEmail =
+    typeof record.contact_email === "string"
+      ? record.contact_email.trim().toLowerCase() || null
+      : null;
+
+  return {
+    enabled: record.enabled === true,
+    delay_hours: parseDraftReminderDelayHours(record.delay_hours),
+    contact_email: contactEmail,
+  };
 }
 
 export function parseApplicationFormNotificationConfig(
@@ -206,11 +265,14 @@ export function parseApplicationFormNotificationConfig(
         .filter(Boolean)
     : [];
 
-  return { submission_notify_emails: emails };
+  const draftReminders = parseDraftRemindersConfig(record.draft_reminders);
+
+  return { submission_notify_emails: emails, draft_reminders: draftReminders };
 }
 
 export function normalizeSubmissionNotifyEmails(
   emails: string[],
+  draftReminders?: ApplicationFormDraftRemindersConfig,
 ): ApplicationFormNotificationConfig {
   const seen = new Set<string>();
   const normalized: string[] = [];
@@ -222,7 +284,23 @@ export function normalizeSubmissionNotifyEmails(
     normalized.push(email);
   }
 
-  return { submission_notify_emails: normalized };
+  return {
+    submission_notify_emails: normalized,
+    draft_reminders: draftReminders ?? defaultApplicationFormDraftRemindersConfig(),
+  };
+}
+
+export function normalizeApplicationFormNotificationConfig(
+  config: ApplicationFormNotificationConfig,
+): ApplicationFormNotificationConfig {
+  const draftReminders = parseDraftRemindersConfig(config.draft_reminders);
+  return normalizeSubmissionNotifyEmails(
+    config.submission_notify_emails,
+    {
+      ...draftReminders,
+      contact_email: draftReminders.contact_email?.trim().toLowerCase() || null,
+    },
+  );
 }
 
 export function validateSubmissionNotifyEmails(
@@ -240,6 +318,41 @@ export function validateSubmissionNotifyEmails(
   }
 
   return null;
+}
+
+export function validateDraftRemindersConfig(
+  config: ApplicationFormNotificationConfig,
+): string | null {
+  const { draft_reminders: draftReminders } = config;
+  if (!draftReminders.enabled) {
+    return null;
+  }
+
+  const contactEmail = draftReminders.contact_email?.trim().toLowerCase() ?? "";
+  if (!contactEmail) {
+    return "Add a contact email for draft application reminders.";
+  }
+
+  if (!SUBMISSION_NOTIFY_EMAIL_PATTERN.test(contactEmail)) {
+    return `“${contactEmail}” is not a valid contact email address.`;
+  }
+
+  const preset = DRAFT_REMINDER_DELAY_PRESETS.find(
+    (entry) => entry.hours === draftReminders.delay_hours,
+  );
+  if (!preset) {
+    return "Choose when draft application reminders should be sent.";
+  }
+
+  return null;
+}
+
+export function validateApplicationFormNotificationConfig(
+  config: ApplicationFormNotificationConfig,
+): string | null {
+  return (
+    validateSubmissionNotifyEmails(config) ?? validateDraftRemindersConfig(config)
+  );
 }
 
 function parsePostSubmitAction(raw: unknown): PostSubmitAction | null {

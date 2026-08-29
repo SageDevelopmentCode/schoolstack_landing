@@ -19,7 +19,7 @@ import { useSchoolAdminStudents } from '@/contexts/school-admin-students-context
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import {
-  assignStudentTeacher,
+  setStudentTeachers,
   formatEnrolledStudentName,
   formatStudentGrade,
   type AdminEnrolledStudentSummary,
@@ -40,7 +40,7 @@ function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boo
     student.grade ?? '',
     formatStudentGrade(student.grade) ?? '',
     student.familyName ?? '',
-    student.assignedTeacherName ?? '',
+    student.assignedTeacherNames ?? '',
     student.primaryContactName ?? '',
     student.primaryContactEmail ?? '',
     student.programNames.join(' '),
@@ -88,19 +88,19 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
     router.push(`/school-admin/${slug}/students/${student.id}`);
   };
 
-  const handleAssignTeacher = async (studentId: string, staffMemberId: string | null) => {
+  const handleSetTeachers = async (studentId: string, staffMemberIds: string[]) => {
     setAssigningStudentId(studentId);
     setAssignError(null);
     try {
-      await assignStudentTeacher(supabase, {
+      await setStudentTeachers(supabase, {
         organizationId,
         studentId,
-        staffMemberId,
+        staffMemberIds,
       });
       await refresh({ silent: true });
     } catch (assignError) {
       setAssignError(
-        assignError instanceof Error ? assignError.message : 'Failed to assign teacher.',
+        assignError instanceof Error ? assignError.message : 'Failed to assign teachers.',
       );
     } finally {
       setAssigningStudentId(null);
@@ -218,13 +218,13 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
       <StudentTeacherAssignPicker
         visible={pickerStudent !== null}
         studentName={pickerStudent ? formatEnrolledStudentName(pickerStudent) : ''}
-        assignedTeacherId={pickerStudent?.assignedTeacherId ?? null}
+        assignedTeacherIds={pickerStudent?.assignedTeachers.map((t) => t.id) ?? []}
         activeStaff={activeStaff}
-        assigning={pickerStudent ? assigningStudentId === pickerStudent.id : false}
+        saving={pickerStudent ? assigningStudentId === pickerStudent.id : false}
         onClose={() => setPickerStudent(null)}
-        onAssign={async (staffMemberId) => {
+        onSave={async (staffMemberIds) => {
           if (!pickerStudent) return;
-          await handleAssignTeacher(pickerStudent.id, staffMemberId);
+          await handleSetTeachers(pickerStudent.id, staffMemberIds);
         }}
       />
     </View>

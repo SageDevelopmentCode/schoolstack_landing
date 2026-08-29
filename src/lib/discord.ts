@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/site";
+import { DRAFT_REMINDER_DELAY_PRESETS } from "@/lib/admissions/application-form-schema";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   formatAutopayLineItems,
@@ -53,6 +54,11 @@ const FIELD_LABELS: Record<string, string> = {
   Organizations: "🏫 Organizations",
   "Overdue marked": "⚠️ Overdue marked",
   "Reminders sent": "📨 Reminders sent",
+  "Draft app reminders": "📨 Draft app reminders",
+  Recipients: "📬 Recipients",
+  "School contact": "✉️ School contact",
+  Delay: "⏱️ Delay",
+  "Reminder sent": "📨 Reminder sent",
   "Rules evaluated": "📏 Rules evaluated",
   "Autopay charged": "✅ Autopay charged",
   "Autopay failed": "❌ Autopay failed",
@@ -232,6 +238,7 @@ async function sendWebsiteNotificationDiscordEmbed(
 
 export function resolveAdmissionsDiscordWebhookUrl(): string | null {
   return (
+    process.env.DISCORD_APPLICATION_NOTIFICATIONS_WEBHOOK_URL?.trim() ||
     process.env.DISCORD_E2E_ALERTS_WEBHOOK_URL?.trim() ||
     process.env.ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL?.trim() ||
     null
@@ -245,7 +252,7 @@ async function sendAdmissionsDiscordEmbed(
   const webhookUrl = resolveAdmissionsDiscordWebhookUrl();
   if (!webhookUrl) {
     console.warn(
-      "No admissions Discord webhook configured (DISCORD_E2E_ALERTS_WEBHOOK_URL or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL); skipping Discord notification.",
+      "No admissions Discord webhook configured (DISCORD_APPLICATION_NOTIFICATIONS_WEBHOOK_URL, DISCORD_E2E_ALERTS_WEBHOOK_URL, or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL); skipping Discord notification.",
     );
     return;
   }
@@ -302,6 +309,7 @@ export async function notifyTuitionBillingCronSummary(payload: {
   organizations: number;
   overdueCount: number;
   remindersSent: number;
+  draftRemindersSent?: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -316,6 +324,11 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Organizations", String(payload.organizations), true),
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
+    embedField(
+      "Draft app reminders",
+      String(payload.draftRemindersSent ?? 0),
+      true,
+    ),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
     embedField("Late fees applied", String(payload.lateFeesApplied), true),
     embedField("Late fee notices", String(payload.lateFeesNotified), true),
@@ -573,6 +586,57 @@ export async function notifyApplicationSubmitted(payload: {
     description: `**${payload.schoolName}** · ${contactLabel}`,
     color: DISCORD_EMBED_COLORS.success,
     fields,
+  });
+}
+
+function formatDraftReminderDelayLabel(delayHours: number): string {
+  const preset = DRAFT_REMINDER_DELAY_PRESETS.find(
+    (entry) => entry.hours === delayHours,
+  );
+  if (preset) {
+    return `After ${preset.label} of inactivity`;
+  }
+  return `After ${delayHours} hours of inactivity`;
+}
+
+export async function notifyDraftApplicationReminderSent(payload: {
+  schoolName: string;
+  schoolSlug?: string;
+  applicationId: string;
+  formTitle: string;
+  contactName?: string;
+  contactEmail: string;
+  recipientEmails: string[];
+  schoolContactEmail: string;
+  delayHours: number;
+  sentAt: string;
+}) {
+  const contactLabel = payload.contactName?.trim() || payload.contactEmail;
+  const schoolLabel = payload.schoolSlug
+    ? `${payload.schoolName} (${payload.schoolSlug})`
+    : payload.schoolName;
+
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(schoolLabel), true),
+    contactField(payload.contactEmail, payload.contactName),
+    embedField(
+      "Recipients",
+      truncate(payload.recipientEmails.join(", ")),
+      true,
+    ),
+    embedField("Application ID", formatId(payload.applicationId), true),
+    embedField("Form", truncate(payload.formTitle)),
+    embedField("School contact", truncate(payload.schoolContactEmail), true),
+    embedField("Delay", formatDraftReminderDelayLabel(payload.delayHours), true),
+    embedField("Reminder sent", formatDateTime(payload.sentAt), true),
+  ];
+
+  await sendAdmissionsDiscordEmbed({
+    title: "📨 Draft application reminder sent",
+    description: `**${payload.schoolName}** · ${contactLabel}`,
+    color: DISCORD_EMBED_COLORS.admissions,
+    fields,
+    timestamp: payload.sentAt,
   });
 }
 

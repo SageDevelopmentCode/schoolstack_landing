@@ -30,6 +30,7 @@ type ApplyPortalPageShellProps = {
   children: ReactNode;
   fullBleed?: boolean;
   fillHeight?: boolean;
+  helpFabClassName?: string;
 };
 
 export default function ApplyPortalPageShell({
@@ -46,6 +47,7 @@ export default function ApplyPortalPageShell({
   children,
   fullBleed = false,
   fillHeight = false,
+  helpFabClassName,
 }: ApplyPortalPageShellProps) {
   const pathname = usePathname();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -89,6 +91,7 @@ export default function ApplyPortalPageShell({
           submitEndpoint="/api/admissions/support-requests"
           visible={showHelpButton}
           readOnly={previewMode}
+          className={helpFabClassName}
         />
       ) : null}
 

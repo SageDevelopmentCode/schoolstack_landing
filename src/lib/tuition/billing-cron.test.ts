@@ -67,6 +67,10 @@ describe("runTuitionBillingCron", () => {
         calls.push(`reminders:${organizationId}`);
         return organizationId === "org-2" ? 3 : 0;
       },
+      sendDraftApplicationReminders: async (_admin, organizationId) => {
+        calls.push(`draft-reminders:${organizationId}`);
+        return organizationId === "org-1" ? 2 : 0;
+      },
       applyLateFeesForOrganization: async () => ({ applied: 0, notified: 0 }),
       evaluateRulesForOrganization: async (_admin, organizationId) => {
         calls.push(`rules:${organizationId}`);
@@ -89,14 +93,17 @@ describe("runTuitionBillingCron", () => {
     assert.deepEqual(calls, [
       "overdue:org-1",
       "reminders:org-1",
+      "draft-reminders:org-1",
       "rules:org-1",
       "overdue:org-2",
       "reminders:org-2",
+      "draft-reminders:org-2",
       "rules:org-2",
     ]);
     assert.equal(summary.organizations, 2);
     assert.equal(summary.overdueCount, 2);
     assert.equal(summary.remindersSent, 3);
+    assert.equal(summary.draftRemindersSent, 2);
     assert.equal(summary.rulesEvaluated, 2);
     assert.equal(summary.lateFeesApplied, 0);
     assert.equal(summary.lateFeesNotified, 0);

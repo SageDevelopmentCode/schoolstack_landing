@@ -267,6 +267,62 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildDraftApplicationReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  formTitle: string;
+  applyDashboardUrl: string;
+  contactEmail: string;
+}): string {
+  const contactMailto = `mailto:${encodeURIComponent(payload.contactEmail)}`;
+
+  return composeEmail({
+    preheader: `${payload.schoolName} would love to see you finish your application.`,
+    contentHtml: `
+      ${emailBadge("Finish Your Application")}
+      ${emailHeading(`We're excited you're applying, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Thank you for starting your application for ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. We're thrilled you're considering joining our community and would love to see you complete your application when you have a few minutes.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Application", value: payload.formTitle },
+      ])}
+      ${emailParagraph(
+        "Your progress has been saved — pick up right where you left off whenever you're ready.",
+      )}
+      ${emailCta({ label: "Continue your application", href: payload.applyDashboardUrl })}
+      ${emailParagraph(
+        `Have questions or want to meet with someone from the ${escapeHtml(payload.schoolName)} team? We'd be happy to help — reach out at <a href="${contactMailto}" style="color:inherit;">${escapeHtml(payload.contactEmail)}</a>.`,
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendDraftApplicationReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Finish your application — ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Draft application reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildEnrollmentCompletedConfirmationHtml(payload: {
   name: string;
   schoolName: string;

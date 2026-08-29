@@ -40,76 +40,45 @@ export async function listParentMessageContacts(
     return { familyId, guardianId, contacts };
   }
 
-  const { data: students, error } = await admin
-    .from("enrollments")
+  const { data: assignments, error } = await admin
+    .from("student_teacher_assignments")
     .select(
       `
+      staff_members!inner (
+        id,
+        first_name,
+        last_name,
+        role_title,
+        profile_photo_url
+      ),
       students!inner (
-        assigned_teacher_id,
-        staff_members:assigned_teacher_id (
-          id,
-          first_name,
-          last_name,
-          role_title,
-          profile_photo_url
-        )
+        family_id
       )
     `,
     )
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
     .eq("students.family_id", familyId);
 
   if (error) throw new Error(error.message);
 
   const teacherMap = new Map<string, MessageContact>();
-  for (const row of students ?? []) {
-    const student = row.students as
+  for (const row of assignments ?? []) {
+    const staffRaw = row.staff_members as
       | {
-          assigned_teacher_id?: string | null;
-          staff_members?:
-            | {
-                id: string;
-                first_name: string;
-                last_name: string;
-                role_title?: string | null;
-                profile_photo_url?: string | null;
-              }
-            | {
-                id: string;
-                first_name: string;
-                last_name: string;
-                role_title?: string | null;
-                profile_photo_url?: string | null;
-              }[]
-            | null;
+          id: string;
+          first_name: string;
+          last_name: string;
+          role_title?: string | null;
+          profile_photo_url?: string | null;
         }
       | {
-          assigned_teacher_id?: string | null;
-          staff_members?:
-            | {
-                id: string;
-                first_name: string;
-                last_name: string;
-                role_title?: string | null;
-                profile_photo_url?: string | null;
-              }
-            | {
-                id: string;
-                first_name: string;
-                last_name: string;
-                role_title?: string | null;
-                profile_photo_url?: string | null;
-              }[]
-            | null;
+          id: string;
+          first_name: string;
+          last_name: string;
+          role_title?: string | null;
+          profile_photo_url?: string | null;
         }[]
       | null;
-
-    const studentRow = Array.isArray(student) ? student[0] : student;
-    const teacherId = studentRow?.assigned_teacher_id;
-    if (!teacherId) continue;
-
-    const staffRaw = studentRow?.staff_members;
     const staff = Array.isArray(staffRaw) ? staffRaw[0] : staffRaw;
     if (!staff) continue;
 

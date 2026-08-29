@@ -59,45 +59,32 @@ export async function loadParentMessagesPreviewInbox(
     },
   ];
 
-  const { data: students, error } = await admin
-    .from("enrollments")
+  const { data: assignments, error } = await admin
+    .from("student_teacher_assignments")
     .select(
       `
+      staff_members!inner (
+        id,
+        first_name,
+        last_name,
+        role_title
+      ),
       students!inner (
-        assigned_teacher_id,
-        staff_members:assigned_teacher_id (
-          id,
-          first_name,
-          last_name,
-          role_title
-        )
+        family_id
       )
     `,
     )
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
     .eq("students.family_id", familyId);
 
   if (error) throw new Error(error.message);
 
   const teacherMap = new Map<string, MessagesInboxData["contacts"][number]>();
-  for (const row of students ?? []) {
-    const student = row.students as
-      | {
-          staff_members?:
-            | { id: string; first_name: string; last_name: string; role_title?: string | null }
-            | { id: string; first_name: string; last_name: string; role_title?: string | null }[]
-            | null;
-        }
-      | {
-          staff_members?:
-            | { id: string; first_name: string; last_name: string; role_title?: string | null }
-            | { id: string; first_name: string; last_name: string; role_title?: string | null }[]
-            | null;
-        }[]
+  for (const row of assignments ?? []) {
+    const staffRaw = row.staff_members as
+      | { id: string; first_name: string; last_name: string; role_title?: string | null }
+      | { id: string; first_name: string; last_name: string; role_title?: string | null }[]
       | null;
-    const studentRow = Array.isArray(student) ? student[0] : student;
-    const staffRaw = studentRow?.staff_members;
     const staff = Array.isArray(staffRaw) ? staffRaw[0] : staffRaw;
     if (!staff) continue;
     const staffMemberId = String(staff.id);

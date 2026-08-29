@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import EnrollmentChecklistItemPanel from "@/components/admissions/EnrollmentChecklistItemPanel";
+import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import type {
   EnrollmentChecklistItem,
   EnrollmentChecklistItemInstance,
@@ -30,6 +31,14 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 const EMPTY_CHECKLIST_INSTANCES: EnrollmentChecklistItemInstance[] = [];
+
+export type EnrollmentChecklistHelpButton = {
+  organizationId: string;
+  userEmail?: string | null;
+  currentPath?: string;
+  submitEndpoint: string;
+  readOnly?: boolean;
+};
 
 export type EnrollmentChecklistExperienceProps = {
   branding: OrganizationBranding;
@@ -49,6 +58,7 @@ export type EnrollmentChecklistExperienceProps = {
   onActiveItemChange?: (templateItemId: string) => void;
   onAllRequiredComplete?: () => void;
   backLink?: { href: string; label: string };
+  helpButton?: EnrollmentChecklistHelpButton;
 };
 
 const panelTransition = {
@@ -267,6 +277,7 @@ export default function EnrollmentChecklistExperience({
   onActiveItemChange,
   onAllRequiredComplete,
   backLink,
+  helpButton,
 }: EnrollmentChecklistExperienceProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const previewLayout = useMemo(() => {
@@ -438,6 +449,18 @@ export default function EnrollmentChecklistExperience({
           ) : (
             <span />
           )}
+          {helpButton ? (
+            <PortalHelpFab
+              C={C}
+              organizationId={helpButton.organizationId}
+              userEmail={helpButton.userEmail}
+              currentPath={helpButton.currentPath}
+              submitEndpoint={helpButton.submitEndpoint}
+              readOnly={helpButton.readOnly}
+              variant="inline"
+              className="shrink-0 sm:hidden"
+            />
+          ) : null}
         </div>
         <h1 className="mt-4 text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
           {title}

@@ -15,7 +15,8 @@ import { Spacing } from '@/constants/theme';
 import { applicationStatusLabel } from '@/lib/admissions/application-status-ui';
 import { listFamilyGuardians, type FamilyGuardianRecord } from '@/lib/admissions/family-guardians';
 import {
-  assignStudentTeacher,
+  formatAssignedTeachersLabel,
+  setStudentTeachers,
   formatEnrolledDate,
   formatEnrolledStudentName,
   formatStudentGrade,
@@ -162,26 +163,26 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
     }
   }, [activeTab, loadGuardians]);
 
-  const handleAssignTeacher = async (staffMemberId: string | null) => {
+  const handleSetTeachers = async (staffMemberIds: string[]) => {
     if (!detail) return;
     setAssigningTeacher(true);
     try {
-      const result = await assignStudentTeacher(supabase, {
+      const result = await setStudentTeachers(supabase, {
         organizationId,
         studentId: detail.id,
-        staffMemberId,
+        staffMemberIds,
       });
       setDetail((current) =>
         current
           ? {
               ...current,
-              assignedTeacherId: result.assignedTeacherId,
-              assignedTeacherName: result.assignedTeacherName,
+              assignedTeachers: result.assignedTeachers,
+              assignedTeacherNames: result.assignedTeacherNames,
             }
           : current,
       );
     } catch (assignError) {
-      setError(assignError instanceof Error ? assignError.message : 'Failed to assign teacher.');
+      setError(assignError instanceof Error ? assignError.message : 'Failed to assign teachers.');
     } finally {
       setAssigningTeacher(false);
     }
@@ -265,10 +266,10 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
                   pressed && { opacity: 0.85 },
                 ]}>
                 <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                  Teacher
+                  Teachers
                 </ThemedText>
                 <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  {detail.assignedTeacherName ?? 'Unassigned'}
+                  {formatAssignedTeachersLabel(detail.assignedTeachers)}
                 </ThemedText>
               </Pressable>
             </DetailSection>
@@ -346,11 +347,11 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
       <StudentTeacherAssignPicker
         visible={pickerVisible}
         studentName={studentName}
-        assignedTeacherId={detail.assignedTeacherId}
+        assignedTeacherIds={detail.assignedTeachers.map((teacher) => teacher.id)}
         activeStaff={activeStaff}
-        assigning={assigningTeacher}
+        saving={assigningTeacher}
         onClose={() => setPickerVisible(false)}
-        onAssign={handleAssignTeacher}
+        onSave={handleSetTeachers}
       />
     </View>
   );

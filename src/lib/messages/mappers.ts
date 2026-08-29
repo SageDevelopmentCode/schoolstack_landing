@@ -99,8 +99,8 @@ export function toMessageStudentSummaries(
     primaryContactEmail: summary.primaryContactEmail,
     programNames: summary.programNames,
     enrolledAt: summary.enrolledAt,
-    assignedTeacherId: summary.assignedTeacherId,
-    assignedTeacherName: summary.assignedTeacherName,
+    assignedTeachers: summary.assignedTeachers,
+    assignedTeacherNames: summary.assignedTeacherNames,
     profilePhotoUrl: summary.profilePhotoUrl,
   }));
 }

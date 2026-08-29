@@ -21,8 +21,8 @@ function buildSummary(
     primaryContactEmail: null,
     programNames: [],
     enrolledAt: "2026-01-01",
-    assignedTeacherId: null,
-    assignedTeacherName: null,
+    assignedTeachers: [],
+    assignedTeacherNames: "",
     profilePhotoUrl: null,
     ...overrides,
   };

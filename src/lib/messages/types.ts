@@ -32,8 +32,8 @@ export type MessageStudentSummary = {
   primaryContactEmail: string | null;
   programNames: string[];
   enrolledAt: string;
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
+  assignedTeachers: { id: string; name: string }[];
+  assignedTeacherNames: string;
   profilePhotoUrl: string | null;
 };
 

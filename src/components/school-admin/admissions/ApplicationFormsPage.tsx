@@ -46,11 +46,11 @@ import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { orgPaymentsReadyForFees } from "@/lib/stripe/organization-payment-account";
 import {
   emptyApplicationSection,
+  normalizeApplicationFormNotificationConfig,
   normalizePublicSlug,
-  normalizeSubmissionNotifyEmails,
+  validateApplicationFormNotificationConfig,
   validateApplicationFormSchema,
   validatePublicSlug,
-  validateSubmissionNotifyEmails,
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
@@ -269,11 +269,12 @@ function toEditableState(form: ApplicationFormVersion): EditableFormState {
     postSubmitConfig: {
       actions: form.post_submit_config.actions.map((action) => ({ ...action })),
     },
-    notificationConfig: {
+    notificationConfig: normalizeApplicationFormNotificationConfig({
       submission_notify_emails: [
         ...form.notification_config.submission_notify_emails,
       ],
-    },
+      draft_reminders: { ...form.notification_config.draft_reminders },
+    }),
   };
 }
 
@@ -697,8 +698,8 @@ export default function ApplicationFormsPage({
       schema: editable.schema,
       fee_config: editable.feeConfig,
       post_submit_config: editable.postSubmitConfig,
-      notification_config: normalizeSubmissionNotifyEmails(
-        editable.notificationConfig.submission_notify_emails,
+      notification_config: normalizeApplicationFormNotificationConfig(
+        editable.notificationConfig,
       ),
     };
   };
@@ -840,10 +841,8 @@ export default function ApplicationFormsPage({
     const slugOk = await validateSlugForSave();
     if (!slugOk) return;
 
-    const notificationError = validateSubmissionNotifyEmails(
-      normalizeSubmissionNotifyEmails(
-        editable.notificationConfig.submission_notify_emails,
-      ),
+    const notificationError = validateApplicationFormNotificationConfig(
+      normalizeApplicationFormNotificationConfig(editable.notificationConfig),
     );
     if (notificationError) {
       setError(notificationError);
@@ -916,10 +915,9 @@ export default function ApplicationFormsPage({
       return;
     }
 
-    const notificationError = validateSubmissionNotifyEmails(
-      normalizeSubmissionNotifyEmails(
-        editable?.notificationConfig.submission_notify_emails ??
-          selectedForm.notification_config.submission_notify_emails,
+    const notificationError = validateApplicationFormNotificationConfig(
+      normalizeApplicationFormNotificationConfig(
+        editable?.notificationConfig ?? selectedForm.notification_config,
       ),
     );
     if (notificationError) {

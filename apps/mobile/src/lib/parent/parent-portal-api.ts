@@ -127,6 +127,24 @@ export async function fetchParentHomeData(
   return fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
 }
 
+export type ParentAssignedTeacher = {
+  id: string;
+  name: string;
+  roleTitle: string | null;
+  profilePhotoUrl: string | null;
+};
+
+export async function fetchAssignedTeachersForStudent(
+  organizationId: string,
+  studentId: string,
+): Promise<ParentAssignedTeacher[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ teachers: ParentAssignedTeacher[] }>(
+    `/api/parent-portal/students/${encodeURIComponent(studentId)}/teachers?${query}`,
+  );
+  return payload.teachers ?? [];
+}
+
 export type ParentCalendarData = ParentCalendarInitialData & {
   timezone: string;
 };

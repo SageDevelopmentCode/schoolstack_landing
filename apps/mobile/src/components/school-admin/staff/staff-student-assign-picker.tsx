@@ -25,11 +25,12 @@ import { getSupabaseClient } from '@/lib/supabase';
 type StaffStudentAssignPickerProps = {
   visible: boolean;
   staffMemberName: string;
+  staffMemberId: string;
   organizationId: string;
   assignedStudentIds: string[];
-  assigning?: boolean;
+  saving?: boolean;
   onClose: () => void;
-  onAssign: (studentId: string) => Promise<void>;
+  onSave: (studentIds: string[]) => Promise<void>;
 };
 
 type PickerOption = {
@@ -41,17 +42,24 @@ type PickerOption = {
 export function StaffStudentAssignPicker({
   visible,
   staffMemberName,
+  staffMemberId,
   organizationId,
   assignedStudentIds,
-  assigning = false,
+  saving = false,
   onClose,
-  onAssign,
+  onSave,
 }: StaffStudentAssignPickerProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
 
   const [enrolledStudents, setEnrolledStudents] = useState<AdminEnrolledStudentSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedIds([]);
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -87,18 +95,33 @@ export function StaffStudentAssignPicker({
       .sort((a, b) =>
         formatEnrolledStudentName(a).localeCompare(formatEnrolledStudentName(b)),
       )
-      .map((student) => ({
-        id: student.id,
-        label: formatEnrolledStudentName(student),
-        subtitle: student.assignedTeacherName
-          ? `Currently: ${student.assignedTeacherName}`
-          : formatStudentGrade(student.grade),
-      }));
-  }, [assignedStudentIds, enrolledStudents]);
+      .map((student) => {
+        const otherTeachers = student.assignedTeachers
+          .filter((teacher) => teacher.id !== staffMemberId)
+          .map((teacher) => teacher.name);
 
-  const handleSelect = async (studentId: string) => {
-    if (assigning) return;
-    await onAssign(studentId);
+        return {
+          id: student.id,
+          label: formatEnrolledStudentName(student),
+          subtitle:
+            otherTeachers.length > 0
+              ? `Teachers: ${otherTeachers.join(', ')}`
+              : formatStudentGrade(student.grade),
+        };
+      });
+  }, [assignedStudentIds, enrolledStudents, staffMemberId]);
+
+  const toggleStudent = (studentId: string) => {
+    setSelectedIds((current) =>
+      current.includes(studentId)
+        ? current.filter((id) => id !== studentId)
+        : [...current, studentId],
+    );
+  };
+
+  const handleSave = async () => {
+    if (selectedIds.length === 0) return;
+    await onSave(selectedIds);
     onClose();
   };
 
@@ -123,7 +146,7 @@ export function StaffStudentAssignPicker({
           ]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
             <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              Assign student
+              Assign students
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
               {staffMemberName}
@@ -144,47 +167,84 @@ export function StaffStudentAssignPicker({
             <FlatList
               data={options}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={assigning}
-                  onPress={() => void handleSelect(item.id)}
-                  style={({ pressed }) => [
-                    styles.option,
-                    pressed && { backgroundColor: theme.elevated },
-                  ]}>
-                  <View style={styles.optionText}>
-                    <ThemedText type="small" style={{ color: theme.textPrimary }}>
-                      {item.label}
-                    </ThemedText>
-                    {item.subtitle ? (
-                      <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                        {item.subtitle}
+              renderItem={({ item }) => {
+                const selected = selectedIds.includes(item.id);
+                return (
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    disabled={saving}
+                    onPress={() => toggleStudent(item.id)}
+                    style={({ pressed }) => [
+                      styles.option,
+                      pressed && { backgroundColor: theme.elevated },
+                      selected && { backgroundColor: theme.accentLight },
+                    ]}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: selected ? theme.accent : theme.borderStrong,
+                          backgroundColor: selected ? theme.accent : theme.elevated,
+                        },
+                      ]}>
+                      {selected ? (
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      ) : null}
+                    </View>
+                    <View style={styles.optionText}>
+                      <ThemedText
+                        type="small"
+                        style={{ color: selected ? theme.accent : theme.textPrimary }}>
+                        {item.label}
                       </ThemedText>
-                    ) : null}
-                  </View>
-                  {assigning ? (
-                    <ActivityIndicator color={theme.accent} size="small" />
-                  ) : (
-                    <Ionicons name="add" size={18} color={theme.accent} />
-                  )}
-                </Pressable>
-              )}
+                      {item.subtitle ? (
+                        <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                          {item.subtitle}
+                        </ThemedText>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              }}
             />
           )}
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={onClose}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              { borderColor: theme.border, backgroundColor: theme.bg },
-              pressed && { opacity: 0.85 },
-            ]}>
-            <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
-              Cancel
-            </ThemedText>
-          </Pressable>
+          <View style={styles.footer}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClose}
+              disabled={saving}
+              style={({ pressed }) => [
+                styles.footerButton,
+                styles.cancelButton,
+                { borderColor: theme.border, backgroundColor: theme.bg },
+                pressed && { opacity: 0.85 },
+              ]}>
+              <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
+                Cancel
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void handleSave()}
+              disabled={saving || selectedIds.length === 0}
+              style={({ pressed }) => [
+                styles.footerButton,
+                styles.saveButton,
+                { backgroundColor: theme.accent },
+                pressed && { opacity: 0.85 },
+                (saving || selectedIds.length === 0) && { opacity: 0.6 },
+              ]}>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
+                  Assign{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -223,16 +283,32 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   optionText: {
     flex: 1,
     gap: 2,
   },
-  cancelButton: {
-    marginHorizontal: Spacing.four,
-    marginTop: Spacing.two,
+  footer: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+  },
+  footerButton: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.three,
     borderRadius: Radius.md,
+  },
+  cancelButton: {
     borderWidth: StyleSheet.hairlineWidth,
   },
+  saveButton: {},
 });

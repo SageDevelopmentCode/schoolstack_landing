@@ -168,13 +168,33 @@ function summarizeNotificationConfigChanges(
   before: ApplicationFormNotificationConfig,
   after: ApplicationFormNotificationConfig,
 ): string[] {
+  const changes: string[] = [];
+
   if (
-    stableJson(before.submission_notify_emails) ===
+    stableJson(before.submission_notify_emails) !==
     stableJson(after.submission_notify_emails)
   ) {
-    return [];
+    changes.push("Updated submission notification emails");
   }
-  return ["Updated submission notification emails"];
+
+  const beforeDraft = before.draft_reminders;
+  const afterDraft = after.draft_reminders;
+  if (beforeDraft.enabled !== afterDraft.enabled) {
+    changes.push(
+      afterDraft.enabled
+        ? "Enabled draft application reminders"
+        : "Disabled draft application reminders",
+    );
+  } else if (beforeDraft.enabled && afterDraft.enabled) {
+    if (beforeDraft.delay_hours !== afterDraft.delay_hours) {
+      changes.push("Updated draft reminder delay");
+    }
+    if (beforeDraft.contact_email !== afterDraft.contact_email) {
+      changes.push("Updated draft reminder contact email");
+    }
+  }
+
+  return changes;
 }
 
 function summarizePostSubmitConfigChanges(
