@@ -130,17 +130,17 @@ export async function resolveParticipantsForContact(
         throw new Error("You can only message guardians of your assigned students.");
       }
 
-      const { data: student, error } = await admin
-        .from("students")
-        .select("id")
+      const { data: assignment, error } = await admin
+        .from("student_teacher_assignments")
+        .select("id, students!inner(family_id)")
         .eq("organization_id", organizationId)
-        .eq("family_id", guardian.family_id)
-        .eq("assigned_teacher_id", context.staffMemberId)
+        .eq("staff_member_id", context.staffMemberId)
+        .eq("students.family_id", guardian.family_id)
         .limit(1)
         .maybeSingle();
 
       if (error) throw new Error(error.message);
-      if (!student) {
+      if (!assignment) {
         throw new Error("You can only message guardians of your assigned students.");
       }
     }

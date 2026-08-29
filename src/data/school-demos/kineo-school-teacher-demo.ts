@@ -19,3 +19,19 @@ export const KINEO_SCHOOL_TEACHER_PROGRAM_ORDER = [
   "sel_choice",
   "enrichment",
 ] as const;
+
+
+import { KINEO_SCHOOL_ADMIN_LOGO } from "./kineo-school-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const kineoSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "kineo-school",
+  logo: KINEO_SCHOOL_ADMIN_LOGO,
+  accent: KINEO_SCHOOL_TEACHER_ACCENT,
+  accentHover: KINEO_SCHOOL_TEACHER_ACCENT_HOVER,
+  programLabels: KINEO_SCHOOL_TEACHER_PROGRAM_LABELS,
+  programOrder: KINEO_SCHOOL_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: KINEO_SCHOOL_TEACHER_OFFICE,
+  },
+};

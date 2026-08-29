@@ -26,3 +26,21 @@ export const MICAH_MISSION_ADMIN_COLORS = {
   textPrimary: "#222222",
   textSecondary: "#333333",
 } as const;
+
+import { adminContentOverrides as micahsMissionSchoolAdminContentOverrides } from "./admin-content/micahs-mission-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const micahsMissionSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "micahs-mission-school",
+  logo: MICAH_MISSION_ADMIN_LOGO,
+  colors: MICAH_MISSION_ADMIN_COLORS,
+  compactRows: MICAH_MISSION_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Micah's Mission School, Inc.",
+    schoolShortName: "Micah's Mission",
+    officeName: "Micah's Mission School, Inc. Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: micahsMissionSchoolAdminContentOverrides,
+};

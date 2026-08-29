@@ -26,3 +26,21 @@ export const HOMEWORK_HUB_ADMIN_COLORS = {
   textPrimary: "#333333",
   textSecondary: "#454545",
 } as const;
+
+import { adminContentOverrides as homeworkHubAdminContentOverrides } from "./admin-content/homework-hub";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const homeworkHubAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "homework-hub",
+  logo: HOMEWORK_HUB_ADMIN_LOGO,
+  colors: HOMEWORK_HUB_ADMIN_COLORS,
+  compactRows: HOMEWORK_HUB_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Homework Hub",
+    schoolShortName: "Homework Hub",
+    officeName: "Homework Hub Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: homeworkHubAdminContentOverrides,
+};

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SchoolAdminCalendarSkeleton } from "@/components/school-admin/skeletons";
 import ScheduleCalendarShell from "@/components/school-admin/schedule/ScheduleCalendarShell";
+import ScheduleAvailabilityLegend from "@/components/school-admin/schedule/ScheduleAvailabilityLegend";
 import { useScheduleCalendar } from "@/components/school-admin/schedule/useScheduleCalendar";
 import {
   createDefaultObservationSlotDraft,
@@ -373,22 +374,10 @@ export default function AdmissionsObservationDayAvailabilityEditor({
           onNextMonth={nextMonth}
           calendarColors={calendarColors}
           legend={
-            <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: C.textTertiary }}>
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block h-3 w-3 rounded"
-                  style={{ backgroundColor: C.accentLight, border: `1px solid ${C.accent}` }}
-                />
-                {usesGradeSlots ? "Open slots" : "Open for shadow visits"}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="inline-block h-3 w-3 rounded"
-                  style={{ backgroundColor: C.warningBg, border: `1px solid ${C.warning}` }}
-                />
-                Booked
-              </span>
-            </div>
+            <ScheduleAvailabilityLegend
+              C={C}
+              openLabel={usesGradeSlots ? "Open slots" : "Open for shadow visits"}
+            />
           }
         />
 

@@ -18,3 +18,19 @@ export const ARIZONA_GIFTED_ACADEMY_TEACHER_PROGRAM_ORDER = [
   "summer_26",
   "school_year_26_27",
 ] as const;
+
+
+import { ARIZONA_GIFTED_ACADEMY_ADMIN_LOGO } from "./arizonagiftedacademy-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const arizonaGiftedAcademyTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "arizona-gifted-academy",
+  logo: ARIZONA_GIFTED_ACADEMY_ADMIN_LOGO,
+  accent: ARIZONA_GIFTED_ACADEMY_TEACHER_ACCENT,
+  accentHover: ARIZONA_GIFTED_ACADEMY_TEACHER_ACCENT_HOVER,
+  programLabels: ARIZONA_GIFTED_ACADEMY_TEACHER_PROGRAM_LABELS,
+  programOrder: ARIZONA_GIFTED_ACADEMY_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ARIZONA_GIFTED_ACADEMY_TEACHER_OFFICE,
+  },
+};

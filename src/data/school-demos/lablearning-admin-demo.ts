@@ -25,3 +25,21 @@ export const LAB_LEARNING_ADMIN_COLORS = {
   textPrimary: "#1f1f1f",
   textSecondary: "#6f6f6f",
 } as const;
+
+import { adminContentOverrides as labLearningAdminContentOverrides } from "./admin-content/lab-learning";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const labLearningAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "lab-learning",
+  logo: LAB_LEARNING_ADMIN_LOGO,
+  colors: LAB_LEARNING_ADMIN_COLORS,
+  compactRows: LAB_LEARNING_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "The Lab Learning Space",
+    schoolShortName: "The Lab",
+    officeName: "The Lab Learning Space Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: labLearningAdminContentOverrides,
+};

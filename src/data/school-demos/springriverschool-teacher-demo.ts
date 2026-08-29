@@ -20,3 +20,19 @@ export const SPRING_RIVER_SCHOOL_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "four_day_outdoor",
 ] as const;
+
+
+import { SPRING_RIVER_SCHOOL_ADMIN_LOGO } from "./springriverschool-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const springRiverSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "spring-river-school",
+  logo: SPRING_RIVER_SCHOOL_ADMIN_LOGO,
+  accent: SPRING_RIVER_SCHOOL_TEACHER_ACCENT,
+  accentHover: SPRING_RIVER_SCHOOL_TEACHER_ACCENT_HOVER,
+  programLabels: SPRING_RIVER_SCHOOL_TEACHER_PROGRAM_LABELS,
+  programOrder: SPRING_RIVER_SCHOOL_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: SPRING_RIVER_SCHOOL_TEACHER_OFFICE,
+  },
+};

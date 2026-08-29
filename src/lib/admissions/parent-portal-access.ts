@@ -99,9 +99,17 @@ export type ApplicationDetail = {
   profilePhotoUrl: string | null;
 };
 
+export type ParentAssignedTeacher = {
+  id: string;
+  name: string;
+  roleTitle: string | null;
+  profilePhotoUrl: string | null;
+};
+
 export type ChildProfileData = {
   application: ApplicationDetail;
   checklist: LoadedEnrollmentChecklist | null;
+  assignedTeachers: ParentAssignedTeacher[];
 };
 
 export type FamilyUserProfile = {
@@ -281,6 +289,78 @@ export async function userIsGuardianForStudent(
 
   if (error) throw error;
   return Boolean(data);
+}
+
+function unwrapStaffMemberRelation(
+  value:
+    | {
+        id?: string;
+        first_name?: string;
+        last_name?: string;
+        role_title?: string | null;
+        profile_photo_url?: string | null;
+      }
+    | {
+        id?: string;
+        first_name?: string;
+        last_name?: string;
+        role_title?: string | null;
+        profile_photo_url?: string | null;
+      }[]
+    | null
+    | undefined,
+) {
+  if (value == null) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+export async function loadAssignedTeachersForStudent(
+  admin: SupabaseClient,
+  organizationId: string,
+  studentId: string,
+): Promise<ParentAssignedTeacher[]> {
+  const { data, error } = await admin
+    .from("student_teacher_assignments")
+    .select(
+      `
+      staff_members!inner (
+        id,
+        first_name,
+        last_name,
+        role_title,
+        profile_photo_url
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .eq("student_id", studentId);
+
+  if (error) throw error;
+
+  const teachers: ParentAssignedTeacher[] = [];
+
+  for (const row of data ?? []) {
+    const staff = unwrapStaffMemberRelation(
+      row.staff_members as Parameters<typeof unwrapStaffMemberRelation>[0],
+    );
+    if (!staff?.id) continue;
+
+    const name = [staff.first_name, staff.last_name].filter(Boolean).join(" ").trim();
+    teachers.push({
+      id: String(staff.id),
+      name: name || "Teacher",
+      roleTitle:
+        typeof staff.role_title === "string" && staff.role_title.trim()
+          ? staff.role_title.trim()
+          : null,
+      profilePhotoUrl:
+        typeof staff.profile_photo_url === "string" && staff.profile_photo_url.trim()
+          ? staff.profile_photo_url.trim()
+          : null,
+    });
+  }
+
+  return teachers.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function buildFamilyChildOverviews(

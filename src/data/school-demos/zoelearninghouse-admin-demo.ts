@@ -27,3 +27,21 @@ export const ZOE_LEARNING_HOUSE_ADMIN_COLORS = {
   textPrimary: "#3A3A3A",
   textSecondary: "#6B6560",
 } as const;
+
+import { adminContentOverrides as zoeLearningHouseAdminContentOverrides } from "./admin-content/zoe-learning-house";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const zoeLearningHouseAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "zoe-learning-house",
+  logo: ZOE_LEARNING_HOUSE_ADMIN_LOGO,
+  colors: ZOE_LEARNING_HOUSE_ADMIN_COLORS,
+  compactRows: ZOE_LEARNING_HOUSE_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Zoe Learning House",
+    schoolShortName: "Zoe Learning",
+    officeName: "Zoe Learning House Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: zoeLearningHouseAdminContentOverrides,
+};

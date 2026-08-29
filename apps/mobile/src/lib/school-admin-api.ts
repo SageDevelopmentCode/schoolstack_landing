@@ -182,16 +182,62 @@ export async function reactivateStaffPortalAccess(
   return payload.staffMember;
 }
 
+export async function setStudentTeachersApi(
+  slug: string,
+  studentId: string,
+  staffMemberIds: string[],
+): Promise<{
+  assignedTeachers: { id: string; name: string }[];
+  assignedTeacherNames: string;
+}> {
+  return fetchSchoolAdminApi(`/api/school/${slug}/students/${studentId}/teacher`, {
+    method: 'PATCH',
+    body: { staffMemberIds },
+  });
+}
+
+export async function assignStudentsToStaffApi(
+  slug: string,
+  staffMemberId: string,
+  studentIds: string[],
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/staff/${staffMemberId}/students`, {
+    method: 'PATCH',
+    body: { studentIds },
+  });
+}
+
+export async function unassignStudentFromStaffApi(
+  slug: string,
+  staffMemberId: string,
+  studentId: string,
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/staff/${staffMemberId}/students`, {
+    method: 'PATCH',
+    body: { action: 'unassign', studentId },
+  });
+}
+
+/** @deprecated Use setStudentTeachersApi instead */
 export async function assignStudentTeacher(
   slug: string,
   studentId: string,
   staffMemberId: string | null,
-): Promise<{ assignedTeacherId: string | null; assignedTeacherName: string | null }> {
-  return fetchSchoolAdminApi(`/api/school/${slug}/students/${studentId}/teacher`, {
-    method: 'PATCH',
-    body: { staffMemberId },
-  });
+): Promise<{
+  assignedTeachers: { id: string; name: string }[];
+  assignedTeacherNames: string;
+}> {
+  return setStudentTeachersApi(
+    slug,
+    studentId,
+    staffMemberId ? [staffMemberId] : [],
+  );
 }
+
+export type AssignedTeacher = {
+  id: string;
+  name: string;
+};
 
 export type AdminEnrolledStudentSummary = {
   id: string;
@@ -206,8 +252,8 @@ export type AdminEnrolledStudentSummary = {
   primaryContactEmail: string | null;
   programNames: string[];
   enrolledAt: string;
-  assignedTeacherId: string | null;
-  assignedTeacherName: string | null;
+  assignedTeachers: AssignedTeacher[];
+  assignedTeacherNames: string;
   profilePhotoUrl: string | null;
 };
 

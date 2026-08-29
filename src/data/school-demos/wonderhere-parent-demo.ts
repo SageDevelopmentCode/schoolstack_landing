@@ -8,3 +8,21 @@ export const WONDERHERE_PARENT_ACCENT_HOVER = "#2D4533";
 export const WONDERHERE_PARENT_SCHOOL_NAME = "WonderHere Lakeland";
 export const WONDERHERE_PARENT_SCHOOL_SHORT = "WonderHere Lakeland";
 export const WONDERHERE_PARENT_OFFICE = "WonderHere Lakeland Office";
+
+
+import { WONDERHERE_ADMIN_LOGO } from "./wonderhere-admin-demo";
+import type { SchoolParentDemoConfig } from "./demo-dashboard-types";
+
+export const wonderhereLakelandParentDemoConfig: SchoolParentDemoConfig = {
+  slug: "wonderhere-lakeland",
+  logo: WONDERHERE_ADMIN_LOGO,
+  colors: {
+    accent: WONDERHERE_PARENT_ACCENT,
+    accentHover: WONDERHERE_PARENT_ACCENT_HOVER,
+  },
+  copy: {
+    schoolName: WONDERHERE_PARENT_SCHOOL_NAME,
+    schoolShortName: WONDERHERE_PARENT_SCHOOL_SHORT,
+    officeName: WONDERHERE_PARENT_OFFICE,
+  },
+};

@@ -45,9 +45,11 @@ test.describe("mobile apply flows", () => {
   }) => {
     await openNewApplicationForm(page);
 
+    await expect(page.locator("footer").getByText(/Step 1 of/i)).toBeVisible();
+
     const continueButton = page
-      .getByRole("button", { name: /Save and continue|Continue/i })
-      .first();
+      .locator("footer")
+      .getByRole("button", { name: "Save and continue" });
     await expect(continueButton).toBeVisible();
 
     const box = await continueButton.boundingBox();

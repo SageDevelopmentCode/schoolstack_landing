@@ -37,7 +37,7 @@ export default function ApplyPortalBranding({
         sizes="40px"
         className="h-10 w-auto shrink-0 object-contain"
       />
-      <span className="font-display text-xs font-semibold leading-tight text-clay">
+      <span className="hidden font-display text-xs font-semibold leading-tight text-clay sm:inline">
         MudKitchen
       </span>
     </div>

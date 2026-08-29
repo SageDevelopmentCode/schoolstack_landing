@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { listAssignedEnrolledStudents } from "@/lib/school-admin/enrolled-students";
+import {
+  assignStudentsToStaff,
+  listAssignedEnrolledStudents,
+  StudentTeacherAssignmentError,
+  unassignStudentFromStaff,
+} from "@/lib/school-admin/enrolled-students";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -97,6 +102,123 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       status: 500,
       error: "Failed to load assigned students.",
+      code: "internal_error",
+      cause: error,
+    });
+  }
+}
+
+type PatchStaffStudentsBody = {
+  studentIds?: string[];
+  studentId?: string;
+  action?: "unassign";
+};
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const { slug, staffMemberId } = await context.params;
+  const supabase = await createClientFromRequest(request);
+
+  try {
+    let body: PatchStaffStudentsBody;
+    try {
+      body = (await request.json()) as PatchStaffStudentsBody;
+    } catch {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Invalid request body.",
+        code: "invalid_body",
+      });
+    }
+
+    const admin = createAdminClient();
+    const organizationId = await resolveOrganizationId(admin, slug);
+
+    if (!organizationId) {
+      return apiError(ROUTE, {
+        status: 404,
+        error: "School not found.",
+        code: "not_found",
+      });
+    }
+
+    await requireSchoolAdminUser(supabase, organizationId, request);
+
+    const staffExists = await assertStaffMemberInOrg(
+      admin,
+      organizationId,
+      staffMemberId,
+    );
+
+    if (!staffExists) {
+      return apiError(ROUTE, {
+        status: 404,
+        error: "Staff member not found.",
+        code: "not_found",
+      });
+    }
+
+    if (body.action === "unassign") {
+      if (!body.studentId) {
+        return apiError(ROUTE, {
+          status: 400,
+          error: "studentId is required to unassign.",
+          code: "invalid_body",
+        });
+      }
+
+      await unassignStudentFromStaff(admin, {
+        organizationId,
+        staffMemberId,
+        studentId: body.studentId,
+      });
+
+      return NextResponse.json({ ok: true });
+    }
+
+    const studentIds = Array.isArray(body.studentIds)
+      ? body.studentIds.filter(
+          (id): id is string => typeof id === "string" && id.trim() !== "",
+        )
+      : [];
+
+    if (studentIds.length === 0) {
+      return apiError(ROUTE, {
+        status: 400,
+        error: "studentIds is required.",
+        code: "invalid_body",
+      });
+    }
+
+    await assignStudentsToStaff(admin, {
+      organizationId,
+      staffMemberId,
+      studentIds,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof SchoolAdminAuthError) {
+      return apiError(ROUTE, {
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    if (error instanceof StudentTeacherAssignmentError) {
+      return apiError(ROUTE, {
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    return apiError(ROUTE, {
+      status: 500,
+      error: "Failed to update assigned students.",
       code: "internal_error",
       cause: error,
     });

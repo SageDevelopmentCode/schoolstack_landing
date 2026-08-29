@@ -24,3 +24,42 @@ export const ATHENA_ADMIN_COLORS = {
   textPrimary: "#343A40",
   textSecondary: "#6A6F73",
 } as const;
+
+import { adminContentOverrides as athenaMicroacademyAdminContentOverrides } from "./admin-content/athena-microacademy";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const athenaMicroacademyAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "athena-microacademy",
+  logo: {
+  src: "/images/demo/athena/Logo.png",
+  alt: "Athena Micro-academy of Austin",
+  width: 180,
+  height: 52,
+},
+  colors: {
+  bg: "#FBFAF6",
+  border: "#E8D9BC",
+  borderStrong: "#D9C9A3",
+  accent: "#173B5C",
+  accentBright: "#24678D",
+  accentLight: "rgba(23, 59, 92, 0.10)",
+  secondaryBtnBorder: "rgba(23, 59, 92, 0.22)",
+  accentGlow: "rgba(36, 103, 141, 0.12)",
+  accentMid: "#24678D",
+  accentDark: "#122D47",
+  clay: "#C1A367",
+  clayBg: "rgba(193, 163, 103, 0.12)",
+  clayBorder: "rgba(193, 163, 103, 0.30)",
+  textPrimary: "#343A40",
+  textSecondary: "#6A6F73",
+} as SchoolAdminDemoConfig["colors"],
+  compactRows: 5,
+  copy: {
+    schoolName: "Athena Micro-academy of Austin",
+    schoolShortName: "Athena Micro-academy",
+    officeName: "Athena Micro-academy of Austin Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: athenaMicroacademyAdminContentOverrides,
+};

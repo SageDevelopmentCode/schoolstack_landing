@@ -50,10 +50,23 @@ export function useScheduleCalendar({
       accentLight: C.accentLight,
       text: C.textPrimary,
       textFaint: C.textTertiary,
+      textSecondary: C.textSecondary,
+      border: C.border,
+      bg: C.bg,
       warning: C.warning,
       warningBg: C.warningBg,
     }),
-    [C.accent, C.accentLight, C.textPrimary, C.textTertiary, C.warning, C.warningBg],
+    [
+      C.accent,
+      C.accentLight,
+      C.bg,
+      C.border,
+      C.textPrimary,
+      C.textSecondary,
+      C.textTertiary,
+      C.warning,
+      C.warningBg,
+    ],
   );
 
   useEffect(() => {

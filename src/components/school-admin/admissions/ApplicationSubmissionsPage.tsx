@@ -12,6 +12,7 @@ import SubmissionFeeBadges from "./SubmissionFeeBadges";
 import {
   applicationStatusBadgeStyle,
   adminApplicationStatusLabel,
+  applicationSubmissionRowStyle,
   APPLICATION_STATUS_FILTER_ORDER,
   APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL,
 } from "@/lib/admissions/application-status-ui";
@@ -476,7 +477,12 @@ export default function ApplicationSubmissionsPage({
               <tbody>
                 {visibleSubmissions.map((submission) => {
                   const isSelected = submission.id === selectedId;
+                  const isHovered = hoveredId === submission.id;
                   const statusStyle = applicationStatusBadgeStyle(submission.status, C);
+                  const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
+                    isSelected,
+                    isHovered,
+                  });
 
                   return (
                     <tr
@@ -490,13 +496,8 @@ export default function ApplicationSubmissionsPage({
                       onMouseLeave={() => setHoveredId(null)}
                       className="cursor-pointer transition-colors"
                       style={{
-                        backgroundColor: isSelected
-                          ? C.accentLight
-                          : hoveredId === submission.id
-                            ? C.elevated
-                            : C.surface,
+                        ...rowStyle,
                         borderBottom: `1px solid ${C.border}`,
-                        borderLeft: `3px solid ${isSelected ? C.accent : "transparent"}`,
                       }}
                     >
                       {showFormColumn ? (

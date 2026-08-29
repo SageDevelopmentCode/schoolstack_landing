@@ -21,7 +21,7 @@ import {
   RootedMeadowsTeacherAttendanceMobilePreview,
   RootedMeadowsTeacherStudentsMobilePreview,
 } from "@/components/demo/rootedmeadows/RootedMeadowsTeacherDashboardDemo";
-import MobilePhoneFrame from "./MobilePhoneFrame";
+import MobilePhoneFrame from "@/components/demo/mobile/MobilePhoneFrame";
 
 type MobileSlide = {
   id: string;

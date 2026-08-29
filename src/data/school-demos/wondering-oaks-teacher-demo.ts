@@ -19,3 +19,19 @@ export const WONDERING_OAKS_TEACHER_PROGRAM_ORDER = [
   "foundational_core",
   "science_projects",
 ] as const;
+
+
+import { WONDERING_OAKS_ADMIN_LOGO } from "./wondering-oaks-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const wonderingOaksLearningTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "wondering-oaks-learning",
+  logo: WONDERING_OAKS_ADMIN_LOGO,
+  accent: WONDERING_OAKS_TEACHER_ACCENT,
+  accentHover: WONDERING_OAKS_TEACHER_ACCENT_HOVER,
+  programLabels: WONDERING_OAKS_TEACHER_PROGRAM_LABELS,
+  programOrder: WONDERING_OAKS_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: WONDERING_OAKS_TEACHER_OFFICE,
+  },
+};

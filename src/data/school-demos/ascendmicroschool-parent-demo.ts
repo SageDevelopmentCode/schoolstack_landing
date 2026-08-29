@@ -8,3 +8,21 @@ export const ASCEND_MICROSCHOOL_PARENT_ACCENT_HOVER = "#124A7C";
 export const ASCEND_MICROSCHOOL_PARENT_SCHOOL_NAME = "Ascend Micro School";
 export const ASCEND_MICROSCHOOL_PARENT_SCHOOL_SHORT = "Ascend Micro School";
 export const ASCEND_MICROSCHOOL_PARENT_OFFICE = "Ascend Micro School Office";
+
+
+import { ASCEND_MICROSCHOOL_ADMIN_LOGO } from "./ascendmicroschool-admin-demo";
+import type { SchoolParentDemoConfig } from "./demo-dashboard-types";
+
+export const ascendMicroSchoolParentDemoConfig: SchoolParentDemoConfig = {
+  slug: "ascend-micro-school",
+  logo: ASCEND_MICROSCHOOL_ADMIN_LOGO,
+  colors: {
+    accent: ASCEND_MICROSCHOOL_PARENT_ACCENT,
+    accentHover: ASCEND_MICROSCHOOL_PARENT_ACCENT_HOVER,
+  },
+  copy: {
+    schoolName: ASCEND_MICROSCHOOL_PARENT_SCHOOL_NAME,
+    schoolShortName: ASCEND_MICROSCHOOL_PARENT_SCHOOL_SHORT,
+    officeName: ASCEND_MICROSCHOOL_PARENT_OFFICE,
+  },
+};

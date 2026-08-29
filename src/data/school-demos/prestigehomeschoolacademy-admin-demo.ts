@@ -25,3 +25,21 @@ export const PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COLORS = {
   textPrimary: "#1F1F1F",
   textSecondary: "#5C5C5C",
 } as const;
+
+import { adminContentOverrides as prestigeHomeschoolAcademyAdminContentOverrides } from "./admin-content/prestige-homeschool-academy";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const prestigeHomeschoolAcademyAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "prestige-homeschool-academy",
+  logo: PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_LOGO,
+  colors: PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COLORS,
+  compactRows: PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Prestige Homeschool Academy",
+    schoolShortName: "Prestige Homeschool",
+    officeName: "Prestige Homeschool Academy Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: prestigeHomeschoolAcademyAdminContentOverrides,
+};

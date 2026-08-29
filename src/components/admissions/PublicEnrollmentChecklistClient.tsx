@@ -252,6 +252,14 @@ export default function PublicEnrollmentChecklistClient({
     profilePhotoUrl: null,
   };
 
+  const helpButton = {
+    organizationId,
+    userEmail: resolvedProfile.email,
+    currentPath: pathname,
+    submitEndpoint: "/api/admissions/support-requests",
+    readOnly: previewMode,
+  };
+
   return (
     <ApplyPortalPageShell
       branding={branding}
@@ -266,6 +274,7 @@ export default function PublicEnrollmentChecklistClient({
       previewHomeHref={backHref}
       fullBleed
       fillHeight
+      helpFabClassName="max-sm:hidden"
     >
       <EnrollmentChecklistExperience
         branding={branding}
@@ -283,6 +292,7 @@ export default function PublicEnrollmentChecklistClient({
         onActiveItemChange={previewMode ? undefined : persistActiveItem}
         onAllRequiredComplete={previewMode ? undefined : handleAllRequiredComplete}
         mode="live"
+        helpButton={helpButton}
         backLink={{
           href: backHref ?? `/school/${schoolSlug}/apply`,
           label: "Back to applications",

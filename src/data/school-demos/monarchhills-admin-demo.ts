@@ -27,3 +27,21 @@ export const MONARCH_HILLS_ADMIN_COLORS = {
   textPrimary: "#233975",
   textSecondary: "#5A6478",
 } as const;
+
+import { adminContentOverrides as monarchHillsEducationAdminContentOverrides } from "./admin-content/monarch-hills-education";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const monarchHillsEducationAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "monarch-hills-education",
+  logo: MONARCH_HILLS_ADMIN_LOGO,
+  colors: MONARCH_HILLS_ADMIN_COLORS,
+  compactRows: MONARCH_HILLS_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Monarch Hills Education",
+    schoolShortName: "Monarch Hills",
+    officeName: "Monarch Hills Education Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: monarchHillsEducationAdminContentOverrides,
+};

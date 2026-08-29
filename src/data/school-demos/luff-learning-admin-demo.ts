@@ -27,3 +27,19 @@ export const LUFF_LEARNING_ADMIN_COLORS = {
   textPrimary: "#1e141f",
   textSecondary: "#718096",
 } as const;
+
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const luffLearningAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "luff-learning",
+  logo: LUFF_LEARNING_ADMIN_LOGO,
+  colors: LUFF_LEARNING_ADMIN_COLORS,
+  compactRows: LUFF_LEARNING_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Luff Learning Fine Arts Academy",
+    schoolShortName: "Luff Learning",
+    officeName: "Luff Learning Fine Arts Academy Office",
+    locationSubtitle: "Luff Learning Fine Arts Academy — Spring, TX · 2026–27 Enrollment",
+  },
+};

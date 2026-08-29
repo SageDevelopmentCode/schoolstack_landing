@@ -17,3 +17,19 @@ export const ATHENA_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { ATHENA_ADMIN_LOGO } from "./athena-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const athenaMicroacademyTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "athena-microacademy",
+  logo: ATHENA_ADMIN_LOGO,
+  accent: ATHENA_TEACHER_ACCENT,
+  accentHover: ATHENA_TEACHER_ACCENT_HOVER,
+  programLabels: ATHENA_TEACHER_PROGRAM_LABELS,
+  programOrder: ATHENA_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ATHENA_TEACHER_OFFICE,
+  },
+};

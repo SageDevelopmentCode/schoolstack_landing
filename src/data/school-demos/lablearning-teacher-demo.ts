@@ -17,3 +17,19 @@ export const LAB_LEARNING_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { LAB_LEARNING_ADMIN_LOGO } from "./lablearning-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const labLearningTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "lab-learning",
+  logo: LAB_LEARNING_ADMIN_LOGO,
+  accent: LAB_LEARNING_TEACHER_ACCENT,
+  accentHover: LAB_LEARNING_TEACHER_ACCENT_HOVER,
+  programLabels: LAB_LEARNING_TEACHER_PROGRAM_LABELS,
+  programOrder: LAB_LEARNING_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: LAB_LEARNING_TEACHER_OFFICE,
+  },
+};

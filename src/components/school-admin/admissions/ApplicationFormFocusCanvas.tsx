@@ -13,7 +13,9 @@ import {
 } from "@/lib/admissions/application-forms";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
+  DRAFT_REMINDER_DELAY_PRESETS,
   MAX_SUBMISSION_NOTIFY_EMAILS,
+  normalizeApplicationFormNotificationConfig,
   normalizeSubmissionNotifyEmails,
   validateSubmissionNotifyEmails,
   type ApplicationField,
@@ -151,6 +153,10 @@ function SetupView({
   const [notifyEmailError, setNotifyEmailError] = useState<string | null>(null);
 
   const notifyEmails = editable.notificationConfig.submission_notify_emails;
+  const draftReminders = editable.notificationConfig.draft_reminders;
+  const [draftContactEmailError, setDraftContactEmailError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!slugHighlighted) return;
@@ -160,10 +166,62 @@ function SetupView({
     input.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [slugHighlighted]);
 
-  const updateNotifyEmails = (emails: string[]) => {
+  const updateNotificationConfig = (
+    patch: Partial<ApplicationFormNotificationConfig>,
+  ) => {
     onEditableChange({
-      notificationConfig: normalizeSubmissionNotifyEmails(emails),
+      notificationConfig: normalizeApplicationFormNotificationConfig({
+        ...editable.notificationConfig,
+        ...patch,
+      }),
     });
+  };
+
+  const updateNotifyEmails = (emails: string[]) => {
+    updateNotificationConfig(
+      normalizeSubmissionNotifyEmails(
+        emails,
+        editable.notificationConfig.draft_reminders,
+      ),
+    );
+  };
+
+  const handleToggleDraftReminders = (enabled: boolean) => {
+    const nextContactEmail =
+      draftReminders.contact_email ??
+      (enabled ? notifyEmails[0] ?? null : null);
+
+    updateNotificationConfig({
+      draft_reminders: {
+        ...draftReminders,
+        enabled,
+        contact_email: nextContactEmail,
+      },
+    });
+    if (!enabled) {
+      setDraftContactEmailError(null);
+    }
+  };
+
+  const handleDraftReminderDelayChange = (delayHours: number) => {
+    updateNotificationConfig({
+      draft_reminders: {
+        ...draftReminders,
+        delay_hours: delayHours,
+      },
+    });
+  };
+
+  const handleDraftContactEmailChange = (contactEmail: string) => {
+    updateNotificationConfig({
+      draft_reminders: {
+        ...draftReminders,
+        contact_email: contactEmail.trim().toLowerCase() || null,
+      },
+    });
+    if (draftContactEmailError) {
+      setDraftContactEmailError(null);
+    }
   };
 
   const handleAddNotifyEmail = () => {
@@ -420,6 +478,76 @@ function SetupView({
           {!readOnly && notifyEmails.length >= MAX_SUBMISSION_NOTIFY_EMAILS ? (
             <p className="text-xs" style={{ color: C.textTertiary }}>
               Maximum of {MAX_SUBMISSION_NOTIFY_EMAILS} notification emails.
+            </p>
+          ) : null}
+        </div>
+      </BuilderQuestionCard>
+
+      <BuilderQuestionCard
+        C={C}
+        tone="info"
+        question="Want to send reminders to families who haven't finished their application?"
+        helper="We'll send one friendly email if a draft hasn't been updated after the delay you choose."
+      >
+        <div className="space-y-3">
+          <label
+            className="inline-flex items-center gap-2 text-sm font-medium"
+            style={{ color: C.textPrimary }}
+          >
+            <input
+              type="checkbox"
+              checked={draftReminders.enabled}
+              disabled={readOnly}
+              onChange={(e) => handleToggleDraftReminders(e.target.checked)}
+              className="h-4 w-4 rounded"
+              style={{ accentColor: C.accent }}
+            />
+            Yes, send draft application reminders
+          </label>
+
+          {draftReminders.enabled ? (
+            <div className="space-y-3 border-t pt-3" style={{ borderColor: C.border }}>
+              <div className="space-y-2">
+                <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                  When should we send the reminder?
+                </p>
+                <SchoolAdminSelect
+                  C={C}
+                  value={String(draftReminders.delay_hours)}
+                  disabled={readOnly}
+                  onChange={(value) => handleDraftReminderDelayChange(Number(value))}
+                  options={DRAFT_REMINDER_DELAY_PRESETS.map((preset) => ({
+                    value: String(preset.hours),
+                    label: `After ${preset.label} of inactivity`,
+                  }))}
+                  placeholder="Choose a delay"
+                  ariaLabel="Draft reminder delay"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
+                  Who should families reach out to with questions?
+                </p>
+                <input
+                  type="email"
+                  value={draftReminders.contact_email ?? ""}
+                  disabled={readOnly}
+                  onChange={(e) => handleDraftContactEmailChange(e.target.value)}
+                  placeholder="admissions@school.com"
+                  style={inputStyle(C)}
+                />
+                <p className="text-xs" style={{ color: C.textTertiary }}>
+                  This email appears in the reminder so families can ask questions or
+                  request a call with someone from your team.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {draftContactEmailError ? (
+            <p className="text-xs font-medium" style={{ color: C.error }}>
+              {draftContactEmailError}
             </p>
           ) : null}
         </div>

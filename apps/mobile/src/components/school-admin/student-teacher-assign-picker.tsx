@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,54 +14,55 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
-import { formatStaffMemberName, type OrgStaffMemberRecord } from '@/lib/school-admin/enrolled-students';
+import {
+  formatStaffMemberName,
+  type OrgStaffMemberRecord,
+} from '@/lib/school-admin/enrolled-students';
 
 type StudentTeacherAssignPickerProps = {
   visible: boolean;
   studentName: string;
-  assignedTeacherId: string | null;
+  assignedTeacherIds: string[];
   activeStaff: OrgStaffMemberRecord[];
-  assigning?: boolean;
+  saving?: boolean;
   onClose: () => void;
-  onAssign: (staffMemberId: string | null) => Promise<void>;
-};
-
-type PickerOption = {
-  id: string | null;
-  label: string;
+  onSave: (staffMemberIds: string[]) => Promise<void>;
 };
 
 export function StudentTeacherAssignPicker({
   visible,
   studentName,
-  assignedTeacherId,
+  assignedTeacherIds,
   activeStaff,
-  assigning = false,
+  saving = false,
   onClose,
-  onAssign,
+  onSave,
 }: StudentTeacherAssignPickerProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const options = useMemo<PickerOption[]>(() => {
-    const sorted = [...activeStaff].sort((a, b) =>
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedIds(assignedTeacherIds);
+  }, [visible, assignedTeacherIds]);
+
+  const options = useMemo(() => {
+    return [...activeStaff].sort((a, b) =>
       formatStaffMemberName(a).localeCompare(formatStaffMemberName(b)),
     );
-    return [
-      { id: null, label: 'Unassigned' },
-      ...sorted.map((member) => ({
-        id: member.id,
-        label: formatStaffMemberName(member),
-      })),
-    ];
   }, [activeStaff]);
 
-  const handleSelect = async (staffMemberId: string | null) => {
-    if (assigning || staffMemberId === assignedTeacherId) {
-      onClose();
-      return;
-    }
-    await onAssign(staffMemberId);
+  const toggleStaff = (staffMemberId: string) => {
+    setSelectedIds((current) =>
+      current.includes(staffMemberId)
+        ? current.filter((id) => id !== staffMemberId)
+        : [...current, staffMemberId],
+    );
+  };
+
+  const handleSave = async () => {
+    await onSave(selectedIds);
     onClose();
   };
 
@@ -86,7 +87,7 @@ export function StudentTeacherAssignPicker({
           ]}>
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
             <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              Assign teacher
+              Assign teachers
             </ThemedText>
             <ThemedText type="small" style={{ color: theme.textSecondary }}>
               {studentName}
@@ -102,49 +103,78 @@ export function StudentTeacherAssignPicker({
           ) : (
             <FlatList
               data={options}
-              keyExtractor={(item) => item.id ?? 'unassigned'}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
-                const selected = item.id === assignedTeacherId;
+                const selected = selectedIds.includes(item.id);
                 return (
                   <Pressable
-                    accessibilityRole="button"
-                    disabled={assigning}
-                    onPress={() => void handleSelect(item.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    disabled={saving}
+                    onPress={() => toggleStaff(item.id)}
                     style={({ pressed }) => [
                       styles.option,
                       pressed && { backgroundColor: theme.elevated },
                       selected && { backgroundColor: theme.accentLight },
                     ]}>
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: selected ? theme.accent : theme.borderStrong,
+                          backgroundColor: selected ? theme.accent : theme.elevated,
+                        },
+                      ]}>
+                      {selected ? (
+                        <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                      ) : null}
+                    </View>
                     <ThemedText
                       type="small"
                       style={{ color: selected ? theme.accent : theme.textPrimary, flex: 1 }}>
-                      {item.label}
+                      {formatStaffMemberName(item)}
                     </ThemedText>
-                    {selected ? (
-                      assigning ? (
-                        <ActivityIndicator color={theme.accent} size="small" />
-                      ) : (
-                        <Ionicons name="checkmark" size={18} color={theme.accent} />
-                      )
-                    ) : null}
                   </Pressable>
                 );
               }}
             />
           )}
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={onClose}
-            style={({ pressed }) => [
-              styles.cancelButton,
-              { borderColor: theme.border, backgroundColor: theme.bg },
-              pressed && { opacity: 0.85 },
-            ]}>
-            <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
-              Cancel
-            </ThemedText>
-          </Pressable>
+          <View style={styles.footer}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClose}
+              disabled={saving}
+              style={({ pressed }) => [
+                styles.footerButton,
+                styles.cancelButton,
+                { borderColor: theme.border, backgroundColor: theme.bg },
+                pressed && { opacity: 0.85 },
+              ]}>
+              <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
+                Cancel
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void handleSave()}
+              disabled={saving}
+              style={({ pressed }) => [
+                styles.footerButton,
+                styles.saveButton,
+                { backgroundColor: theme.accent },
+                pressed && { opacity: 0.85 },
+                saving && { opacity: 0.6 },
+              ]}>
+              {saving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
+                  Save
+                </ThemedText>
+              )}
+            </Pressable>
+          </View>
         </Animated.View>
       </View>
     </Modal>
@@ -157,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
@@ -183,12 +213,28 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
-  cancelButton: {
-    marginHorizontal: Spacing.four,
-    marginTop: Spacing.two,
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+  },
+  footerButton: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.three,
     borderRadius: Radius.md,
+  },
+  cancelButton: {
     borderWidth: StyleSheet.hairlineWidth,
   },
+  saveButton: {},
 });

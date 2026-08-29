@@ -19,6 +19,7 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { fetchAssignedTeachersForStudent } from "@/lib/school-parent/fetch-assigned-teachers";
 import { createClient } from "@/utils/supabase/client";
 
 const ChildProfileSidePanel = dynamic(
@@ -217,9 +218,12 @@ export default function ParentChildrenPage({
           setProfileError("Could not load this student profile.");
           return;
         }
+        const assignedTeachers = application.studentId
+          ? await fetchAssignedTeachersForStudent(organizationId, application.studentId)
+          : [];
         setProfiles((prev) => ({
           ...prev,
-          [applicationId]: { application, checklist },
+          [applicationId]: { application, checklist, assignedTeachers },
         }));
       } catch (err) {
         setProfileError(
@@ -325,6 +329,7 @@ export default function ParentChildrenPage({
             organizationId={organizationId}
             application={selectedProfile?.application ?? null}
             checklist={selectedProfile?.checklist ?? null}
+            assignedTeachers={selectedProfile?.assignedTeachers ?? []}
             readOnly={readOnly}
             onPhotoUpdated={handlePhotoUpdated}
           />

@@ -2,9 +2,9 @@
 name: school-demo-builder
 description: >-
   Build a full school demo in schoolstack_landing — website config, admin/parent/teacher
-  portal forks, lazy loading, walkthrough, and Scaled* wiring. Use when the user asks to
-  create a new school demo, spec-demo landing page, or provides a school website URL,
-  logo, and redesign guide (e.g. guides/demos/*_redesign_guide.md).
+  portal configs, shared dashboard components, lazy loading, walkthrough, and Scaled* wiring.
+  Use when the user asks to create a new school demo, spec-demo landing page, or provides
+  a school website URL, logo, and redesign guide (e.g. guides/demos/*_redesign_guide.md).
 disable-model-invocation: true
 ---
 
@@ -33,10 +33,10 @@ flowchart TD
   Inputs["Website + Logo + Guide"] --> Research["Phase0: Scrape and reconcile brand"]
   Research --> Data["Phase1: school-demos data files"]
   Data --> Route["Phase2: app/demo/slug"]
-  Data --> Components["Phase3: Dashboard components"]
-  Components --> Lazy["lazy loader"]
+  Data --> Components["Phase3: Dashboard configs + website wrapper"]
+  Components --> Registry["dashboard-registry.ts"]
   Data --> Walkthrough["Phase4: walkthrough placeholder"]
-  Lazy --> Scaled["Phase5: Scaled previews"]
+  Registry --> Scaled["Phase5: Scaled previews (shared loaders)"]
   Walkthrough --> Shell["SchoolDemoShell"]
   Route --> Shell
   Scaled --> Shell
@@ -57,11 +57,13 @@ Create in `src/data/school-demos/`:
 | File | Exports |
 |---|---|
 | `{slug}.ts` | `{camelCase}Config: SchoolWebsiteDemoConfig` |
-| `{slug}-admin-demo.ts` | `*_LOGO`, `*_ADMIN_COLORS`, `*_ADMIN_COMPACT_ROWS` |
-| `{slug}-parent-demo.ts` | Re-export logo/colors + parent accent/name constants |
-| `{slug}-teacher-demo.ts` | `*_TEACHER_PROGRAM_LABELS`, `*_TEACHER_PROGRAM_ORDER` |
+| `{slug}-admin-demo.ts` | `*_LOGO`, `*_ADMIN_COLORS`, `*_ADMIN_COMPACT_ROWS`, `{camelCase}AdminDemoConfig` |
+| `{slug}-parent-demo.ts` | Logo/colors constants + `{camelCase}ParentDemoConfig` |
+| `{slug}-teacher-demo.ts` | `*_TEACHER_PROGRAM_LABELS`, `*_TEACHER_PROGRAM_ORDER`, `{camelCase}TeacherDemoConfig` |
 
 Model `{slug}.ts` on `lighthouse-homeschool.ts` or `luff-learning.ts`. Register in `index.ts` (named export + registry key).
+
+Export `*DemoConfig` objects typed from `demo-dashboard-types.ts` (see `luff-learning-admin-demo.ts`). Then register each config in `dashboard-registry.ts` under `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, and `schoolTeacherDemoConfigs`.
 
 Website config must include: `theme`, `hero`, `signatureSection`, `stats`, `welcome`, `marquee`, `programs` (3–4 cards), `socialProof` (testimonials), `founder`, `form`, `faq`, `closingCta`, `footer`.
 
@@ -77,51 +79,23 @@ src/app/demo/{slug}/
 
 Copy from `src/app/demo/luff-learning/`.
 
-## Phase 3 — Dashboard components
+## Phase 3 — Dashboard data (no TSX forks)
 
-Create `src/components/demo/{folder}/`:
+Shared portal UI: `src/components/demo/shared/School*DashboardDemo.tsx`.
 
-| File | Pattern |
-|---|---|
-| `{Brand}WebsiteDashboardDemo.tsx` | Thin wrapper → `WebsiteDashboardDemo` + config |
-| `{Brand}AdminDashboardDemo.tsx` | Fork latest admin demo (~24k lines) |
-| `{Brand}ParentDashboardDemo.tsx` | Fork parent demo |
-| `{Brand}TeacherDashboardDemo.tsx` | Fork teacher demo |
-| `lazy{Brand}Demos.tsx` | Cached `dynamic()` imports + prefetch helpers |
+Per school, export `*DemoConfig` from `{slug}-admin-demo.ts`, `{slug}-parent-demo.ts`, and `{slug}-teacher-demo.ts`, then register in `dashboard-registry.ts`.
 
-**Fork source:** copy from `lighthousehomeschool/` or `lufflearning/` (whichever is newest), then bulk-replace:
+**Optional admin mock overrides:** If leads, events, or emails should differ from the canonical Luff demo, add `src/data/school-demos/admin-content/{slug}.ts` and reference it from `SchoolAdminDemoConfig.contentOverrides` (see `lighthouse-homeschool` admin config). Do not edit the shared admin component for school-specific copy.
 
-- Component names, import paths, `*_ADMIN_*` / `*_PARENT_*` / `*_TEACHER_*` constants
-- School name, location, email, phone
-- Teacher program IDs to match `{slug}-teacher-demo.ts`
-- High-visibility mock data only (leads, subtitle, tuition labels, calendar events)
+Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
 
-Do **not** rewrite admin dashboard UI from scratch.
-
-### Bulk-replace commands (example)
-
-After copying Lighthouse → Luff files:
-
-```bash
-# Copy
-cp src/components/demo/lighthousehomeschool/LighthouseHomeschoolAdminDashboardDemo.tsx \
-   src/components/demo/{folder}/{Brand}AdminDashboardDemo.tsx
-# Repeat for parent, teacher
-
-# Replace (adjust names per school)
-sed -i '' \
-  -e 's/LighthouseHomeschool/{Brand}/g' \
-  -e 's/lighthouse-admin-demo/{slug}-admin-demo/g' \
-  -e 's/LIGHTHOUSE_/{PREFIX}_/g' \
-  -e 's/Lighthouse Homeschool Academy/{School Name}/g' \
-  src/components/demo/{folder}/{Brand}*.tsx
-```
+**Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM.
 
 Naming conventions: [reference.md](reference.md#naming-conventions).
 
 ## Phase 4 — Walkthrough
 
-Append `{camelCase}WalkthroughPlaceholder` (8 steps) to `src/data/school-demos/walkthrough-placeholder.ts`:
+Append `{camelCase}WalkthroughPlaceholder` (9 steps) to `src/data/school-demos/walkthrough-placeholder.ts`:
 
 1. discover (website)
 2. inquire (form)
@@ -130,25 +104,46 @@ Append `{camelCase}WalkthroughPlaceholder` (8 steps) to `src/data/school-demos/w
 5. parent-enrollment (parent)
 6. parent-pays-tuition (parent)
 7. teacher-attendance (teacher)
-8. get-in-touch (contact)
+8. mobile-app (mobile)
+9. get-in-touch (contact)
 
-Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
+Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme steps with school primary + accent colors. Copy structure from `luffLearningWalkthroughPlaceholder`.
 
 ## Phase 5 — Scaled preview wiring (required)
 
-Add slug branch **before Athena fallback** in all four:
+Register the school slug in:
 
-- `src/components/demo/ScaledWebsiteDemoPreview.tsx`
-- `src/components/demo/ScaledAdminDemoPreview.tsx`
-- `src/components/demo/ScaledParentDemoPreview.tsx`
-- `src/components/demo/ScaledTeacherDemoPreview.tsx`
+- `src/data/school-demos/dashboard-registry.ts` — import and add to all three maps: `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, `schoolTeacherDemoConfigs`
+- `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` (`WEBSITE_DEMO_LOADERS` — if new website wrapper path)
+- `src/components/demo/ScaledMobileAppPreview.tsx` (`MOBILE_SHOWCASE_LOADERS`)
 
-Each needs: import from `lazy*Demos`, `is{Slug}` check, prefetch in `useEffect`, component in ternary chain (first branch).
+Admin/parent/teacher `Scaled*` previews need **no per-school edits** once configs are in the registry — shared loaders resolve by `demoSlug`. **Rooted Meadows** is the only standard demo with custom dashboard forks (`src/components/demo/rootedmeadows/`). Sagefield is a separate customer demo — out of scope here.
+
+## Phase 5b — Mobile showcase (required)
+
+1. Create `src/components/demo/{folder}/{Brand}MobileAppShowcase.tsx` using shared `SchoolMobileAppShowcase` + `createMicroschoolMobileSlides` from `src/components/demo/mobile/`.
+2. Pass school `ADMIN_COLORS.accent`, founder/guide name for messages, and optional `schoolName` for the admissions slide header.
+3. Register slug in `MOBILE_SHOWCASE_LOADERS` inside `src/components/demo/ScaledMobileAppPreview.tsx`.
+
+### Mobile slide requirements (5 tabs)
+
+Microschool demos use **Parent · Admin · Teacher** tabs (not committees):
+
+| Tab | Audience | Must include |
+|---|---|---|
+| Messages | Parent | Thread UI with teacher name, online indicator, unread badge |
+| Tuition | Parent | Gradient balance card, child filter pills, invoice list, per-row Pay + Pay All, paid state |
+| Admissions | Admin | Submission cards, flow/status filters, tags, tap-to-detail sheet with Send application link CTA |
+| Attendance | Teacher | 8–10 students, day navigator, search, Present / Pickup / Absent action buttons per row |
+| Students | Teacher | Full roster with avatars, status pills, guardian contact, expandable profile chips |
+
+Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide components live under `src/components/demo/mobile/slides/`.
 
 ## Phase 6 — Verify
 
 - [ ] `npm run build` — route appears as `/demo/{slug}`
 - [ ] Walkthrough loads all 4 previews with correct branding
+- [ ] Walkthrough step 8 loads mobile preview with school accent + hint tooltip
 - [ ] Teacher program tabs match `{slug}-teacher-demo.ts` labels
 - [ ] Testimonials render (correct shape, not trust-item shape)
 - [ ] Logo readable on nav/hero background

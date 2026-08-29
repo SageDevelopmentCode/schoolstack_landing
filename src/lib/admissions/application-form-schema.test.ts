@@ -1,15 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  defaultApplicationFormNotificationConfig,
   emptyApplicationFormSchema,
   emptyApplicationSection,
   normalizePublicSlug,
   parseApplicationFormFeeConfig,
+  parseApplicationFormNotificationConfig,
   parseApplicationFormSchema,
   parseDollarInputToCents,
+  validateApplicationFormNotificationConfig,
   validateApplicationFormSchema,
+  validateDraftRemindersConfig,
   validatePublicSlug,
   validateSubmissionNotifyEmails,
+  type ApplicationFormNotificationConfig,
   type ApplicationFormSchema,
 } from "./application-form-schema";
 import {
@@ -119,6 +124,7 @@ describe("validateSubmissionNotifyEmails", () => {
   it("accepts valid emails", () => {
     assert.equal(
       validateSubmissionNotifyEmails({
+        ...defaultApplicationFormNotificationConfig(),
         submission_notify_emails: ["owner@schoolstack.test"],
       }),
       null,
@@ -128,10 +134,77 @@ describe("validateSubmissionNotifyEmails", () => {
   it("rejects invalid emails", () => {
     assert.match(
       validateSubmissionNotifyEmails({
+        ...defaultApplicationFormNotificationConfig(),
         submission_notify_emails: ["not-an-email"],
       }) ?? "",
       /not a valid email address/,
     );
+  });
+});
+
+describe("parseApplicationFormNotificationConfig", () => {
+  it("returns defaults for invalid input", () => {
+    const config = parseApplicationFormNotificationConfig(null);
+    assert.deepEqual(config.submission_notify_emails, []);
+    assert.equal(config.draft_reminders.enabled, false);
+    assert.equal(config.draft_reminders.delay_hours, 72);
+    assert.equal(config.draft_reminders.contact_email, null);
+  });
+
+  it("parses draft reminder settings", () => {
+    const config = parseApplicationFormNotificationConfig({
+      submission_notify_emails: ["owner@schoolstack.test"],
+      draft_reminders: {
+        enabled: true,
+        delay_hours: 48,
+        contact_email: "Admissions@School.com",
+      },
+    });
+
+    assert.equal(config.draft_reminders.enabled, true);
+    assert.equal(config.draft_reminders.delay_hours, 48);
+    assert.equal(config.draft_reminders.contact_email, "admissions@school.com");
+  });
+
+  it("falls back to default delay for unknown presets", () => {
+    const config = parseApplicationFormNotificationConfig({
+      draft_reminders: {
+        enabled: true,
+        delay_hours: 999,
+        contact_email: "owner@schoolstack.test",
+      },
+    });
+
+    assert.equal(config.draft_reminders.delay_hours, 72);
+  });
+});
+
+describe("validateDraftRemindersConfig", () => {
+  const enabledConfig = (): ApplicationFormNotificationConfig => ({
+    submission_notify_emails: [],
+    draft_reminders: {
+      enabled: true,
+      delay_hours: 48,
+      contact_email: "admissions@schoolstack.test",
+    },
+  });
+
+  it("requires a contact email when enabled", () => {
+    assert.match(
+      validateDraftRemindersConfig({
+        ...enabledConfig(),
+        draft_reminders: {
+          ...enabledConfig().draft_reminders,
+          contact_email: null,
+        },
+      }) ?? "",
+      /contact email/i,
+    );
+  });
+
+  it("accepts a valid enabled configuration", () => {
+    assert.equal(validateDraftRemindersConfig(enabledConfig()), null);
+    assert.equal(validateApplicationFormNotificationConfig(enabledConfig()), null);
   });
 });
 

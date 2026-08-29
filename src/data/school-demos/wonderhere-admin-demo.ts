@@ -27,3 +27,21 @@ export const WONDERHERE_ADMIN_COLORS = {
   textPrimary: "#3D4F3F",
   textSecondary: "#6B7B6E",
 } as const;
+
+import { adminContentOverrides as wonderhereLakelandAdminContentOverrides } from "./admin-content/wonderhere-lakeland";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const wonderhereLakelandAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "wonderhere-lakeland",
+  logo: WONDERHERE_ADMIN_LOGO,
+  colors: WONDERHERE_ADMIN_COLORS,
+  compactRows: WONDERHERE_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "WonderHere Lakeland",
+    schoolShortName: "WonderHere Lakeland",
+    officeName: "WonderHere Lakeland Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: wonderhereLakelandAdminContentOverrides,
+};

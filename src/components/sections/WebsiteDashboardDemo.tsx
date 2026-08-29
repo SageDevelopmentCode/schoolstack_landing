@@ -260,20 +260,39 @@ export default function WebsiteDashboardDemo({
   const scrollToSection = useCallback((sectionId: string, offset = STICKY_NAV_HEIGHT) => {
     const container = scrollContainerRef.current;
     const el = container?.querySelector<HTMLElement>(`#${sectionId}`);
-    if (!container || !el) return;
+    if (!container || !el) return false;
     const containerRect = container.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const scrollTop = container.scrollTop + elRect.top - containerRect.top - offset;
+    const visualScale =
+      container.clientHeight > 0
+        ? containerRect.height / container.clientHeight
+        : 1;
+    const visualDelta = elRect.top - containerRect.top;
+    const scrollTop =
+      container.scrollTop + visualDelta / visualScale - offset;
     container.scrollTo({ top: Math.max(0, scrollTop), behavior: "smooth" });
+    return true;
   }, []);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    return true;
+  }, []);
 
   const scrollToForm = useCallback(() => {
-    scrollToSection("form", STICKY_NAV_HEIGHT);
+    return scrollToSection("form", STICKY_NAV_HEIGHT);
   }, [scrollToSection]);
+
+  const runScrollRequest = useCallback(
+    (target: "top" | "form") => {
+      if (target === "top") {
+        scrollToTop();
+        return true;
+      }
+      return scrollToForm();
+    },
+    [scrollToForm, scrollToTop],
+  );
 
   const handleDiscoveryCallClick = () => {
     if (onDiscoveryCallClick) {
@@ -295,9 +314,25 @@ export default function WebsiteDashboardDemo({
 
   useEffect(() => {
     if (!scrollRequest) return;
-    if (scrollRequest.target === "top") scrollToTop();
-    else scrollToForm();
-  }, [scrollRequest, scrollToForm]);
+
+    let cancelled = false;
+    let frameId = 0;
+
+    const scroll = () => {
+      if (!cancelled) runScrollRequest(scrollRequest.target);
+    };
+
+    scroll();
+    frameId = requestAnimationFrame(() => {
+      scroll();
+      if (!cancelled) frameId = requestAnimationFrame(scroll);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+    };
+  }, [scrollRequest, runScrollRequest]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;

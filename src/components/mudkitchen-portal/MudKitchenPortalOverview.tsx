@@ -25,13 +25,6 @@ const SECTION_LINKS = [
     href: (slug: string) => schoolMudKitchenPortalPath(slug, "build-log"),
   },
   {
-    key: "requests",
-    title: "Requests",
-    description:
-      "Your support history and a place to reach the MudKitchen team.",
-    href: (slug: string) => schoolMudKitchenPortalPath(slug, "requests"),
-  },
-  {
     key: "billing",
     title: "Billing",
     description: "Subscription and invoicing for your MudKitchen account.",
@@ -57,7 +50,7 @@ export default function MudKitchenPortalOverview({
       <PortalPageHero
         eyebrow="Your MudKitchen account"
         title={`Everything we're building for ${schoolName}.`}
-        subtitle="Build progress, support, and billing for your partnership with MudKitchen — all in one place."
+        subtitle="Build progress and billing for your partnership with MudKitchen — all in one place."
       />
 
       {latestProgressEntry ? (

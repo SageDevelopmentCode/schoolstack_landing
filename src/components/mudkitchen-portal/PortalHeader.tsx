@@ -23,11 +23,6 @@ const NAV_ITEMS = [
     href: (slug: string) => schoolMudKitchenPortalPath(slug, "build-log"),
   },
   {
-    key: "requests",
-    label: "Requests",
-    href: (slug: string) => schoolMudKitchenPortalPath(slug, "requests"),
-  },
-  {
     key: "billing",
     label: "Billing",
     href: (slug: string) => schoolMudKitchenPortalPath(slug, "billing"),
@@ -38,7 +33,6 @@ function getActiveSection(pathname: string, slug: string): string {
   const base = schoolMudKitchenPortalPath(slug);
   if (pathname === base) return "overview";
   if (pathname.startsWith(`${base}/build-log`)) return "build-log";
-  if (pathname.startsWith(`${base}/requests`)) return "requests";
   if (pathname.startsWith(`${base}/billing`)) return "billing";
   return "overview";
 }

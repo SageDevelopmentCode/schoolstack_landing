@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  assignStudentTeacher,
+  setStudentTeachers,
   StudentTeacherAssignmentError,
 } from "@/lib/school-admin/enrolled-students";
 import {
@@ -20,6 +20,7 @@ type RouteContext = {
 
 type PatchTeacherBody = {
   staffMemberId?: string | null;
+  staffMemberIds?: string[];
 };
 
 async function resolveOrganizationId(
@@ -34,6 +35,24 @@ async function resolveOrganizationId(
 
   if (error) throw error;
   return data?.id ? String(data.id) : null;
+}
+
+function resolveStaffMemberIds(body: PatchTeacherBody): string[] {
+  if (Array.isArray(body.staffMemberIds)) {
+    return body.staffMemberIds.filter(
+      (id): id is string => typeof id === "string" && id.trim() !== "",
+    );
+  }
+
+  if (body.staffMemberId === undefined || body.staffMemberId === "") {
+    return [];
+  }
+
+  if (typeof body.staffMemberId === "string") {
+    return [body.staffMemberId];
+  }
+
+  return [];
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -67,15 +86,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     await requireSchoolAdminUser(supabase, organizationId, request);
 
-    const staffMemberId =
-      body.staffMemberId === undefined || body.staffMemberId === ""
-        ? null
-        : body.staffMemberId;
+    const staffMemberIds = resolveStaffMemberIds(body);
 
-    const result = await assignStudentTeacher(admin, {
+    const result = await setStudentTeachers(admin, {
       organizationId,
       studentId,
-      staffMemberId,
+      staffMemberIds,
     });
 
     return NextResponse.json(result);

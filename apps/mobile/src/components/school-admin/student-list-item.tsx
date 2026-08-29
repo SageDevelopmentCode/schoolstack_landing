@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import {
+  formatAssignedTeachersLabel,
   formatEnrolledStudentName,
   formatStudentGrade,
   type AdminEnrolledStudentSummary,
@@ -25,7 +26,8 @@ export function StudentListItem({ student, onPress, onPressTeacher }: StudentLis
   const gradeLabel = formatStudentGrade(student.grade);
   const programLabel =
     student.programNames.length > 0 ? student.programNames[0] : 'No program';
-  const hasTeacher = Boolean(student.assignedTeacherName);
+  const teacherLabel = formatAssignedTeachersLabel(student.assignedTeachers);
+  const hasTeacher = student.assignedTeachers.length > 0;
 
   return (
     <AdminListCard
@@ -34,8 +36,8 @@ export function StudentListItem({ student, onPress, onPressTeacher }: StudentLis
           accessibilityRole="button"
           accessibilityLabel={
             hasTeacher
-              ? `Teacher: ${student.assignedTeacherName}. Tap to change.`
-              : 'No teacher assigned. Tap to assign teacher.'
+              ? `Teachers: ${teacherLabel}. Tap to change.`
+              : 'No teachers assigned. Tap to assign teachers.'
           }
           onPress={() => onPressTeacher(student)}
           style={({ pressed }) => [
@@ -54,7 +56,7 @@ export function StudentListItem({ student, onPress, onPressTeacher }: StudentLis
             <Ionicons name="person-outline" size={14} color={theme.warning} />
           ) : null}
           <StatusBadge
-            label={hasTeacher ? student.assignedTeacherName! : 'No teacher assigned'}
+            label={hasTeacher ? teacherLabel : 'No teachers assigned'}
             colors={
               hasTeacher
                 ? { backgroundColor: theme.successBg, color: theme.success }

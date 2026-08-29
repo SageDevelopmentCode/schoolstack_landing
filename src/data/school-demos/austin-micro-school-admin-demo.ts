@@ -28,3 +28,21 @@ export const AUSTIN_MICRO_SCHOOL_ADMIN_COLORS = {
   textPrimary: "#143664",
   textSecondary: "#5a6478",
 } as const;
+
+import { adminContentOverrides as austinMicroSchoolAdminContentOverrides } from "./admin-content/austin-micro-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const austinMicroSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "austin-micro-school",
+  logo: AUSTIN_MICRO_SCHOOL_ADMIN_LOGO,
+  colors: AUSTIN_MICRO_SCHOOL_ADMIN_COLORS,
+  compactRows: AUSTIN_MICRO_SCHOOL_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Austin Micro School",
+    schoolShortName: "Austin Micro",
+    officeName: "Austin Micro School Office",
+    locationSubtitle: "Austin Micro School — South Austin · 2026–27 Enrollment",
+  },
+  contentOverrides: austinMicroSchoolAdminContentOverrides,
+};

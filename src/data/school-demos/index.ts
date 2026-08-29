@@ -25,6 +25,8 @@ export { oneAcreFarmConfig } from "./one-acre-farm";
 export { labLearningConfig } from "./lab-learning";
 export { kineoSchoolConfig } from "./kineo-school";
 export { austinMicroSchoolConfig } from "./austin-micro-school";
+export { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
+export { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -52,6 +54,8 @@ import { oneAcreFarmConfig } from "./one-acre-farm";
 import { labLearningConfig } from "./lab-learning";
 import { kineoSchoolConfig } from "./kineo-school";
 import { austinMicroSchoolConfig } from "./austin-micro-school";
+import { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
+import { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -79,6 +83,8 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "lab-learning": labLearningConfig,
   "kineo-school": kineoSchoolConfig,
   "austin-micro-school": austinMicroSchoolConfig,
+  "kats-community-microschool": katsCommunityMicroschoolConfig,
+  "kinder-academy-prep-school": kinderAcademyPrepSchoolConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

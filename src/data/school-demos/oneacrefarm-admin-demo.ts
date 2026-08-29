@@ -28,3 +28,21 @@ export const ONE_ACRE_FARM_ADMIN_COLORS = {
   textPrimary: "#4A3F35",
   textSecondary: "#6B6560",
 } as const;
+
+import { adminContentOverrides as oneAcreFarmAdminContentOverrides } from "./admin-content/one-acre-farm";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const oneAcreFarmAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "one-acre-farm",
+  logo: ONE_ACRE_FARM_ADMIN_LOGO,
+  colors: ONE_ACRE_FARM_ADMIN_COLORS,
+  compactRows: ONE_ACRE_FARM_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "One Acre Farm Educational Foundation",
+    schoolShortName: "One Acre",
+    officeName: "One Acre Farm Educational Foundation Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Early Childhood",
+  },
+  contentOverrides: oneAcreFarmAdminContentOverrides,
+};

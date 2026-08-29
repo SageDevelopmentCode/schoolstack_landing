@@ -13,6 +13,7 @@ import {
 import { formatDurationLabel } from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { deliverZohoEmail } from "@/lib/notification-delivery";
 import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
 
 function formatSelectedDate(dateStr: string) {
@@ -266,6 +267,62 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildDraftApplicationReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  formTitle: string;
+  applyDashboardUrl: string;
+  contactEmail: string;
+}): string {
+  const contactMailto = `mailto:${encodeURIComponent(payload.contactEmail)}`;
+
+  return composeEmail({
+    preheader: `${payload.schoolName} would love to see you finish your application.`,
+    contentHtml: `
+      ${emailBadge("Finish Your Application")}
+      ${emailHeading(`We're excited you're applying, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Thank you for starting your application for ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)}. We're thrilled you're considering joining our community and would love to see you complete your application when you have a few minutes.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Application", value: payload.formTitle },
+      ])}
+      ${emailParagraph(
+        "Your progress has been saved — pick up right where you left off whenever you're ready.",
+      )}
+      ${emailCta({ label: "Continue your application", href: payload.applyDashboardUrl })}
+      ${emailParagraph(
+        `Have questions or want to meet with someone from the ${escapeHtml(payload.schoolName)} team? We'd be happy to help — reach out at <a href="${contactMailto}" style="color:inherit;">${escapeHtml(payload.contactEmail)}</a>.`,
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendDraftApplicationReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Finish your application — ${payload.schoolName}`,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Draft application reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildEnrollmentCompletedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -438,6 +495,71 @@ export function buildPostSubmitVisitConfirmationHtml(payload: {
   });
 }
 
+export function buildPostSubmitVisitOwnerNotificationHtml(payload: {
+  schoolName: string;
+  stepTitle: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  submissionAdminUrl: string;
+}): string {
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Visit", value: payload.stepTitle },
+    { label: "When", value: when },
+    { label: "Duration", value: payload.durationLabel },
+  ];
+
+  if (payload.studentName) {
+    details.push({ label: "Student", value: payload.studentName });
+  }
+  if (payload.contactName) {
+    details.push({ label: "Contact", value: payload.contactName });
+  }
+  if (payload.contactEmail) {
+    details.push({ label: "Email", value: payload.contactEmail });
+  }
+
+  return composeEmail({
+    preheader: `A family scheduled a visit at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Visit Scheduled")}
+      ${emailHeading("A family scheduled a visit")}
+      ${emailParagraph(
+        `A family scheduled ${escapeHtml(payload.stepTitle)} at ${escapeHtml(payload.schoolName)}. Review the submission in your admissions dashboard.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View submission", href: payload.submissionAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPostSubmitVisitOwnerNotification(payload: {
+  email: string;
+  schoolName: string;
+  stepTitle: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  studentName?: string;
+  contactName?: string;
+  contactEmail?: string;
+  submissionAdminUrl: string;
+}): Promise<void> {
+  const content = buildPostSubmitVisitOwnerNotificationHtml(payload);
+  await deliverZohoEmail({
+    channel: "Post-submit visit owner notification",
+    toAddress: payload.email,
+    subject: `Visit scheduled — ${payload.schoolName}`,
+    content,
+  });
+}
+
 export async function sendPostSubmitVisitConfirmation(payload: {
   name: string;
   email: string;
@@ -454,18 +576,13 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   durationLabel: string;
   applyDashboardUrl: string;
 }): Promise<void> {
-  if (!(await isZohoConfigured())) return;
-
   const content = buildPostSubmitVisitConfirmationHtml(payload);
-  const result = await sendZohoEmail({
+  await deliverZohoEmail({
+    channel: "Post-submit visit confirmation",
     toAddress: payload.email,
     subject: `${payload.stepTitle} confirmed — ${payload.schoolName}`,
     content,
   });
-
-  if (!result.success) {
-    console.error("Post-submit visit confirmation email failed:", result.error);
-  }
 }
 
 export function buildPaymentReceiptConfirmationHtml(payload: {

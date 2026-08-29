@@ -1,8 +1,10 @@
 import {
+  formatAssignedTeachersLabel,
   formatEnrolledStudentName,
   formatEnrolledStudentSubtitle,
   formatStaffMemberName,
   formatStudentGrade,
+  normalizeEnrolledStudentSummary,
   studentStatusLabel,
 } from '@/lib/school-admin/enrolled-students';
 
@@ -37,8 +39,8 @@ describe('formatEnrolledStudentSubtitle', () => {
         primaryContactEmail: null,
         programNames: [],
         enrolledAt: '',
-        assignedTeacherId: null,
-        assignedTeacherName: null,
+        assignedTeachers: [],
+        assignedTeacherNames: '',
         profilePhotoUrl: null,
       },
       {
@@ -54,8 +56,8 @@ describe('formatEnrolledStudentSubtitle', () => {
         primaryContactEmail: null,
         programNames: [],
         enrolledAt: '',
-        assignedTeacherId: null,
-        assignedTeacherName: null,
+        assignedTeachers: [],
+        assignedTeacherNames: '',
         profilePhotoUrl: null,
       },
     ])).toBe(`${alpha} · ${beta}`);
@@ -82,5 +84,37 @@ describe('studentStatusLabel', () => {
   it('maps known statuses', () => {
     expect(studentStatusLabel('active')).toBe('Active');
     expect(studentStatusLabel('alumni')).toBe('Alumni');
+  });
+});
+
+describe('formatAssignedTeachersLabel', () => {
+  it('returns Unassigned when teachers is undefined', () => {
+    expect(formatAssignedTeachersLabel(undefined)).toBe('Unassigned');
+  });
+});
+
+describe('normalizeEnrolledStudentSummary', () => {
+  it('maps legacy single-teacher fields to assignedTeachers', () => {
+    const normalized = normalizeEnrolledStudentSummary({
+      id: 'student-1',
+      firstName: 'Alpha',
+      lastName: 'Child',
+      assignedTeacherId: 'staff-1',
+      assignedTeacherName: 'E2E Staff',
+    });
+
+    expect(normalized.assignedTeachers).toEqual([{ id: 'staff-1', name: 'E2E Staff' }]);
+    expect(normalized.assignedTeacherNames).toBe('E2E Staff');
+  });
+
+  it('defaults assignedTeachers to an empty array when teacher fields are missing', () => {
+    const normalized = normalizeEnrolledStudentSummary({
+      id: 'student-2',
+      firstName: 'Beta',
+      lastName: 'Child',
+    });
+
+    expect(normalized.assignedTeachers).toEqual([]);
+    expect(normalized.assignedTeacherNames).toBe('');
   });
 });

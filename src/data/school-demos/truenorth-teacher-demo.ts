@@ -17,3 +17,19 @@ export const TRUE_NORTH_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { TRUE_NORTH_ADMIN_LOGO } from "./truenorth-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const trueNorthTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "true-north",
+  logo: TRUE_NORTH_ADMIN_LOGO,
+  accent: TRUE_NORTH_TEACHER_ACCENT,
+  accentHover: TRUE_NORTH_TEACHER_ACCENT_HOVER,
+  programLabels: TRUE_NORTH_TEACHER_PROGRAM_LABELS,
+  programOrder: TRUE_NORTH_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: TRUE_NORTH_TEACHER_OFFICE,
+  },
+};

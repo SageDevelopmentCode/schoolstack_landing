@@ -23,7 +23,8 @@ import {
   type EnrollmentChecklistItem,
   type EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
-import type { ApplicationDetail } from "@/lib/admissions/parent-portal-access";
+import type { ApplicationDetail, ParentAssignedTeacher } from "@/lib/admissions/parent-portal-access";
+import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeachersTab";
 import {
   StudentProfilePhotoClientError,
   uploadStudentProfilePhotoFromParent,
@@ -44,6 +45,7 @@ type ChildProfileSidePanelProps = {
   organizationId: string;
   application: ApplicationDetail | null;
   checklist: LoadedEnrollmentChecklist | null;
+  assignedTeachers?: ParentAssignedTeacher[];
   readOnly?: boolean;
   onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
 };
@@ -160,6 +162,7 @@ function ChildProfileSidePanelContent({
   organizationId,
   application,
   checklist,
+  assignedTeachers,
   readOnly = false,
   onPhotoUpdated,
   onClose,
@@ -170,13 +173,17 @@ function ChildProfileSidePanelContent({
   organizationId: string;
   application: ApplicationDetail;
   checklist: LoadedEnrollmentChecklist | null;
+  assignedTeachers: ParentAssignedTeacher[];
   readOnly?: boolean;
   onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
   onClose: () => void;
 }) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
-  const [activeTab, setActiveTab] = useState<"application" | "checklist">("application");
+  const hasTeachersTab = Boolean(application.studentId);
+  const [activeTab, setActiveTab] = useState<"application" | "checklist" | "teachers">(
+    "application",
+  );
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(
     application.profilePhotoUrl,
   );
@@ -317,6 +324,21 @@ function ChildProfileSidePanelContent({
               Enrollment checklist
             </button>
           ) : null}
+          {hasTeachersTab ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "teachers"}
+              onClick={() => setActiveTab("teachers")}
+              className="shrink-0 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
+              style={{
+                borderBottomColor: activeTab === "teachers" ? C.accent : "transparent",
+                color: activeTab === "teachers" ? C.accent : C.textTertiary,
+              }}
+            >
+              Teachers
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -376,6 +398,10 @@ function ChildProfileSidePanelContent({
             </div>
           </div>
         ) : null}
+
+        {activeTab === "teachers" && hasTeachersTab ? (
+          <ParentChildTeachersTab teachers={assignedTeachers} C={C} />
+        ) : null}
       </div>
     </>
   );
@@ -390,6 +416,7 @@ export default function ChildProfileSidePanel({
   organizationId,
   application,
   checklist,
+  assignedTeachers = [],
   readOnly = false,
   onPhotoUpdated,
 }: ChildProfileSidePanelProps) {
@@ -432,6 +459,7 @@ export default function ChildProfileSidePanel({
               organizationId={organizationId}
               application={application}
               checklist={checklist}
+              assignedTeachers={assignedTeachers}
               readOnly={readOnly}
               onPhotoUpdated={onPhotoUpdated}
               onClose={onClose}

@@ -21,3 +21,19 @@ export const PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_PROGRAM_ORDER = [
   "2_day_life_skills",
   "4_day_combined",
 ] as const;
+
+
+import { PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_LOGO } from "./prestigehomeschoolacademy-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const prestigeHomeschoolAcademyTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "prestige-homeschool-academy",
+  logo: PRESTIGE_HOMESCHOOL_ACADEMY_ADMIN_LOGO,
+  accent: PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_ACCENT,
+  accentHover: PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_ACCENT_HOVER,
+  programLabels: PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_PROGRAM_LABELS,
+  programOrder: PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: PRESTIGE_HOMESCHOOL_ACADEMY_TEACHER_OFFICE,
+  },
+};

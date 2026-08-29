@@ -19,3 +19,19 @@ export const THE_WOODLANDS_TEACHER_PROGRAM_ORDER = [
   "hybrid_private",
   "credit_recovery_tutoring",
 ] as const;
+
+
+import { THE_WOODLANDS_ADMIN_LOGO } from "./the-woodlands-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const theWoodlandsMicroschoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "the-woodlands-microschool",
+  logo: THE_WOODLANDS_ADMIN_LOGO,
+  accent: THE_WOODLANDS_TEACHER_ACCENT,
+  accentHover: THE_WOODLANDS_TEACHER_ACCENT_HOVER,
+  programLabels: THE_WOODLANDS_TEACHER_PROGRAM_LABELS,
+  programOrder: THE_WOODLANDS_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: THE_WOODLANDS_TEACHER_OFFICE,
+  },
+};

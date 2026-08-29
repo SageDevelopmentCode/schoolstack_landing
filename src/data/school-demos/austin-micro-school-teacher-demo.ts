@@ -19,3 +19,19 @@ export const AUSTIN_MICRO_SCHOOL_TEACHER_PROGRAM_ORDER = [
   "adolescent",
   "remote",
 ] as const;
+
+
+import { AUSTIN_MICRO_SCHOOL_ADMIN_LOGO } from "./austin-micro-school-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const austinMicroSchoolTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "austin-micro-school",
+  logo: AUSTIN_MICRO_SCHOOL_ADMIN_LOGO,
+  accent: AUSTIN_MICRO_SCHOOL_TEACHER_ACCENT,
+  accentHover: AUSTIN_MICRO_SCHOOL_TEACHER_ACCENT_HOVER,
+  programLabels: AUSTIN_MICRO_SCHOOL_TEACHER_PROGRAM_LABELS,
+  programOrder: AUSTIN_MICRO_SCHOOL_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: AUSTIN_MICRO_SCHOOL_TEACHER_OFFICE,
+  },
+};

@@ -13,6 +13,7 @@ import {
 import { ParentApplicationStepBottomSheet } from '@/components/parent/children/parent-application-step-bottom-sheet';
 import { ParentChecklistItemBottomSheet } from '@/components/parent/children/parent-checklist-item-bottom-sheet';
 import { EditableStudentPhoto } from '@/components/parent/children/editable-student-photo';
+import { StudentPhoto } from '@/components/school-admin/student-photo';
 import {
   SubmissionApplicationStepsSection,
   SubmissionEnrollmentStepsSection,
@@ -38,12 +39,16 @@ import {
 } from '@/lib/admissions/enrollment-checklist';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
 import {
+  fetchAssignedTeachersForStudent,
+  type ParentAssignedTeacher,
+} from '@/lib/parent/parent-portal-api';
+import {
   StudentProfilePhotoUploadError,
   uploadStudentProfilePhotoFromParent,
 } from '@/lib/parent/upload-student-profile-photo';
 import { getSupabaseClient } from '@/lib/supabase';
 
-type ProfileTab = 'application' | 'checklist';
+type ProfileTab = 'application' | 'checklist' | 'teachers';
 
 type ParentChildDetailScreenProps = {
   slug: string;
@@ -77,10 +82,12 @@ function calculateAge(value: string): number | null {
 function ProfileTabToggle({
   activeTab,
   hasChecklist,
+  hasTeachersTab,
   onChange,
 }: {
   activeTab: ProfileTab;
   hasChecklist: boolean;
+  hasTeachersTab: boolean;
   onChange: (tab: ProfileTab) => void;
 }) {
   const theme = useAdminTheme();
@@ -128,6 +135,28 @@ function ProfileTabToggle({
           </ThemedText>
         </Pressable>
       ) : null}
+      {hasTeachersTab ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: activeTab === 'teachers' }}
+          accessibilityLabel="Teachers"
+          onPress={() => onChange('teachers')}
+          style={[
+            styles.tabSegment,
+            activeTab === 'teachers' && { backgroundColor: theme.surface },
+          ]}>
+          <ThemedText
+            type="smallBold"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={{
+              color: activeTab === 'teachers' ? theme.textPrimary : theme.textTertiary,
+            }}>
+            Teachers
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -149,6 +178,7 @@ export function ParentChildDetailScreen({
 
   const [detail, setDetail] = useState<ApplicationDetail | null>(null);
   const [checklist, setChecklist] = useState<LoadedEnrollmentChecklist | null>(null);
+  const [assignedTeachers, setAssignedTeachers] = useState<ParentAssignedTeacher[]>([]);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('application');
@@ -176,6 +206,11 @@ export function ParentChildDetailScreen({
 
       setDetail(application);
       setChecklist(loadedChecklist);
+      setAssignedTeachers(
+        application.studentId
+          ? await fetchAssignedTeachersForStudent(organizationId, application.studentId)
+          : [],
+      );
       setProfilePhotoUrl(
         application.profilePhotoUrl ?? childOverview?.profilePhotoUrl ?? null,
       );
@@ -205,6 +240,7 @@ export function ParentChildDetailScreen({
       ? `Grade ${student.grade}`
       : null;
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
+  const hasTeachersTab = Boolean(detail?.studentId);
   const canUploadPhoto = Boolean(detail?.studentId);
   const statusStyle = detail
     ? applicationStatusBadgeStyle(detail.status, theme)
@@ -350,6 +386,7 @@ export function ParentChildDetailScreen({
             <ProfileTabToggle
               activeTab={activeTab}
               hasChecklist={hasChecklist}
+              hasTeachersTab={hasTeachersTab}
               onChange={setActiveTab}
             />
 
@@ -375,6 +412,41 @@ export function ParentChildDetailScreen({
                   onItemPress={setSelectedEnrollmentItemId}
                   activeItemId={selectedEnrollmentItemId ?? undefined}
                 />
+              ) : null}
+
+              {activeTab === 'teachers' && hasTeachersTab ? (
+                assignedTeachers.length === 0 ? (
+                  <ThemedText type="small" style={{ color: theme.textTertiary, textAlign: 'center' }}>
+                    No teachers assigned yet.
+                  </ThemedText>
+                ) : (
+                  <View style={styles.teacherList}>
+                    {assignedTeachers.map((teacher) => (
+                      <View
+                        key={teacher.id}
+                        style={[
+                          styles.teacherRow,
+                          { borderColor: theme.border, backgroundColor: theme.surface },
+                        ]}>
+                        <StudentPhoto
+                          name={teacher.name}
+                          photoUrl={teacher.profilePhotoUrl}
+                          size="md"
+                        />
+                        <View style={styles.teacherCopy}>
+                          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                            {teacher.name}
+                          </ThemedText>
+                          {teacher.roleTitle ? (
+                            <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                              {teacher.roleTitle}
+                            </ThemedText>
+                          ) : null}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )
               ) : null}
             </View>
           </>
@@ -472,5 +544,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     paddingVertical: Spacing.four,
+  },
+  teacherList: {
+    gap: Spacing.two,
+  },
+  teacherRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.md,
+    padding: Spacing.three,
+  },
+  teacherCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
 });

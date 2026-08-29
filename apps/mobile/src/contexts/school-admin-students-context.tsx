@@ -12,6 +12,7 @@ import {
 import {
   listOrgEnrolledStudents,
   listOrgStaffMembers,
+  normalizeEnrolledStudentSummaries,
   type AdminEnrolledStudentSummary,
   type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
@@ -39,7 +40,7 @@ type SchoolAdminStudentsContextValue = {
 
 const SchoolAdminStudentsContext = createContext<SchoolAdminStudentsContextValue | null>(null);
 
-const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:');
+const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v2:');
 
 function cacheKey(organizationId: string): string {
   return organizationId;
@@ -51,7 +52,10 @@ async function fetchStudentsData(organizationId: string): Promise<SchoolAdminStu
     listOrgEnrolledStudents(supabase, organizationId),
     listOrgStaffMembers(supabase, organizationId).catch(() => [] as OrgStaffMemberRecord[]),
   ]);
-  return { students, staffMembers };
+  return {
+    students: normalizeEnrolledStudentSummaries(students),
+    staffMembers,
+  };
 }
 
 function fetchAndCacheStudents(
@@ -85,7 +89,9 @@ export function SchoolAdminStudentsProvider({
   const key = cacheKey(organizationId);
   const cached = studentsCache.get(key);
 
-  const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(cached?.students ?? []);
+  const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
+    normalizeEnrolledStudentSummaries(cached?.students ?? []),
+  );
   const [staffMembers, setStaffMembers] = useState<OrgStaffMemberRecord[]>(
     cached?.staffMembers ?? [],
   );
@@ -97,7 +103,7 @@ export function SchoolAdminStudentsProvider({
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
 
   const applyData = useCallback((data: SchoolAdminStudentsData | null) => {
-    setStudents(data?.students ?? []);
+    setStudents(normalizeEnrolledStudentSummaries(data?.students ?? []));
     setStaffMembers(data?.staffMembers ?? []);
   }, []);
 
@@ -151,7 +157,7 @@ export function SchoolAdminStudentsProvider({
           }
 
           const nextData: SchoolAdminStudentsData = {
-            students: studentsResult.value,
+            students: normalizeEnrolledStudentSummaries(studentsResult.value),
             staffMembers: nextStaff,
           };
           await studentsCache.fetchAndCache(key, async () => nextData, { refresh: isRefresh });

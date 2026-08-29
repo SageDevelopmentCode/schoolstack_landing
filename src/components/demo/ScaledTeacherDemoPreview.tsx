@@ -5,118 +5,25 @@ import DemoPreviewFrame from "@/components/demo/DemoPreviewFrame";
 import type { DemoWalkthroughTeacherTab } from "@/data/school-demos/walkthrough-placeholder";
 
 const DESIGN_WIDTH = 1440;
+const ROOTED_MEADOWS_SLUG = "rooted-meadows";
 
 type DemoComponent = ComponentType<Record<string, unknown>>;
 
-const LOADERS: Record<string, () => Promise<{ default: DemoComponent }>> = {
-  "austin-micro-school": () =>
-    import("@/components/demo/austinmicroschool/lazyAustinMicroSchoolDemos").then(
-      (m) => ({ default: m.LazyAustinMicroSchoolTeacherDashboardDemo }),
-    ),
-  "kineo-school": () =>
-    import("@/components/demo/kineoschool/lazyKineoSchoolDemos").then((m) => ({
-      default: m.LazyKineoSchoolTeacherDashboardDemo,
-    })),
-  "hilton-horizons-academy": () =>
-    import("@/components/demo/hiltonhorizon/lazyHiltonHorizonDemos").then((m) => ({
-      default: m.LazyHiltonHorizonTeacherDashboardDemo,
-    })),
-  "zoe-learning-house": () =>
-    import("@/components/demo/zoelearninghouse/lazyZoeLearningHouseDemos").then(
-      (m) => ({ default: m.LazyZoeLearningHouseTeacherDashboardDemo }),
-    ),
-  "monarch-hills-education": () =>
-    import("@/components/demo/monarchhills/lazyMonarchHillsDemos").then((m) => ({
-      default: m.LazyMonarchHillsTeacherDashboardDemo,
-    })),
-  "wondering-oaks-learning": () =>
-    import(
-      "@/components/demo/wonderingoakslearning/lazyWonderingOaksLearningDemos"
-    ).then((m) => ({ default: m.LazyWonderingOaksLearningTeacherDashboardDemo })),
-  "wild-hearts-adventure": () =>
-    import(
-      "@/components/demo/wildheartsadventure/lazyWildHeartsAdventureDemos"
-    ).then((m) => ({ default: m.LazyWildHeartsAdventureTeacherDashboardDemo })),
-  "natures-schoolhouse": () =>
-    import(
-      "@/components/demo/natureschoolhouse/lazyNaturesSchoolhouseDemos"
-    ).then((m) => ({ default: m.LazyNaturesSchoolhouseTeacherDashboardDemo })),
-  "the-woodlands-microschool": () =>
-    import(
-      "@/components/demo/thewoodlandsmicroschool/lazyTheWoodlandsMicroschoolDemos"
-    ).then((m) => ({
-      default: m.LazyTheWoodlandsMicroschoolTeacherDashboardDemo,
-    })),
-  "wonderhere-lakeland": () =>
-    import("@/components/demo/wonderhere/lazyWonderHereDemos").then((m) => ({
-      default: m.LazyWonderHereTeacherDashboardDemo,
-    })),
-  "micahs-mission-school": () =>
-    import("@/components/demo/micahmission/lazyMicahMissionDemos").then((m) => ({
-      default: m.LazyMicahMissionTeacherDashboardDemo,
-    })),
-  "homework-hub": () =>
-    import("@/components/demo/homeworkhub/lazyHomeworkHubDemos").then((m) => ({
-      default: m.LazyHomeworkHubTeacherDashboardDemo,
-    })),
-  "ascend-micro-school": () =>
-    import("@/components/demo/ascendmicroschool/lazyAscendMicroschoolDemos").then(
-      (m) => ({ default: m.LazyAscendMicroschoolTeacherDashboardDemo }),
-    ),
-  "rooted-meadows": () =>
-    import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then((m) => ({
-      default: m.LazyRootedMeadowsTeacherDashboardDemo,
-    })),
-  "prestige-homeschool-academy": () =>
-    import(
-      "@/components/demo/prestigehomeschoolacademy/lazyPrestigeHomeschoolAcademyDemos"
-    ).then((m) => ({
-      default: m.LazyPrestigeHomeschoolAcademyTeacherDashboardDemo,
-    })),
-  "spring-river-school": () =>
-    import("@/components/demo/springriverschool/lazySpringRiverSchoolDemos").then(
-      (m) => ({ default: m.LazySpringRiverSchoolTeacherDashboardDemo }),
-    ),
-  "arizona-gifted-academy": () =>
-    import(
-      "@/components/demo/arizonagiftedacademy/lazyArizonaGiftedAcademyDemos"
-    ).then((m) => ({ default: m.LazyArizonaGiftedAcademyTeacherDashboardDemo })),
-  "lighthouse-homeschool": () =>
-    import(
-      "@/components/demo/lighthousehomeschool/lazyLighthouseHomeschoolDemos"
-    ).then((m) => ({ default: m.LazyLighthouseHomeschoolTeacherDashboardDemo })),
-  "luff-learning": () =>
-    import("@/components/demo/lufflearning/lazyLuffLearningDemos").then((m) => ({
-      default: m.LazyLuffLearningTeacherDashboardDemo,
-    })),
-  "paradise-earth-academy": () =>
-    import(
-      "@/components/demo/paradiseearthacademy/lazyParadiseEarthAcademyDemos"
-    ).then((m) => ({ default: m.LazyParadiseEarthAcademyTeacherDashboardDemo })),
-  "creation-acres": () =>
-    import("@/components/demo/creationacres/lazyCreationAcresDemos").then((m) => ({
-      default: m.LazyCreationAcresTeacherDashboardDemo,
-    })),
-  "true-north": () =>
-    import("@/components/demo/truenorth/lazyTrueNorthDemos").then((m) => ({
-      default: m.LazyTrueNorthTeacherDashboardDemo,
-    })),
-  "lab-learning": () =>
-    import("@/components/demo/lablearning/lazyLabLearningDemos").then((m) => ({
-      default: m.LazyLabLearningTeacherDashboardDemo,
-    })),
-  "one-acre-farm": () =>
-    import("@/components/demo/oneacrefarm/lazyOneAcreFarmDemos").then((m) => ({
-      default: m.LazyOneAcreFarmTeacherDashboardDemo,
-    })),
-  "athena-microacademy": () =>
-    import("@/components/demo/athena/lazyAthenaDemos").then((m) => ({
-      default: m.LazyAthenaTeacherDashboardDemo,
-    })),
-};
+type LoadedTeacherDemo =
+  | { kind: "shared"; slug: string }
+  | { kind: "custom"; slug: string; Component: DemoComponent };
 
-function loadDemo(slug: string) {
-  return (LOADERS[slug] ?? LOADERS["athena-microacademy"])();
+function loadTeacherDemo(slug: string): Promise<LoadedTeacherDemo> {
+  if (slug === ROOTED_MEADOWS_SLUG) {
+    return import("@/components/demo/rootedmeadows/lazyRootedMeadowsDemos").then(
+      (m) => ({
+        kind: "custom" as const,
+        slug,
+        Component: m.LazyRootedMeadowsTeacherDashboardDemo as DemoComponent,
+      }),
+    );
+  }
+  return Promise.resolve({ kind: "shared" as const, slug });
 }
 
 export default function ScaledTeacherDemoPreview({
@@ -132,20 +39,30 @@ export default function ScaledTeacherDemoPreview({
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.81);
-  const [loadedDemo, setLoadedDemo] = useState<{
-    slug: string;
-    Component: DemoComponent;
-  } | null>(null);
-  const isRootedMeadows = demoSlug === "rooted-meadows";
-  const DemoComponent =
-    loadedDemo?.slug === demoSlug ? loadedDemo.Component : null;
+  const [loadedDemo, setLoadedDemo] = useState<LoadedTeacherDemo | null>(null);
+  const [SharedTeacher, setSharedTeacher] = useState<ComponentType<
+    Record<string, unknown>
+  > | null>(null);
+  const isRootedMeadows = demoSlug === ROOTED_MEADOWS_SLUG;
 
   useEffect(() => {
     let cancelled = false;
-    void loadDemo(demoSlug).then((mod) => {
-      if (!cancelled) {
-        setLoadedDemo({ slug: demoSlug, Component: mod.default });
+    void loadTeacherDemo(demoSlug).then(async (loaded) => {
+      if (cancelled) return;
+      if (loaded.kind === "shared") {
+        const mod = await import("@/components/demo/shared/lazySchoolTeacherDemo");
+        if (!cancelled) {
+          setSharedTeacher(
+            () =>
+              mod.LazySchoolTeacherDashboardDemo as ComponentType<
+                Record<string, unknown>
+              >,
+          );
+          setLoadedDemo(loaded);
+        }
+        return;
       }
+      setLoadedDemo(loaded);
     });
     return () => {
       cancelled = true;
@@ -162,6 +79,19 @@ export default function ScaledTeacherDemoPreview({
     return () => ro.disconnect();
   }, []);
 
+  const demoProps = {
+    initialTab: initialTeacherTab,
+    disableTour: true,
+    hideNav: false,
+    ...(isRootedMeadows
+      ? {
+          initialSelectedStudentId: initialSelectedTeacherStudentId,
+          openInitialStudentDetailDelayMs:
+            openInitialTeacherStudentDetailDelayMs,
+        }
+      : {}),
+  };
+
   return (
     <DemoPreviewFrame variant="teacher">
       <div ref={outerRef} className="relative h-full overflow-hidden">
@@ -173,19 +103,11 @@ export default function ScaledTeacherDemoPreview({
             transformOrigin: "top left",
           }}
         >
-          {DemoComponent ? (
-            <DemoComponent
-              initialTab={initialTeacherTab}
-              disableTour
-              hideNav={false}
-              {...(isRootedMeadows
-                ? {
-                    initialSelectedStudentId: initialSelectedTeacherStudentId,
-                    openInitialStudentDetailDelayMs:
-                      openInitialTeacherStudentDetailDelayMs,
-                  }
-                : {})}
-            />
+          {loadedDemo?.kind === "shared" && SharedTeacher ? (
+            <SharedTeacher demoSlug={demoSlug} {...demoProps} />
+          ) : null}
+          {loadedDemo?.kind === "custom" ? (
+            <loadedDemo.Component {...demoProps} />
           ) : null}
         </div>
       </div>

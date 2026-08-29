@@ -73,7 +73,7 @@ function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boo
     student.grade ?? "",
     formatStudentGrade(student.grade) ?? "",
     student.familyName ?? "",
-    student.assignedTeacherName ?? "",
+    student.assignedTeacherNames ?? "",
     student.primaryContactName ?? "",
     student.primaryContactEmail ?? "",
     student.programNames.join(" "),
@@ -170,24 +170,27 @@ export default function StudentsPage({
     };
   }, [slug]);
 
-  const handleAssignTeacher = useCallback(
-    async (studentId: string, staffMemberId: string | null) => {
-      const selectedStaff = staffMemberId
-        ? activeStaff.find((member) => member.id === staffMemberId)
-        : null;
+  const handleSetTeachers = useCallback(
+    async (studentId: string, staffMemberIds: string[]) => {
       let previousStudents: AdminEnrolledStudentSummary[] = [];
 
       setAssigningStudentId(studentId);
       setStudents((current) => {
         previousStudents = current;
+        const selectedStaff = activeStaff
+          .filter((member) => staffMemberIds.includes(member.id))
+          .map((member) => ({
+            id: member.id,
+            name: formatStaffMemberName(member),
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
         return current.map((row) =>
           row.id === studentId
             ? {
                 ...row,
-                assignedTeacherId: staffMemberId,
-                assignedTeacherName: selectedStaff
-                  ? formatStaffMemberName(selectedStaff)
-                  : null,
+                assignedTeachers: selectedStaff,
+                assignedTeacherNames: selectedStaff.map((t) => t.name).join(", "),
               }
             : row,
         );
@@ -199,7 +202,7 @@ export default function StudentsPage({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ staffMemberId }),
+            body: JSON.stringify({ staffMemberIds }),
           },
         );
 
@@ -207,12 +210,12 @@ export default function StudentsPage({
           const payload = (await response.json().catch(() => null)) as {
             error?: string;
           } | null;
-          throw new Error(payload?.error ?? "Failed to assign teacher.");
+          throw new Error(payload?.error ?? "Failed to assign teachers.");
         }
 
         const result = (await response.json()) as {
-          assignedTeacherId: string | null;
-          assignedTeacherName: string | null;
+          assignedTeachers: { id: string; name: string }[];
+          assignedTeacherNames: string;
         };
 
         setStudents((current) =>
@@ -220,15 +223,15 @@ export default function StudentsPage({
             row.id === studentId
               ? {
                   ...row,
-                  assignedTeacherId: result.assignedTeacherId,
-                  assignedTeacherName: result.assignedTeacherName,
+                  assignedTeachers: result.assignedTeachers,
+                  assignedTeacherNames: result.assignedTeacherNames,
                 }
               : row,
           ),
         );
       } catch (error) {
         setStudents(previousStudents);
-        adminToast.error(formatActionError(error, "Failed to assign teacher."));
+        adminToast.error(formatActionError(error, "Failed to assign teachers."));
       } finally {
         setAssigningStudentId(null);
       }
@@ -431,11 +434,12 @@ export default function StudentsPage({
                         <StudentTeacherAssignSelect
                           C={C}
                           studentId={student.id}
-                          assignedTeacherId={student.assignedTeacherId}
+                          studentName={formatEnrolledStudentName(student)}
+                          assignedTeachers={student.assignedTeachers}
                           activeStaff={activeStaff}
                           staffPath={staffPath}
                           disabled={assigningStudentId === student.id}
-                          onAssign={handleAssignTeacher}
+                          onAssign={handleSetTeachers}
                         />
                       </td>
                       <td
@@ -498,7 +502,7 @@ export default function StudentsPage({
             activeStaff={activeStaff}
             staffPath={staffPath}
             assigningTeacher={assigningStudentId === selectedStudent.id}
-            onAssignTeacher={handleAssignTeacher}
+            onAssignTeacher={handleSetTeachers}
             onClose={() => setSelectedId(null)}
           />
         ) : null}

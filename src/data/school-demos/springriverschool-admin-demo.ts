@@ -25,3 +25,21 @@ export const SPRING_RIVER_SCHOOL_ADMIN_COLORS = {
   textPrimary: "#2F3D34",
   textSecondary: "#6B6560",
 } as const;
+
+import { adminContentOverrides as springRiverSchoolAdminContentOverrides } from "./admin-content/spring-river-school";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const springRiverSchoolAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "spring-river-school",
+  logo: SPRING_RIVER_SCHOOL_ADMIN_LOGO,
+  colors: SPRING_RIVER_SCHOOL_ADMIN_COLORS,
+  compactRows: SPRING_RIVER_SCHOOL_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Spring River School",
+    schoolShortName: "Spring River",
+    officeName: "Spring River School Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: springRiverSchoolAdminContentOverrides,
+};

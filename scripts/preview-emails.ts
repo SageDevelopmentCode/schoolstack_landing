@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildApplicationSubmittedConfirmationHtml,
+  buildDraftApplicationReminderHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
   buildEnrollmentCompletedConfirmationHtml,
@@ -103,6 +104,23 @@ const previews = [
       "Application Received",
       "Thank you",
       "View apply dashboard",
+      "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "draft-application-reminder.html",
+    html: buildDraftApplicationReminderHtml({
+      name: "Maria Lopez",
+      schoolName: "Rooted Meadows",
+      formTitle: "2026–27 Enrollment Application",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      contactEmail: "admissions@rootedmeadows.com",
+    }),
+    checks: [
+      "Finish Your Application",
+      "We're excited you're applying",
+      "Continue your application",
+      "admissions@rootedmeadows.com",
       "Rooted Meadows",
     ],
   },

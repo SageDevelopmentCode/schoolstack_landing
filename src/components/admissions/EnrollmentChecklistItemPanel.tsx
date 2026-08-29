@@ -1983,6 +1983,7 @@ export default function EnrollmentChecklistItemPanel({
     checklistId,
     existingResponses,
     hasNextIncompleteItem,
+    initialSectionId,
     instanceId,
     instancePaymentStatus,
     instanceStatus,

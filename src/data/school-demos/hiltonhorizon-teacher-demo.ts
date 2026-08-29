@@ -17,3 +17,19 @@ export const HILTON_HORIZON_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+
+import { HILTON_HORIZON_ADMIN_LOGO } from "./hiltonhorizon-admin-demo";
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+
+export const hiltonHorizonsAcademyTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "hilton-horizons-academy",
+  logo: HILTON_HORIZON_ADMIN_LOGO,
+  accent: HILTON_HORIZON_TEACHER_ACCENT,
+  accentHover: HILTON_HORIZON_TEACHER_ACCENT_HOVER,
+  programLabels: HILTON_HORIZON_TEACHER_PROGRAM_LABELS,
+  programOrder: HILTON_HORIZON_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: HILTON_HORIZON_TEACHER_OFFICE,
+  },
+};

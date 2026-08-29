@@ -28,3 +28,21 @@ export const WONDERING_OAKS_ADMIN_COLORS = {
   textPrimary: "#2B241F",
   textSecondary: "#5F6360",
 } as const;
+
+import { adminContentOverrides as wonderingOaksLearningAdminContentOverrides } from "./admin-content/wondering-oaks-learning";
+
+import type { SchoolAdminDemoConfig } from "./demo-dashboard-types";
+
+export const wonderingOaksLearningAdminDemoConfig: SchoolAdminDemoConfig = {
+  slug: "wondering-oaks-learning",
+  logo: WONDERING_OAKS_ADMIN_LOGO,
+  colors: WONDERING_OAKS_ADMIN_COLORS,
+  compactRows: WONDERING_OAKS_ADMIN_COMPACT_ROWS,
+  copy: {
+    schoolName: "Wondering Oaks Learning",
+    schoolShortName: "Wondering Oaks",
+    officeName: "Wondering Oaks Learning Office",
+    locationSubtitle: "Mud Kitchen School — Spring / Summer 2026",
+  },
+  contentOverrides: wonderingOaksLearningAdminContentOverrides,
+};
