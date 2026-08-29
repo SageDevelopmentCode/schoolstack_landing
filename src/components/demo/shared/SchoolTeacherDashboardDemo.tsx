@@ -3,6 +3,41 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  Clock,
+  MessageCircle,
+  Calendar,
+  Rss,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  CalendarDays,
+  TrendingUp,
+  LogIn,
+  LogOut,
+  MapPin,
+  Paperclip,
+  ChevronRight,
+  ChevronLeft,
+  Banknote,
+  X,
+  Trash2,
+  LayoutGrid,
+  Search,
+  Send,
+  SquarePen,
+  MoreHorizontal,
+  Plus,
+  Heart,
+  ClipboardList,
+  Home,
+  Phone,
+  Mail,
+  type LucideIcon,
+} from "lucide-react";
 import type { SchoolTeacherDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import {
   TEACHER_DEMO_COPY,
@@ -681,9 +716,6 @@ const DEMO_STUDENTS: DemoStudent[] = [
   },
 ];
 
-let PROGRAM_LABELS = TEACHER_DEMO_PROGRAM_LABELS;
-let PROGRAM_ORDER = [...TEACHER_DEMO_PROGRAM_ORDER];
-
 // ─── Sidebar Primitives (inlined) ─────────────────────────────────────────────
 
 function SidebarField({
@@ -797,7 +829,7 @@ function StudentDetailSidebar({
                 <SidebarField label="Date of Birth" value={student.dob} />
                 <SidebarField
                   label="Program"
-                  value={PROGRAM_LABELS[student.program] ?? student.program}
+                  value={TEACHER_DEMO_PROGRAM_LABELS[student.program] ?? student.program}
                 />
                 <SidebarField label="Classroom" value={student.classroom} />
                 <SidebarField
@@ -872,7 +904,7 @@ function StudentAvatar({ name, color }: { name: string; color: string }) {
 // ─── My Students Section ──────────────────────────────────────────────────────
 
 function MyStudentsSection() {
-  const programs = PROGRAM_ORDER.filter((p) =>
+  const programs = TEACHER_DEMO_PROGRAM_ORDER.filter((p) =>
     DEMO_STUDENTS.some((s) => s.program === p),
   );
   const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
@@ -899,7 +931,7 @@ function MyStudentsSection() {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {PROGRAM_LABELS[p] ?? p}
+              {TEACHER_DEMO_PROGRAM_LABELS[p] ?? p}
             </button>
           ))}
         </div>
@@ -958,7 +990,7 @@ function MyStudentsSection() {
 // ─── Students Page ────────────────────────────────────────────────────────────
 
 function StudentsPage() {
-  const programs = PROGRAM_ORDER.filter((p) =>
+  const programs = TEACHER_DEMO_PROGRAM_ORDER.filter((p) =>
     DEMO_STUDENTS.some((s) => s.program === p),
   );
   const [activeProgram, setActiveProgram] = useState(programs[0] ?? "");
@@ -1005,7 +1037,7 @@ function StudentsPage() {
                   }`}
                 >
                   <span className="text-sm font-body font-medium truncate">
-                    {PROGRAM_LABELS[p] ?? p}
+                    {TEACHER_DEMO_PROGRAM_LABELS[p] ?? p}
                   </span>
                   <span
                     className={`text-xs font-semibold font-body px-2 py-0.5 rounded-full ${
@@ -4477,8 +4509,7 @@ export default function SchoolTeacherDashboardDemo({
   disableTour?: boolean;
   hideNav?: boolean;
 }) {
-  PROGRAM_LABELS = TEACHER_DEMO_PROGRAM_LABELS;
-  PROGRAM_ORDER = [...TEACHER_DEMO_PROGRAM_ORDER];
+  applyTeacherDemoRuntime(config);
   const [activeTab, setActiveTab] = useState<NavTab>(initialTab);
   const [sessionsByDay, setSessionsByDay] =
     useState<Record<string, DemoSession[]>>(buildInitialSessions);

@@ -2,9 +2,9 @@
 name: school-demo-builder
 description: >-
   Build a full school demo in schoolstack_landing — website config, admin/parent/teacher
-  portal forks, lazy loading, walkthrough, and Scaled* wiring. Use when the user asks to
-  create a new school demo, spec-demo landing page, or provides a school website URL,
-  logo, and redesign guide (e.g. guides/demos/*_redesign_guide.md).
+  portal configs, shared dashboard components, lazy loading, walkthrough, and Scaled* wiring.
+  Use when the user asks to create a new school demo, spec-demo landing page, or provides
+  a school website URL, logo, and redesign guide (e.g. guides/demos/*_redesign_guide.md).
 disable-model-invocation: true
 ---
 
@@ -57,11 +57,13 @@ Create in `src/data/school-demos/`:
 | File | Exports |
 |---|---|
 | `{slug}.ts` | `{camelCase}Config: SchoolWebsiteDemoConfig` |
-| `{slug}-admin-demo.ts` | `*_LOGO`, `*_ADMIN_COLORS`, `*_ADMIN_COMPACT_ROWS` |
-| `{slug}-parent-demo.ts` | Re-export logo/colors + parent accent/name constants |
-| `{slug}-teacher-demo.ts` | `*_TEACHER_PROGRAM_LABELS`, `*_TEACHER_PROGRAM_ORDER` |
+| `{slug}-admin-demo.ts` | `*_LOGO`, `*_ADMIN_COLORS`, `*_ADMIN_COMPACT_ROWS`, `{camelCase}AdminDemoConfig` |
+| `{slug}-parent-demo.ts` | Logo/colors constants + `{camelCase}ParentDemoConfig` |
+| `{slug}-teacher-demo.ts` | `*_TEACHER_PROGRAM_LABELS`, `*_TEACHER_PROGRAM_ORDER`, `{camelCase}TeacherDemoConfig` |
 
 Model `{slug}.ts` on `lighthouse-homeschool.ts` or `luff-learning.ts`. Register in `index.ts` (named export + registry key).
+
+Export `*DemoConfig` objects typed from `demo-dashboard-types.ts` (see `luff-learning-admin-demo.ts`). Then register each config in `dashboard-registry.ts` under `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, and `schoolTeacherDemoConfigs`.
 
 Website config must include: `theme`, `hero`, `signatureSection`, `stats`, `welcome`, `marquee`, `programs` (3–4 cards), `socialProof` (testimonials), `founder`, `form`, `faq`, `closingCta`, `footer`.
 
@@ -81,11 +83,13 @@ Copy from `src/app/demo/luff-learning/`.
 
 Shared portal UI: `src/components/demo/shared/School*DashboardDemo.tsx`.
 
-Per school, add configs to `dashboard-registry.ts` via `{slug}-admin-demo.ts`, `{slug}-parent-demo.ts`, `{slug}-teacher-demo.ts`, and optional `admin-content/{slug}.ts`.
+Per school, export `*DemoConfig` from `{slug}-admin-demo.ts`, `{slug}-parent-demo.ts`, and `{slug}-teacher-demo.ts`, then register in `dashboard-registry.ts`.
+
+**Optional admin mock overrides:** If leads, events, or emails should differ from the canonical Luff demo, add `src/data/school-demos/admin-content/{slug}.ts` and reference it from `SchoolAdminDemoConfig.contentOverrides` (see `lighthouse-homeschool` admin config). Do not edit the shared admin component for school-specific copy.
 
 Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
 
-**Do not** fork admin/parent/teacher dashboard TSX.
+**Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM.
 
 Naming conventions: [reference.md](reference.md#naming-conventions).
 
@@ -109,11 +113,11 @@ Use `createMobileAppWalkthroughStep(theme)` for step 8 (before contact). Theme s
 
 Register the school slug in:
 
-- `src/data/school-demos/dashboard-registry.ts` (admin/parent/teacher configs)
+- `src/data/school-demos/dashboard-registry.ts` — import and add to all three maps: `schoolAdminDemoConfigs`, `schoolParentDemoConfigs`, `schoolTeacherDemoConfigs`
 - `src/components/demo/shared/lazySchoolWebsiteDemo.tsx` (`WEBSITE_DEMO_LOADERS` — if new website wrapper path)
 - `src/components/demo/ScaledMobileAppPreview.tsx` (`MOBILE_SHOWCASE_LOADERS`)
 
-Admin/parent/teacher previews use shared loaders automatically once configs are in the registry. **Rooted Meadows** keeps custom dashboard forks.
+Admin/parent/teacher `Scaled*` previews need **no per-school edits** once configs are in the registry — shared loaders resolve by `demoSlug`. **Rooted Meadows** is the only standard demo with custom dashboard forks (`src/components/demo/rootedmeadows/`). Sagefield is a separate customer demo — out of scope here.
 
 ## Phase 5b — Mobile showcase (required)
 

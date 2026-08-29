@@ -62,12 +62,20 @@ import {
 `,
 );
 teacher = teacher.replace(
-  "const PROGRAM_LABELS = LUFF_LEARNING_TEACHER_PROGRAM_LABELS;",
-  "let PROGRAM_LABELS = TEACHER_DEMO_PROGRAM_LABELS;",
+  "const PROGRAM_LABELS = LUFF_LEARNING_TEACHER_PROGRAM_LABELS;\n",
+  "",
 );
 teacher = teacher.replace(
-  "const PROGRAM_ORDER = [...LUFF_LEARNING_TEACHER_PROGRAM_ORDER];",
-  "let PROGRAM_ORDER = [...TEACHER_DEMO_PROGRAM_ORDER];",
+  "const PROGRAM_ORDER = [...LUFF_LEARNING_TEACHER_PROGRAM_ORDER];\n",
+  "",
+);
+teacher = teacher.replaceAll(
+  /(?<!TEACHER_DEMO_)PROGRAM_LABELS/g,
+  "TEACHER_DEMO_PROGRAM_LABELS",
+);
+teacher = teacher.replaceAll(
+  /(?<!TEACHER_DEMO_)PROGRAM_ORDER/g,
+  "TEACHER_DEMO_PROGRAM_ORDER",
 );
 teacher = teacher.replaceAll("LUFF_LEARNING_TEACHER_LOGO", "getTeacherDemoLogo()");
 teacher = teacher.replaceAll("LUFF_LEARNING_TEACHER_OFFICE", "TEACHER_DEMO_COPY.officeName");
@@ -85,7 +93,7 @@ teacher = teacher.replace(
 teacher = teacher.replace(
   /export default function SchoolTeacherDashboardDemo\(\{[\s\S]*?\) \{\n/,
   (m) =>
-    `${m}  applyTeacherDemoRuntime(config);\n  PROGRAM_LABELS = TEACHER_DEMO_PROGRAM_LABELS;\n  PROGRAM_ORDER = [...TEACHER_DEMO_PROGRAM_ORDER];\n`,
+    `${m}  applyTeacherDemoRuntime(config);\n`,
 );
 fs.writeFileSync(teacherFile, teacher);
 console.log("Transformed parent and teacher shared demos");
