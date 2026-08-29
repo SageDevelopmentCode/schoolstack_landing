@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, Loader2, Search } from "lucide-react";
 import SchoolAdminSlideOverShell from "@/components/school-admin/ui/SchoolAdminSlideOverShell";
 import {
@@ -57,12 +57,15 @@ export default function StaffStudentAssignSheet({
 }: StaffStudentAssignSheetProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [wasOpen, setWasOpen] = useState(open);
 
-  useEffect(() => {
-    if (!open) return;
-    setSelectedIds([]);
-    setSearchQuery("");
-  }, [open]);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setSelectedIds([]);
+      setSearchQuery("");
+    }
+  }
 
   const assignableStudents = useMemo(
     () =>
