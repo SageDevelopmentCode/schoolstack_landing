@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ClipboardCheck, FileText, Users } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
@@ -173,10 +173,6 @@ export default function ParentChildRecordWorkspace({
   const hasTeachersTab = Boolean(application.studentId);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(application.profilePhotoUrl);
   const [photoUploading, setPhotoUploading] = useState(false);
-
-  useEffect(() => {
-    setProfilePhotoUrl(application.profilePhotoUrl);
-  }, [application.id, application.profilePhotoUrl]);
 
   const student = extractStudentFromResponses(application.responses);
   const fullName = student ? `${student.firstName} ${student.lastName}` : "Student";

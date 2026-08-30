@@ -172,7 +172,9 @@ export default function ParentChildrenPage({
     const applicationId = searchParams.get("applicationId");
     if (!applicationId) {
       if (familyChildren[0]) {
-        void loadProfile(familyChildren[0].applicationId);
+        queueMicrotask(() => {
+          void loadProfile(familyChildren[0].applicationId);
+        });
       }
       return;
     }
@@ -191,7 +193,9 @@ export default function ParentChildrenPage({
 
   useEffect(() => {
     if (!selectedApplicationId) return;
-    void loadProfile(selectedApplicationId);
+    queueMicrotask(() => {
+      void loadProfile(selectedApplicationId);
+    });
   }, [loadProfile, selectedApplicationId]);
 
   if (children.length === 0) {
@@ -258,6 +262,7 @@ export default function ParentChildrenPage({
 
         {selectedProfile?.application ? (
           <ParentChildRecordWorkspace
+            key={selectedProfile.application.id}
             theme={theme}
             adminCompat={adminCompat}
             branding={branding}

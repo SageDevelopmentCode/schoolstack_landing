@@ -396,21 +396,19 @@ function ParentBillingPageContent({
     );
   }, [deepLinkTargetCharge, familySummary?.children]);
 
-  useEffect(() => {
-    if (deepLinkChildParam) {
-      setActiveTabKey(deepLinkChildParam);
-      return;
-    }
+  const resolvedActiveTabKey = useMemo(() => {
+    if (deepLinkChildParam) return deepLinkChildParam;
     if (deepLinkTabParam === PARENT_BILLING_SUMMARY_TAB) {
-      setActiveTabKey(PARENT_BILLING_SUMMARY_TAB);
-      return;
+      return PARENT_BILLING_SUMMARY_TAB;
     }
-    if (deepLinkChildKeyFromCharge) {
-      setActiveTabKey(deepLinkChildKeyFromCharge);
-    }
-  }, [deepLinkChildParam, deepLinkTabParam, deepLinkChildKeyFromCharge]);
-
-  const resolvedActiveTabKey = activeTabKey;
+    if (deepLinkChildKeyFromCharge) return deepLinkChildKeyFromCharge;
+    return activeTabKey;
+  }, [
+    deepLinkChildParam,
+    deepLinkTabParam,
+    deepLinkChildKeyFromCharge,
+    activeTabKey,
+  ]);
   const isSummaryTab =
     hasMultipleChildren && resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = isSummaryTab
@@ -456,7 +454,7 @@ function ParentBillingPageContent({
   };
 
   const handleSelectTab = (tabKey: string) => {
-    if (tabKey === activeTabKey) return;
+    if (tabKey === resolvedActiveTabKey) return;
     setPendingTabKey(tabKey);
     setActiveTabKey(tabKey);
     const params = new URLSearchParams(searchParams.toString());

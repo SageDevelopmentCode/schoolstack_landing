@@ -133,14 +133,15 @@ export default function AdminOrganizationsPage() {
     });
   }, [selectedId]);
 
-  useEffect(() => {
+  const selectDetailTab = useCallback((tab: OrganizationDetailTab) => {
+    setActiveDetailTab(tab);
     setVisitedTabs((prev) => {
-      if (prev.has(activeDetailTab)) return prev;
+      if (prev.has(tab)) return prev;
       const next = new Set(prev);
-      next.add(activeDetailTab);
+      next.add(tab);
       return next;
     });
-  }, [activeDetailTab]);
+  }, []);
 
   useEffect(() => {
     if (!selectedId) {
@@ -319,7 +320,7 @@ export default function AdminOrganizationsPage() {
                   type="button"
                   role="tab"
                   aria-selected={activeDetailTab === tab.id}
-                  onClick={() => setActiveDetailTab(tab.id)}
+                  onClick={() => selectDetailTab(tab.id)}
                   className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
                     activeDetailTab === tab.id
                       ? "border-admin-accent text-admin-accent"
