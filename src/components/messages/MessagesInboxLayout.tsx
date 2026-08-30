@@ -31,8 +31,10 @@ import MessagesThreadView, {
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
 import ParentMessagesInboxHeader from "@/components/school-parent/messages/ParentMessagesInboxHeader";
+import AdminMessagesInboxHeader from "@/components/school-admin/messages/AdminMessagesInboxHeader";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
+  isAdminStoryMessagesVariant,
   isSplitPaneMessagesVariant,
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
@@ -530,19 +532,20 @@ export default function MessagesInboxLayout({
   );
 
   const embedded = variant === "embedded";
-  const parentStory = isStoryMessagesVariant(variant);
+  const storyVariant = isStoryMessagesVariant(variant);
+  const adminStory = isAdminStoryMessagesVariant(variant);
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
     const query = inboxSearch.trim().toLowerCase();
-    if (!parentStory || !query) return threads;
+    if (!storyVariant || !query) return threads;
     return threads.filter(
       (thread) =>
         thread.title.toLowerCase().includes(query) ||
         thread.subtitle?.toLowerCase().includes(query) ||
         thread.lastMessagePreview?.toLowerCase().includes(query),
     );
-  }, [inboxSearch, parentStory, threads]);
+  }, [inboxSearch, storyVariant, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -591,7 +594,7 @@ export default function MessagesInboxLayout({
   );
 
   const listItems = useMemo(() => {
-    if (embedded && api.viewer === "admin") {
+    if (adminStory && api.viewer === "admin") {
       return buildAdminSectionedListItems(threadsForList);
     }
 
@@ -605,7 +608,7 @@ export default function MessagesInboxLayout({
         .filter((contact) => !contactKeysWithThreads.has(contact.key))
         .map((contact) => ({ type: "contact" as const, contact })),
     ];
-  }, [api.viewer, contactKeysWithThreads, contacts, embedded, splitPane, threadsForList]);
+  }, [adminStory, api.viewer, contactKeysWithThreads, contacts, splitPane, threadsForList]);
 
   const newConversationContacts = contacts.filter(
     (contact) => !contactKeysWithThreads.has(contact.key),
@@ -620,20 +623,20 @@ export default function MessagesInboxLayout({
         <div
           className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
           style={{
-            backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+            backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
         >
           <div className="flex flex-1 min-h-0 overflow-hidden">
             <div
               className={`flex w-full flex-shrink-0 flex-col border-r ${
-                parentStory ? "md:w-[340px]" : "md:w-80 lg:w-96"
+                storyVariant ? "md:w-[340px]" : "md:w-80 lg:w-96"
               }`}
               style={{
-                borderColor: parentStory ? theme?.line ?? C.border : C.border,
-                backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+                borderColor: storyVariant ? theme?.line ?? C.border : C.border,
+                backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
               }}
             >
-              {parentStory ? (
+              {storyVariant ? (
                 <div className="border-b px-4 py-4" style={{ borderColor: theme?.line ?? C.border }}>
                   <div
                     className="mb-3 h-3 w-28 animate-pulse rounded"
@@ -662,7 +665,7 @@ export default function MessagesInboxLayout({
             <div
               className="hidden flex-1 md:block"
               style={{
-                backgroundColor: parentStory
+                backgroundColor: storyVariant
                   ? "#EFF5F0"
                   : C.bg,
               }}
@@ -716,7 +719,7 @@ export default function MessagesInboxLayout({
           : "flex-1 min-h-[480px] h-[calc(100vh-220px)] max-h-[720px] border rounded-xl"
       }`}
       style={
-        parentStory && theme
+        storyVariant && theme
           ? {
               backgroundColor: theme.white,
             }
@@ -731,7 +734,7 @@ export default function MessagesInboxLayout({
         <div
           className="border-b px-4 py-2 text-sm"
           style={
-            parentStory && theme
+            storyVariant && theme
               ? {
                   color: theme.warning,
                   borderColor: theme.line,
@@ -749,13 +752,13 @@ export default function MessagesInboxLayout({
           className={`border-r flex flex-col flex-shrink-0 ${
             mobileView === "chat" ? "hidden md:flex" : "flex"
           } w-full ${
-            parentStory ? "md:w-[340px]" : splitPane ? "md:w-80 lg:w-96" : "md:w-72"
+            storyVariant ? "md:w-[340px]" : splitPane ? "md:w-80 lg:w-96" : "md:w-72"
           }`}
           style={{
             borderColor: theme?.line ?? C.border,
-            backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+            backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
-          {...(parentStory && mobileView === "list"
+          {...(storyVariant && mobileView === "list"
             ? {
                 initial: parentMessagesViewTransition.initial,
                 animate: parentMessagesViewTransition.animate,
@@ -763,7 +766,7 @@ export default function MessagesInboxLayout({
               }
             : {})}
         >
-          {parentStory && theme ? (
+          {variant === "parent-story" && theme ? (
             <ParentMessagesInboxHeader
               theme={theme}
               searchQuery={inboxSearch}
@@ -771,6 +774,14 @@ export default function MessagesInboxLayout({
               onNewMessage={() => setNewConversationOpen(true)}
               newMessageDisabled={contacts.length === 0}
               readOnly={readOnly}
+            />
+          ) : adminStory && theme ? (
+            <AdminMessagesInboxHeader
+              theme={theme}
+              searchQuery={inboxSearch}
+              onSearchChange={setInboxSearch}
+              onNewMessage={() => setNewConversationOpen(true)}
+              newMessageDisabled={contacts.length === 0}
             />
           ) : splitPane ? (
             <div
@@ -817,8 +828,8 @@ export default function MessagesInboxLayout({
           className={`flex w-full flex-col flex-1 min-w-0 min-h-0 ${
             mobileView === "list" ? "hidden md:flex" : "flex"
           }`}
-          key={parentStory ? (activeThreadId ?? "empty") : undefined}
-          {...(parentStory
+          key={storyVariant ? (activeThreadId ?? "empty") : undefined}
+          {...(storyVariant
             ? {
                 initial: parentMessagesViewTransition.initial,
                 animate: parentMessagesViewTransition.animate,

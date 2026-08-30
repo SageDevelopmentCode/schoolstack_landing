@@ -22,21 +22,26 @@ function renderSectionHeader(
   description: string | undefined,
   splitPane: boolean,
   C: AdminThemeTokens,
+  theme?: ParentThemeTokens,
+  storyVariant = false,
 ) {
+  const lineColor = storyVariant && theme ? theme.line : C.border;
+  const textColor = storyVariant && theme ? theme.muted : C.textTertiary;
+
   if (splitPane) {
     return (
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
-          <p className="text-[11px] font-medium" style={{ color: C.textTertiary }}>
+          <div className="h-px flex-1" style={{ backgroundColor: lineColor }} />
+          <p className="text-[11px] font-medium" style={{ color: textColor }}>
             {label}
           </p>
-          <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
+          <div className="h-px flex-1" style={{ backgroundColor: lineColor }} />
         </div>
         {description ? (
           <p
             className="mt-2 text-center text-[11px] leading-relaxed"
-            style={{ color: C.textTertiary }}
+            style={{ color: textColor }}
           >
             {description}
           </p>
@@ -49,12 +54,12 @@ function renderSectionHeader(
     <div className="px-3 pt-3 pb-1">
       <p
         className="text-[10px] font-semibold uppercase tracking-wider"
-        style={{ color: C.textTertiary }}
+        style={{ color: textColor }}
       >
         {label}
       </p>
       {description ? (
-        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
+        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textColor }}>
           {description}
         </p>
       ) : null}
@@ -92,7 +97,7 @@ export default function MessagesConversationList({
   hideStudentSubtitle?: boolean;
 }) {
   const splitPane = isSplitPaneMessagesVariant(variant);
-  const parentStory = isStoryMessagesVariant(variant);
+  const storyVariant = isStoryMessagesVariant(variant);
   let showingContacts = false;
   const firstContactIndex = items.findIndex((item) => item.type === "contact");
 
@@ -103,14 +108,21 @@ export default function MessagesConversationList({
           className="text-sm text-center py-8 px-4"
           style={{ color: theme?.muted ?? C.textTertiary }}
         >
-          {parentStory ? "No conversations match this filter." : "No conversations yet."}
+          {storyVariant ? "No conversations match this filter." : "No conversations yet."}
         </p>
       ) : (
         items.map((item, itemIndex) => {
           if (item.type === "section") {
             return (
               <div key={item.key}>
-                {renderSectionHeader(item.label, item.description, splitPane, C)}
+                {renderSectionHeader(
+                  item.label,
+                  item.description,
+                  splitPane,
+                  C,
+                  theme,
+                  storyVariant,
+                )}
               </div>
             );
           }
@@ -176,7 +188,7 @@ export default function MessagesConversationList({
                 onClick={() => onSelect(key)}
                 onKeyDown={(event) => handleRowKeyDown(event, () => onSelect(key))}
                 className={`relative w-full flex items-start gap-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  parentStory
+                  storyVariant
                     ? "border-b px-[15px] py-[13px] hover:bg-black/[0.02]"
                     : splitPane
                       ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
@@ -185,11 +197,11 @@ export default function MessagesConversationList({
                 style={{
                   backgroundColor:
                     !splitPane && isActive ? `${C.accent}14` : "transparent",
-                  borderColor: parentStory ? theme?.line ?? C.border : undefined,
-                  ...(splitPane && isActive && !parentStory
+                  borderColor: storyVariant ? theme?.line ?? C.border : undefined,
+                  ...(splitPane && isActive && !storyVariant
                     ? { boxShadow: `inset 3px 0 0 0 ${C.accent}` }
                     : {}),
-                  ...(parentStory && isActive && theme
+                  ...(storyVariant && isActive && theme
                     ? {
                         backgroundColor: theme.primarySoft,
                         boxShadow: `inset 3px 0 0 0 ${theme.primary}`,
@@ -219,7 +231,7 @@ export default function MessagesConversationList({
                     </p>
                     {timeLabel ? (
                       <div className="flex shrink-0 items-center gap-1.5">
-                        {parentStory && hasUnread ? (
+                        {storyVariant && hasUnread ? (
                           <span
                             className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: theme?.primary ?? C.accent }}
@@ -230,10 +242,10 @@ export default function MessagesConversationList({
                           className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
                           style={{
                             color:
-                              parentStory || (hasUnread && splitPane)
+                              storyVariant || (hasUnread && splitPane)
                                 ? theme?.muted ?? C.textTertiary
                                 : C.textTertiary,
-                            fontWeight: !parentStory && hasUnread && splitPane ? 600 : 400,
+                            fontWeight: !storyVariant && hasUnread && splitPane ? 600 : 400,
                           }}
                         >
                           {timeLabel}
@@ -241,7 +253,7 @@ export default function MessagesConversationList({
                       </div>
                     ) : null}
                   </div>
-                  {shouldShowSubtitle && !parentStory ? (
+                  {shouldShowSubtitle && !storyVariant ? (
                     <MessageStudentSubtitle
                       students={subtitleStudents}
                       subtitle={subtitle}
@@ -249,7 +261,7 @@ export default function MessagesConversationList({
                       truncate
                     />
                   ) : null}
-                  {parentStory ? (
+                  {storyVariant ? (
                     <p
                       className={`mt-0.5 truncate text-xs ${hasUnread ? "font-medium" : ""}`}
                       style={{ color: theme?.muted ?? C.textSecondary }}

@@ -125,6 +125,19 @@ Always-on split-pane (prototype staff directory detail view):
   No table, metrics, filters, or Staff directory back navigation
 ```
 
+**Messages (messages tab):**
+
+```
+useSchoolAdminStoryTheme()
+  MessagesInboxLayout variant="admin-story"
+  Always-on split-pane: 340px inbox | paper chat pane (#EFF5F0)
+  AdminMessagesInboxHeader: Fraunces title + AdminButton + New + search
+  Sectioned inbox list: school office threads · Parent & teacher conversations · Other
+  Story row styling: primarySoft active bg, dot unread, avatar-beside-bubble chat
+  Admin compose banner for guardian↔staff review threads (info/warning; disabled without staff profile)
+  Full-height inside SchoolAdminBaseline (isMessagesPage overflow-hidden)
+```
+
 Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts), [`admin-staff-roster-metrics.ts`](src/lib/school-admin/admin-staff-roster-metrics.ts). Staff display helpers: [`staff-display.ts`](src/lib/staff/staff-display.ts). Assigned learner counts: [`fetchAssignedStudentCountsByStaffIds`](src/lib/school-admin/enrolled-students.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
 
 ### Scope
@@ -145,4 +158,5 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Programs: [`ProgramsPage.tsx`](src/components/school-admin/admissions/ProgramsPage.tsx), [`ProgramsOutline.tsx`](src/components/school-admin/admissions/ProgramsOutline.tsx)
 - Submissions: [`ApplicationSubmissionsPage.tsx`](src/components/school-admin/admissions/ApplicationSubmissionsPage.tsx), [`SubmissionNextStepCell.tsx`](src/components/school-admin/admissions/SubmissionNextStepCell.tsx)
 - Staff: [`StaffPage.tsx`](src/components/school-admin/staff/StaffPage.tsx), [`StaffDetailPane.tsx`](src/components/school-admin/staff/StaffDetailPane.tsx), [`StaffListSidebar.tsx`](src/components/school-admin/staff/StaffListSidebar.tsx)
+- Messages: [`AdminMessagesPage.tsx`](src/components/school-admin/AdminMessagesPage.tsx), [`AdminMessagesInboxHeader.tsx`](src/components/school-admin/messages/AdminMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="admin-story"`
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)
