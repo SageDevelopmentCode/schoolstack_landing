@@ -1,9 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  CreditCard,
+  FileText,
+  History,
+  LayoutDashboard,
+  type LucideIcon,
+} from "lucide-react";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import ApplicationSubmissionPostSubmitSection from "@/components/admissions/ApplicationSubmissionPostSubmitSection";
 import ApplicationSubmissionHistorySection, {
   buildAdmissionHistoryContextDescription,
@@ -17,8 +28,9 @@ import AcceptedEnrollmentSection from "./AcceptedEnrollmentSection";
 import EnrollmentStatusCard from "./EnrollmentStatusCard";
 import StartEnrollmentModal from "./StartEnrollmentModal";
 import FamilyGuardiansSection from "./FamilyGuardiansSection";
+import { SubmissionDetailStoryProvider } from "./SubmissionDetailStoryContext";
 import {
-  applicationStatusBadgeStyle,
+  applicationStatusChipTone,
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
 import {
@@ -30,8 +42,11 @@ import {
 } from "@/lib/admissions/application-submissions";
 import { getChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import { createClient } from "@/utils/supabase/client";
 
 type SubmissionStatusUpdate = { status: AdminApplicationSubmission["status"] };
@@ -50,6 +65,7 @@ type ApplicationSubmissionDetailPanelProps = {
 type DetailTab = {
   id: string;
   label: string;
+  icon: LucideIcon;
 };
 
 export default function ApplicationSubmissionDetailPanel({
@@ -62,9 +78,11 @@ export default function ApplicationSubmissionDetailPanel({
   onSubmissionUpdated,
   onSelectSubmission,
 }: ApplicationSubmissionDetailPanelProps) {
-  const C = buildAdminThemeTokens(branding);
+  const { theme, C } = useSchoolAdminStoryTheme();
+  const reducedMotion = useReducedMotion();
   const supabase = createClient();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const historyLoadedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadApplicationDetail>>>(null);
@@ -74,12 +92,19 @@ export default function ApplicationSubmissionDetailPanel({
   const [startEnrollmentOpen, setStartEnrollmentOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(submission.status);
   const [activeTab, setActiveTab] = useState("overview");
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(["overview"]));
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyUnlinked, setHistoryUnlinked] = useState(false);
   const [historyEvents, setHistoryEvents] = useState<FamilyAdmissionTimelineEvent[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
 
   const navigateToTab = useCallback((tabId: string) => {
+    setVisitedTabs((previous) => {
+      if (previous.has(tabId)) return previous;
+      const next = new Set(previous);
+      next.add(tabId);
+      return next;
+    });
     setActiveTab(tabId);
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -100,48 +125,52 @@ export default function ApplicationSubmissionDetailPanel({
     }
   }, [submission.id]);
 
-  const loadDetail = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const row = await loadApplicationDetail(supabase, submission.id, organizationId);
-      if (!row) {
-        setError("Application not found.");
-        setDetail(null);
-        return;
-      }
-      setDetail(row);
-      setCurrentStatus(row.status);
-      const resolvedFamilyId = await resolveApplicationFamilyId(
-        supabase,
-        organizationId,
-        submission.id,
-      );
-      setFamilyId(resolvedFamilyId);
-      await Promise.all([loadChecklistState(), loadPublishedEnrollmentChecklistState()]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load application.");
-      setDetail(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    loadChecklistState,
-    loadPublishedEnrollmentChecklistState,
-    organizationId,
-    submission.id,
-    supabase,
-    setCurrentStatus,
-    setDetail,
-    setError,
-    setLoading,
-  ]);
+  const invalidateHistory = useCallback(() => {
+    historyLoadedRef.current = false;
+    setHistoryEvents([]);
+    setHistoryUnlinked(false);
+  }, []);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadDetail();
-    });
-  }, [loadDetail]);
+  const loadDetail = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      if (!silent) {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const row = await loadApplicationDetail(supabase, submission.id, organizationId);
+        if (!row) {
+          setError("Application not found.");
+          setDetail(null);
+          return;
+        }
+        setDetail(row);
+        setCurrentStatus(row.status);
+        const resolvedFamilyId = await resolveApplicationFamilyId(
+          supabase,
+          organizationId,
+          submission.id,
+        );
+        setFamilyId(resolvedFamilyId);
+        await Promise.all([loadChecklistState(), loadPublishedEnrollmentChecklistState()]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load application.");
+        setDetail(null);
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [
+      loadChecklistState,
+      loadPublishedEnrollmentChecklistState,
+      organizationId,
+      submission.id,
+      supabase,
+    ],
+  );
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -172,13 +201,28 @@ export default function ApplicationSubmissionDetailPanel({
     }
   }, [organizationId, submission.id, supabase]);
 
-  useEffect(() => {
-    if (activeTab === "history") {
-      queueMicrotask(() => {
-        void loadHistory();
-      });
+  const refreshAfterMutation = useCallback(async () => {
+    invalidateHistory();
+    await loadDetail({ silent: true });
+    if (visitedTabs.has("history")) {
+      historyLoadedRef.current = true;
+      await loadHistory();
     }
-  }, [activeTab, loadHistory]);
+  }, [invalidateHistory, loadDetail, loadHistory, visitedTabs]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadDetail();
+    });
+  }, [loadDetail]);
+
+  useEffect(() => {
+    if (!visitedTabs.has("history") || historyLoadedRef.current) return;
+    historyLoadedRef.current = true;
+    queueMicrotask(() => {
+      void loadHistory();
+    });
+  }, [visitedTabs, loadHistory]);
 
   const historyContextDescription = useMemo(
     () => buildAdmissionHistoryContextDescription(historyEvents),
@@ -194,21 +238,29 @@ export default function ApplicationSubmissionDetailPanel({
   const tabs = useMemo<DetailTab[]>(() => {
     if (!detail) return [];
 
-    const result: DetailTab[] = [{ id: "overview", label: "Overview" }];
+    const result: DetailTab[] = [
+      { id: "overview", label: "Overview", icon: LayoutDashboard },
+    ];
     if (showEnrollmentStatus) {
-      result.push({ id: "application", label: "Application form" });
+      result.push({ id: "application", label: "Application form", icon: FileText });
     }
     result.push(
-      { id: "history", label: "History" },
-      { id: "payments", label: "Payments" },
+      { id: "history", label: "History", icon: History },
+      { id: "payments", label: "Payments", icon: CreditCard },
     );
     return result;
   }, [detail, showEnrollmentStatus]);
 
-  const statusStyle = applicationStatusBadgeStyle(currentStatus, C);
   const familyLabel =
     submission.guardianName || submission.studentLabel || "Application";
   const contactLabel = submission.contactEmail ?? "No contact email";
+  const metaLine = [
+    submission.studentLabel,
+    submission.formTitle,
+    submission.programName,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const applicationFormStatusCard = detail ? (
     <ApplicationFormStatusCard
@@ -251,7 +303,7 @@ export default function ApplicationSubmissionDetailPanel({
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
                 onSubmissionUpdated?.({ status });
-                void loadDetail();
+                void refreshAfterMutation();
               }}
             />
           ) : (
@@ -262,7 +314,7 @@ export default function ApplicationSubmissionDetailPanel({
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
                 onSubmissionUpdated?.({ status });
-                void loadDetail();
+                void refreshAfterMutation();
               }}
             />
           )}
@@ -283,7 +335,7 @@ export default function ApplicationSubmissionDetailPanel({
             steps={detail.postSubmitSteps}
             onStepUpdated={() => {
               onSubmissionUpdated?.({ status: currentStatus });
-              void loadDetail();
+              void refreshAfterMutation();
             }}
           />
 
@@ -359,7 +411,7 @@ export default function ApplicationSubmissionDetailPanel({
     >
       <div
         className="absolute inset-0"
-        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -370,125 +422,132 @@ export default function ApplicationSubmissionDetailPanel({
         transition={{ type: "spring", damping: 28, stiffness: 300 }}
         className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
         style={{
-          backgroundColor: C.surface,
-          borderLeft: `1px solid ${C.border}`,
-          boxShadow: C.shadowMedium,
+          backgroundColor: "#F8FAF8",
+          borderLeft: "1px solid #E0E8E0",
+          boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
-      <div
-        className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-3 sm:px-5"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
-              {familyLabel}
-            </h3>
-            <span
-              className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-              style={statusStyle}
-            >
-              {applicationStatusLabel(currentStatus)}
-            </span>
-          </div>
-          <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
-            {submission.formTitle}
-            {submission.programName ? (
-              <>
+        <div
+          className="flex flex-shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
+          style={{ borderBottom: "1px solid #E0E8E0" }}
+        >
+          <div className="min-w-0 flex-1">
+            <AdminSectionKicker theme={theme}>Application review</AdminSectionKicker>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <AdminDisplayHeading theme={theme} as="h2" size="section" className="truncate">
+                {familyLabel}
+              </AdminDisplayHeading>
+              <AdminChip theme={theme} tone={applicationStatusChipTone(currentStatus)}>
+                {applicationStatusLabel(currentStatus)}
+              </AdminChip>
+            </div>
+            {metaLine ? (
+              <p className="mt-1 truncate text-[11px]" style={{ color: theme.muted }}>
+                {metaLine}
                 <span className="mx-1.5 opacity-50">·</span>
-                {submission.programName}
+                Updated {formatShortDate(submission.updatedAt)}
+              </p>
+            ) : null}
+            <p className="mt-0.5 truncate text-[11px]" style={{ color: theme.muted }}>
+              {contactLabel}
+            </p>
+          </div>
+          <AdminButton
+            theme={theme}
+            variant="soft"
+            size="compact"
+            onClick={onClose}
+            aria-label="Close"
+            className="shrink-0"
+          >
+            Close ×
+          </AdminButton>
+        </div>
+
+        {detail && !loading && !error ? (
+          <div
+            className="flex flex-shrink-0 overflow-x-auto bg-white px-[21px]"
+            style={{ borderBottom: "1px solid #E1E8E1" }}
+          >
+            <div
+              className="-mb-px flex gap-[3px]"
+              role="tablist"
+              aria-label="Application sections"
+            >
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const tabId = `submission-tab-${tab.id}`;
+                const panelId = `submission-panel-${tab.id}`;
+
+                return (
+                  <button
+                    key={tab.id}
+                    id={tabId}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={panelId}
+                    onClick={() => navigateToTab(tab.id)}
+                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
+                    style={{
+                      borderBottomColor: isActive ? theme.primary : "transparent",
+                      color: isActive ? theme.primary : "#77858A",
+                    }}
+                  >
+                    <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        <SubmissionDetailStoryProvider variant="story" theme={theme}>
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-5 sm:pb-8"
+          >
+            {loading ? (
+              <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
+            ) : error ? (
+              <p className="text-sm" style={{ color: C.error }}>
+                {error}
+              </p>
+            ) : detail ? (
+              <>
+                {tabs.map((tab) =>
+                  visitedTabs.has(tab.id) ? (
+                    <div
+                      key={tab.id}
+                      id={`submission-panel-${tab.id}`}
+                      role="tabpanel"
+                      aria-labelledby={`submission-tab-${tab.id}`}
+                      hidden={activeTab !== tab.id}
+                      className={
+                        tab.id === "overview" ||
+                        tab.id === "application" ||
+                        tab.id === "history"
+                          ? ""
+                          : "space-y-6"
+                      }
+                    >
+                      <motion.div
+                        variants={tabPanelVariants(reducedMotion ?? false)}
+                        initial={false}
+                        animate={activeTab === tab.id ? "animate" : "initial"}
+                        transition={tabPanelTransition(reducedMotion ?? false)}
+                      >
+                        {renderTabPanel(tab.id)}
+                      </motion.div>
+                    </div>
+                  ) : null,
+                )}
               </>
             ) : null}
-          </p>
-          <p className="mt-1 truncate text-xs" style={{ color: C.textSecondary }}>
-            {contactLabel}
-            <span className="mx-1.5 opacity-50">·</span>
-            Updated {formatShortDate(submission.updatedAt)}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-shrink-0 rounded p-1"
-          style={{ color: C.textTertiary }}
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {detail && !loading && !error ? (
-        <div
-          className="flex flex-shrink-0 overflow-x-auto px-4 sm:px-5"
-          style={{ borderBottom: `1px solid ${C.border}` }}
-        >
-          <div
-            className="-mb-px flex gap-6"
-            role="tablist"
-            aria-label="Application sections"
-          >
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const tabId = `submission-tab-${tab.id}`;
-              const panelId = `submission-panel-${tab.id}`;
-
-              return (
-                <button
-                  key={tab.id}
-                  id={tabId}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={panelId}
-                  onClick={() => navigateToTab(tab.id)}
-                  className="shrink-0 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
-                  style={{
-                    borderBottomColor: isActive ? C.accent : "transparent",
-                    color: isActive ? C.accent : C.textTertiary,
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
           </div>
-        </div>
-      ) : null}
-
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-5 sm:pb-8 sm:pt-5"
-      >
-        {loading ? (
-          <SchoolAdminDetailPanelSkeleton C={C} label="Loading application" />
-        ) : error ? (
-          <p className="text-sm" style={{ color: C.error }}>
-            {error}
-          </p>
-        ) : detail ? (
-          <>
-            {tabs.map((tab) => (
-              <div
-                key={tab.id}
-                id={`submission-panel-${tab.id}`}
-                role="tabpanel"
-                aria-labelledby={`submission-tab-${tab.id}`}
-                hidden={activeTab !== tab.id}
-                className={
-                  tab.id === "overview" ||
-                  tab.id === "application" ||
-                  tab.id === "history"
-                    ? ""
-                    : "space-y-6"
-                }
-              >
-                {renderTabPanel(tab.id)}
-              </div>
-            ))}
-          </>
-        ) : null}
-      </div>
+        </SubmissionDetailStoryProvider>
       </motion.div>
 
       <StartEnrollmentModal
@@ -502,7 +561,7 @@ export default function ApplicationSubmissionDetailPanel({
           setCurrentStatus("enrolling");
           setHasChecklist(true);
           onSubmissionUpdated?.({ status: "enrolling" });
-          void loadDetail();
+          void refreshAfterMutation();
         }}
       />
     </motion.div>

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 
 type DetailPanelProgressBarProps = {
   C: AdminThemeTokens;
@@ -19,7 +20,9 @@ export default function DetailPanelProgressBar({
   label = "Progress",
   subtitle,
 }: DetailPanelProgressBarProps) {
+  const { variant, theme } = useSubmissionDetailStory();
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const fillColor = variant === "story" && theme ? theme.primary : C.accent;
 
   return (
     <div>
@@ -34,7 +37,7 @@ export default function DetailPanelProgressBar({
       <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: C.border }}>
         <motion.div
           className="h-full rounded-full"
-          style={{ backgroundColor: C.accent }}
+          style={{ backgroundColor: fillColor }}
           initial={{ width: 0 }}
           animate={{ width: `${progressPct}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}

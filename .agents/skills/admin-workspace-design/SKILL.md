@@ -39,6 +39,7 @@ description: >-
 | `AdminSignalCard` | Dark forest enrollment signal panel |
 | `AdminActivityFeed` | Recent activity feed |
 | `AdminQuickActionsCard` | Dashboard quick-action rail |
+| `AdminHoverTip` | Hover/focus popup for inline icon explanations |
 
 ### Shell components
 
@@ -70,6 +71,33 @@ EnrollmentFlowsStoryShell (paper bg, Fraunces + DM Sans)
     Flows: ApplicationFormOutline | ApplicationFormFocusCanvas
 ```
 
+**Submissions list (admissions tab):**
+
+```
+useSchoolAdminStoryTheme()
+  AdminMetricCard row (all · in progress · ready to review · enrolled)
+  Sage "Needs attention" banner when a submitted application awaits review
+  Filter row: status pills (+ optional form row) | Public apply link right
+  AdminCard > prototype-style table (no inner card title row)
+    Contact: avatar + guardian + ParentPortalLoginIcon + AdminHoverTip
+    Progress: form progress + formatRelativeTime(updatedAt) + draft mini bar
+    Next step: deriveSubmissionNextStep → AdminChip or soft AdminButton
+```
+
+**Submission detail drawer:**
+
+```
+SubmissionDetailStoryProvider variant=story
+  Paper drawer (#F8FAF8) + prototype overlay
+  Header: Application review kicker, name + AdminChip, meta, soft Close
+  Forest underline tabs with lucide icons (Overview · Application form · History · Payments)
+  Lazy-mounted tab panels: mount on first visit, keep alive when hidden
+  tabPanelVariants fade/slide on tab switch (respect prefers-reduced-motion)
+  DetailPanelSectionGroup/DetailPanelSection → AdminCard sections via context
+```
+
+Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
+
 ### Scope
 
 - **In scope:** `SchoolAdminStoryShell`, `SchoolAdminStorySidebar`, dashboard, page content inside baseline
@@ -86,4 +114,5 @@ EnrollmentFlowsStoryShell (paper bg, Fraunces + DM Sans)
 
 - Enrollment flows: [`ApplicationFormsPage.tsx`](src/components/school-admin/admissions/ApplicationFormsPage.tsx)
 - Programs: [`ProgramsPage.tsx`](src/components/school-admin/admissions/ProgramsPage.tsx), [`ProgramsOutline.tsx`](src/components/school-admin/admissions/ProgramsOutline.tsx)
+- Submissions: [`ApplicationSubmissionsPage.tsx`](src/components/school-admin/admissions/ApplicationSubmissionsPage.tsx), [`SubmissionNextStepCell.tsx`](src/components/school-admin/admissions/SubmissionNextStepCell.tsx)
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)
