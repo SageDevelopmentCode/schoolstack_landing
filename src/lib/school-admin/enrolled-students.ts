@@ -19,6 +19,7 @@ export type AdminEnrolledStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  classroomNames: string[];
   enrolledAt: string;
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
@@ -241,6 +242,7 @@ async function fetchPrimaryContactsByFamilyId(
 type EnrollmentAggregate = {
   summary: AdminEnrolledStudentSummary;
   programNameSet: Set<string>;
+  classroomNameSet: Set<string>;
 };
 
 type StudentRow = {
@@ -343,6 +345,10 @@ function mapEnrollmentRowToAggregate(
     row.programs as { name?: string } | { name?: string }[] | null,
   );
   const programName = program?.name ? String(program.name) : null;
+  const classroom = unwrapRelation(
+    row.classrooms as { name?: string } | { name?: string }[] | null,
+  );
+  const classroomName = classroom?.name ? String(classroom.name) : null;
   const enrolledAt = String(row.created_at ?? "");
 
   const primaryContact = primaryContactsByFamilyId.get(familyId);
@@ -369,6 +375,7 @@ function mapEnrollmentRowToAggregate(
     primaryContactName: primaryContact?.name ?? null,
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
+    classroomNames: classroomName ? [classroomName] : [],
     enrolledAt,
     assignedTeachers,
     assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
@@ -382,6 +389,7 @@ function mapEnrollmentRowToAggregate(
   return {
     summary,
     programNameSet: new Set(programName ? [programName] : []),
+    classroomNameSet: new Set(classroomName ? [classroomName] : []),
   };
 }
 
@@ -393,6 +401,10 @@ function mergeEnrollmentAggregate(
     existing.programNameSet.add(programName);
   }
 
+  for (const classroomName of incoming.classroomNameSet) {
+    existing.classroomNameSet.add(classroomName);
+  }
+
   if (
     incoming.summary.enrolledAt &&
     (existing.summary.enrolledAt === "" ||
@@ -402,6 +414,9 @@ function mergeEnrollmentAggregate(
   }
 
   existing.summary.programNames = [...existing.programNameSet].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  existing.summary.classroomNames = [...existing.classroomNameSet].sort((a, b) =>
     a.localeCompare(b),
   );
 

@@ -96,7 +96,22 @@ SubmissionDetailStoryProvider variant=story
   DetailPanelSectionGroup/DetailPanelSection → AdminCard sections via context
 ```
 
-Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
+**My Students list (my_school tab):**
+
+```
+useSchoolAdminStoryTheme()
+  AdminMetricCard row (all enrolled · unassigned teacher · programs · new enrollments)
+  Sage "Needs attention" banner when students lack teacher assignments
+  Filter row: All · Unassigned (+ program pills when multi-program) | search right
+  AdminCard > prototype-style table
+    Student: StudentIdentityCell (photo + name + family subline)
+    Teacher: StudentTeacherCell (subtle amber border on unassigned teacher dropdown only)
+    Family: StudentContactCell
+    Enrolled: StudentEnrolledCell (relative time + short date)
+  StudentDetailPanel drawer: same story shell as submission detail (Overview · Family tabs)
+```
+
+Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
 
 ### Scope
 
