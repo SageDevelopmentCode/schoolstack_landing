@@ -8,6 +8,11 @@ import {
   MAX_MESSAGE_ATTACHMENT_BYTES,
 } from "@/lib/messages/message-attachment-storage";
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
+import {
+  isSplitPaneMessagesVariant,
+  isStoryMessagesVariant,
+} from "@/lib/messages/messages-layout-variant";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const TEXTAREA_MAX_ROWS = 5;
 const TEXTAREA_LINE_HEIGHT = 22;
@@ -21,6 +26,7 @@ export default function MessagesComposeBar({
   sending,
   disabled,
   C,
+  theme,
   variant = "card",
 }: {
   value: string;
@@ -31,11 +37,13 @@ export default function MessagesComposeBar({
   sending: boolean;
   disabled?: boolean;
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   variant?: MessagesLayoutVariant;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const embedded = variant === "embedded";
+  const splitPane = isSplitPaneMessagesVariant(variant);
+  const parentStory = isStoryMessagesVariant(variant);
 
   const addFiles = (incoming: FileList | File[]) => {
     const next = [...files];
@@ -50,18 +58,23 @@ export default function MessagesComposeBar({
   const canSend = Boolean(value.trim() || files.length > 0);
 
   useEffect(() => {
-    if (!embedded || !textareaRef.current) return;
+    if (!splitPane || !textareaRef.current) return;
     const textarea = textareaRef.current;
     textarea.style.height = "auto";
     const maxHeight = TEXTAREA_LINE_HEIGHT * TEXTAREA_MAX_ROWS;
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
-  }, [embedded, value]);
+  }, [splitPane, value]);
 
-  if (embedded) {
+  if (splitPane) {
+    const surfaceColor = parentStory ? theme?.white ?? C.surface : C.surface;
+    const fieldBg = parentStory ? theme?.paper ?? C.bg : C.bg;
+    const borderColor = parentStory ? theme?.line ?? C.border : C.border;
+    const accentColor = parentStory ? theme?.primary ?? C.accent : C.accent;
+
     return (
       <div
         className="shrink-0 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        style={{ backgroundColor: C.surface }}
+        style={{ backgroundColor: surfaceColor }}
       >
         {files.length > 0 ? (
           <div className="mb-2 flex flex-wrap gap-2">
@@ -87,7 +100,7 @@ export default function MessagesComposeBar({
 
         <div
           className="flex items-end gap-2 rounded-[1.75rem] border px-2 py-1.5 shadow-sm"
-          style={{ borderColor: C.border, backgroundColor: C.bg }}
+          style={{ borderColor, backgroundColor: fieldBg }}
         >
           <button
             type="button"
@@ -123,17 +136,23 @@ export default function MessagesComposeBar({
                 if (canSend) onSend();
               }
             }}
-            placeholder={disabled ? "Preview mode — sending disabled" : "Write a message…"}
+            placeholder={
+              disabled
+                ? "Preview mode — sending disabled"
+                : parentStory
+                  ? "Write a warm reply…"
+                  : "Write a message…"
+            }
             disabled={disabled || sending}
             className="max-h-[110px] min-h-[22px] flex-1 resize-none bg-transparent py-2 text-sm leading-[22px] disabled:opacity-60 focus:outline-none"
-            style={{ color: C.textPrimary }}
+            style={{ color: theme?.ink ?? C.textPrimary }}
           />
           <button
             type="button"
             onClick={onSend}
             disabled={disabled || sending || !canSend}
             className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white cursor-pointer transition hover:opacity-90 disabled:opacity-40"
-            style={{ backgroundColor: C.accent }}
+            style={{ backgroundColor: accentColor }}
             aria-label="Send message"
           >
             <Send className="w-4 h-4" />

@@ -30,6 +30,15 @@ import MessagesThreadView, {
 } from "./MessagesThreadView";
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
+import ParentMessagesInboxHeader from "@/components/school-parent/messages/ParentMessagesInboxHeader";
+import {
+  type ParentMessagesInboxFilter,
+} from "@/components/school-parent/messages/ParentMessagesInboxFilters";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import {
+  isSplitPaneMessagesVariant,
+  isStoryMessagesVariant,
+} from "@/lib/messages/messages-layout-variant";
 import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStudentDetailPanel";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
@@ -134,20 +143,29 @@ function resolveAdminComposeState(
   };
 }
 
+export type MessagesInboxActions = {
+  openNewConversation: () => void;
+  canStartNewConversation: boolean;
+};
+
 export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
   C,
   variant = "card",
+  theme,
   teacherPortal = null,
+  onRegisterActions,
 }: {
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
   C: AdminThemeTokens;
   variant?: MessagesLayoutVariant;
+  theme?: ParentThemeTokens;
   teacherPortal?: MessagesTeacherPortalConfig | null;
+  onRegisterActions?: (actions: MessagesInboxActions) => void;
 }) {
   const searchParams = useSearchParams();
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
@@ -167,6 +185,8 @@ export default function MessagesInboxLayout({
   const [selectedStudent, setSelectedStudent] = useState<AdminEnrolledStudentSummary | null>(
     null,
   );
+  const [inboxFilter, setInboxFilter] = useState<ParentMessagesInboxFilter>("all");
+  const [inboxSearch, setInboxSearch] = useState("");
   const deepLinkHandled = useRef(false);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
 
@@ -513,6 +533,38 @@ export default function MessagesInboxLayout({
   );
 
   const embedded = variant === "embedded";
+  const parentStory = isStoryMessagesVariant(variant);
+  const splitPane = isSplitPaneMessagesVariant(variant);
+
+  const unreadThreadCount = useMemo(
+    () => threads.reduce((sum, thread) => sum + (thread.unreadCount > 0 ? 1 : 0), 0),
+    [threads],
+  );
+
+  const threadsForList = useMemo(() => {
+    let result = threads;
+    if (parentStory && inboxFilter === "unread") {
+      result = result.filter((thread) => thread.unreadCount > 0);
+    }
+    const query = inboxSearch.trim().toLowerCase();
+    if (parentStory && query) {
+      result = result.filter(
+        (thread) =>
+          thread.title.toLowerCase().includes(query) ||
+          thread.subtitle?.toLowerCase().includes(query) ||
+          thread.lastMessagePreview?.toLowerCase().includes(query),
+      );
+    }
+    return result;
+  }, [inboxFilter, inboxSearch, parentStory, threads]);
+
+  useEffect(() => {
+    onRegisterActions?.({
+      openNewConversation: () => setNewConversationOpen(true),
+      canStartNewConversation: contacts.length > 0,
+    });
+  }, [contacts.length, onRegisterActions]);
+
   const adminComposeState = useMemo(
     () =>
       resolveAdminComposeState(
@@ -554,20 +606,20 @@ export default function MessagesInboxLayout({
 
   const listItems = useMemo(() => {
     if (embedded && api.viewer === "admin") {
-      return buildAdminSectionedListItems(threads);
+      return buildAdminSectionedListItems(threadsForList);
     }
 
-    if (embedded) {
-      return threads.map((thread) => ({ type: "thread" as const, thread }));
+    if (splitPane) {
+      return threadsForList.map((thread) => ({ type: "thread" as const, thread }));
     }
 
     return [
-      ...threads.map((thread) => ({ type: "thread" as const, thread })),
+      ...threadsForList.map((thread) => ({ type: "thread" as const, thread })),
       ...contacts
         .filter((contact) => !contactKeysWithThreads.has(contact.key))
         .map((contact) => ({ type: "contact" as const, contact })),
     ];
-  }, [api.viewer, contactKeysWithThreads, contacts, embedded, threads]);
+  }, [api.viewer, contactKeysWithThreads, contacts, embedded, splitPane, threadsForList]);
 
   const newConversationContacts = contacts.filter(
     (contact) => !contactKeysWithThreads.has(contact.key),
@@ -577,25 +629,31 @@ export default function MessagesInboxLayout({
   const reducedMotion = useReducedMotion() ?? false;
 
   if (loadingInbox) {
-    if (embedded) {
+    if (splitPane) {
       return (
         <div
-          className="flex flex-1 min-h-0 h-full flex-col overflow-hidden"
-          style={{ backgroundColor: C.bg }}
+          className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+          style={{
+            backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+          }}
         >
           <div className="flex flex-1 min-h-0 overflow-hidden">
             <div
-              className="flex w-full flex-col flex-shrink-0 border-r md:w-80 lg:w-96"
-              style={{ borderColor: C.border, backgroundColor: C.bg }}
+              className={`flex w-full flex-shrink-0 flex-col border-r ${
+                parentStory ? "md:w-[290px]" : "md:w-80 lg:w-96"
+              }`}
+              style={{ borderColor: C.border, backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg }}
             >
               <div
                 className="flex items-center justify-between border-b px-4 py-3.5"
                 style={{ borderColor: C.border }}
               >
                 <SkeletonBlock C={C} className="h-5 w-24" />
-                <SkeletonBlock C={C} className="h-8 w-16 rounded-full" />
+                {!parentStory ? (
+                  <SkeletonBlock C={C} className="h-8 w-16 rounded-full" />
+                ) : null}
               </div>
-              <MessagesConversationListSkeleton C={C} embedded />
+              <MessagesConversationListSkeleton C={C} embedded={splitPane} />
             </div>
             <div className="hidden flex-1 md:block" style={{ backgroundColor: C.bg }} />
           </div>
@@ -641,14 +699,21 @@ export default function MessagesInboxLayout({
   return (
     <div
       className={`flex flex-col overflow-hidden ${
-        embedded
-          ? "flex-1 min-h-0 h-full"
+        splitPane
+          ? "h-full min-h-0 flex-1"
           : "flex-1 min-h-[480px] h-[calc(100vh-220px)] max-h-[720px] border rounded-xl"
       }`}
-      style={{
-        borderColor: embedded ? undefined : C.border,
-        backgroundColor: C.bg,
-      }}
+      style={
+        parentStory && theme
+          ? {
+              backgroundColor: theme.white,
+            }
+          : {
+              borderColor: splitPane ? undefined : C.border,
+              backgroundColor: C.bg,
+              border: splitPane ? undefined : `1px solid ${C.border}`,
+            }
+      }
     >
       {error && (
         <div className="px-4 py-2 text-sm border-b" style={{ color: "#b45309", borderColor: C.border, backgroundColor: "#fffbeb" }}>
@@ -660,10 +725,28 @@ export default function MessagesInboxLayout({
         <div
           className={`border-r flex flex-col flex-shrink-0 ${
             mobileView === "chat" ? "hidden md:flex" : "flex"
-          } w-full ${embedded ? "md:w-80 lg:w-96" : "md:w-72"}`}
-          style={{ borderColor: C.border, backgroundColor: C.bg }}
+          } w-full ${
+            parentStory ? "md:w-[290px]" : splitPane ? "md:w-80 lg:w-96" : "md:w-72"
+          }`}
+          style={{
+            borderColor: theme?.line ?? C.border,
+            backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+          }}
         >
-          {embedded ? (
+          {parentStory && theme ? (
+            <ParentMessagesInboxHeader
+              theme={theme}
+              activeFilter={inboxFilter}
+              totalThreadCount={threads.length}
+              unreadThreadCount={unreadThreadCount}
+              onFilterChange={setInboxFilter}
+              searchQuery={inboxSearch}
+              onSearchChange={setInboxSearch}
+              onNewMessage={() => setNewConversationOpen(true)}
+              newMessageDisabled={contacts.length === 0}
+              readOnly={readOnly}
+            />
+          ) : splitPane ? (
             <div
               className="flex items-center justify-between border-b px-4 py-3.5"
               style={{ borderColor: C.border }}
@@ -697,7 +780,8 @@ export default function MessagesInboxLayout({
             activeKey={activeKey}
             onSelect={handleSelect}
             C={C}
-            showContactsHeader={!embedded}
+            theme={theme}
+            showContactsHeader={!splitPane}
             variant={variant}
             hideStudentSubtitle={api.viewer === "teacher" && embedded}
           />
@@ -708,7 +792,7 @@ export default function MessagesInboxLayout({
             mobileView === "list" ? "hidden md:flex" : "flex"
           }`}
         >
-          {!embedded ? (
+          {!splitPane ? (
             <div className="md:hidden border-b px-3 py-2" style={{ borderColor: C.border }}>
               <button
                 type="button"
@@ -733,8 +817,10 @@ export default function MessagesInboxLayout({
             readOnly={readOnly || adminComposeState.disabled}
             composeBanner={adminComposeState.banner}
             C={C}
+            theme={theme}
             variant={variant}
-            onBack={embedded ? () => setMobileView("list") : undefined}
+            schoolName={api.schoolName}
+            onBack={splitPane ? () => setMobileView("list") : undefined}
             loadingMessages={loadingMessages}
             onStudentClick={
               api.viewer === "teacher" && teacherStaffMemberId
@@ -745,10 +831,10 @@ export default function MessagesInboxLayout({
         </div>
       </div>
 
-      {embedded ? (
+      {splitPane ? (
         <MessagesNewConversationModal
           open={newConversationOpen}
-          contacts={contacts}
+          contacts={newConversationContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
           C={C}
