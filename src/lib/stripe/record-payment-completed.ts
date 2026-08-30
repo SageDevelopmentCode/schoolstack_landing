@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { getChargeById } from "@/lib/tuition/charges";
 import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
+import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import {
   settleTuitionPayment,
   type SettleTuitionPaymentResult,
@@ -87,6 +88,7 @@ export async function recordTuitionPaymentCompleted(
     void sendTuitionPaymentReceiptNotifications(admin, payment.id, {
       settleResult,
     });
+    void sendPaymentReceivedAdminNotifications(admin, payment.id);
   }
 
   if (!skipActivity) {

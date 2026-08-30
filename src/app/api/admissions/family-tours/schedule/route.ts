@@ -13,6 +13,7 @@ import {
   getFamilyIdsForUser,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { sendPreApplicationCampusTourAdminNotifications } from "@/lib/admissions/application-notifications";
 import { listFamilyApplications } from "@/lib/admissions/parent-portal-access";
 import {
   ACTIVITY_ACTIONS,
@@ -137,6 +138,12 @@ export async function POST(request: Request) {
         scheduledDate,
         startTimeSlot,
       },
+    });
+
+    void sendPreApplicationCampusTourAdminNotifications(admin, {
+      organizationId,
+      familyId,
+      booking: visit,
     });
 
     return NextResponse.json({ success: true, visitId: visit.id });

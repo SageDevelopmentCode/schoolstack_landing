@@ -46,6 +46,7 @@ export type AdminFeatures = {
   messages: boolean;
   finances: boolean;
   marketing: boolean;
+  notifications: boolean;
 };
 
 export type TeacherFeatures = {
@@ -157,6 +158,7 @@ export type OrganizationSettingsRow = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   admissions?: import("@/lib/admissions/admissions-org-settings").AdmissionsOrgSettings | Record<string, unknown> | null;
+  notifications?: import("@/lib/notifications/org-notification-settings").OrganizationNotificationSettings | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

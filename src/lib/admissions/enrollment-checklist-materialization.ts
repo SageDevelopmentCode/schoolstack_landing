@@ -1263,7 +1263,56 @@ export type EnrollmentAgreementAmendment = {
   checklistItemLabel: string;
   amendmentNotice: string;
   pendingResignSectionIds: string[];
+  resumeSectionId: string;
 };
+
+export type EnrollmentAgreementIncomplete = {
+  applicationId: string;
+  checklistItemInstanceId: string;
+  templateItemId: string;
+  checklistItemLabel: string;
+  resumeSectionId: string;
+};
+
+type EnrollmentChecklistTemplateItemDetails = {
+  label: string;
+  type: string;
+  sections: EnrollmentContractSection[];
+};
+
+async function loadEnrollmentChecklistTemplateItemDetails(
+  supabase: SupabaseClient,
+  templateIds: string[],
+): Promise<Map<string, EnrollmentChecklistTemplateItemDetails>> {
+  const result = new Map<string, EnrollmentChecklistTemplateItemDetails>();
+
+  for (const templateId of templateIds) {
+    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+    if (!loaded) continue;
+
+    for (const item of loaded.items) {
+      result.set(item.id, {
+        label: item.label,
+        type: item.type,
+        sections:
+          item.document?.kind === "inline_sections" ? item.document.sections : [],
+      });
+    }
+  }
+
+  return result;
+}
+
+function resolveAgreementResumeSectionId(
+  sections: EnrollmentContractSection[],
+  responses: Record<string, unknown>,
+): string | null {
+  if (sections.length === 0) return null;
+
+  const signatures = parseAgreementSectionSignatures(responses);
+  const resumeIndex = getAgreementResumeSectionIndex(sections, signatures);
+  return sections[resumeIndex]?.id ?? null;
+}
 
 export async function listEnrollmentAgreementAmendmentsForApplications(
   supabase: SupabaseClient,
@@ -1290,14 +1339,10 @@ export async function listEnrollmentAgreementAmendmentsForApplications(
   const checklistIds = checklistRows.map((row) => String(row.id));
   const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
 
-  const templateLabelByItemId = new Map<string, string>();
-  for (const templateId of templateIds) {
-    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
-    if (!loaded) continue;
-    for (const item of loaded.items) {
-      templateLabelByItemId.set(item.id, item.label);
-    }
-  }
+  const templateItemDetails = await loadEnrollmentChecklistTemplateItemDetails(
+    supabase,
+    templateIds,
+  );
 
   const { data: instanceRows, error: instanceError } = await supabase
     .from("enrollment_checklist_items")
@@ -1327,15 +1372,106 @@ export async function listEnrollmentAgreementAmendmentsForApplications(
     if (!applicationId) continue;
 
     const templateItemId = String(row.template_item_id);
+    const itemDetails = templateItemDetails.get(templateItemId);
+    const resumeSectionId =
+      resolveAgreementResumeSectionId(itemDetails?.sections ?? [], responses) ??
+      pendingResignSectionIds[0] ??
+      "";
     const existing = result.get(applicationId) ?? [];
     existing.push({
       applicationId,
       checklistItemInstanceId: String(row.id),
       templateItemId,
       checklistItemLabel:
-        templateLabelByItemId.get(templateItemId) ?? "Enrollment agreement",
+        itemDetails?.label ?? "Enrollment agreement",
       amendmentNotice,
       pendingResignSectionIds,
+      resumeSectionId,
+    });
+    result.set(applicationId, existing);
+  }
+
+  return result;
+}
+
+export async function listIncompleteEnrollmentAgreementsForApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+): Promise<Map<string, EnrollmentAgreementIncomplete[]>> {
+  const result = new Map<string, EnrollmentAgreementIncomplete[]>();
+  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return result;
+
+  for (const applicationId of uniqueIds) {
+    result.set(applicationId, []);
+  }
+
+  const { data: checklistRows, error: checklistError } = await supabase
+    .from("enrollment_checklists")
+    .select("id, application_id, template_id")
+    .eq("organization_id", organizationId)
+    .in("application_id", uniqueIds);
+
+  if (checklistError) throw checklistError;
+  if (!checklistRows?.length) return result;
+
+  const checklistIds = checklistRows.map((row) => String(row.id));
+  const templateIds = [...new Set(checklistRows.map((row) => String(row.template_id)))];
+
+  const templateItemDetails = await loadEnrollmentChecklistTemplateItemDetails(
+    supabase,
+    templateIds,
+  );
+
+  const { data: instanceRows, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select("id, checklist_id, template_item_id, status, responses")
+    .eq("organization_id", organizationId)
+    .in("checklist_id", checklistIds)
+    .eq("status", "in_progress");
+
+  if (instanceError) throw instanceError;
+
+  const checklistIdToApplicationId = new Map(
+    checklistRows.map((row) => [String(row.id), String(row.application_id)]),
+  );
+
+  for (const row of instanceRows ?? []) {
+    const templateItemId = String(row.template_item_id);
+    const itemDetails = templateItemDetails.get(templateItemId);
+    if (!itemDetails || itemDetails.type !== "document_sign") continue;
+    if (itemDetails.sections.length === 0) continue;
+
+    const responses =
+      row.responses &&
+      typeof row.responses === "object" &&
+      !Array.isArray(row.responses)
+        ? (row.responses as Record<string, unknown>)
+        : {};
+
+    const pendingResignSectionIds = parsePendingResignSectionIds(responses);
+    if (pendingResignSectionIds.length > 0) continue;
+
+    const signatures = parseAgreementSectionSignatures(responses);
+    if (allAgreementSectionsSigned(itemDetails.sections, signatures)) continue;
+
+    const resumeSectionId = resolveAgreementResumeSectionId(
+      itemDetails.sections,
+      responses,
+    );
+    if (!resumeSectionId) continue;
+
+    const applicationId = checklistIdToApplicationId.get(String(row.checklist_id));
+    if (!applicationId) continue;
+
+    const existing = result.get(applicationId) ?? [];
+    existing.push({
+      applicationId,
+      checklistItemInstanceId: String(row.id),
+      templateItemId,
+      checklistItemLabel: itemDetails.label,
+      resumeSectionId,
     });
     result.set(applicationId, existing);
   }
@@ -1641,6 +1777,7 @@ export async function saveAgreementSectionSignature(
 ): Promise<{
   status: ChecklistItemInstanceStatus;
   responses: Record<string, unknown>;
+  resumeSectionId?: string;
   newlyCompletedEnrollment: NewlyCompletedEnrollment | null;
 }> {
   const { instanceId, sectionId, signerName, consentValue, actorUserId, organizationId } =
@@ -1881,9 +2018,13 @@ export async function saveAgreementSectionSignature(
     });
   }
 
+  const resumeSectionIndex = getAgreementResumeSectionIndex(sections, sectionSignatures);
+  const resumeSectionId = !isComplete ? sections[resumeSectionIndex]?.id : undefined;
+
   return {
     status: isComplete ? "completed" : "in_progress",
     responses: patch.responses as Record<string, unknown>,
+    resumeSectionId,
     newlyCompletedEnrollment,
   };
 }

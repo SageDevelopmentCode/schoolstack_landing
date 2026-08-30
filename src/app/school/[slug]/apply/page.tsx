@@ -3,8 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import ApplyAuthPage from "@/components/admissions/ApplyAuthPage";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
-import { listEnrollmentProgressForApplications, listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { listEnrollmentProgressForApplications, listEnrollmentAgreementAmendmentsForApplications, listIncompleteEnrollmentAgreementsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { buildEnrollmentAgreementAmendmentBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-amendment-banner";
+import { buildEnrollmentAgreementIncompleteBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 import {
   familyHasScheduledCampusTour,
   listUpcomingCampusToursForFamily,
@@ -160,20 +161,29 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     ).entries(),
   );
 
-  const amendmentsByApplicationId = Object.fromEntries(
-    (
-      await listEnrollmentAgreementAmendmentsForApplications(
-        supabase,
-        org.id,
-        applications.map((application) => application.id),
-      )
-    ).entries(),
-  );
+  const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
+    listEnrollmentAgreementAmendmentsForApplications(
+      supabase,
+      org.id,
+      applicationIds,
+    ),
+    listIncompleteEnrollmentAgreementsForApplications(
+      supabase,
+      org.id,
+      applicationIds,
+    ),
+  ]);
   const enrollmentAmendmentBannerItems =
     buildEnrollmentAgreementAmendmentBannerItemsFromApplications({
       schoolSlug: slug,
       applications,
-      amendmentsByApplicationId,
+      amendmentsByApplicationId: Object.fromEntries(amendmentsByApplicationId.entries()),
+    });
+  const enrollmentIncompleteBannerItems =
+    buildEnrollmentAgreementIncompleteBannerItemsFromApplications({
+      schoolSlug: slug,
+      applications,
+      incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
 
   const parentPortalHref = getParentPortalHomeHref(
@@ -203,6 +213,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       parentPortalHref={parentPortalHref ?? undefined}
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}
       enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
+      enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
       userProfile={userProfile}
       portalOptions={portalOptions}
       shadowDaySchedulingMode={shadowDaySchedulingMode}

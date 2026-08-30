@@ -342,3 +342,45 @@ describe("amendment acknowledge resume section", () => {
     assert.equal(allAgreementSectionsSigned(sections, signatures), false);
   });
 });
+
+describe("incomplete agreement resume after section save", () => {
+  const standardSections: EnrollmentContractSection[] = [
+    { id: "std-1", title: "Tuition Summary", body: "Body 1" },
+    { id: "std-2", title: "Withdrawal", body: "Body 2" },
+    { id: "std-3", title: "Section 3", body: "Body 3" },
+    { id: "std-4", title: "Section 4", body: "Body 4" },
+    { id: "std-5", title: "Sign and Complete", body: "Body 5" },
+  ];
+
+  it("routes back to std-1 when std-2 through std-5 are signed but std-1 is missing", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "std-2", signerName: "Amelia Sisco Thompson", signedAt: "2026-08-30T01:22:25.117Z" },
+        { sectionId: "std-3", signerName: "Amelia Sisco Thompson", signedAt: "2026-08-30T01:22:27.885Z" },
+        { sectionId: "std-4", signerName: "Amelia Sisco Thompson", signedAt: "2026-08-30T01:22:33.295Z" },
+        { sectionId: "std-5", signerName: "Amelia Sisco Thompson", signedAt: "2026-08-30T01:22:37.572Z" },
+      ],
+    });
+
+    assert.equal(allAgreementSectionsSigned(standardSections, signatures), false);
+    assert.equal(getAgreementResumeSectionIndex(standardSections, signatures), 0);
+    assert.equal(
+      standardSections[getAgreementResumeSectionIndex(standardSections, signatures)]?.id,
+      "std-1",
+    );
+  });
+
+  it("advances to the next unsigned section after signing std-2 when std-1 is still missing", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "std-2", signerName: "Amelia Sisco Thompson", signedAt: "2026-08-30T01:22:25.117Z" },
+      ],
+    });
+
+    assert.equal(getAgreementResumeSectionIndex(standardSections, signatures), 0);
+    assert.equal(
+      standardSections[getAgreementResumeSectionIndex(standardSections, signatures)]?.id,
+      "std-1",
+    );
+  });
+});

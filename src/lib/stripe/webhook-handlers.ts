@@ -16,6 +16,7 @@ import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/f
 import {
   sendCombinedTuitionPaymentReceiptNotifications,
 } from "@/lib/tuition/payment-receipt-notifications";
+import { sendCombinedPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import {
   savePaymentMethodFromSetupIntent,
   trySaveTuitionPaymentMethod,
@@ -560,6 +561,9 @@ async function handleCombinedTuitionCheckoutCompleted(
   if (newlyRecordedAny && refreshedPayments.length > 0) {
     void sendCombinedTuitionPaymentReceiptNotifications(admin, {
       checkoutSessionId,
+      paymentIds: refreshedPayments.map((payment) => payment.id),
+    });
+    void sendCombinedPaymentReceivedAdminNotifications(admin, {
       paymentIds: refreshedPayments.map((payment) => payment.id),
     });
   }

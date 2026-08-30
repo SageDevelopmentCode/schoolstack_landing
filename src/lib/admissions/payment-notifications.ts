@@ -7,6 +7,7 @@ import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import { logNotificationFailure, logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { notifyPaymentCompleted } from "@/lib/discord";
 import { sendPaymentReceiptConfirmation } from "@/lib/emails";
+import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import { getPaymentById } from "@/lib/stripe/application-payments";
 import { SITE_URL } from "@/lib/site";
 
@@ -145,6 +146,8 @@ export async function sendPaymentCompletedNotifications(
       entityType: "payment",
       entityId: paymentId,
     }, notificationResults);
+
+    void sendPaymentReceivedAdminNotifications(admin, paymentId);
   } catch (error) {
     console.error("Payment completed notifications failed:", error);
     await logNotificationFailure(admin, {

@@ -106,6 +106,13 @@ export type EnrollmentAgreementAmendmentBannerItem = {
   enrollmentHref: string;
 };
 
+export type EnrollmentAgreementIncompleteBannerItem = {
+  applicationId: string;
+  studentName: string;
+  checklistItemLabel: string;
+  enrollmentHref: string;
+};
+
 export type ParentHomeData = {
   branding: OrganizationBranding;
   schoolSlug: string;
@@ -117,6 +124,7 @@ export type ParentHomeData = {
   onboardingItems: ResolvedParentOnboardingItem[];
   upcomingEvents: OrganizationEvent[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
+  enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
 };
 
 export async function fetchParentHomeData(

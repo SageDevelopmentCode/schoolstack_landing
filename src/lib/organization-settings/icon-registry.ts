@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart2,
+  Bell,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -33,6 +34,7 @@ export type FeatureIconOption = {
 };
 
 const ICON_MAP: Record<string, LucideIcon> = {
+  bell: Bell,
   "layout-dashboard": LayoutDashboard,
   "graduation-cap": GraduationCap,
   users: Users,
@@ -60,6 +62,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 export const FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
+  { slug: "bell", label: "Bell", icon: Bell },
   { slug: "layout-dashboard", label: "Dashboard", icon: LayoutDashboard },
   { slug: "graduation-cap", label: "Graduation cap", icon: GraduationCap },
   { slug: "users", label: "Users", icon: Users },

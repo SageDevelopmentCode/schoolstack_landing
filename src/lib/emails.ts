@@ -859,6 +859,120 @@ export async function sendStripePaymentsReadyNotification(payload: {
   }
 }
 
+export type PaymentReceivedAdminLineItem = {
+  label: string;
+  amountCents: number;
+  studentName?: string | null;
+};
+
+export function buildPaymentReceivedAdminNotificationHtml(payload: {
+  schoolName: string;
+  paymentTypeLabel: string;
+  payerLabel: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  paymentMethodLabel: string;
+  paidAtLabel: string;
+  studentName?: string | null;
+  chargeLabel?: string | null;
+  lineItems?: PaymentReceivedAdminLineItem[];
+  paymentsAdminUrl: string;
+}): string {
+  const detailRows: Array<{ label: string; value: string }> = [
+    { label: "Payment type", value: payload.paymentTypeLabel },
+    { label: "Family / payer", value: payload.payerLabel },
+  ];
+
+  if (payload.studentName) {
+    detailRows.push({ label: "Student", value: payload.studentName });
+  }
+
+  if (payload.chargeLabel && !payload.lineItems?.length) {
+    detailRows.push({ label: "Charge", value: payload.chargeLabel });
+  }
+
+  detailRows.push(
+    { label: "School amount", value: formatFeeAmount(payload.amountCents) },
+  );
+
+  if (payload.processingFeeCents && payload.processingFeeCents > 0) {
+    detailRows.push({
+      label: "Processing fee",
+      value: formatFeeAmount(payload.processingFeeCents),
+    });
+  }
+
+  detailRows.push(
+    { label: "Total paid", value: formatFeeAmount(payload.chargedAmountCents) },
+    { label: "Payment method", value: payload.paymentMethodLabel },
+    { label: "Date paid", value: payload.paidAtLabel },
+  );
+
+  const lineItemsHtml =
+    payload.lineItems && payload.lineItems.length > 0
+      ? emailBulletList(
+          payload.lineItems.map(
+            (item) =>
+              `${escapeHtml(item.studentName ? `${item.studentName} — ` : "")}${escapeHtml(item.label)} — ${formatFeeAmount(item.amountCents)}`,
+          ),
+        )
+      : "";
+
+  return composeEmail({
+    preheader: `A family payment was received at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment Received")}
+      ${emailHeading("A payment was received")}
+      ${emailParagraph(
+        `A family completed a ${escapeHtml(payload.paymentTypeLabel.toLowerCase())} payment at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${lineItemsHtml}
+      ${emailDetailCard(detailRows)}
+      ${emailCta({ label: "View payments", href: payload.paymentsAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPaymentReceivedAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  paymentTypeLabel: string;
+  payerLabel: string;
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  paymentMethodLabel: string;
+  paidAt: string;
+  studentName?: string | null;
+  chargeLabel?: string | null;
+  lineItems?: PaymentReceivedAdminLineItem[];
+  paymentsAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
+  const content = buildPaymentReceivedAdminNotificationHtml({
+    ...payload,
+    paidAtLabel,
+  });
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Payment received — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Payment received admin notification email failed:", result.error);
+  }
+}
+
 export function buildTuitionDueReminderHtml(payload: {
   familyName: string;
   schoolName: string;
