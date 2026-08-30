@@ -307,7 +307,10 @@ test("parent billing page lets family choose payment schedule inline", async ({
       .getByTestId("parent-billing-charge-row"),
   ).toHaveCount(1);
   await expect(
-    page.getByTestId("parent-billing-upcoming-charges-trigger"),
+    page.getByTestId("parent-billing-upcoming-charges-trigger-inline"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByTestId("parent-billing-upcoming-charges-trigger-card"),
   ).toHaveCount(0);
 });
 

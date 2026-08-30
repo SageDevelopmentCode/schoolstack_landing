@@ -181,7 +181,7 @@ export default function ParentBillingChildDetailPanel({
                 onClick={onOpenUpcomingCharges}
                 className="inline-flex items-center gap-1 text-[13px] font-bold"
                 style={{ color: theme.primary }}
-                data-testid="parent-billing-upcoming-charges-trigger"
+                data-testid="parent-billing-upcoming-charges-trigger-inline"
               >
                 View full schedule →
               </button>
@@ -213,7 +213,7 @@ export default function ParentBillingChildDetailPanel({
                     borderColor: theme.line,
                     boxShadow: theme.shadowCard,
                   }}
-                  data-testid="parent-billing-upcoming-charges-trigger"
+                  data-testid="parent-billing-upcoming-charges-trigger-card"
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-[13px]" style={{ color: theme.ink }}>

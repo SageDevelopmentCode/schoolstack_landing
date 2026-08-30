@@ -116,11 +116,13 @@ export async function gotoBillingPage(page: Page): Promise<void> {
 }
 
 export async function expectUpcomingChargesTrigger(page: Page): Promise<void> {
-  await expect(page.getByTestId("parent-billing-upcoming-charges-trigger")).toBeVisible();
+  await expect(
+    page.getByTestId("parent-billing-upcoming-charges-trigger-card"),
+  ).toBeVisible();
 }
 
 export async function openUpcomingChargesPanel(page: Page): Promise<void> {
-  const trigger = page.getByTestId("parent-billing-upcoming-charges-trigger");
+  const trigger = page.getByTestId("parent-billing-upcoming-charges-trigger-card");
   await expect(trigger).toBeVisible();
   await trigger.click();
   const panel = page.getByTestId("parent-billing-upcoming-charges-panel");
