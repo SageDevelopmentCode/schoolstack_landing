@@ -444,13 +444,13 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   ).toHaveCount(2);
   await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(0);
 
-  await page.getByTestId("parent-billing-nav").getByRole("button", { name: /Julia/ }).click();
+  await page.getByTestId("parent-billing-nav").getByRole("tab", { name: /Julia/ }).click();
   await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
   await expect(
-    page.getByTestId("parent-billing-nav").getByRole("button", { name: /Julia/ }),
+    page.getByTestId("parent-billing-nav").getByRole("tab", { name: /Julia/ }),
   ).toBeVisible();
   await expect(
-    page.getByTestId("parent-billing-nav").getByRole("button", { name: /Caleb/ }),
+    page.getByTestId("parent-billing-nav").getByRole("tab", { name: /Caleb/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Julia's payment schedule" }),
@@ -463,7 +463,7 @@ test("parent billing page uses child tabs for multiple pending schedules", async
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByTestId("parent-schedule-preview-modal")).not.toBeVisible();
 
-  await page.getByTestId("parent-billing-nav").getByRole("button", { name: /Caleb/ }).click();
+  await page.getByTestId("parent-billing-nav").getByRole("tab", { name: /Caleb/ }).click();
   await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
   await expect(
     page.getByRole("heading", { name: "Caleb's payment schedule" }),
