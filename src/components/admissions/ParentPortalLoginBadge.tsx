@@ -82,6 +82,45 @@ export function getParentPortalLoginStatusLabel(
   return "Signed in";
 }
 
+export type ParentPortalLoginTooltip = {
+  title: string;
+  body: string;
+};
+
+export function getParentPortalLoginTooltip(
+  status: ParentPortalLoginDisplayStatus | null | undefined,
+): ParentPortalLoginTooltip | null {
+  if (!status) {
+    return null;
+  }
+
+  if (!status.accountLinked) {
+    return {
+      title: "No parent account",
+      body: "No portal account is linked to this contact.",
+    };
+  }
+
+  if (!status.hasEverSignedIn) {
+    return {
+      title: "Account linked",
+      body: "Parent account exists but they haven't signed in yet.",
+    };
+  }
+
+  if (status.lastSignInAt) {
+    return {
+      title: "Signed in",
+      body: `Last signed in ${formatLastSignIn(status.lastSignInAt)}.`,
+    };
+  }
+
+  return {
+    title: "Signed in",
+    body: "This contact has signed in to the parent portal.",
+  };
+}
+
 export default function ParentPortalLoginBadge({
   status,
   C,

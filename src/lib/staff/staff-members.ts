@@ -19,6 +19,7 @@ export type StaffMemberRecord = {
   isLinked: boolean;
   hasEverSignedIn?: boolean;
   lastSignInAt?: string | null;
+  assignedStudentCount?: number;
   createdAt: string;
   updatedAt: string;
 };

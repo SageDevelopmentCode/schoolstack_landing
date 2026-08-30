@@ -14,7 +14,12 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ChecklistItemTemplateId } from "@/lib/admissions/enrollment-checklist-item-templates";
 import { createItemFromTemplate } from "@/lib/admissions/enrollment-checklist-item-templates";
+import {
+  buildParentThemeTokens,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import {
@@ -26,6 +31,7 @@ import EnrollmentChecklistTemplatePicker from "./EnrollmentChecklistTemplatePick
 
 type EnrollmentChecklistBuilderProps = {
   branding: OrganizationBranding;
+  theme?: ParentThemeTokens;
   schoolName: string;
   organizationId: string;
   template: EnrollmentChecklistTemplate;
@@ -72,6 +78,7 @@ function resolveFocusAfterDelete(
 
 export default function EnrollmentChecklistBuilder({
   branding,
+  theme: themeProp,
   schoolName,
   organizationId,
   template,
@@ -83,7 +90,8 @@ export default function EnrollmentChecklistBuilder({
   onPreviewItem,
   readOnly = false,
 }: EnrollmentChecklistBuilderProps) {
-  const C = buildAdminThemeTokens(branding);
+  const theme = themeProp ?? buildParentThemeTokens(branding);
+  const C = themeProp ? parentThemeToAdminCompat(theme) : buildAdminThemeTokens(branding);
   const [focus, setFocus] = useState<ChecklistBuilderFocus | null>(() =>
     initialChecklistFocus(items),
   );
@@ -214,9 +222,10 @@ export default function EnrollmentChecklistBuilder({
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <EnrollmentChecklistFocusCanvas
         C={C}
+        theme={themeProp}
         focus={focus}
         items={items}
         organizationId={organizationId}

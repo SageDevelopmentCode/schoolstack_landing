@@ -98,6 +98,7 @@ export function toMessageStudentSummaries(
     primaryContactName: summary.primaryContactName,
     primaryContactEmail: summary.primaryContactEmail,
     programNames: summary.programNames,
+    classroomNames: summary.classroomNames,
     enrolledAt: summary.enrolledAt,
     assignedTeachers: summary.assignedTeachers,
     assignedTeacherNames: summary.assignedTeacherNames,

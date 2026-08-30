@@ -54,6 +54,10 @@ export default function StudentTeacherAssignSelect({
     );
   }
 
+  const isUnassigned = assignedTeachers.length === 0;
+  const unassignedBorder = "#E8C58A";
+  const unassignedText = "#A26B22";
+
   return (
     <div
       className={className}
@@ -66,16 +70,19 @@ export default function StudentTeacherAssignSelect({
         onClick={() => setOpen(true)}
         className="inline-flex min-w-[9rem] max-w-[14rem] items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm disabled:opacity-60"
         style={{
-          borderColor: C.inputBorder,
+          borderColor: isUnassigned ? unassignedBorder : C.inputBorder,
           backgroundColor: C.input,
-          color: assignedTeachers.length > 0 ? C.textPrimary : C.textTertiary,
+          color: isUnassigned ? unassignedText : C.textPrimary,
         }}
         aria-label="Assign teachers"
       >
         <span className="truncate">
           {formatAssignedTeachersLabel(assignedTeachers)}
         </span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" style={{ color: C.textTertiary }} />
+        <ChevronDown
+          className="h-3.5 w-3.5 shrink-0"
+          style={{ color: isUnassigned ? unassignedBorder : C.textTertiary }}
+        />
       </button>
 
       <StudentTeacherAssignSheet

@@ -202,7 +202,7 @@ export default function NotificationsSettingsPage({
             className="text-2xl font-semibold tracking-tight"
             style={{ color: C.textPrimary }}
           >
-            Notifications
+            Alerts
           </h1>
           <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
             Manage email alerts for {schoolName}.

@@ -28,6 +28,7 @@ import {
   isSystemFieldId,
   isSystemSection,
 } from "@/lib/admissions/apply-system-fields";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ApplicationFormAcknowledgmentsEditor from "./ApplicationFormAcknowledgmentsEditor";
 import ApplicationFormFieldEditor from "./ApplicationFormFieldEditor";
@@ -39,7 +40,9 @@ import {
   BuilderQuestionCard,
   BuilderSectionIntro,
 } from "./builder-question-card";
+import { builderCanvasTransition } from "./builder-canvas-motion";
 import { focusKey, type BuilderFocus } from "./builder-focus";
+import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 
 export type EditableFormSlice = {
   title: string;
@@ -54,6 +57,7 @@ export type EditableFormSlice = {
 
 type ApplicationFormFocusCanvasProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   focus: BuilderFocus;
   editable: EditableFormSlice;
   programs: ProgramOption[];
@@ -77,21 +81,16 @@ type PendingDelete =
   | { kind: "step"; stepId: string; stepTitle: string; questionCount: number }
   | { kind: "field"; stepId: string; fieldId: string; fieldLabel: string };
 
-const canvasTransition = {
-  initial: { opacity: 0, x: 8 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -8 },
-  transition: { duration: 0.18, ease: "easeOut" as const },
-};
+const canvasTransition = builderCanvasTransition;
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   return {
-    backgroundColor: C.input,
-    border: `1px solid ${C.inputBorder}`,
+    backgroundColor: "#FCFDFC",
+    border: "1px solid #D9E0DA",
     color: C.textPrimary,
-    borderRadius: C.r.md,
-    fontSize: "14px",
-    padding: "10px 12px",
+    borderRadius: "7px",
+    fontSize: "12px",
+    padding: "8px 10px",
     width: "100%",
     boxSizing: "border-box",
     outline: "none",
@@ -126,6 +125,7 @@ function BuilderAddButton({
 
 function SetupView({
   C,
+  theme,
   editable,
   programs,
   orgSlug,
@@ -136,6 +136,7 @@ function SetupView({
   onEditableChange,
 }: {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   editable: EditableFormSlice;
   programs: ProgramOption[];
   orgSlug: string;
@@ -215,8 +216,10 @@ function SetupView({
     <div className="w-full max-w-3xl space-y-5">
       <BuilderSectionIntro
         C={C}
-        title="Form setup"
-        subtitle="Answer a few questions to set up what families see when they start applying."
+        theme={theme}
+        eyebrow={theme ? "Step 1" : undefined}
+        title="Welcome & student information"
+        subtitle="Set the tone for families, then collect the essential details needed to begin a thoughtful review."
       />
 
       <BuilderQuestionCard
@@ -441,8 +444,10 @@ function SetupView({
 
 function StepView({
   C,
+  theme,
   step,
   stepIdx,
+  totalSteps,
   readOnly,
   lockSystemFields,
   selectedFieldId,
@@ -453,8 +458,10 @@ function StepView({
   onReorderFields,
 }: {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   step: ApplicationSection;
   stepIdx: number;
+  totalSteps: number;
   readOnly: boolean;
   lockSystemFields: boolean;
   selectedFieldId: string | null;
@@ -485,12 +492,17 @@ function StepView({
       <div className="flex items-start justify-between gap-4">
         <BuilderSectionIntro
           C={C}
-          eyebrow={`Step ${stepIdx + 1}`}
+          theme={theme}
+          eyebrow={
+            theme
+              ? `Step ${stepIdx + 1} of ${totalSteps}`
+              : `Step ${stepIdx + 1}`
+          }
           title={step.title || `Step ${stepIdx + 1}`}
           subtitle={
             isLockedStep
               ? "Required student fields for your school directory."
-              : undefined
+              : "Configure what families see and answer on this step."
           }
         />
         {!readOnly && !isLockedStep ? (
@@ -700,6 +712,7 @@ function StepView({
 
 export default function ApplicationFormFocusCanvas({
   C,
+  theme,
   focus,
   editable,
   programs,
@@ -816,63 +829,64 @@ export default function ApplicationFormFocusCanvas({
     lockSystemFields &&
     (field.system === true || isSystemFieldId(field.id));
 
-  return (
-    <>
-    <div
-      className="relative flex flex-1 flex-col overflow-hidden"
-      style={{ backgroundColor: C.surface }}
-    >
-      <div className="flex-1 overflow-y-auto px-5 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div key={key} className="mx-auto w-full max-w-3xl" {...canvasTransition}>
-            {focus.kind === "setup" && (
-              <SetupView
+  const totalSteps = editable.schema.sections.length + 3;
+
+  const canvasBody = (
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+      <AnimatePresence mode="wait">
+        <motion.div key={key} className="w-full" {...canvasTransition}>
+          {focus.kind === "setup" && (
+            <SetupView
+              C={C}
+              theme={theme}
+              editable={editable}
+              programs={programs}
+              orgSlug={orgSlug}
+              readOnly={readOnly}
+              lockApplySlug={lockApplySlug}
+              setupHighlight={setupHighlight}
+              slugError={slugError}
+              onEditableChange={onEditableChange}
+            />
+          )}
+
+          {(focus.kind === "step" || focus.kind === "field") &&
+            step &&
+            stepIdx >= 0 && (
+              <StepView
                 C={C}
-                editable={editable}
-                programs={programs}
-                orgSlug={orgSlug}
+                theme={theme}
+                step={step}
+                stepIdx={stepIdx}
+                totalSteps={totalSteps}
                 readOnly={readOnly}
-                lockApplySlug={lockApplySlug}
-                setupHighlight={setupHighlight}
-                slugError={slugError}
-                onEditableChange={onEditableChange}
+                lockSystemFields={lockSystemFields}
+                selectedFieldId={
+                  focus.kind === "field" ? focus.fieldId : null
+                }
+                onFocusChange={onFocusChange}
+                onUpdateStep={(patch) => updateStep(step.id, patch)}
+                onRequestDeleteStep={() => {
+                  if (lockSystemFields && isSystemSection(step)) return;
+                  setPendingDelete({
+                    kind: "step",
+                    stepId: step.id,
+                    stepTitle: step.title || `Step ${stepIdx + 1}`,
+                    questionCount: step.fields.length,
+                  });
+                }}
+                onAddField={(newField) => addField(step.id, newField)}
+                onReorderFields={(fields) =>
+                  updateStep(step.id, { fields })
+                }
               />
             )}
 
-            {(focus.kind === "step" || focus.kind === "field") &&
-              step &&
-              stepIdx >= 0 && (
-                <StepView
-                  C={C}
-                  step={step}
-                  stepIdx={stepIdx}
-                  readOnly={readOnly}
-                  lockSystemFields={lockSystemFields}
-                  selectedFieldId={
-                    focus.kind === "field" ? focus.fieldId : null
-                  }
-                  onFocusChange={onFocusChange}
-                  onUpdateStep={(patch) => updateStep(step.id, patch)}
-                  onRequestDeleteStep={() => {
-                    if (lockSystemFields && isSystemSection(step)) return;
-                    setPendingDelete({
-                      kind: "step",
-                      stepId: step.id,
-                      stepTitle: step.title || `Step ${stepIdx + 1}`,
-                      questionCount: step.fields.length,
-                    });
-                  }}
-                  onAddField={(newField) => addField(step.id, newField)}
-                  onReorderFields={(fields) =>
-                    updateStep(step.id, { fields })
-                  }
-                />
-              )}
-
           {focus.kind === "fee" && (
-            <div className="w-full max-w-3xl space-y-5">
+            <div className="w-full space-y-5">
               <BuilderSectionIntro
                 C={C}
+                theme={theme}
                 title="Application fee"
                 subtitle="Decide whether families pay before they can submit."
               />
@@ -889,9 +903,10 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "acknowledgments" && (
-            <div className="w-full max-w-3xl space-y-5">
+            <div className="w-full space-y-5">
               <BuilderSectionIntro
                 C={C}
+                theme={theme}
                 title="Acknowledgments"
                 subtitle="Add agreements families must confirm before submitting."
               />
@@ -908,9 +923,10 @@ export default function ApplicationFormFocusCanvas({
           )}
 
           {focus.kind === "postSubmit" && (
-            <div className="w-full max-w-3xl space-y-5">
+            <div className="w-full space-y-5">
               <BuilderSectionIntro
                 C={C}
+                theme={theme}
                 title="Post-submit steps"
                 subtitle="Guide families on what to do after they submit."
               />
@@ -924,9 +940,30 @@ export default function ApplicationFormFocusCanvas({
             </div>
           )}
 
-          </motion.div>
-        </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+
+  return (
+    <>
+    {theme ? (
+      <div
+        className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+        style={{ backgroundColor: BUILDER_CANVAS_BG }}
+      >
+        {canvasBody}
       </div>
+    ) : (
+      <div
+        className="relative flex flex-1 flex-col overflow-hidden"
+        style={{ backgroundColor: C.surface }}
+      >
+        <div className="flex-1 overflow-y-auto px-5 py-8">
+          {canvasBody}
+        </div>
+      </div>
+    )}
 
       {focus.kind === "field" && step && field && stepIdx >= 0 && (
         <BuilderFieldEditorPanel
@@ -956,7 +993,6 @@ export default function ApplicationFormFocusCanvas({
           />
         </BuilderFieldEditorPanel>
       )}
-    </div>
 
     <ConfirmDialog
       C={C}

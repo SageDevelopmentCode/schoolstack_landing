@@ -2,6 +2,7 @@
 
 import { Children, type ReactNode } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useSubmissionDetailStory } from "./SubmissionDetailStoryContext";
 
 type DetailPanelSectionGroupProps = {
   C: AdminThemeTokens;
@@ -14,7 +15,14 @@ export default function DetailPanelSectionGroup({
   children,
   className = "",
 }: DetailPanelSectionGroupProps) {
+  const { variant } = useSubmissionDetailStory();
   const items = Children.toArray(children).filter(Boolean);
+
+  if (variant === "story") {
+    return (
+      <div className={`flex flex-col gap-[13px] ${className}`}>{items}</div>
+    );
+  }
 
   return (
     <div className={`flex flex-col ${className}`}>

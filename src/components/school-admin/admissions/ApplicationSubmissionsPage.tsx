@@ -1,17 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { ExternalLink } from "lucide-react";
-import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import ApplicationSubmissionDetailPanel from "./ApplicationSubmissionDetailPanel";
+import SubmissionContactCell from "./SubmissionContactCell";
 import SubmissionFeeBadges from "./SubmissionFeeBadges";
+import SubmissionNextStepCell from "./SubmissionNextStepCell";
+import SubmissionProgressCell from "./SubmissionProgressCell";
 import {
-  applicationStatusBadgeStyle,
   adminApplicationStatusLabel,
+  applicationStatusChipTone,
   applicationSubmissionRowStyle,
   APPLICATION_STATUS_FILTER_ORDER,
   APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL,
@@ -21,18 +28,12 @@ import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-
 import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
 import {
   formatShortDate,
-  formatSubmissionProgress,
   listOrgApplicationSubmissions,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
 import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
 import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -50,69 +51,42 @@ const SUBMISSIONS_PAGE_SIZE = 50;
 type StatusFilter = "all" | string;
 type FormFilter = "all" | string;
 
-function columnDividerStyle(C: AdminThemeTokens, isLast: boolean): CSSProperties {
-  return isLast ? {} : { borderRight: `1px solid ${C.border}` };
-}
-
-function submissionColumnHeaderBadgeStyle(
-  heading: string,
-  C: AdminThemeTokens,
-): CSSProperties {
-  switch (heading) {
-    case "Status":
-      return { backgroundColor: C.accentLight, color: C.accent };
-    case "Enrollment":
-      return { backgroundColor: C.infoBg, color: C.info };
-    case "Post-submit":
-      return { backgroundColor: C.successBg, color: C.success };
-    case "Fee":
-    case "Fees":
-      return { backgroundColor: C.warningBg, color: C.warning };
-    case "Parent sign-in":
-      return { backgroundColor: C.infoBg, color: C.info };
-    default:
-      return {
-        backgroundColor: C.bg,
-        color: C.textTertiary,
-        border: `1px solid ${C.border}`,
-      };
-  }
-}
-
-function FilterChip({
+function StoryFilterPill({
   active,
   label,
   count,
   onClick,
-  C,
+  theme,
 }: {
   active: boolean;
   label: string;
   count?: number;
   onClick: () => void;
-  C: ReturnType<typeof buildAdminThemeTokens>;
+  theme: ReturnType<typeof useSchoolAdminStoryTheme>["theme"];
 }) {
+  const displayLabel = count != null ? `${label} · ${count}` : label;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
       style={
-        active ? getAdminButtonStyle(C, "secondary") : getAdminButtonStyle(C, "neutral")
+        active
+          ? {
+              backgroundColor: "#E9F2EA",
+              color: theme.primary,
+              borderColor: "#BCD4C1",
+              fontWeight: 700,
+            }
+          : {
+              backgroundColor: theme.white,
+              color: "#5D6D73",
+              borderColor: "#DCE4DC",
+            }
       }
     >
-      {label}
-      {count != null ? (
-        <span
-          className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-          style={{
-            backgroundColor: active ? C.surface : C.bg,
-            color: active ? C.accent : C.textTertiary,
-          }}
-        >
-          {count}
-        </span>
-      ) : null}
+      {displayLabel}
     </button>
   );
 }
@@ -125,7 +99,7 @@ export default function ApplicationSubmissionsPage({
   initialSubmissions,
   initialLoginStatusByGuardianId,
 }: ApplicationSubmissionsPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme, C } = useSchoolAdminStoryTheme();
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const deepLinkApplicationId = searchParams.get("application");
@@ -214,7 +188,6 @@ export default function ApplicationSubmissionsPage({
 
   useEffect(() => {
     if (hasInitialData) {
-      // Defer Auth Admin fan-out so SSR TTFB stays lean.
       queueMicrotask(() => {
         void loadLoginStatus();
       });
@@ -254,6 +227,15 @@ export default function ApplicationSubmissionsPage({
             (excluded) => excluded === submission.status,
           ),
       ).length,
+    [submissions],
+  );
+
+  const draftCount = statusCounts.draft ?? 0;
+  const submittedCount = statusCounts.submitted ?? 0;
+  const enrolledCount = statusCounts.enrolled ?? 0;
+
+  const latestSubmitted = useMemo(
+    () => submissions.find((row) => row.status === "submitted") ?? null,
     [submissions],
   );
 
@@ -302,22 +284,30 @@ export default function ApplicationSubmissionsPage({
     null;
 
   const showFormColumn = formOptions.length > 1;
-
   const showFeesColumn = submissions.some((row) => submissionHasFeeBadges(row));
-
   const showPostSubmitColumn = submissions.some((row) => row.hasPostSubmitActions);
-
   const showEnrollmentColumn = submissions.some((row) => row.enrollmentSummary !== null);
 
   const tableColumnCount =
     (showFormColumn ? 1 : 0) +
-    4 +
+    5 +
     (showEnrollmentColumn ? 1 : 0) +
     (showPostSubmitColumn ? 1 : 0) +
-    (showFeesColumn ? 1 : 0) +
-    2;
+    (showFeesColumn ? 1 : 0);
 
-  const tableMinWidth = showFormColumn ? "min-w-[1020px]" : "min-w-[940px]";
+  const tableMinWidth = showFormColumn ? "min-w-[980px]" : "min-w-[900px]";
+
+  const tableHeadings = [
+    ...(showFormColumn ? ["Form"] : []),
+    "Contact",
+    "Student",
+    "Status",
+    ...(showEnrollmentColumn ? ["Enrollment"] : []),
+    ...(showPostSubmitColumn ? ["Post-submit"] : []),
+    "Progress",
+    "Next step",
+    ...(showFeesColumn ? ["Fees"] : []),
+  ];
 
   const applyFormSlug = submissions.find((row) => row.formSlug)?.formSlug ?? null;
   const applyPublicPath = applyFormSlug
@@ -325,325 +315,313 @@ export default function ApplicationSubmissionsPage({
     : null;
 
   return (
-    <div
-      className="relative flex h-full min-h-0 flex-col"
-      style={{ backgroundColor: C.surface }}
-    >
-      <div
-        className="flex flex-shrink-0 flex-col gap-3 px-4 py-3 sm:px-5"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
-              Status
-            </span>
-            <FilterChip
-              active={statusFilter === "all"}
-              label="All"
-              count={activeSubmissionsCount}
-              onClick={() => changeStatusFilter("all")}
-              C={C}
-            />
-            {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
-              (status) => (
-                <FilterChip
-                  key={status}
-                  active={statusFilter === status}
-                  label={adminApplicationStatusLabel(status)}
-                  count={statusCounts[status]}
-                  onClick={() => changeStatusFilter(status)}
-                  C={C}
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
+          {!loading && submissions.length > 0 ? (
+            <>
+              <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+                <AdminMetricCard
+                  theme={theme}
+                  value={String(activeSubmissionsCount)}
+                  label="All applications"
+                  accent="forest"
                 />
-              ),
-            )}
-          </div>
-          {applyPublicPath ? (
-            <a
-              href={applyPublicPath}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-semibold text-white transition-colors"
-              style={{ backgroundColor: C.accent, boxShadow: C.shadowCard }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = C.accentDark;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = C.accent;
-              }}
-            >
-              Public apply link
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : null}
-        </div>
-
-        {formOptions.length > 1 ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.accentDark }}>
-              Form
-            </span>
-            <FilterChip
-              active={formFilter === "all"}
-              label="All forms"
-              onClick={() => changeFormFilter("all")}
-              C={C}
-            />
-            {formOptions.map(([key, title]) => (
-              <FilterChip
-                key={key}
-                active={formFilter === key}
-                label={title}
-                onClick={() => changeFormFilter(key)}
-                C={C}
-              />
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        {loading ? (
-          <SchoolAdminTableSkeleton
-            C={C}
-            rows={8}
-            columns={tableColumnCount}
-            showFilters={false}
-            label="Loading submissions"
-          />
-        ) : error ? (
-          <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.error }}>
-            {error}
-          </p>
-        ) : submissions.length === 0 ? (
-          <div className="px-4 py-10 sm:px-5">
-            <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              No applications yet. Publish an enrollment flow and share your public apply link
-              with families.
-            </p>
-            <Link
-              href={flowsPath}
-              className="mt-3 inline-block text-sm font-medium underline-offset-2 hover:underline"
-              style={{ color: C.accent }}
-            >
-              Go to Enrollment Flows
-            </Link>
-          </div>
-        ) : filteredSubmissions.length === 0 ? (
-          <p className="px-4 py-8 text-sm sm:px-5" style={{ color: C.textSecondary }}>
-            No submissions match the current filters.
-          </p>
-        ) : (
-          <div className="h-full overflow-auto" style={{ backgroundColor: C.surface }}>
-            <table className={`w-full ${tableMinWidth} border-collapse text-left text-sm`}>
-              <thead
-                className="sticky top-0 z-[1]"
-                style={{
-                  backgroundColor: C.surface,
-                  borderBottom: `2px solid ${C.border}`,
-                }}
-              >
-                <tr>
-                  {[
-                    ...(showFormColumn ? ["Form"] : []),
-                    "Contact",
-                    "Student",
-                    "Status",
-                    ...(showEnrollmentColumn ? ["Enrollment"] : []),
-                    ...(showPostSubmitColumn ? ["Post-submit"] : []),
-                    "Progress",
-                    ...(showFeesColumn ? ["Fees"] : []),
-                    "Parent sign-in",
-                    "Updated",
-                  ].map((heading, index, headings) => {
-                    const isLast = index === headings.length - 1;
-                    return (
-                      <th
-                        key={heading}
-                        className="px-3 py-2.5 sm:px-4"
-                        style={columnDividerStyle(C, isLast)}
-                      >
-                        <span
-                          className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                          style={submissionColumnHeaderBadgeStyle(heading, C)}
-                        >
-                          {heading}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {visibleSubmissions.map((submission) => {
-                  const isSelected = submission.id === selectedId;
-                  const isHovered = hoveredId === submission.id;
-                  const statusStyle = applicationStatusBadgeStyle(submission.status, C);
-                  const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
-                    isSelected,
-                    isHovered,
-                  });
-
-                  return (
-                    <tr
-                      key={submission.id}
-                      onClick={() =>
-                        setSelectedId((prev) =>
-                          prev === submission.id ? null : submission.id,
-                        )
-                      }
-                      onMouseEnter={() => setHoveredId(submission.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      className="cursor-pointer transition-colors"
-                      style={{
-                        ...rowStyle,
-                        borderBottom: `1px solid ${C.border}`,
-                      }}
-                    >
-                      {showFormColumn ? (
-                        <td
-                          className="px-3 py-3 sm:px-4"
-                          style={{ color: C.textPrimary, ...columnDividerStyle(C, false) }}
-                        >
-                          <div className="font-medium">{submission.formTitle}</div>
-                          {submission.programName ? (
-                            <div className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                              {submission.programName}
-                            </div>
-                          ) : null}
-                        </td>
-                      ) : null}
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
-                      >
-                        <div className="font-medium" style={{ color: C.textPrimary }}>
-                          {submission.guardianName ?? "—"}
-                        </div>
-                        {submission.contactEmail ? (
-                          <div
-                            className="mt-0.5 max-w-[14rem] truncate text-xs"
-                            style={{ color: C.textTertiary }}
-                          >
-                            {submission.contactEmail}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
-                      >
-                        {submission.studentLabel ?? "—"}
-                      </td>
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={columnDividerStyle(C, false)}
-                      >
-                        <span
-                          className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={statusStyle}
-                        >
-                          {adminApplicationStatusLabel(submission.status)}
-                        </span>
-                      </td>
-                      {showEnrollmentColumn ? (
-                        <td
-                          className="px-3 py-3 sm:px-4"
-                          style={columnDividerStyle(C, false)}
-                        >
-                          {submission.enrollmentSummary ? (
-                            <span
-                              className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                              style={enrollmentProgressBadgeStyle(
-                                submission.enrollmentSummary.tone,
-                                C,
-                              )}
-                              title={submission.enrollmentSummary.label}
-                            >
-                              {submission.enrollmentSummary.label}
-                            </span>
-                          ) : (
-                            <span style={{ color: C.textTertiary }}>—</span>
-                          )}
-                        </td>
-                      ) : null}
-                      {showPostSubmitColumn ? (
-                        <td
-                          className="px-3 py-3 sm:px-4"
-                          style={columnDividerStyle(C, false)}
-                        >
-                          {submission.postSubmitSummary ? (
-                            <span
-                              className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-xs font-medium"
-                              style={postSubmitSummaryBadgeStyle(
-                                submission.postSubmitSummary.tone,
-                                C,
-                              )}
-                              title={submission.postSubmitSummary.label}
-                            >
-                              {submission.postSubmitSummary.label}
-                            </span>
-                          ) : (
-                            <span style={{ color: C.textTertiary }}>—</span>
-                          )}
-                        </td>
-                      ) : null}
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={{ color: C.textSecondary, ...columnDividerStyle(C, false) }}
-                      >
-                        {formatSubmissionProgress(submission)}
-                      </td>
-                      {showFeesColumn ? (
-                        <td
-                          className="px-3 py-3 sm:px-4"
-                          style={columnDividerStyle(C, false)}
-                        >
-                          <SubmissionFeeBadges submission={submission} C={C} />
-                        </td>
-                      ) : null}
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={columnDividerStyle(C, false)}
-                      >
-                        <ParentPortalLoginBadge
-                          C={C}
-                          compact
-                          status={
-                            submission.primaryGuardianId
-                              ? loginStatusByGuardianId[submission.primaryGuardianId]
-                              : null
-                          }
-                        />
-                      </td>
-                      <td
-                        className="px-3 py-3 sm:px-4"
-                        style={{ color: C.textSecondary, ...columnDividerStyle(C, true) }}
-                      >
-                        {formatShortDate(submission.updatedAt)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {hasMoreSubmissions ? (
-              <div className="flex justify-center border-t px-4 py-3 sm:px-5" style={{ borderColor: C.border }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setVisibleCount((count) => count + SUBMISSIONS_PAGE_SIZE)
-                  }
-                  className="text-xs font-medium underline-offset-2 hover:underline"
-                  style={{ color: C.accent }}
-                >
-                  Show more ({filteredSubmissions.length - visibleSubmissions.length} remaining)
-                </button>
+                <AdminMetricCard
+                  theme={theme}
+                  value={String(draftCount)}
+                  label="In progress"
+                  accent="sky"
+                />
+                <AdminMetricCard
+                  theme={theme}
+                  value={String(submittedCount)}
+                  label="Ready to review"
+                  accent="gold"
+                />
+                <AdminMetricCard
+                  theme={theme}
+                  value={String(enrolledCount)}
+                  label="Enrolled learners"
+                  accent="berry"
+                />
               </div>
+
+              {latestSubmitted ? (
+                <div
+                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
+                  style={{
+                    backgroundColor: "#EAF4EB",
+                    borderColor: "#C7DFCB",
+                    color: "#42694F",
+                  }}
+                >
+                  <span className="text-xs">
+                    <b>Needs attention:</b>{" "}
+                    {latestSubmitted.guardianName ?? "A family"}&apos;s completed application
+                    is ready for your review
+                    {latestSubmitted.submittedAt
+                      ? ` · Submitted ${formatShortDate(latestSubmitted.submittedAt)}`
+                      : ""}
+                    .
+                  </span>
+                  <AdminButton
+                    theme={theme}
+                    variant="soft"
+                    onClick={() => setSelectedId(latestSubmitted.id)}
+                  >
+                    Review {latestSubmitted.guardianName?.split(" ")[0] ?? "family"} →
+                  </AdminButton>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+
+          <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <StoryFilterPill
+                active={statusFilter === "all"}
+                label="All"
+                count={activeSubmissionsCount}
+                onClick={() => changeStatusFilter("all")}
+                theme={theme}
+              />
+              {APPLICATION_STATUS_FILTER_ORDER.filter((status) => statusCounts[status]).map(
+                (status) => (
+                  <StoryFilterPill
+                    key={status}
+                    active={statusFilter === status}
+                    label={adminApplicationStatusLabel(status)}
+                    count={statusCounts[status]}
+                    onClick={() => changeStatusFilter(status)}
+                    theme={theme}
+                  />
+                ),
+              )}
+            </div>
+            {applyPublicPath ? (
+              <a
+                href={applyPublicPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0"
+              >
+                <AdminButton theme={theme} variant="primary">
+                  Public apply link
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </AdminButton>
+              </a>
             ) : null}
           </div>
-        )}
 
+          {formOptions.length > 1 ? (
+            <div className="mb-[15px] flex flex-wrap items-center gap-2">
+              <StoryFilterPill
+                active={formFilter === "all"}
+                label="All forms"
+                onClick={() => changeFormFilter("all")}
+                theme={theme}
+              />
+              {formOptions.map(([key, title]) => (
+                <StoryFilterPill
+                  key={key}
+                  active={formFilter === key}
+                  label={title}
+                  onClick={() => changeFormFilter(key)}
+                  theme={theme}
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <AdminCard theme={theme} padding="none">
+              <SchoolAdminTableSkeleton
+                C={C}
+                rows={8}
+                columns={tableColumnCount}
+                showFilters={false}
+                label="Loading submissions"
+              />
+            </AdminCard>
+          ) : error ? (
+            <AdminCard theme={theme} padding="canvas">
+              <p className="text-sm" style={{ color: C.error }}>
+                {error}
+              </p>
+            </AdminCard>
+          ) : submissions.length === 0 ? (
+            <AdminCard theme={theme} padding="canvas">
+              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                No applications yet. Publish an enrollment flow and share your public apply
+                link with families.
+              </p>
+              <Link
+                href={flowsPath}
+                className="mt-3 inline-block text-sm font-extrabold"
+                style={{ color: theme.primary }}
+              >
+                Go to Enrollment Flows →
+              </Link>
+            </AdminCard>
+          ) : filteredSubmissions.length === 0 ? (
+            <AdminCard theme={theme} padding="canvas">
+              <p className="text-sm" style={{ color: theme.muted }}>
+                No submissions match the current filters.
+              </p>
+            </AdminCard>
+          ) : (
+            <AdminCard theme={theme} padding="none" className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className={`w-full ${tableMinWidth} border-collapse text-left`}>
+                  <thead style={{ backgroundColor: "#FBFCFB" }}>
+                    <tr>
+                      {tableHeadings.map((heading) => (
+                        <th
+                          key={heading}
+                          className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                          style={{ color: "#8B9699" }}
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleSubmissions.map((submission) => {
+                      const isSelected = submission.id === selectedId;
+                      const isHovered = hoveredId === submission.id;
+                      const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
+                        isSelected,
+                        isHovered,
+                      });
+
+                      return (
+                        <tr
+                          key={submission.id}
+                          onClick={() =>
+                            setSelectedId((prev) =>
+                              prev === submission.id ? null : submission.id,
+                            )
+                          }
+                          onMouseEnter={() => setHoveredId(submission.id)}
+                          onMouseLeave={() => setHoveredId(null)}
+                          className="cursor-pointer transition-colors"
+                          style={{
+                            ...rowStyle,
+                            borderTop: "1px solid #EDF1ED",
+                          }}
+                        >
+                          {showFormColumn ? (
+                            <td className="px-[15px] py-3">
+                              <div className="text-xs font-semibold" style={{ color: theme.ink }}>
+                                {submission.formTitle}
+                              </div>
+                              {submission.programName ? (
+                                <div className="mt-0.5 text-[11px]" style={{ color: theme.muted }}>
+                                  {submission.programName}
+                                </div>
+                              ) : null}
+                            </td>
+                          ) : null}
+                          <td className="px-[15px] py-3">
+                            <SubmissionContactCell
+                              guardianName={submission.guardianName}
+                              contactEmail={submission.contactEmail}
+                              primaryGuardianId={submission.primaryGuardianId}
+                              loginStatusByGuardianId={loginStatusByGuardianId}
+                              C={C}
+                              theme={theme}
+                            />
+                          </td>
+                          <td
+                            className="px-[15px] py-3 text-xs"
+                            style={{ color: "#607078" }}
+                          >
+                            {submission.studentLabel ?? "—"}
+                          </td>
+                          <td className="px-[15px] py-3">
+                            <AdminChip
+                              theme={theme}
+                              tone={applicationStatusChipTone(submission.status)}
+                            >
+                              {adminApplicationStatusLabel(submission.status)}
+                            </AdminChip>
+                          </td>
+                          {showEnrollmentColumn ? (
+                            <td className="px-[15px] py-3">
+                              {submission.enrollmentSummary ? (
+                                <span
+                                  className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                                  style={enrollmentProgressBadgeStyle(
+                                    submission.enrollmentSummary.tone,
+                                    C,
+                                  )}
+                                  title={submission.enrollmentSummary.label}
+                                >
+                                  {submission.enrollmentSummary.label}
+                                </span>
+                              ) : (
+                                <span style={{ color: theme.muted }}>—</span>
+                              )}
+                            </td>
+                          ) : null}
+                          {showPostSubmitColumn ? (
+                            <td className="px-[15px] py-3">
+                              {submission.postSubmitSummary ? (
+                                <span
+                                  className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+                                  style={postSubmitSummaryBadgeStyle(
+                                    submission.postSubmitSummary.tone,
+                                    C,
+                                  )}
+                                  title={submission.postSubmitSummary.label}
+                                >
+                                  {submission.postSubmitSummary.label}
+                                </span>
+                              ) : (
+                                <span style={{ color: theme.muted }}>—</span>
+                              )}
+                            </td>
+                          ) : null}
+                          <td className="px-[15px] py-3">
+                            <SubmissionProgressCell submission={submission} theme={theme} />
+                          </td>
+                          <td className="px-[15px] py-3">
+                            <SubmissionNextStepCell submission={submission} theme={theme} />
+                          </td>
+                          {showFeesColumn ? (
+                            <td className="px-[15px] py-3">
+                              <SubmissionFeeBadges submission={submission} C={C} />
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {hasMoreSubmissions ? (
+                <div
+                  className="flex justify-center border-t px-4 py-3"
+                  style={{ borderColor: "#EDF1ED" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisibleCount((count) => count + SUBMISSIONS_PAGE_SIZE)
+                    }
+                    className="text-[11px] font-extrabold"
+                    style={{ color: theme.primary }}
+                  >
+                    Show more ({filteredSubmissions.length - visibleSubmissions.length}{" "}
+                    remaining) →
+                  </button>
+                </div>
+              ) : null}
+            </AdminCard>
+          )}
+        </div>
       </div>
 
       <AnimatePresence>

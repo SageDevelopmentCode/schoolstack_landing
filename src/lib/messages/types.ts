@@ -31,6 +31,7 @@ export type MessageStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  classroomNames: string[];
   enrolledAt: string;
   assignedTeachers: { id: string; name: string }[];
   assignedTeacherNames: string;

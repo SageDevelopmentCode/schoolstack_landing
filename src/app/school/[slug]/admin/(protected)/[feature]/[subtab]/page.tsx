@@ -207,11 +207,13 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
 
   if (feature === "my_school" && subtab === "staff") {
     return (
-      <StaffPage
-        organizationId={org.id}
-        branding={org.branding}
-        slug={slug}
-      />
+      <Suspense>
+        <StaffPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+        />
+      </Suspense>
     );
   }
 

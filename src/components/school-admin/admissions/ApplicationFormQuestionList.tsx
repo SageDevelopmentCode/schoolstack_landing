@@ -54,7 +54,7 @@ function QuestionRow({
       layout="position"
     >
       <div
-        className="flex items-center rounded-md border transition-colors"
+        className="flex items-center rounded-sm border transition-colors"
         style={{
           borderColor: active ? C.accent : C.border,
           backgroundColor: active ? C.accentLight : C.surface,
@@ -157,7 +157,7 @@ export default function ApplicationFormQuestionList({
 
       {fields.length === 0 ? (
         <div
-          className="rounded-md border border-dashed px-4 py-8 text-center"
+          className="rounded-sm border border-dashed px-4 py-8 text-center"
           style={{ borderColor: C.border, color: C.textTertiary }}
         >
           <p className="text-sm">No questions on this step yet.</p>
@@ -198,7 +198,7 @@ export default function ApplicationFormQuestionList({
             </button>
           ) : (
             <div
-              className="rounded-md border p-3 space-y-2"
+              className="rounded-sm border p-3 space-y-2"
               style={{ borderColor: C.border, backgroundColor: C.bg }}
             >
               <p className="text-xs font-medium" style={{ color: C.textSecondary }}>

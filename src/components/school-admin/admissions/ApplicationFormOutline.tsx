@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  ChevronRight,
   CreditCard,
   Eye,
   Lock,
@@ -14,15 +13,19 @@ import {
 import type { ApplicationSection } from "@/lib/admissions/application-form-schema";
 import { isSystemSection } from "@/lib/admissions/apply-system-fields";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import {
   focusKey,
   type BuilderFocus,
 } from "./builder-focus";
 import ApplicationFormStepsReorderDialog from "./ApplicationFormStepsReorderDialog";
-import { outlineItemCardStyle } from "./outline-item-styles";
+import { outlineActiveRowStyle } from "./outline-item-styles";
 
 type ApplicationFormOutlineProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   sections: ApplicationSection[];
   focus: BuilderFocus;
   readOnly: boolean;
@@ -34,97 +37,9 @@ type ApplicationFormOutlineProps = {
   onPreview: () => void;
 };
 
-function OutlineSectionLabel({
-  children,
-  C,
-}: {
-  children: React.ReactNode;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <p
-      className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-      style={{ color: C.textQuaternary }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function OutlineSectionHeader({
-  children,
-  C,
-  action,
-}: {
-  children: React.ReactNode;
-  C: AdminThemeTokens;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between px-3 pt-4 pb-1">
-      <p
-        className="text-[10px] font-semibold uppercase tracking-wider"
-        style={{ color: C.textQuaternary }}
-      >
-        {children}
-      </p>
-      {action}
-    </div>
-  );
-}
-
-function NavButton({
-  C,
-  active,
-  onClick,
-  icon: Icon,
-  label,
-  meta,
-}: {
-  C: AdminThemeTokens;
-  active: boolean;
-  onClick: () => void;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  meta?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center gap-2.5 rounded-sm px-3 py-2 text-left text-sm transition-colors"
-      style={{
-        ...outlineItemCardStyle(C, active),
-        color: active ? C.accent : C.textSecondary,
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = C.elevated;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = C.surface;
-        }
-      }}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
-      {meta ? (
-        <span className="text-[10px] shrink-0" style={{ color: C.textTertiary }}>
-          {meta}
-        </span>
-      ) : null}
-      <ChevronRight
-        className="h-3 w-3 shrink-0 opacity-40"
-        style={{ color: active ? C.accent : C.textQuaternary }}
-      />
-    </button>
-  );
-}
-
 function StepOutlineRow({
   C,
+  theme,
   step,
   stepIdx,
   active,
@@ -132,6 +47,7 @@ function StepOutlineRow({
   onSelect,
 }: {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   step: ApplicationSection;
   stepIdx: number;
   active: boolean;
@@ -142,68 +58,88 @@ function StepOutlineRow({
   const isLocked = lockSystemStep && isSystemSection(step);
 
   return (
-    <div
-      className="mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center rounded-sm transition-colors"
-      style={outlineItemCardStyle(C, active)}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = C.elevated;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = C.surface;
-        }
-      }}
+    <button
+      type="button"
+      onClick={onSelect}
+      className="mb-1 w-full rounded-[11px] border px-3 py-3 text-left transition-colors"
+      style={outlineActiveRowStyle(active, theme)}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
-      >
+      <span className="flex items-start gap-2">
         <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+          className="mt-0.5 inline-grid h-[19px] w-[19px] shrink-0 place-items-center rounded-full text-[10px] font-bold"
           style={{
-            backgroundColor: active ? C.accent : C.accentLight,
-            color: active ? "#fff" : C.accent,
+            backgroundColor: active ? (theme?.primary ?? C.accent) : "#E0ECE2",
+            color: active ? "#fff" : (theme?.primary ?? C.accent),
           }}
         >
           {stepIdx + 1}
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="flex items-center gap-1.5 truncate text-xs font-medium"
-            style={{ color: active ? C.accent : C.textPrimary }}
+            className="flex items-center gap-1.5 text-xs font-semibold"
+            style={{ color: active ? (theme?.primary ?? C.accent) : C.textPrimary }}
           >
-            {step.title || `Step ${stepIdx + 1}`}
+            <span className="truncate">{step.title || `Step ${stepIdx + 1}`}</span>
             {isLocked ? (
               <span
                 className="inline-flex shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                style={{
-                  backgroundColor: active ? "transparent" : C.elevated,
-                  color: active ? C.accent : C.textTertiary,
-                }}
+                style={{ color: C.textTertiary }}
               >
                 <Lock className="h-2.5 w-2.5" />
                 System
               </span>
             ) : null}
           </span>
-          <span className="text-[10px]" style={{ color: C.textTertiary }}>
+          <span className="mt-0.5 block text-[10px]" style={{ color: C.textTertiary }}>
             {questionCount} question{questionCount === 1 ? "" : "s"}
           </span>
         </span>
-        <ChevronRight
-          className="h-3 w-3 shrink-0 opacity-40"
-          style={{ color: active ? C.accent : C.textQuaternary }}
-        />
-      </button>
-    </div>
+      </span>
+    </button>
+  );
+}
+
+function NavRow({
+  C,
+  theme,
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  meta,
+}: {
+  C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  meta?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mb-1 flex w-full items-center gap-2 rounded-[11px] border px-3 py-2.5 text-left text-xs transition-colors"
+      style={{
+        ...outlineActiveRowStyle(active, theme),
+        color: active ? (theme?.primary ?? C.accent) : C.textSecondary,
+      }}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
+      {meta ? (
+        <span className="text-[10px] shrink-0" style={{ color: C.textTertiary }}>
+          {meta}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
 export default function ApplicationFormOutline({
   C,
+  theme,
   sections,
   focus,
   readOnly,
@@ -221,93 +157,128 @@ export default function ApplicationFormOutline({
       ? focus.stepId === stepId
       : focus.kind === "field" && focus.stepId === stepId;
 
+  if (!theme) {
+    return null;
+  }
+
   return (
     <div
-      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r"
-      style={{ borderColor: C.border, backgroundColor: C.bg }}
+      className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
+      style={{ borderColor: "#EDF1ED" }}
     >
-      <div className="flex-1 overflow-y-auto">
-        <OutlineSectionLabel C={C}>Form settings</OutlineSectionLabel>
-        <NavButton
+      <div
+        className="flex shrink-0 items-center justify-between border-b px-4 py-3"
+        style={{ borderColor: "#EDF1ED" }}
+      >
+        <div>
+          <p className="text-[15px] font-semibold" style={{ color: C.textPrimary }}>
+            Application steps
+          </p>
+        </div>
+        {!readOnly ? (
+          <AdminButton theme={theme} variant="soft" size="compact" onClick={onAddStep}>
+            + Add
+          </AdminButton>
+        ) : null}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <p
+          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
+          style={{ color: "#98A39F" }}
+        >
+          Form settings
+        </p>
+        <NavRow
           C={C}
+          theme={theme}
           active={activeKey === "setup"}
           onClick={() => onFocusChange({ kind: "setup" })}
           icon={Settings2}
           label="Setup"
         />
 
-        <OutlineSectionHeader
-          C={C}
-          action={
-            !readOnly && sections.length >= 2 ? (
-              <button
-                type="button"
-                onClick={() => setReorderOpen(true)}
-                className="text-[10px] font-medium"
-                style={{ color: C.accent }}
-              >
-                Reorder
-              </button>
-            ) : null
-          }
-        >
-          Steps
-        </OutlineSectionHeader>
+        <div className="flex items-center justify-between px-2 pt-3 pb-1">
+          <p
+            className="text-[10px] font-extrabold uppercase tracking-[0.11em]"
+            style={{ color: "#98A39F" }}
+          >
+            Steps
+          </p>
+          {!readOnly && sections.length >= 2 ? (
+            <AdminTextLink theme={theme} onClick={() => setReorderOpen(true)}>
+              Reorder
+            </AdminTextLink>
+          ) : null}
+        </div>
+
         {sections.length === 0 ? (
-          <p className="px-3 py-2 text-[11px]" style={{ color: C.textTertiary }}>
+          <p className="px-2 py-2 text-[11px]" style={{ color: C.textTertiary }}>
             No steps yet
           </p>
         ) : (
-          <div>
-            {sections.map((step, stepIdx) => (
-              <StepOutlineRow
-                key={step.id}
-                C={C}
-                step={step}
-                stepIdx={stepIdx}
-                active={isStepActive(step.id)}
-                lockSystemStep={lockSystemStep}
-                onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
-              />
-            ))}
-          </div>
+          sections.map((step, stepIdx) => (
+            <StepOutlineRow
+              key={step.id}
+              C={C}
+              theme={theme}
+              step={step}
+              stepIdx={stepIdx}
+              active={isStepActive(step.id)}
+              lockSystemStep={lockSystemStep}
+              onSelect={() => onFocusChange({ kind: "step", stepId: step.id })}
+            />
+          ))
         )}
 
-        {!readOnly && (
+        {!readOnly ? (
           <button
             type="button"
             onClick={onAddStep}
-            className="mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center justify-center gap-1.5 rounded-sm py-2 text-[11px] font-medium"
+            className="mx-1 mb-2 flex w-[calc(100%-8px)] items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2 text-[11px] font-semibold"
             style={{
-              border: `1px dashed ${C.borderStrong}`,
-              color: C.accent,
+              borderColor: "#DCE4DC",
+              color: theme.primary,
               backgroundColor: "transparent",
             }}
           >
             <Plus className="h-3.5 w-3.5" />
             Add step
           </button>
-        )}
+        ) : null}
 
-        <OutlineSectionLabel C={C}>Before submit</OutlineSectionLabel>
-        <NavButton
+        <p
+          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
+          style={{ color: "#98A39F" }}
+        >
+          Before submit
+        </p>
+        <NavRow
           C={C}
+          theme={theme}
           active={activeKey === "fee"}
           onClick={() => onFocusChange({ kind: "fee" })}
           icon={CreditCard}
           label="Application fee"
         />
-        <NavButton
+        <NavRow
           C={C}
+          theme={theme}
           active={activeKey === "acknowledgments"}
           onClick={() => onFocusChange({ kind: "acknowledgments" })}
           icon={ShieldCheck}
           label="Acknowledgments"
         />
 
-        <OutlineSectionLabel C={C}>After submit</OutlineSectionLabel>
-        <NavButton
+        <p
+          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
+          style={{ color: "#98A39F" }}
+        >
+          After submit
+        </p>
+        <NavRow
           C={C}
+          theme={theme}
           active={activeKey === "postSubmit"}
           onClick={() => onFocusChange({ kind: "postSubmit" })}
           icon={ListChecks}
@@ -316,13 +287,13 @@ export default function ApplicationFormOutline({
         />
       </div>
 
-      <div className="shrink-0 border-t p-3" style={{ borderColor: C.border }}>
+      <div className="shrink-0 border-t p-3" style={{ borderColor: "#EDF1ED" }}>
         <button
           type="button"
           onClick={onPreview}
-          className="flex w-full items-center justify-center gap-1.5 rounded-sm py-2 text-xs font-medium"
+          className="flex w-full items-center justify-center gap-1.5 rounded-[10px] border py-2 text-xs font-semibold"
           style={{
-            border: `1px solid ${C.border}`,
+            borderColor: "#DCE4DC",
             color: C.textSecondary,
             backgroundColor: C.surface,
           }}

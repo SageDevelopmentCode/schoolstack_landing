@@ -35,6 +35,8 @@ type PopupPosition = {
 
 const CALENDAR_HEIGHT = 340;
 const POPUP_GAP = 4;
+const POPUP_MIN_WIDTH = 300;
+const POPUP_VIEWPORT_PADDING = 8;
 
 function parseIsoDate(iso: string): { year: number; month: number; day: number } | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
@@ -71,16 +73,22 @@ function computeOpensUpward(rect: DOMRect): boolean {
 }
 
 function computePopupPosition(rect: DOMRect, opensUpward: boolean): PopupPosition {
+  const width = Math.max(rect.width, POPUP_MIN_WIDTH);
+  const left = Math.max(
+    POPUP_VIEWPORT_PADDING,
+    Math.min(rect.left, window.innerWidth - width - POPUP_VIEWPORT_PADDING),
+  );
+
   if (opensUpward) {
     return {
-      left: rect.left,
-      width: rect.width,
+      left,
+      width,
       bottom: window.innerHeight - rect.top + POPUP_GAP,
     };
   }
   return {
-    left: rect.left,
-    width: rect.width,
+    left,
+    width,
     top: rect.bottom + POPUP_GAP,
   };
 }
@@ -227,6 +235,7 @@ export default function ApplicationDatePicker({
         style={{
           left: popupPosition.left,
           width: popupPosition.width,
+          minWidth: POPUP_MIN_WIDTH,
           top: popupPosition.top,
           bottom: popupPosition.bottom,
           borderColor: C.border,
@@ -244,20 +253,13 @@ export default function ApplicationDatePicker({
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          <div className="flex min-w-0 flex-1 gap-2">
-            <select
-              aria-label="Month"
-              value={viewMonth}
-              onChange={(event) => setViewMonth(Number(event.target.value))}
-              className="min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2"
-              style={{ ...selectStyle, ...focusRing }}
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+            <span
+              className="shrink-0 text-sm font-medium"
+              style={{ color: C.textPrimary }}
             >
-              {MONTH_NAMES.map((name, index) => (
-                <option key={name} value={index}>
-                  {name}
-                </option>
-              ))}
-            </select>
+              {MONTH_NAMES[viewMonth]}
+            </span>
             <select
               aria-label="Year"
               value={viewYear}
@@ -293,6 +295,7 @@ export default function ApplicationDatePicker({
           minDate={minDate}
           maxDate={maxDate}
           editable
+          datePickerMode
           colors={calendarColors}
           largeCells
         />

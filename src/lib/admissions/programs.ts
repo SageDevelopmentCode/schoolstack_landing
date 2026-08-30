@@ -22,6 +22,7 @@ export type Program = {
   id: string;
   organization_id: string;
   name: string;
+  description: string | null;
   type: ProgramType;
   status: ProgramStatus;
   start_date: string | null;
@@ -33,6 +34,7 @@ export type Program = {
 
 export type CreateProgramInput = {
   name: string;
+  description?: string | null;
   type: ProgramType;
   status?: ProgramStatus;
   start_date?: string | null;
@@ -64,10 +66,16 @@ export const PROGRAM_STATUS_OPTIONS: {
 ];
 
 function programFromRow(row: Record<string, unknown>): Program {
+  const description =
+    row.description === null || row.description === undefined
+      ? null
+      : String(row.description).trim() || null;
+
   return {
     id: String(row.id),
     organization_id: String(row.organization_id),
     name: String(row.name),
+    description,
     type: String(row.type),
     status: row.status as ProgramStatus,
     start_date: row.start_date ? String(row.start_date) : null,
@@ -133,6 +141,7 @@ export async function createProgram(
     .insert({
       organization_id: organizationId,
       name,
+      description: input.description?.trim() || null,
       type: input.type.trim() || "school_year",
       status: input.status ?? "open",
       start_date: input.start_date || null,
@@ -172,6 +181,9 @@ export async function updateProgram(
     const name = input.name.trim();
     if (!name) throw new Error("Program name is required.");
     patch.name = name;
+  }
+  if (input.description !== undefined) {
+    patch.description = input.description?.trim() || null;
   }
   if (input.type !== undefined) patch.type = input.type.trim() || "school_year";
   if (input.status !== undefined) patch.status = input.status;

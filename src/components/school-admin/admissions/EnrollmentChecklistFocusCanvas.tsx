@@ -8,6 +8,7 @@ import {
   CHECKLIST_ITEM_TYPE_LABELS,
   type ChecklistItemType,
 } from "@/lib/admissions/enrollment-checklist-schema";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
@@ -20,6 +21,8 @@ import {
 } from "./checklist-builder-focus";
 import EnrollmentChecklistItemEditor from "./EnrollmentChecklistItemEditor";
 import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
+import { BUILDER_CANVAS_BG } from "./outline-item-styles";
+import { builderCanvasTransition } from "./builder-canvas-motion";
 
 function itemTypeSubtitle(type: ChecklistItemType): string {
   switch (type) {
@@ -39,15 +42,11 @@ function itemTypeSubtitle(type: ChecklistItemType): string {
   }
 }
 
-const canvasTransition = {
-  initial: { opacity: 0, x: 8 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -8 },
-  transition: { duration: 0.18, ease: "easeOut" as const },
-};
+const canvasTransition = builderCanvasTransition;
 
 type EnrollmentChecklistFocusCanvasProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   focus: ChecklistBuilderFocus | null;
   items: EnrollmentChecklistItem[];
   organizationId: string;
@@ -67,6 +66,7 @@ type EnrollmentChecklistFocusCanvasProps = {
 
 function ItemView({
   C,
+  theme,
   item,
   itemIdx,
   organizationId,
@@ -84,6 +84,7 @@ function ItemView({
   allItems,
 }: {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   item: EnrollmentChecklistItem;
   itemIdx: number;
   organizationId: string;
@@ -105,7 +106,8 @@ function ItemView({
       <div className="flex items-start justify-between gap-4">
         <BuilderSectionIntro
           C={C}
-          eyebrow={`Item ${itemIdx + 1} · ${CHECKLIST_ITEM_TYPE_LABELS[item.type]}`}
+          theme={theme}
+          eyebrow={`Item ${itemIdx + 1} of ${allItems.length}`}
           title={item.label || "Untitled item"}
           subtitle={itemTypeSubtitle(item.type)}
         />
@@ -151,6 +153,7 @@ function EmptyCanvasView({ C }: { C: AdminThemeTokens }) {
 
 export default function EnrollmentChecklistFocusCanvas({
   C,
+  theme,
   focus,
   items,
   organizationId,
@@ -239,11 +242,49 @@ export default function EnrollmentChecklistFocusCanvas({
     ? items.find((i) => i.id === pendingDeleteItemId)
     : null;
 
+  const canvasContent = (
+    <AnimatePresence mode="wait">
+      <motion.div key={key} className="w-full" {...canvasTransition}>
+        {(focus?.kind === "item" || focus?.kind === "field") &&
+          item &&
+          itemIdx >= 0 && (
+            <ItemView
+              key={item.id}
+              C={C}
+              theme={theme}
+              item={item}
+              itemIdx={itemIdx}
+              organizationId={organizationId}
+              templateId={templateId}
+              orgSlug={orgSlug}
+              isDirty={isDirty}
+              stripePaymentsReady={stripePaymentsReady}
+              readOnly={readOnly}
+              selectedFieldId={
+                focus?.kind === "field" ? focus.fieldId : null
+              }
+              onUpdateItem={onUpdateItem}
+              onFocusChange={onFocusChange}
+              onAddVariant={onAddVariant}
+              onSetDefaultVariant={onSetDefaultVariant}
+              onPreviewItem={onPreviewItem}
+              allItems={items}
+            />
+          )}
+
+        {!focus && <EmptyCanvasView C={C} />}
+      </motion.div>
+    </AnimatePresence>
+  );
+
   return (
     <>
-      <div className="flex flex-1 overflow-hidden" style={{ backgroundColor: C.surface }}>
+      <div
+        className="flex min-h-0 flex-1 overflow-hidden bg-white"
+      >
         <EnrollmentChecklistOutline
           C={C}
+          theme={theme}
           items={items}
           focus={focus}
           readOnly={readOnly}
@@ -261,39 +302,12 @@ export default function EnrollmentChecklistFocusCanvas({
           onOpenPicker={onOpenPicker}
         />
 
-        <div className="relative min-w-0 flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto px-5 py-8">
-            <AnimatePresence mode="wait">
-              <motion.div key={key} className="mx-auto w-full max-w-3xl" {...canvasTransition}>
-                {(focus?.kind === "item" || focus?.kind === "field") &&
-                  item &&
-                  itemIdx >= 0 && (
-                    <ItemView
-                      key={item.id}
-                      C={C}
-                      item={item}
-                      itemIdx={itemIdx}
-                      organizationId={organizationId}
-                      templateId={templateId}
-                      orgSlug={orgSlug}
-                      isDirty={isDirty}
-                      stripePaymentsReady={stripePaymentsReady}
-                      readOnly={readOnly}
-                      selectedFieldId={
-                        focus?.kind === "field" ? focus.fieldId : null
-                      }
-                      onUpdateItem={onUpdateItem}
-                      onFocusChange={onFocusChange}
-                      onAddVariant={onAddVariant}
-                      onSetDefaultVariant={onSetDefaultVariant}
-                      onPreviewItem={onPreviewItem}
-                      allItems={items}
-                    />
-                  )}
-
-                {!focus && <EmptyCanvasView C={C} />}
-              </motion.div>
-            </AnimatePresence>
+        <div
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          style={{ backgroundColor: BUILDER_CANVAS_BG }}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
+            {canvasContent}
           </div>
 
           {focus?.kind === "field" && item && field && itemIdx >= 0 && (

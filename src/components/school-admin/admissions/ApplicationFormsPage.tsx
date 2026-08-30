@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2, Save, Send } from "lucide-react";
+import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
   duplicateForm,
@@ -54,8 +54,12 @@ import {
   type ApplicationFormSchema,
   type ApplicationFormVersion,
 } from "@/lib/admissions/application-form-schema";
-import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import {
+  buildParentThemeTokens,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -63,10 +67,13 @@ import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
 import ApplicationFormEditorToolbar from "./ApplicationFormEditorToolbar";
 import ChecklistProgramDropdown from "./ChecklistProgramDropdown";
 import ApplicationFormFocusCanvas from "./ApplicationFormFocusCanvas";
+import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
+import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import EnrollmentFlowsSidebar from "./EnrollmentFlowsSidebar";
 import EnrollmentFlowsEmptyState from "./EnrollmentFlowsEmptyState";
 import type { FlowListSelection } from "./enrollment-flow-selection";
-import { StatusIcon } from "./ApplicationFormListBadges";
 import ApplicationFormOutline from "./ApplicationFormOutline";
 import ApplicationFormPreview from "./ApplicationFormPreview";
 import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
@@ -395,7 +402,8 @@ export default function ApplicationFormsPage({
   schoolName,
   slug,
 }: ApplicationFormsPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const flowParam = searchParams.get("flow");
@@ -1309,13 +1317,18 @@ export default function ApplicationFormsPage({
   };
 
   if (loading) {
-    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading enrollment flows" />;
+    return (
+      <EnrollmentFlowsStoryShell branding={branding}>
+        <SchoolAdminSplitPaneSkeleton C={C} label="Loading enrollment flows" />
+      </EnrollmentFlowsStoryShell>
+    );
   }
 
   const hasFlows = forms.length > 0 || checklists.length > 0;
 
   const flowsSidebarProps = {
     C,
+    theme,
     open: flowsSidebarOpen,
     forms,
     checklists,
@@ -1330,129 +1343,120 @@ export default function ApplicationFormsPage({
   };
 
   const flowsSidebarToggle = (
-    <button
-      type="button"
-      onClick={toggleFlowsSidebar}
-      className="shrink-0 rounded-sm px-3 py-1.5 text-xs font-semibold"
-      style={getAdminButtonStyle(C, "secondary")}
-    >
+    <AdminButton theme={theme} variant="outline" size="compact" onClick={toggleFlowsSidebar}>
       Switch form
-    </button>
+    </AdminButton>
   );
 
   if (!hasFlows) {
     return (
-      <EnrollmentFlowsEmptyState
-        C={C}
-        creating={creating}
-        onCreateApply={handleCreateApply}
-        onCreateChecklist={handleCreateChecklist}
-      />
+      <EnrollmentFlowsStoryShell branding={branding}>
+        <EnrollmentFlowsEmptyState
+          C={C}
+          theme={theme}
+          creating={creating}
+          onCreateApply={handleCreateApply}
+          onCreateChecklist={handleCreateChecklist}
+        />
+      </EnrollmentFlowsStoryShell>
     );
   }
 
-  return (
-    <div className="flex h-full overflow-hidden" style={{ backgroundColor: C.bg }}>
-      {selectedChecklist && checklistEditable ? (
-        <div
-          className="flex flex-1 flex-col overflow-hidden"
-          style={{ backgroundColor: C.surface }}
-        >
-          <div
-            className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-5 py-3"
-            style={{ borderColor: C.border }}
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <input
-                  type="text"
-                  value={checklistEditable.name}
-                  onChange={(e) =>
-                    handleChecklistEditableChange({ name: e.target.value })
-                  }
-                  disabled={checklistReadOnly}
-                  className="min-w-0 flex-1 truncate bg-transparent text-base font-semibold outline-none"
-                  style={{ color: C.textPrimary }}
-                  placeholder="Enrollment checklist"
-                />
-                <StatusIcon status={selectedChecklist.status} variant="plain" size="lg" />
-                {flowsSidebarToggle}
-              </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <AdmissionsFamilyAccessGuideButton
-                variant="checklist"
-                C={C}
-                schoolSlug={slug}
-              />
-              <ChecklistPreviewMenuButton
-                C={C}
-                orgSlug={slug}
-                checklistId={selectedChecklist.id}
-                disabled={!checklistEditable.items.length}
-                isDirty={isChecklistDirty}
-                onPreviewHere={() => openChecklistPreview()}
-              />
-              <ChecklistProgramDropdown
-                C={C}
-                programs={programs}
-                programId={checklistEditable.programId}
-                readOnly={checklistReadOnly}
-                onChange={(programId) =>
-                  handleChecklistEditableChange({ programId })
+  return (
+    <EnrollmentFlowsStoryShell branding={branding}>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      {selectedChecklist && checklistEditable ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <EnrollmentFlowsStoryHeader
+            theme={theme}
+            flowTitle={
+              <input
+                type="text"
+                value={checklistEditable.name}
+                onChange={(e) =>
+                  handleChecklistEditableChange({ name: e.target.value })
                 }
+                disabled={checklistReadOnly}
+                className="min-w-[12rem] flex-1 truncate bg-transparent font-heading text-[15px] font-semibold outline-none"
+                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+                placeholder="Enrollment checklist"
               />
-              {checklistReadOnly ? null : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleChecklistSave}
-                    disabled={saving || !isChecklistDirty}
-                    className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                    style={getAdminButtonStyle(C, "primary")}
-                  >
-                    {saving ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Save className="h-3.5 w-3.5" />
-                    )}
-                    {checklistIsPublished ? "Save" : "Save draft"}
-                  </button>
-                  {checklistIsPublished ? (
-                    <button
-                      type="button"
-                      onClick={() => setChecklistUnpublishOpen(true)}
-                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                      style={getAdminButtonStyle(C, "danger")}
+            }
+            status={selectedChecklist.status}
+            flowSwitcher={flowsSidebarToggle}
+            actions={
+              <>
+                <AdmissionsFamilyAccessGuideButton
+                  variant="checklist"
+                  C={C}
+                  schoolSlug={slug}
+                />
+                <ChecklistPreviewMenuButton
+                  C={C}
+                  orgSlug={slug}
+                  checklistId={selectedChecklist.id}
+                  disabled={!checklistEditable.items.length}
+                  isDirty={isChecklistDirty}
+                  onPreviewHere={() => openChecklistPreview()}
+                />
+                <ChecklistProgramDropdown
+                  C={C}
+                  programs={programs}
+                  programId={checklistEditable.programId}
+                  readOnly={checklistReadOnly}
+                  onChange={(programId) =>
+                    handleChecklistEditableChange({ programId })
+                  }
+                />
+                {checklistReadOnly ? null : (
+                  <>
+                    <AdminButton
+                      theme={theme}
+                      variant="soft"
+                      onClick={handleChecklistSave}
+                      disabled={saving || !isChecklistDirty}
                     >
-                      <EyeOff className="h-3.5 w-3.5" />
-                      Unpublish
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleChecklistPublish}
-                      disabled={publishing}
-                      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white"
-                      style={getAdminButtonStyle(C, "primary")}
-                    >
-                      {publishing ? (
+                      {saving ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Send className="h-3.5 w-3.5" />
+                        <Save className="h-3.5 w-3.5" />
                       )}
-                      Publish
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+                      {checklistIsPublished ? "Save" : "Save draft"}
+                    </AdminButton>
+                    {checklistIsPublished ? (
+                      <AdminButton
+                        theme={theme}
+                        variant="danger"
+                        onClick={() => setChecklistUnpublishOpen(true)}
+                      >
+                        <EyeOff className="h-3.5 w-3.5" />
+                        Unpublish
+                      </AdminButton>
+                    ) : (
+                      <AdminButton
+                        theme={theme}
+                        variant="primary"
+                        onClick={handleChecklistPublish}
+                        disabled={publishing}
+                      >
+                        {publishing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5" />
+                        )}
+                        Publish
+                      </AdminButton>
+                    )}
+                  </>
+                )}
+              </>
+            }
+          />
 
           {error && selection?.kind === "checklist" ? (
             <div
-              className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
+              className="mx-4 mb-3 rounded-xl px-3 py-2 text-xs sm:mx-6 lg:mx-8"
               style={{
                 backgroundColor: C.errorBg,
                 color: C.error,
@@ -1463,79 +1467,79 @@ export default function ApplicationFormsPage({
             </div>
           ) : null}
 
-          {checklistEditable.programId || checklistReadOnly ? (
-            <EnrollmentChecklistBuilder
-              branding={branding}
-              schoolName={schoolName}
-              organizationId={organizationId}
-              template={selectedChecklist}
-              orgSlug={slug}
-              stripePaymentsReady={stripePaymentsReady}
-              items={checklistEditable.items}
-              isDirty={isChecklistDirty}
-              onItemsChange={handleChecklistItemsChange}
-              onPreviewItem={openChecklistPreview}
-              readOnly={checklistReadOnly}
-            />
-          ) : (
-            <EnrollmentChecklistProgramGate
-              C={C}
-              slug={slug}
-              programs={programs}
-              programId={checklistEditable.programId}
-              onProgramChange={(programId) =>
-                handleChecklistEditableChange({ programId })
-              }
-            />
-          )}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {checklistEditable.programId || checklistReadOnly ? (
+              <EnrollmentChecklistBuilder
+                branding={branding}
+                theme={theme}
+                schoolName={schoolName}
+                organizationId={organizationId}
+                template={selectedChecklist}
+                orgSlug={slug}
+                stripePaymentsReady={stripePaymentsReady}
+                items={checklistEditable.items}
+                isDirty={isChecklistDirty}
+                onItemsChange={handleChecklistItemsChange}
+                onPreviewItem={openChecklistPreview}
+                readOnly={checklistReadOnly}
+              />
+            ) : (
+              <EnrollmentChecklistProgramGate
+                C={C}
+                slug={slug}
+                programs={programs}
+                programId={checklistEditable.programId}
+                onProgramChange={(programId) =>
+                  handleChecklistEditableChange({ programId })
+                }
+              />
+            )}
+          </div>
         </div>
       ) : selectedChecklist ? (
         <SchoolAdminCanvasSkeleton C={C} label="Loading enrollment checklist" />
       ) : selectedForm && editable ? (
-        <div
-          className="flex flex-1 flex-col overflow-hidden"
-          style={{ backgroundColor: C.surface }}
-        >
-          <div
-            className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b px-5 py-3"
-            style={{ borderColor: C.border }}
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <p
-                  className="truncate text-base font-semibold"
-                  style={{ color: C.textPrimary }}
-                >
-                  {editable.title || "Untitled form"}
-                </p>
-                <StatusIcon status={selectedForm.status} variant="plain" size="lg" />
-                {flowsSidebarToggle}
-              </div>
-            </div>
-
-            <ApplicationFormEditorToolbar
-              C={C}
-              schoolSlug={slug}
-              readOnly={readOnly}
-              isPublished={isPublished}
-              publishedPublicUrl={publishedPublicUrl}
-              saving={saving}
-              isApplyDirty={isApplyDirty}
-              isApplyFormSelected={isApplyFormSelected}
-              publishing={publishing}
-              creating={creating}
-              onSave={handleSave}
-              onPublish={handlePublish}
-              onUnpublish={() => setUnpublishOpen(true)}
-              onCopyPublicLink={handleCopyPublicLink}
-              onPreview={() => setPreviewOpen(true)}
-              onDuplicate={handleDuplicate}
-            />
-          </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <EnrollmentFlowsStoryHeader
+            theme={theme}
+            flowTitle={
+              <AdminDisplayHeading
+                theme={theme}
+                as="h1"
+                size="section"
+                className="text-[15px] leading-tight tracking-[-0.02em]"
+              >
+                {editable.title || "Untitled form"}
+              </AdminDisplayHeading>
+            }
+            status={selectedForm.status}
+            flowSwitcher={flowsSidebarToggle}
+            actions={
+              <ApplicationFormEditorToolbar
+                C={C}
+                theme={theme}
+                schoolSlug={slug}
+                readOnly={readOnly}
+                isPublished={isPublished}
+                publishedPublicUrl={publishedPublicUrl}
+                saving={saving}
+                isApplyDirty={isApplyDirty}
+                isApplyFormSelected={isApplyFormSelected}
+                publishing={publishing}
+                creating={creating}
+                onSave={handleSave}
+                onPublish={handlePublish}
+                onUnpublish={() => setUnpublishOpen(true)}
+                onCopyPublicLink={handleCopyPublicLink}
+                onPreview={() => setPreviewOpen(true)}
+                onDuplicate={handleDuplicate}
+              />
+            }
+          />
 
           {error && (
             <div
-              className="mx-5 mt-3 rounded-md px-3 py-2 text-xs"
+              className="mx-4 mb-3 rounded-xl px-3 py-2 text-xs sm:mx-6 lg:mx-8"
               style={{
                 backgroundColor: C.errorBg,
                 color: C.error,
@@ -1546,9 +1550,10 @@ export default function ApplicationFormsPage({
             </div>
           )}
 
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             <ApplicationFormOutline
               C={C}
+              theme={theme}
               sections={editable.schema.sections}
               focus={focus}
               readOnly={readOnly}
@@ -1562,6 +1567,7 @@ export default function ApplicationFormsPage({
 
             <ApplicationFormFocusCanvas
               C={C}
+              theme={theme}
               focus={focus}
               editable={editable}
               programs={programs}
@@ -1681,5 +1687,6 @@ export default function ApplicationFormsPage({
 
       <EnrollmentFlowsSidebar {...flowsSidebarProps} />
     </div>
+    </EnrollmentFlowsStoryShell>
   );
 }

@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
   schoolAdminDateRangeBounds,
 } from "@/components/school-admin/ui/SchoolAdminDatePicker";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSaveStateBar from "@/components/school-admin/ui/story/AdminSaveStateBar";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import {
   createProgram,
@@ -15,7 +19,6 @@ import {
   listProgramsDetailed,
   PROGRAM_STATUS_OPTIONS,
   PROGRAM_TYPE_OPTIONS,
-  programStatusLabel,
   programTypeLabel,
   updateProgram,
   type Program,
@@ -23,11 +26,24 @@ import {
   type ProgramType,
 } from "@/lib/admissions/programs";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import {
+  buildParentThemeTokens,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
+import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
+import ProgramsEmptyState from "./ProgramsEmptyState";
+import ProgramsOutline, { NEW_PROGRAM_ID } from "./ProgramsOutline";
+import {
+  BuilderQuestionCard,
+  BuilderSectionIntro,
+} from "./builder-question-card";
+import { builderCanvasTransition } from "./builder-canvas-motion";
+import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 
 type ProgramsPageProps = {
   organizationId: string;
@@ -37,6 +53,7 @@ type ProgramsPageProps = {
 
 type EditableProgramState = {
   name: string;
+  description: string;
   type: ProgramType;
   status: ProgramStatus;
   startDate: string;
@@ -44,22 +61,10 @@ type EditableProgramState = {
   capacity: string;
 };
 
-const STATUS_STYLES: Record<
-  ProgramStatus,
-  { bg: string; color: string }
-> = {
-  draft: { bg: "rgba(113, 113, 122, 0.1)", color: "#71717A" },
-  open: { bg: "rgba(22, 163, 74, 0.1)", color: "#16A34A" },
-  waitlist: { bg: "rgba(217, 119, 6, 0.1)", color: "#D97706" },
-  full: { bg: "rgba(220, 38, 38, 0.1)", color: "#DC2626" },
-  closed: { bg: "rgba(113, 113, 122, 0.1)", color: "#71717A" },
-};
-
-const NEW_PROGRAM_ID = "__new__";
-
 function toEditableState(program: Program): EditableProgramState {
   return {
     name: program.name,
+    description: program.description ?? "",
     type: program.type,
     status: program.status,
     startDate: program.start_date ?? "",
@@ -71,6 +76,7 @@ function toEditableState(program: Program): EditableProgramState {
 function emptyEditableState(): EditableProgramState {
   return {
     name: "",
+    description: "",
     type: "school_year",
     status: "open",
     startDate: "",
@@ -79,12 +85,12 @@ function emptyEditableState(): EditableProgramState {
   };
 }
 
-function inputStyle(C: ReturnType<typeof buildAdminThemeTokens>): React.CSSProperties {
+function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   return {
-    backgroundColor: C.input,
-    border: `1px solid ${C.inputBorder}`,
+    backgroundColor: "#FCFDFC",
+    border: "1px solid #D9E0DA",
     color: C.textPrimary,
-    borderRadius: C.r.md,
+    borderRadius: "7px",
     fontSize: "14px",
     padding: "10px 12px",
     width: "100%",
@@ -98,7 +104,8 @@ export default function ProgramsPage({
   branding,
   slug,
 }: ProgramsPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
 
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -113,6 +120,7 @@ export default function ProgramsPage({
   const isNew = selectedId === NEW_PROGRAM_ID;
   const selectedProgram = programs.find((program) => program.id === selectedId) ?? null;
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
+  const canvasKey = selectedId ?? "none";
 
   const loadPrograms = useCallback(async () => {
     setLoading(true);
@@ -157,6 +165,7 @@ export default function ProgramsPage({
     const saved = toEditableState(selectedProgram);
     return (
       editable.name !== saved.name ||
+      editable.description !== saved.description ||
       editable.type !== saved.type ||
       editable.status !== saved.status ||
       editable.startDate !== saved.startDate ||
@@ -168,6 +177,11 @@ export default function ProgramsPage({
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
     setEditable(emptyEditableState());
+    setError(null);
+  };
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
     setError(null);
   };
 
@@ -189,6 +203,7 @@ export default function ProgramsPage({
 
     const payload = {
       name: editable.name,
+      description: editable.description.trim() || null,
       type: editable.type,
       status: editable.status,
       start_date: editable.startDate.trim() || null,
@@ -253,321 +268,256 @@ export default function ProgramsPage({
   };
 
   if (loading) {
-    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading programs" />;
+    return (
+      <EnrollmentFlowsStoryShell branding={branding}>
+        <SchoolAdminSplitPaneSkeleton C={C} label="Loading programs" />
+      </EnrollmentFlowsStoryShell>
+    );
+  }
+
+  const showEmptyState = programs.length === 0 && !isNew && !editable;
+
+  if (showEmptyState) {
+    return (
+      <EnrollmentFlowsStoryShell branding={branding}>
+        <ProgramsEmptyState theme={theme} onCreate={handleCreate} />
+      </EnrollmentFlowsStoryShell>
+    );
   }
 
   return (
-    <div className="flex h-full min-h-0" style={{ backgroundColor: C.surface }}>
-      <div
-        className="flex h-full min-h-0 w-[240px] flex-shrink-0 flex-col overflow-hidden"
-        style={{
-          borderRight: `1px solid ${C.border}`,
-          backgroundColor: C.surface,
-        }}
-      >
-        <div
-          className="flex h-14 flex-shrink-0 items-center justify-between px-3"
-          style={{ borderBottom: `1px solid ${C.border}` }}
-        >
-          <span className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Programs
-          </span>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isNew}
-            className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-            style={getAdminButtonStyle(C, "secondary")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New
-          </button>
-        </div>
+    <EnrollmentFlowsStoryShell branding={branding}>
+      <div className="flex h-full min-h-0 overflow-hidden">
+        <ProgramsOutline
+          C={C}
+          theme={theme}
+          programs={programs}
+          selectedId={selectedId}
+          isNew={isNew}
+          onSelect={handleSelect}
+          onCreate={handleCreate}
+        />
 
-        <div className="flex-1 overflow-y-auto">
-          {programs.length === 0 && !isNew ? (
-            <p className="px-3 py-4 text-xs leading-relaxed" style={{ color: C.textTertiary }}>
-              No programs yet. Create one before linking an application form.
-            </p>
-          ) : (
-            <>
-              {isNew ? (
-                <div
-                  className="w-full px-3 py-3 text-left"
-                  style={{
-                    backgroundColor: C.accentLight,
-                    borderLeft: `3px solid ${C.accent}`,
-                  }}
-                >
-                  <p className="text-sm font-medium" style={{ color: C.accent }}>
-                    New program
-                  </p>
-                  <p className="mt-0.5 text-xs" style={{ color: C.textSecondary }}>
-                    Draft
-                  </p>
-                </div>
-              ) : null}
-              {programs.map((program) => {
-                const isActive = program.id === selectedId;
-                const statusStyle = STATUS_STYLES[program.status];
-                return (
-                  <button
-                    key={program.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedId(program.id);
-                      setError(null);
-                    }}
-                    className="w-full px-3 py-3 text-left transition-all"
-                    style={{
-                      backgroundColor: isActive ? C.accentLight : "transparent",
-                      borderLeft: isActive
-                        ? `3px solid ${C.accent}`
-                        : "3px solid transparent",
-                    }}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <EnrollmentFlowsStoryHeader
+            theme={theme}
+            flowTitle={
+              <AdminDisplayHeading theme={theme} as="h1" size="canvas">
+                {isNew ? "New program" : selectedProgram?.name ?? "Programs"}
+              </AdminDisplayHeading>
+            }
+            actions={
+              editable ? (
+                <>
+                  {!isNew && selectedProgram ? (
+                    <AdminButton
+                      theme={theme}
+                      variant="danger"
+                      size="compact"
+                      onClick={() => setDeleteOpen(true)}
+                      disabled={saving || deleting}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </AdminButton>
+                  ) : null}
+                  <AdminButton
+                    theme={theme}
+                    variant="primary"
+                    size="compact"
+                    onClick={handleSave}
+                    disabled={saving || !isProgramDirty}
                   >
-                    <p
-                      className="truncate text-sm font-medium"
-                      style={{ color: isActive ? C.accent : C.textPrimary }}
-                    >
-                      {program.name}
+                    {saving ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
+                    {isNew ? "Create program" : "Save"}
+                  </AdminButton>
+                </>
+              ) : null
+            }
+          />
+
+          <div
+            className="flex-1 overflow-y-auto p-5 sm:p-6"
+            style={{ backgroundColor: BUILDER_CANVAS_BG }}
+          >
+            {error ? (
+              <p
+                className="mb-4 rounded-md border px-3 py-2.5 text-sm"
+                style={{
+                  borderColor: C.errorBorder,
+                  backgroundColor: C.surface,
+                  color: C.error,
+                }}
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
+
+            <AnimatePresence mode="wait">
+              {editable ? (
+                <motion.div
+                  key={canvasKey}
+                  className="mx-auto max-w-xl space-y-4"
+                  {...builderCanvasTransition}
+                >
+                  <BuilderSectionIntro
+                    C={C}
+                    theme={theme}
+                    eyebrow="Program details"
+                    title={isNew ? "Set up your program" : "Edit program"}
+                    subtitle="Define the enrollment period families apply to. Link it to an application form on Enrollment Flows."
+                  />
+
+                  <BuilderQuestionCard C={C} tone="accent" question="Program name">
+                    <input
+                      type="text"
+                      value={editable.name}
+                      onChange={(e) =>
+                        setEditable((prev) =>
+                          prev ? { ...prev, name: e.target.value } : prev,
+                        )
+                      }
+                      placeholder="e.g. School Year 2026–27"
+                      style={inputStyle(C)}
+                    />
+                  </BuilderQuestionCard>
+
+                  <BuilderQuestionCard
+                    C={C}
+                    tone="accent"
+                    question="Description"
+                    helper="Optional. Shown internally to help your team distinguish programs."
+                  >
+                    <textarea
+                      rows={3}
+                      value={editable.description}
+                      onChange={(e) =>
+                        setEditable((prev) =>
+                          prev ? { ...prev, description: e.target.value } : prev,
+                        )
+                      }
+                      placeholder="e.g. Friday enrichment program for K–2 families"
+                      style={{ ...inputStyle(C), resize: "vertical" }}
+                    />
+                  </BuilderQuestionCard>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <BuilderQuestionCard C={C} tone="accent" question="Type">
+                      <SchoolAdminSelect
+                        C={C}
+                        value={editable.type}
+                        onChange={(value) =>
+                          setEditable((prev) =>
+                            prev ? { ...prev, type: value as ProgramType } : prev,
+                          )
+                        }
+                        options={PROGRAM_TYPE_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                        ariaLabel="Program type"
+                      />
+                    </BuilderQuestionCard>
+
+                    <BuilderQuestionCard C={C} tone="accent" question="Status">
+                      <SchoolAdminSelect
+                        C={C}
+                        value={editable.status}
+                        onChange={(value) =>
+                          setEditable((prev) =>
+                            prev
+                              ? { ...prev, status: value as ProgramStatus }
+                              : prev,
+                          )
+                        }
+                        options={PROGRAM_STATUS_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: option.label,
+                        }))}
+                        ariaLabel="Program status"
+                      />
+                    </BuilderQuestionCard>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <BuilderQuestionCard C={C} tone="accent" question="Start date">
+                      <SchoolAdminDatePicker
+                        id="program-start-date"
+                        C={C}
+                        value={editable.startDate}
+                        onChange={(value) =>
+                          setEditable((prev) =>
+                            prev ? { ...prev, startDate: value } : prev,
+                          )
+                        }
+                        maxDate={editable.endDate || schoolAdminDateRangeBounds().maxDate}
+                        placeholder="Select start date"
+                      />
+                    </BuilderQuestionCard>
+
+                    <BuilderQuestionCard C={C} tone="accent" question="End date">
+                      <SchoolAdminDatePicker
+                        id="program-end-date"
+                        C={C}
+                        value={editable.endDate}
+                        onChange={(value) =>
+                          setEditable((prev) =>
+                            prev ? { ...prev, endDate: value } : prev,
+                          )
+                        }
+                        minDate={editable.startDate || schoolAdminDateRangeBounds().minDate}
+                        placeholder="Select end date"
+                      />
+                    </BuilderQuestionCard>
+                  </div>
+
+                  <BuilderQuestionCard
+                    C={C}
+                    tone="accent"
+                    question="Capacity"
+                    helper="Optional maximum number of enrolled students."
+                  >
+                    <input
+                      type="number"
+                      min={1}
+                      value={editable.capacity}
+                      onChange={(e) =>
+                        setEditable((prev) =>
+                          prev ? { ...prev, capacity: e.target.value } : prev,
+                        )
+                      }
+                      placeholder="Optional"
+                      style={inputStyle(C)}
+                    />
+                  </BuilderQuestionCard>
+
+                  {!isNew && selectedProgram ? (
+                    <p className="text-xs" style={{ color: C.textTertiary }}>
+                      {programTypeLabel(selectedProgram.type)} · Updated{" "}
+                      {new Date(selectedProgram.updated_at).toLocaleDateString()}
                     </p>
-                    <span
-                      className="mt-1 inline-flex rounded-pill px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-                      style={{
-                        backgroundColor: statusStyle.bg,
-                        color: statusStyle.color,
-                      }}
+                  ) : null}
+
+                  <AdminSaveStateBar theme={theme}>
+                    Next, link this program on{" "}
+                    <Link
+                      href={flowsPath}
+                      className="font-extrabold underline-offset-2 hover:underline"
+                      style={{ color: "#487354" }}
                     >
-                      {programStatusLabel(program.status)}
-                    </span>
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div
-          className="flex h-14 flex-shrink-0 items-center justify-between gap-3 px-5"
-          style={{ borderBottom: `1px solid ${C.border}` }}
-        >
-          <div>
-            <h1 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              {isNew ? "New program" : selectedProgram?.name ?? "Programs"}
-            </h1>
+                      Enrollment Flows
+                    </Link>
+                    .
+                  </AdminSaveStateBar>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
-          {editable ? (
-            <div className="flex items-center gap-2">
-              {!isNew && selectedProgram ? (
-                <button
-                  type="button"
-                  onClick={() => setDeleteOpen(true)}
-                  disabled={saving || deleting}
-                  className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:opacity-60"
-                  style={{
-                    border: `1px solid ${C.errorBorder}`,
-                    color: C.error,
-                    backgroundColor: C.surface,
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !isProgramDirty}
-                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ backgroundColor: C.accent }}
-              >
-                {saving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
-                {isNew ? "Create program" : "Save"}
-              </button>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
-          {error ? (
-            <p
-              className="mb-4 rounded-md border px-3 py-2.5 text-sm"
-              style={{
-                borderColor: C.errorBorder,
-                backgroundColor: C.surface,
-                color: C.error,
-              }}
-              role="alert"
-            >
-              {error}
-            </p>
-          ) : null}
-
-          {!editable ? (
-            <div className="mx-auto max-w-lg text-center">
-              <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-                Create your first program
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-                Programs represent enrollment periods like a school year or summer
-                session. You will link each application form to one program.
-              </p>
-              <button
-                type="button"
-                onClick={handleCreate}
-                className="mt-5 inline-flex items-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold text-white"
-                style={{ backgroundColor: C.accent }}
-              >
-                <Plus className="h-4 w-4" />
-                New program
-              </button>
-            </div>
-          ) : editable ? (
-            <div className="mx-auto max-w-xl space-y-5">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                  Program name
-                </label>
-                <input
-                  type="text"
-                  value={editable.name}
-                  onChange={(e) =>
-                    setEditable((prev) =>
-                      prev ? { ...prev, name: e.target.value } : prev,
-                    )
-                  }
-                  placeholder="e.g. School Year 2026–27"
-                  style={inputStyle(C)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                    Type
-                  </label>
-                  <SchoolAdminSelect
-                    C={C}
-                    value={editable.type}
-                    onChange={(value) =>
-                      setEditable((prev) =>
-                        prev ? { ...prev, type: value as ProgramType } : prev,
-                      )
-                    }
-                    options={PROGRAM_TYPE_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    ariaLabel="Program type"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                    Status
-                  </label>
-                  <SchoolAdminSelect
-                    C={C}
-                    value={editable.status}
-                    onChange={(value) =>
-                      setEditable((prev) =>
-                        prev
-                          ? { ...prev, status: value as ProgramStatus }
-                          : prev,
-                      )
-                    }
-                    options={PROGRAM_STATUS_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    ariaLabel="Program status"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                    Start date
-                  </label>
-                  <SchoolAdminDatePicker
-                    id="program-start-date"
-                    C={C}
-                    value={editable.startDate}
-                    onChange={(value) =>
-                      setEditable((prev) =>
-                        prev ? { ...prev, startDate: value } : prev,
-                      )
-                    }
-                    maxDate={editable.endDate || schoolAdminDateRangeBounds().maxDate}
-                    placeholder="Select start date"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                    End date
-                  </label>
-                  <SchoolAdminDatePicker
-                    id="program-end-date"
-                    C={C}
-                    value={editable.endDate}
-                    onChange={(value) =>
-                      setEditable((prev) =>
-                        prev ? { ...prev, endDate: value } : prev,
-                      )
-                    }
-                    minDate={editable.startDate || schoolAdminDateRangeBounds().minDate}
-                    placeholder="Select end date"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium" style={{ color: C.textPrimary }}>
-                  Capacity
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={editable.capacity}
-                  onChange={(e) =>
-                    setEditable((prev) =>
-                      prev ? { ...prev, capacity: e.target.value } : prev,
-                    )
-                  }
-                  placeholder="Optional"
-                  style={inputStyle(C)}
-                />
-              </div>
-
-              {!isNew && selectedProgram ? (
-                <p className="text-xs" style={{ color: C.textTertiary }}>
-                  {programTypeLabel(selectedProgram.type)} · Updated{" "}
-                  {new Date(selectedProgram.updated_at).toLocaleDateString()}
-                </p>
-              ) : null}
-
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                Next, link this program on{" "}
-                <Link
-                  href={flowsPath}
-                  className="font-medium underline-offset-2 hover:underline"
-                  style={{ color: C.accent }}
-                >
-                  Enrollment Flows
-                </Link>
-                .
-              </p>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -584,6 +534,6 @@ export default function ProgramsPage({
           if (!deleting) setDeleteOpen(false);
         }}
       />
-    </div>
+    </EnrollmentFlowsStoryShell>
   );
 }

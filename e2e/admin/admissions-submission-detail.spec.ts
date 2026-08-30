@@ -1,11 +1,18 @@
 import { test, expect } from "@playwright/test";
 import {
   closeSubmissionDetail,
+  expectSubmissionStatusInTable,
   gotoSubmissions,
   openSubmissionByStudent,
+  statusFilterButton,
   SUBMISSIONS_PATH,
 } from "../helpers/admin-submissions";
+import { ensureAlphaChildSubmittedFixture } from "../helpers/api-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
+
+test.beforeEach(async () => {
+  await ensureAlphaChildSubmittedFixture(getSeedManifest());
+});
 
 test("submissions list shows seeded applications", async ({ page }) => {
   await gotoSubmissions(page);
@@ -72,11 +79,11 @@ test("deep link opens submission detail", async ({ page }) => {
 test("status filter narrows the submissions table", async ({ page }) => {
   await gotoSubmissions(page);
 
-  await page.getByRole("button", { name: /^All \d+/ }).click();
+  await statusFilterButton(page, "All").click();
   await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Beta Child" })).toBeVisible();
 
-  await page.getByRole("button", { name: /^Submitted/ }).click();
+  await statusFilterButton(page, "Submitted").click();
 
   await expect(page.getByRole("cell", { name: "Alpha Child" })).toBeVisible();
   expect(await page.locator("table tbody tr").count()).toBeGreaterThanOrEqual(1);
@@ -94,8 +101,7 @@ test("admin can change application status", async ({ page }) => {
 
   await closeSubmissionDetail(page);
 
-  const alphaRow = page.getByRole("row", { name: /Alpha Child/ });
-  await expect(alphaRow.getByText("Under review", { exact: true })).toBeVisible();
+  await expectSubmissionStatusInTable(page, "Alpha Child", "Under review");
 });
 
 test("admin can download application PDF", async ({ page }) => {

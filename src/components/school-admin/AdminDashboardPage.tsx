@@ -1,24 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, LayoutDashboard } from "lucide-react";
+import AdminActivityFeed from "@/components/school-admin/ui/story/AdminActivityFeed";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminFocusQueue from "@/components/school-admin/ui/story/AdminFocusQueue";
+import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import AdminQuickActionsCard from "@/components/school-admin/ui/story/AdminQuickActionsCard";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import AdminSignalCard from "@/components/school-admin/ui/story/AdminSignalCard";
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
-import DetailPanelStepTimeline, {
-  type DetailPanelStepTimelineItem,
-} from "@/components/school-admin/admissions/DetailPanelStepTimeline";
-import { AdmissionsFamilyAccessGuideButton } from "@/components/school-admin/admissions/AdmissionsFamilyAccessGuide";
-import AdminDashboardQuickLinksPanel from "@/components/school-admin/AdminDashboardQuickLinksPanel";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type {
-  AdmissionsSetupStatus,
-  AdmissionsSetupStep,
-} from "@/lib/school-admin/admissions-setup-status";
-import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
-import { createClient } from "@/utils/supabase/client";
+import {
+  greetingParts,
+  type AdminDashboardSummary,
+} from "@/lib/school-admin/dashboard-summary";
+import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 
 type AdminDashboardPageProps = {
@@ -26,87 +28,59 @@ type AdminDashboardPageProps = {
   slug: string;
   branding: OrganizationBranding;
   schoolName: string;
-  initialStatus: AdmissionsSetupStatus;
+  userFirstName?: string | null;
+  initialSummary: AdminDashboardSummary;
 };
-
-function stepMeta(step: AdmissionsSetupStep): string | undefined {
-  if (step.status === "completed") return "Complete";
-  if (step.status === "in_progress") return "In progress";
-  return undefined;
-}
-
-function heroCopy(status: AdmissionsSetupStatus, schoolName: string) {
-  if (status.completedCount === status.totalCount) {
-    return {
-      title: "You're all set",
-      subtitle: `${schoolName} is ready to accept applications and guide families through enrollment.`,
-    };
-  }
-
-  const nextStep = status.steps.find((step) => step.id === status.firstIncompleteStepId);
-  if (!nextStep) {
-    return {
-      title: "Getting started",
-      subtitle: `Complete these steps to launch admissions for ${schoolName}.`,
-    };
-  }
-
-  return {
-    title: "Getting started",
-    subtitle: `Next up: ${nextStep.title.toLowerCase()}.`,
-  };
-}
 
 export default function AdminDashboardPage({
   organizationId,
   slug,
-  branding,
+  branding: _branding,
   schoolName,
-  initialStatus,
+  userFirstName,
+  initialSummary,
 }: AdminDashboardPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-  const [status, setStatus] = useState(initialStatus);
-  const [prevInitialStatus, setPrevInitialStatus] = useState(initialStatus);
+  const { theme, C } = useSchoolAdminStoryTheme();
+  const { openNotifications } = useAdminNotificationsPanel();
+  const [summary, setSummary] = useState(initialSummary);
+  const [prevInitialSummary, setPrevInitialSummary] = useState(initialSummary);
 
-  if (initialStatus !== prevInitialStatus) {
-    setPrevInitialStatus(initialStatus);
-    setStatus(initialStatus);
+  if (initialSummary !== prevInitialSummary) {
+    setPrevInitialSummary(initialSummary);
+    setSummary(initialSummary);
   }
 
-  const refreshStatus = useCallback(async () => {
+  const refreshSummary = useCallback(async () => {
     try {
-      const nextStatus = await fetchAdmissionsSetupStatus(
-        supabase,
-        organizationId,
-        slug,
+      const params = new URLSearchParams({ organizationId, slug });
+      const response = await fetch(
+        `/api/school-admin/dashboard-summary?${params.toString()}`,
       );
-      setStatus(nextStatus);
+      if (!response.ok) return;
+      const next = (await response.json()) as AdminDashboardSummary;
+      setSummary(next);
     } catch {
-      // Keep the last known status if a background refresh fails.
+      // Keep last known summary on refresh failure.
     }
-  }, [organizationId, slug, supabase]);
+  }, [organizationId, slug]);
 
   useEffect(() => {
     const onFocus = () => {
-      void refreshStatus();
+      void refreshSummary();
     };
-
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [refreshStatus]);
+  }, [refreshSummary]);
 
-  const stripeStep = status.steps.find((step) => step.id === "stripe");
-
+  const stripeStep = summary.setupStatus.steps.find((step) => step.id === "stripe");
   const pollStripe = useCallback(async () => {
     try {
       await fetch("/api/stripe/connect/status");
-      await refreshStatus();
+      await refreshSummary();
     } catch {
-      // Ignore polling errors; the dashboard still shows the last known status.
+      // Ignore polling errors.
     }
-  }, [refreshStatus]);
+  }, [refreshSummary]);
 
   useVisibilityPolling(
     pollStripe,
@@ -114,155 +88,97 @@ export default function AdminDashboardPage({
     stripeStep?.status === "in_progress",
   );
 
-  const timelineItems: DetailPanelStepTimelineItem[] = useMemo(
-    () =>
-      status.steps.map((step) => ({
-        id: step.id,
-        title: step.title,
-        status: step.status,
-        kindLabel: step.description,
-        meta: stepMeta(step),
-        onClick: () => router.push(step.href),
-      })),
-    [router, status.steps],
-  );
-
-  const hero = heroCopy(status, schoolName);
-  const nextStep =
-    status.steps.find((step) => step.id === status.firstIncompleteStepId) ?? null;
-  const allComplete = status.completedCount === status.totalCount;
-  const applyFormPublished = status.applyFormPublicPath !== null;
-  const stripeStepStatus =
-    status.steps.find((step) => step.id === "stripe")?.status ?? "not_started";
+  const greetingName = userFirstName?.trim() || "there";
+  const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const admissionsHref = schoolAdminPath(slug, "admissions", "submissions");
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col lg:flex-row">
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-6 py-8">
-        <div className="mb-6 flex items-start gap-4">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: C.accentGlow }}
-        >
-          {allComplete ? (
-            <CheckCircle2 className="h-5 w-5" style={{ color: C.success }} />
-          ) : (
-            <LayoutDashboard className="h-5 w-5" style={{ color: C.accent }} />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1
-            className="text-xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            {hero.title}
-          </h1>
-          <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            {hero.subtitle}
+    <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
+      <div className="mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5">
+        <div>
+          <AdminSectionKicker theme={theme}>School workspace</AdminSectionKicker>
+          <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1.5">
+            {greetingPrefix}, {greetingName}.{" "}
+            <span aria-hidden="true">{greetingEmoji}</span>
+          </AdminDisplayHeading>
+          <p className="mt-2 text-[13px]" style={{ color: theme.muted }}>
+            Here is {schoolName}&apos;s operating picture for {dayName}.
           </p>
-        </div>
-        </div>
-
-        <div
-          className="rounded-lg border p-5"
-          style={{ backgroundColor: C.surface, borderColor: C.border }}
-        >
-        <DetailPanelProgressBar
-          C={C}
-          completed={status.completedCount}
-          total={status.totalCount}
-          label="Setup progress"
-          subtitle={
-            allComplete
-              ? "All admissions setup steps are complete."
-              : `${status.totalCount - status.completedCount} step${
-                  status.totalCount - status.completedCount === 1 ? "" : "s"
-                } remaining.`
-          }
-        />
-
-        <DetailPanelStepTimeline
-          C={C}
-          items={timelineItems}
-          activeItemId={status.firstIncompleteStepId}
-          showStatusText
-        />
-        </div>
-
-        {nextStep ? (
-          <div
-            className="mt-5 rounded-lg border p-5"
-            style={{ backgroundColor: C.surface, borderColor: C.border }}
-          >
-          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
-            Next step
-          </p>
-          <p className="mt-1 text-sm font-semibold" style={{ color: C.textPrimary }}>
-            {nextStep.title}
-          </p>
-          <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            {nextStep.description}
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link
-              href={nextStep.href}
-              className="inline-flex items-center gap-2 rounded-sm px-4 py-2 text-xs font-semibold text-white"
-              style={getAdminButtonStyle(C, "primary")}
-            >
-              Continue setup
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-            {nextStep.id === "go_live" ? (
-              <AdmissionsFamilyAccessGuideButton
-                variant="apply"
+          {!summary.setupComplete ? (
+            <div className="mt-4 max-w-md">
+              <DetailPanelProgressBar
                 C={C}
-                schoolSlug={slug}
-                publicPath={status.applyFormPublicPath}
-                isPublished={applyFormPublished}
+                completed={summary.setupStatus.completedCount}
+                total={summary.setupStatus.totalCount}
+                label="Setup progress"
+                subtitle={`${summary.setupStatus.totalCount - summary.setupStatus.completedCount} step${
+                  summary.setupStatus.totalCount - summary.setupStatus.completedCount === 1
+                    ? ""
+                    : "s"
+                } remaining before go-live`}
               />
-            ) : null}
-          </div>
-          </div>
-        ) : (
-          <div
-            className="mt-5 rounded-lg border p-5"
-            style={{ backgroundColor: C.surface, borderColor: C.border }}
-          >
-          <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-            Admissions is live
-          </p>
-          <p className="mt-1 text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-            Review submissions, share your apply link, and manage enrollment from Admissions.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Link
-              href={status.steps.find((step) => step.id === "go_live")?.href ?? "#"}
-              className="inline-flex items-center gap-2 rounded-sm px-4 py-2 text-xs font-semibold text-white"
-              style={getAdminButtonStyle(C, "primary")}
-            >
-              View submissions
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-            <AdmissionsFamilyAccessGuideButton
-              variant="apply"
-              C={C}
-              schoolSlug={slug}
-              publicPath={status.applyFormPublicPath}
-              isPublished={applyFormPublished}
-            />
             </div>
-          </div>
-        )}
+          ) : null}
+        </div>
+        <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
+          <ParentDatePill theme={theme} />
+          <Link href={admissionsHref}>
+            <AdminButton theme={theme} variant="primary">
+              Review admissions →
+            </AdminButton>
+          </Link>
         </div>
       </div>
 
-      <AdminDashboardQuickLinksPanel
-        organizationId={organizationId}
-        slug={slug}
-        C={C}
-        stripeStepStatus={stripeStepStatus}
-        applyFormPublicPath={status.applyFormPublicPath}
-      />
+      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.3fr_0.7fr]">
+        <AdminCard theme={theme} padding="canvas" className="today-card bg-gradient-to-br from-[#FFFDF8] to-[#EEF7EF]">
+          <AdminFocusQueue theme={theme} items={summary.focusItems} />
+        </AdminCard>
+        {summary.signal ? (
+          <AdminSignalCard
+            theme={theme}
+            headline={summary.signal.headline}
+            body={summary.signal.body}
+            href={summary.signal.href}
+            ctaLabel={summary.signal.ctaLabel}
+          />
+        ) : (
+          <AdminCard theme={theme} padding="canvas">
+            <AdminSectionKicker theme={theme}>School signal</AdminSectionKicker>
+            <p className="mt-3 text-sm" style={{ color: theme.muted }}>
+              Activity will appear here as families apply and enroll.
+            </p>
+          </AdminCard>
+        )}
+      </div>
+
+      {summary.metrics.length > 0 ? (
+        <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+          {summary.metrics.map((metric) => (
+            <AdminMetricCard
+              key={metric.id}
+              theme={theme}
+              value={metric.value}
+              label={metric.label}
+              accent={metric.accent}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
+        <AdminCard theme={theme} padding="none">
+          <AdminActivityFeed
+            theme={theme}
+            items={summary.recentActivity}
+            onViewAll={openNotifications}
+          />
+        </AdminCard>
+        <AdminCard theme={theme} padding="none">
+          <AdminQuickActionsCard theme={theme} actions={summary.quickActions} />
+        </AdminCard>
+      </div>
     </div>
   );
 }

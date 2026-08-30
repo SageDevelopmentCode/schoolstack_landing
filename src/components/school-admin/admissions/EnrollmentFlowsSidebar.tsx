@@ -10,10 +10,13 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { ApplicationFormVersion, ApplicationFormStatus } from "@/lib/admissions/application-form-schema";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   FLOW_TYPE_LABELS,
   getStatusLabel,
@@ -23,6 +26,7 @@ import type { FlowListSelection } from "./enrollment-flow-selection";
 
 type EnrollmentFlowsSidebarProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   open: boolean;
   forms: ApplicationFormVersion[];
   checklists: EnrollmentChecklistTemplate[];
@@ -36,8 +40,24 @@ type EnrollmentFlowsSidebarProps = {
   onCreateChecklist: () => void;
 };
 
+function statusChipTone(
+  status: ApplicationFormStatus,
+): "success" | "warning" | "info" | "alert" {
+  switch (status) {
+    case "published":
+      return "success";
+    case "draft":
+      return "warning";
+    case "archived":
+      return "alert";
+    default:
+      return "info";
+  }
+}
+
 type FlowListItemProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   active: boolean;
   title: string;
   typeLabel: string;
@@ -48,6 +68,7 @@ type FlowListItemProps = {
 
 function FlowListItem({
   C,
+  theme,
   active,
   title,
   typeLabel,
@@ -55,38 +76,48 @@ function FlowListItem({
   icon: Icon,
   onClick,
 }: FlowListItemProps) {
+  const story = Boolean(theme);
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full min-h-[4.5rem] px-4 py-4 text-left transition-all"
+      className="w-full px-4 py-4 text-left transition-all"
       style={{
-        backgroundColor: active ? C.accentLight : "transparent",
-        borderLeft: active ? `3px solid ${C.accent}` : "3px solid transparent",
+        backgroundColor: active ? (theme?.primarySoft ?? C.accentLight) : "transparent",
+        borderLeft: active
+          ? `3px solid ${theme?.primary ?? C.accent}`
+          : "3px solid transparent",
       }}
     >
       <div className="flex items-start gap-3">
-        <Icon
-          className="mt-0.5 h-5 w-5 shrink-0"
-          style={{ color: C.accent }}
-        />
-        <div className="min-w-0 flex-1 space-y-1">
+        <div
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+          style={{ backgroundColor: theme?.primarySoft ?? C.accentLight }}
+        >
+          <Icon className="h-4 w-4" style={{ color: theme?.primary ?? C.accent }} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
           <p
             className="line-clamp-2 text-sm font-semibold leading-snug"
             style={{ color: C.textPrimary }}
           >
             {title}
           </p>
-          <div
-            className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs"
-            style={{ color: C.textTertiary }}
-          >
-            <span>{typeLabel}</span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-1">
-              <StatusIcon status={status} variant="plain" size="sm" />
-              <span>{getStatusLabel(status)}</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px]" style={{ color: C.textTertiary }}>
+              {typeLabel}
             </span>
+            {story && theme ? (
+              <AdminChip theme={theme} tone={statusChipTone(status)}>
+                {getStatusLabel(status)}
+              </AdminChip>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs" style={{ color: C.textTertiary }}>
+                <StatusIcon status={status} variant="plain" size="sm" />
+                <span>{getStatusLabel(status)}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -96,6 +127,7 @@ function FlowListItem({
 
 export default function EnrollmentFlowsSidebar({
   C,
+  theme,
   open,
   forms,
   checklists,
@@ -149,7 +181,7 @@ export default function EnrollmentFlowsSidebar({
         >
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+            style={{ backgroundColor: "rgba(41, 57, 67, 0.35)" }}
             onClick={onClose}
             aria-hidden="true"
           />
@@ -160,36 +192,44 @@ export default function EnrollmentFlowsSidebar({
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="absolute inset-y-0 right-0 flex w-[min(100%,22rem)] max-w-full flex-col overflow-hidden"
             style={{
-              backgroundColor: C.bg,
-              borderLeft: `1px solid ${C.border}`,
-              boxShadow: C.shadowMedium,
+              backgroundColor: theme?.paper ?? C.bg,
+              borderLeft: `1px solid ${theme?.line ?? C.border}`,
+              boxShadow: theme?.shadowCard ?? C.shadowMedium,
             }}
             onClick={(event) => event.stopPropagation()}
             aria-label="Application forms"
           >
             <div
-              className="flex h-14 flex-shrink-0 items-center justify-between gap-2 px-4"
-              style={{ borderBottom: `1px solid ${C.border}` }}
+              className="flex h-16 flex-shrink-0 items-center justify-between gap-2 px-4"
+              style={{ borderBottom: `1px solid ${theme?.line ?? C.border}` }}
             >
-              <span className="min-w-0 truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
-                Application forms
-              </span>
+              {theme ? (
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="text-lg">
+                  Your flows
+                </AdminDisplayHeading>
+              ) : (
+                <span className="min-w-0 truncate text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  Application forms
+                </span>
+              )}
               <div className="flex flex-shrink-0 items-center gap-1">
                 <div className="relative" ref={menuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpen((isOpen) => !isOpen)}
-                    disabled={creating}
-                    className="flex items-center gap-1 rounded-sm px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                    style={getAdminButtonStyle(C, "secondary")}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    New
-                    <ChevronDown className="h-3 w-3 opacity-70" />
-                  </button>
+                  {theme ? (
+                    <AdminButton
+                      theme={theme}
+                      variant="soft"
+                      size="compact"
+                      onClick={() => setMenuOpen((isOpen) => !isOpen)}
+                      disabled={creating}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      New
+                      <ChevronDown className="h-3 w-3 opacity-70" />
+                    </AdminButton>
+                  ) : null}
                   {menuOpen ? (
                     <div
-                      className="absolute right-0 top-full z-20 mt-1 w-52 rounded-md border py-1 shadow-lg"
+                      className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border py-1 shadow-lg"
                       style={{ borderColor: C.border, backgroundColor: C.surface }}
                     >
                       <button
@@ -202,7 +242,7 @@ export default function EnrollmentFlowsSidebar({
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs disabled:opacity-50"
                         style={{ color: C.textPrimary }}
                       >
-                        <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: C.accent }} />
+                        <FileText className="h-3.5 w-3.5 shrink-0" style={{ color: theme?.primary ?? C.accent }} />
                         <span className="font-semibold">Apply form</span>
                       </button>
                       <button
@@ -217,7 +257,7 @@ export default function EnrollmentFlowsSidebar({
                       >
                         <ClipboardList
                           className="h-3.5 w-3.5 shrink-0"
-                          style={{ color: C.accent }}
+                          style={{ color: theme?.primary ?? C.accent }}
                         />
                         <span className="font-semibold">Enrollment checklist</span>
                       </button>
@@ -227,7 +267,7 @@ export default function EnrollmentFlowsSidebar({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded p-1"
+                  className="rounded-lg p-1.5"
                   style={{ color: C.textTertiary }}
                   aria-label="Close"
                 >
@@ -247,6 +287,7 @@ export default function EnrollmentFlowsSidebar({
                     <FlowListItem
                       key={form.id}
                       C={C}
+                      theme={theme}
                       active={selected?.kind === "apply" && selected.id === form.id}
                       title={form.title || "Untitled form"}
                       typeLabel={FLOW_TYPE_LABELS.apply}
@@ -259,6 +300,7 @@ export default function EnrollmentFlowsSidebar({
                     <FlowListItem
                       key={checklist.id}
                       C={C}
+                      theme={theme}
                       active={
                         selected?.kind === "checklist" && selected.id === checklist.id
                       }

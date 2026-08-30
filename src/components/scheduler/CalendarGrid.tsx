@@ -19,24 +19,28 @@ type EditableDayState =
   | "openBooked"
   | "open"
   | "bookedOnly"
-  | "closed";
+  | "closed"
+  | "selectable";
 
 function getEditableDayState({
   isSelected,
   isSelectable,
   hasSlots,
   isBooked,
+  datePickerMode,
 }: {
   isSelected: boolean;
   isSelectable: boolean;
   hasSlots: boolean;
   isBooked: boolean;
+  datePickerMode: boolean;
 }): EditableDayState {
   if (isSelected) return "selected";
   if (!isSelectable) return "disabled";
   if (hasSlots && isBooked) return "openBooked";
   if (hasSlots) return "open";
   if (isBooked) return "bookedOnly";
+  if (datePickerMode) return "selectable";
   return "closed";
 }
 
@@ -78,6 +82,8 @@ function getEditableDayStyle(
         border: `1.5px dashed ${colors.border ?? colors.textFaint}`,
         cursor: "pointer",
       };
+    case "selectable":
+      return { color: colors.text, cursor: "pointer" };
     case "disabled":
     default:
       return { color: colors.textFaint, cursor: "default" };
@@ -95,6 +101,7 @@ export function CalendarGrid({
   minDate,
   maxDate,
   editable = false,
+  datePickerMode = false,
   colors,
   largeCells = false,
 }: {
@@ -110,6 +117,8 @@ export function CalendarGrid({
   maxDate?: string;
   /** Admin mode: any non-past date is selectable; availableDates only highlights configured days */
   editable?: boolean;
+  /** Plain date picker: selectable days without availability slots use neutral styling */
+  datePickerMode?: boolean;
   colors?: CalendarGridColors;
   /** Larger day cells for touch-friendly apply-form date picking */
   largeCells?: boolean;
@@ -157,7 +166,13 @@ export function CalendarGrid({
 
           if (colors) {
             const editableState = editable
-              ? getEditableDayState({ isSelected, isSelectable, hasSlots, isBooked })
+              ? getEditableDayState({
+                  isSelected,
+                  isSelectable,
+                  hasSlots,
+                  isBooked,
+                  datePickerMode,
+                })
               : null;
             const showBookedStripe =
               editable &&
@@ -175,9 +190,14 @@ export function CalendarGrid({
                 className={`relative mx-auto flex ${cellSizeClass} flex-col items-center justify-center rounded-admin-sm text-[14px] font-medium font-secondary transition-all duration-150 ${
                   editable && isSelectable && editableState === "closed"
                     ? "enabled:hover:brightness-[0.97]"
-                    : editable && isSelectable && editableState !== "disabled"
+                    : editable &&
+                        isSelectable &&
+                        editableState !== "disabled" &&
+                        editableState !== "selectable"
                       ? "enabled:hover:brightness-95"
-                      : ""
+                      : editable && isSelectable && editableState === "selectable"
+                        ? "enabled:hover:bg-black/[0.04]"
+                        : ""
                 }`}
                 style={
                   editable && editableState
