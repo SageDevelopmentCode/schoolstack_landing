@@ -9,12 +9,16 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import { buildChecklistOutlineEntries } from "@/lib/admissions/enrollment-checklist-variants";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
 import type { ChecklistBuilderFocus } from "./checklist-builder-focus";
 import ChecklistPreviewMenuButton from "./ChecklistPreviewMenuButton";
 import { outlineItemCardStyle } from "./outline-item-styles";
 
 type EnrollmentChecklistOutlineProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   items: EnrollmentChecklistItem[];
   focus: ChecklistBuilderFocus | null;
   readOnly?: boolean;
@@ -38,23 +42,6 @@ function itemOutlineSubtitle(item: EnrollmentChecklistItem): string {
     return `${count} question${count === 1 ? "" : "s"}`;
   }
   return CHECKLIST_ITEM_TYPE_LABELS[item.type];
-}
-
-function OutlineSectionLabel({
-  children,
-  C,
-}: {
-  children: React.ReactNode;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <p
-      className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-      style={{ color: C.textQuaternary }}
-    >
-      {children}
-    </p>
-  );
 }
 
 function ChecklistOutlineRow({
@@ -282,6 +269,7 @@ function ChecklistOutlineRow({
 
 export default function EnrollmentChecklistOutline({
   C,
+  theme,
   items,
   focus,
   readOnly = false,
@@ -320,13 +308,34 @@ export default function EnrollmentChecklistOutline({
 
   const entries = buildChecklistOutlineEntries(items);
 
-  return (
-    <div
-      className="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-r"
-      style={{ borderColor: C.border, backgroundColor: C.bg }}
-    >
-      <div className="flex-1 overflow-y-auto">
-        <OutlineSectionLabel C={C}>Checklist items</OutlineSectionLabel>
+  const listContent = (
+    <>
+      <div
+        className="flex shrink-0 items-center justify-between border-b px-4 py-3"
+        style={{ borderColor: "#EDF1ED" }}
+      >
+        <div>
+          <p className="text-[15px] font-semibold" style={{ color: C.textPrimary }}>
+            Checklist items
+          </p>
+          <p className="text-[11px]" style={{ color: C.textTertiary }}>
+            {items.length} item{items.length === 1 ? "" : "s"} · reorder anytime
+          </p>
+        </div>
+        {!readOnly && theme ? (
+          <AdminButton theme={theme} variant="soft" size="compact" onClick={onOpenPicker}>
+            + Add
+          </AdminButton>
+        ) : null}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <p
+          className="px-2 pt-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.11em]"
+          style={{ color: "#98A39F" }}
+        >
+          Checklist items
+        </p>
 
         {entries.length === 0 ? (
           <p className="px-3 py-2 text-[11px]" style={{ color: C.textTertiary }}>
@@ -479,10 +488,10 @@ export default function EnrollmentChecklistOutline({
           <button
             type="button"
             onClick={onOpenPicker}
-            className="mx-3 mb-1.5 flex w-[calc(100%-24px)] items-center justify-center gap-1.5 rounded-sm py-2 text-[11px] font-medium"
+            className="mx-1 mb-2 flex w-[calc(100%-8px)] items-center justify-center gap-1.5 rounded-[11px] border border-dashed py-2 text-[11px] font-semibold"
             style={{
-              border: `1px dashed ${C.borderStrong}`,
-              color: C.accent,
+              borderColor: "#DCE4DC",
+              color: theme?.primary ?? C.accent,
               backgroundColor: "transparent",
             }}
           >
@@ -491,6 +500,26 @@ export default function EnrollmentChecklistOutline({
           </button>
         ) : null}
       </div>
+    </>
+  );
+
+  if (theme) {
+    return (
+      <div
+        className="flex h-full w-[240px] shrink-0 flex-col overflow-hidden border-r bg-white"
+        style={{ borderColor: "#EDF1ED" }}
+      >
+        {listContent}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex h-full w-[280px] shrink-0 flex-col overflow-hidden border-r"
+      style={{ borderColor: C.border, backgroundColor: C.bg }}
+    >
+      {listContent}
     </div>
   );
 }

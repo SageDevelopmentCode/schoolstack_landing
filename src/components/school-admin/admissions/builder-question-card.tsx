@@ -1,35 +1,56 @@
+import type { ReactNode } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 
 export const BUILDER_CARD_TONES = {
   accent: (C: AdminThemeTokens) => ({
-    bg: C.accentLight,
-    border: C.secondaryBtnBorder,
+    bg: C.surface,
+    border: "#E0E7E0",
   }),
-  clay: (C: AdminThemeTokens) => ({ bg: C.clayBg, border: C.clayBorder }),
-  info: (C: AdminThemeTokens) => ({ bg: C.infoBg, border: C.infoBorder }),
-  success: (C: AdminThemeTokens) => ({
-    bg: C.successBg,
-    border: C.successBorder,
-  }),
-  warning: (C: AdminThemeTokens) => ({
-    bg: C.warningBg,
-    border: C.warningBorder,
-  }),
+  clay: (C: AdminThemeTokens) => ({ bg: C.surface, border: "#E0E7E0" }),
+  info: (C: AdminThemeTokens) => ({ bg: C.surface, border: "#E0E7E0" }),
+  success: (C: AdminThemeTokens) => ({ bg: C.surface, border: "#E0E7E0" }),
+  warning: (C: AdminThemeTokens) => ({ bg: C.surface, border: "#E0E7E0" }),
 } as const;
 
 export type BuilderCardTone = keyof typeof BUILDER_CARD_TONES;
 
 export function BuilderSectionIntro({
   C,
+  theme,
   title,
   subtitle,
   eyebrow,
 }: {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   title: string;
   subtitle?: string;
   eyebrow?: string;
 }) {
+  if (theme) {
+    return (
+      <div>
+        {eyebrow ? <AdminSectionKicker theme={theme}>{eyebrow}</AdminSectionKicker> : null}
+        <AdminDisplayHeading
+          theme={theme}
+          as="h2"
+          size="canvas"
+          className={eyebrow ? "mt-1.5" : ""}
+        >
+          {title}
+        </AdminDisplayHeading>
+        {subtitle ? (
+          <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div>
       {eyebrow ? (
@@ -66,14 +87,14 @@ export function BuilderQuestionCard({
   question: string;
   helper?: string;
   highlightError?: boolean;
-  action?: React.ReactNode;
-  children?: React.ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
 }) {
   const cardTone = BUILDER_CARD_TONES[tone](C);
 
   return (
     <div
-      className={`rounded-lg border ${children || helper ? "p-5" : "px-5 py-3"}${children ? " space-y-4" : ""}`}
+      className={`rounded-md border ${children || helper ? "p-3.5" : "px-3.5 py-3"}${children ? " space-y-3" : ""}`}
       style={{
         borderColor: highlightError ? C.errorBorder : cardTone.border,
         backgroundColor: highlightError ? C.errorBg : cardTone.bg,
@@ -82,7 +103,7 @@ export function BuilderQuestionCard({
       <div className={helper ? "space-y-1" : undefined}>
         <div className="flex items-center justify-between gap-3">
           <p
-            className="min-w-0 flex-1 text-base font-semibold"
+            className="min-w-0 flex-1 text-[13px] font-semibold"
             style={{ color: C.textPrimary }}
           >
             {question}
@@ -90,7 +111,7 @@ export function BuilderQuestionCard({
           {action}
         </div>
         {helper ? (
-          <p className="text-xs" style={{ color: C.textTertiary }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
             {helper}
           </p>
         ) : null}

@@ -13,12 +13,15 @@ import {
   Save,
   Send,
 } from "lucide-react";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { AdmissionsFamilyAccessGuideModal } from "./AdmissionsFamilyAccessGuide";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplicationFormEditorToolbarProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   schoolSlug: string;
   readOnly: boolean;
   isPublished: boolean;
@@ -57,6 +60,7 @@ function useClickOutside(
 
 export default function ApplicationFormEditorToolbar({
   C,
+  theme,
   schoolSlug,
   readOnly,
   isPublished,
@@ -79,6 +83,7 @@ export default function ApplicationFormEditorToolbar({
   const [guideSessionKey, setGuideSessionKey] = useState(0);
   const shareRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  const story = Boolean(theme);
 
   useClickOutside(shareRef, shareOpen, () => setShareOpen(false));
   useClickOutside(moreRef, moreOpen, () => setMoreOpen(false));
@@ -101,18 +106,32 @@ export default function ApplicationFormEditorToolbar({
 
   const shareDropdown = (
     <div className="relative shrink-0" ref={shareRef}>
-      <button
-        type="button"
-        onClick={() => setShareOpen((open) => !open)}
-        aria-expanded={shareOpen}
-        aria-haspopup="menu"
-        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-        style={getAdminButtonStyle(C, "info")}
-      >
-        <Link2 className="h-3.5 w-3.5" />
-        Share
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-      </button>
+      {story && theme ? (
+        <AdminButton
+          theme={theme}
+          variant="outline"
+          onClick={() => setShareOpen((open) => !open)}
+          aria-expanded={shareOpen}
+          aria-haspopup="menu"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          Share
+          <ChevronDown className="h-3 w-3 opacity-70" />
+        </AdminButton>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShareOpen((open) => !open)}
+          aria-expanded={shareOpen}
+          aria-haspopup="menu"
+          className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+          style={getAdminButtonStyle(C, "info")}
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          Share
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        </button>
+      )}
 
       {shareOpen ? (
         <div
@@ -154,17 +173,23 @@ export default function ApplicationFormEditorToolbar({
     </div>
   );
 
-  const previewButton = (
-    <button
-      type="button"
-      onClick={onPreview}
-      className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-      style={getAdminButtonStyle(C, "warning")}
-    >
-      <Eye className="h-3.5 w-3.5" />
-      Preview
-    </button>
-  );
+  const previewButton =
+    story && theme ? (
+      <AdminButton theme={theme} variant="outline" onClick={onPreview}>
+        <Eye className="h-3.5 w-3.5" />
+        Preview
+      </AdminButton>
+    ) : (
+      <button
+        type="button"
+        onClick={onPreview}
+        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+        style={getAdminButtonStyle(C, "warning")}
+      >
+        <Eye className="h-3.5 w-3.5" />
+        Preview
+      </button>
+    );
 
   const moreMenu = showDuplicate ? (
     <div className="relative shrink-0" ref={moreRef}>
@@ -175,8 +200,12 @@ export default function ApplicationFormEditorToolbar({
         aria-label="More form actions"
         aria-expanded={moreOpen}
         aria-haspopup="menu"
-        className="inline-flex h-9 items-center justify-center rounded-sm px-2.5 transition-opacity disabled:opacity-60"
-        style={getAdminButtonStyle(C, "neutral")}
+        className="inline-flex h-9 items-center justify-center rounded-[10px] border px-2.5 transition-opacity disabled:opacity-60"
+        style={{
+          borderColor: story ? "#B9CDBD" : C.border,
+          backgroundColor: C.surface,
+          color: C.textSecondary,
+        }}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
@@ -206,6 +235,67 @@ export default function ApplicationFormEditorToolbar({
     </div>
   ) : null;
 
+  const saveButton =
+    story && theme ? (
+      <AdminButton
+        theme={theme}
+        variant="soft"
+        onClick={onSave}
+        disabled={saving || !isApplyDirty}
+      >
+        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        {isPublished ? "Save" : "Save draft"}
+      </AdminButton>
+    ) : (
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || !isApplyDirty}
+        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        style={getAdminButtonStyle(C, "primary")}
+      >
+        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        {isPublished ? "Save" : "Save draft"}
+      </button>
+    );
+
+  const publishButton =
+    story && theme ? (
+      <AdminButton theme={theme} variant="primary" onClick={onPublish} disabled={publishing}>
+        {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+        {isPublished ? "Publish changes" : "Publish"}
+      </AdminButton>
+    ) : (
+      <button
+        type="button"
+        onClick={onPublish}
+        disabled={publishing}
+        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        style={getAdminButtonStyle(C, "accentMid")}
+      >
+        {publishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+        Publish
+      </button>
+    );
+
+  const unpublishButton =
+    story && theme ? (
+      <AdminButton theme={theme} variant="danger" onClick={onUnpublish}>
+        <EyeOff className="h-3.5 w-3.5" />
+        Unpublish
+      </AdminButton>
+    ) : (
+      <button
+        type="button"
+        onClick={onUnpublish}
+        className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+        style={getAdminButtonStyle(C, "danger")}
+      >
+        <EyeOff className="h-3.5 w-3.5" />
+        Unpublish
+      </button>
+    );
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
@@ -217,48 +307,8 @@ export default function ApplicationFormEditorToolbar({
           </>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={saving || !isApplyDirty}
-              className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              style={getAdminButtonStyle(C, "primary")}
-            >
-              {saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              {isPublished ? "Save" : "Save draft"}
-            </button>
-
-            {isPublished ? (
-              <button
-                type="button"
-                onClick={onUnpublish}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-                style={getAdminButtonStyle(C, "danger")}
-              >
-                <EyeOff className="h-3.5 w-3.5" />
-                Unpublish
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onPublish}
-                disabled={publishing}
-                className="flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                style={getAdminButtonStyle(C, "accentMid")}
-              >
-                {publishing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Send className="h-3.5 w-3.5" />
-                )}
-                Publish
-              </button>
-            )}
-
+            {saveButton}
+            {isPublished ? unpublishButton : publishButton}
             {shareDropdown}
             {previewButton}
             {moreMenu}

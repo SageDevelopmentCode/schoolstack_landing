@@ -1,62 +1,58 @@
 "use client";
 
 import { ClipboardList, FileText, Loader2 } from "lucide-react";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 
 type EnrollmentFlowsEmptyStateProps = {
   C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   creating: boolean;
   onCreateApply: () => void;
   onCreateChecklist: () => void;
 };
 
 export default function EnrollmentFlowsEmptyState({
-  C,
+  C: _C,
+  theme,
   creating,
   onCreateApply,
   onCreateChecklist,
 }: EnrollmentFlowsEmptyStateProps) {
   return (
-    <div
-      className="flex h-full flex-col items-center justify-center px-6 text-center"
-      style={{ backgroundColor: C.bg }}
-    >
+    <div className="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
       <div
-        className="mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-        style={{ backgroundColor: C.accentGlow, color: C.accent }}
+        className="mb-5 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
+        style={{ backgroundColor: theme.primarySoft }}
       >
-        <FileText className="h-6 w-6" aria-hidden />
+        🌿
       </div>
-      <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <AdminSectionKicker theme={theme}>Enrollment flows</AdminSectionKicker>
+      <AdminDisplayHeading theme={theme} as="h1" size="section" className="mt-2">
         Set up your enrollment flows
-      </h2>
-      <p className="mt-2 max-w-md text-sm" style={{ color: C.textSecondary }}>
-        Create an apply form for families to submit applications, and an
-        enrollment checklist for accepted families to complete enrollment steps.
+      </AdminDisplayHeading>
+      <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: theme.muted }}>
+        Create an apply form for families to submit applications, and an enrollment
+        checklist for accepted families to complete enrollment steps.
       </p>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={onCreateApply}
-          disabled={creating}
-          className="flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-          style={getAdminButtonStyle(C, "primary")}
-        >
+        <AdminButton theme={theme} variant="primary" onClick={onCreateApply} disabled={creating}>
           {creating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <FileText className="h-4 w-4" />
           )}
           Create apply form
-        </button>
-        <button
-          type="button"
+        </AdminButton>
+        <AdminButton
+          theme={theme}
+          variant="soft"
           onClick={onCreateChecklist}
           disabled={creating}
-          className="flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-          style={getAdminButtonStyle(C, "secondary")}
         >
           {creating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -64,7 +60,7 @@ export default function EnrollmentFlowsEmptyState({
             <ClipboardList className="h-4 w-4" />
           )}
           Create enrollment checklist
-        </button>
+        </AdminButton>
       </div>
     </div>
   );
