@@ -102,17 +102,22 @@ export async function resetFamilyBillingState(
 
 export async function waitForBillingPage(page: Page): Promise<void> {
   await expect(page.getByText("Loading billing…")).not.toBeVisible({ timeout: 15_000 });
-  await expect(
-    page
-      .getByTestId("parent-billing-summary-panel")
-      .or(page.getByTestId("parent-billing-child-detail-panel"))
-      .or(page.getByTestId("parent-billing-readiness")),
-  ).toBeVisible({ timeout: 15_000 });
+  const billingPanel = page
+    .getByTestId("parent-billing-summary-panel")
+    .or(page.getByTestId("parent-billing-child-detail-panel"))
+    .or(page.getByTestId("parent-billing-readiness"))
+    .filter({ visible: true })
+    .first();
+  await expect(billingPanel).toBeVisible({ timeout: 15_000 });
 }
 
 export async function gotoBillingPage(page: Page): Promise<void> {
   await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
   await waitForBillingPage(page);
+}
+
+export function billingMain(page: Page) {
+  return page.getByRole("main");
 }
 
 export async function expectUpcomingChargesTrigger(page: Page): Promise<void> {
@@ -136,6 +141,21 @@ export async function closeUpcomingChargesPanel(page: Page): Promise<void> {
     await panel.getByRole("button", { name: "Close" }).click();
     await expect(panel).not.toBeVisible();
   }
+}
+
+export async function openSchedulePreviewModal(page: Page): Promise<void> {
+  await page.getByTestId("parent-schedule-preview-button").click();
+  const modal = page.getByTestId("parent-schedule-preview-modal");
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText("Installment timeline")).toBeVisible();
+}
+
+export async function closeSchedulePreviewModal(page: Page): Promise<void> {
+  const modal = page.getByTestId("parent-schedule-preview-modal");
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText("Installment timeline")).toBeVisible();
+  await modal.getByRole("button", { name: "Done" }).click();
+  await expect(modal).not.toBeVisible();
 }
 
 export async function finalizeEnrollmentBilling(

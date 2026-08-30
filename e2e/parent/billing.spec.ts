@@ -4,10 +4,13 @@ import ws from "ws";
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 import {
+  closeSchedulePreviewModal,
   closeUpcomingChargesPanel,
   expectUpcomingChargesTrigger,
   getE2eParentFamily,
   gotoBillingPage,
+  billingMain,
+  openSchedulePreviewModal,
   openUpcomingChargesPanel,
   resetFamilyBillingState,
   waitForBillingPage,
@@ -291,26 +294,25 @@ test("parent billing page lets family choose payment schedule inline", async ({
   });
 
   await gotoBillingPage(page);
-  await expect(page.getByTestId("parent-billing-schedule-warning")).toBeVisible();
+  const main = billingMain(page);
+  await expect(main.getByTestId("parent-billing-schedule-warning")).toBeVisible();
   await expect(
-    page.getByText("Action needed: choose a payment schedule"),
+    main.getByText("Action needed: choose a payment schedule"),
   ).toBeVisible();
-  await expect(page.getByTestId("parent-billing-needs-schedule-badge")).toBeVisible();
-  await expect(page.getByTestId("parent-tuition-plan-selector")).toBeVisible();
-  await expect(page.getByText("Pay in full")).toBeVisible();
-  await page.getByText("Pay in full").click();
-  await page.getByRole("button", { name: "Confirm payment schedule" }).click();
+  await expect(main.getByTestId("parent-billing-needs-schedule-badge")).toBeVisible();
+  await expect(main.getByTestId("parent-tuition-plan-selector")).toBeVisible();
+  await expect(main.getByText("Pay in full")).toBeVisible();
+  await main.getByText("Pay in full").click();
+  await main.getByRole("button", { name: "Confirm payment schedule" }).click();
 
   await expect(
-    page
-      .getByTestId("parent-billing-child-detail-panel")
-      .getByTestId("parent-billing-charge-row"),
+    main.getByTestId("parent-billing-child-detail-panel").getByTestId("parent-billing-charge-row"),
   ).toHaveCount(1);
   await expect(
-    page.getByTestId("parent-billing-upcoming-charges-trigger-inline"),
+    main.getByTestId("parent-billing-upcoming-charges-trigger-inline"),
   ).toHaveCount(0);
   await expect(
-    page.getByTestId("parent-billing-upcoming-charges-trigger-card"),
+    main.getByTestId("parent-billing-upcoming-charges-trigger-card"),
   ).toHaveCount(0);
 });
 
@@ -456,12 +458,10 @@ test("parent billing page uses child tabs for multiple pending schedules", async
     page.getByRole("heading", { name: "Julia's payment schedule" }),
   ).toBeVisible();
 
-  await page.getByTestId("parent-schedule-preview-button").click();
-  await expect(page.getByTestId("parent-schedule-preview-modal")).toBeVisible();
-  await expect(page.getByText("Installment timeline")).toBeVisible();
-  await expect(page.getByText("Estimated due dates")).toBeVisible();
-  await page.getByRole("button", { name: "Done" }).click();
-  await expect(page.getByTestId("parent-schedule-preview-modal")).not.toBeVisible();
+  await openSchedulePreviewModal(page);
+  const previewModal = page.getByTestId("parent-schedule-preview-modal");
+  await expect(previewModal.getByText("Estimated due dates")).toBeVisible();
+  await closeSchedulePreviewModal(page);
 
   await page.getByTestId("parent-billing-nav").getByRole("tab", { name: /Caleb/ }).click();
   await expect(page.getByTestId("parent-tuition-plan-selector")).toHaveCount(1);
@@ -848,15 +848,17 @@ test("parent billing summary supports per-student pay and child drill-down", asy
 
   await page.getByTestId(`parent-billing-child-summary-${enrollmentIds[0]}`).click();
   await openUpcomingChargesPanel(page);
-  await expect(page.getByTestId("parent-billing-upcoming-total-remaining")).toBeVisible();
+  const upcomingPanel = page.getByTestId("parent-billing-upcoming-charges-panel");
+  await expect(
+    upcomingPanel.getByTestId("parent-billing-upcoming-total-remaining"),
+  ).toContainText("$7,200");
   await expect(
     page.getByTestId(`parent-billing-child-pay-${enrollmentIds[0]}`),
   ).toBeVisible();
 
-  const juliaNav = page.getByTestId(
-    `parent-billing-child-summary-${enrollmentIds[0]}`,
-  );
-  await expect(juliaNav.getByText(/Due /)).toBeVisible();
+  await expect(
+    page.getByTestId(`parent-billing-child-due-card-${enrollmentIds[0]}`),
+  ).toContainText(/Due /);
 
   await closeUpcomingChargesPanel(page);
 
@@ -865,11 +867,10 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     page.getByTestId(`parent-billing-child-pay-${enrollmentIds[1]}`),
   ).toBeVisible();
 
-  const childDetailPanel = page.getByTestId("parent-billing-child-detail-panel");
+  const main = billingMain(page);
+  const childDetailPanel = main.getByTestId("parent-billing-child-detail-panel");
   await expect(childDetailPanel).toBeVisible();
-  await expect(
-    childDetailPanel.getByRole("heading", { name: "Caleb Summary" }),
-  ).toBeVisible();
+  await expect(main.getByRole("heading", { name: "Caleb's tuition" })).toBeVisible();
   await expect(childDetailPanel.getByText("Payment schedule")).toBeVisible();
   await expect(
     childDetailPanel.getByTestId("parent-billing-upcoming-charges-panel"),
@@ -878,9 +879,9 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   await expect(childDetailPanel.getByText(/10 payments/)).toBeVisible();
   await expect(childDetailPanel.getByTestId("parent-billing-charge-row").first()).toBeVisible();
 
-  await page.getByTestId("parent-billing-summary-nav").click();
-  await expect(page.getByTestId("parent-billing-summary-panel")).toBeVisible();
-  await page.getByTestId("parent-billing-family-pay-now").click();
+  await main.getByTestId("parent-billing-summary-nav").click();
+  await expect(main.getByTestId("parent-billing-summary-panel")).toBeVisible();
+  await main.getByTestId("parent-billing-family-pay-now").click();
   const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
   await expect(paymentModal).toBeVisible();
   await expect(paymentModal.getByText(/Combined tuition \(2 students\)/)).toBeVisible();
