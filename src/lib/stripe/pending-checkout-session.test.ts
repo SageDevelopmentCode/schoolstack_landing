@@ -26,6 +26,7 @@ function pendingPayment(amountCents: number): PaymentRecord {
     paymentMethodType: "card",
     currency: "USD",
     status: "pending",
+    stripeProviderStatus: null,
     paidAt: null,
     createdAt: "2026-01-01T00:00:00.000Z",
   };

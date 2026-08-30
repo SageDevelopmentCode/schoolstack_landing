@@ -13,12 +13,9 @@ import {
 } from "@/lib/admissions/application-submit";
 import { completeChecklistPaymentFromWebhook } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
-import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
 import {
   sendCombinedTuitionPaymentReceiptNotifications,
-  sendTuitionPaymentReceiptNotifications,
 } from "@/lib/tuition/payment-receipt-notifications";
-import { getChargeById } from "@/lib/tuition/charges";
 import {
   savePaymentMethodFromSetupIntent,
   trySaveTuitionPaymentMethod,
@@ -26,20 +23,23 @@ import {
 import {
   logTuitionActivity,
   parentActivityContext,
-  summarizePaymentAction,
   summarizePaymentMethodSaved,
 } from "@/lib/tuition/tuition-activity";
 import {
   attachCheckoutSessionToPayment,
-  attachStripeCheckoutToPayment,
   getApplicationPaymentByCheckoutSession,
   getPaymentById,
   listPaymentsByCheckoutSession,
   markPaymentFailed,
   markPaymentSucceeded,
   syncPaymentCheckoutDetailsFromMetadata,
+  updateStripeProviderStatus,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
+import {
+  inferStripeProviderStatusFromCheckoutSession,
+} from "@/lib/stripe/stripe-provider-status";
+import { recordTuitionPaymentCompleted } from "@/lib/stripe/record-payment-completed";
 import {
   backfillStripeCustomerId,
   resolveCheckoutSessionCustomerId,
@@ -185,6 +185,46 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
   });
 
   for (const payment of payments) {
+    if (payment.status === "succeeded") {
+      await updateStripeProviderStatus(admin, payment.id, "failed");
+      if (organizationId) {
+        const entityType =
+          payment.paymentType === "tuition"
+            ? "tuition_charge"
+            : payment.enrollmentChecklistItemId
+              ? "enrollment_checklist_item"
+              : payment.applicationId
+                ? "application"
+                : "application_payment";
+        const entityId =
+          payment.paymentType === "tuition"
+            ? (payment.tuitionChargeId ?? payment.id)
+            : (payment.enrollmentChecklistItemId ??
+              payment.applicationId ??
+              payment.id);
+
+        void logActivityEvent(admin, {
+          organizationId,
+          actorType: "system",
+          surface: "system",
+          action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+          entityType,
+          entityId,
+          summary: "ACH settlement failed after payment was recorded",
+          metadata: {
+            checkoutSessionId,
+            paymentId: payment.id,
+            applicationId: payment.applicationId,
+            paymentType: payment.paymentType,
+            tuitionChargeId: payment.tuitionChargeId,
+            settlementFailure: true,
+          },
+          severity: "warning",
+        });
+      }
+      continue;
+    }
+
     if (payment.status !== "pending") continue;
 
     const updatedPayment = await markPaymentFailed(admin, payment.id, {
@@ -487,35 +527,29 @@ async function handleCombinedTuitionCheckoutCompleted(
   },
 ): Promise<void> {
   const { session, checkoutSessionId, paymentIntentId, metadata } = input;
-  const paymentSettled = session.payment_status === "paid";
+  const stripeProviderStatus = inferStripeProviderStatusFromCheckoutSession(session);
   const tuitionChargeIds = parseCsvMetadata(metadata.tuition_charge_ids);
   const payments = await resolveCheckoutSessionPayments(admin, {
     checkoutSessionId,
     metadata,
   });
 
-  let newlySucceededAny = false;
+  let newlyRecordedAny = false;
   for (const payment of payments) {
     if (payment.status === "succeeded") continue;
 
-    if (paymentSettled) {
-      const { newlySucceeded } = await tryMarkPaymentSucceeded(admin, payment, {
-        paymentIntentId,
-        checkoutSessionId,
-      });
-      if (newlySucceeded) {
-        newlySucceededAny = true;
-      }
-    } else if (payment.status === "pending") {
-      await attachStripeCheckoutToPayment(admin, payment.id, {
-        stripeCheckoutSessionId: checkoutSessionId,
-        stripePaymentIntentId: paymentIntentId,
-      });
+    const { newlyRecorded } = await recordTuitionPaymentCompleted(admin, {
+      payment,
+      organizationId: String(metadata.organization_id),
+      checkoutSessionId,
+      paymentIntentId,
+      stripeProviderStatus,
+      skipReceipt: true,
+      skipActivity: true,
+    });
+    if (newlyRecorded) {
+      newlyRecordedAny = true;
     }
-  }
-
-  if (!paymentSettled) {
-    return;
   }
 
   const refreshedPayments = await resolveCheckoutSessionPayments(admin, {
@@ -523,18 +557,7 @@ async function handleCombinedTuitionCheckoutCompleted(
     metadata,
   });
 
-  for (const payment of refreshedPayments) {
-    if (!payment.tuitionChargeId) continue;
-
-    await settleTuitionPayment(admin, {
-      chargeId: payment.tuitionChargeId,
-      amountCents: payment.amountCents,
-      payerUserId: payment.payerUserId,
-      paymentId: payment.id,
-    });
-  }
-
-  if (newlySucceededAny && refreshedPayments.length > 0) {
+  if (newlyRecordedAny && refreshedPayments.length > 0) {
     void sendCombinedTuitionPaymentReceiptNotifications(admin, {
       checkoutSessionId,
       paymentIds: refreshedPayments.map((payment) => payment.id),
@@ -559,7 +582,12 @@ async function handleCombinedTuitionCheckoutCompleted(
     }
   }
 
-  if (!newlySucceededAny) {
+  if (!newlyRecordedAny) {
+    if (session.payment_status === "paid") {
+      for (const payment of refreshedPayments) {
+        await updateStripeProviderStatus(admin, payment.id, "succeeded");
+      }
+    }
     return;
   }
 
@@ -607,46 +635,25 @@ async function handleTuitionCheckoutCompleted(
     payment = (await getPaymentById(admin, payment.id)) ?? payment;
   }
 
-  const paymentSettled = session.payment_status === "paid";
-  let newlySucceeded = false;
-
-  if (payment && payment.status === "pending") {
-    if (paymentSettled) {
-      const result = await tryMarkPaymentSucceeded(admin, payment, {
-        paymentIntentId,
-        checkoutSessionId,
-      });
-      payment = result.payment;
-      newlySucceeded = result.newlySucceeded;
-    } else {
-      await attachStripeCheckoutToPayment(admin, payment.id, {
-        stripeCheckoutSessionId: checkoutSessionId,
-        stripePaymentIntentId: paymentIntentId,
-      });
-    }
+  if (!payment) {
+    return;
   }
 
   const chargeId =
     typeof metadata.tuition_charge_id === "string"
       ? metadata.tuition_charge_id
-      : payment?.tuitionChargeId;
+      : payment.tuitionChargeId;
 
-  if (paymentSettled && chargeId && payment) {
-    const settleResult = await settleTuitionPayment(admin, {
-      chargeId,
-      amountCents: payment.amountCents,
-      payerUserId: payment.payerUserId,
-      paymentId: payment.id,
-    });
+  const { newlyRecorded } = await recordTuitionPaymentCompleted(admin, {
+    payment,
+    organizationId: String(metadata.organization_id),
+    tuitionChargeId: chargeId,
+    checkoutSessionId,
+    paymentIntentId,
+    stripeProviderStatus: inferStripeProviderStatusFromCheckoutSession(session),
+  });
 
-    if (newlySucceeded) {
-      void sendTuitionPaymentReceiptNotifications(admin, payment.id, {
-        settleResult,
-      });
-    }
-  }
-
-  if (paymentSettled && payment?.familyId && paymentIntentId) {
+  if (paymentIntentId && payment.familyId) {
     try {
       await trySaveTuitionPaymentMethod(admin, {
         familyId: payment.familyId,
@@ -663,50 +670,12 @@ async function handleTuitionCheckoutCompleted(
     }
   }
 
-  if (!paymentSettled || !newlySucceeded) {
+  if (!newlyRecorded) {
+    if (session.payment_status === "paid") {
+      await updateStripeProviderStatus(admin, payment.id, "succeeded");
+    }
     return;
   }
-
-  const charge =
-    chargeId != null ? await getChargeById(admin, chargeId) : null;
-
-  void logActivityEvent(admin, {
-    organizationId: metadata.organization_id as string,
-    actorType: "system",
-    surface: "system",
-    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
-    entityType: "tuition_charge",
-    entityId: chargeId ?? payment?.id ?? checkoutSessionId,
-    summary: "Tuition payment completed",
-    metadata: {
-      checkoutSessionId,
-      paymentId: payment?.id ?? paymentId ?? null,
-      tuitionChargeId: chargeId ?? null,
-      familyId: payment?.familyId ?? charge?.familyId ?? null,
-      amountCents: payment?.amountCents ?? null,
-      chargeLabel: charge?.label ?? payment?.label ?? null,
-    },
-  });
-
-  void logTuitionActivity(admin, {
-    organizationId: String(metadata.organization_id),
-    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
-    entityType: "tuition_charge",
-    entityId: chargeId ?? payment?.id ?? checkoutSessionId,
-    summary: "Tuition payment completed",
-    changeSummary: summarizePaymentAction({
-      kind: "completed",
-      amountCents: payment?.amountCents ?? charge?.amountCents ?? 0,
-      chargeLabel: charge?.label ?? payment?.label ?? "Tuition charge",
-    }),
-    logWhenEmpty: true,
-    metadata: {
-      checkoutSessionId,
-      paymentId: payment?.id ?? paymentId ?? null,
-      familyId: payment?.familyId ?? charge?.familyId ?? null,
-    },
-    context: { actorType: "parent", surface: "parent_portal" },
-  });
 }
 
 async function handleApplicationFeeCheckoutCompleted(

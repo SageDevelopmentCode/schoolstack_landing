@@ -5,11 +5,15 @@ import {
 } from "@/lib/activity-log";
 import {
   allAgreementSectionsSigned,
+  areAllPendingResignSectionsSigned,
   buildAgreementResponsesPatch,
+  getAgreementResumeSectionIndex,
   mergeAgreementSectionSignature,
+  parseAgreementConsentValue,
   parseAgreementSectionSignatures,
   parseAmendmentNotice,
   parsePendingResignSectionIds,
+  shouldClearAgreementAmendmentAfterSectionSave,
 } from "./enrollment-agreement-progress";
 import { getEnrollmentChecklistWithItems } from "./enrollment-checklist-items";
 import type {
@@ -1791,6 +1795,11 @@ export async function saveAgreementSectionSignature(
   const nextPendingResignSectionIds = isComplete
     ? []
     : pendingResignSectionIds.filter((id) => id !== sectionId);
+  const shouldClearAmendment = shouldClearAgreementAmendmentAfterSectionSave(
+    isComplete,
+    pendingResignSectionIds,
+    nextPendingResignSectionIds,
+  );
   const signedContentRevision =
     typeof documentRow.content_revision === "number"
       ? documentRow.content_revision
@@ -1815,7 +1824,7 @@ export async function saveAgreementSectionSignature(
     isComplete ? trimmedSignerName : undefined,
     isComplete && trimmedConsentValue ? trimmedConsentValue : undefined,
     {
-      clearAmendment: isComplete,
+      clearAmendment: shouldClearAmendment,
       signedContentRevision:
         isComplete && signedContentRevision != null ? signedContentRevision : undefined,
     },
@@ -1875,6 +1884,238 @@ export async function saveAgreementSectionSignature(
   return {
     status: isComplete ? "completed" : "in_progress",
     responses: patch.responses as Record<string, unknown>,
+    newlyCompletedEnrollment,
+  };
+}
+
+export async function acknowledgeAgreementAmendmentReview(
+  supabase: SupabaseClient,
+  input: {
+    instanceId: string;
+    actorUserId?: string;
+    organizationId: string;
+  },
+): Promise<{
+  status: ChecklistItemInstanceStatus;
+  responses: Record<string, unknown>;
+  resumeSectionId?: string;
+  newlyCompletedEnrollment: NewlyCompletedEnrollment | null;
+}> {
+  const { instanceId, actorUserId, organizationId } = input;
+
+  const { data: instance, error: instanceError } = await supabase
+    .from("enrollment_checklist_items")
+    .select(
+      `
+      id,
+      checklist_id,
+      template_item_id,
+      status,
+      responses,
+      organization_id,
+      enrollment_checklists!inner (
+        application_id,
+        template_id,
+        metadata
+      )
+    `,
+    )
+    .eq("id", instanceId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (instanceError) throw instanceError;
+  if (!instance) {
+    throw new EnrollmentMaterializationError(
+      "Checklist item not found.",
+      "not_found",
+      404,
+    );
+  }
+
+  if (instance.status === "waived") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not apply.",
+      "waived",
+      400,
+    );
+  }
+
+  const existingResponses =
+    instance.responses &&
+    typeof instance.responses === "object" &&
+    !Array.isArray(instance.responses)
+      ? (instance.responses as Record<string, unknown>)
+      : {};
+
+  const pendingResignSectionIds = parsePendingResignSectionIds(existingResponses);
+  const amendmentNotice = parseAmendmentNotice(existingResponses);
+  if (pendingResignSectionIds.length === 0 && !amendmentNotice) {
+    throw new EnrollmentMaterializationError(
+      "No agreement amendment is pending review.",
+      "no_pending_amendment",
+      400,
+    );
+  }
+
+  const sectionSignatures = parseAgreementSectionSignatures(existingResponses);
+  if (!areAllPendingResignSectionsSigned(pendingResignSectionIds, sectionSignatures)) {
+    throw new EnrollmentMaterializationError(
+      "Please re-sign all updated agreement sections before continuing.",
+      "pending_resign_required",
+      400,
+    );
+  }
+
+  const { data: templateItem, error: templateItemError } = await supabase
+    .from("enrollment_checklist_template_items")
+    .select(
+      `
+      type,
+      document_templates (
+        kind,
+        content,
+        content_revision
+      )
+    `,
+    )
+    .eq("id", instance.template_item_id)
+    .maybeSingle();
+
+  if (templateItemError) throw templateItemError;
+  if (!templateItem || templateItem.type !== "document_sign") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not support agreement sections.",
+      "invalid_item_type",
+      400,
+    );
+  }
+
+  const documentTemplate = templateItem.document_templates as
+    | { kind?: string; content?: unknown; content_revision?: number }
+    | { kind?: string; content?: unknown; content_revision?: number }[]
+    | null;
+  const documentRow = Array.isArray(documentTemplate)
+    ? documentTemplate[0]
+    : documentTemplate;
+
+  if (!documentRow || documentRow.kind !== "inline_sections") {
+    throw new EnrollmentMaterializationError(
+      "This checklist item does not support agreement sections.",
+      "invalid_item_type",
+      400,
+    );
+  }
+
+  const sections = parseInlineAgreementSections(documentRow.content);
+  if (sections.length === 0) {
+    throw new EnrollmentMaterializationError(
+      "No agreement sections are configured.",
+      "no_sections",
+      400,
+    );
+  }
+
+  const consentOptions = parseInlineDocumentConsentOptions(documentRow.content);
+  const consentValue = parseAgreementConsentValue(existingResponses) ?? "";
+  const isComplete = allAgreementSectionsSigned(sections, sectionSignatures);
+  const signedContentRevision =
+    typeof documentRow.content_revision === "number"
+      ? documentRow.content_revision
+      : null;
+
+  if (isComplete && consentOptions.length > 0) {
+    if (!consentValue || !consentOptions.some((option) => option.value === consentValue)) {
+      throw new EnrollmentMaterializationError(
+        "Please select a permission option before completing this agreement.",
+        "consent_required",
+        400,
+      );
+    }
+  }
+
+  const checklist = instance.enrollment_checklists as
+    | {
+        application_id?: string;
+        template_id?: string;
+        metadata?: unknown;
+      }
+    | {
+        application_id?: string;
+        template_id?: string;
+        metadata?: unknown;
+      }[]
+    | null;
+  const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
+  const checklistId = String(instance.checklist_id);
+
+  const topLevelSignerName =
+    typeof existingResponses.signerName === "string"
+      ? existingResponses.signerName.trim()
+      : sectionSignatures[sectionSignatures.length - 1]?.signerName?.trim() ?? "";
+
+  const responsesPatch = buildAgreementResponsesPatch(
+    existingResponses,
+    sectionSignatures,
+    isComplete && topLevelSignerName ? topLevelSignerName : undefined,
+    isComplete && consentValue ? consentValue : undefined,
+    {
+      clearAmendment: true,
+      signedContentRevision:
+        isComplete && signedContentRevision != null ? signedContentRevision : undefined,
+    },
+  );
+
+  const patch: Record<string, unknown> = {
+    status: isComplete ? "completed" : "in_progress",
+    responses: responsesPatch,
+  };
+
+  if (isComplete) {
+    patch.completed_at = new Date().toISOString();
+    if (actorUserId) {
+      patch.completed_by_user_id = actorUserId;
+    }
+  } else {
+    patch.completed_at = null;
+    patch.completed_by_user_id = null;
+  }
+
+  const { error: updateError } = await supabase
+    .from("enrollment_checklist_items")
+    .update(patch)
+    .eq("id", instanceId);
+
+  if (updateError) throw updateError;
+
+  const newlyCompletedEnrollment = await recomputeChecklistStatus(supabase, checklistId);
+
+  if (isComplete) {
+    void logActivityEvent(supabase, {
+      organizationId,
+      actorType: "parent",
+      actorUserId,
+      actorName: topLevelSignerName || undefined,
+      surface: "parent_portal",
+      action: ACTIVITY_ACTIONS.ENROLLMENT_CHECKLIST_ITEM_COMPLETED,
+      entityType: "enrollment_checklist_item",
+      entityId: instanceId,
+      summary: "Completed an enrollment checklist item",
+      metadata: {
+        checklistId,
+        applicationId: checklistRow?.application_id ?? null,
+        templateItemId: instance.template_item_id,
+      },
+    });
+  }
+
+  const resumeSectionIndex = getAgreementResumeSectionIndex(sections, sectionSignatures);
+  const resumeSectionId = !isComplete ? sections[resumeSectionIndex]?.id : undefined;
+
+  return {
+    status: isComplete ? "completed" : "in_progress",
+    responses: patch.responses as Record<string, unknown>,
+    resumeSectionId,
     newlyCompletedEnrollment,
   };
 }

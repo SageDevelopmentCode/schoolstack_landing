@@ -102,6 +102,7 @@ export async function createTuitionPaymentRecord(
         : null,
     currency: String(data.currency ?? "USD"),
     status: "pending",
+    stripeProviderStatus: null,
     paidAt: null,
     createdAt: String(data.created_at),
   };
@@ -379,6 +380,10 @@ function mapTuitionPaymentRows(
         : null,
     currency: String(row.currency ?? "USD"),
     status: row.status as PaymentRecord["status"],
+    stripeProviderStatus:
+      typeof row.stripe_provider_status === "string"
+        ? row.stripe_provider_status
+        : null,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
     createdAt: String(row.created_at),
   }));

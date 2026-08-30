@@ -111,6 +111,7 @@ function ParentBillingPageContent({
   const deepLinkChildParam = searchParams.get("child");
   const deepLinkTabParam = searchParams.get("tab");
   const cardSaved = searchParams.get("card_saved");
+  const paymentCompleted = searchParams.get("paid");
   const hasInitialData = initialData !== undefined;
 
   const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
@@ -765,6 +766,16 @@ function ParentBillingPageContent({
       });
     });
   }, [cardSaved, loadBilling, pathname, router]);
+
+  useEffect(() => {
+    if (paymentCompleted !== "1") return;
+
+    queueMicrotask(() => {
+      void loadBilling().then(() => {
+        router.replace(pathname, { scroll: false });
+      });
+    });
+  }, [paymentCompleted, loadBilling, pathname, router]);
 
   const handleScheduleComplete = async () => {
     const currentKey = activeTabKey;

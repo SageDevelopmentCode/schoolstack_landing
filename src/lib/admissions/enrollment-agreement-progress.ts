@@ -169,6 +169,26 @@ export function hasPendingAgreementResign(
   return parsePendingResignSectionIds(responses).length > 0;
 }
 
+export function areAllPendingResignSectionsSigned(
+  pendingResignSectionIds: string[],
+  signatures: AgreementSectionSignature[],
+): boolean {
+  if (pendingResignSectionIds.length === 0) return true;
+  const signedIds = new Set(signatures.map((signature) => signature.sectionId));
+  return pendingResignSectionIds.every((sectionId) => signedIds.has(sectionId));
+}
+
+export function shouldClearAgreementAmendmentAfterSectionSave(
+  isComplete: boolean,
+  priorPendingResignSectionIds: string[],
+  nextPendingResignSectionIds: string[],
+): boolean {
+  return (
+    isComplete ||
+    (priorPendingResignSectionIds.length > 0 && nextPendingResignSectionIds.length === 0)
+  );
+}
+
 export function buildAgreementResponsesPatch(
   existingResponses: Record<string, unknown>,
   sectionSignatures: AgreementSectionSignature[],

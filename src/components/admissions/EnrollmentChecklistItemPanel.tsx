@@ -342,6 +342,70 @@ function DocumentSignInlinePanel({
     setSectionIndex((idx) => idx + 1);
   };
 
+  const acknowledgeAgreementAmendmentReview = async () => {
+    if (!isLive || !instanceId) return;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admissions/enrollment-checklist-items/${instanceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acknowledgeAgreementAmendment: true }),
+      });
+
+      if (!response.ok) {
+        const apiError = await parseApiErrorResponse(response);
+        reportEnrollmentChecklistError(
+          errorContext,
+          "enrollment_checklist.acknowledge_agreement_amendment",
+          new Error(apiError.message),
+          response.status,
+          apiError.code,
+        );
+        setError(apiError.message);
+        return;
+      }
+
+      const data = (await response.json()) as {
+        status?: string;
+        responses?: Record<string, unknown>;
+        resumeSectionId?: string;
+      };
+      const nextResponses = data.responses ?? existingResponses ?? {};
+
+      if (data.status === "completed") {
+        await onComplete?.(nextResponses);
+        return;
+      }
+
+      await onPartialProgress?.(nextResponses);
+
+      if (data.resumeSectionId) {
+        const resumeIndex = sections.findIndex(
+          (entry) => entry.id === data.resumeSectionId,
+        );
+        if (resumeIndex >= 0) {
+          setDirection(resumeIndex > sectionIndex ? 1 : -1);
+          setSectionIndex(resumeIndex);
+        }
+      }
+    } catch (err) {
+      reportEnrollmentChecklistError(
+        errorContext,
+        "enrollment_checklist.acknowledge_agreement_amendment",
+        err,
+      );
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to continue agreement review.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const saveCurrentSectionPreview = () => {
     if (!section) return;
 
@@ -552,7 +616,11 @@ function DocumentSignInlinePanel({
               }
 
               if (isReadOnlySignedSection) {
-                advanceSection();
+                if (isLastSection) {
+                  await acknowledgeAgreementAmendmentReview();
+                } else {
+                  advanceSection();
+                }
                 return;
               }
 
@@ -574,7 +642,13 @@ function DocumentSignInlinePanel({
             {isCompleted ? (
               "Completed"
             ) : isReadOnlySignedSection ? (
-              "Continue"
+              isLastSection ? (
+                <ButtonLoadingLabel loading={submitting} loadingLabel="Continuing…">
+                  Continue
+                </ButtonLoadingLabel>
+              ) : (
+                "Continue"
+              )
             ) : isLastSection ? (
               <ButtonLoadingLabel loading={submitting} loadingLabel="Saving…">
                 Complete agreement

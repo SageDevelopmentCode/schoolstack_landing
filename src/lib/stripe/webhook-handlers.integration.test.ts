@@ -394,7 +394,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     setupWebhookIntegrationTestEnv();
   });
 
-  it("keeps ACH tuition pending until payment_status is paid", async () => {
+  it("settles ACH tuition on checkout.session.completed with payment_status unpaid", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedTuitionPaymentWebhook(admin);
 
@@ -408,13 +408,14 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
           tuition_charge_id: fixture.chargeId,
           organization_id: fixture.organizationId,
           payment_id: fixture.paymentId,
+          payment_method: "us_bank_account",
         },
       }),
     );
 
     const { data: paymentRow } = await admin
       .from("application_payments")
-      .select("status, stripe_payment_intent_id")
+      .select("status, stripe_payment_intent_id, stripe_provider_status")
       .eq("id", fixture.paymentId)
       .single();
 
@@ -424,13 +425,14 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .eq("id", fixture.chargeId)
       .single();
 
-    assert.equal(paymentRow?.status, "pending");
+    assert.equal(paymentRow?.status, "succeeded");
     assert.ok(paymentRow?.stripe_payment_intent_id);
-    assert.equal(chargeRow?.status, "sent");
-    assert.equal(chargeRow?.paid_cents ?? 0, 0);
+    assert.equal(paymentRow?.stripe_provider_status, "processing");
+    assert.equal(chargeRow?.status, "paid");
+    assert.equal(chargeRow?.paid_cents, 720_000);
   });
 
-  it("settles tuition on async_payment_succeeded", async () => {
+  it("is idempotent when checkout and async_payment_succeeded both fire for tuition", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedTuitionPaymentWebhook(admin);
 
@@ -442,11 +444,11 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
         tuition_charge_id: fixture.chargeId,
         organization_id: fixture.organizationId,
         payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
       },
     });
 
     await handleCheckoutSessionCompleted(admin, session);
-
     await handleCheckoutSessionAsyncPaymentSucceeded(
       admin,
       buildCheckoutSession({
@@ -458,7 +460,46 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
 
     const { data: paymentRow } = await admin
       .from("application_payments")
-      .select("status")
+      .select("status, stripe_provider_status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: activityEvents, error } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED)
+      .contains("metadata", { paymentId: fixture.paymentId });
+
+    assert.ifError(error);
+    assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(paymentRow?.stripe_provider_status, "succeeded");
+    assert.equal(activityEvents?.length, 1);
+  });
+
+  it("alerts on ACH settlement failure without revoking recorded tuition payment", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+
+    await handleCheckoutSessionAsyncPaymentFailed(admin, session);
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status, stripe_provider_status")
       .eq("id", fixture.paymentId)
       .single();
 
@@ -468,9 +509,20 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .eq("id", fixture.chargeId)
       .single();
 
+    const { data: failureEvents, error } = await admin
+      .from("activity_events")
+      .select("summary, metadata")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED)
+      .contains("metadata", { paymentId: fixture.paymentId });
+
+    assert.ifError(error);
     assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(paymentRow?.stripe_provider_status, "failed");
     assert.equal(chargeRow?.status, "paid");
     assert.equal(chargeRow?.paid_cents, 720_000);
+    assert.equal(failureEvents?.length, 1);
+    assert.match(failureEvents?.[0]?.summary ?? "", /settlement failed/i);
   });
 
   it("replaces an existing guardian payment method row in place", async () => {

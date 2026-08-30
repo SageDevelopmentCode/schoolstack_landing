@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { EnrollmentContractSection } from "./enrollment-checklist-schema";
 import {
   allAgreementSectionsSigned,
+  areAllPendingResignSectionsSigned,
   buildAgreementResponsesPatch,
   getAgreementInitialSectionIndex,
   getAgreementPendingResignSectionIndex,
@@ -16,6 +17,7 @@ import {
   parseAmendmentNotice,
   parsePendingResignSectionIds,
   hasPendingAgreementResign,
+  shouldClearAgreementAmendmentAfterSectionSave,
 } from "./enrollment-agreement-progress";
 
 const sections: EnrollmentContractSection[] = [
@@ -254,5 +256,89 @@ describe("pending resign parsing", () => {
       true,
     );
     assert.equal(hasPendingAgreementResign({}), false);
+  });
+});
+
+describe("shouldClearAgreementAmendmentAfterSectionSave", () => {
+  it("clears amendment when the last pending section is re-signed", () => {
+    const priorPending = ["std-2"];
+    const nextPending = priorPending.filter((id) => id !== "std-2");
+    assert.equal(
+      shouldClearAgreementAmendmentAfterSectionSave(false, priorPending, nextPending),
+      true,
+    );
+
+    const patch = buildAgreementResponsesPatch(
+      {
+        amendmentNotice: "Please re-sign",
+        pendingResignSectionIds: ["std-2"],
+        sectionSignatures: [],
+      },
+      [
+        {
+          sectionId: "std-2",
+          signerName: "Jane Doe",
+          signedAt: "2026-08-29T14:34:08.473Z",
+        },
+      ],
+      undefined,
+      undefined,
+      {
+        clearAmendment: shouldClearAgreementAmendmentAfterSectionSave(
+          false,
+          priorPending,
+          nextPending,
+        ),
+      },
+    );
+    assert.equal("amendmentNotice" in patch, false);
+    assert.equal("pendingResignSectionIds" in patch, false);
+  });
+
+  it("does not clear amendment while pending sections remain", () => {
+    assert.equal(
+      shouldClearAgreementAmendmentAfterSectionSave(false, ["std-2", "std-3"], ["std-3"]),
+      false,
+    );
+  });
+});
+
+describe("areAllPendingResignSectionsSigned", () => {
+  it("returns true when there are no pending sections", () => {
+    assert.equal(areAllPendingResignSectionsSigned([], []), true);
+  });
+
+  it("returns false when a pending section lacks a signature", () => {
+    assert.equal(
+      areAllPendingResignSectionsSigned(
+        ["std-2"],
+        [{ sectionId: "std-3", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" }],
+      ),
+      false,
+    );
+  });
+
+  it("returns true when every pending section is signed", () => {
+    assert.equal(
+      areAllPendingResignSectionsSigned(
+        ["std-2"],
+        [{ sectionId: "std-2", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" }],
+      ),
+      true,
+    );
+  });
+});
+
+describe("amendment acknowledge resume section", () => {
+  it("returns the first unsigned section after amendment review", () => {
+    const signatures = parseAgreementSectionSignatures({
+      sectionSignatures: [
+        { sectionId: "s2", signerName: "Jane", signedAt: "2026-01-01T00:00:00.000Z" },
+        { sectionId: "s3", signerName: "Jane", signedAt: "2026-01-02T00:00:00.000Z" },
+      ],
+    });
+    assert.equal(getAgreementResumeSectionIndex(sections, signatures), 0);
+    assert.equal(sections[getAgreementResumeSectionIndex(sections, signatures)]?.id, "s1");
+    assert.equal(allAgreementSectionsSigned(sections, signatures), false);
   });
 });
