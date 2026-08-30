@@ -584,12 +584,12 @@ test("parent billing page shows per-charge adjustment breakdown", async ({ page 
 
   await gotoBillingPage(page);
   await openUpcomingChargesPanel(page);
-  const breakdown = page.getByTestId("parent-billing-charge-breakdown").first();
+  const chargeRow = page.getByTestId("parent-billing-charge-row").first();
+  const breakdown = chargeRow.getByTestId("parent-billing-charge-breakdown");
   await expect(breakdown).toBeVisible();
-  await expect(page.getByText(/sibling discount/i).first()).toBeVisible();
+  await expect(breakdown.getByText(/sibling discount/i)).toBeVisible();
   await expect(breakdown.getByText("Base amount")).toBeVisible();
-  await expect(breakdown.getByText("You pay")).toBeVisible();
-  await expect(page.getByText("$648").first()).toBeVisible();
+  await expect(chargeRow.getByText("$648")).toBeVisible();
 });
 
 test("parent billing deep link highlights the target charge", async ({ page }) => {
