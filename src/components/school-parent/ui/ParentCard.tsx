@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentCardProps = {
@@ -7,7 +7,8 @@ type ParentCardProps = {
   className?: string;
   style?: CSSProperties;
   variant?: "default" | "today" | "primary";
-} & Pick<HTMLAttributes<HTMLDivElement>, "data-testid">;
+  "data-testid"?: string;
+};
 
 export default function ParentCard({
   theme,
