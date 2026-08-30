@@ -7,9 +7,11 @@ import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { formatTuitionPaymentMethodLabel } from "@/lib/tuition/tuition-payment-receipt-detail";
 import { getStudentBadgeColors } from "@/lib/tuition/student-badge-colors";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentBillingPaymentHistoryRowProps = {
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   payment: ParentTuitionPaymentRecord;
   showStudentBadge?: boolean;
   badgeColorIndex?: number;
@@ -18,6 +20,7 @@ type ParentBillingPaymentHistoryRowProps = {
 
 export default function ParentBillingPaymentHistoryRow({
   C,
+  theme,
   payment,
   showStudentBadge = false,
   badgeColorIndex = 0,
@@ -28,23 +31,33 @@ export default function ParentBillingPaymentHistoryRow({
   const displayAmountCents =
     payment.chargedAmountCents ?? payment.amountCents;
 
+  const surfaceColor = theme?.white ?? C.surface;
+  const borderColor = theme?.line ?? C.border;
+  const shadow = theme?.shadowCard ?? C.shadowCard;
+  const radius = theme?.radiusCard ?? "0.5rem";
+  const textPrimary = theme?.ink ?? C.textPrimary;
+  const textTertiary = theme?.muted ?? C.textTertiary;
+  const accentColor = theme?.primary ?? C.accent;
+  const successColor = theme?.success ?? C.success;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-colors"
+      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition-colors"
       style={{
-        backgroundColor: C.surface,
-        border: `1px solid ${C.border}`,
-        boxShadow: C.shadowCard,
+        backgroundColor: surfaceColor,
+        border: `1px solid ${borderColor}`,
+        borderRadius: radius,
+        boxShadow: shadow,
         cursor: onClick ? "pointer" : "default",
       }}
       onMouseEnter={(event) => {
         if (!onClick) return;
-        event.currentTarget.style.borderColor = C.accent;
+        event.currentTarget.style.borderColor = accentColor;
       }}
       onMouseLeave={(event) => {
-        event.currentTarget.style.borderColor = C.border;
+        event.currentTarget.style.borderColor = borderColor;
       }}
       data-testid="parent-billing-payment-history-row"
     >
@@ -62,11 +75,11 @@ export default function ParentBillingPaymentHistoryRow({
               For {payment.studentFirstName}
             </span>
           ) : null}
-          <p style={{ color: C.textPrimary }}>
+          <p style={{ color: textPrimary }}>
             {payment.label ?? "Tuition payment"}
           </p>
         </div>
-        <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+        <p className="text-xs mt-0.5" style={{ color: textTertiary }}>
           {payment.paidAt
             ? formatBillingDueDate(payment.paidAt.slice(0, 10))
             : payment.status}
@@ -74,13 +87,13 @@ export default function ParentBillingPaymentHistoryRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="font-semibold tabular-nums" style={{ color: C.success }}>
+        <span className="font-semibold tabular-nums" style={{ color: successColor }}>
           {formatCents(displayAmountCents)}
         </span>
         {onClick ? (
           <ChevronRight
             className="h-4 w-4"
-            style={{ color: C.textTertiary }}
+            style={{ color: textTertiary }}
             aria-hidden
           />
         ) : null}

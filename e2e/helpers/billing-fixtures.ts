@@ -125,7 +125,7 @@ export async function openUpcomingChargesPanel(page: Page): Promise<void> {
   await trigger.click();
   const panel = page.getByTestId("parent-billing-upcoming-charges-panel");
   await expect(panel).toBeVisible();
-  await expect(panel.getByText("Upcoming charges")).toBeVisible();
+  await expect(panel.getByText("Payment schedule")).toBeVisible();
 }
 
 export async function closeUpcomingChargesPanel(page: Page): Promise<void> {

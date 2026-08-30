@@ -1,11 +1,12 @@
 "use client";
 
 import { CheckCircle2, ChevronRight } from "lucide-react";
-import ParentBillingFamilyHeader from "@/components/school-parent/billing/ParentBillingFamilyHeader";
-import ParentBillingFamilySettings from "@/components/school-parent/billing/ParentBillingFamilySettings";
+import ParentBillingDueCard from "@/components/school-parent/billing/ParentBillingDueCard";
+import ParentBillingPaymentSettingsCard from "@/components/school-parent/billing/ParentBillingPaymentSettingsCard";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
 import ParentBillingTaxCreditBanner from "@/components/school-parent/billing/ParentBillingTaxCreditBanner";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
+import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import {
   childFirstNameFromFullName,
   type ParentBillingChildView,
@@ -14,15 +15,15 @@ import {
 import { formatCents } from "@/lib/tuition/pricing";
 import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { ParentLastPaymentDaySummary, ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { SavedPaymentMethodSummary } from "@/lib/tuition/payment-methods";
 
 const BILLING_ACTIVE_TOOLTIP =
   "Tuition billing is active — payment schedule confirmed";
 
-const SECTION_HEADING_CLASS = "text-base font-semibold mb-3";
-
 type ParentBillingSummaryPanelProps = {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   summary: ParentBillingFamilySummary;
   childViews: ParentBillingChildView[];
@@ -51,6 +52,7 @@ type ParentBillingSummaryPanelProps = {
 };
 
 export default function ParentBillingSummaryPanel({
+  theme,
   C,
   summary,
   childViews,
@@ -92,27 +94,48 @@ export default function ParentBillingSummaryPanel({
         />
       ) : null}
 
-      <ParentBillingFamilyHeader
-        C={C}
-        summary={summary}
-        autopayEnabled={autopayEnabled}
-        payingChargeId={payingChargeId}
-        payingCombined={payingCombined}
-        onPay={onPay}
-        onPayCombined={onPayCombined}
-        nextChargeId={nextChargeId}
-        familyPayNowLabel={familyPayNowLabel}
-        chargesOnEarliestDueDate={chargesOnEarliestDueDate}
-        lastPaymentSummary={lastPaymentSummary}
-        showStudentOnLastPayment
-        readOnly={readOnly}
-      />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_0.75fr]">
+        <ParentBillingDueCard
+          theme={theme}
+          C={C}
+          balanceDueCents={summary.balanceDueCents}
+          nextCharge={summary.nextCharge}
+          nextChargeId={nextChargeId}
+          payNowLabel={familyPayNowLabel}
+          payingChargeId={payingChargeId}
+          payingCombined={payingCombined}
+          chargesOnEarliestDueDate={chargesOnEarliestDueDate}
+          onPay={onPay}
+          onPayCombined={onPayCombined}
+          autopayEnabled={autopayEnabled}
+          hasMultipleChildren={childViews.length > 1}
+          hasPendingSchedule={summary.hasPendingSchedule}
+          familyTotalRemainingCents={summary.familyTotalRemainingCents}
+          showEstimatedAnnual={
+            summary.hasPendingSchedule && summary.balanceDueCents === 0
+          }
+          estimatedAnnualCents={summary.annualTuitionCents}
+          lastPaymentSummary={lastPaymentSummary}
+          showLastPayment
+          readOnly={readOnly}
+          testId="parent-billing-summary"
+        />
+        <ParentBillingPaymentSettingsCard
+          theme={theme}
+          autopayEnabled={autopayEnabled}
+          savedPaymentMethod={savedPaymentMethod}
+          paymentMethodLoading={paymentMethodLoading}
+          onAutopayToggleRequest={onAutopayToggleRequest}
+          onManagePaymentMethod={onManagePaymentMethod}
+          readOnly={readOnly}
+        />
+      </div>
 
       {childViews.length > 1 ? (
         <section>
-          <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
+          <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-[21px] mb-3">
             By student
-          </h2>
+          </ParentDisplayHeading>
           <div className="flex flex-col gap-2">
             {childViews.map((child) => {
               const firstName = childFirstNameFromFullName(child.studentName);
@@ -122,17 +145,16 @@ export default function ParentBillingSummaryPanel({
                   key={child.childKey}
                   type="button"
                   onClick={() => onSelectChild(child.childKey)}
-                  className="flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-colors"
+                  className="flex items-center justify-between gap-3 rounded-[15px] border px-4 py-3 text-left text-sm transition-colors"
                   style={{
-                    backgroundColor: C.surface,
-                    border: `1px solid ${C.border}`,
+                    backgroundColor: theme.white,
+                    borderColor: theme.line,
                   }}
-                  data-testid={`parent-billing-summary-child-row-${child.childKey}`}
                 >
                   <div className="min-w-0">
                     <p
-                      className="flex items-center gap-1.5 font-medium"
-                      style={{ color: C.textPrimary }}
+                      className="flex items-center gap-1.5 font-semibold text-[13px]"
+                      style={{ color: theme.ink }}
                     >
                       {firstName}
                       {child.status === "ready" ? (
@@ -143,7 +165,7 @@ export default function ParentBillingSummaryPanel({
                         >
                           <CheckCircle2
                             className="h-3.5 w-3.5"
-                            style={{ color: C.success }}
+                            style={{ color: theme.success }}
                             aria-hidden
                           />
                         </span>
@@ -157,8 +179,8 @@ export default function ParentBillingSummaryPanel({
                         <span
                           className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
                           style={{
-                            backgroundColor: C.accentLight,
-                            color: C.accent,
+                            backgroundColor: theme.primaryLight,
+                            color: theme.primary,
                           }}
                         >
                           Due {formatBillingDueDate(child.nextCharge.dueDate)} ·{" "}
@@ -168,14 +190,14 @@ export default function ParentBillingSummaryPanel({
                         <span
                           className="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
                           style={{
-                            backgroundColor: C.accentLight,
-                            color: C.accent,
+                            backgroundColor: theme.primaryLight,
+                            color: theme.primary,
                           }}
                         >
                           Due {formatCents(child.balanceDueCents)}
                         </span>
                       ) : null}
-                      <span className="text-xs" style={{ color: C.textTertiary }}>
+                      <span className="text-xs" style={{ color: theme.muted }}>
                         {child.paymentPlanLabel ??
                           `Annual ${formatCents(child.annualTuitionCents)}`}
                       </span>
@@ -183,7 +205,7 @@ export default function ParentBillingSummaryPanel({
                   </div>
                   <ChevronRight
                     className="h-4 w-4 shrink-0"
-                    style={{ color: C.textTertiary }}
+                    style={{ color: theme.muted }}
                     aria-hidden
                   />
                 </button>
@@ -193,32 +215,17 @@ export default function ParentBillingSummaryPanel({
         </section>
       ) : null}
 
-      <section data-testid="parent-billing-payment-autopay-section">
-        <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
-          Payment & autopay
-        </h2>
-        <ParentBillingFamilySettings
-          C={C}
-          autopayEnabled={autopayEnabled}
-          savedPaymentMethod={savedPaymentMethod}
-          paymentMethodLoading={paymentMethodLoading}
-          onAutopayToggleRequest={onAutopayToggleRequest}
-          onManagePaymentMethod={onManagePaymentMethod}
-          readOnly={readOnly}
-          showPaymentMethodLabel={false}
-        />
-      </section>
-
       <section data-testid="parent-billing-all-family-payments">
-        <h2 className={SECTION_HEADING_CLASS} style={{ color: C.textPrimary }}>
+        <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-[21px] mb-3">
           All family payments
-        </h2>
+        </ParentDisplayHeading>
         {payments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {payments.map((payment) => (
               <ParentBillingPaymentHistoryRow
                 key={payment.id}
                 C={C}
+                theme={theme}
                 payment={payment}
                 showStudentBadge
                 badgeColorIndex={
@@ -229,7 +236,7 @@ export default function ParentBillingSummaryPanel({
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: C.textTertiary }}>
+          <p className="text-sm" style={{ color: theme.muted }}>
             No payments yet.
           </p>
         )}

@@ -80,83 +80,50 @@ export default function ParentBillingChargeRow({
   const dueLine = formatParentChargeDueLine(charge);
   const showAutopayHint =
     autopayEnabled && UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
+  const canPay = charge.status !== "paid" && charge.status !== "void" && remainingCents > 0;
 
   return (
     <div
       data-testid="parent-billing-charge-row"
       data-charge-id={charge.id}
-      className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg text-sm transition-shadow"
+      className="grid grid-cols-1 gap-3 rounded-[15px] border px-4 py-4 text-sm transition-shadow lg:grid-cols-[1.2fr_0.8fr_0.6fr_auto] lg:items-center lg:gap-3"
       style={{
         backgroundColor: C.surface,
         border: `1px solid ${highlighted ? C.accent : C.border}`,
         boxShadow: highlighted ? `0 0 0 2px ${C.accentLight}` : C.shadowCard,
       }}
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p style={{ color: C.textPrimary }}>{charge.label}</p>
-          <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide"
-            style={badgeStyles(C, statusBadge.tone)}
-            data-testid="parent-billing-charge-status-badge"
-          >
-            {statusBadge.label}
-          </span>
-        </div>
-        <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold" style={{ color: C.textPrimary }}>
+          {charge.label}
+        </p>
+        <p className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
           {dueLine}
         </p>
         {showAutopayHint ? (
           <p
-            className="text-xs mt-1"
+            className="mt-1 text-[11px]"
             style={{ color: C.textSecondary }}
             data-testid="parent-billing-charge-autopay-hint"
           >
             Autopay on due date
           </p>
         ) : null}
+      </div>
+
+      <div className="min-w-0 text-[11px] leading-relaxed" style={{ color: C.textSecondary }}>
         {showBreakdown ? (
-          <div
-            className="mt-2 space-y-1 text-xs"
-            data-testid="parent-billing-charge-breakdown"
-          >
+          <div data-testid="parent-billing-charge-breakdown">
             {breakdown
               .filter((line) => line.kind !== "total")
               .map((line, index) => (
-                <div
-                  key={`${line.kind}-${line.label}-${index}`}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <span style={{ color: C.textSecondary }}>{line.label}</span>
-                  <span
-                    style={{
-                      color:
-                        line.kind === "base"
-                          ? C.textTertiary
-                          : line.label === PAY_AHEAD_REDUCTION_LABEL
-                            ? C.success
-                            : line.kind === "adjustment"
-                              ? C.textSecondary
-                              : C.textPrimary,
-                      textDecoration: line.kind === "base" ? "line-through" : undefined,
-                    }}
-                  >
-                    {formatBreakdownAmount(line.amountCents)}
-                  </span>
+                <div key={`${line.kind}-${line.label}-${index}`}>
+                  {line.label} {formatBreakdownAmount(line.amountCents)}
                 </div>
               ))}
-            {totalLine ? (
-              <div
-                className="flex items-center justify-between gap-3 pt-1 font-semibold"
-                style={{ color: C.accent }}
-              >
-                <span>{totalLine.label}</span>
-                <span>{formatCents(totalLine.amountCents)}</span>
-              </div>
-            ) : null}
             {hasPayAheadReduction ? (
               <p
-                className="pt-1 text-[11px] leading-snug"
+                className="mt-1 text-[10px] leading-snug"
                 style={{ color: C.textTertiary }}
                 data-testid="parent-billing-charge-pay-ahead-hint"
               >
@@ -164,18 +131,28 @@ export default function ParentBillingChargeRow({
               </p>
             ) : null}
           </div>
-        ) : null}
+        ) : (
+          <span style={{ color: C.textTertiary }}>—</span>
+        )}
       </div>
-      <div className="flex shrink-0 items-center gap-2 pt-0.5">
-        {!showBreakdown ? (
-          <span
-            className="font-medium"
-            style={{ color: amountDisplay.isPaid ? C.success : C.textPrimary }}
-          >
-            {amountDisplay.text}
-          </span>
-        ) : null}
-        {charge.status !== "paid" && charge.status !== "void" ? (
+
+      <div className="min-w-0">
+        <p className="text-[13px] font-bold" style={{ color: C.textPrimary }}>
+          {showBreakdown && totalLine
+            ? formatCents(totalLine.amountCents)
+            : amountDisplay.text}
+        </p>
+        <span
+          className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+          style={badgeStyles(C, statusBadge.tone)}
+          data-testid="parent-billing-charge-status-badge"
+        >
+          {statusBadge.label}
+        </span>
+      </div>
+
+      <div className="flex w-full items-center justify-end lg:w-auto lg:justify-end">
+        {canPay ? (
           <button
             type="button"
             onClick={() => {
@@ -184,7 +161,7 @@ export default function ParentBillingChargeRow({
             }}
             disabled={readOnly || payingChargeId === charge.id}
             aria-label={showAutopayHint ? "Pay early" : "Pay charge"}
-            className="text-xs font-medium px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
+            className="w-full rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             style={{ backgroundColor: C.accent, color: "#fff" }}
           >
             {payingChargeId === charge.id ? "…" : readOnly ? "Pay (preview)" : "Pay"}

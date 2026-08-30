@@ -1,19 +1,21 @@
 "use client";
 
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import ParentToaster from "@/components/school-parent/ParentToaster";
+import { ParentThemeProvider, useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
+import { fraunces, dmSans } from "@/lib/fonts";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import {
   isParentBillingPath,
   isParentMessagesPath,
 } from "@/lib/organization-settings/parent-routes";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
@@ -37,7 +39,7 @@ function isParentHelpPage(pathname: string, slug: string): boolean {
   return pathname.startsWith(`/school/${slug}/parent/`);
 }
 
-export default function SchoolParentBaseline({
+function SchoolParentBaselineInner({
   slug,
   organizationId,
   schoolName,
@@ -51,9 +53,7 @@ export default function SchoolParentBaseline({
   previewParentBasePath,
 }: SchoolParentBaselineProps) {
   const pathname = usePathname();
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-  const bodyFont =
-    branding.typography.bodyFont?.trim() || "Inter, system-ui, sans-serif";
+  const { theme, adminCompat: C } = useParentTheme();
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
     isMessagesPage || isParentBillingPath(pathname);
@@ -64,10 +64,16 @@ export default function SchoolParentBaseline({
     <div
       className={
         previewMode
-          ? "flex min-h-0 flex-1 w-full flex-col overflow-hidden bg-white"
-          : "flex h-dvh w-full flex-col overflow-hidden bg-white"
+          ? `flex min-h-0 flex-1 w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
+          : `flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
       }
-      style={{ fontFamily: bodyFont, color: C.textPrimary }}
+      data-parent-portal
+      style={{
+        ...parentThemeCssVars(theme),
+        fontFamily: theme.fontBody,
+        color: theme.ink,
+        backgroundColor: theme.paper,
+      }}
     >
       <SchoolParentHeader
         slug={slug}
@@ -83,9 +89,10 @@ export default function SchoolParentBaseline({
       />
 
       <main
-        className={`flex min-h-0 flex-1 flex-col bg-white ${
+        className={`flex min-h-0 flex-1 flex-col ${
           isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
         }`}
+        style={{ backgroundColor: theme.paper }}
       >
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </main>
@@ -118,4 +125,12 @@ export default function SchoolParentBaseline({
   }
 
   return <NavigationLoadingProvider>{wrappedShell}</NavigationLoadingProvider>;
+}
+
+export default function SchoolParentBaseline(props: SchoolParentBaselineProps) {
+  return (
+    <ParentThemeProvider branding={props.branding}>
+      <SchoolParentBaselineInner {...props} />
+    </ParentThemeProvider>
+  );
 }
