@@ -22,6 +22,7 @@ import {
 import EnrollmentChecklistItemEditor from "./EnrollmentChecklistItemEditor";
 import EnrollmentChecklistOutline from "./EnrollmentChecklistOutline";
 import { BUILDER_CANVAS_BG } from "./outline-item-styles";
+import { builderCanvasTransition } from "./builder-canvas-motion";
 
 function itemTypeSubtitle(type: ChecklistItemType): string {
   switch (type) {
@@ -41,12 +42,7 @@ function itemTypeSubtitle(type: ChecklistItemType): string {
   }
 }
 
-const canvasTransition = {
-  initial: { opacity: 0, x: 8 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -8 },
-  transition: { duration: 0.18, ease: "easeOut" as const },
-};
+const canvasTransition = builderCanvasTransition;
 
 type EnrollmentChecklistFocusCanvasProps = {
   C: AdminThemeTokens;

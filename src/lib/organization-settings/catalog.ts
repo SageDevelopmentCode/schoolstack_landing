@@ -139,7 +139,7 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "admin", key: "messages", label: "Messages", description: "Family and staff messaging" },
   { portal: "admin", key: "finances", label: "Finances", description: "Budget, revenue, expenses, payroll" },
   { portal: "admin", key: "marketing", label: "Marketing", description: "Campaigns and outreach tools" },
-  { portal: "admin", key: "notifications", label: "Notifications", description: "Email alerts for applications, payments, and visits" },
+  { portal: "admin", key: "notifications", label: "Alerts", description: "Email alerts for applications, payments, and visits" },
   { portal: "teacher", key: "dashboard", label: "Dashboard", description: "Teacher home overview" },
   { portal: "teacher", key: "my_students", label: "My Students", description: "Student roster and profiles" },
   { portal: "teacher", key: "my_hours", label: "My Hours", description: "Time tracking and hours log" },

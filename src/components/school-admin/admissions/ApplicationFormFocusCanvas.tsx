@@ -40,6 +40,7 @@ import {
   BuilderQuestionCard,
   BuilderSectionIntro,
 } from "./builder-question-card";
+import { builderCanvasTransition } from "./builder-canvas-motion";
 import { focusKey, type BuilderFocus } from "./builder-focus";
 import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 
@@ -80,12 +81,7 @@ type PendingDelete =
   | { kind: "step"; stepId: string; stepTitle: string; questionCount: number }
   | { kind: "field"; stepId: string; fieldId: string; fieldLabel: string };
 
-const canvasTransition = {
-  initial: { opacity: 0, x: 8 },
-  animate: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -8 },
-  transition: { duration: 0.18, ease: "easeOut" as const },
-};
+const canvasTransition = builderCanvasTransition;
 
 function inputStyle(C: AdminThemeTokens): React.CSSProperties {
   return {

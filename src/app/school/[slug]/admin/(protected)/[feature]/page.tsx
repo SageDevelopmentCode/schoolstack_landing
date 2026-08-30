@@ -15,9 +15,9 @@ import { Suspense } from "react";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { fetchAdmissionsSetupStatus } from "@/lib/school-admin/admissions-setup-status";
 import { loadAdminMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { getRequestUser } from "@/lib/auth/session";
+import { fetchAdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -112,7 +112,25 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
   }
 
   if (feature === "dashboard") {
-    const setupStatus = await fetchAdmissionsSetupStatus(supabase, org.id, slug);
+    const user = await getRequestUser();
+    const admin = createAdminClient();
+    const initialSummary = await fetchAdminDashboardSummary(
+      supabase,
+      admin,
+      org.id,
+      slug,
+      org.features.admin,
+      {
+        userId: user?.id,
+        schoolName: org.name,
+      },
+    );
+
+    const userFirstName =
+      user?.user_metadata?.first_name ??
+      user?.user_metadata?.full_name?.split(" ")?.[0] ??
+      user?.email?.split("@")?.[0] ??
+      null;
 
     return (
       <AdminDashboardPage
@@ -120,7 +138,8 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
         slug={slug}
         branding={org.branding}
         schoolName={org.name}
-        initialStatus={setupStatus}
+        userFirstName={userFirstName}
+        initialSummary={initialSummary}
       />
     );
   }
