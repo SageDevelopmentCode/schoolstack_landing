@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 import { parentBillingViewTransition } from "@/components/school-parent/billing/parent-billing-view-transition";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import {
   PARENT_BILLING_SUMMARY_TAB,
 } from "@/components/school-parent/billing/ParentBillingNav";
@@ -78,6 +80,45 @@ export default function ParentBillingStoryHeader({
     loadingTabKey,
   );
 
+  const navItems = useMemo(() => {
+    const items = [
+      {
+        key: PARENT_BILLING_SUMMARY_TAB,
+        label: "Family view",
+        disabled: summaryTabLoading,
+        ariaBusy: summaryTabLoading,
+        testId: "parent-billing-summary-nav",
+        suffix: summaryTabLoading ? (
+          <Loader2
+            className="h-3 w-3 animate-spin"
+            data-testid="parent-billing-tab-loading"
+          />
+        ) : undefined,
+      },
+    ];
+
+    for (const child of childViews) {
+      const tabLoading = isTabLoading(child.childKey, pendingTabKey, loadingTabKey);
+      items.push({
+        key: child.childKey,
+        label: childFirstNameFromFullName(child.studentName),
+        disabled: tabLoading,
+        ariaBusy: tabLoading,
+        testId: `parent-billing-child-summary-${child.childKey}`,
+        suffix: tabLoading ? (
+          <Loader2
+            className="h-3 w-3 animate-spin"
+            data-testid="parent-billing-tab-loading"
+          />
+        ) : !tabLoading && child.status === "needs_schedule" ? (
+          <ParentNeedsScheduleBadge C={C} label="Setup" size="sm" />
+        ) : undefined,
+      });
+    }
+
+    return items;
+  }, [C, childViews, loadingTabKey, pendingTabKey, summaryTabLoading]);
+
   return (
     <header
       className="flex flex-col gap-4 sm:gap-5 sm:flex-row sm:items-end sm:justify-between"
@@ -98,68 +139,14 @@ export default function ParentBillingStoryHeader({
       </motion.div>
 
       {hasMultipleChildren ? (
-        <nav
-          className="flex w-full max-w-full shrink-0 gap-1 overflow-x-auto rounded-[11px] p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:w-auto [&::-webkit-scrollbar]:hidden"
-          style={{ backgroundColor: "#EAF2EB" }}
-          aria-label="Billing sections"
+        <ParentStoryPillNav
+          theme={theme}
+          items={navItems}
+          activeKey={activeTabKey}
+          onChange={onSelectTab}
+          ariaLabel="Billing sections"
           data-testid="parent-billing-nav"
-        >
-          <button
-            type="button"
-            onClick={() => onSelectTab(PARENT_BILLING_SUMMARY_TAB)}
-            disabled={summaryTabLoading}
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:cursor-wait disabled:opacity-70"
-            style={{
-              backgroundColor: isSummaryTab ? theme.white : "transparent",
-              color: isSummaryTab ? theme.primary : "#728079",
-              boxShadow: isSummaryTab ? "0 1px 4px #dbe2dc" : undefined,
-            }}
-            aria-current={isSummaryTab ? "true" : undefined}
-            aria-busy={summaryTabLoading || undefined}
-            data-testid="parent-billing-summary-nav"
-          >
-            Family view
-            {summaryTabLoading ? (
-              <Loader2
-                className="h-3 w-3 animate-spin"
-                data-testid="parent-billing-tab-loading"
-              />
-            ) : null}
-          </button>
-          {childViews.map((child) => {
-            const active = child.childKey === activeTabKey;
-            const firstName = childFirstNameFromFullName(child.studentName);
-            const tabLoading = isTabLoading(child.childKey, pendingTabKey, loadingTabKey);
-            return (
-              <button
-                key={child.childKey}
-                type="button"
-                onClick={() => onSelectTab(child.childKey)}
-                disabled={tabLoading}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:cursor-wait disabled:opacity-70"
-                style={{
-                  backgroundColor: active ? theme.white : "transparent",
-                  color: active ? theme.primary : "#728079",
-                  boxShadow: active ? "0 1px 4px #dbe2dc" : undefined,
-                }}
-                aria-current={active ? "true" : undefined}
-                aria-busy={tabLoading || undefined}
-                data-testid={`parent-billing-child-summary-${child.childKey}`}
-              >
-                {firstName}
-                {tabLoading ? (
-                  <Loader2
-                    className="h-3 w-3 animate-spin"
-                    data-testid="parent-billing-tab-loading"
-                  />
-                ) : null}
-                {!tabLoading && child.status === "needs_schedule" ? (
-                  <ParentNeedsScheduleBadge C={C} label="Setup" size="sm" />
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
+        />
       ) : null}
     </header>
   );

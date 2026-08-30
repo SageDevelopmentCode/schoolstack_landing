@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import {
   dateKey,
   DAY_NAMES,
@@ -92,7 +92,6 @@ export default function WeekGrid({
   onDayClick,
   onEventClick,
 }: WeekGridProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const weekDates = getWeekDates(weekAnchor);
   const hasToday = weekDates.some((d) => isToday(d));
   const nowTop = hasToday ? getCurrentTimeTop() : -1;
@@ -109,13 +108,6 @@ export default function WeekGrid({
 
   const hasAnyAllDay = allDayByDate.size > 0;
   const hourCount = WEEK_END_HOUR - WEEK_START_HOUR;
-
-  useEffect(() => {
-    if (!hasToday || nowTop < 0 || !scrollRef.current) return;
-    const container = scrollRef.current;
-    const targetScroll = Math.max(0, nowTop - container.clientHeight / 3);
-    container.scrollTop = targetScroll;
-  }, [hasToday, nowTop, weekAnchor]);
 
   return (
     <div
@@ -232,19 +224,14 @@ export default function WeekGrid({
             </div>
           ) : null}
 
-          {/* Scrollable time grid */}
+          {/* Time grid */}
           <div
-            ref={scrollRef}
-            className="overflow-y-auto"
-            style={{ maxHeight: 520 }}
+            className="relative grid"
+            style={{
+              gridTemplateColumns: `${GUTTER_WIDTH}px repeat(7, 1fr)`,
+              height: WEEK_GRID_TOTAL_HEIGHT,
+            }}
           >
-            <div
-              className="relative grid"
-              style={{
-                gridTemplateColumns: `${GUTTER_WIDTH}px repeat(7, 1fr)`,
-                height: WEEK_GRID_TOTAL_HEIGHT,
-              }}
-            >
               {/* Hour labels */}
               <div
                 className="relative"
@@ -355,7 +342,6 @@ export default function WeekGrid({
                   }}
                 />
               ) : null}
-            </div>
           </div>
         </div>
       </div>

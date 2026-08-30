@@ -32,6 +32,7 @@ description: >-
 | `ParentCard` | White or tinted surfaces (`default`, `today`, `primary`) |
 | `ParentButton` | Primary, soft, outline CTAs |
 | `ParentChip` | Status / category pills (`success`, `warning`, `alert`, `info`) |
+| `ParentStoryPillNav` | Sage pill segmented nav (billing child tabs, school record sections) |
 | `ParentDatePill` | Date badges in headers |
 | `ParentAttentionItem` | “Start here” action rows on home |
 | `ParentTextLink` / `ParentButtonLink` | Inline and navigational links |
@@ -79,6 +80,7 @@ When a feature already has a shared layout (e.g. `MessagesInboxLayout`):
 | Home | [`ParentHomePage.tsx`](src/components/school-parent/ParentHomePage.tsx) |
 | Billing | [`ParentBillingPage.tsx`](src/components/school-parent/billing/ParentBillingPage.tsx), [`ParentBillingStoryHeader.tsx`](src/components/school-parent/billing/ParentBillingStoryHeader.tsx) |
 | Messages | [`ParentMessagesPage.tsx`](src/components/school-parent/ParentMessagesPage.tsx), [`ParentMessagesInboxHeader.tsx`](src/components/school-parent/messages/ParentMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="parent-story"` |
+| My Children | [`ParentChildrenPage.tsx`](src/components/school-parent/ParentChildrenPage.tsx), [`ParentChildrenStoryHeader.tsx`](src/components/school-parent/children/ParentChildrenStoryHeader.tsx), [`ParentChildRecordWorkspace.tsx`](src/components/school-parent/children/ParentChildRecordWorkspace.tsx) |
 
 ## Anti-patterns
 
@@ -91,9 +93,9 @@ When a feature already has a shared layout (e.g. `MessagesInboxLayout`):
 
 | Prototype | Story implementation |
 |-----------|------------------------|
-| Eyebrow “Family communication” | Removed — title lives in inbox sidebar |
+| Eyebrow “Family communication” | Omitted — sidebar header is title + `+ New` only |
 | “+ New message” | `ParentMessagesInboxHeader` compact `+ New` button |
-| Inbox filter pills | `ParentMessagesInboxFilters` inline row (`Inbox · N`, `Unread · N`) + search |
-| Chat gradient body | `linear-gradient(180deg, #fafcf9, #f2f7f3)` in thread view |
-| Thread bubbles | Avatars beside bubbles; own messages show `Name · School` |
-| Full-height split pane | `MessagesInboxLayout` `parent-story`: `flex-1 min-h-0`, `290px` inbox column |
+| Inbox header | `ParentMessagesInboxHeader`: title + `+ New` + search (no filter tabs) |
+| Chat pane background | `theme.paper` / `#EFF5F0` — contrasts with white inbox column |
+| Thread bubbles | Avatars beside bubbles; sender name in `theme.primary` (incoming) or soft white (own); body text separate color |
+| Full-height split pane | `MessagesInboxLayout` `parent-story`: `flex-1 min-h-0`, `340px` inbox column |

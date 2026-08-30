@@ -70,6 +70,9 @@ export default function MessagesComposeBar({
     const fieldBg = parentStory ? theme?.paper ?? C.bg : C.bg;
     const borderColor = parentStory ? theme?.line ?? C.border : C.border;
     const accentColor = parentStory ? theme?.primary ?? C.accent : C.accent;
+    const chipBorderColor = parentStory ? theme?.line ?? C.border : C.border;
+    const chipTextColor = parentStory ? theme?.muted ?? C.textSecondary : C.textSecondary;
+    const chipBgColor = parentStory ? theme?.paper ?? C.bg : C.bg;
 
     return (
       <div
@@ -82,7 +85,11 @@ export default function MessagesComposeBar({
               <div
                 key={`${file.name}-${index}`}
                 className="flex items-center gap-1 rounded-full border px-3 py-1 text-xs"
-                style={{ borderColor: C.border, color: C.textSecondary, backgroundColor: C.bg }}
+                style={{
+                  borderColor: chipBorderColor,
+                  color: chipTextColor,
+                  backgroundColor: chipBgColor,
+                }}
               >
                 <span className="truncate max-w-[160px]">{file.name}</span>
                 <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, FileText } from "lucide-react";
+import { ChevronLeft, FileText, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -122,15 +122,38 @@ export default function MessagesThreadView({
   const bottomRef = useRef<HTMLDivElement>(null);
   const splitPane = isSplitPaneMessagesVariant(variant);
   const parentStory = isStoryMessagesVariant(variant);
-  const chatBackground = parentStory
-    ? "linear-gradient(180deg, #fafcf9, #f2f7f3)"
-    : C.bg;
+  const parentStoryChatBackground = theme?.paper ?? "#EFF5F0";
+  const chatBackground = parentStory ? parentStoryChatBackground : C.bg;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thread?.messages, thread?.id]);
 
   if (!thread) {
+    if (parentStory && theme) {
+      return (
+        <div
+          className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center"
+          style={{ backgroundColor: chatBackground }}
+        >
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.primarySoft }}
+          >
+            <MessageSquare className="h-7 w-7" style={{ color: theme.primary }} />
+          </div>
+          <div>
+            <p className="text-base font-semibold" style={{ color: theme.ink }}>
+              Select a conversation
+            </p>
+            <p className="mt-1 max-w-sm text-sm" style={{ color: theme.muted }}>
+              Choose a thread from your inbox to start messaging.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className="flex flex-1 items-center justify-center p-6 text-sm"
@@ -149,7 +172,11 @@ export default function MessagesThreadView({
         className={`shrink-0 border-b px-4 py-3 ${splitPane ? "bg-white" : ""}`}
         style={{
           borderColor: theme?.line ?? C.border,
-          backgroundColor: parentStory ? theme?.white ?? C.bg : splitPane ? C.bg : C.surface,
+          backgroundColor: parentStory
+            ? parentStoryChatBackground
+            : splitPane
+              ? C.bg
+              : C.surface,
         }}
       >
         <div className="flex items-center gap-3">
@@ -263,10 +290,7 @@ export default function MessagesThreadView({
               const { message, showSenderName, isGroupedWithPrevious } = item;
               const ownBubble = splitPane && message.isOwn;
               const grouped = parentStory ? false : isGroupedWithPrevious;
-              const senderLabel =
-                parentStory && message.isOwn && schoolName
-                  ? `${message.senderName} · ${schoolName}`
-                  : message.senderName;
+              const senderLabel = message.senderName;
               const displaySenderName = parentStory ? true : showSenderName;
 
               if (parentStory && theme) {
@@ -294,7 +318,11 @@ export default function MessagesThreadView({
                       {displaySenderName ? (
                         <p
                           className="mb-1 text-xs font-semibold"
-                          style={{ color: message.isOwn ? "#ffffff" : theme.ink }}
+                          style={{
+                            color: message.isOwn
+                              ? "rgba(255,255,255,0.75)"
+                              : theme.primary,
+                          }}
                         >
                           {senderLabel}
                         </p>

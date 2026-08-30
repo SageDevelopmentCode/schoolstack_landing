@@ -9,6 +9,7 @@ import {
   loadApplicationDetailForFamily,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import {
   loadAssignedTeachersForStudent,
   type ChildProfileData,
@@ -57,6 +58,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
     org.id,
     familyId,
   );
+  const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
 
   const admin = createAdminClient();
 
@@ -100,6 +102,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
         schoolSlug={slug}
         organizationId={org.id}
         familyChildren={familyChildren}
+        userProfile={userProfile}
         childProfiles={childProfiles}
         previewBasePath={familyPreviewBasePath(slug, familyId)}
       />

@@ -31,14 +31,12 @@ import MessagesThreadView, {
 import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
 import ParentMessagesInboxHeader from "@/components/school-parent/messages/ParentMessagesInboxHeader";
-import {
-  type ParentMessagesInboxFilter,
-} from "@/components/school-parent/messages/ParentMessagesInboxFilters";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   isSplitPaneMessagesVariant,
   isStoryMessagesVariant,
 } from "@/lib/messages/messages-layout-variant";
+import { parentMessagesViewTransition } from "@/components/school-parent/messages/parent-messages-view-transition";
 import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStudentDetailPanel";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
@@ -185,7 +183,6 @@ export default function MessagesInboxLayout({
   const [selectedStudent, setSelectedStudent] = useState<AdminEnrolledStudentSummary | null>(
     null,
   );
-  const [inboxFilter, setInboxFilter] = useState<ParentMessagesInboxFilter>("all");
   const [inboxSearch, setInboxSearch] = useState("");
   const deepLinkHandled = useRef(false);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
@@ -536,27 +533,16 @@ export default function MessagesInboxLayout({
   const parentStory = isStoryMessagesVariant(variant);
   const splitPane = isSplitPaneMessagesVariant(variant);
 
-  const unreadThreadCount = useMemo(
-    () => threads.reduce((sum, thread) => sum + (thread.unreadCount > 0 ? 1 : 0), 0),
-    [threads],
-  );
-
   const threadsForList = useMemo(() => {
-    let result = threads;
-    if (parentStory && inboxFilter === "unread") {
-      result = result.filter((thread) => thread.unreadCount > 0);
-    }
     const query = inboxSearch.trim().toLowerCase();
-    if (parentStory && query) {
-      result = result.filter(
-        (thread) =>
-          thread.title.toLowerCase().includes(query) ||
-          thread.subtitle?.toLowerCase().includes(query) ||
-          thread.lastMessagePreview?.toLowerCase().includes(query),
-      );
-    }
-    return result;
-  }, [inboxFilter, inboxSearch, parentStory, threads]);
+    if (!parentStory || !query) return threads;
+    return threads.filter(
+      (thread) =>
+        thread.title.toLowerCase().includes(query) ||
+        thread.subtitle?.toLowerCase().includes(query) ||
+        thread.lastMessagePreview?.toLowerCase().includes(query),
+    );
+  }, [inboxSearch, parentStory, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -640,22 +626,47 @@ export default function MessagesInboxLayout({
           <div className="flex flex-1 min-h-0 overflow-hidden">
             <div
               className={`flex w-full flex-shrink-0 flex-col border-r ${
-                parentStory ? "md:w-[290px]" : "md:w-80 lg:w-96"
+                parentStory ? "md:w-[340px]" : "md:w-80 lg:w-96"
               }`}
-              style={{ borderColor: C.border, backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg }}
+              style={{
+                borderColor: parentStory ? theme?.line ?? C.border : C.border,
+                backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
+              }}
             >
-              <div
-                className="flex items-center justify-between border-b px-4 py-3.5"
-                style={{ borderColor: C.border }}
-              >
-                <SkeletonBlock C={C} className="h-5 w-24" />
-                {!parentStory ? (
+              {parentStory ? (
+                <div className="border-b px-4 py-4" style={{ borderColor: theme?.line ?? C.border }}>
+                  <div
+                    className="mb-3 h-3 w-28 animate-pulse rounded"
+                    style={{ backgroundColor: theme?.line ?? C.border }}
+                  />
+                  <div
+                    className="mb-2 h-6 w-32 animate-pulse rounded"
+                    style={{ backgroundColor: theme?.line ?? C.border }}
+                  />
+                  <div
+                    className="h-4 w-full animate-pulse rounded"
+                    style={{ backgroundColor: theme?.line ?? C.border }}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="flex items-center justify-between border-b px-4 py-3.5"
+                  style={{ borderColor: C.border }}
+                >
+                  <SkeletonBlock C={C} className="h-5 w-24" />
                   <SkeletonBlock C={C} className="h-8 w-16 rounded-full" />
-                ) : null}
-              </div>
+                </div>
+              )}
               <MessagesConversationListSkeleton C={C} embedded={splitPane} />
             </div>
-            <div className="hidden flex-1 md:block" style={{ backgroundColor: C.bg }} />
+            <div
+              className="hidden flex-1 md:block"
+              style={{
+                backgroundColor: parentStory
+                  ? "#EFF5F0"
+                  : C.bg,
+              }}
+            />
           </div>
         </div>
       );
@@ -691,6 +702,7 @@ export default function MessagesInboxLayout({
         title="No messages yet"
         description="When your school enables messaging, conversations will appear here."
         C={C}
+        theme={theme}
         variant={variant}
       />
     );
@@ -716,30 +728,44 @@ export default function MessagesInboxLayout({
       }
     >
       {error && (
-        <div className="px-4 py-2 text-sm border-b" style={{ color: "#b45309", borderColor: C.border, backgroundColor: "#fffbeb" }}>
+        <div
+          className="border-b px-4 py-2 text-sm"
+          style={
+            parentStory && theme
+              ? {
+                  color: theme.warning,
+                  borderColor: theme.line,
+                  backgroundColor: theme.warningBg,
+                }
+              : { color: "#b45309", borderColor: C.border, backgroundColor: "#fffbeb" }
+          }
+        >
           {error}
         </div>
       )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div
+        <motion.div
           className={`border-r flex flex-col flex-shrink-0 ${
             mobileView === "chat" ? "hidden md:flex" : "flex"
           } w-full ${
-            parentStory ? "md:w-[290px]" : splitPane ? "md:w-80 lg:w-96" : "md:w-72"
+            parentStory ? "md:w-[340px]" : splitPane ? "md:w-80 lg:w-96" : "md:w-72"
           }`}
           style={{
             borderColor: theme?.line ?? C.border,
             backgroundColor: parentStory ? theme?.white ?? C.bg : C.bg,
           }}
+          {...(parentStory && mobileView === "list"
+            ? {
+                initial: parentMessagesViewTransition.initial,
+                animate: parentMessagesViewTransition.animate,
+                transition: parentMessagesViewTransition.transition,
+              }
+            : {})}
         >
           {parentStory && theme ? (
             <ParentMessagesInboxHeader
               theme={theme}
-              activeFilter={inboxFilter}
-              totalThreadCount={threads.length}
-              unreadThreadCount={unreadThreadCount}
-              onFilterChange={setInboxFilter}
               searchQuery={inboxSearch}
               onSearchChange={setInboxSearch}
               onNewMessage={() => setNewConversationOpen(true)}
@@ -785,12 +811,20 @@ export default function MessagesInboxLayout({
             variant={variant}
             hideStudentSubtitle={api.viewer === "teacher" && embedded}
           />
-        </div>
+        </motion.div>
 
-        <div
-          className={`flex flex-col flex-1 min-w-0 ${
+        <motion.div
+          className={`flex w-full flex-col flex-1 min-w-0 min-h-0 ${
             mobileView === "list" ? "hidden md:flex" : "flex"
           }`}
+          key={parentStory ? (activeThreadId ?? "empty") : undefined}
+          {...(parentStory
+            ? {
+                initial: parentMessagesViewTransition.initial,
+                animate: parentMessagesViewTransition.animate,
+                transition: parentMessagesViewTransition.transition,
+              }
+            : {})}
         >
           {!splitPane ? (
             <div className="md:hidden border-b px-3 py-2" style={{ borderColor: C.border }}>
@@ -828,7 +862,7 @@ export default function MessagesInboxLayout({
                 : undefined
             }
           />
-        </div>
+        </motion.div>
       </div>
 
       {splitPane ? (
@@ -838,6 +872,8 @@ export default function MessagesInboxLayout({
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
           C={C}
+          theme={theme}
+          variant={variant}
         />
       ) : null}
 
