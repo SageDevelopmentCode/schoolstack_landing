@@ -950,6 +950,30 @@ export async function unassignStudentFromStaff(
   if (error) throw error;
 }
 
+export async function fetchAssignedStudentCountsByStaffIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  staffMemberIds: string[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (staffMemberIds.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from("student_teacher_assignments")
+    .select("staff_member_id")
+    .eq("organization_id", organizationId)
+    .in("staff_member_id", staffMemberIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    const staffMemberId = String(row.staff_member_id);
+    result.set(staffMemberId, (result.get(staffMemberId) ?? 0) + 1);
+  }
+
+  return result;
+}
+
 /** @deprecated Use setStudentTeachers instead */
 export async function assignStudentTeacher(
   supabase: SupabaseClient,

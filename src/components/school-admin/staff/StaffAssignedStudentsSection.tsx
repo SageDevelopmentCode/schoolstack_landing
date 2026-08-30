@@ -23,6 +23,7 @@ type StaffAssignedStudentsSectionProps = {
   staffIsActive: boolean;
   C: AdminThemeTokens;
   embedded?: boolean;
+  onAssignmentsChanged?: () => void;
 };
 
 export default function StaffAssignedStudentsSection({
@@ -33,6 +34,7 @@ export default function StaffAssignedStudentsSection({
   staffIsActive,
   C,
   embedded = false,
+  onAssignmentsChanged,
 }: StaffAssignedStudentsSectionProps) {
   const supabase = useMemo(() => createClient(), []);
   const studentsPath = schoolAdminPath(slug, "my_school", "students");
@@ -134,6 +136,7 @@ export default function StaffAssignedStudentsSection({
           : `${studentIds.length} students assigned.`,
       );
       await loadAssignedStudents();
+      onAssignmentsChanged?.();
 
       if (enrolledStudents) {
         setEnrolledStudents((current) =>
@@ -188,6 +191,7 @@ export default function StaffAssignedStudentsSection({
 
       adminToast.success("Student unassigned.");
       setStudents((current) => current.filter((row) => row.id !== studentId));
+      onAssignmentsChanged?.();
 
       if (enrolledStudents) {
         setEnrolledStudents((current) =>

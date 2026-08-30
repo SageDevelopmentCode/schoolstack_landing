@@ -8,6 +8,7 @@ import {
   type StaffPortalRole,
 } from "@/lib/staff/staff-members";
 import { listStaffMembersWithLoginStatus } from "@/lib/staff/staff-portal-login-status";
+import { fetchAssignedStudentCountsByStaffIds } from "@/lib/school-admin/enrolled-students";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -68,7 +69,18 @@ export async function GET(request: Request, context: RouteContext) {
       listStaffMembers,
     );
 
-    return NextResponse.json({ staffMembers });
+    const countsByStaffId = await fetchAssignedStudentCountsByStaffIds(
+      admin,
+      organizationId,
+      staffMembers.map((member) => member.id),
+    );
+
+    const staffMembersWithCounts = staffMembers.map((member) => ({
+      ...member,
+      assignedStudentCount: countsByStaffId.get(member.id) ?? 0,
+    }));
+
+    return NextResponse.json({ staffMembers: staffMembersWithCounts });
   } catch (error) {
     if (error instanceof SchoolAdminAuthError) {
       return apiError(ROUTE, {

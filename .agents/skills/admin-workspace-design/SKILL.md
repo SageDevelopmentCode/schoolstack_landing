@@ -111,7 +111,21 @@ useSchoolAdminStoryTheme()
   StudentDetailPanel drawer: same story shell as submission detail (Overview · Family tabs)
 ```
 
-Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
+**Staff list (my_school tab):**
+
+```
+Always-on split-pane (prototype staff directory detail view):
+  Add staff in StaffListSidebar card above search (mobile: above horizontal strip)
+  grid-cols-[280px_1fr]: StaffListSidebar (left) + StaffDetailPane (right AdminCard)
+  Mobile: horizontal staff strip above detail pane (lg+ uses sidebar)
+  StaffDetailPane: hero avatar + Edit profile; tabs Profile · Portal access · Learners & groups · Contact
+    Lazy-mounted tab cache + tabPanelVariants; profile edit, portal deactivate/reactivate,
+    StaffAssignedStudentsSection assign/unassign, contact email read-only
+  Auto-select first staff on load; deep link: ?staff={id}
+  No table, metrics, filters, or Staff directory back navigation
+```
+
+Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts), [`admin-staff-roster-metrics.ts`](src/lib/school-admin/admin-staff-roster-metrics.ts). Staff display helpers: [`staff-display.ts`](src/lib/staff/staff-display.ts). Assigned learner counts: [`fetchAssignedStudentCountsByStaffIds`](src/lib/school-admin/enrolled-students.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
 
 ### Scope
 
@@ -130,4 +144,5 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Enrollment flows: [`ApplicationFormsPage.tsx`](src/components/school-admin/admissions/ApplicationFormsPage.tsx)
 - Programs: [`ProgramsPage.tsx`](src/components/school-admin/admissions/ProgramsPage.tsx), [`ProgramsOutline.tsx`](src/components/school-admin/admissions/ProgramsOutline.tsx)
 - Submissions: [`ApplicationSubmissionsPage.tsx`](src/components/school-admin/admissions/ApplicationSubmissionsPage.tsx), [`SubmissionNextStepCell.tsx`](src/components/school-admin/admissions/SubmissionNextStepCell.tsx)
+- Staff: [`StaffPage.tsx`](src/components/school-admin/staff/StaffPage.tsx), [`StaffDetailPane.tsx`](src/components/school-admin/staff/StaffDetailPane.tsx), [`StaffListSidebar.tsx`](src/components/school-admin/staff/StaffListSidebar.tsx)
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)
