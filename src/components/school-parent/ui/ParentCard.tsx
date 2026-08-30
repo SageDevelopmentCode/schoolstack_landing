@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentCardProps = {
@@ -7,7 +7,7 @@ type ParentCardProps = {
   className?: string;
   style?: CSSProperties;
   variant?: "default" | "today" | "primary";
-};
+} & Pick<HTMLAttributes<HTMLDivElement>, "data-testid">;
 
 export default function ParentCard({
   theme,
@@ -15,6 +15,7 @@ export default function ParentCard({
   className = "",
   style,
   variant = "default",
+  "data-testid": dataTestId,
 }: ParentCardProps) {
   const variantStyle: CSSProperties =
     variant === "today"
@@ -33,6 +34,7 @@ export default function ParentCard({
 
   return (
     <div
+      data-testid={dataTestId}
       className={`relative overflow-hidden border p-6 ${className}`}
       style={{
         borderColor: "rgba(74, 97, 82, 0.1)",

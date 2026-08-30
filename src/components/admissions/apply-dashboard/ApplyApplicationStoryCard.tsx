@@ -64,6 +64,8 @@ export default function ApplyApplicationStoryCard({
     >
       <NavigationLink
         href={action.href}
+        aria-label={action.label}
+        data-testid="apply-application-card-link"
         className="group block transition-transform hover:-translate-y-0.5"
       >
         <article

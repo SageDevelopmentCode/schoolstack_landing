@@ -31,7 +31,7 @@ test.describe("mobile apply flows", () => {
       page.getByRole("heading", { name: "Your applications" }),
     ).toBeVisible();
 
-    const cta = page.getByRole("link", { name: /View|Continue|enrollment/i }).first();
+    const cta = page.getByTestId("apply-application-card-link").first();
     await expect(cta).toBeVisible();
 
     const hasHorizontalOverflow = await page.evaluate(
@@ -58,7 +58,7 @@ test.describe("mobile apply flows", () => {
 
   test("application detail uses shared navbar on mobile", async ({ page }) => {
     await page.goto(`/school/${TEST_ORG_SLUG}/apply`);
-    await page.getByRole("link", { name: "View" }).first().click();
+    await page.getByTestId("apply-application-card-link").first().click();
 
     await expect(page.getByRole("button", { name: /E2E Parent/i })).toBeVisible();
   });
