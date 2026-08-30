@@ -109,7 +109,9 @@ export default function NotificationsSettingsPage({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadSettings();
+    queueMicrotask(() => {
+      void loadSettings();
+    });
   }, [loadSettings]);
 
   const saveSettings = useCallback(

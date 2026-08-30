@@ -19,6 +19,30 @@ function createAdminClient() {
   });
 }
 
+const E2E_MARK_ENROLLED_TEMPLATE_ITEMS = [
+  {
+    item_key: "e2e_acknowledgment",
+    sort_order: 0,
+    label: "E2E acknowledgment",
+    type: "acknowledgment",
+    required: true,
+    metadata: {},
+  },
+  {
+    item_key: "e2e_supply_fee",
+    sort_order: 1,
+    label: "Supply Fee",
+    type: "payment",
+    required: true,
+    metadata: {
+      payment: {
+        label: "Supply Fee",
+        amountCents: 50000,
+      },
+    },
+  },
+] as const;
+
 async function ensurePublishedEnrollmentChecklistWithPayment(
   admin: ReturnType<typeof createAdminClient>,
   organizationId: string,
@@ -32,59 +56,100 @@ async function ensurePublishedEnrollmentChecklistWithPayment(
     .eq("status", "published")
     .maybeSingle();
 
-  if (existingTemplate) {
-    return String(existingTemplate.id);
+  let templateId = existingTemplate?.id ? String(existingTemplate.id) : null;
+
+  if (!templateId) {
+    const { data: template, error: templateError } = await admin
+      .from("enrollment_checklist_templates")
+      .insert({
+        organization_id: organizationId,
+        program_id: programId,
+        name: "E2E Mark Enrolled Checklist",
+        enrollment_path: "enrollment",
+        status: "published",
+      })
+      .select("id")
+      .single();
+
+    if (templateError) throw templateError;
+    templateId = String(template.id);
   }
 
-  const { data: template, error: templateError } = await admin
-    .from("enrollment_checklist_templates")
-    .insert({
-      organization_id: organizationId,
-      program_id: programId,
-      name: "E2E Mark Enrolled Checklist",
-      enrollment_path: "enrollment",
-      status: "published",
-    })
-    .select("id")
-    .single();
+  for (const item of E2E_MARK_ENROLLED_TEMPLATE_ITEMS) {
+    const { data: existingItem } = await admin
+      .from("enrollment_checklist_template_items")
+      .select("id")
+      .eq("template_id", templateId)
+      .eq("item_key", item.item_key)
+      .maybeSingle();
 
-  if (templateError) throw templateError;
+    if (existingItem?.id) continue;
 
-  const templateId = String(template.id);
-
-  const { error: itemError } = await admin
-    .from("enrollment_checklist_template_items")
-    .insert([
-      {
+    const { error: itemError } = await admin
+      .from("enrollment_checklist_template_items")
+      .insert({
         template_id: templateId,
         organization_id: organizationId,
-        item_key: "e2e_acknowledgment",
-        sort_order: 0,
-        label: "E2E acknowledgment",
-        type: "acknowledgment",
-        required: true,
-        metadata: {},
-      },
-      {
-        template_id: templateId,
-        organization_id: organizationId,
-        item_key: "e2e_supply_fee",
-        sort_order: 1,
-        label: "Supply Fee",
-        type: "payment",
-        required: true,
-        metadata: {
-          payment: {
-            label: "Supply Fee",
-            amountCents: 50000,
-          },
-        },
-      },
-    ]);
+        ...item,
+      });
 
-  if (itemError) throw itemError;
+    if (itemError) throw itemError;
+  }
 
   return templateId;
+}
+
+async function resetApplicationEnrollmentState(
+  admin: ReturnType<typeof createAdminClient>,
+  applicationId: string,
+  baselineStatus: string,
+) {
+  const { data: application, error: applicationError } = await admin
+    .from("applications")
+    .select("student_id")
+    .eq("id", applicationId)
+    .single();
+
+  if (applicationError) throw applicationError;
+
+  await admin
+    .from("application_payments")
+    .delete()
+    .eq("application_id", applicationId)
+    .eq("payment_type", "enrollment_checklist");
+
+  const { data: checklist } = await admin
+    .from("enrollment_checklists")
+    .select("id")
+    .eq("application_id", applicationId)
+    .maybeSingle();
+
+  if (checklist?.id) {
+    await admin
+      .from("enrollment_checklist_items")
+      .delete()
+      .eq("checklist_id", checklist.id);
+    await admin.from("enrollment_checklists").delete().eq("id", checklist.id);
+  }
+
+  if (application?.student_id) {
+    await admin
+      .from("enrollments")
+      .delete()
+      .eq("student_id", application.student_id);
+
+    await admin
+      .from("students")
+      .update({ status: "prospect" })
+      .eq("id", application.student_id);
+  }
+
+  const { error: statusError } = await admin
+    .from("applications")
+    .update({ status: baselineStatus })
+    .eq("id", applicationId);
+
+  if (statusError) throw statusError;
 }
 
 test("mark-enrolled POST returns 403 for non-admin user", async ({
@@ -126,6 +191,8 @@ test("mark-enrolled POST marks an accepted application as enrolled", async ({
   const manifest = getSeedManifest();
   const admin = createAdminClient();
   const applicationId = manifest.applications.enrollTarget;
+
+  await resetApplicationEnrollmentState(admin, applicationId, "submitted");
 
   const { data: application, error: applicationLookupError } = await admin
     .from("applications")
@@ -232,6 +299,8 @@ test("mark-enrolled POST enroll-only leaves checklist in progress", async ({
   const admin = createAdminClient();
   const applicationId = manifest.applications.noFeeDraft;
 
+  await resetApplicationEnrollmentState(admin, applicationId, "draft");
+
   const { data: application, error: applicationLookupError } = await admin
     .from("applications")
     .select("program_id")
@@ -297,6 +366,8 @@ test("mark-enrolled POST completes an in-progress enrollment checklist", async (
   const manifest = getSeedManifest();
   const admin = createAdminClient();
   const applicationId = manifest.applications.betaChild;
+
+  await resetApplicationEnrollmentState(admin, applicationId, "under_review");
 
   const { data: application, error: applicationLookupError } = await admin
     .from("applications")
