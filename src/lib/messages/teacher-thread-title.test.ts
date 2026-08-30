@@ -42,6 +42,7 @@ function buildContext(
             primaryContactName: "Julius Cecilia",
             primaryContactEmail: null,
             programNames: [],
+            classroomNames: [],
             enrolledAt: "2026-01-01",
             assignedTeachers: [{ id: "staff-1", name: "Julius Staff" }],
             assignedTeacherNames: "Julius Staff",
