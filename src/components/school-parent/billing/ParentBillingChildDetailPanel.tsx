@@ -1,27 +1,27 @@
 "use client";
 
-import { ChevronRight, CreditCard, Loader2, Wallet } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import ParentBillingChargeRow from "@/components/school-parent/billing/ParentBillingChargeRow";
+import ParentBillingDueCard from "@/components/school-parent/billing/ParentBillingDueCard";
 import ParentBillingPaymentHistoryRow from "@/components/school-parent/billing/ParentBillingPaymentHistoryRow";
+import ParentBillingPaymentSettingsCard from "@/components/school-parent/billing/ParentBillingPaymentSettingsCard";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 import ParentTuitionPlanSelector from "@/components/school-parent/billing/ParentTuitionPlanSelector";
 import { formatUpcomingChargesSummary } from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import {
   childFirstNameFromFullName,
   type ParentBillingChildView,
 } from "@/lib/tuition/parent-billing-summary";
 import { formatCents } from "@/lib/tuition/pricing";
-import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
-import {
-  EXTRA_PAY_BUTTON_HINT,
-  EXTRA_PAY_BUTTON_LABEL,
-} from "@/lib/tuition/tuition-pay-copy";
+import type { SavedPaymentMethodSummary } from "@/lib/tuition/payment-methods";
 
 type ParentBillingChildDetailPanelProps = {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   child: ParentBillingChildView;
   charges: TuitionCharge[];
@@ -30,6 +30,10 @@ type ParentBillingChildDetailPanelProps = {
   payments: ParentTuitionPaymentRecord[];
   payingChargeId: string | null;
   autopayEnabled: boolean;
+  savedPaymentMethod: SavedPaymentMethodSummary | null;
+  paymentMethodLoading: boolean;
+  onAutopayToggleRequest: (enabled: boolean) => void;
+  onManagePaymentMethod: () => void;
   readOnly?: boolean;
   onPay: (chargeId: string) => void;
   onPayExtra?: (chargeId: string) => void;
@@ -47,6 +51,7 @@ function sortChargesByDueDate(charges: TuitionCharge[]): TuitionCharge[] {
 }
 
 export default function ParentBillingChildDetailPanel({
+  theme,
   C,
   child,
   charges,
@@ -55,6 +60,10 @@ export default function ParentBillingChildDetailPanel({
   payments,
   payingChargeId,
   autopayEnabled,
+  savedPaymentMethod,
+  paymentMethodLoading,
+  onAutopayToggleRequest,
+  onManagePaymentMethod,
   readOnly = false,
   onPay,
   onPayExtra,
@@ -75,99 +84,63 @@ export default function ParentBillingChildDetailPanel({
     (payment) => payment.enrollmentId === child.childKey,
   );
 
-  const canPay =
-    child.balanceDueCents > 0 && child.nextChargeId != null && !readOnly;
   const canPayExtra =
     !readOnly &&
     child.nextChargeId != null &&
     child.totalRemainingCents > child.balanceDueCents;
-  const isPaying = child.nextChargeId
-    ? payingChargeId === child.nextChargeId
-    : false;
 
   const upcomingSummary = formatUpcomingChargesSummary(openCharges);
 
   return (
     <div
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-8"
       data-testid="parent-billing-child-detail-panel"
     >
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-semibold" style={{ color: C.textPrimary }}>
-            {child.studentName}
-          </h2>
-          {child.selectionItem || child.status === "needs_schedule" ? (
-            <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
-          ) : null}
-        </div>
-        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm" style={{ color: theme.muted }}>
           {planSubtitle}
           {child.totalRemainingCents > 0
             ? ` · ${formatCents(child.totalRemainingCents)} remaining`
             : ""}
         </p>
+        {child.selectionItem || child.status === "needs_schedule" ? (
+          <ParentNeedsScheduleBadge C={C} label="Schedule needed" />
+        ) : null}
       </div>
 
-      {child.balanceDueCents > 0 ? (
-        <div
-          className="rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-          style={{
-            backgroundColor: C.surface,
-            border: `1px solid ${C.border}`,
-            boxShadow: C.shadowCard,
-          }}
-          data-testid={`parent-billing-child-due-card-${child.childKey}`}
-        >
-          <div>
-            <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-              Due now
-            </p>
-            <p className="text-2xl font-semibold mt-0.5" style={{ color: C.textPrimary }}>
-              {formatCents(child.balanceDueCents)}
-            </p>
-            {child.nextCharge ? (
-              <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-                Due {formatBillingDueDate(child.nextCharge.dueDate)}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canPay ? (
-              <button
-                type="button"
-                disabled={isPaying}
-                onClick={() => onPay(child.nextChargeId!)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: C.accent, color: "#fff" }}
-                data-testid={`parent-billing-child-pay-${child.childKey}`}
-              >
-                {isPaying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CreditCard className="h-4 w-4" />
-                )}
-                Pay {formatCents(child.balanceDueCents)}
-              </button>
-            ) : null}
-            {canPayExtra && onPayExtra ? (
-              <button
-                type="button"
-                disabled={isPaying}
-                onClick={() => onPayExtra(child.nextChargeId!)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                style={getAdminButtonStyle(C, "secondary")}
-                data-testid={`parent-billing-child-pay-extra-${child.childKey}`}
-                title={EXTRA_PAY_BUTTON_HINT}
-                aria-label={EXTRA_PAY_BUTTON_HINT}
-              >
-                <Wallet className="h-4 w-4 shrink-0" aria-hidden />
-                {EXTRA_PAY_BUTTON_LABEL}
-              </button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_0.75fr]">
+        <ParentBillingDueCard
+          theme={theme}
+          C={C}
+          balanceDueCents={child.balanceDueCents}
+          nextCharge={child.nextCharge}
+          nextChargeId={child.nextChargeId}
+          payNowLabel={
+            child.balanceDueCents > 0
+              ? `Pay ${formatCents(child.balanceDueCents)}`
+              : "Pay"
+          }
+          payingChargeId={payingChargeId}
+          payingCombined={false}
+          onPay={onPay}
+          canPayExtra={canPayExtra}
+          onPayExtra={onPayExtra}
+          autopayEnabled={autopayEnabled}
+          hasPendingSchedule={child.status === "needs_schedule"}
+          readOnly={readOnly}
+          testId={`parent-billing-child-due-card-${child.childKey}`}
+          payButtonTestId={`parent-billing-child-pay-${child.childKey}`}
+        />
+        <ParentBillingPaymentSettingsCard
+          theme={theme}
+          autopayEnabled={autopayEnabled}
+          savedPaymentMethod={savedPaymentMethod}
+          paymentMethodLoading={paymentMethodLoading}
+          onAutopayToggleRequest={onAutopayToggleRequest}
+          onManagePaymentMethod={onManagePaymentMethod}
+          readOnly={readOnly}
+        />
+      </div>
 
       {child.selectionItem ? (
         <div id="parent-tuition-plan-selector">
@@ -198,9 +171,22 @@ export default function ParentBillingChildDetailPanel({
 
       {!child.selectionItem ? (
         <section>
-          <h3 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>
-            Payment schedule
-          </h3>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-[21px]">
+              Payment schedule
+            </ParentDisplayHeading>
+            {upcomingCharges.length > 4 ? (
+              <button
+                type="button"
+                onClick={onOpenUpcomingCharges}
+                className="inline-flex items-center gap-1 text-[13px] font-bold"
+                style={{ color: theme.primary }}
+                data-testid="parent-billing-upcoming-charges-trigger-inline"
+              >
+                View full schedule →
+              </button>
+            ) : null}
+          </div>
           {upcomingCharges.length > 0 ? (
             <div className="flex flex-col gap-2">
               {upcomingCharges.slice(0, 4).map((charge) => (
@@ -221,34 +207,41 @@ export default function ParentBillingChildDetailPanel({
                 <button
                   type="button"
                   onClick={onOpenUpcomingCharges}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-sm transition-shadow"
+                  className="flex w-full items-center justify-between gap-3 rounded-[15px] border px-4 py-3 text-left text-sm transition-shadow"
                   style={{
-                    backgroundColor: C.surface,
-                    border: `1px solid ${C.border}`,
-                    boxShadow: C.shadowCard,
+                    backgroundColor: theme.white,
+                    borderColor: theme.line,
+                    boxShadow: theme.shadowCard,
                   }}
-                  data-testid="parent-billing-upcoming-charges-trigger"
+                  data-testid="parent-billing-upcoming-charges-trigger-card"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium" style={{ color: C.textPrimary }}>
+                    <p className="font-medium text-[13px]" style={{ color: theme.ink }}>
                       View full schedule
                     </p>
                     {upcomingSummary ? (
-                      <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
+                      <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
                         {upcomingSummary}
                       </p>
                     ) : null}
                   </div>
                   <ChevronRight
                     className="h-4 w-4 shrink-0"
-                    style={{ color: C.textTertiary }}
+                    style={{ color: theme.muted }}
                     aria-hidden
                   />
                 </button>
               ) : null}
+              <p
+                className="text-sm"
+                style={{ color: theme.muted }}
+                data-testid="parent-billing-upcoming-total-remaining"
+              >
+                {formatCents(child.totalRemainingCents)} remaining on schedule
+              </p>
             </div>
           ) : (
-            <p className="text-sm" style={{ color: C.textTertiary }}>
+            <p className="text-sm" style={{ color: theme.muted }}>
               {assignmentCharges.length > 0
                 ? "No upcoming charges."
                 : "No charges on the schedule yet."}
@@ -258,22 +251,23 @@ export default function ParentBillingChildDetailPanel({
       ) : null}
 
       <section>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>
+        <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-[21px] mb-3">
           Payments for {firstName}
-        </h3>
+        </ParentDisplayHeading>
         {childPayments.length > 0 ? (
           <div className="flex flex-col gap-2">
             {childPayments.map((payment) => (
               <ParentBillingPaymentHistoryRow
                 key={payment.id}
                 C={C}
+                theme={theme}
                 payment={payment}
                 onClick={() => onPaymentClick(payment.id)}
               />
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: C.textTertiary }}>
+          <p className="text-sm" style={{ color: theme.muted }}>
             No payments yet for {firstName}.
           </p>
         )}

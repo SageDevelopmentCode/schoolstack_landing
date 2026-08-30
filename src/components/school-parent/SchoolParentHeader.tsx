@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
@@ -21,10 +24,6 @@ import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
   reportAuthActivityAndWait,
 } from "@/lib/activity-auth-client";
-import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
 import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
@@ -39,6 +38,7 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   GuardianProfilePhotoClientError,
   uploadGuardianProfilePhotoFromParent,
@@ -59,17 +59,19 @@ type SchoolParentHeaderProps = {
   previewParentBasePath?: string;
 };
 
-const parentNavFontClass = "font-[family-name:var(--font-poppins)]";
+const parentNavTextClass = "text-[13px] font-semibold";
 
 function NavLink({
   item,
   pathname,
-  C,
+  theme,
+  adminCompat,
   messagesUnreadCount,
 }: {
   item: ParentNavItem;
   pathname: string;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
+  adminCompat: ReturnType<typeof useParentTheme>["adminCompat"];
   messagesUnreadCount: number;
 }) {
   const Icon = item.icon;
@@ -79,20 +81,22 @@ function NavLink({
   return (
     <NavigationLink
       href={item.href}
-      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${parentNavFontClass}`}
+      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
       style={{
-        backgroundColor: active ? C.accentLight : "transparent",
-        fontWeight: active ? 600 : 500,
+        backgroundColor: active ? theme.primaryLight : "transparent",
       }}
     >
       <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColorClass}`} />
-      <span style={{ color: active ? C.accent : C.textSecondary }}>
+      <span style={{ color: active ? theme.primary : theme.muted }}>
         {item.name}
       </span>
       {item.key === "messages" ? (
         <MessagesNavBadge
           count={messagesUnreadCount}
-          theme={{ accent: C.accent, accentLight: C.accentLight }}
+          theme={{
+            accent: adminCompat.accent,
+            accentLight: adminCompat.accentLight,
+          }}
         />
       ) : null}
     </NavigationLink>
@@ -113,6 +117,7 @@ export default function SchoolParentHeader({
 }: SchoolParentHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, adminCompat: C } = useParentTheme();
   const previewPortalOptions = usePreviewPortalOptions();
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
@@ -121,7 +126,6 @@ export default function SchoolParentHeader({
   const showPreviewSwitcher =
     previewMode && shouldShowPortalSwitcher(resolvedPortalOptions);
   const supabase = useMemo(() => createClient(), []);
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -240,10 +244,36 @@ export default function SchoolParentHeader({
   };
 
   return (
-    <header className="shrink-0 border-b border-gray-100 bg-white">
-      <div className="flex items-center px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <NavigationLink href={homeHref} className="min-w-0 shrink">
+    <header
+      className="relative z-40 shrink-0 border-b backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(255, 255, 255, 0.89)",
+        borderColor: theme.line,
+      }}
+    >
+      <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
+        <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-sm transition-opacity hover:opacity-80"
+          >
+            <Image
+              src="/images/schoolstack-logo.png"
+              alt="SchoolStack"
+              width={40}
+              height={40}
+              priority
+              className="h-8 w-auto shrink-0 object-contain sm:h-10"
+            />
+          </Link>
+          <div
+            className="h-7 w-px shrink-0 sm:h-8"
+            style={{ backgroundColor: theme.line }}
+            aria-hidden
+          />
+          <NavigationLink href={homeHref} className="min-w-0 shrink rounded-sm transition-opacity hover:opacity-80">
             <SchoolDemoWordmark
               logo={{
                 src: branding.logo.src,
@@ -252,7 +282,8 @@ export default function SchoolParentHeader({
                 height: branding.logo.height,
                 text: branding.logo.src ? undefined : schoolName,
               }}
-              className="h-8 w-auto max-w-[min(180px,40vw)] object-contain sm:h-10"
+              className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+              sizes="(max-width: 640px) 160px, 200px"
             />
           </NavigationLink>
         </div>
@@ -263,7 +294,8 @@ export default function SchoolParentHeader({
               key={item.key}
               item={item}
               pathname={pathname}
-              C={C}
+              theme={theme}
+              adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
             />
           ))}
@@ -272,11 +304,10 @@ export default function SchoolParentHeader({
               <button
                 type="button"
                 onClick={() => setMoreOpen((open) => !open)}
-                className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${parentNavFontClass}`}
+                className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
                 style={{
-                  color: moreActive ? C.accent : C.textSecondary,
-                  backgroundColor: moreActive ? C.accentLight : "transparent",
-                  fontWeight: moreActive ? 600 : 500,
+                  color: moreActive ? theme.primary : theme.muted,
+                  backgroundColor: moreActive ? theme.primaryLight : "transparent",
                 }}
               >
                 More
@@ -285,7 +316,13 @@ export default function SchoolParentHeader({
                 />
               </button>
               {moreOpen ? (
-                <div className="absolute right-0 z-50 mt-1.5 w-52 rounded-xl border border-gray-100 bg-white py-1.5 shadow-lg">
+                <div
+                  className="absolute right-0 z-[100] mt-1.5 w-52 rounded-xl py-1.5 shadow-lg"
+                  style={{
+                    border: `1px solid ${theme.line}`,
+                    backgroundColor: theme.white,
+                  }}
+                >
                   {more.map((item) => {
                     const Icon = item.icon;
                     const active = isParentNavItemActive(pathname, item);
@@ -295,21 +332,22 @@ export default function SchoolParentHeader({
                         key={item.key}
                         href={item.href}
                         onClick={() => setMoreOpen(false)}
-                        className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors ${parentNavFontClass}`}
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`}
                         style={{
-                          backgroundColor: active ? C.accentLight : "transparent",
-                          fontWeight: active ? 500 : 400,
+                          color: active ? theme.primary : theme.ink,
+                          backgroundColor: active ? theme.primaryLight : "transparent",
                         }}
                       >
                         <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
-                        <span style={{ color: active ? C.accent : "#4B5563" }}>
-                          {item.name}
-                        </span>
+                        <span>{item.name}</span>
                         {item.key === "messages" ? (
                           <MessagesNavBadge
-          count={messagesUnreadCount}
-          theme={{ accent: C.accent, accentLight: C.accentLight }}
-        />
+                            count={messagesUnreadCount}
+                            theme={{
+                              accent: C.accent,
+                              accentLight: C.accentLight,
+                            }}
+                          />
                         ) : null}
                       </NavigationLink>
                     );
@@ -320,96 +358,116 @@ export default function SchoolParentHeader({
           ) : null}
         </nav>
 
-        <div className="flex flex-1 justify-end">
-          <div className="relative" ref={menuRef}>
-            <ParentProfileMenuTrigger
-              displayName={userProfile.displayName}
-              profilePhotoUrl={profilePhotoUrl}
-              theme={C}
-              menuOpen={menuOpen}
-              onClick={() => setMenuOpen((open) => !open)}
-            />
-            {menuOpen ? (
+        <div className="relative z-[100] shrink-0" ref={menuRef}>
+          <ParentProfileMenuTrigger
+            displayName={userProfile.displayName}
+            profilePhotoUrl={profilePhotoUrl}
+            theme={C}
+            parentTheme={theme}
+            variant="story"
+            menuOpen={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          />
+          {menuOpen ? (
+            <div
+              className="absolute right-0 top-full z-[100] mt-1.5 w-64 rounded-xl py-1 shadow-lg"
+              style={{
+                border: `1px solid ${theme.line}`,
+                backgroundColor: theme.white,
+              }}
+              role="menu"
+            >
               <div
-                className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-md border border-gray-100 bg-white py-1 shadow-lg"
-                role="menu"
+                className="border-b px-3 py-3"
+                style={{ borderColor: theme.line }}
               >
-                <div className="border-b border-gray-100 px-3 py-3">
-                  <div className="flex items-start gap-3">
-                    <StudentPhoto
-                      name={userProfile.displayName}
-                      photoUrl={profilePhotoUrl}
-                      size="lg"
-                      theme={C}
-                      editable={canUploadPhoto}
-                      uploading={photoUploading}
-                      showEditHint={canUploadPhoto}
-                      onFileSelect={(file) => void handlePhotoUpload(file)}
-                    />
-                    <div className="min-w-0 flex-1 pt-0.5">
-                      <p className="truncate text-sm font-semibold text-gray-800">
-                        {userProfile.displayName}
+                <div className="flex items-start gap-3">
+                  <StudentPhoto
+                    name={userProfile.displayName}
+                    photoUrl={profilePhotoUrl}
+                    size="lg"
+                    theme={C}
+                    editable={canUploadPhoto}
+                    uploading={photoUploading}
+                    showEditHint={canUploadPhoto}
+                    onFileSelect={(file) => void handlePhotoUpload(file)}
+                  />
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <p
+                      className="truncate text-sm font-semibold"
+                      style={{ color: theme.ink }}
+                    >
+                      {userProfile.displayName}
+                    </p>
+                    {userProfile.email ? (
+                      <p
+                        className="mt-0.5 truncate text-xs"
+                        style={{ color: theme.muted }}
+                      >
+                        {userProfile.email}
                       </p>
-                      {userProfile.email ? (
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
-                          {userProfile.email}
-                        </p>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </div>
                 </div>
-                <SchoolPortalSwitcherMenuItems
-                  C={C}
-                  options={resolvedPortalOptions}
-                  currentPortal={detectPortalFromPathname(pathname, slug)}
-                  onNavigate={() => setMenuOpen(false)}
-                />
-                {!showPreviewSwitcher ? (
+              </div>
+              <SchoolPortalSwitcherMenuItems
+                C={C}
+                options={resolvedPortalOptions}
+                currentPortal={detectPortalFromPathname(pathname, slug)}
+                onNavigate={() => setMenuOpen(false)}
+              />
+              {!showPreviewSwitcher ? (
                 <NavigationLink
                   href={applicationsHref}
-                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  className="block px-3 py-2 text-sm transition-colors hover:opacity-80"
+                  style={{ color: theme.ink }}
                   onClick={() => setMenuOpen(false)}
                 >
                   Your applications
                 </NavigationLink>
-                ) : null}
-                <NavigationLink
-                  href={notificationsHref}
-                  className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  onClick={() => setMenuOpen(false)}
+              ) : null}
+              <NavigationLink
+                href={notificationsHref}
+                className="block px-3 py-2 text-sm transition-colors hover:opacity-80"
+                style={{ color: theme.ink }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Notification settings
+              </NavigationLink>
+              {!previewMode ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void handleSignOut()}
+                  disabled={signingOut}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:opacity-80 disabled:opacity-60"
+                  style={{ color: theme.ink }}
                 >
-                  Notification settings
-                </NavigationLink>
-                {!previewMode ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => void handleSignOut()}
-                    disabled={signingOut}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-                  >
-                    {!signingOut ? (
-                      <LogOut className="h-4 w-4 text-gray-500" />
-                    ) : null}
-                    <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
-                      Log out
-                    </ButtonLoadingLabel>
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+                  {!signingOut ? (
+                    <LogOut className="h-4 w-4" style={{ color: theme.muted }} />
+                  ) : null}
+                  <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
+                    Log out
+                  </ButtonLoadingLabel>
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
       {navItems.length > 0 ? (
-        <nav className="flex gap-1 overflow-x-auto border-t border-gray-100 px-4 py-2 lg:hidden">
+        <nav
+          className="flex gap-1 overflow-x-auto border-t px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+          style={{ borderColor: theme.line }}
+        >
           {navItems.map((item) => (
             <NavLink
               key={item.key}
               item={item}
               pathname={pathname}
-              C={C}
+              theme={theme}
+              adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
             />
           ))}

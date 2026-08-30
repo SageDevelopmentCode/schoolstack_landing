@@ -2,40 +2,40 @@
 
 import Link from "next/link";
 import StudentPhoto from "@/components/students/StudentPhoto";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle,
   ClipboardCheck,
-  Clock,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 import type {
   FamilyChildOverview,
   FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
-import { applicationStatusBadgeStyle } from "@/lib/admissions/application-status-ui";
 import type { ParentQuickAction } from "@/lib/organization-settings/parent-home";
-import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
-import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
 import type { ResolvedParentOnboardingItem } from "@/lib/organization-settings/parent-onboarding";
 import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
+  buildParentThemeTokens,
+  childAccentBg,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
-import {
-  getEventDisplayStyle,
-  SCHOOL_EVENT_TYPE_LABELS,
-} from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
+import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
+import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
+import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
+import ParentChip from "@/components/school-parent/ui/ParentChip";
+import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -49,6 +49,15 @@ type ParentHomePageProps = {
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   previewMode?: boolean;
   previewBasePath?: string;
+};
+
+type AttentionItem = {
+  key: string;
+  title: string;
+  subtitle: string;
+  href?: string;
+  icon: React.ReactNode;
+  iconBg?: string;
 };
 
 const fadeUp = {
@@ -69,15 +78,30 @@ function firstName(displayName: string): string {
   return part ?? displayName;
 }
 
-function greetingPrefix(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+function familyKickerLabel(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `The ${parts[parts.length - 1]} family`;
+  }
+  if (parts.length === 1) {
+    return `The ${parts[0]} family`;
+  }
+  return "Your family";
 }
 
-function quickActionStyle(iconSlug: string) {
-  return getParentFeatureIconStyle(iconSlug);
+function greetingParts(): { prefix: string; emoji: string } {
+  const hour = new Date().getHours();
+  if (hour < 12) return { prefix: "Good morning", emoji: "☀️" };
+  if (hour < 17) return { prefix: "Good afternoon", emoji: "🌤️" };
+  return { prefix: "Good evening", emoji: "🌙" };
+}
+
+function childSubtitleLine(child: FamilyChildOverview): string {
+  const gradePart = child.grade ? `Grade ${child.grade}` : "Grade not listed";
+  if (child.checklistProgress && child.checklistProgress.total > 0) {
+    return `${gradePart} · Enrollment checklist: ${child.checklistProgress.completed} of ${child.checklistProgress.total} complete`;
+  }
+  return gradePart;
 }
 
 function childApplicationHref(
@@ -108,28 +132,65 @@ function childDetailsHref(
   return `${base}?applicationId=${encodeURIComponent(applicationId)}`;
 }
 
-function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="font-heading text-base font-semibold text-gray-800">
-      {children}
-    </h2>
-  );
+function buildAttentionItems(input: {
+  onboardingItems: ResolvedParentOnboardingItem[];
+  enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
+  enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+}): AttentionItem[] {
+  const items: AttentionItem[] = [];
+
+  for (const item of input.enrollmentIncompleteBannerItems) {
+    items.push({
+      key: `incomplete-${item.applicationId}`,
+      title: `Sign ${item.studentName.split(" ")[0]}'s enrollment agreement`,
+      subtitle: item.checklistItemLabel,
+      href: item.enrollmentHref,
+      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
+      iconBg: "#F7E5DE",
+    });
+  }
+
+  for (const item of input.enrollmentAmendmentBannerItems) {
+    items.push({
+      key: `amendment-${item.applicationId}`,
+      title: `Review ${item.studentName.split(" ")[0]}'s agreement update`,
+      subtitle: item.checklistItemLabel,
+      href: item.enrollmentHref,
+      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
+      iconBg: "#F7E5DE",
+    });
+  }
+
+  for (const item of input.onboardingItems) {
+    if (item.completed || !item.autoTracked) continue;
+    items.push({
+      key: `onboarding-${item.id}`,
+      title: item.label,
+      subtitle: "Complete your account setup",
+      href: item.href,
+      icon: <ClipboardCheck className="h-4 w-4" style={{ color: "#986F14" }} />,
+      iconBg: "#FFF4D9",
+    });
+  }
+
+  return items;
 }
 
-function ChildProfileCard({
+function ChildStoryCard({
   child,
   schoolSlug,
-  C,
+  theme,
+  adminCompat,
   index,
   previewBasePath,
 }: {
   child: FamilyChildOverview;
   schoolSlug: string;
-  C: AdminThemeTokens;
+  theme: ReturnType<typeof buildParentThemeTokens>;
+  adminCompat: ReturnType<typeof parentThemeToAdminCompat>;
   index: number;
   previewBasePath?: string;
 }) {
-  const badgeStyle = applicationStatusBadgeStyle(child.status, C);
   const childFirstName = child.studentName.split(" ")[0];
   const detailsHref = childDetailsHref(
     schoolSlug,
@@ -141,80 +202,64 @@ function ChildProfileCard({
     child,
     previewBasePath,
   );
-  const applicationLinkLabel =
-    child.isEnrolled || child.status === "enrolling"
-      ? "Enrollment checklist"
-      : "View application";
+  const accentBg = childAccentBg(index);
+  const statusTone = child.isEnrolled ? "success" : "info";
+  const showEnrollmentLink =
+    child.isEnrolled || child.status === "enrolling";
 
   return (
-    <motion.div custom={index + 2} initial="hidden" animate="visible" variants={fadeUp}>
-      <div
-        className="group flex items-center gap-4 rounded-2xl border bg-white p-4 transition-all duration-200 hover:-translate-y-0.5"
-        style={{
-          borderColor: C.border,
-          boxShadow: C.shadowCard,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = `${C.accent}55`;
-          e.currentTarget.style.boxShadow = C.shadowMedium;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = C.border;
-          e.currentTarget.style.boxShadow = C.shadowCard;
-        }}
-      >
-        <Link
-          href={detailsHref}
-          className="flex min-w-0 flex-1 items-center gap-4"
-        >
-          <StudentPhoto
-            name={child.studentName}
-            photoUrl={child.profilePhotoUrl}
-            size="xl"
-            shape="square"
-            theme={C}
-            className="transition-transform duration-200 group-hover:scale-105"
-          />
+    <motion.div custom={index + 4} initial="hidden" animate="visible" variants={fadeUp}>
+      <ParentCard theme={theme} className="relative flex flex-col !p-6">
+        <div className="mb-4 flex items-start gap-3">
+          <div
+            className="shrink-0 overflow-hidden rounded-[18px]"
+            style={{ backgroundColor: accentBg }}
+          >
+            <StudentPhoto
+              name={child.studentName}
+              photoUrl={child.profilePhotoUrl}
+              size="xl"
+              shape="square"
+              theme={adminCompat}
+            />
+          </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-heading text-sm font-semibold text-gray-800">
-              {childFirstName}
-            </p>
-            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-              {child.grade ? `Grade ${child.grade}` : "Grade not listed"}
-            </p>
-            <p
-              className="mt-2 flex items-center gap-1 text-xs font-medium"
-              style={{ color: C.accent }}
-            >
-              View details
-              <ArrowRight className="h-3 w-3" />
+            <div className="flex items-start justify-between gap-2">
+              <h3
+                className="m-0 text-base font-semibold"
+                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+              >
+                {childFirstName}
+              </h3>
+              <ParentChip
+                theme={theme}
+                tone={statusTone}
+                className="!shrink-0 !normal-case !tracking-normal"
+              >
+                ● {child.statusLabel}
+              </ParentChip>
+            </div>
+            <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: "#7B878D" }}>
+              {childSubtitleLine(child)}
             </p>
           </div>
-        </Link>
-        <div className="relative z-10 flex flex-shrink-0 flex-col items-end gap-2">
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            style={{
-              backgroundColor: badgeStyle.backgroundColor,
-              color: badgeStyle.color,
-            }}
-          >
-            {child.isEnrolled ? (
-              <CheckCircle className="h-2.5 w-2.5" />
-            ) : (
-              <Clock className="h-2.5 w-2.5" />
-            )}
-            {child.statusLabel}
-          </span>
-          <Link
-            href={applicationHref}
-            className="text-xs font-medium underline-offset-2 hover:underline"
-            style={{ color: C.accent }}
-          >
-            {applicationLinkLabel}
-          </Link>
         </div>
-      </div>
+        <div className="mt-auto flex flex-col gap-2 pt-2">
+          <ParentButtonLink
+            theme={theme}
+            href={detailsHref}
+            variant="outline"
+            showArrow
+          >
+            See {childFirstName}&apos;s details
+          </ParentButtonLink>
+          {showEnrollmentLink ? (
+            <ParentTextLink theme={theme} href={applicationHref}>
+              Enrollment checklist
+            </ParentTextLink>
+          ) : null}
+        </div>
+      </ParentCard>
     </motion.div>
   );
 }
@@ -229,341 +274,331 @@ export default function ParentHomePage({
   upcomingEvents = [],
   enrollmentAmendmentBannerItems = [],
   enrollmentIncompleteBannerItems = [],
-  previewMode = false,
   previewBasePath,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const adminCompat = useMemo(
+    () => parentThemeToAdminCompat(theme),
+    [theme],
+  );
   const name = firstName(userProfile.displayName);
+  const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
   const calendarHref = previewBasePath
     ? `${previewBasePath}/parent/calendar`
     : schoolParentPath(schoolSlug, "calendar");
   const applyDashboardHref =
     previewBasePath ?? `/school/${schoolSlug}/apply`;
-  const visibleQuickActions = quickActions;
-  const trackedOnboardingItems = onboardingItems.filter((item) => item.autoTracked);
-  const completedOnboardingCount = trackedOnboardingItems.filter(
-    (item) => item.completed,
-  ).length;
-  const onboardingSubtitle =
-    trackedOnboardingItems.length > 0
-      ? completedOnboardingCount === trackedOnboardingItems.length
-        ? "You're all set"
-        : `${completedOnboardingCount} of ${trackedOnboardingItems.length} complete`
-      : "Finish setting up your account";
+  const messagesAction = quickActions.find((a) => a.key === "messages");
+  const messagesHref = messagesAction?.href;
+  const attentionItems = buildAttentionItems({
+    onboardingItems,
+    enrollmentAmendmentBannerItems,
+    enrollmentIncompleteBannerItems,
+  });
+  const enrolledCount = familyChildren.filter((c) => c.isEnrolled).length;
+  const nextEvent = upcomingEvents[0] ?? null;
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+
+  const familySnapshotTitle =
+    enrolledCount === familyChildren.length && familyChildren.length > 0
+      ? "Everyone is set for today"
+      : familyChildren.length > 0
+        ? "Your family at a glance"
+        : "Welcome to your family portal";
+
+  const familySnapshotBody =
+    familyChildren.length > 0
+      ? enrolledCount > 0
+        ? `${enrolledCount} of ${familyChildren.length} learner${familyChildren.length === 1 ? "" : "s"} enrolled.`
+        : `${familyChildren.length} learner${familyChildren.length === 1 ? "" : "s"} on file.`
+      : "Student records will appear here once applications are linked to your account.";
 
   return (
-    <div
-      className="min-h-full w-full"
-      style={{ backgroundColor: C.bg }}
-    >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8">
+    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-4 py-6 sm:px-8 sm:py-8 lg:px-[68px] lg:py-10">
         <motion.header
           custom={0}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
-          className="space-y-3"
+          className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5"
         >
-          <p className="text-sm" style={{ color: C.textSecondary }}>
-            {greetingPrefix()},
-          </p>
-          <h1
-            className="font-heading text-4xl font-bold leading-tight sm:text-5xl"
-            style={{ color: C.accentDark }}
-          >
-            {name}.
-          </h1>
+          <div>
+            <ParentSectionKicker theme={theme}>
+              {familyKickerLabel(userProfile.displayName)}
+            </ParentSectionKicker>
+            <ParentDisplayHeading theme={theme} as="h1">
+              {greetingPrefix}, {name}.{" "}
+              <span aria-hidden="true">{greetingEmoji}</span>
+            </ParentDisplayHeading>
+            <p className="mt-2 text-[15px]" style={{ color: theme.muted }}>
+              Here&apos;s what your family needs for {dayName}.
+            </p>
+          </div>
+          <div className="w-full sm:w-auto">
+            <ParentDatePill theme={theme} />
+          </div>
         </motion.header>
 
         {enrollmentAmendmentBannerItems.length > 0 ||
         enrollmentIncompleteBannerItems.length > 0 ? (
           <EnrollmentAgreementAmendmentBanner
-            C={C}
+            C={adminCompat}
             items={enrollmentAmendmentBannerItems}
             incompleteItems={enrollmentIncompleteBannerItems}
           />
         ) : null}
 
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_340px] lg:items-stretch">
-          <div className="flex flex-col gap-8">
-            <motion.section
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              className="space-y-4"
-            >
-              <SectionTitle>My Children</SectionTitle>
-              {familyChildren.length === 0 ? (
-                <div
-                  className="rounded-2xl border px-6 py-10 text-center"
-                  style={{
-                    borderColor: C.border,
-                    backgroundColor: C.surface,
-                    boxShadow: C.shadowCard,
-                  }}
-                >
-                  <p
-                    className="text-sm leading-relaxed"
-                    style={{ color: C.textSecondary }}
-                  >
-                    We don&apos;t have any student records from your applications
-                    yet. Visit your{" "}
-                    <Link
-                      href={applyDashboardHref}
-                      className="font-medium underline underline-offset-2"
-                      style={{ color: C.accent }}
-                    >
-                      application dashboard
-                    </Link>{" "}
-                    to get started.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {familyChildren.map((child, index) => (
-                    <ChildProfileCard
-                      key={child.applicationId}
-                      child={child}
-                      schoolSlug={schoolSlug}
-                      C={C}
-                      index={index}
-                      previewBasePath={previewBasePath}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.section>
-
-            {visibleQuickActions.length > 0 ? (
-              <motion.section
-                custom={familyChildren.length + 2}
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                className="space-y-4"
+        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1.45fr_0.85fr]">
+          <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUp}>
+            <ParentCard theme={theme} variant="today" className="relative">
+              <ParentSectionKicker theme={theme}>Start here</ParentSectionKicker>
+              <h3
+                className="mb-4 text-base font-semibold"
+                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
               >
-                <SectionTitle>Quick Actions</SectionTitle>
-                <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
-                  {visibleQuickActions.map((action, index) => {
-                    const { iconBg, iconColor } = quickActionStyle(
-                      action.iconSlug,
-                    );
-                    const Icon = getFeatureIcon(action.iconSlug);
-                    const chipStyle = {
-                      borderColor: C.border,
-                      boxShadow: C.shadowCard,
-                    };
-                    const chipContent = (
-                      <>
-                        <div
-                          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${action.enabled ? "transition-transform duration-200 group-hover:scale-110" : ""} ${iconBg}`}
-                        >
-                          <Icon
-                            className={`h-4 w-4 ${iconColor}`}
-                            style={
-                              iconColor ? undefined : { color: C.accent }
-                            }
-                            strokeWidth={1.5}
-                          />
-                        </div>
-                        <span className="whitespace-nowrap text-sm font-semibold text-gray-700">
-                          {action.label}
-                        </span>
-                      </>
-                    );
-
-                    return (
-                      <motion.div
-                        key={action.key}
-                        custom={index}
-                        initial="hidden"
-                        animate="visible"
-                        variants={fadeUp}
-                        className="flex-shrink-0"
-                      >
-                        {action.enabled ? (
-                          <motion.div whileTap={{ scale: 0.98 }}>
-                            <Link
-                              href={action.href}
-                              className="group flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 transition-colors duration-200 hover:bg-gray-50/80"
-                              style={chipStyle}
-                            >
-                              {chipContent}
-                            </Link>
-                          </motion.div>
-                        ) : (
-                          <div
-                            aria-disabled="true"
-                            className="flex cursor-not-allowed items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 opacity-50"
-                            style={chipStyle}
-                          >
-                            {chipContent}
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.section>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-8 lg:sticky lg:top-[65px] lg:self-start">
-            {onboardingItems.length > 0 ? (
-              <motion.section
-                custom={2}
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                className="space-y-4"
-              >
-                <SectionTitle>Get started</SectionTitle>
-                <button
-                  type="button"
-                  onClick={() => setOnboardingOpen(true)}
-                  className="flex w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left transition-all duration-200 hover:shadow-md cursor-pointer"
-                  style={{
-                    backgroundColor: `${C.accent}1a`,
-                    borderColor: `${C.accent}33`,
-                    boxShadow: C.shadowCard,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${C.accent}55`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = `${C.accent}33`;
-                  }}
-                >
-                  <div
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: `${C.accent}26` }}
-                  >
+                {attentionItems.length > 0
+                  ? `${attentionItems.length} thing${attentionItems.length === 1 ? "" : "s"} need your attention`
+                  : onboardingItems.length > 0
+                    ? "Finish setting up your account"
+                    : "You're all caught up"}
+              </h3>
+              {attentionItems.length > 0 ? (
+                attentionItems.slice(0, 4).map((item) => (
+                  <div key={item.key}>
+                    {item.href ? (
+                      <Link href={item.href} className="block hover:opacity-90">
+                        <ParentAttentionItem
+                          theme={theme}
+                          icon={item.icon}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          iconBg={item.iconBg}
+                        />
+                      </Link>
+                    ) : (
+                      <ParentAttentionItem
+                        theme={theme}
+                        icon={item.icon}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        iconBg={item.iconBg}
+                      />
+                    )}
+                  </div>
+                ))
+              ) : onboardingItems.length > 0 ? (
+                <ParentAttentionItem
+                  theme={theme}
+                  icon={
                     <ClipboardCheck
                       className="h-4 w-4"
-                      style={{ color: C.accent }}
+                      style={{ color: theme.primary }}
                     />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className="text-sm font-semibold leading-snug"
-                      style={{ color: C.accent }}
-                    >
-                      Complete your onboarding
-                    </p>
-                    <p
-                      className="mt-0.5 text-xs"
-                      style={{ color: `${C.accent}b3` }}
-                    >
-                      {onboardingSubtitle}
-                    </p>
-                  </div>
-                  <ArrowRight
-                    className="h-4 w-4 flex-shrink-0"
-                    style={{ color: `${C.accent}99` }}
-                  />
-                </button>
-              </motion.section>
-            ) : null}
-
-            <motion.section
-              custom={3}
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              className="space-y-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <SectionTitle>Upcoming events</SectionTitle>
-                {upcomingEvents.length > 0 ? (
-                  <Link
-                    href={calendarHref}
-                    className="text-xs font-medium"
-                    style={{ color: C.accent }}
-                  >
-                    View calendar
-                  </Link>
-                ) : null}
-              </div>
-              {upcomingEvents.length === 0 ? (
-                <div
-                  className="rounded-2xl border px-4 py-8 text-center"
-                  style={{
-                    borderColor: C.border,
-                    backgroundColor: C.surface,
-                    boxShadow: C.shadowCard,
-                  }}
-                >
-                  <div
-                    className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full"
-                    style={{ backgroundColor: C.accentGlow }}
-                  >
-                    <CalendarDays
-                      className="h-5 w-5"
-                      style={{ color: C.accent }}
-                    />
-                  </div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: C.textPrimary }}
-                  >
-                    No events for now
-                  </p>
-                  <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-                    School events will show up here.
-                  </p>
-                </div>
+                  }
+                  iconBg={theme.primarySoft}
+                  title="Complete your onboarding"
+                  subtitle="A few quick steps to get the most from your portal"
+                />
               ) : (
-                <ul className="space-y-2">
-                  {upcomingEvents.map((event) => {
-                    const colors = getEventDisplayStyle(event);
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  No urgent tasks right now. Check back for updates from school.
+                </p>
+              )}
+              {onboardingItems.length > 0 ? (
+                <div className="mt-3">
+                  <ParentTextLink
+                    theme={theme}
+                    onClick={() => setOnboardingOpen(true)}
+                  >
+                    Review today&apos;s to-dos
+                  </ParentTextLink>
+                </div>
+              ) : null}
+            </ParentCard>
+          </motion.div>
+
+          <motion.aside custom={2} initial="hidden" animate="visible" variants={fadeUp}>
+            <ParentCard theme={theme} variant="primary" className="h-full">
+              <ParentSectionKicker theme={theme} light>
+                Family snapshot
+              </ParentSectionKicker>
+              <h3
+                className="mb-3 text-base font-semibold text-white"
+                style={{ fontFamily: theme.fontDisplay }}
+              >
+                {familySnapshotTitle}
+              </h3>
+              <p className="text-[13px] leading-relaxed" style={{ color: "#D5E3D9" }}>
+                {familySnapshotBody}
+              </p>
+              {nextEvent ? (
+                <div
+                  className="mt-3 rounded-[14px] p-3"
+                  style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+                >
+                  <b className="block text-[13px] text-white">{nextEvent.title}</b>
+                  <span className="text-xs" style={{ color: "#D4E0D7" }}>
+                    {parseEventDate(nextEvent.date).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    {!nextEvent.isAllDay && nextEvent.time
+                      ? ` · ${nextEvent.time}`
+                      : ""}
+                  </span>
+                </div>
+              ) : null}
+              <div className="mt-4">
+                <ParentTextLink theme={theme} href={calendarHref} light>
+                  View family calendar
+                </ParentTextLink>
+              </div>
+            </ParentCard>
+          </motion.aside>
+        </div>
+
+        <motion.section
+          custom={3}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
+          <h3
+            className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
+            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+          >
+            Your children
+          </h3>
+          {familyChildren.length === 0 ? (
+            <ParentCard theme={theme}>
+              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                We don&apos;t have any student records from your applications yet.
+                Visit your{" "}
+                <Link
+                  href={applyDashboardHref}
+                  className="font-bold"
+                  style={{ color: theme.primary }}
+                >
+                  application dashboard
+                </Link>{" "}
+                to get started.
+              </p>
+            </ParentCard>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {familyChildren.map((child, index) => (
+                <ChildStoryCard
+                  key={child.applicationId}
+                  child={child}
+                  schoolSlug={schoolSlug}
+                  theme={theme}
+                  adminCompat={adminCompat}
+                  index={index}
+                  previewBasePath={previewBasePath}
+                />
+              ))}
+            </div>
+          )}
+        </motion.section>
+
+        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
+          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
+            <ParentCard theme={theme}>
+              <ParentSectionKicker theme={theme}>School updates</ParentSectionKicker>
+              <h3
+                className="mb-4 text-base font-semibold"
+                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+              >
+                From your school
+              </h3>
+              {messagesHref ? (
+                <>
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-full"
+                      style={{ backgroundColor: theme.infoBg }}
+                    >
+                      <MessageSquare
+                        className="h-4 w-4"
+                        style={{ color: theme.info }}
+                      />
+                    </div>
+                    <div>
+                      <strong
+                        className="block text-sm"
+                        style={{ color: theme.ink }}
+                      >
+                        Messages from teachers and staff
+                      </strong>
+                      <p className="m-0 text-xs" style={{ color: "#78858A" }}>
+                        Check your inbox for school communications.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <ParentTextLink theme={theme} href={messagesHref}>
+                      Open messages
+                    </ParentTextLink>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  School announcements and updates will appear here when available.
+                </p>
+              )}
+            </ParentCard>
+          </motion.div>
+
+          <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
+            <ParentCard theme={theme}>
+              <ParentSectionKicker theme={theme}>Coming up</ParentSectionKicker>
+              <h3
+                className="mb-4 text-base font-semibold"
+                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+              >
+                At a glance
+              </h3>
+              {upcomingEvents.length === 0 ? (
+                <p
+                  className="mb-0 text-[13px] leading-relaxed"
+                  style={{ color: "#65747A" }}
+                >
+                  No upcoming events yet. School events will show up here.
+                </p>
+              ) : (
+                <p
+                  className="mb-0 text-[13px] leading-relaxed"
+                  style={{ color: "#65747A" }}
+                >
+                  {upcomingEvents.slice(0, 3).map((event, index) => {
                     const dateLabel = parseEventDate(event.date).toLocaleDateString(
                       "en-US",
-                      { weekday: "short", month: "short", day: "numeric" },
+                      { month: "short", day: "numeric" },
                     );
                     return (
-                      <li key={event.id}>
-                        <Link
-                          href={calendarHref}
-                          className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-black/[0.02]"
-                          style={{
-                            borderColor: C.border,
-                            backgroundColor: C.surface,
-                            boxShadow: C.shadowCard,
-                          }}
-                        >
-                          <div className="min-w-0">
-                            <p
-                              className="truncate text-sm font-medium"
-                              style={{ color: C.textPrimary }}
-                            >
-                              {event.title}
-                            </p>
-                            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                              {dateLabel}
-                              {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
-                            </p>
-                          </div>
-                          <span
-                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
-                            style={{ backgroundColor: colors.bg, color: colors.text }}
-                          >
-                            {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-                          </span>
-                        </Link>
-                      </li>
+                      <span key={event.id}>
+                        {index > 0 ? <br /> : null}
+                        {dateLabel} · {event.title}
+                      </span>
                     );
                   })}
-                </ul>
+                </p>
               )}
-            </motion.section>
-          </div>
+              <div className="mt-4">
+                <ParentTextLink theme={theme} href={calendarHref}>
+                  View full calendar
+                </ParentTextLink>
+              </div>
+            </ParentCard>
+          </motion.div>
         </div>
       </div>
 
       <ParentOnboardingSidebar
-        C={C}
+        C={adminCompat}
         open={onboardingOpen}
         items={onboardingItems}
         onClose={() => setOnboardingOpen(false)}

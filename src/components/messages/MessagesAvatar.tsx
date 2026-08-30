@@ -2,7 +2,7 @@
 
 import { initialsFromName } from "@/lib/messages/format";
 
-export type MessagesLayoutVariant = "card" | "embedded";
+export type MessagesLayoutVariant = "card" | "embedded" | "parent-story";
 
 export default function MessagesAvatar({
   name,

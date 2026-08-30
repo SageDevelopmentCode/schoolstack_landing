@@ -1,16 +1,22 @@
 "use client";
 
-import { ChevronLeft, FileText } from "lucide-react";
+import { ChevronLeft, FileText, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { buildMessageRenderItems } from "@/lib/messages/format-chat";
+import { colorForKey } from "@/lib/messages/format";
 import type { MessageThreadDetail } from "@/lib/messages/types";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
+import {
+  isSplitPaneMessagesVariant,
+  isStoryMessagesVariant,
+} from "@/lib/messages/messages-layout-variant";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 export type MessagesComposeBanner =
   | { variant: "info"; message: string }
@@ -19,12 +25,12 @@ export type MessagesComposeBanner =
 function MessageAttachments({
   attachments,
   C,
-  embedded,
+  splitPane,
   isOwn,
 }: {
   attachments: MessageThreadDetail["messages"][number]["attachments"];
   C: AdminThemeTokens;
-  embedded: boolean;
+  splitPane: boolean;
   isOwn: boolean;
 }) {
   if (attachments.length === 0) return null;
@@ -49,9 +55,9 @@ function MessageAttachments({
                 height={180}
                 unoptimized
                 className={`max-h-48 w-auto object-cover ${
-                  embedded ? "rounded-xl" : "rounded-lg border"
+                  splitPane ? "rounded-xl" : "rounded-lg border"
                 }`}
-                style={embedded ? undefined : { borderColor: C.border }}
+                style={splitPane ? undefined : { borderColor: C.border }}
               />
             </a>
           );
@@ -64,9 +70,9 @@ function MessageAttachments({
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex items-center gap-1 text-xs underline ${
-              embedded && isOwn ? "text-white/90" : ""
+              splitPane && isOwn ? "text-white/90" : ""
             }`}
-            style={embedded && isOwn ? undefined : { color: C.accent }}
+            style={splitPane && isOwn ? undefined : { color: C.accent }}
           >
             <FileText className="w-3.5 h-3.5" />
             {attachment.fileName}
@@ -87,11 +93,13 @@ export default function MessagesThreadView({
   sending,
   readOnly,
   C,
+  theme,
   variant = "card",
   onBack,
   loadingMessages = false,
   composeBanner = null,
   onStudentClick,
+  schoolName,
 }: {
   thread: MessageThreadDetail | null;
   input: string;
@@ -102,22 +110,50 @@ export default function MessagesThreadView({
   sending: boolean;
   readOnly?: boolean;
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   variant?: MessagesLayoutVariant;
   onBack?: () => void;
   loadingMessages?: boolean;
   composeBanner?: MessagesComposeBanner | null;
   onStudentClick?: (studentId: string) => void;
+  schoolName?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const embedded = variant === "embedded";
-  const chatBackground = C.bg;
+  const splitPane = isSplitPaneMessagesVariant(variant);
+  const parentStory = isStoryMessagesVariant(variant);
+  const parentStoryChatBackground = theme?.paper ?? "#EFF5F0";
+  const chatBackground = parentStory ? parentStoryChatBackground : C.bg;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thread?.messages, thread?.id]);
 
   if (!thread) {
+    if (parentStory && theme) {
+      return (
+        <div
+          className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center"
+          style={{ backgroundColor: chatBackground }}
+        >
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-full"
+            style={{ backgroundColor: theme.primarySoft }}
+          >
+            <MessageSquare className="h-7 w-7" style={{ color: theme.primary }} />
+          </div>
+          <div>
+            <p className="text-base font-semibold" style={{ color: theme.ink }}>
+              Select a conversation
+            </p>
+            <p className="mt-1 max-w-sm text-sm" style={{ color: theme.muted }}>
+              Choose a thread from your inbox to start messaging.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className="flex flex-1 items-center justify-center p-6 text-sm"
@@ -133,13 +169,18 @@ export default function MessagesThreadView({
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
       <div
-        className={`shrink-0 border-b px-4 py-3 ${
-          embedded ? "bg-white" : ""
-        }`}
-        style={{ borderColor: C.border, backgroundColor: embedded ? C.bg : C.surface }}
+        className={`shrink-0 border-b px-4 py-3 ${splitPane ? "bg-white" : ""}`}
+        style={{
+          borderColor: theme?.line ?? C.border,
+          backgroundColor: parentStory
+            ? parentStoryChatBackground
+            : splitPane
+              ? C.bg
+              : C.surface,
+        }}
       >
         <div className="flex items-center gap-3">
-          {embedded && onBack ? (
+          {splitPane && onBack ? (
             <button
               type="button"
               onClick={onBack}
@@ -150,7 +191,7 @@ export default function MessagesThreadView({
               <ChevronLeft className="w-5 h-5" />
             </button>
           ) : null}
-          {embedded ? (
+          {splitPane ? (
             thread.listAvatars?.length === 2 ? (
               <MessagesDualAvatar avatars={thread.listAvatars} size="lg" />
             ) : (
@@ -163,10 +204,19 @@ export default function MessagesThreadView({
             )
           ) : null}
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate" style={{ color: C.textPrimary }}>
+            <p
+              className="truncate text-sm font-semibold"
+              style={{ color: theme?.ink ?? C.textPrimary }}
+            >
               {thread.title}
             </p>
-            {thread.subtitle || thread.subtitleStudents?.length ? (
+            {parentStory ? (
+              thread.subtitle ? (
+                <p className="truncate text-xs" style={{ color: theme?.muted ?? C.textSecondary }}>
+                  {thread.subtitle}
+                </p>
+              ) : null
+            ) : thread.subtitle || thread.subtitleStudents?.length ? (
               <MessageStudentSubtitle
                 students={thread.subtitleStudents}
                 subtitle={thread.subtitle}
@@ -185,9 +235,9 @@ export default function MessagesThreadView({
         style={{ backgroundColor: chatBackground }}
       >
         {loadingMessages ? (
-          <MessagesThreadSkeleton C={C} embedded={embedded} />
+          <MessagesThreadSkeleton C={C} embedded={splitPane} />
         ) : thread.messages.length === 0 ? (
-          embedded ? (
+          splitPane ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <MessagesAvatar
                 name={thread.title}
@@ -210,17 +260,26 @@ export default function MessagesThreadView({
             </p>
           )
         ) : (
-          <div className="space-y-3">
+          <div className={parentStory ? "space-y-4" : "space-y-3"}>
             {renderItems.map((item) => {
               if (item.type === "day") {
                 return (
                   <div key={`day-${item.dayKey}`} className="flex justify-center py-1">
                     <span
-                      className="rounded-full px-3 py-1 text-[11px] font-medium shadow-sm"
-                      style={{
-                        backgroundColor: embedded ? "rgba(255,255,255,0.92)" : C.surface,
-                        color: C.textTertiary,
-                      }}
+                      className="rounded-full px-3 py-1 text-[11px] font-medium"
+                      style={
+                        parentStory && theme
+                          ? {
+                              backgroundColor: theme.white,
+                              border: `1px solid ${theme.line}`,
+                              color: theme.muted,
+                            }
+                          : {
+                              backgroundColor: splitPane ? "rgba(255,255,255,0.92)" : C.surface,
+                              color: C.textTertiary,
+                              boxShadow: splitPane ? undefined : undefined,
+                            }
+                      }
                     >
                       {item.dayLabel}
                     </span>
@@ -229,27 +288,93 @@ export default function MessagesThreadView({
               }
 
               const { message, showSenderName, isGroupedWithPrevious } = item;
-              const ownBubble = embedded && message.isOwn;
+              const ownBubble = splitPane && message.isOwn;
+              const grouped = parentStory ? false : isGroupedWithPrevious;
+              const senderLabel = message.senderName;
+              const displaySenderName = parentStory ? true : showSenderName;
+
+              if (parentStory && theme) {
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex items-start gap-2.5 ${
+                      message.isOwn ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <MessagesAvatar
+                      name={message.senderName}
+                      color={colorForKey(message.senderUserId)}
+                      photoUrl={message.profilePhotoUrl}
+                      size="sm"
+                    />
+                    <div
+                      className="max-w-[min(75%,28rem)] rounded-2xl px-3.5 py-2.5"
+                      style={{
+                        backgroundColor: message.isOwn ? theme.primary : theme.white,
+                        border: message.isOwn ? undefined : `1px solid ${theme.line}`,
+                        opacity: message.pending ? 0.75 : 1,
+                      }}
+                    >
+                      {displaySenderName ? (
+                        <p
+                          className="mb-1 text-xs font-semibold"
+                          style={{
+                            color: message.isOwn
+                              ? "rgba(255,255,255,0.75)"
+                              : theme.primary,
+                          }}
+                        >
+                          {senderLabel}
+                        </p>
+                      ) : null}
+                      {message.body ? (
+                        <p
+                          className="whitespace-pre-wrap text-sm"
+                          style={{ color: message.isOwn ? "#ffffff" : theme.ink }}
+                        >
+                          {message.body}
+                        </p>
+                      ) : null}
+                      <MessageAttachments
+                        attachments={message.attachments}
+                        C={C}
+                        splitPane={splitPane}
+                        isOwn={message.isOwn}
+                      />
+                      <p
+                        className={`mt-1 text-right text-[10px] ${
+                          message.isOwn ? "text-white/70" : ""
+                        }`}
+                        style={message.isOwn ? undefined : { color: theme.muted }}
+                      >
+                        {message.pending ? "Sending…" : message.timeLabel}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div
                   key={message.id}
                   className={`flex ${message.isOwn ? "justify-end" : "justify-start"} ${
-                    isGroupedWithPrevious ? "-mt-2" : ""
+                    grouped ? "-mt-2" : ""
                   }`}
                 >
                   <div
                     className={`max-w-[min(75%,28rem)] ${
-                      embedded
+                      splitPane
                         ? message.isOwn
                           ? "rounded-2xl rounded-br-md px-3 py-2 shadow-sm"
                           : "rounded-2xl rounded-bl-md px-3 py-2 shadow-sm"
-                        : "p-3 rounded-xl border"
+                        : "rounded-xl border p-3"
                     }`}
                     style={
-                      embedded
+                      splitPane
                         ? {
-                            backgroundColor: message.isOwn ? C.accent : C.surface,
+                            backgroundColor: message.isOwn
+                              ? theme?.primary ?? C.accent
+                              : theme?.white ?? C.surface,
                             opacity: message.pending ? 0.75 : 1,
                           }
                         : {
@@ -261,8 +386,14 @@ export default function MessagesThreadView({
                   >
                     {showSenderName && (
                       <p
-                        className="text-xs font-semibold mb-1"
-                        style={{ color: embedded ? C.accent : C.textPrimary }}
+                        className="mb-1 text-xs font-semibold"
+                        style={{
+                          color: parentStory
+                            ? theme?.ink ?? C.textPrimary
+                            : splitPane
+                              ? C.accent
+                              : C.textPrimary,
+                        }}
                       >
                         {message.senderName}
                       </p>
@@ -280,7 +411,7 @@ export default function MessagesThreadView({
                     <MessageAttachments
                       attachments={message.attachments}
                       C={C}
-                      embedded={embedded}
+                      splitPane={splitPane}
                       isOwn={message.isOwn}
                     />
                     <p
@@ -323,6 +454,7 @@ export default function MessagesThreadView({
         sending={sending}
         disabled={readOnly}
         C={C}
+        theme={theme}
         variant={variant}
       />
     </div>

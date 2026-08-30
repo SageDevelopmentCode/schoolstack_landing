@@ -12,7 +12,7 @@ import {
   detectPortalFromPathname,
   type SchoolPortalOption,
 } from "@/lib/auth/portal-switcher-types";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
   reportAuthActivityAndWait,
@@ -53,7 +53,7 @@ export default function ApplyPortalNavbar({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme, adminCompat: C } = useParentTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(initialProfilePhotoUrl);
@@ -143,10 +143,13 @@ export default function ApplyPortalNavbar({
 
   return (
     <header
-      className="shrink-0 border-b px-4 sm:px-6"
-      style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
+      className="shrink-0 border-b px-4 sm:px-8 lg:px-[68px]"
+      style={{
+        borderColor: theme.line,
+        backgroundColor: "rgba(255, 255, 255, 0.94)",
+      }}
     >
-      <div className="flex h-14 w-full items-center justify-between gap-4">
+      <div className="mx-auto flex h-[71px] w-full max-w-[1440px] items-center justify-between gap-4">
         <div className="min-w-0 shrink">
           <ApplyPortalBranding
             branding={branding}

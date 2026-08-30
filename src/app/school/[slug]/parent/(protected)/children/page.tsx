@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
-import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
+import { getFamilyUserProfile, listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -51,7 +51,10 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
   }
 
   // Overview cards only — full application schemas load when a profile panel opens.
-  const familyChildren = await listFamilyChildrenForHome(supabase, org.id, user.id);
+  const [familyChildren, userProfile] = await Promise.all([
+    listFamilyChildrenForHome(supabase, org.id, user.id),
+    getFamilyUserProfile(supabase, user.id, org.id, user),
+  ]);
 
   const pageName = getParentPageLabel("children", org.features.feature_nav?.parent);
 
@@ -63,6 +66,7 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
         schoolSlug={slug}
         organizationId={org.id}
         familyChildren={familyChildren}
+        userProfile={userProfile}
       />
     </SchoolParentPageShell>
   );

@@ -6,6 +6,11 @@ import type { MessageContact, MessageThreadSummary } from "@/lib/messages/types"
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
+import {
+  isSplitPaneMessagesVariant,
+  isStoryMessagesVariant,
+} from "@/lib/messages/messages-layout-variant";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 export type MessagesConversationListItem =
   | { type: "section"; key: string; label: string; description?: string }
@@ -15,10 +20,10 @@ export type MessagesConversationListItem =
 function renderSectionHeader(
   label: string,
   description: string | undefined,
-  embedded: boolean,
+  splitPane: boolean,
   C: AdminThemeTokens,
 ) {
-  if (embedded) {
+  if (splitPane) {
     return (
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-3">
@@ -72,6 +77,7 @@ export default function MessagesConversationList({
   activeKey,
   onSelect,
   C,
+  theme,
   showContactsHeader = false,
   variant = "card",
   hideStudentSubtitle = false,
@@ -80,26 +86,31 @@ export default function MessagesConversationList({
   activeKey: string | null;
   onSelect: (key: string) => void;
   C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
   showContactsHeader?: boolean;
   variant?: MessagesLayoutVariant;
   hideStudentSubtitle?: boolean;
 }) {
-  const embedded = variant === "embedded";
+  const splitPane = isSplitPaneMessagesVariant(variant);
+  const parentStory = isStoryMessagesVariant(variant);
   let showingContacts = false;
   const firstContactIndex = items.findIndex((item) => item.type === "contact");
 
   return (
     <div className="overflow-y-auto flex-1">
       {items.length === 0 ? (
-        <p className="text-sm text-center py-8 px-4" style={{ color: C.textTertiary }}>
-          No conversations yet.
+        <p
+          className="text-sm text-center py-8 px-4"
+          style={{ color: theme?.muted ?? C.textTertiary }}
+        >
+          {parentStory ? "No conversations match this filter." : "No conversations yet."}
         </p>
       ) : (
         items.map((item, itemIndex) => {
           if (item.type === "section") {
             return (
               <div key={item.key}>
-                {renderSectionHeader(item.label, item.description, embedded, C)}
+                {renderSectionHeader(item.label, item.description, splitPane, C)}
               </div>
             );
           }
@@ -140,7 +151,7 @@ export default function MessagesConversationList({
           return (
             <div key={key}>
               {isContact && showContactsHeader && itemIndex === firstContactIndex ? (
-                embedded ? (
+                splitPane ? (
                   <div className="px-4 pt-4 pb-2">
                     <div className="flex items-center gap-3">
                       <div className="h-px flex-1" style={{ backgroundColor: C.border }} />
@@ -165,15 +176,24 @@ export default function MessagesConversationList({
                 onClick={() => onSelect(key)}
                 onKeyDown={(event) => handleRowKeyDown(event, () => onSelect(key))}
                 className={`relative w-full flex items-start gap-3 text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                  embedded
-                    ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
-                    : "p-3"
+                  parentStory
+                    ? "border-b px-[15px] py-[13px] hover:bg-black/[0.02]"
+                    : splitPane
+                      ? "px-4 py-3.5 hover:bg-black/[0.03] active:scale-[0.99]"
+                      : "p-3"
                 }`}
                 style={{
                   backgroundColor:
-                    !embedded && isActive ? `${C.accent}14` : "transparent",
-                  ...(embedded && isActive
+                    !splitPane && isActive ? `${C.accent}14` : "transparent",
+                  borderColor: parentStory ? theme?.line ?? C.border : undefined,
+                  ...(splitPane && isActive && !parentStory
                     ? { boxShadow: `inset 3px 0 0 0 ${C.accent}` }
+                    : {}),
+                  ...(parentStory && isActive && theme
+                    ? {
+                        backgroundColor: theme.primarySoft,
+                        boxShadow: `inset 3px 0 0 0 ${theme.primary}`,
+                      }
                     : {}),
                 }}
               >
@@ -187,29 +207,41 @@ export default function MessagesConversationList({
                     size="sm"
                   />
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
                     <p
-                      className={`truncate ${embedded ? "text-sm" : "text-xs"} ${
-                        hasUnread && embedded ? "font-bold" : "font-semibold"
+                      className={`truncate ${splitPane ? "text-sm" : "text-xs"} ${
+                        hasUnread && splitPane ? "font-bold" : "font-semibold"
                       }`}
-                      style={{ color: C.textPrimary }}
+                      style={{ color: theme?.ink ?? C.textPrimary }}
                     >
                       {title}
                     </p>
-                    {timeLabel && (
-                      <p
-                        className={`shrink-0 ${embedded ? "text-[11px]" : "text-[10px]"}`}
-                        style={{
-                          color: hasUnread && embedded ? C.accent : C.textTertiary,
-                          fontWeight: hasUnread && embedded ? 600 : 400,
-                        }}
-                      >
-                        {timeLabel}
-                      </p>
-                    )}
+                    {timeLabel ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {parentStory && hasUnread ? (
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: theme?.primary ?? C.accent }}
+                            aria-hidden
+                          />
+                        ) : null}
+                        <p
+                          className={`shrink-0 ${splitPane ? "text-[11px]" : "text-[10px]"}`}
+                          style={{
+                            color:
+                              parentStory || (hasUnread && splitPane)
+                                ? theme?.muted ?? C.textTertiary
+                                : C.textTertiary,
+                            fontWeight: !parentStory && hasUnread && splitPane ? 600 : 400,
+                          }}
+                        >
+                          {timeLabel}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
-                  {shouldShowSubtitle ? (
+                  {shouldShowSubtitle && !parentStory ? (
                     <MessageStudentSubtitle
                       students={subtitleStudents}
                       subtitle={subtitle}
@@ -217,36 +249,43 @@ export default function MessagesConversationList({
                       truncate
                     />
                   ) : null}
-                  <div className="flex items-center justify-between gap-2 mt-0.5">
+                  {parentStory ? (
                     <p
-                      className={`truncate ${embedded ? "text-xs" : "text-xs"} ${
-                        hasUnread && embedded ? "font-medium" : ""
-                      }`}
-                      style={{
-                        color:
-                          hasUnread && embedded ? C.textPrimary : C.textSecondary,
-                      }}
+                      className={`mt-0.5 truncate text-xs ${hasUnread ? "font-medium" : ""}`}
+                      style={{ color: theme?.muted ?? C.textSecondary }}
                     >
                       {preview}
                     </p>
-                    {unread > 0 ? (
-                      embedded ? (
-                        <span
-                          className="min-w-[1.25rem] h-5 px-1.5 rounded-full text-white text-[10px] font-semibold flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: C.accent }}
-                        >
-                          {unread > 99 ? "99+" : unread}
-                        </span>
-                      ) : (
-                        <span
-                          className="w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: C.accent }}
-                        >
-                          {unread}
-                        </span>
-                      )
-                    ) : null}
-                  </div>
+                  ) : (
+                    <div className="mt-0.5 flex items-center justify-between gap-2">
+                      <p
+                        className={`truncate text-xs ${hasUnread && splitPane ? "font-medium" : ""}`}
+                        style={{
+                          color:
+                            hasUnread && splitPane ? C.textPrimary : C.textSecondary,
+                        }}
+                      >
+                        {preview}
+                      </p>
+                      {unread > 0 ? (
+                        splitPane ? (
+                          <span
+                            className="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white"
+                            style={{ backgroundColor: C.accent }}
+                          >
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        ) : (
+                          <span
+                            className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] text-white"
+                            style={{ backgroundColor: C.accent }}
+                          >
+                            {unread}
+                          </span>
+                        )
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

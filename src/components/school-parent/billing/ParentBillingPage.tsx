@@ -1,17 +1,19 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, CircleAlert, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { CircleAlert, Loader2 } from "lucide-react";
 import ParentBillingUpcomingChargesPanel from "@/components/school-parent/billing/ParentBillingUpcomingChargesPanel";
 import ParentBillingPaymentReceiptPanel from "@/components/school-parent/billing/ParentBillingPaymentReceiptPanel";
-import ParentBillingFamilySettings from "@/components/school-parent/billing/ParentBillingFamilySettings";
-import ParentBillingNav, {
+import ParentBillingStoryHeader from "@/components/school-parent/billing/ParentBillingStoryHeader";
+import {
   PARENT_BILLING_SUMMARY_TAB,
 } from "@/components/school-parent/billing/ParentBillingNav";
 import ParentBillingSummaryPanel from "@/components/school-parent/billing/ParentBillingSummaryPanel";
 import ParentBillingChildDetailPanel from "@/components/school-parent/billing/ParentBillingChildDetailPanel";
+import { parentBillingViewTransition } from "@/components/school-parent/billing/parent-billing-view-transition";
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
 import TuitionPayAmountField, {
   resolveTuitionPayAmountCents,
@@ -57,7 +59,8 @@ import {
   fetchFamilyBillingReadiness,
   type FamilyBillingReadiness,
 } from "@/lib/tuition/tuition-readiness";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
@@ -75,16 +78,11 @@ type ParentBillingPageProps = {
   initialData?: ParentBillingInitialData;
 };
 
-function ParentBillingPageFallback({
-  branding,
-}: {
-  branding: OrganizationBranding;
-}) {
-  const C = buildAdminThemeTokens(branding);
+function ParentBillingPageFallback() {
   return (
     <div
       className="flex items-center justify-center gap-2 p-6 text-sm"
-      style={{ color: C.textSecondary }}
+      style={{ color: "#65777F" }}
     >
       <Loader2 className="w-4 h-4 animate-spin" />
       Loading billing…
@@ -102,7 +100,8 @@ function ParentBillingPageContent({
   previewMode = false,
   initialData,
 }: ParentBillingPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme } = useParentTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
@@ -140,7 +139,10 @@ function ParentBillingPageContent({
   const [paymentMethodLoading, setPaymentMethodLoading] = useState(false);
   const [guardianId] = useState<string | null>(initialData?.guardianId ?? null);
   const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
-  const [loading, setLoading] = useState(!hasInitialData);
+  const [initialLoading, setInitialLoading] = useState(!hasInitialData);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pendingTabKey, setPendingTabKey] = useState<string | null>(null);
+  const hasLoadedBillingRef = useRef(hasInitialData);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingPayCharge, setPendingPayCharge] = useState<TuitionCharge | null>(null);
@@ -148,7 +150,6 @@ function ParentBillingPageContent({
   const [payCheckoutLoading, setPayCheckoutLoading] = useState(false);
   const [payingCombined, setPayingCombined] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [manualUpcomingChargesPanelOpen, setManualUpcomingChargesPanelOpen] = useState(false);
   const [paymentReceiptPanelOpen, setPaymentReceiptPanelOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
@@ -257,7 +258,11 @@ function ParentBillingPageContent({
   }, [pendingPayCharge, familySummary]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
-    setLoading(true);
+    if (hasLoadedBillingRef.current) {
+      setRefreshing(true);
+    } else {
+      setInitialLoading(true);
+    }
     try {
       const billingSplits = await listBillingSplits(supabase, familyId);
       const splitActive = billingSplits.length > 0;
@@ -326,9 +331,11 @@ function ParentBillingPageContent({
         setSavedPaymentMethod(null);
       }
 
+      hasLoadedBillingRef.current = true;
       return summary;
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, [familyId, guardianId, organizationId, slug, supabase]);
 
@@ -340,11 +347,11 @@ function ParentBillingPageContent({
   }, [hasInitialData, loadBilling]);
 
   const deepLinkTargetCharge = useMemo(() => {
-    if (!deepLinkChargeId || loading) return null;
+    if (!deepLinkChargeId || initialLoading) return null;
     const targetCharge = charges.find((charge) => charge.id === deepLinkChargeId);
     if (!targetCharge || !OPEN_CHARGE_STATUSES.has(targetCharge.status)) return null;
     return targetCharge;
-  }, [deepLinkChargeId, loading, charges]);
+  }, [deepLinkChargeId, initialLoading, charges]);
 
   const deepLinkOpensUpcomingChargesPanel =
     deepLinkTargetCharge !== null && dismissedDeepLinkChargeId !== deepLinkChargeId;
@@ -380,16 +387,28 @@ function ParentBillingPageContent({
 
   const childViews = familySummary?.children ?? [];
   const hasMultipleChildren = childViews.length > 1;
-  const deepLinkChildKey = useMemo(() => {
-    if (deepLinkChildParam) return deepLinkChildParam;
+  const deepLinkChildKeyFromCharge = useMemo(() => {
     if (!deepLinkTargetCharge) return null;
     return (
       familySummary?.children.find(
         (child) => child.assignmentId === deepLinkTargetCharge.assignmentId,
       )?.childKey ?? null
     );
-  }, [deepLinkChildParam, deepLinkTargetCharge, familySummary?.children]);
-  const resolvedActiveTabKey = deepLinkChildKey ?? activeTabKey;
+  }, [deepLinkTargetCharge, familySummary?.children]);
+
+  const resolvedActiveTabKey = useMemo(() => {
+    if (deepLinkChildParam) return deepLinkChildParam;
+    if (deepLinkTabParam === PARENT_BILLING_SUMMARY_TAB) {
+      return PARENT_BILLING_SUMMARY_TAB;
+    }
+    if (deepLinkChildKeyFromCharge) return deepLinkChildKeyFromCharge;
+    return activeTabKey;
+  }, [
+    deepLinkChildParam,
+    deepLinkTabParam,
+    deepLinkChildKeyFromCharge,
+    activeTabKey,
+  ]);
   const isSummaryTab =
     hasMultipleChildren && resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = isSummaryTab
@@ -435,8 +454,9 @@ function ParentBillingPageContent({
   };
 
   const handleSelectTab = (tabKey: string) => {
+    if (tabKey === resolvedActiveTabKey) return;
+    setPendingTabKey(tabKey);
     setActiveTabKey(tabKey);
-    setMobileView("detail");
     const params = new URLSearchParams(searchParams.toString());
     if (tabKey === PARENT_BILLING_SUMMARY_TAB) {
       params.set("tab", PARENT_BILLING_SUMMARY_TAB);
@@ -449,29 +469,26 @@ function ParentBillingPageContent({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
-  const handleMobileBackToList = () => {
-    setMobileView("list");
-  };
+  const openCharges = useMemo(
+    () => charges.filter((charge) => OPEN_CHARGE_STATUSES.has(charge.status)),
+    [charges],
+  );
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      if (deepLinkChildParam || deepLinkChildKey) {
-        setMobileView("detail");
-        return;
-      }
-      if (
-        hasMultipleChildren &&
-        resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB
-      ) {
-        setMobileView("detail");
-      }
-    });
-  }, [
-    deepLinkChildParam,
-    deepLinkChildKey,
-    hasMultipleChildren,
-    resolvedActiveTabKey,
-  ]);
+  const headerOpenChargeCount = useMemo(() => {
+    if (isSummaryTab || !activeChild) {
+      return openCharges.length;
+    }
+    return openCharges.filter(
+      (charge) => charge.assignmentId === activeChild.assignmentId,
+    ).length;
+  }, [openCharges, isSummaryTab, activeChild]);
+
+  const headerTotalRemainingCents = useMemo(() => {
+    if (isSummaryTab || !activeChild) {
+      return familySummary?.totalRemainingCents ?? 0;
+    }
+    return activeChild.totalRemainingCents;
+  }, [isSummaryTab, activeChild, familySummary?.totalRemainingCents]);
 
   const combinedChargesOnEarliestDueDate = useMemo(
     () => listOpenChargesOnEarliestDueDate(charges),
@@ -804,14 +821,6 @@ function ParentBillingPageContent({
     ? displayChild.totalRemainingCents
     : (familySummary?.totalRemainingCents ?? 0);
 
-  const activeChildOpenCharges = getOpenChargesForAssignment(
-    displayChild?.assignmentId ?? null,
-  );
-
-  if (loading) {
-    return <ParentBillingPageFallback branding={branding} />;
-  }
-
   const pageBanners = hasPageBanners ? (
     <div className="flex flex-col gap-4">
       {scheduleWarningMessage ? (
@@ -931,57 +940,56 @@ function ParentBillingPageContent({
     </div>
   ) : null;
 
+  if (initialLoading) {
+    return <ParentBillingPageFallback />;
+  }
+
+  const showBillingContent =
+    familySummary != null && (isSummaryTab ? true : activeChild != null || displayChild != null);
+
+  const panelChild = activeChild ?? displayChild;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      {hasMultipleChildren && childViews.length > 0 ? (
-        <div
-          id="parent-billing-child-panel"
-          className="flex min-h-0 flex-1 overflow-hidden border-t"
-          style={{ borderColor: C.border }}
-          data-testid="parent-billing-child-panel"
-        >
-          <div
-            className={`flex h-full min-h-0 shrink-0 flex-col overflow-y-auto border-r md:w-72 lg:w-80 ${
-              mobileView === "detail" ? "hidden md:flex" : "flex w-full"
-            }`}
-            style={{ borderColor: C.border, backgroundColor: C.bg }}
-          >
-            {familySummary ? (
-              <ParentBillingNav
-                C={C}
-                summary={familySummary}
-                childViews={childViews}
-                activeTabKey={resolvedActiveTabKey}
-                onChange={handleSelectTab}
-              />
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto flex max-w-[1250px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-8 md:px-9">
+        {familySummary && childViews.length > 0 ? (
+          <ParentBillingStoryHeader
+            theme={theme}
+            C={C}
+            activeTabKey={resolvedActiveTabKey}
+            pendingTabKey={pendingTabKey}
+            loadingTabKey={refreshing ? resolvedActiveTabKey : null}
+            childViews={childViews}
+            openChargeCount={headerOpenChargeCount}
+            totalRemainingCents={headerTotalRemainingCents}
+            onSelectTab={handleSelectTab}
+          />
+        ) : null}
+
+        {pageBanners}
+
+        {showBillingContent ? (
+          <div className="relative min-h-[120px]">
+            {pendingTabKey ? (
+              <div
+                className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+                aria-hidden
+              >
+                <Loader2
+                  className="h-5 w-5 animate-spin"
+                  style={{ color: theme.muted }}
+                />
+              </div>
             ) : null}
-          </div>
-
-          <div
-            className={`min-h-0 min-w-0 flex-1 overflow-y-auto ${
-              mobileView === "list" ? "hidden md:block" : "block"
-            }`}
-            style={{ backgroundColor: C.bg }}
-          >
-            <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 pt-4 pb-6">
-              {pageBanners}
-
-              {mobileView === "detail" ? (
-                <div className="md:hidden">
-                  <button
-                    type="button"
-                    onClick={handleMobileBackToList}
-                    className="inline-flex items-center gap-1 text-sm font-medium"
-                    style={{ color: C.accent }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    All billing
-                  </button>
-                </div>
-              ) : null}
-
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={resolvedActiveTabKey}
+                {...parentBillingViewTransition}
+                onAnimationComplete={() => setPendingTabKey(null)}
+              >
               {isSummaryTab && familySummary ? (
                 <ParentBillingSummaryPanel
+                  theme={theme}
                   C={C}
                   summary={familySummary}
                   childViews={childViews}
@@ -1017,16 +1025,21 @@ function ParentBillingPageContent({
                     setPaymentReceiptPanelOpen(true);
                   }}
                 />
-              ) : activeChild ? (
+              ) : panelChild ? (
                 <ParentBillingChildDetailPanel
+                  theme={theme}
                   C={C}
-                  child={activeChild}
+                  child={panelChild}
                   charges={charges}
-                  openCharges={activeChildOpenCharges}
+                  openCharges={getOpenChargesForAssignment(panelChild.assignmentId)}
                   adjustmentsByAssignment={adjustmentsByAssignment}
                   payments={payments}
                   payingChargeId={payingChargeId}
                   autopayEnabled={autopayEnabled}
+                  savedPaymentMethod={savedPaymentMethod}
+                  paymentMethodLoading={paymentMethodLoading}
+                  onAutopayToggleRequest={handleAutopayToggleRequest}
+                  onManagePaymentMethod={() => void handleManagePaymentMethod()}
                   readOnly={previewMode}
                   onPay={handlePay}
                   onPayExtra={handlePayExtra}
@@ -1038,50 +1051,18 @@ function ParentBillingPageContent({
                   }}
                 />
               ) : null}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </div>
-      ) : displayChild ? (
-        <div className="min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: C.bg }}>
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
-            {pageBanners}
-            <ParentBillingChildDetailPanel
-              C={C}
-              child={displayChild}
-              charges={charges}
-              openCharges={activeChildOpenCharges}
-              adjustmentsByAssignment={adjustmentsByAssignment}
-              payments={payments}
-              payingChargeId={payingChargeId}
-              autopayEnabled={autopayEnabled}
-              readOnly={previewMode}
-              onPay={handlePay}
-              onPayExtra={handlePayExtra}
-              onScheduleComplete={() => void handleScheduleComplete()}
-              onOpenUpcomingCharges={() => setManualUpcomingChargesPanelOpen(true)}
-              onPaymentClick={(paymentId) => {
-                setSelectedPaymentId(paymentId);
-                setPaymentReceiptPanelOpen(true);
-              }}
-            />
-            <ParentBillingFamilySettings
-              C={C}
-              autopayEnabled={autopayEnabled}
-              savedPaymentMethod={savedPaymentMethod}
-              paymentMethodLoading={paymentMethodLoading}
-              onAutopayToggleRequest={handleAutopayToggleRequest}
-              onManagePaymentMethod={() => void handleManagePaymentMethod()}
-              readOnly={previewMode}
-            />
-          </div>
-        </div>
-      ) : hasPageBanners ? (
-        <div className="min-h-0 flex-1 overflow-y-auto" style={{ backgroundColor: C.bg }}>
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
-            {pageBanners}
-          </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
+
+      <div
+        id="parent-billing-child-panel"
+        className="hidden"
+        data-testid="parent-billing-child-panel"
+        aria-hidden
+      />
 
       <ParentAutopayConfirmModal
         C={C}
@@ -1134,6 +1115,7 @@ function ParentBillingPageContent({
       />
 
       <ParentBillingPaymentReceiptPanel
+        theme={theme}
         C={C}
         open={paymentReceiptPanelOpen}
         receipt={selectedPaymentReceipt}
@@ -1145,6 +1127,7 @@ function ParentBillingPageContent({
       />
 
       <ParentBillingUpcomingChargesPanel
+        theme={theme}
         C={C}
         open={upcomingChargesPanelOpen}
         charges={upcomingPanelCharges}
@@ -1169,7 +1152,7 @@ function ParentBillingPageContent({
 
 export default function ParentBillingPage(props: ParentBillingPageProps) {
   return (
-    <Suspense fallback={<ParentBillingPageFallback branding={props.branding} />}>
+    <Suspense fallback={<ParentBillingPageFallback />}>
       <ParentBillingPageContent {...props} />
     </Suspense>
   );

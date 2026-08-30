@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import ApplyPortalNavbar from "@/components/admissions/ApplyPortalNavbar";
 import ParentToaster from "@/components/school-parent/ParentToaster";
@@ -12,9 +11,12 @@ import {
   ApplyPortalPageLayout,
   ApplyPortalPageMain,
 } from "@/components/admissions/ApplyPortalPageLayout";
+import {
+  ParentThemeProvider,
+  useParentTheme,
+} from "@/components/school-parent/ParentThemeContext";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplyPortalPageShellProps = {
   branding: OrganizationBranding;
@@ -33,7 +35,7 @@ type ApplyPortalPageShellProps = {
   helpFabClassName?: string;
 };
 
-export default function ApplyPortalPageShell({
+function ApplyPortalPageShellInner({
   branding,
   schoolName,
   schoolSlug,
@@ -51,7 +53,7 @@ export default function ApplyPortalPageShell({
 }: ApplyPortalPageShellProps) {
   const pathname = usePathname();
   const previewPortalOptions = usePreviewPortalOptions();
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { adminCompat: C } = useParentTheme();
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
       ? previewPortalOptions
@@ -60,7 +62,7 @@ export default function ApplyPortalPageShell({
 
   const shell = (
     <>
-      <ApplyPortalPageLayout branding={branding}>
+      <ApplyPortalPageLayout>
         <ApplyPortalNavbar
           branding={branding}
           schoolName={schoolName}
@@ -74,7 +76,6 @@ export default function ApplyPortalPageShell({
           previewHomeHref={previewHomeHref}
         />
         <ApplyPortalPageMain
-          branding={branding}
           fullBleed={fullBleed}
           fillHeight={fillHeight}
         >
@@ -104,4 +105,12 @@ export default function ApplyPortalPageShell({
   }
 
   return <NavigationLoadingProvider>{shell}</NavigationLoadingProvider>;
+}
+
+export default function ApplyPortalPageShell(props: ApplyPortalPageShellProps) {
+  return (
+    <ParentThemeProvider branding={props.branding}>
+      <ApplyPortalPageShellInner {...props} />
+    </ParentThemeProvider>
+  );
 }

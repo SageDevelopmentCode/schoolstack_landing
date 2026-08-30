@@ -1,18 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ApplyChildTabSelector from "@/components/admissions/ApplyChildTabSelector";
 import PostSubmitBookingModal from "@/components/admissions/PostSubmitBookingModal";
 import PostSubmitStepCard from "@/components/admissions/PostSubmitStepCard";
+import ParentChip from "@/components/school-parent/ui/ParentChip";
+import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
+import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import type { ShadowDaySchedulingMode } from "@/lib/admissions/admissions-org-settings";
 import type {
   ApplicationPostSubmitTask,
   FamilyApplication,
 } from "@/lib/admissions/parent-portal-access";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ApplyRequiredActionsSectionProps = {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
+  adminCompat: AdminThemeTokens;
   timezone: string;
   applications: FamilyApplication[];
   onBooked: () => void;
@@ -25,8 +30,19 @@ type BookingTarget = {
   task: ApplicationPostSubmitTask;
 };
 
+function tabLabel(application: FamilyApplication): string {
+  return application.studentName ?? application.formTitle;
+}
+
+function hasPendingRequired(application: FamilyApplication): boolean {
+  return application.postSubmitTasks.some(
+    (task) => task.required && task.status === "pending",
+  );
+}
+
 export default function ApplyRequiredActionsSection({
-  C,
+  theme,
+  adminCompat,
   timezone,
   applications,
   onBooked,
@@ -60,6 +76,22 @@ export default function ApplyRequiredActionsSection({
 
   const tasks = activeApplication?.postSubmitTasks ?? [];
 
+  const navItems = useMemo(
+    () =>
+      applications.map((application) => ({
+        key: application.id,
+        label: tabLabel(application),
+        suffix: hasPendingRequired(application) ? (
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: theme.warning }}
+            aria-label="Has pending required steps"
+          />
+        ) : undefined,
+      })),
+    [applications, theme.warning],
+  );
+
   function handleSchedule(applicationId: string, task: ApplicationPostSubmitTask) {
     setBookingTarget({ applicationId, task });
   }
@@ -69,46 +101,46 @@ export default function ApplyRequiredActionsSection({
   return (
     <>
       <section>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>
+            <ParentSectionKicker theme={theme}>After you apply</ParentSectionKicker>
+            <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-xl">
               Required actions
-            </h2>
-            <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
+            </ParentDisplayHeading>
+            <p className="mt-1 text-[13px]" style={{ color: theme.muted }}>
               Complete these steps after submitting your application.
             </p>
           </div>
-          <div className="shrink-0 sm:pt-0">
+          <div className="shrink-0">
             {pendingRequiredCount > 0 ? (
-              <span
-                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                style={{ backgroundColor: C.warningBg, color: C.warning }}
-              >
+              <ParentChip theme={theme} tone="warning">
                 {pendingRequiredCount} pending
-              </span>
+              </ParentChip>
             ) : (
-              <span
-                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                style={{ backgroundColor: C.successBg, color: C.success }}
-              >
+              <ParentChip theme={theme} tone="success">
                 All set
-              </span>
+              </ParentChip>
             )}
           </div>
         </div>
 
-        <ApplyChildTabSelector
-          C={C}
-          applications={applications}
-          activeApplicationId={activeApplication.id}
-          onChange={setActiveApplicationId}
-        />
+        {applications.length > 1 ? (
+          <div className="mt-4">
+            <ParentStoryPillNav
+              theme={theme}
+              items={navItems}
+              activeKey={activeApplication.id}
+              onChange={setActiveApplicationId}
+              ariaLabel="Select child"
+            />
+          </div>
+        ) : null}
 
         <ol className="mt-4 list-none space-y-3 p-0">
           {tasks.map((task) => (
             <PostSubmitStepCard
               key={task.actionId}
-              C={C}
+              C={adminCompat}
               task={task}
               applicationId={activeApplication.id}
               onSchedule={handleSchedule}
@@ -119,7 +151,7 @@ export default function ApplyRequiredActionsSection({
 
       {bookingTarget ? (
         <PostSubmitBookingModal
-          C={C}
+          C={adminCompat}
           applicationId={bookingTarget.applicationId}
           task={bookingTarget.task}
           timezone={timezone}

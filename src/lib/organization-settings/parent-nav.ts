@@ -38,6 +38,7 @@ const CATALOG_PAGE_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 const PRIMARY_NAV_COUNT = 7;
+const PARENT_MORE_NAV_KEYS = new Set(["attendance", "enrollment_checklist"]);
 
 function toParentFeatureRecord(
   parentFeatures: ParentFeatures,
@@ -127,13 +128,16 @@ export function splitParentNavForHeader(items: ParentNavItem[]): {
   primary: ParentNavItem[];
   more: ParentNavItem[];
 } {
-  if (items.length <= PRIMARY_NAV_COUNT) {
-    return { primary: items, more: [] };
-  }
+  const primaryKeys = new Set(
+    items
+      .filter((item) => !PARENT_MORE_NAV_KEYS.has(item.key))
+      .slice(0, PRIMARY_NAV_COUNT)
+      .map((item) => item.key),
+  );
 
   return {
-    primary: items.slice(0, PRIMARY_NAV_COUNT),
-    more: items.slice(PRIMARY_NAV_COUNT),
+    primary: items.filter((item) => primaryKeys.has(item.key)),
+    more: items.filter((item) => !primaryKeys.has(item.key)),
   };
 }
 

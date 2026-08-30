@@ -4,6 +4,8 @@ import { APPLICATION_STATUS_LABELS } from "./parent-portal-access";
 
 export { APPLICATION_STATUS_LABELS };
 
+export type ApplicationStatusChipTone = "success" | "warning" | "alert" | "info";
+
 export const APPLICATION_STATUS_FILTER_ORDER = [
   "draft",
   "submitted",
@@ -66,6 +68,26 @@ export function applicationStatusLabel(status: string): string {
 export function adminApplicationStatusLabel(status: string): string {
   if (status === "draft") return "Applying";
   return applicationStatusLabel(status);
+}
+
+export function applicationStatusChipTone(status: string): ApplicationStatusChipTone {
+  switch (status) {
+    case "accepted":
+    case "enrolled":
+      return "success";
+    case "declined":
+    case "withdrawn":
+      return "alert";
+    case "submitted":
+    case "fee_pending":
+      return "warning";
+    case "enrolling":
+    case "under_review":
+    case "observation":
+    case "draft":
+    default:
+      return "info";
+  }
 }
 
 export function applicationStatusBadgeStyle(

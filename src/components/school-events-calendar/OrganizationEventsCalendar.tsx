@@ -11,13 +11,18 @@ import {
   formatMonthLabel,
   formatWeekRangeLabel,
   getWeekDates,
+  isToday,
   parseEventDate,
 } from "@/lib/committees/calendar-utils";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { groupOrganizationEventsByDate } from "@/lib/school-events/events";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import CalendarSkeleton from "./CalendarSkeleton";
-import CalendarToolbar, { type CalendarViewMode } from "./CalendarToolbar";
+import CalendarToolbar, {
+  type CalendarToolbarVariant,
+  type CalendarViewMode,
+} from "./CalendarToolbar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 
@@ -36,6 +41,12 @@ export type OrganizationEventsCalendarProps = {
   toolbarExtra?: ReactNode;
   header?: ReactNode;
   onPeriodChange?: (year: number, month: number) => void;
+  onPeriodMetaChange?: (meta: {
+    periodLabel: string;
+    isCurrentPeriod: boolean;
+  }) => void;
+  variant?: CalendarToolbarVariant;
+  parentTheme?: ParentThemeTokens;
 };
 
 export default function OrganizationEventsCalendar({
@@ -53,6 +64,9 @@ export default function OrganizationEventsCalendar({
   toolbarExtra,
   header,
   onPeriodChange,
+  onPeriodMetaChange,
+  variant = "default",
+  parentTheme,
 }: OrganizationEventsCalendarProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const viewDirection = view === "month" ? 1 : -1;
@@ -72,6 +86,18 @@ export default function OrganizationEventsCalendar({
 
   const periodLabel =
     view === "month" ? formatMonthLabel(year, month) : formatWeekRangeLabel(weekDates);
+
+  const isCurrentPeriod = useMemo(() => {
+    const today = new Date();
+    if (view === "month") {
+      return year === today.getFullYear() && month === today.getMonth();
+    }
+    return weekDates.some((day) => isToday(day));
+  }, [month, view, weekDates, year]);
+
+  useEffect(() => {
+    onPeriodMetaChange?.({ periodLabel, isCurrentPeriod });
+  }, [isCurrentPeriod, onPeriodMetaChange, periodLabel]);
 
   const goToday = useCallback(() => {
     const today = new Date();
@@ -204,6 +230,8 @@ export default function OrganizationEventsCalendar({
         onToday={goToday}
         toolbarExtra={toolbarExtra}
         compact={compact}
+        variant={variant}
+        theme={parentTheme}
       />
 
       {emptyHint && events.length === 0 ? (

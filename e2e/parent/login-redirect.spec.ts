@@ -9,8 +9,15 @@ async function expectParentLoginRedirect(page: Page) {
   await expect(
     page
       .getByRole("heading", { name: "Your applications" })
-      .or(page.getByRole("heading", { name: "Billing" }))
-      .or(page.getByRole("heading", { name: "My Children" })),
+      .or(page.getByRole("heading", { name: "Family tuition" }))
+      .or(page.getByRole("heading", { name: "Follow their day." }))
+      .or(
+        page.getByRole("heading", {
+          name: /^Good (morning|afternoon|evening)/,
+        }),
+      )
+      .or(page.getByTestId("parent-billing-story-header"))
+      .or(page.getByTestId("parent-children-story-header")),
   ).toBeVisible();
 }
 

@@ -51,7 +51,7 @@ export async function sendEnrollmentCompletedNotifications(
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
-      .select("name, slug, features")
+      .select("name, slug")
       .eq("id", application.organization_id)
       .maybeSingle();
 
@@ -63,6 +63,14 @@ export async function sendEnrollmentCompletedNotifications(
       );
       return;
     }
+
+    const { data: settings, error: settingsError } = await admin
+      .from("organization_settings")
+      .select("features")
+      .eq("organization_id", application.organization_id)
+      .maybeSingle();
+
+    if (settingsError) throw settingsError;
 
     const emails = await loadFamilyNotificationEmails(
       admin,
@@ -103,7 +111,7 @@ export async function sendEnrollmentCompletedNotifications(
     const programRow = Array.isArray(program) ? program[0] : program;
     const programName = programRow?.name ? String(programRow.name) : undefined;
 
-    const features = (org.features ?? {}) as OrganizationFeatures;
+    const features = (settings?.features ?? {}) as OrganizationFeatures;
     const parentPortalEnabled = isParentPortalEnabled(features);
     const schoolSlug = String(org.slug);
     const parentPortalUrl = parentPortalEnabled
