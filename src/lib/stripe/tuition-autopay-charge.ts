@@ -1,13 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripe/client";
-import { markPaymentSucceeded } from "@/lib/stripe/application-payments";
 import {
   quoteProcessingFee,
   type CheckoutPaymentMethod,
 } from "@/lib/stripe/processing-fee";
-import { settleTuitionPayment } from "@/lib/tuition/payment-settlement";
-import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
+import { recordTuitionPaymentCompleted } from "@/lib/stripe/record-payment-completed";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 
 export type AutopayChargeInput = {
@@ -69,18 +67,16 @@ export async function executeTuitionAutopayCharge(
     },
   });
 
-  if (paymentIntent.status === "succeeded") {
-    await markPaymentSucceeded(supabase, payment.id, {
-      stripePaymentIntentId: paymentIntent.id,
-    });
-    const settleResult = await settleTuitionPayment(supabase, {
-      chargeId: input.chargeId,
-      amountCents: input.amountCents,
-      payerUserId: input.payerUserId,
-      paymentId: payment.id,
-    });
-    void sendTuitionPaymentReceiptNotifications(supabase, payment.id, {
-      settleResult,
+  if (
+    paymentIntent.status === "succeeded" ||
+    paymentIntent.status === "processing"
+  ) {
+    await recordTuitionPaymentCompleted(supabase, {
+      payment,
+      organizationId: input.organizationId,
+      tuitionChargeId: input.chargeId,
+      paymentIntentId: paymentIntent.id,
+      stripeProviderStatus: paymentIntent.status,
     });
   }
 

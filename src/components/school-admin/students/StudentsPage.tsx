@@ -53,7 +53,7 @@ function studentColumnHeaderBadgeStyle(
       return { backgroundColor: C.successBg, color: C.success };
     case "Parent":
       return { backgroundColor: C.warningBg, color: C.warning };
-    case "Enrolled":
+    case "Birthday":
       return { backgroundColor: C.bg, color: C.textTertiary, border: `1px solid ${C.border}` };
     default:
       return {
@@ -62,6 +62,11 @@ function studentColumnHeaderBadgeStyle(
         border: `1px solid ${C.border}`,
       };
   }
+}
+
+function formatDateOfBirth(value: string | null): string {
+  if (!value) return "—";
+  return formatEnrolledDate(value);
 }
 
 function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boolean {
@@ -349,7 +354,7 @@ export default function StudentsPage({
                 }}
               >
                 <tr>
-                  {["Student", "Grade", "Program", "Teacher", "Parent", "Enrolled"].map(
+                  {["Student", "Grade", "Program", "Teacher", "Parent", "Birthday"].map(
                     (heading, index, headings) => {
                       const isLast = index === headings.length - 1;
                       return (
@@ -462,7 +467,7 @@ export default function StudentsPage({
                         className="px-3 py-3 sm:px-4"
                         style={{ color: C.textSecondary, ...columnDividerStyle(C, true) }}
                       >
-                        {formatEnrolledDate(student.enrolledAt)}
+                        {formatDateOfBirth(student.dateOfBirth)}
                       </td>
                     </tr>
                   );

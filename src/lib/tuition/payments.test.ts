@@ -88,6 +88,7 @@ function paymentRecord(
     paymentMethodType: null,
     currency: "USD",
     status: "succeeded",
+    stripeProviderStatus: null,
     paidAt: "2026-08-01T12:00:00.000Z",
     createdAt: "2026-08-01T12:00:00.000Z",
   };

@@ -29,6 +29,7 @@ function payment(
     paymentMethodType: "card",
     currency: "USD",
     status: "succeeded",
+    stripeProviderStatus: null,
     paidAt: "2026-08-08T14:30:00.000Z",
     createdAt: "2026-08-08T14:29:00.000Z",
     studentFirstName: "Jon",

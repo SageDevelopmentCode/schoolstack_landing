@@ -25,6 +25,7 @@ export type PaymentRecord = {
   paymentMethodType: PaymentMethodType | null;
   currency: string;
   status: PaymentStatus;
+  stripeProviderStatus: string | null;
   paidAt: string | null;
   createdAt: string;
 };
@@ -88,9 +89,26 @@ function rowToPayment(row: Record<string, unknown>): PaymentRecord {
         : null,
     currency: String(row.currency ?? "USD"),
     status: row.status as PaymentStatus,
+    stripeProviderStatus:
+      typeof row.stripe_provider_status === "string"
+        ? row.stripe_provider_status
+        : null,
     paidAt: typeof row.paid_at === "string" ? row.paid_at : null,
     createdAt: typeof row.created_at === "string" ? row.created_at : "",
   };
+}
+
+export async function updateStripeProviderStatus(
+  supabase: SupabaseClient,
+  paymentId: string,
+  stripeProviderStatus: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("application_payments")
+    .update({ stripe_provider_status: stripeProviderStatus })
+    .eq("id", paymentId);
+
+  if (error) throw error;
 }
 
 export async function createPaymentRecord(

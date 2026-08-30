@@ -8,6 +8,7 @@ import {
 } from "@/lib/admissions/application-auth";
 import {
   completeChecklistItem,
+  acknowledgeAgreementAmendmentReview,
   EnrollmentMaterializationError,
   saveAgreementSectionSignature,
   saveChecklistItemDraft,
@@ -32,6 +33,7 @@ type CompleteBody = {
   responses?: Record<string, unknown>;
   signerName?: string;
   draft?: boolean;
+  acknowledgeAgreementAmendment?: boolean;
   agreementSection?: {
     sectionId: string;
     signerName: string;
@@ -138,6 +140,26 @@ export async function PATCH(request: Request, context: RouteContext) {
         success: true,
         status: result.status,
         responses: result.responses,
+      });
+    }
+
+    if (body.acknowledgeAgreementAmendment) {
+      const result = await acknowledgeAgreementAmendmentReview(admin, {
+        instanceId,
+        actorUserId: user.id,
+        organizationId,
+      });
+
+      fireEnrollmentCompletedNotificationsIfNeeded(
+        admin,
+        result.newlyCompletedEnrollment,
+      );
+
+      return NextResponse.json({
+        success: true,
+        status: result.status,
+        responses: result.responses,
+        resumeSectionId: result.resumeSectionId,
       });
     }
 
