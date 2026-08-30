@@ -68,7 +68,7 @@ export default function ApplyRequiredActionsSection({
 
   return (
     <>
-      <section className="mt-10">
+      <section>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold sm:text-xl" style={{ color: C.accentDark }}>

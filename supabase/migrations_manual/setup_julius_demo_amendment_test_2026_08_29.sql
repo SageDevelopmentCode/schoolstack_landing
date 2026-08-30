@@ -207,3 +207,47 @@ join public.organizations o on o.id = dt.organization_id
 join public.enrollment_checklist_template_items i on i.document_template_id = dt.id
 where o.slug = 'rooted-meadows-demo'
   and i.metadata->'variant'->>'variantKey' = 'standard';
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- OPTIONAL STEP 3 — Replicate Amelia's broken state on Caleb (missing std-1)
+-- Uncomment to test the "Complete agreement" dead-end fix locally.
+-- Leaves agreement in_progress with std-2..std-5 signed only.
+-- ═══════════════════════════════════════════════════════════════════════════════
+--
+-- begin;
+--
+-- update public.enrollment_checklist_items eci
+-- set
+--   status = 'in_progress',
+--   completed_at = null,
+--   completed_by_user_id = null,
+--   responses = jsonb_set(
+--     eci.responses,
+--     '{sectionSignatures}',
+--     coalesce(
+--       (
+--         select jsonb_agg(sig order by ordinality)
+--         from jsonb_array_elements(eci.responses->'sectionSignatures') with ordinality as t(sig, ordinality)
+--         where sig->>'sectionId' <> 'std-1'
+--       ),
+--       '[]'::jsonb
+--     ),
+--     false
+--   ),
+--   updated_at = now()
+-- where eci.id = '381bb968-9f5f-4d72-8f14-765dde726d87'
+--   and eci.status = 'completed';
+--
+-- update public.enrollment_checklists ec
+-- set status = 'in_progress', updated_at = now()
+-- where ec.id = (
+--   select checklist_id
+--   from public.enrollment_checklist_items
+--   where id = '381bb968-9f5f-4d72-8f14-765dde726d87'
+-- )
+--   and ec.status = 'completed';
+--
+-- commit;
+--
+-- Test URL (open on std-5, tap Complete agreement — should jump to std-1):
+-- /school/rooted-meadows-demo/apply/ac48c884-a892-473e-8264-890c940156d6/enrollment?item=86b6945d-7581-451d-a8e8-16766aacb74b&section=std-5

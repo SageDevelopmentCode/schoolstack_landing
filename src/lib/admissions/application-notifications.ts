@@ -7,7 +7,6 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
 import {
-  parseApplicationFormNotificationConfig,
   parseApplicationFormPostSubmitConfig,
 } from "@/lib/admissions/application-form-schema";
 import { extractStudentLabel, formatShortDate } from "@/lib/admissions/application-submissions";
@@ -28,6 +27,10 @@ import {
 } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
+import {
+  resolveApplicationNotificationEmails,
+  resolveVisitNotificationEmails,
+} from "@/lib/notifications/org-notification-settings";
 import { SITE_URL } from "@/lib/site";
 
 export type ApplicantContact = {
@@ -155,9 +158,6 @@ export async function sendApplicationSubmittedNotifications(
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
     const formTitle = form?.title ?? "Application";
-    const notificationConfig = parseApplicationFormNotificationConfig(
-      form?.notification_config,
-    );
 
     const program = application.programs as { name?: string } | { name?: string }[] | null;
     const programRow = Array.isArray(program) ? program[0] : program;
@@ -183,7 +183,10 @@ export async function sendApplicationSubmittedNotifications(
     }
     const studentName = extractStudentLabel(stringResponses) ?? undefined;
 
-    const notifyEmails = [...new Set(notificationConfig.submission_notify_emails)];
+    const notifyEmails = await resolveApplicationNotificationEmails(
+      admin,
+      String(application.organization_id),
+    );
 
     const notificationTasks: Promise<unknown>[] = [
       notifyApplicationSubmitted({
@@ -411,9 +414,6 @@ export async function sendPostSubmitVisitScheduledNotifications(
       | null;
     const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
     const postSubmitConfig = parseApplicationFormPostSubmitConfig(form?.post_submit_config);
-    const notificationConfig = parseApplicationFormNotificationConfig(
-      form?.notification_config,
-    );
     const stepTitle = resolvePostSubmitStepTitle(postSubmitConfig, booking);
 
     const schoolName = String(org.name);
@@ -431,7 +431,10 @@ export async function sendPostSubmitVisitScheduledNotifications(
       else if (value != null) stringResponses[key] = String(value);
     }
     const studentName = extractStudentLabel(stringResponses) ?? undefined;
-    const notifyEmails = [...new Set(notificationConfig.submission_notify_emails)];
+    const notifyEmails = await resolveVisitNotificationEmails(
+      admin,
+      organizationId,
+    );
 
     const notificationTasks = buildPostSubmitVisitNotificationTasks({
       booking,
@@ -468,5 +471,78 @@ export async function sendPostSubmitVisitScheduledNotifications(
       entityId: applicationId,
       error,
     });
+  }
+}
+
+export async function sendPreApplicationCampusTourAdminNotifications(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    familyId: string;
+    booking: ScheduledVisitRecord;
+  },
+): Promise<void> {
+  try {
+    const notifyEmails = await resolveVisitNotificationEmails(
+      admin,
+      input.organizationId,
+    );
+    if (notifyEmails.length === 0) {
+      return;
+    }
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("name, slug, timezone")
+      .eq("id", input.organizationId)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org?.slug) {
+      console.warn(
+        "Pre-application tour notifications: organization not found",
+        input.organizationId,
+      );
+      return;
+    }
+
+    const { data: family, error: familyError } = await admin
+      .from("families")
+      .select("name, primary_email")
+      .eq("id", input.familyId)
+      .maybeSingle();
+
+    if (familyError) throw familyError;
+
+    const emails = await loadFamilyNotificationEmails(admin, input.familyId);
+    const contactEmail =
+      emails[0] ?? (family?.primary_email ? String(family.primary_email) : undefined);
+
+    const schoolName = String(org.name);
+    const schoolSlug = String(org.slug);
+    const timezone =
+      typeof org.timezone === "string" ? org.timezone : "America/Chicago";
+    const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+    const whenLabel = formatScheduledVisitWhenLabel(input.booking);
+    const durationLabel = resolveVisitDurationLabel(input.booking);
+    const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
+
+    await Promise.allSettled(
+      notifyEmails.map((email) =>
+        sendPostSubmitVisitOwnerNotification({
+          email,
+          schoolName,
+          stepTitle: "Campus tour",
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          contactName: family?.name ? String(family.name) : undefined,
+          contactEmail,
+          submissionAdminUrl: scheduleAdminUrl,
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error("Pre-application tour admin notifications failed:", error);
   }
 }

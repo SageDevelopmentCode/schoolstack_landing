@@ -35,6 +35,7 @@ import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
+import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -45,6 +46,7 @@ type ParentHomePageProps = {
   onboardingItems?: ResolvedParentOnboardingItem[];
   upcomingEvents?: OrganizationEvent[];
   enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
+  enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   previewMode?: boolean;
   previewBasePath?: string;
 };
@@ -226,6 +228,7 @@ export default function ParentHomePage({
   onboardingItems = [],
   upcomingEvents = [],
   enrollmentAmendmentBannerItems = [],
+  enrollmentIncompleteBannerItems = [],
   previewMode = false,
   previewBasePath,
 }: ParentHomePageProps) {
@@ -273,10 +276,12 @@ export default function ParentHomePage({
           </h1>
         </motion.header>
 
-        {enrollmentAmendmentBannerItems.length > 0 ? (
+        {enrollmentAmendmentBannerItems.length > 0 ||
+        enrollmentIncompleteBannerItems.length > 0 ? (
           <EnrollmentAgreementAmendmentBanner
             C={C}
             items={enrollmentAmendmentBannerItems}
+            incompleteItems={enrollmentIncompleteBannerItems}
           />
         ) : null}
 

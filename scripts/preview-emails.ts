@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildApplicationSubmittedConfirmationHtml,
+  buildApplicationSubmittedOwnerNotificationHtml,
   buildDraftApplicationReminderHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
@@ -9,6 +10,8 @@ import {
   buildHomepageQuestionConfirmationHtml,
   buildNewMessageEmailHtml,
   buildPaymentReceiptConfirmationHtml,
+  buildPaymentReceivedAdminNotificationHtml,
+  buildPostSubmitVisitOwnerNotificationHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
   buildTuitionPaymentReceiptHtml,
@@ -312,6 +315,110 @@ const previews = [
       "Can we reschedule the shadow day",
       "View conversation",
       "/school/rooted-meadows/parent/messages?thread=abc-123",
+    ],
+  },
+  {
+    filename: "admin-application-submitted.html",
+    html: buildApplicationSubmittedOwnerNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      formTitle: "2026–27 Enrollment Application",
+      studentName: "Olivia Sparhawk",
+      contactName: "Rachael Sparhawk",
+      contactEmail: "rachael@example.com",
+      programName: "Grade 1",
+      submittedAtLabel: "August 29, 2026 at 2:30 PM",
+      submissionAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/admissions/submissions?application=app-1",
+    }),
+    checks: [
+      "New Application",
+      "A new application was submitted",
+      "Olivia Sparhawk",
+      "Rachael Sparhawk",
+      "View submission",
+      "Rooted Meadows Waldorf School",
+    ],
+  },
+  {
+    filename: "admin-payment-received.html",
+    html: buildPaymentReceivedAdminNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      paymentTypeLabel: "Tuition",
+      payerLabel: "Sparhawk Family",
+      amountCents: 42000,
+      chargedAmountCents: 42339,
+      processingFeeCents: 339,
+      paymentMethodLabel: "ACH",
+      paidAtLabel: "August 29, 2026 at 2:47 PM",
+      studentName: "Olivia Sparhawk",
+      chargeLabel: "Aug Tuition",
+      paymentsAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/admissions/payments",
+    }),
+    checks: [
+      "Payment Received",
+      "A payment was received",
+      "Sparhawk Family",
+      "Olivia Sparhawk",
+      "View payments",
+      "423.39",
+    ],
+  },
+  {
+    filename: "admin-payment-received-combined.html",
+    html: buildPaymentReceivedAdminNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      paymentTypeLabel: "Tuition",
+      payerLabel: "Thompson Family",
+      amountCents: 144000,
+      chargedAmountCents: 145000,
+      processingFeeCents: 1000,
+      paymentMethodLabel: "ACH",
+      paidAtLabel: "August 29, 2026 at 2:52 PM",
+      lineItems: [
+        {
+          studentName: "Maggie Thompson",
+          label: "Aug Tuition",
+          amountCents: 72000,
+        },
+        {
+          studentName: "Nina Thompson",
+          label: "Aug Tuition",
+          amountCents: 72000,
+        },
+      ],
+      paymentsAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/admissions/payments",
+    }),
+    checks: [
+      "Payment Received",
+      "Maggie Thompson",
+      "Nina Thompson",
+      "1,450.00",
+      "View payments",
+    ],
+  },
+  {
+    filename: "admin-visit-scheduled.html",
+    html: buildPostSubmitVisitOwnerNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      stepTitle: "Schedule shadow / observation days",
+      whenLabel: "Wed, August 26 (1 school day)",
+      timezoneLabel: "Central Time",
+      durationLabel: "1 school day",
+      studentName: "Student Evensen",
+      contactName: "Holly Evensen",
+      contactEmail: "parent@example.com",
+      submissionAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/admissions/submissions?application=app-1",
+    }),
+    checks: [
+      "Visit Scheduled",
+      "A family scheduled a visit",
+      "Holly Evensen",
+      "parent@example.com",
+      "Student Evensen",
+      "View submission",
     ],
   },
   {

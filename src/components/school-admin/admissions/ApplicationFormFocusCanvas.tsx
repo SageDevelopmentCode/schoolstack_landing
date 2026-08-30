@@ -14,9 +14,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   DRAFT_REMINDER_DELAY_PRESETS,
-  MAX_SUBMISSION_NOTIFY_EMAILS,
   normalizeApplicationFormNotificationConfig,
-  normalizeSubmissionNotifyEmails,
   validateSubmissionNotifyEmails,
   type ApplicationField,
   type ApplicationFormFeeConfig,
@@ -149,8 +147,6 @@ function SetupView({
 }) {
   const slugInputRef = useRef<HTMLInputElement>(null);
   const slugHighlighted = !lockApplySlug && setupHighlight === "publicSlug";
-  const [notifyEmailDraft, setNotifyEmailDraft] = useState("");
-  const [notifyEmailError, setNotifyEmailError] = useState<string | null>(null);
 
   const notifyEmails = editable.notificationConfig.submission_notify_emails;
   const draftReminders = editable.notificationConfig.draft_reminders;
@@ -175,15 +171,6 @@ function SetupView({
         ...patch,
       }),
     });
-  };
-
-  const updateNotifyEmails = (emails: string[]) => {
-    updateNotificationConfig(
-      normalizeSubmissionNotifyEmails(
-        emails,
-        editable.notificationConfig.draft_reminders,
-      ),
-    );
   };
 
   const handleToggleDraftReminders = (enabled: boolean) => {
@@ -222,30 +209,6 @@ function SetupView({
     if (draftContactEmailError) {
       setDraftContactEmailError(null);
     }
-  };
-
-  const handleAddNotifyEmail = () => {
-    const email = notifyEmailDraft.trim().toLowerCase();
-    if (!email) return;
-
-    const nextConfig = normalizeSubmissionNotifyEmails([
-      ...notifyEmails,
-      email,
-    ]);
-    const validationError = validateSubmissionNotifyEmails(nextConfig);
-    if (validationError) {
-      setNotifyEmailError(validationError);
-      return;
-    }
-
-    onEditableChange({ notificationConfig: nextConfig });
-    setNotifyEmailDraft("");
-    setNotifyEmailError(null);
-  };
-
-  const handleRemoveNotifyEmail = (email: string) => {
-    updateNotifyEmails(notifyEmails.filter((entry) => entry !== email));
-    setNotifyEmailError(null);
   };
 
   return (
@@ -390,97 +353,17 @@ function SetupView({
 
       <BuilderQuestionCard
         C={C}
-        tone="warning"
+        tone="info"
         question="Want to be notified when new applications come in?"
-        helper="Add email addresses that should receive a summary when someone submits. Families still get their own confirmation email."
+        helper="Application notification emails are managed in Notifications settings."
       >
-        <div className="space-y-3">
-          {notifyEmails.length > 0 ? (
-            <ul className="flex flex-wrap gap-2">
-              {notifyEmails.map((email) => (
-                <li key={email}>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
-                    style={{
-                      backgroundColor: C.bg,
-                      border: `1px solid ${C.border}`,
-                      color: C.textSecondary,
-                    }}
-                  >
-                    {email}
-                    {!readOnly ? (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveNotifyEmail(email)}
-                        className="rounded-full p-0.5 transition-colors"
-                        style={{ color: C.textTertiary }}
-                        aria-label={`Remove ${email}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              No notification emails added yet.
-            </p>
-          )}
-
-          {!readOnly ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <input
-                type="email"
-                value={notifyEmailDraft}
-                onChange={(e) => {
-                  setNotifyEmailDraft(e.target.value);
-                  if (notifyEmailError) setNotifyEmailError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddNotifyEmail();
-                  }
-                }}
-                placeholder="admissions@school.com"
-                disabled={notifyEmails.length >= MAX_SUBMISSION_NOTIFY_EMAILS}
-                className="sm:flex-1"
-                style={inputStyle(C)}
-              />
-              <button
-                type="button"
-                onClick={handleAddNotifyEmail}
-                disabled={
-                  !notifyEmailDraft.trim() ||
-                  notifyEmails.length >= MAX_SUBMISSION_NOTIFY_EMAILS
-                }
-                className="inline-flex shrink-0 items-center justify-center gap-1 px-3 text-xs font-medium disabled:opacity-50"
-                style={{
-                  backgroundColor: C.accentLight,
-                  color: C.accent,
-                  border: `1px solid ${C.secondaryBtnBorder}`,
-                  borderRadius: C.r.md,
-                }}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add email
-              </button>
-            </div>
-          ) : null}
-
-          {notifyEmailError ? (
-            <p className="text-xs font-medium" style={{ color: C.error }}>
-              {notifyEmailError}
-            </p>
-          ) : null}
-          {!readOnly && notifyEmails.length >= MAX_SUBMISSION_NOTIFY_EMAILS ? (
-            <p className="text-xs" style={{ color: C.textTertiary }}>
-              Maximum of {MAX_SUBMISSION_NOTIFY_EMAILS} notification emails.
-            </p>
-          ) : null}
-        </div>
+        <Link
+          href={schoolAdminPath(orgSlug, "notifications")}
+          className="inline-flex items-center gap-1 text-sm font-medium"
+          style={{ color: C.accent }}
+        >
+          Manage in Notifications
+        </Link>
       </BuilderQuestionCard>
 
       <BuilderQuestionCard

@@ -1,31 +1,32 @@
 import { buildAgreementEnrollmentHref } from "./enrollment-agreement-enrollment-href";
 
-export type EnrollmentAgreementAmendmentBannerItem = {
+export const ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE =
+  "Your enrollment agreement still needs your signature. Please finish signing to complete enrollment.";
+
+export type EnrollmentAgreementIncompleteBannerItem = {
   applicationId: string;
   studentName: string;
   checklistItemLabel: string;
-  amendmentNotice: string;
   enrollmentHref: string;
 };
 
-type AmendmentBannerSource = {
+type IncompleteBannerSource = {
   checklistItemLabel: string;
-  amendmentNotice: string;
   templateItemId: string;
   resumeSectionId: string;
 };
 
-export function buildEnrollmentAgreementAmendmentBannerItems(input: {
+export function buildEnrollmentAgreementIncompleteBannerItems(input: {
   schoolSlug: string;
   familyChildren: Array<{ applicationId: string; studentName: string }>;
-  amendmentsByApplicationId: Record<string, AmendmentBannerSource[]>;
+  incompleteByApplicationId: Record<string, IncompleteBannerSource[]>;
   previewBasePath?: string;
-}): EnrollmentAgreementAmendmentBannerItem[] {
-  const items: EnrollmentAgreementAmendmentBannerItem[] = [];
+}): EnrollmentAgreementIncompleteBannerItem[] {
+  const items: EnrollmentAgreementIncompleteBannerItem[] = [];
 
   for (const child of input.familyChildren) {
-    const amendments = input.amendmentsByApplicationId[child.applicationId] ?? [];
-    for (const amendment of amendments) {
+    const incompleteItems = input.incompleteByApplicationId[child.applicationId] ?? [];
+    for (const incomplete of incompleteItems) {
       const enrollmentBasePath = input.previewBasePath
         ? `${input.previewBasePath}/apply/${child.applicationId}/enrollment`
         : `/school/${input.schoolSlug}/apply/${child.applicationId}/enrollment`;
@@ -33,12 +34,11 @@ export function buildEnrollmentAgreementAmendmentBannerItems(input: {
       items.push({
         applicationId: child.applicationId,
         studentName: child.studentName,
-        checklistItemLabel: amendment.checklistItemLabel,
-        amendmentNotice: amendment.amendmentNotice,
+        checklistItemLabel: incomplete.checklistItemLabel,
         enrollmentHref: buildAgreementEnrollmentHref(
           enrollmentBasePath,
-          amendment.templateItemId,
-          amendment.resumeSectionId,
+          incomplete.templateItemId,
+          incomplete.resumeSectionId,
         ),
       });
     }
@@ -47,19 +47,19 @@ export function buildEnrollmentAgreementAmendmentBannerItems(input: {
   return items;
 }
 
-export function buildEnrollmentAgreementAmendmentBannerItemsFromApplications(input: {
+export function buildEnrollmentAgreementIncompleteBannerItemsFromApplications(input: {
   schoolSlug: string;
   applications: Array<{ id: string; studentName?: string | null }>;
-  amendmentsByApplicationId: Record<string, AmendmentBannerSource[]>;
+  incompleteByApplicationId: Record<string, IncompleteBannerSource[]>;
   previewBasePath?: string;
-}): EnrollmentAgreementAmendmentBannerItem[] {
-  const items: EnrollmentAgreementAmendmentBannerItem[] = [];
+}): EnrollmentAgreementIncompleteBannerItem[] {
+  const items: EnrollmentAgreementIncompleteBannerItem[] = [];
 
   for (const application of input.applications) {
-    const amendments = input.amendmentsByApplicationId[application.id] ?? [];
+    const incompleteItems = input.incompleteByApplicationId[application.id] ?? [];
     const studentName = application.studentName?.trim() || "Student";
 
-    for (const amendment of amendments) {
+    for (const incomplete of incompleteItems) {
       const enrollmentBasePath = input.previewBasePath
         ? `${input.previewBasePath}/apply/${application.id}/enrollment`
         : `/school/${input.schoolSlug}/apply/${application.id}/enrollment`;
@@ -67,12 +67,11 @@ export function buildEnrollmentAgreementAmendmentBannerItemsFromApplications(inp
       items.push({
         applicationId: application.id,
         studentName,
-        checklistItemLabel: amendment.checklistItemLabel,
-        amendmentNotice: amendment.amendmentNotice,
+        checklistItemLabel: incomplete.checklistItemLabel,
         enrollmentHref: buildAgreementEnrollmentHref(
           enrollmentBasePath,
-          amendment.templateItemId,
-          amendment.resumeSectionId,
+          incomplete.templateItemId,
+          incomplete.resumeSectionId,
         ),
       });
     }

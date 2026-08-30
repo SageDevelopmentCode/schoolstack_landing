@@ -13,7 +13,11 @@ import {
 } from "@/lib/admissions/family-preview-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
-import { listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { buildEnrollmentAgreementIncompleteBannerItems } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import {
+  listEnrollmentAgreementAmendmentsForApplications,
+  listIncompleteEnrollmentAgreementsForApplications,
+} from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -124,19 +128,29 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       features: org.features,
       previewBasePath: previewParentBasePath,
     });
-    const amendmentsByApplicationId = Object.fromEntries(
-      (
-        await listEnrollmentAgreementAmendmentsForApplications(
-          supabase,
-          org.id,
-          familyChildren.map((child) => child.applicationId),
-        )
-      ).entries(),
-    );
+    const applicationIds = familyChildren.map((child) => child.applicationId);
+    const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
+      listEnrollmentAgreementAmendmentsForApplications(
+        supabase,
+        org.id,
+        applicationIds,
+      ),
+      listIncompleteEnrollmentAgreementsForApplications(
+        supabase,
+        org.id,
+        applicationIds,
+      ),
+    ]);
     const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
       schoolSlug: slug,
       familyChildren,
-      amendmentsByApplicationId,
+      amendmentsByApplicationId: Object.fromEntries(amendmentsByApplicationId.entries()),
+      previewBasePath,
+    });
+    const enrollmentIncompleteBannerItems = buildEnrollmentAgreementIncompleteBannerItems({
+      schoolSlug: slug,
+      familyChildren,
+      incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath,
     });
 
@@ -151,6 +165,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           onboardingItems={onboardingItems}
           upcomingEvents={upcomingEvents}
           enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
+          enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
           previewMode
           previewBasePath={previewBasePath}
         />

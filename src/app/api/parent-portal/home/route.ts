@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
-import { listEnrollmentAgreementAmendmentsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
+import { buildEnrollmentAgreementIncompleteBannerItems } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import {
+  listEnrollmentAgreementAmendmentsForApplications,
+  listIncompleteEnrollmentAgreementsForApplications,
+} from "@/lib/admissions/enrollment-checklist-materialization";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import {
   getFamilyUserProfile,
@@ -85,20 +89,29 @@ export async function GET(request: Request) {
           : Promise.resolve([]),
       ]);
 
-    const amendmentsByApplicationId = Object.fromEntries(
-      (
-        await listEnrollmentAgreementAmendmentsForApplications(
-          supabase,
-          organizationId,
-          familyChildren.map((child) => child.applicationId),
-        )
-      ).entries(),
-    );
+    const applicationIds = familyChildren.map((child) => child.applicationId);
+    const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
+      listEnrollmentAgreementAmendmentsForApplications(
+        supabase,
+        organizationId,
+        applicationIds,
+      ),
+      listIncompleteEnrollmentAgreementsForApplications(
+        supabase,
+        organizationId,
+        applicationIds,
+      ),
+    ]);
 
     const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
       schoolSlug: slug,
       familyChildren,
-      amendmentsByApplicationId,
+      amendmentsByApplicationId: Object.fromEntries(amendmentsByApplicationId.entries()),
+    });
+    const enrollmentIncompleteBannerItems = buildEnrollmentAgreementIncompleteBannerItems({
+      schoolSlug: slug,
+      familyChildren,
+      incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
 
     const quickActions = buildParentQuickActions(slug, org.features);
@@ -114,6 +127,7 @@ export async function GET(request: Request) {
       onboardingItems,
       upcomingEvents,
       enrollmentAmendmentBannerItems,
+      enrollmentIncompleteBannerItems,
     });
   } catch (err) {
     return apiError(ROUTE, {

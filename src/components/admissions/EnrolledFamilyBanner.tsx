@@ -22,7 +22,7 @@ export default function EnrolledFamilyBanner({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="mt-6 rounded-xl border p-5 sm:p-6"
+      className="rounded-xl border p-5 sm:p-6"
       style={{
         borderColor: C.successBorder,
         background: `linear-gradient(135deg, ${C.successBg} 0%, ${C.accentLight} 100%)`,

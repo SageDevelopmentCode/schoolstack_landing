@@ -11,6 +11,7 @@ import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptions
 import ApplyRequiredActionsSection from "@/components/admissions/ApplyRequiredActionsSection";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
+import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 import {
   applicationStatusBadgeStyle,
   applicationStatusLabel,
@@ -46,6 +47,7 @@ type ApplyDashboardProps = {
   parentPortalHref?: string;
   enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
   enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
+  enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
   previewMode?: boolean;
@@ -164,6 +166,7 @@ export default function ApplyDashboard({
   parentPortalHref,
   enrollmentProgressByApplicationId,
   enrollmentAmendmentBannerItems = [],
+  enrollmentIncompleteBannerItems = [],
   userProfile,
   portalOptions = [],
   previewMode = false,
@@ -220,6 +223,7 @@ export default function ApplyDashboard({
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
     >
+      <div className="flex flex-col gap-8">
         {hasEnrolledAccess && parentPortalEnabled && parentPortalHref ? (
           <EnrolledFamilyBanner
             C={C}
@@ -228,17 +232,17 @@ export default function ApplyDashboard({
           />
         ) : null}
 
-        {enrollmentAmendmentBannerItems.length > 0 ? (
-          <section className="mt-8">
-            <EnrollmentAgreementAmendmentBanner
-              C={C}
-              items={enrollmentAmendmentBannerItems}
-            />
-          </section>
+        {enrollmentAmendmentBannerItems.length > 0 ||
+        enrollmentIncompleteBannerItems.length > 0 ? (
+          <EnrollmentAgreementAmendmentBanner
+            C={C}
+            items={enrollmentAmendmentBannerItems}
+            incompleteItems={enrollmentIncompleteBannerItems}
+          />
         ) : null}
 
         {upcomingCampusTours.length > 0 ? (
-          <section className="mt-8">
+          <section>
             <h2 className="text-lg font-semibold" style={{ color: C.accentDark }}>
               Upcoming visits
             </h2>
@@ -271,13 +275,7 @@ export default function ApplyDashboard({
         ) : null}
 
         {showScheduleTourCta ? (
-          <section
-            className={
-              (hasEnrolledAccess && parentPortalEnabled) || upcomingCampusTours.length > 0
-                ? "mt-8"
-                : ""
-            }
-          >
+          <section>
             <div
               className="rounded-md border px-5 py-5"
               style={{ borderColor: C.border, backgroundColor: "#FFFFFF" }}
@@ -321,15 +319,7 @@ export default function ApplyDashboard({
           </section>
         ) : null}
 
-        <section
-          className={
-            hasEnrolledAccess && parentPortalEnabled ||
-            upcomingCampusTours.length > 0 ||
-            showScheduleTourCta
-              ? "mt-8"
-              : ""
-          }
-        >
+        <section>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold sm:text-3xl" style={{ color: C.accentDark }}>
@@ -499,6 +489,7 @@ export default function ApplyDashboard({
             shadowDaySchedulingMode={shadowDaySchedulingMode}
           />
         ) : null}
+      </div>
     </ApplyPortalPageShell>
   );
 }

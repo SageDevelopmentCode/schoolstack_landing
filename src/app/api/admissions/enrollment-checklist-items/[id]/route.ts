@@ -140,6 +140,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         success: true,
         status: result.status,
         responses: result.responses,
+        resumeSectionId: result.resumeSectionId,
       });
     }
 

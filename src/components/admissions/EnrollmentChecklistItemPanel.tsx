@@ -47,6 +47,7 @@ import {
 } from "@/lib/admissions/enrollment-checklist-document-storage";
 import {
   getAgreementInitialSectionIndex,
+  getAgreementResumeSectionIndex,
   isAgreementSectionPendingResign,
   mergeAgreementSectionSignature,
   parseAgreementConsentValue,
@@ -342,6 +343,26 @@ function DocumentSignInlinePanel({
     setSectionIndex((idx) => idx + 1);
   };
 
+  const navigateToAgreementSection = (targetSectionId: string): boolean => {
+    const resumeIndex = sections.findIndex((entry) => entry.id === targetSectionId);
+    if (resumeIndex < 0) return false;
+
+    setDirection(resumeIndex > sectionIndex ? 1 : -1);
+    setSectionIndex(resumeIndex);
+    return true;
+  };
+
+  const resolveResumeSectionId = (
+    resumeSectionId: string | undefined,
+    responses: Record<string, unknown>,
+  ): string | undefined => {
+    if (resumeSectionId) return resumeSectionId;
+
+    const signatures = parseAgreementSectionSignatures(responses);
+    const resumeIndex = getAgreementResumeSectionIndex(sections, signatures);
+    return sections[resumeIndex]?.id;
+  };
+
   const acknowledgeAgreementAmendmentReview = async () => {
     if (!isLive || !instanceId) return;
 
@@ -381,14 +402,13 @@ function DocumentSignInlinePanel({
 
       await onPartialProgress?.(nextResponses);
 
-      if (data.resumeSectionId) {
-        const resumeIndex = sections.findIndex(
-          (entry) => entry.id === data.resumeSectionId,
-        );
-        if (resumeIndex >= 0) {
-          setDirection(resumeIndex > sectionIndex ? 1 : -1);
-          setSectionIndex(resumeIndex);
-        }
+      const targetSectionId = resolveResumeSectionId(data.resumeSectionId, nextResponses);
+      if (targetSectionId && navigateToAgreementSection(targetSectionId)) {
+        return;
+      }
+
+      if (isLastSection) {
+        setError("One or more earlier sections still need your signature.");
       }
     } catch (err) {
       reportEnrollmentChecklistError(
@@ -473,6 +493,7 @@ function DocumentSignInlinePanel({
       const data = (await response.json()) as {
         status?: string;
         responses?: Record<string, unknown>;
+        resumeSectionId?: string;
       };
       const nextResponses = data.responses ?? existingResponses ?? {};
 
@@ -483,10 +504,18 @@ function DocumentSignInlinePanel({
 
       await onPartialProgress?.(nextResponses);
 
-      if (!isLastSection) {
-        setDirection(1);
-        setSectionIndex((idx) => idx + 1);
+      const targetSectionId = resolveResumeSectionId(data.resumeSectionId, nextResponses);
+      if (targetSectionId && navigateToAgreementSection(targetSectionId)) {
+        return;
       }
+
+      if (isLastSection) {
+        setError("One or more earlier sections still need your signature.");
+        return;
+      }
+
+      setDirection(1);
+      setSectionIndex((idx) => idx + 1);
     } catch (err) {
       reportEnrollmentChecklistError(
         errorContext,
