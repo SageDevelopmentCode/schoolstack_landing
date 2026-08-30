@@ -8,7 +8,6 @@ import OrganizationCustomerBillingPanel from "@/components/admin/OrganizationCus
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
-import OrganizationParentPortalPanel from "@/components/admin/OrganizationParentPortalPanel";
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
@@ -21,7 +20,6 @@ type OrganizationDetailTab =
   | "overview"
   | "notifications"
   | "submissions"
-  | "parent-portal"
   | "teacher-portal";
 
 const ORGANIZATION_DETAIL_TABS: {
@@ -31,7 +29,6 @@ const ORGANIZATION_DETAIL_TABS: {
   { id: "overview", label: "Overview" },
   { id: "notifications", label: "Notifications" },
   { id: "submissions", label: "Submissions" },
-  { id: "parent-portal", label: "Parent portal" },
   { id: "teacher-portal", label: "Teacher portal" },
 ];
 
@@ -108,6 +105,9 @@ export default function AdminOrganizationsPage() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [activeDetailTab, setActiveDetailTab] =
     useState<OrganizationDetailTab>("overview");
+  const [visitedTabs, setVisitedTabs] = useState<Set<OrganizationDetailTab>>(
+    () => new Set(["overview"]),
+  );
 
   useEffect(() => {
     async function load() {
@@ -127,8 +127,20 @@ export default function AdminOrganizationsPage() {
   }, [supabase]);
 
   useEffect(() => {
-    queueMicrotask(() => setActiveDetailTab("overview"));
+    queueMicrotask(() => {
+      setActiveDetailTab("overview");
+      setVisitedTabs(new Set(["overview"]));
+    });
   }, [selectedId]);
+
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeDetailTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeDetailTab);
+      return next;
+    });
+  }, [activeDetailTab]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -319,8 +331,12 @@ export default function AdminOrganizationsPage() {
               ))}
             </div>
 
-            {activeDetailTab === "overview" ? (
-              <>
+            {visitedTabs.has("overview") ? (
+              <div
+                hidden={activeDetailTab !== "overview"}
+                aria-hidden={activeDetailTab !== "overview"}
+                className="space-y-6"
+              >
             <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
               <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide ">
                 Settings
@@ -521,29 +537,40 @@ export default function AdminOrganizationsPage() {
                 ) : null}
               </ul>
             </section>
-              </>
+              </div>
             ) : null}
 
-            {activeDetailTab === "notifications" ? (
-              <OrganizationNotificationsPanel organizationId={selected.id} />
+            {visitedTabs.has("notifications") ? (
+              <div
+                hidden={activeDetailTab !== "notifications"}
+                aria-hidden={activeDetailTab !== "notifications"}
+              >
+                <OrganizationNotificationsPanel organizationId={selected.id} />
+              </div>
             ) : null}
 
-            {activeDetailTab === "submissions" ? (
-              <OrganizationSubmissionsPanel
-                organizationId={selected.id}
-                organizationSlug={selected.slug}
-              />
+            {visitedTabs.has("submissions") ? (
+              <div
+                hidden={activeDetailTab !== "submissions"}
+                aria-hidden={activeDetailTab !== "submissions"}
+              >
+                <OrganizationSubmissionsPanel
+                  organizationId={selected.id}
+                  organizationSlug={selected.slug}
+                />
+              </div>
             ) : null}
 
-            {activeDetailTab === "parent-portal" ? (
-              <OrganizationParentPortalPanel organizationId={selected.id} />
-            ) : null}
-
-            {activeDetailTab === "teacher-portal" ? (
-              <OrganizationTeacherPortalPanel
-                organizationId={selected.id}
-                organizationSlug={selected.slug}
-              />
+            {visitedTabs.has("teacher-portal") ? (
+              <div
+                hidden={activeDetailTab !== "teacher-portal"}
+                aria-hidden={activeDetailTab !== "teacher-portal"}
+              >
+                <OrganizationTeacherPortalPanel
+                  organizationId={selected.id}
+                  organizationSlug={selected.slug}
+                />
+              </div>
             ) : null}
           </div>
         )}

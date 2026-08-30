@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Eye, Loader2 } from "lucide-react";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
+import OrganizationGuardianAccessTable from "@/components/admin/OrganizationGuardianAccessTable";
 import {
   applicationStatusLabel,
 } from "@/lib/admissions/application-status-ui";
@@ -18,7 +19,10 @@ import {
   familyPreviewBasePath,
   schoolAdminPreviewBasePath,
 } from "@/lib/admissions/preview-portal-options";
-import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
+import type {
+  ParentPortalLoginStatus,
+  ParentPortalLoginSummary,
+} from "@/lib/admissions/parent-portal-login-status";
 import { createClient } from "@/utils/supabase/client";
 
 type OrganizationSubmissionsPanelProps = {
@@ -44,9 +48,14 @@ export default function OrganizationSubmissionsPanel({
   const [familyIdByApplicationId, setFamilyIdByApplicationId] = useState<
     Record<string, string | null>
   >({});
+  const [guardianStatuses, setGuardianStatuses] = useState<
+    ParentPortalLoginStatus[]
+  >([]);
   const [loginStatusByGuardianId, setLoginStatusByGuardianId] = useState<
     Record<string, ParentPortalLoginStatus>
   >({});
+  const [guardianSummary, setGuardianSummary] =
+    useState<ParentPortalLoginSummary | null>(null);
   const [ownerLinkedFamilyId, setOwnerLinkedFamilyId] = useState<string | null>(
     null,
   );
@@ -67,13 +76,19 @@ export default function OrganizationSubmissionsPanel({
       if (loginResponse.ok) {
         const loginBody = (await loginResponse.json()) as {
           statuses?: ParentPortalLoginStatus[];
+          summary?: ParentPortalLoginSummary;
         };
+        const statuses = loginBody.statuses ?? [];
+        setGuardianStatuses(statuses);
+        setGuardianSummary(loginBody.summary ?? null);
         setLoginStatusByGuardianId(
           Object.fromEntries(
-            (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
+            statuses.map((status) => [status.guardianId, status]),
           ),
         );
       } else {
+        setGuardianStatuses([]);
+        setGuardianSummary(null);
         setLoginStatusByGuardianId({});
       }
 
@@ -95,6 +110,8 @@ export default function OrganizationSubmissionsPanel({
       );
       setSubmissions([]);
       setFamilyIdByApplicationId({});
+      setGuardianStatuses([]);
+      setGuardianSummary(null);
       setLoginStatusByGuardianId({});
       setOwnerLinkedFamilyId(null);
     } finally {
@@ -109,137 +126,146 @@ export default function OrganizationSubmissionsPanel({
   }, [loadSubmissions]);
 
   return (
-    <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
-          Submissions
-        </h2>
-        {!loading ? (
-          <span className="text-xs text-admin-muted font-secondary">
-            {submissions.length} total
-          </span>
-        ) : null}
-      </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading submissions…
+    <div className="space-y-6">
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Submissions
+          </h2>
+          {!loading ? (
+            <span className="text-xs text-admin-muted font-secondary">
+              {submissions.length} total
+            </span>
+          ) : null}
         </div>
-      ) : error ? (
-        <p className="text-sm text-admin-accent font-secondary">{error}</p>
-      ) : submissions.length === 0 ? (
-        <p className="text-sm text-admin-faint py-4">
-          No submissions for this school yet.
-        </p>
-      ) : (
-        <div>
-          <table className="w-full text-sm font-secondary">
-            <thead>
-              <tr className="text-left text-xs text-admin-faint border-b border-admin-border">
-                <th className="px-2 py-2 font-semibold">Student</th>
-                <th className="px-2 py-2 font-semibold">Contact</th>
-                <th className="px-2 py-2 font-semibold">Status</th>
-                <th className="px-2 py-2 font-semibold">Parent sign-in</th>
-                <th className="px-2 py-2 font-semibold">Updated</th>
-                <th className="px-2 py-2 font-semibold text-right">Preview</th>
-              </tr>
-            </thead>
-            <tbody>
-              {submissions.map((submission) => {
-                const familyId = familyIdByApplicationId[submission.id] ?? null;
-                const previewHref = familyId
-                  ? `${familyPreviewBasePath(organizationSlug, familyId)}?focus=${submission.id}`
-                  : null;
 
-                const showAdminPreview =
-                  familyId != null && familyId === ownerLinkedFamilyId;
+        {loading ? (
+          <div className="flex items-center gap-2 py-6 text-sm text-admin-faint font-secondary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading submissions…
+          </div>
+        ) : error ? (
+          <p className="text-sm text-admin-accent font-secondary">{error}</p>
+        ) : submissions.length === 0 ? (
+          <p className="text-sm text-admin-faint py-4">
+            No submissions for this school yet.
+          </p>
+        ) : (
+          <div>
+            <table className="w-full text-sm font-secondary">
+              <thead>
+                <tr className="text-left text-xs text-admin-faint border-b border-admin-border">
+                  <th className="px-2 py-2 font-semibold">Student</th>
+                  <th className="px-2 py-2 font-semibold">Contact</th>
+                  <th className="px-2 py-2 font-semibold">Status</th>
+                  <th className="px-2 py-2 font-semibold">Parent sign-in</th>
+                  <th className="px-2 py-2 font-semibold">Updated</th>
+                  <th className="px-2 py-2 font-semibold text-right">Preview</th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((submission) => {
+                  const familyId = familyIdByApplicationId[submission.id] ?? null;
+                  const previewHref = familyId
+                    ? `${familyPreviewBasePath(organizationSlug, familyId)}?focus=${submission.id}`
+                    : null;
 
-                return (
-                  <tr
-                    key={submission.id}
-                    className="border-b border-admin-border/70 last:border-b-0"
-                  >
-                    <td className="px-2 py-2.5 align-top">
-                      <p className="font-medium text-admin-text">
-                        {submission.studentLabel ?? "—"}
-                      </p>
-                      <p className="text-xs text-admin-muted mt-0.5 truncate">
-                        {submission.formTitle}
-                      </p>
-                    </td>
-                    <td className="px-2 py-2.5 align-top">
-                      <p className="text-admin-text truncate">
-                        {submission.guardianName ?? "—"}
-                      </p>
-                      <p className="text-xs text-admin-muted mt-0.5 truncate">
-                        {submission.contactEmail ?? "—"}
-                      </p>
-                    </td>
-                    <td className="px-2 py-2.5 align-top">
-                      <span className="text-xs text-admin-muted">
-                        {applicationStatusLabel(submission.status)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2.5 align-top">
-                      <ParentPortalLoginBadge
-                        compact
-                        status={
-                          submission.primaryGuardianId
-                            ? loginStatusByGuardianId[submission.primaryGuardianId]
-                            : null
-                        }
-                      />
-                    </td>
-                    <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
-                      {formatUpdatedAt(submission.updatedAt)}
-                    </td>
-                    <td className="px-2 py-2.5 align-top text-right whitespace-nowrap">
-                      {previewHref && familyId ? (
-                        <div className="flex flex-col items-end gap-1.5">
-                          <a
-                            href={previewHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                            title="Open read-only family apply preview in a new tab"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Family
-                          </a>
-                          {showAdminPreview ? (
+                  const showAdminPreview =
+                    familyId != null && familyId === ownerLinkedFamilyId;
+
+                  return (
+                    <tr
+                      key={submission.id}
+                      className="border-b border-admin-border/70 last:border-b-0"
+                    >
+                      <td className="px-2 py-2.5 align-top">
+                        <p className="font-medium text-admin-text">
+                          {submission.studentLabel ?? "—"}
+                        </p>
+                        <p className="text-xs text-admin-muted mt-0.5 truncate">
+                          {submission.formTitle}
+                        </p>
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
+                        <p className="text-admin-text truncate">
+                          {submission.guardianName ?? "—"}
+                        </p>
+                        <p className="text-xs text-admin-muted mt-0.5 truncate">
+                          {submission.contactEmail ?? "—"}
+                        </p>
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
+                        <span className="text-xs text-admin-muted">
+                          {applicationStatusLabel(submission.status)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
+                        <ParentPortalLoginBadge
+                          compact
+                          status={
+                            submission.primaryGuardianId
+                              ? loginStatusByGuardianId[submission.primaryGuardianId]
+                              : null
+                          }
+                        />
+                      </td>
+                      <td className="px-2 py-2.5 align-top text-xs text-admin-muted whitespace-nowrap">
+                        {formatUpdatedAt(submission.updatedAt)}
+                      </td>
+                      <td className="px-2 py-2.5 align-top text-right whitespace-nowrap">
+                        {previewHref && familyId ? (
+                          <div className="flex flex-col items-end gap-1.5">
                             <a
-                              href={schoolAdminPreviewBasePath(
-                                organizationSlug,
-                                familyId,
-                              )}
+                              href={previewHref}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                              title="Open read-only school admin preview with portal switcher"
+                              title="Open read-only family apply preview in a new tab"
                             >
                               <Eye className="h-3.5 w-3.5" />
-                              Admin
+                              Family
                             </a>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
-                          title="No linked family yet — preview unavailable for unlinked drafts"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Preview
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
+                            {showAdminPreview ? (
+                              <a
+                                href={schoolAdminPreviewBasePath(
+                                  organizationSlug,
+                                  familyId,
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                title="Open read-only school admin preview with portal switcher"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                Admin
+                              </a>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                            title="No linked family yet — preview unavailable for unlinked drafts"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Preview
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {!loading && !error ? (
+        <OrganizationGuardianAccessTable
+          statuses={guardianStatuses}
+          summary={guardianSummary}
+        />
+      ) : null}
+    </div>
   );
 }
