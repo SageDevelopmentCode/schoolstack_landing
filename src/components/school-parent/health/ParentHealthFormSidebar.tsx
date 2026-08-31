@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HeartPulse, Loader2, Trash2, X } from "lucide-react";
+import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import {
   healthFormSidebarTitle,
   ParentHealthFormFields,
@@ -23,10 +24,150 @@ type ParentHealthFormSidebarProps = {
   initialValues?: HealthFormValues | null;
   readOnly?: boolean;
   saving?: boolean;
+  variant?: "sidebar" | "modal";
   onClose: () => void;
   onSave: (type: HealthItemType, values: HealthFormValues) => void;
   onDelete?: () => void;
 };
+
+type ParentHealthFormContentProps = {
+  theme: ParentThemeTokens;
+  adminCompat: AdminThemeTokens;
+  mode: "create" | "edit";
+  readOnly: boolean;
+  saving: boolean;
+  title: string;
+  titleId: string;
+  form: ReturnType<typeof useParentHealthForm>;
+  onClose: () => void;
+  onDelete?: () => void;
+};
+
+function ParentHealthFormContent({
+  theme,
+  adminCompat,
+  mode,
+  readOnly,
+  saving,
+  title,
+  titleId,
+  form,
+  onClose,
+  onDelete,
+}: ParentHealthFormContentProps) {
+  const { confirmDelete, setConfirmDelete, handleSubmit, canSave } = form;
+
+  const handleClose = () => {
+    if (saving) return;
+    onClose();
+  };
+
+  return (
+    <>
+      <div
+        className="flex items-start justify-between gap-3 border-b px-5 py-4"
+        style={{ borderColor: theme.line }}
+      >
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: theme.primarySoft }}
+          >
+            <HeartPulse className="h-4 w-4" style={{ color: theme.primary }} aria-hidden />
+          </div>
+          <h2 id={titleId} className="text-sm font-semibold" style={{ color: theme.ink }}>
+            {title}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={saving}
+          aria-label="Close"
+          className="border-0 bg-transparent p-0 disabled:opacity-50"
+        >
+          <X className="h-5 w-5" style={{ color: theme.muted }} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4">
+        <ParentHealthFormFields
+          theme={theme}
+          adminCompat={adminCompat}
+          mode={mode}
+          readOnly={readOnly}
+          form={form}
+        />
+      </div>
+
+      <div
+        className="border-t px-5 py-4"
+        style={{ borderColor: theme.line, backgroundColor: theme.paper }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <ParentButton
+              theme={theme}
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={readOnly || saving || !canSave}
+              data-testid="parent-health-form-save"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save"
+              )}
+            </ParentButton>
+            <ParentButton theme={theme} variant="outline" onClick={handleClose} disabled={saving}>
+              Cancel
+            </ParentButton>
+          </div>
+
+          {mode === "edit" && onDelete && !readOnly ? (
+            confirmDelete ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className="text-xs font-bold" style={{ color: theme.alert }}>
+                  Delete this item?
+                </span>
+                <ParentButton
+                  theme={theme}
+                  variant="outline"
+                  onClick={onDelete}
+                  disabled={saving}
+                  style={{ color: theme.alert, borderColor: theme.alert }}
+                >
+                  Confirm delete
+                </ParentButton>
+                <ParentButton
+                  theme={theme}
+                  variant="soft"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={saving}
+                >
+                  Keep
+                </ParentButton>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center gap-1 border-0 bg-transparent text-xs font-bold"
+                style={{ color: theme.alert }}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                Delete
+              </button>
+            )
+          ) : null}
+        </div>
+      </div>
+    </>
+  );
+}
 
 export default function ParentHealthFormSidebar({
   theme,
@@ -37,6 +178,7 @@ export default function ParentHealthFormSidebar({
   initialValues,
   readOnly = false,
   saving = false,
+  variant = "sidebar",
   onClose,
   onSave,
   onDelete,
@@ -50,28 +192,66 @@ export default function ParentHealthFormSidebar({
     onSave,
   });
 
-  const { confirmDelete, setConfirmDelete, handleSubmit, canSave } = form;
   const title = healthFormSidebarTitle(mode, form.itemType);
+  const titleId = "parent-health-form-sidebar-title";
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || variant === "modal") return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !saving) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose, saving]);
+  }, [open, onClose, saving, variant]);
 
   const handleClose = () => {
     if (saving) return;
     onClose();
   };
 
+  const content = (
+    <ParentHealthFormContent
+      theme={theme}
+      adminCompat={adminCompat}
+      mode={mode}
+      readOnly={readOnly}
+      saving={saving}
+      title={title}
+      titleId={titleId}
+      form={form}
+      onClose={handleClose}
+      onDelete={onDelete}
+    />
+  );
+
+  if (variant === "modal") {
+    return (
+      <SchoolAdminModalShell
+        open={open}
+        onClose={handleClose}
+        maxWidth="2xl"
+        zIndex={120}
+        ariaLabelledBy={titleId}
+        testId="parent-health-form-modal"
+        closeOnBackdrop={!saving}
+        panelStyle={{
+          backgroundColor: theme.white,
+          border: `1px solid ${theme.line}`,
+          boxShadow: theme.shadowCard,
+          maxHeight: "min(90vh, 48rem)",
+        }}
+        panelClassName="flex flex-col"
+      >
+        {content}
+      </SchoolAdminModalShell>
+    );
+  }
+
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100]"
+          className="fixed inset-0 z-[110]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -87,7 +267,7 @@ export default function ParentHealthFormSidebar({
           <motion.aside
             role="dialog"
             aria-modal="true"
-            aria-labelledby="parent-health-form-sidebar-title"
+            aria-labelledby={titleId}
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
@@ -100,116 +280,7 @@ export default function ParentHealthFormSidebar({
             }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div
-              className="flex items-start justify-between gap-3 border-b px-5 py-4"
-              style={{ borderColor: theme.line }}
-            >
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: theme.primarySoft }}
-                >
-                  <HeartPulse className="h-4 w-4" style={{ color: theme.primary }} aria-hidden />
-                </div>
-                <h2
-                  id="parent-health-form-sidebar-title"
-                  className="text-sm font-semibold"
-                  style={{ color: theme.ink }}
-                >
-                  {title}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={saving}
-                aria-label="Close"
-                className="border-0 bg-transparent p-0 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" style={{ color: theme.muted }} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <ParentHealthFormFields
-                theme={theme}
-                adminCompat={adminCompat}
-                mode={mode}
-                readOnly={readOnly}
-                form={form}
-              />
-            </div>
-
-            <div
-              className="border-t px-5 py-4"
-              style={{ borderColor: theme.line, backgroundColor: theme.paper }}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-2">
-                  <ParentButton
-                    theme={theme}
-                    variant="primary"
-                    onClick={handleSubmit}
-                    disabled={readOnly || saving || !canSave}
-                    data-testid="parent-health-form-save"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="mr-1.5 inline h-4 w-4 animate-spin" aria-hidden />
-                        Saving…
-                      </>
-                    ) : (
-                      "Save"
-                    )}
-                  </ParentButton>
-                  <ParentButton
-                    theme={theme}
-                    variant="outline"
-                    onClick={handleClose}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </ParentButton>
-                </div>
-
-                {mode === "edit" && onDelete && !readOnly ? (
-                  confirmDelete ? (
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <span className="text-xs font-bold" style={{ color: theme.alert }}>
-                        Delete this item?
-                      </span>
-                      <ParentButton
-                        theme={theme}
-                        variant="outline"
-                        onClick={onDelete}
-                        disabled={saving}
-                        style={{ color: theme.alert, borderColor: theme.alert }}
-                      >
-                        Confirm delete
-                      </ParentButton>
-                      <ParentButton
-                        theme={theme}
-                        variant="soft"
-                        onClick={() => setConfirmDelete(false)}
-                        disabled={saving}
-                      >
-                        Keep
-                      </ParentButton>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(true)}
-                      className="inline-flex items-center gap-1 border-0 bg-transparent text-xs font-bold"
-                      style={{ color: theme.alert }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                      Delete
-                    </button>
-                  )
-                ) : null}
-              </div>
-            </div>
+            {content}
           </motion.aside>
         </motion.div>
       ) : null}

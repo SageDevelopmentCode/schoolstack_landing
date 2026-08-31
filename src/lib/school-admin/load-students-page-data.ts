@@ -1,3 +1,4 @@
+import { loadStudentHealthStandingFlags } from "@/lib/student-health/load-student-health-profile";
 import {
   listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
@@ -16,6 +17,16 @@ export async function loadStudentsPageData(
   const supabase = createClient(cookieStore);
 
   const students = await listOrgEnrolledStudents(supabase, organizationId);
+  const flags = await loadStudentHealthStandingFlags(
+    supabase,
+    organizationId,
+    students.map((student) => student.id),
+  );
 
-  return { students };
+  return {
+    students: students.map((student) => ({
+      ...student,
+      hasStandingHealthItems: flags.has(student.id),
+    })),
+  };
 }

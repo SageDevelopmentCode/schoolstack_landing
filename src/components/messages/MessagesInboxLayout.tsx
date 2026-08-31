@@ -64,7 +64,10 @@ export type MessagesTeacherPortalConfig = {
 function toEnrolledStudentSummary(
   summary: MessageStudentSummary,
 ): AdminEnrolledStudentSummary {
-  return summary;
+  return {
+    ...summary,
+    hasStandingHealthItems: false,
+  };
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -820,7 +823,7 @@ export default function MessagesInboxLayout({
             theme={theme}
             showContactsHeader={!splitPane}
             variant={variant}
-            hideStudentSubtitle={api.viewer === "teacher" && embedded}
+            hideStudentSubtitle={api.viewer === "teacher" && (embedded || storyVariant)}
           />
         </motion.div>
 

@@ -26,6 +26,7 @@ function buildSummary(
     assignedTeacherNames: "",
     profilePhotoUrl: null,
     ...overrides,
+    hasStandingHealthItems: overrides.hasStandingHealthItems ?? false,
   };
 }
 

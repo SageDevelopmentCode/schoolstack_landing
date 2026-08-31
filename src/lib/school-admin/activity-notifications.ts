@@ -25,6 +25,9 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED,
   ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+  ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
+  ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
+  ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -93,6 +96,9 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "Committee join request",
   [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health update",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health update",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -286,6 +292,18 @@ function committeesHref(slug: string, committeeId?: string | null): string {
 
 function tuitionHref(slug: string): string {
   return schoolAdminPath(slug, "my_school", "tuition");
+}
+
+function studentsHref(slug: string): string {
+  return schoolAdminPath(slug, "students");
+}
+
+function isStudentHealthNotificationAction(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED ||
+    action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED ||
+    action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED
+  );
 }
 
 function mapApplicationRowToContext(
@@ -824,6 +842,13 @@ export async function resolveActivityNotificationLink(
     return {
       href: committeesHref(slug, committeeId),
       ctaLabel: "Review request",
+    };
+  }
+
+  if (isStudentHealthNotificationAction(event.action)) {
+    return {
+      href: studentsHref(slug),
+      ctaLabel: "View students",
     };
   }
 

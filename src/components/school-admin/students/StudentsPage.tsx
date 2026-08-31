@@ -32,6 +32,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/client";
 
@@ -140,7 +141,12 @@ export default function StudentsPage({
       const rows = await listOrgEnrolledStudents(supabase, organizationId, {
         limit: 500,
       });
-      setStudents(rows);
+      const withFlags = await mergeStudentStandingHealthFlags(
+        supabase,
+        organizationId,
+        rows,
+      );
+      setStudents(withFlags);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
@@ -183,6 +189,19 @@ export default function StudentsPage({
       cancelled = true;
     };
   }, [slug]);
+
+  const handleStudentHealthChange = useCallback(
+    (studentId: string, hasStandingHealthItems: boolean) => {
+      setStudents((current) =>
+        current.map((student) =>
+          student.id === studentId
+            ? { ...student, hasStandingHealthItems }
+            : student,
+        ),
+      );
+    },
+    [],
+  );
 
   const handleSetTeachers = useCallback(
     async (studentId: string, staffMemberIds: string[]) => {
@@ -516,6 +535,7 @@ export default function StudentsPage({
                                 name={studentName}
                                 familyName={student.familyName}
                                 photoUrl={student.profilePhotoUrl}
+                                hasStandingHealthItems={student.hasStandingHealthItems}
                                 C={C}
                               />
                             </td>
@@ -602,6 +622,7 @@ export default function StudentsPage({
             staffPath={staffPath}
             assigningTeacher={assigningStudentId === selectedStudent.id}
             onAssignTeacher={handleSetTeachers}
+            onStudentHealthChange={handleStudentHealthChange}
             onClose={() => setSelectedId(null)}
           />
         ) : null}

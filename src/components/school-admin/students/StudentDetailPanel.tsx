@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ExternalLink, LayoutDashboard, Users, type LucideIcon } from "lucide-react";
+import { ExternalLink, Heart, LayoutDashboard, Users, type LucideIcon } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelSectionGroup from "@/components/school-admin/admissions/DetailPanelSectionGroup";
 import FamilyGuardiansSection from "@/components/school-admin/admissions/FamilyGuardiansSection";
+import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
 import { SubmissionDetailStoryProvider } from "@/components/school-admin/admissions/SubmissionDetailStoryContext";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/school-admin/admin-modal-motion";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/client";
+import { studentHasStandingHealthItems } from "@/lib/student-health/types";
 
 type StudentDetailPanelProps = {
   student: AdminEnrolledStudentSummary;
@@ -48,6 +50,7 @@ type StudentDetailPanelProps = {
     studentId: string,
     staffMemberIds: string[],
   ) => Promise<void>;
+  onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
   onClose: () => void;
 };
 
@@ -71,6 +74,7 @@ export default function StudentDetailPanel({
   staffPath,
   assigningTeacher = false,
   onAssignTeacher,
+  onStudentHealthChange,
   onClose,
 }: StudentDetailPanelProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
@@ -142,6 +146,7 @@ export default function StudentDetailPanel({
     () => [
       { id: "overview", label: "Overview", icon: LayoutDashboard },
       { id: "family", label: "Family", icon: Users },
+      { id: "health", label: "Health", icon: Heart },
     ],
     [],
   );
@@ -337,10 +342,28 @@ export default function StudentDetailPanel({
     );
   }
 
+  function renderHealthTab(panelDetail: EnrolledStudentDetail) {
+    return (
+      <ParentChildHealthTab
+        theme={theme}
+        adminCompat={C}
+        organizationId={organizationId}
+        studentId={student.id}
+        studentFirstName={panelDetail.firstName}
+        portal="admin"
+        schoolSlug={schoolSlug}
+        onProfileChange={(profile) =>
+          onStudentHealthChange?.(student.id, studentHasStandingHealthItems(profile))
+        }
+      />
+    );
+  }
+
   function renderTabPanel(tabId: string) {
     if (!detail) return null;
     if (tabId === "overview") return renderOverviewTab(detail);
     if (tabId === "family") return renderFamilyTab(detail);
+    if (tabId === "health") return renderHealthTab(detail);
     return null;
   }
 

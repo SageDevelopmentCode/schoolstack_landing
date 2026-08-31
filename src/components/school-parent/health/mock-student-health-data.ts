@@ -9,6 +9,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       severity: "high",
       treatmentNotes: "EpiPen in nurse office. Avoid all peanut products in classroom snacks.",
       updatedAt: "2026-03-02",
+      addedBy: "parent",
     },
     {
       id: "allergy_dairy",
@@ -17,6 +18,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       severity: "medium",
       treatmentNotes: "Lactose intolerance — offer dairy-free alternatives at lunch.",
       updatedAt: "2026-01-15",
+      addedBy: "parent",
     },
   ],
   medications: [
@@ -32,6 +34,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       endDate: "2026-04-04",
       ongoing: false,
       updatedAt: "2026-03-24",
+      addedBy: "school",
     },
     {
       id: "med_inhaler",
@@ -45,6 +48,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       endDate: null,
       ongoing: true,
       updatedAt: "2025-09-01",
+      addedBy: "parent",
     },
   ],
   updates: [
@@ -56,6 +60,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       startDate: "2026-03-28",
       endDate: "2026-03-28",
       createdAt: "2026-03-28",
+      addedBy: "parent",
     },
     {
       id: "update_pe_cleared",
@@ -65,6 +70,7 @@ const MOCK_PROFILE: StudentHealthProfile = {
       startDate: "2026-03-15",
       endDate: "2026-03-29",
       createdAt: "2026-03-15",
+      addedBy: "school",
     },
   ],
 };

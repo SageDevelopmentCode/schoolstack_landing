@@ -6,6 +6,7 @@ import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageSh
 import { getFamilyUserProfile, listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -56,6 +57,15 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
     getFamilyUserProfile(supabase, user.id, org.id, user),
   ]);
 
+  const studentIds = familyChildren
+    .map((child) => child.studentId)
+    .filter((studentId): studentId is string => Boolean(studentId));
+
+  const initialHealthProfiles =
+    studentIds.length > 0
+      ? await loadStudentHealthProfilesForStudents(supabase, org.id, studentIds)
+      : {};
+
   const pageName = getParentPageLabel("children", org.features.feature_nav?.parent);
 
   return (
@@ -67,6 +77,7 @@ export default async function SchoolParentChildrenPage({ params }: PageProps) {
         organizationId={org.id}
         familyChildren={familyChildren}
         userProfile={userProfile}
+        initialHealthProfiles={initialHealthProfiles}
       />
     </SchoolParentPageShell>
   );

@@ -74,6 +74,9 @@ export const ACTIVITY_ACTIONS = {
   COMMITTEE_JOIN_DECLINED: "committee.join_declined",
   COMMITTEE_JOIN_WITHDRAWN: "committee.join_withdrawn",
   MESSAGES_RECEIVED: "messages.received",
+  STUDENT_HEALTH_ITEM_CREATED: "student_health.item_created",
+  STUDENT_HEALTH_ITEM_UPDATED: "student_health.item_updated",
+  STUDENT_HEALTH_ITEM_DELETED: "student_health.item_deleted",
 } as const;
 
 export type ActivityAction =
@@ -216,6 +219,9 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee join declined",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "Committee join withdrawn",
   [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message received",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health item added",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health item updated",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health item removed",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

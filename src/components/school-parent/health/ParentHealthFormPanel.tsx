@@ -21,9 +21,9 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 export type HealthFormValues =
-  | Omit<HealthAllergyItem, "id" | "type">
-  | Omit<HealthMedicationItem, "id" | "type">
-  | Omit<HealthUpdateItem, "id" | "type">;
+  | Omit<HealthAllergyItem, "id" | "type" | "addedBy">
+  | Omit<HealthMedicationItem, "id" | "type" | "addedBy">
+  | Omit<HealthUpdateItem, "id" | "type" | "addedBy">;
 
 const HEALTH_TYPE_OPTIONS: Array<{ key: HealthItemType; label: string }> = [
   { key: "allergy", label: "Allergy" },
@@ -35,7 +35,7 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function emptyAllergyValues(): Omit<HealthAllergyItem, "id" | "type"> {
+function emptyAllergyValues(): Omit<HealthAllergyItem, "id" | "type" | "addedBy"> {
   return {
     allergen: "",
     severity: "medium",
@@ -44,7 +44,7 @@ function emptyAllergyValues(): Omit<HealthAllergyItem, "id" | "type"> {
   };
 }
 
-function emptyMedicationValues(): Omit<HealthMedicationItem, "id" | "type"> {
+function emptyMedicationValues(): Omit<HealthMedicationItem, "id" | "type" | "addedBy"> {
   return {
     name: "",
     dose: "",
@@ -58,7 +58,7 @@ function emptyMedicationValues(): Omit<HealthMedicationItem, "id" | "type"> {
   };
 }
 
-function emptyUpdateValues(): Omit<HealthUpdateItem, "id" | "type"> {
+function emptyUpdateValues(): Omit<HealthUpdateItem, "id" | "type" | "addedBy"> {
   return {
     title: "",
     details: "",

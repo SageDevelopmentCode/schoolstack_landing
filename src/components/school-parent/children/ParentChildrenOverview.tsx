@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import { CheckCircle, FileText, HeartPulse } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
-import { getMockStudentHealthProfile } from "@/components/school-parent/health/mock-student-health-data";
 import { buildHealthAttentionSummary } from "@/components/school-parent/health/parent-health-types";
+import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -18,15 +18,17 @@ import type {
   ChildProfileData,
   FamilyChildOverview,
 } from "@/lib/admissions/parent-portal-access";
+import type { EnrollmentChecklistItemInstance } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { EnrollmentChecklistItemInstance } from "@/lib/admissions/enrollment-checklist-schema";
+import { emptyStudentHealthProfile } from "@/lib/student-health/types";
 
 type ParentChildrenOverviewProps = {
   theme: ParentThemeTokens;
   adminCompat: AdminThemeTokens;
   child: FamilyChildOverview;
   profile: ChildProfileData | null;
+  healthProfile?: StudentHealthProfile | null;
   onOpenRecordSection: (section: ParentChildRecordSection) => void;
 };
 
@@ -57,14 +59,15 @@ export default function ParentChildrenOverview({
   adminCompat,
   child,
   profile,
+  healthProfile,
   onOpenRecordSection,
 }: ParentChildrenOverviewProps) {
   const firstName = childFirstName(child.studentName);
   const attentionItems = incompleteChecklistItems(profile);
   const teachers = profile?.assignedTeachers ?? [];
   const healthAttention =
-    profile?.application.studentId != null
-      ? buildHealthAttentionSummary(getMockStudentHealthProfile(profile.application.studentId))
+    child.studentId != null
+      ? buildHealthAttentionSummary(healthProfile ?? emptyStudentHealthProfile())
       : null;
   const showHealthAttention = Boolean(healthAttention?.hasAttentionItems);
 

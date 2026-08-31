@@ -15,6 +15,7 @@ import {
   medicationStatusTone,
   severityChipTone,
   SEVERITY_LABELS,
+  type HealthItemAddedBy,
 } from "@/components/school-parent/health/parent-health-types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -24,6 +25,29 @@ type ParentHealthItemCardProps = {
   readOnly?: boolean;
   onEdit?: () => void;
 };
+
+const ADDED_BY_LABELS: Record<HealthItemAddedBy, string> = {
+  parent: "Parent",
+  school: "School",
+};
+
+function addedByChipTone(addedBy: HealthItemAddedBy): "info" | "success" {
+  return addedBy === "parent" ? "info" : "success";
+}
+
+function AddedByChip({
+  theme,
+  addedBy,
+}: {
+  theme: ParentThemeTokens;
+  addedBy: HealthItemAddedBy;
+}) {
+  return (
+    <ParentChip theme={theme} tone={addedByChipTone(addedBy)}>
+      {ADDED_BY_LABELS[addedBy]}
+    </ParentChip>
+  );
+}
 
 export default function ParentHealthItemCard({
   theme,
@@ -47,6 +71,7 @@ export default function ParentHealthItemCard({
               <ParentChip theme={theme} tone={severityChipTone(item.severity)}>
                 {SEVERITY_LABELS[item.severity]}
               </ParentChip>
+              <AddedByChip theme={theme} addedBy={item.addedBy} />
             </div>
             {item.treatmentNotes ? (
               <p className="m-0 mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
@@ -90,6 +115,7 @@ export default function ParentHealthItemCard({
               <ParentChip theme={theme} tone={medicationStatusTone(item)}>
                 {medicationStatusLabel(item)}
               </ParentChip>
+              <AddedByChip theme={theme} addedBy={item.addedBy} />
             </div>
             <p className="m-0 mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
               {formatMedicationSchedule(item)}
@@ -120,9 +146,12 @@ export default function ParentHealthItemCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="m-0 text-sm font-semibold" style={{ color: theme.ink }}>
-            {item.title}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="m-0 text-sm font-semibold" style={{ color: theme.ink }}>
+              {item.title}
+            </p>
+            <AddedByChip theme={theme} addedBy={item.addedBy} />
+          </div>
           {item.details ? (
             <p className="m-0 mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
               {item.details}

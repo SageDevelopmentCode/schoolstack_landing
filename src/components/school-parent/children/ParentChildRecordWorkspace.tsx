@@ -26,6 +26,7 @@ import {
 import type { ApplicationDetail, ParentAssignedTeacher } from "@/lib/admissions/parent-portal-access";
 import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeachersTab";
 import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
+import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
@@ -61,6 +62,8 @@ type ParentChildRecordWorkspaceProps = {
   activeSection: ParentChildRecordSection;
   onSectionChange: (section: ParentChildRecordSection) => void;
   onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
+  initialHealthProfile?: StudentHealthProfile | null;
+  onHealthProfileChange?: (profile: StudentHealthProfile) => void;
   workspaceRef?: React.RefObject<HTMLElement | null>;
 };
 
@@ -168,6 +171,8 @@ export default function ParentChildRecordWorkspace({
   activeSection,
   onSectionChange,
   onPhotoUpdated,
+  initialHealthProfile,
+  onHealthProfileChange,
   workspaceRef,
 }: ParentChildRecordWorkspaceProps) {
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
@@ -387,9 +392,12 @@ export default function ParentChildRecordWorkspace({
               <ParentChildHealthTab
                 theme={theme}
                 adminCompat={C}
+                organizationId={organizationId}
                 studentId={application.studentId}
                 studentFirstName={firstName}
                 readOnly={readOnly}
+                initialProfile={initialHealthProfile}
+                onProfileChange={onHealthProfileChange}
               />
             ) : null}
           </motion.div>

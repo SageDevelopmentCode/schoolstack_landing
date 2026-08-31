@@ -24,6 +24,7 @@ export type AdminEnrolledStudentSummary = {
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
   profilePhotoUrl: string | null;
+  hasStandingHealthItems: boolean;
 };
 
 export type EnrolledStudentEnrollment = {
@@ -384,6 +385,7 @@ function mapEnrollmentRowToAggregate(
       student.profile_photo_url.trim() !== ""
         ? student.profile_photo_url.trim()
         : null,
+    hasStandingHealthItems: false,
   };
 
   return {

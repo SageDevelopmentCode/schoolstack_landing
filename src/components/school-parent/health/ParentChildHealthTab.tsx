@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { getMockStudentHealthProfile } from "@/components/school-parent/health/mock-student-health-data";
 import type { HealthFormValues } from "@/components/school-parent/health/ParentHealthFormPanel";
 import ParentHealthFormSidebar from "@/components/school-parent/health/ParentHealthFormSidebar";
 import ParentHealthItemCard from "@/components/school-parent/health/ParentHealthItemCard";
+import StudentHealthTabSkeleton from "@/components/school-parent/health/StudentHealthTabSkeleton";
 import type {
   HealthAllergyItem,
   HealthItemType,
@@ -13,21 +13,42 @@ import type {
   HealthUpdateItem,
   StudentHealthProfile,
 } from "@/components/school-parent/health/parent-health-types";
-import { createHealthItemId } from "@/components/school-parent/health/parent-health-types";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import {
+  createStudentHealthItemClient,
+  createStudentHealthItemAdmin,
+  deleteStudentHealthItemClient,
+  deleteStudentHealthItemAdmin,
+  fetchStudentHealthProfile,
+  fetchStudentHealthProfileAdmin,
+  StudentHealthFetchError,
+  updateStudentHealthItemClient,
+  updateStudentHealthItemAdmin,
+} from "@/lib/student-health/fetch-student-health-profile-client";
+import {
+  mergeHealthItemIntoProfile,
+  removeHealthItemFromProfile,
+} from "@/lib/student-health/map-row";
+import { emptyStudentHealthProfile } from "@/lib/student-health/types";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import { adminToast } from "@/lib/school-admin/admin-toast";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ParentChildHealthTabProps = {
   theme: ParentThemeTokens;
   adminCompat: AdminThemeTokens;
+  organizationId: string;
   studentId: string;
   studentFirstName: string;
   readOnly?: boolean;
+  initialProfile?: StudentHealthProfile | null;
+  onProfileChange?: (profile: StudentHealthProfile) => void;
+  portal?: "parent" | "admin";
+  schoolSlug?: string;
 };
 
 type FormState =
@@ -47,18 +68,76 @@ function sortUpdates(items: HealthUpdateItem[]): HealthUpdateItem[] {
   return [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+function valuesToPayload(values: HealthFormValues): Record<string, unknown> {
+  return { ...values };
+}
+
 export default function ParentChildHealthTab({
   theme,
   adminCompat,
+  organizationId,
   studentId,
   studentFirstName,
   readOnly = false,
+  initialProfile,
+  onProfileChange,
+  portal = "parent",
+  schoolSlug,
 }: ParentChildHealthTabProps) {
-  const [profile, setProfile] = useState<StudentHealthProfile>(() =>
-    getMockStudentHealthProfile(studentId),
+  const isAdminPortal = portal === "admin";
+  const toast = isAdminPortal ? adminToast : parentToast;
+  const [profile, setProfile] = useState<StudentHealthProfile>(
+    initialProfile ?? emptyStudentHealthProfile(),
   );
+  const [loading, setLoading] = useState(initialProfile === undefined);
   const [formState, setFormState] = useState<FormState>({ mode: "closed" });
   const [saving, setSaving] = useState(false);
+
+  const updateProfile = useCallback(
+    (next: StudentHealthProfile) => {
+      setProfile(next);
+      onProfileChange?.(next);
+    },
+    [onProfileChange],
+  );
+
+  useEffect(() => {
+    if (initialProfile !== undefined) {
+      setProfile(initialProfile ?? emptyStudentHealthProfile());
+      setLoading(false);
+    }
+  }, [initialProfile, studentId]);
+
+  useEffect(() => {
+    if (initialProfile !== undefined) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    void (isAdminPortal && schoolSlug
+      ? fetchStudentHealthProfileAdmin(schoolSlug, studentId)
+      : fetchStudentHealthProfile(organizationId, studentId))
+      .then((nextProfile) => {
+        if (cancelled) return;
+        updateProfile(nextProfile);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        toast.error(
+          error instanceof StudentHealthFetchError
+            ? error.message
+            : "Failed to load health profile.",
+        );
+        updateProfile(emptyStudentHealthProfile());
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProfile, isAdminPortal, organizationId, readOnly, schoolSlug, studentId, toast, updateProfile]);
 
   const sortedUpdates = useMemo(() => sortUpdates(profile.updates), [profile.updates]);
 
@@ -139,106 +218,78 @@ export default function ParentChildHealthTab({
       if (readOnly) return;
 
       setSaving(true);
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
-      setProfile((prev) => {
+      try {
+        const payload = valuesToPayload(values);
         if (formState.mode === "edit") {
-          if (itemType === "allergy" && "allergen" in values) {
-            return {
-              ...prev,
-              allergies: prev.allergies.map((item) =>
-                item.id === formState.itemId
-                  ? { ...item, ...values, type: "allergy" as const }
-                  : item,
-              ),
-            };
-          }
-          if (itemType === "medication" && "name" in values && "timeOfDay" in values) {
-            return {
-              ...prev,
-              medications: prev.medications.map((item) =>
-                item.id === formState.itemId
-                  ? { ...item, ...values, type: "medication" as const }
-                  : item,
-              ),
-            };
-          }
-          if (itemType === "update" && "title" in values) {
-            return {
-              ...prev,
-              updates: prev.updates.map((item) =>
-                item.id === formState.itemId
-                  ? { ...item, ...values, type: "update" as const }
-                  : item,
-              ),
-            };
-          }
-          return prev;
+          const response = (await (isAdminPortal && schoolSlug
+            ? updateStudentHealthItemAdmin(
+                schoolSlug,
+                studentId,
+                formState.itemId,
+                itemType,
+                payload,
+              )
+            : updateStudentHealthItemClient(
+                organizationId,
+                studentId,
+                formState.itemId,
+                itemType,
+                payload,
+              ))) as { item: HealthAllergyItem | HealthMedicationItem | HealthUpdateItem };
+          updateProfile(mergeHealthItemIntoProfile(profile, response.item));
+        } else {
+          const response = (await (isAdminPortal && schoolSlug
+            ? createStudentHealthItemAdmin(schoolSlug, studentId, itemType, payload)
+            : createStudentHealthItemClient(organizationId, studentId, itemType, payload))) as {
+            item: HealthAllergyItem | HealthMedicationItem | HealthUpdateItem;
+          };
+          updateProfile(mergeHealthItemIntoProfile(profile, response.item));
         }
 
-        if (itemType === "allergy" && "allergen" in values) {
-          const nextItem: HealthAllergyItem = {
-            id: createHealthItemId("allergy"),
-            type: "allergy",
-            ...values,
-          };
-          return { ...prev, allergies: [...prev.allergies, nextItem] };
-        }
-        if (itemType === "medication" && "name" in values && "timeOfDay" in values) {
-          const nextItem: HealthMedicationItem = {
-            id: createHealthItemId("medication"),
-            type: "medication",
-            ...values,
-          };
-          return { ...prev, medications: [...prev.medications, nextItem] };
-        }
-        if (itemType === "update" && "title" in values) {
-          const nextItem: HealthUpdateItem = {
-            id: createHealthItemId("update"),
-            type: "update",
-            ...values,
-          };
-          return { ...prev, updates: [nextItem, ...prev.updates] };
-        }
-        return prev;
-      });
-
-      parentToast.success("Update saved. Teachers and the school office will be notified.");
-      setSaving(false);
-      setFormState({ mode: "closed" });
+        toast.success(
+          isAdminPortal
+            ? "Health item saved."
+            : "Update saved. Teachers and the school office will be notified.",
+        );
+        setFormState({ mode: "closed" });
+      } catch (error) {
+        toast.error(
+          error instanceof StudentHealthFetchError
+            ? error.message
+            : "Failed to save health item.",
+        );
+      } finally {
+        setSaving(false);
+      }
     },
-    [formState, readOnly],
+    [formState, isAdminPortal, organizationId, profile, readOnly, schoolSlug, studentId, toast, updateProfile],
   );
 
   const handleDelete = useCallback(async () => {
     if (readOnly || formState.mode !== "edit") return;
 
     setSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 250));
-
-    setProfile((prev) => {
-      if (formState.itemType === "allergy") {
-        return {
-          ...prev,
-          allergies: prev.allergies.filter((item) => item.id !== formState.itemId),
-        };
+    try {
+      if (isAdminPortal && schoolSlug) {
+        await deleteStudentHealthItemAdmin(schoolSlug, studentId, formState.itemId);
+      } else {
+        await deleteStudentHealthItemClient(organizationId, studentId, formState.itemId);
       }
-      if (formState.itemType === "medication") {
-        return {
-          ...prev,
-          medications: prev.medications.filter((item) => item.id !== formState.itemId),
-        };
-      }
-      return {
-        ...prev,
-        updates: prev.updates.filter((item) => item.id !== formState.itemId),
-      };
-    });
-
-    parentToast.success("Health item removed.");
-    setSaving(false);
-    setFormState({ mode: "closed" });
-  }, [formState, readOnly]);
+      updateProfile(
+        removeHealthItemFromProfile(profile, formState.itemId, formState.itemType),
+      );
+      toast.success("Health item removed.");
+      setFormState({ mode: "closed" });
+    } catch (error) {
+      toast.error(
+        error instanceof StudentHealthFetchError
+          ? error.message
+          : "Failed to delete health item.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [formState, isAdminPortal, organizationId, profile, readOnly, schoolSlug, studentId, toast, updateProfile]);
 
   const activeItemCount =
     profile.allergies.length + profile.medications.length + profile.updates.length;
@@ -260,7 +311,9 @@ export default function ParentChildHealthTab({
             {studentFirstName}&apos;s health profile
           </ParentDisplayHeading>
           <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
-            Teachers and the school office are notified when you share updates here.
+            {isAdminPortal
+              ? "Families are notified when you add or update health items here."
+              : "Teachers and the school office are notified when you share updates here."}
             {activeItemCount > 0 ? ` ${activeItemCount} items on file.` : null}
           </p>
         </div>
@@ -278,6 +331,10 @@ export default function ParentChildHealthTab({
         ) : null}
       </div>
 
+      {loading ? <StudentHealthTabSkeleton theme={theme} /> : null}
+
+      {!loading ? (
+      <>
       <section className="space-y-3" data-testid="parent-health-allergies-section">
         <ParentSectionKicker theme={theme}>Food allergies (standing)</ParentSectionKicker>
         {profile.allergies.length === 0 ? (
@@ -359,6 +416,8 @@ export default function ParentChildHealthTab({
           </ParentTextLink>
         ) : null}
       </section>
+      </>
+      ) : null}
 
       <ParentHealthFormSidebar
         theme={theme}
@@ -369,6 +428,7 @@ export default function ParentChildHealthTab({
         initialValues={sidebarInitialValues}
         readOnly={readOnly}
         saving={saving}
+        variant={isAdminPortal ? "modal" : "sidebar"}
         onClose={closeForm}
         onSave={handleSave}
         onDelete={formState.mode === "edit" ? handleDelete : undefined}
@@ -376,5 +436,3 @@ export default function ParentChildHealthTab({
     </div>
   );
 }
-
-export { getMockStudentHealthProfile };
