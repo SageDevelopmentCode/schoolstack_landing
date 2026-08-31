@@ -1,7 +1,16 @@
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 
-export type ParentChildRecordSection = "application" | "checklist" | "teachers";
+export type ParentChildRecordSection = "application" | "checklist" | "teachers" | "health";
+
+export function isParentChildRecordSection(value: string | null): value is ParentChildRecordSection {
+  return (
+    value === "application" ||
+    value === "checklist" ||
+    value === "teachers" ||
+    value === "health"
+  );
+}
 
 export function childFirstName(fullName: string): string {
   const part = fullName.trim().split(/\s+/).filter(Boolean)[0];

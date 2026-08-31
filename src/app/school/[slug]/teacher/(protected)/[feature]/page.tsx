@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import nextDynamic from "next/dynamic";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
 import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
@@ -10,6 +11,8 @@ import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-rou
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadTeacherMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
+import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teacher-dashboard-data";
+import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
@@ -18,6 +21,10 @@ import {
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const TeacherCalendarPage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherCalendarPage"),
+);
 
 export const dynamic = "force-dynamic";
 
@@ -91,8 +98,17 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         ? (membership.role as StaffPortalRole)
         : null;
 
+    const initialSummary = await loadTeacherDashboardInitialData({
+      organizationId: org.id,
+      slug,
+      features: org.features,
+      userId: user.id,
+      schoolName: org.name,
+    });
+
     return (
       <TeacherDashboardPage
+        organizationId={org.id}
         slug={slug}
         schoolName={org.name}
         branding={org.branding}
@@ -104,6 +120,7 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
             : null
         }
         portalRole={portalRole}
+        initialSummary={initialSummary}
       />
     );
   }
@@ -150,6 +167,17 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         staffMemberId={staffMemberId}
         initialInbox={initialInbox}
       />
+    );
+  }
+
+  if (feature === "calendar") {
+    await requireTeacherPortalUser(supabase, org.id);
+    const initialData = await loadTeacherCalendarInitialData({
+      organizationId: org.id,
+    });
+
+    return (
+      <TeacherCalendarPage branding={org.branding} initialData={initialData} />
     );
   }
 

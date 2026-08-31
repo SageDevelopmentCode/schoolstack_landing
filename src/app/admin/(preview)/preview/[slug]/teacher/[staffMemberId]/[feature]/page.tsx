@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import nextDynamic from "next/dynamic";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
 import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
@@ -16,8 +17,14 @@ import {
   loadTeacherMyStudentsPreviewData,
   staffPreviewBasePath,
 } from "@/lib/staff/staff-preview-access";
+import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const TeacherCalendarPage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherCalendarPage"),
+);
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +83,17 @@ export default async function StaffTeacherPreviewFeaturePage({
   const admin = createAdminClient();
 
   if (feature === "dashboard") {
+    const initialSummary = await loadTeacherDashboardPreviewData({
+      organizationId: org.id,
+      slug,
+      features: org.features,
+      staffMemberId,
+      schoolName: org.name,
+    });
+
     return (
       <TeacherDashboardPage
+        organizationId={org.id}
         slug={slug}
         schoolName={org.name}
         branding={org.branding}
@@ -85,6 +101,7 @@ export default async function StaffTeacherPreviewFeaturePage({
         userProfile={previewContext.userProfile}
         roleTitle={previewContext.roleTitle}
         portalRole={previewContext.portalRole}
+        initialSummary={initialSummary}
         previewMode
         teacherBasePath={previewBasePath}
       />
@@ -126,6 +143,20 @@ export default async function StaffTeacherPreviewFeaturePage({
         branding={org.branding}
         staffMemberId={staffMemberId}
         initialInbox={initialInbox}
+        previewMode
+      />
+    );
+  }
+
+  if (feature === "calendar") {
+    const initialData = await loadTeacherCalendarPreviewData({
+      organizationId: org.id,
+    });
+
+    return (
+      <TeacherCalendarPage
+        branding={org.branding}
+        initialData={initialData}
         previewMode
       />
     );

@@ -7,6 +7,7 @@ import { ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
@@ -16,10 +17,8 @@ import {
   splitTeacherNavForHeader,
   type TeacherNavItem,
 } from "@/lib/organization-settings/teacher-nav";
-import {
-  buildAdminThemeTokens,
-  type AdminThemeTokens,
-} from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import type {
   OrganizationBranding,
@@ -43,15 +42,19 @@ type SchoolTeacherHeaderProps = {
   previewBasePath?: string;
 };
 
+const teacherNavTextClass = "text-[13px] font-semibold";
+
 function NavLink({
   item,
   pathname,
-  C,
+  theme,
+  adminCompat,
   messagesUnreadCount,
 }: {
   item: TeacherNavItem;
   pathname: string;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
+  adminCompat: AdminThemeTokens;
   messagesUnreadCount: number;
 }) {
   const Icon = item.icon;
@@ -60,19 +63,25 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      className="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${teacherNavTextClass}`}
       style={{
-        color: active ? C.accent : C.textSecondary,
-        backgroundColor: active ? C.accentLight : "transparent",
-        fontWeight: active ? 600 : 500,
+        backgroundColor: active ? theme.primaryLight : "transparent",
       }}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {item.name}
+      <Icon
+        className="h-3.5 w-3.5 shrink-0"
+        style={{ color: active ? theme.primary : theme.muted }}
+      />
+      <span style={{ color: active ? theme.primary : theme.muted }}>
+        {item.name}
+      </span>
       {item.key === "messages" ? (
         <MessagesNavBadge
           count={messagesUnreadCount}
-          theme={{ accent: C.accent, accentLight: C.accentLight }}
+          theme={{
+            accent: adminCompat.accent,
+            accentLight: adminCompat.accentLight,
+          }}
         />
       ) : null}
     </Link>
@@ -92,7 +101,7 @@ export default function SchoolTeacherHeader({
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme, adminCompat: C } = useParentTheme();
   const [moreOpen, setMoreOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -194,7 +203,13 @@ export default function SchoolTeacherHeader({
   };
 
   return (
-    <header className="shrink-0 border-b border-gray-100 bg-white">
+    <header
+      className="relative z-40 shrink-0 border-b backdrop-blur-sm"
+      style={{
+        backgroundColor: "rgba(255, 255, 255, 0.89)",
+        borderColor: theme.line,
+      }}
+    >
       <div className="flex items-center px-4 py-3 sm:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Link href={homeHref} className="min-w-0 shrink">
@@ -217,7 +232,8 @@ export default function SchoolTeacherHeader({
               key={item.key}
               item={item}
               pathname={pathname}
-              C={C}
+              theme={theme}
+              adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
             />
           ))}
@@ -226,11 +242,10 @@ export default function SchoolTeacherHeader({
               <button
                 type="button"
                 onClick={() => setMoreOpen((open) => !open)}
-                className="flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                className={`flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 transition-colors ${teacherNavTextClass}`}
                 style={{
-                  color: moreActive ? C.accent : C.textSecondary,
-                  backgroundColor: moreActive ? C.accentLight : "transparent",
-                  fontWeight: moreActive ? 600 : 500,
+                  color: moreActive ? theme.primary : theme.muted,
+                  backgroundColor: moreActive ? theme.primaryLight : "transparent",
                 }}
               >
                 More
@@ -239,7 +254,13 @@ export default function SchoolTeacherHeader({
                 />
               </button>
               {moreOpen ? (
-                <div className="absolute right-0 z-50 mt-1.5 w-52 rounded-xl border border-gray-100 bg-white py-1.5 shadow-lg">
+                <div
+                  className="absolute right-0 z-[100] mt-1.5 w-52 rounded-xl py-1.5 shadow-lg"
+                  style={{
+                    border: `1px solid ${theme.line}`,
+                    backgroundColor: theme.white,
+                  }}
+                >
                   {more.map((item) => {
                     const Icon = item.icon;
                     const active = isTeacherNavItemActive(pathname, item);
@@ -248,20 +269,25 @@ export default function SchoolTeacherHeader({
                         key={item.key}
                         href={item.href}
                         onClick={() => setMoreOpen(false)}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors"
+                        className={`flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${teacherNavTextClass}`}
                         style={{
-                          color: active ? C.accent : "#4B5563",
-                          backgroundColor: active ? C.accentLight : "transparent",
-                          fontWeight: active ? 500 : 400,
+                          color: active ? theme.primary : theme.ink,
+                          backgroundColor: active ? theme.primaryLight : "transparent",
                         }}
                       >
-                        <Icon className="h-4 w-4" />
-                        {item.name}
+                        <Icon
+                          className="h-4 w-4 shrink-0"
+                          style={{ color: active ? theme.primary : theme.muted }}
+                        />
+                        <span>{item.name}</span>
                         {item.key === "messages" ? (
                           <MessagesNavBadge
-          count={messagesUnreadCount}
-          theme={{ accent: C.accent, accentLight: C.accentLight }}
-        />
+                            count={messagesUnreadCount}
+                            theme={{
+                              accent: C.accent,
+                              accentLight: C.accentLight,
+                            }}
+                          />
                         ) : null}
                       </Link>
                     );
@@ -273,20 +299,29 @@ export default function SchoolTeacherHeader({
         </nav>
 
         <div className="flex flex-1 justify-end">
-          <div className="relative" ref={menuRef}>
+          <div className="relative z-[100]" ref={menuRef}>
             <ParentProfileMenuTrigger
               displayName={userProfile.displayName}
               profilePhotoUrl={profilePhotoUrl}
               theme={C}
+              parentTheme={theme}
+              variant="story"
               menuOpen={menuOpen}
               onClick={() => setMenuOpen((open) => !open)}
             />
             {menuOpen ? (
               <div
-                className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
+                className="absolute right-0 top-full z-[100] mt-1.5 w-64 rounded-xl py-1 shadow-lg"
+                style={{
+                  border: `1px solid ${theme.line}`,
+                  backgroundColor: theme.white,
+                }}
                 role="menu"
               >
-                <div className="border-b border-gray-100 px-3 py-3">
+                <div
+                  className="border-b px-3 py-3"
+                  style={{ borderColor: theme.line }}
+                >
                   <div className="flex items-start gap-3">
                     <StudentPhoto
                       name={userProfile.displayName}
@@ -299,11 +334,17 @@ export default function SchoolTeacherHeader({
                       onFileSelect={(file) => void handlePhotoUpload(file)}
                     />
                     <div className="min-w-0 flex-1 pt-0.5">
-                      <p className="truncate text-sm font-semibold text-gray-800">
+                      <p
+                        className="truncate text-sm font-semibold"
+                        style={{ color: theme.ink }}
+                      >
                         {userProfile.displayName}
                       </p>
                       {userProfile.email ? (
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                        <p
+                          className="mt-0.5 truncate text-xs"
+                          style={{ color: theme.muted }}
+                        >
                           {userProfile.email}
                         </p>
                       ) : null}
@@ -316,10 +357,11 @@ export default function SchoolTeacherHeader({
                     role="menuitem"
                     onClick={() => void handleSignOut()}
                     disabled={signingOut}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:opacity-90 disabled:opacity-60"
+                    style={{ color: theme.ink }}
                   >
                     {!signingOut ? (
-                      <LogOut className="h-4 w-4 text-gray-500" />
+                      <LogOut className="h-4 w-4" style={{ color: theme.muted }} />
                     ) : null}
                     <ButtonLoadingLabel loading={signingOut} loadingLabel="Signing out…">
                       Log out
@@ -333,13 +375,17 @@ export default function SchoolTeacherHeader({
       </div>
 
       {navItems.length > 0 ? (
-        <nav className="flex gap-1 overflow-x-auto border-t border-gray-100 px-4 py-2 lg:hidden">
+        <nav
+          className="flex gap-1 overflow-x-auto border-t px-4 py-2 lg:hidden"
+          style={{ borderColor: theme.line }}
+        >
           {navItems.map((item) => (
             <NavLink
               key={item.key}
               item={item}
               pathname={pathname}
-              C={C}
+              theme={theme}
+              adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
             />
           ))}

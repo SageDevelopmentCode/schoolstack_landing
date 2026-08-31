@@ -1,8 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, FileText } from "lucide-react";
+import { CheckCircle, FileText, HeartPulse } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
+import { getMockStudentHealthProfile } from "@/components/school-parent/health/mock-student-health-data";
+import { buildHealthAttentionSummary } from "@/components/school-parent/health/parent-health-types";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -60,6 +62,11 @@ export default function ParentChildrenOverview({
   const firstName = childFirstName(child.studentName);
   const attentionItems = incompleteChecklistItems(profile);
   const teachers = profile?.assignedTeachers ?? [];
+  const healthAttention =
+    profile?.application.studentId != null
+      ? buildHealthAttentionSummary(getMockStudentHealthProfile(profile.application.studentId))
+      : null;
+  const showHealthAttention = Boolean(healthAttention?.hasAttentionItems);
 
   return (
     <motion.div
@@ -71,9 +78,11 @@ export default function ParentChildrenOverview({
       <ParentCard theme={theme} className="!p-5">
         <ParentSectionKicker theme={theme}>Needs your attention</ParentSectionKicker>
         <ParentDisplayHeading theme={theme} as="h3" size="section" className="!mt-2 !text-[1.05rem]">
-          {attentionItems.length === 0 ? "Everything is in good shape" : "Next steps"}
+          {attentionItems.length === 0 && !showHealthAttention
+            ? "Everything is in good shape"
+            : "Next steps"}
         </ParentDisplayHeading>
-        {attentionItems.length === 0 ? (
+        {attentionItems.length === 0 && !showHealthAttention ? (
           <div className="mt-3 flex items-center gap-2">
             <CheckCircle className="h-4 w-4" style={{ color: theme.success }} />
             <p className="m-0 text-[12px]" style={{ color: theme.muted }}>
@@ -82,6 +91,27 @@ export default function ParentChildrenOverview({
           </div>
         ) : (
           <ul className="mt-3 space-y-2">
+            {showHealthAttention && healthAttention?.attentionLabel ? (
+              <li
+                className="flex items-start gap-2.5 border-t pt-2.5 first:border-t-0 first:pt-0"
+                style={{ borderColor: theme.line }}
+              >
+                <div
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px]"
+                  style={{ backgroundColor: theme.alertBg }}
+                >
+                  <HeartPulse className="h-3.5 w-3.5" style={{ color: theme.alert }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="m-0 text-[12px] font-bold" style={{ color: theme.ink }}>
+                    {healthAttention.attentionLabel}
+                  </p>
+                  <p className="m-0 mt-0.5 text-[11px]" style={{ color: theme.muted }}>
+                    Review {firstName}&apos;s health profile
+                  </p>
+                </div>
+              </li>
+            ) : null}
             {attentionItems.slice(0, 3).map((item) => (
               <li
                 key={item.label}
@@ -113,6 +143,15 @@ export default function ParentChildrenOverview({
             onClick={() => onOpenRecordSection("checklist")}
           >
             Review checklist →
+          </ParentTextLink>
+        ) : null}
+        {showHealthAttention ? (
+          <ParentTextLink
+            theme={theme}
+            className="mt-3 inline-block"
+            onClick={() => onOpenRecordSection("health")}
+          >
+            View health profile →
           </ParentTextLink>
         ) : null}
       </ParentCard>

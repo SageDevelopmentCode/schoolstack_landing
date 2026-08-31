@@ -10,7 +10,10 @@ import ParentChildrenOverview from "@/components/school-parent/children/ParentCh
 import ParentChildrenOverviewSkeleton from "@/components/school-parent/children/ParentChildrenOverviewSkeleton";
 import ParentChildrenRecordSkeleton from "@/components/school-parent/children/ParentChildrenRecordSkeleton";
 import ParentChildrenStoryHeader from "@/components/school-parent/children/ParentChildrenStoryHeader";
-import type { ParentChildRecordSection } from "@/components/school-parent/children/parent-children-utils";
+import {
+  isParentChildRecordSection,
+  type ParentChildRecordSection,
+} from "@/components/school-parent/children/parent-children-utils";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
@@ -170,6 +173,9 @@ export default function ParentChildrenPage({
   useEffect(() => {
     if (deepLinkHandled.current) return;
     const applicationId = searchParams.get("applicationId");
+    const sectionParam = searchParams.get("section");
+    const section = isParentChildRecordSection(sectionParam) ? sectionParam : null;
+
     if (!applicationId) {
       if (familyChildren[0]) {
         queueMicrotask(() => {
@@ -184,6 +190,9 @@ export default function ParentChildrenPage({
     deepLinkHandled.current = true;
     queueMicrotask(() => {
       setSelectedApplicationId(applicationId);
+      if (section) {
+        setRecordSection(section);
+      }
       void loadProfile(applicationId);
       requestAnimationFrame(() => {
         recordWorkspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
