@@ -25,6 +25,7 @@ type ParentCalendarAgendaPanelProps = {
   periodKey: string;
   selectedEventId?: string | null;
   onEventClick: (event: OrganizationEvent) => void;
+  agendaTitle?: string;
 };
 
 export default function ParentCalendarAgendaPanel({
@@ -33,6 +34,7 @@ export default function ParentCalendarAgendaPanel({
   periodKey,
   selectedEventId = null,
   onEventClick,
+  agendaTitle = "Family agenda",
 }: ParentCalendarAgendaPanelProps) {
   const upcomingEvents = listUpcomingCalendarEvents(events);
 
@@ -42,7 +44,7 @@ export default function ParentCalendarAgendaPanel({
         <motion.div key={periodKey} {...parentCalendarViewTransition}>
           <ParentSectionKicker theme={theme}>Next up</ParentSectionKicker>
           <ParentDisplayHeading theme={theme} as="h2" size="section" className="!text-lg">
-            Family agenda
+            {agendaTitle}
           </ParentDisplayHeading>
 
           {upcomingEvents.length === 0 ? (

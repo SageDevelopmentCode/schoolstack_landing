@@ -1,20 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Calendar, MapPin } from "lucide-react";
 import { SchoolAdminSummaryCardsSkeleton } from "@/components/school-admin/skeletons";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
 } from "@/lib/admissions/admin-scheduled-visits";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createClient } from "@/utils/supabase/client";
 import type { ScheduleTabId } from "./schedule-tabs";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
-import { getEventDisplayStyle, SCHOOL_EVENT_TYPE_LABELS } from "@/lib/school-events/event-labels";
+import { eventTypeChipTone } from "@/components/school-parent/calendar/parent-calendar-agenda-utils";
+import {
+  getEventDisplayStyle,
+  SCHOOL_EVENT_TYPE_LABELS,
+} from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 
 type ScheduleOverviewTabProps = {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   organizationId: string;
   monthSlotCount: number | null;
@@ -24,68 +35,24 @@ type ScheduleOverviewTabProps = {
   onVisitClick: (visit: AdminScheduledVisit) => void;
   onTabChange: (tab: ScheduleTabId) => void;
   onUpcomingCountChange?: (count: number) => void;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
-function SummaryCard({
-  C,
-  label,
-  value,
-  onClick,
-}: {
-  C: AdminThemeTokens;
-  label: string;
-  value: string;
-  onClick?: () => void;
-}) {
-  const content = (
-    <>
-      <p className="text-[11px] font-medium" style={{ color: C.textTertiary }}>
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-semibold tabular-nums" style={{ color: C.textPrimary }}>
-        {value}
-      </p>
-    </>
-  );
-
-  if (!onClick) {
-    return (
-      <div
-        className="rounded-sm p-3"
-        style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-      >
-        {content}
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-sm p-3 text-left transition-colors"
-      style={{ backgroundColor: C.elevated, border: `1px solid ${C.border}` }}
-    >
-      {content}
-    </button>
-  );
-}
-
-function timingBadgeStyle(
+function visitChipTone(
   timing: AdminScheduledVisit["timing"],
-  C: AdminThemeTokens,
-): { backgroundColor: string; color: string } {
+): "info" | "success" | "purple" {
   switch (timing) {
-    case "upcoming":
-      return { backgroundColor: C.infoBg, color: C.info };
     case "happening":
-      return { backgroundColor: C.successBg, color: C.success };
+      return "success";
     case "past":
-      return { backgroundColor: C.elevated, color: C.textTertiary };
+      return "purple";
+    default:
+      return "info";
   }
 }
 
 export default function ScheduleOverviewTab({
+  theme,
   C,
   organizationId,
   monthSlotCount,
@@ -95,6 +62,7 @@ export default function ScheduleOverviewTab({
   onVisitClick,
   onTabChange,
   onUpcomingCountChange,
+  onLoadingChange,
 }: ScheduleOverviewTabProps) {
   const supabase = useMemo(() => createClient(), []);
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
@@ -159,6 +127,10 @@ export default function ScheduleOverviewTab({
     }
   }, [loading, onUpcomingCountChange, upcomingCount]);
 
+  useEffect(() => {
+    onLoadingChange?.(loading || eventsLoading);
+  }, [eventsLoading, loading, onLoadingChange]);
+
   const visitsByDate = useMemo(() => {
     const groups = new Map<string, AdminScheduledVisit[]>();
     for (const visit of upcomingVisits) {
@@ -171,216 +143,229 @@ export default function ScheduleOverviewTab({
   }, [upcomingVisits]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryCard
-          C={C}
+    <div className="space-y-[19px]">
+      <div className="grid grid-cols-1 gap-[13px] sm:grid-cols-3">
+        <AdminMetricCard
+          theme={theme}
+          accent="sky"
           label="Open time slots this month"
           value={monthSlotCount == null ? "—" : String(monthSlotCount)}
           onClick={() => onTabChange("tours")}
         />
-        <SummaryCard
-          C={C}
+        <AdminMetricCard
+          theme={theme}
+          accent="gold"
           label="Open shadow days this month"
           value={monthObservationDayCount == null ? "—" : String(monthObservationDayCount)}
           onClick={() => onTabChange("shadow")}
         />
-        <SummaryCard
-          C={C}
+        <AdminMetricCard
+          theme={theme}
+          accent="forest"
           label="Upcoming visits"
           value={loading ? "—" : String(upcomingCount)}
           onClick={() => onTabChange("visits")}
         />
       </div>
 
-      <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              Upcoming agenda
-            </h2>
-            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-              Next tours, interviews, and shadow visits on your calendar
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onTabChange("visits")}
-            className="rounded-sm px-3 py-1.5 text-xs font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
-          >
-            View all
-          </button>
-        </div>
-
-        {loading ? (
-          <SchoolAdminSummaryCardsSkeleton C={C} count={3} label="Loading upcoming visits" />
-        ) : error ? (
-          <p className="text-sm" style={{ color: C.error }}>
-            {error}
-          </p>
-        ) : upcomingVisits.length === 0 ? (
-          <div
-            className="rounded-sm border px-4 py-8 text-center"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              No upcoming visits yet. Families book after submitting an application.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onTabChange("tours")}
-                className="rounded-sm px-3 py-2 text-xs font-medium"
-                style={getAdminButtonStyle(C, "primary")}
+      <div className="grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
+        <AdminCard theme={theme}>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <AdminSectionKicker theme={theme}>Upcoming agenda</AdminSectionKicker>
+              <h2
+                className="mt-1.5 font-heading text-[23px] font-semibold leading-tight tracking-[-0.03em]"
+                style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
               >
-                Set tour slots
-              </button>
-              <button
-                type="button"
-                onClick={() => onTabChange("shadow")}
-                className="rounded-sm px-3 py-2 text-xs font-medium"
-                style={getAdminButtonStyle(C, "primary")}
-              >
-                Open shadow days
-              </button>
+                Next visits
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
+                Tours, interviews, and shadow visits on your calendar
+              </p>
             </div>
-          </div>
-        ) : (
-          <div
-            className="overflow-hidden rounded-sm border"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            {visitsByDate.map(([date, dayVisits], groupIndex) => (
-              <div
-                key={date}
-                style={{
-                  borderTop: groupIndex > 0 ? `1px solid ${C.border}` : undefined,
-                }}
-              >
-                <div
-                  className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide"
-                  style={{ backgroundColor: C.bg, color: C.textQuaternary }}
-                >
-                  {dayVisits[0]?.whenLabel.split("·")[0]?.trim() ?? date}
-                </div>
-                {dayVisits.map((visit) => {
-                  const isSelected = visit.applicationId === selectedApplicationId;
-                  const timingStyle = timingBadgeStyle(visit.timing, C);
-
-                  return (
-                    <button
-                      key={visit.id}
-                      type="button"
-                      onClick={() => onVisitClick(visit)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors"
-                      style={{
-                        backgroundColor: isSelected ? C.accentLight : "transparent",
-                        borderTop: `1px solid ${C.border}`,
-                        opacity: loadingSubmission && isSelected ? 0.7 : 1,
-                      }}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
-                          {visit.stepTitle}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs" style={{ color: C.textSecondary }}>
-                          {visit.studentLabel ?? "Student pending"}
-                          <span className="mx-1.5 opacity-50">·</span>
-                          {visit.whenLabel}
-                        </p>
-                      </div>
-                      <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={timingStyle}
-                      >
-                        {visit.timing === "happening" ? "Now" : "Upcoming"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              Upcoming school events
-            </h2>
-            <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-              Events families see in the parent portal calendar
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => onTabChange("events")}
-            className="rounded-sm px-3 py-1.5 text-xs font-medium"
-            style={getAdminButtonStyle(C, "secondary")}
-          >
-            Manage events
-          </button>
-        </div>
-
-        {eventsLoading ? (
-          <SchoolAdminSummaryCardsSkeleton C={C} count={2} label="Loading school events" />
-        ) : upcomingEvents.length === 0 ? (
-          <div
-            className="rounded-sm border px-4 py-8 text-center"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-              No school events yet. Add field trips, no-school days, and community events.
-            </p>
-            <button
-              type="button"
-              onClick={() => onTabChange("events")}
-              className="mt-4 rounded-sm px-3 py-2 text-xs font-medium"
-              style={getAdminButtonStyle(C, "primary")}
+            <AdminButton
+              theme={theme}
+              variant="soft"
+              size="compact"
+              onClick={() => onTabChange("visits")}
             >
-              Add event
-            </button>
+              View all
+            </AdminButton>
           </div>
-        ) : (
-          <div
-            className="overflow-hidden rounded-sm border"
-            style={{ borderColor: C.border, backgroundColor: C.surface }}
-          >
-            {upcomingEvents.map((event, index) => {
-              const colors = getEventDisplayStyle(event);
-              return (
-              <button
-                key={event.id}
-                type="button"
-                onClick={() => onTabChange("events")}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-black/[0.02]"
-                style={{
-                  borderTop: index > 0 ? `1px solid ${C.border}` : undefined,
-                }}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium" style={{ color: C.textPrimary }}>
-                    {event.title}
+
+          {loading ? (
+            <SchoolAdminSummaryCardsSkeleton C={C} count={3} label="Loading upcoming visits" />
+          ) : error ? (
+            <p className="text-sm" style={{ color: C.error }}>
+              {error}
+            </p>
+          ) : upcomingVisits.length === 0 ? (
+            <div className="py-2 text-center">
+              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                No upcoming visits yet. Families book after submitting an application.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <AdminButton theme={theme} variant="soft" onClick={() => onTabChange("tours")}>
+                  Set tour slots
+                </AdminButton>
+                <AdminButton theme={theme} variant="soft" onClick={() => onTabChange("shadow")}>
+                  Open shadow days
+                </AdminButton>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {visitsByDate.map(([date, dayVisits], groupIndex) => (
+                <div key={date}>
+                  <p
+                    className="py-2 text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                    style={{
+                      color: "#8B9699",
+                      borderTop: groupIndex > 0 ? "1px solid #EDF1ED" : undefined,
+                    }}
+                  >
+                    {dayVisits[0]?.whenLabel.split("·")[0]?.trim() ?? date}
                   </p>
-                  <p className="mt-0.5 truncate text-xs" style={{ color: C.textSecondary }}>
-                    {event.date}
-                    {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
-                  </p>
+                  {dayVisits.map((visit, visitIndex) => {
+                    const isSelected = visit.applicationId === selectedApplicationId;
+
+                    return (
+                      <button
+                        key={visit.id}
+                        type="button"
+                        onClick={() => onVisitClick(visit)}
+                        className="flex w-full items-center gap-2.5 py-[11px] text-left transition-colors"
+                        style={{
+                          borderTop:
+                            visitIndex > 0 || groupIndex > 0
+                              ? "1px solid #E9EFEA"
+                              : undefined,
+                          backgroundColor: isSelected ? "#E9F2EA" : "transparent",
+                          borderLeft: isSelected
+                            ? `3px solid ${theme.primary}`
+                            : "3px solid transparent",
+                          paddingLeft: isSelected ? "7px" : "10px",
+                          opacity: loadingSubmission && isSelected ? 0.7 : 1,
+                        }}
+                      >
+                        <span
+                          className="grid h-[31px] w-[31px] shrink-0 place-items-center rounded-[10px]"
+                          style={{ backgroundColor: "#E9F4F7" }}
+                        >
+                          <Calendar className="h-4 w-4" style={{ color: theme.primary }} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <b className="block truncate text-xs" style={{ color: theme.ink }}>
+                            {visit.stepTitle}
+                          </b>
+                          <span className="block truncate text-[10px]" style={{ color: theme.muted }}>
+                            {visit.studentLabel ?? "Student pending"}
+                            <span className="mx-1 opacity-50">·</span>
+                            {visit.whenLabel}
+                          </span>
+                        </div>
+                        <AdminChip theme={theme} tone={visitChipTone(visit.timing)}>
+                          {visit.timing === "happening" ? "Now" : "Upcoming"}
+                        </AdminChip>
+                      </button>
+                    );
+                  })}
                 </div>
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{ backgroundColor: colors.bg, color: colors.text }}
-                >
-                  {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-                </span>
-              </button>
-            );
-            })}
+              ))}
+            </div>
+          )}
+        </AdminCard>
+
+        <AdminCard theme={theme}>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <AdminSectionKicker theme={theme}>School events</AdminSectionKicker>
+              <h2
+                className="mt-1.5 font-heading text-[23px] font-semibold leading-tight tracking-[-0.03em]"
+                style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+              >
+                On the calendar
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
+                Events families see in the parent portal
+              </p>
+            </div>
+            <AdminButton
+              theme={theme}
+              variant="soft"
+              size="compact"
+              onClick={() => onTabChange("events")}
+            >
+              Manage
+            </AdminButton>
           </div>
-        )}
+
+          {eventsLoading ? (
+            <SchoolAdminSummaryCardsSkeleton C={C} count={2} label="Loading school events" />
+          ) : upcomingEvents.length === 0 ? (
+            <div className="py-2 text-center">
+              <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                No school events yet. Add field trips, no-school days, and community events.
+              </p>
+              <div className="mt-4">
+                <AdminButton theme={theme} variant="soft" onClick={() => onTabChange("events")}>
+                  Add event
+                </AdminButton>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {upcomingEvents.map((event, index) => {
+                const colors = getEventDisplayStyle(event);
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => onTabChange("events")}
+                    className="flex w-full items-center gap-2.5 py-[11px] text-left transition-colors hover:bg-[#FAFCFA]"
+                    style={{
+                      borderTop: index > 0 ? "1px solid #E9EFEA" : undefined,
+                    }}
+                  >
+                    <span
+                      className="grid h-[31px] w-[31px] shrink-0 place-items-center rounded-[10px]"
+                      style={{ backgroundColor: colors.bg }}
+                    >
+                      <MapPin className="h-4 w-4" style={{ color: colors.text }} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <b className="block truncate text-xs" style={{ color: theme.ink }}>
+                        {event.title}
+                      </b>
+                      <span className="block truncate text-[10px]" style={{ color: theme.muted }}>
+                        {event.date}
+                        {!event.isAllDay && event.time ? ` · ${event.time}` : ""}
+                      </span>
+                    </div>
+                    <AdminChip theme={theme} tone={eventTypeChipTone(event.type)}>
+                      {SCHOOL_EVENT_TYPE_LABELS[event.type]}
+                    </AdminChip>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div
+            className="mt-4 flex flex-col gap-2 border-t pt-4"
+            style={{ borderColor: "#EDF1ED" }}
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "#8B9699" }}>
+              Quick setup
+            </p>
+            <AdminButton theme={theme} variant="outline" size="compact" onClick={() => onTabChange("tours")}>
+              Set tour slots
+            </AdminButton>
+            <AdminButton theme={theme} variant="outline" size="compact" onClick={() => onTabChange("shadow")}>
+              Open shadow days
+            </AdminButton>
+          </div>
+        </AdminCard>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, type ChangeEvent } from "react";
-import { Camera, Loader2 } from "lucide-react";
+import { Asterisk, Camera, Loader2 } from "lucide-react";
 import { studentInitialsFromName } from "@/lib/students/student-initials";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -23,6 +23,8 @@ type StudentPhotoProps = {
   showEditHint?: boolean;
   onFileSelect?: (file: File) => void;
   className?: string;
+  healthIndicator?: boolean;
+  healthIndicatorColor?: string;
 };
 
 const SIZE_CLASSES: Record<StudentPhotoSize, string> = {
@@ -48,6 +50,60 @@ const BADGE_CONTAINER_CLASSES: Record<StudentPhotoSize, string> = {
   xl: "h-6 w-6 -bottom-1 -right-1",
   "2xl": "h-7 w-7 -bottom-1 -right-1",
 };
+
+const HEALTH_BADGE_CONTAINER_CLASSES: Record<
+  StudentPhotoSize,
+  { right: string; left: string }
+> = {
+  sm: {
+    right: "h-4 w-4 -bottom-0.5 -right-0.5",
+    left: "h-4 w-4 -bottom-0.5 -left-0.5",
+  },
+  md: {
+    right: "h-5 w-5 -bottom-0.5 -right-0.5",
+    left: "h-5 w-5 -bottom-0.5 -left-0.5",
+  },
+  lg: {
+    right: "h-5 w-5 -bottom-1 -right-1",
+    left: "h-5 w-5 -bottom-1 -left-1",
+  },
+  xl: {
+    right: "h-6 w-6 -bottom-1 -right-1",
+    left: "h-6 w-6 -bottom-1 -left-1",
+  },
+  "2xl": {
+    right: "h-7 w-7 -bottom-1 -right-1",
+    left: "h-7 w-7 -bottom-1 -left-1",
+  },
+};
+
+const DEFAULT_HEALTH_INDICATOR_COLOR = "#EF4444";
+
+function HealthIndicatorBadge({
+  size,
+  color,
+  position = "right",
+}: {
+  size: StudentPhotoSize;
+  color: string;
+  position?: "left" | "right";
+}) {
+  const positionClass =
+    position === "left"
+      ? HEALTH_BADGE_CONTAINER_CLASSES[size].left
+      : HEALTH_BADGE_CONTAINER_CLASSES[size].right;
+
+  return (
+    <span
+      className={`absolute flex items-center justify-center rounded-full border-2 border-white shadow-sm ${positionClass}`}
+      style={{ backgroundColor: color }}
+      title="Has allergies or medications on file"
+      aria-label="Has allergies or medications on file"
+    >
+      <Asterisk className={`${BADGE_ICON_CLASSES[size]} text-white`} aria-hidden />
+    </span>
+  );
+}
 
 const OVERLAY_ICON_CLASSES: Record<StudentPhotoSize, string> = {
   sm: "h-4 w-4",
@@ -75,6 +131,8 @@ export default function StudentPhoto({
   showEditHint = false,
   onFileSelect,
   className = "",
+  healthIndicator = false,
+  healthIndicatorColor = DEFAULT_HEALTH_INDICATOR_COLOR,
 }: StudentPhotoProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const initials = studentInitialsFromName(name);
@@ -115,7 +173,16 @@ export default function StudentPhoto({
   );
 
   if (!editable) {
-    return content;
+    if (!healthIndicator) {
+      return content;
+    }
+
+    return (
+      <div className="relative shrink-0">
+        {content}
+        <HealthIndicatorBadge size={size} color={healthIndicatorColor} />
+      </div>
+    );
   }
 
   const overlayVisible = uploading;
@@ -156,6 +223,13 @@ export default function StudentPhoto({
           >
             <Camera className={`${BADGE_ICON_CLASSES[size]} text-white`} />
           </span>
+        ) : null}
+        {healthIndicator ? (
+          <HealthIndicatorBadge
+            size={size}
+            color={healthIndicatorColor}
+            position="left"
+          />
         ) : null}
         <input
           ref={inputRef}

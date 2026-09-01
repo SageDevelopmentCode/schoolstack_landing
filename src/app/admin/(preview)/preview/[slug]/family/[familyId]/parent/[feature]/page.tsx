@@ -26,6 +26,7 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
@@ -127,6 +128,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       slug,
       features: org.features,
       previewBasePath: previewParentBasePath,
+      familyChildren,
     });
     const applicationIds = familyChildren.map((child) => child.applicationId);
     const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
@@ -153,6 +155,12 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath,
     });
+    const classroomSignupAttentionItems = isParentFeatureEnabled(
+      org.features,
+      "classroom_signups",
+    )
+      ? await loadParentSignupAttentionItems(admin, org.id, familyId)
+      : [];
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -166,6 +174,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           upcomingEvents={upcomingEvents}
           enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
           enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+          classroomSignupAttentionItems={classroomSignupAttentionItems}
           previewMode
           previewBasePath={previewBasePath}
         />

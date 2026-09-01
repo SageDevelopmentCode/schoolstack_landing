@@ -74,6 +74,12 @@ export const ACTIVITY_ACTIONS = {
   COMMITTEE_JOIN_DECLINED: "committee.join_declined",
   COMMITTEE_JOIN_WITHDRAWN: "committee.join_withdrawn",
   MESSAGES_RECEIVED: "messages.received",
+  STUDENT_HEALTH_ITEM_CREATED: "student_health.item_created",
+  STUDENT_HEALTH_ITEM_UPDATED: "student_health.item_updated",
+  STUDENT_HEALTH_ITEM_DELETED: "student_health.item_deleted",
+  CLASSROOM_SIGNUP_PUBLISHED: "classroom_signup.published",
+  CLASSROOM_SIGNUP_RESPONSE_SUBMITTED: "classroom_signup.response_submitted",
+  CLASSROOM_SIGNUP_CLOSED: "classroom_signup.closed",
 } as const;
 
 export type ActivityAction =
@@ -81,12 +87,14 @@ export type ActivityAction =
 
 export type ActorType =
   | "parent"
+  | "teacher"
   | "school_admin"
   | "platform_admin"
   | "system";
 
 export type ActivitySurface =
   | "parent_portal"
+  | "teacher_portal"
   | "school_admin"
   | "public_apply"
   | "login"
@@ -216,6 +224,12 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee join declined",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "Committee join withdrawn",
   [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message received",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health item added",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health item updated",
+  [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health item removed",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup published",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

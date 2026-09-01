@@ -2,6 +2,7 @@ import {
   listAssignedEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
+import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -34,5 +35,11 @@ export async function loadTeacherMyStudentsPageData(
     staffMemberId,
   );
 
-  return { students, staffMemberId };
+  const withFlags = await mergeStudentStandingHealthFlags(
+    supabase,
+    organizationId,
+    students,
+  );
+
+  return { students: withFlags, staffMemberId };
 }

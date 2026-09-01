@@ -1,7 +1,19 @@
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
-import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
+import {
+  childHealthDeepLinkHref,
+  parentChildrenPagePath,
+} from "@/lib/organization-settings/parent-routes";
 
-export type ParentChildRecordSection = "application" | "checklist" | "teachers";
+export type ParentChildRecordSection = "application" | "checklist" | "teachers" | "health";
+
+export function isParentChildRecordSection(value: string | null): value is ParentChildRecordSection {
+  return (
+    value === "application" ||
+    value === "checklist" ||
+    value === "teachers" ||
+    value === "health"
+  );
+}
 
 export function childFirstName(fullName: string): string {
   const part = fullName.trim().split(/\s+/).filter(Boolean)[0];
@@ -57,7 +69,7 @@ export function childStatusChipTone(child: FamilyChildOverview): "success" | "in
 }
 
 export function childrenPagePath(schoolSlug: string, previewBasePath?: string): string {
-  return previewBasePath
-    ? `${previewBasePath}/parent/children`
-    : schoolParentPath(schoolSlug, "children");
+  return parentChildrenPagePath(schoolSlug, previewBasePath);
 }
+
+export { childHealthDeepLinkHref };

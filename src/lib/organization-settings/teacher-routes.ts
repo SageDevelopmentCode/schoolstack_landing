@@ -14,6 +14,15 @@ export function schoolTeacherPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function teacherClassroomSignupPath(
+  slug: string,
+  signupId: string,
+  teacherBasePath?: string,
+): string {
+  const base = teacherBasePath ?? schoolTeacherPath(slug, "classroom_signups");
+  return `${base}/${signupId}`;
+}
+
 export function schoolTeacherLoginPath(slug: string): string {
   return `/school/${slug}/teacher/login`;
 }

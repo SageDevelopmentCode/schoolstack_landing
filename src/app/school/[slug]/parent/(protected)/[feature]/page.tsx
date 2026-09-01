@@ -30,6 +30,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { loadParentCalendarInitialData } from "@/lib/school-events/load-parent-calendar-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -112,22 +113,22 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
     const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
     const familyId = familyIds[0];
 
-    const [userProfile, familyChildren, upcomingEvents, onboardingItems] =
-      await Promise.all([
+    const [userProfile, familyChildren, upcomingEvents] = await Promise.all([
         getFamilyUserProfile(supabase, user.id, org.id, user),
         listFamilyChildrenForHome(supabase, org.id, user.id),
         listUpcomingEventsForOrg(supabase, org.id, 3),
-        familyId
-          ? loadResolvedParentOnboardingItems({
-              supabase,
-              organizationId: org.id,
-              familyId,
-              userId: user.id,
-              slug,
-              features: org.features,
-            })
-          : Promise.resolve([]),
       ]);
+    const onboardingItems = familyId
+      ? await loadResolvedParentOnboardingItems({
+          supabase,
+          organizationId: org.id,
+          familyId,
+          userId: user.id,
+          slug,
+          features: org.features,
+          familyChildren,
+        })
+      : [];
     const applicationIds = familyChildren.map((child) => child.applicationId);
     const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
       listEnrollmentAgreementAmendmentsForApplications(
@@ -152,6 +153,11 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
     const quickActions = buildParentQuickActions(slug, org.features);
+    const admin = createAdminClient();
+    const classroomSignupAttentionItems =
+      isParentFeatureEnabled(org.features, "classroom_signups") && familyId
+        ? await loadParentSignupAttentionItems(admin, org.id, familyId)
+        : [];
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -165,6 +171,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           upcomingEvents={upcomingEvents}
           enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
           enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+          classroomSignupAttentionItems={classroomSignupAttentionItems}
         />
       </SchoolParentPageShell>
     );

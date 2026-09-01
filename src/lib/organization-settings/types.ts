@@ -52,6 +52,7 @@ export type AdminFeatures = {
 export type TeacherFeatures = {
   dashboard: boolean;
   my_students: boolean;
+  classroom_signups: boolean;
   my_hours: boolean;
   messages: boolean;
   calendar: boolean;
@@ -70,6 +71,7 @@ export type ParentFeatures = {
   feed: boolean;
   children: boolean;
   committees: boolean;
+  classroom_signups: boolean;
 };
 
 export type AdditionalFeatures = {
@@ -126,7 +128,8 @@ export type ParentOnboardingAutoCompletionType =
   | "billing"
   | "messages"
   | "committees"
-  | "children";
+  | "children"
+  | "health";
 
 export type ParentOnboardingItem = {
   id: string;
@@ -159,6 +162,7 @@ export type OrganizationSettingsRow = {
   features: OrganizationFeatures;
   admissions?: import("@/lib/admissions/admissions-org-settings").AdmissionsOrgSettings | Record<string, unknown> | null;
   notifications?: import("@/lib/notifications/org-notification-settings").OrganizationNotificationSettings | Record<string, unknown> | null;
+  schedule?: import("@/lib/school-events/schedule-settings").OrganizationScheduleSettings | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

@@ -18,6 +18,39 @@ export function schoolParentPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function parentClassroomSignupPath(
+  slug: string,
+  signupId: string,
+  previewBasePath?: string,
+): string {
+  if (previewBasePath) {
+    return `${previewBasePath}/parent/classroom_signups/${signupId}`;
+  }
+  return schoolParentPath(slug, "classroom_signups", signupId);
+}
+
+export function parentChildrenPagePath(
+  slug: string,
+  previewBasePath?: string,
+): string {
+  return previewBasePath
+    ? `${previewBasePath}/parent/children`
+    : schoolParentPath(slug, "children");
+}
+
+export function childHealthDeepLinkHref(
+  slug: string,
+  applicationId: string,
+  previewBasePath?: string,
+): string {
+  const base = parentChildrenPagePath(slug, previewBasePath);
+  const params = new URLSearchParams({
+    applicationId,
+    section: "health",
+  });
+  return `${base}?${params.toString()}`;
+}
+
 export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
   const match = pathname.match(/\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) return null;

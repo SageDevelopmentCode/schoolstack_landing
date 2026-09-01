@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
@@ -10,15 +12,18 @@ import {
 import { formatGradeValuesLabel } from "@/lib/admissions/admissions-observation-slots";
 import type { PostSubmitActionType } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createClient } from "@/utils/supabase/client";
 
 type ScheduledVisitsSectionProps = {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   organizationId: string;
   selectedApplicationId: string | null;
   loadingSubmission: boolean;
   onVisitClick: (visit: AdminScheduledVisit) => void;
   showHeader?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 type TimingFilter = "all" | ScheduledVisitTiming;
@@ -84,67 +89,66 @@ function shadowVisitDetailLabel(visit: AdminScheduledVisit): string | null {
     .join("; ");
 }
 
-function FilterChip({
+function StoryFilterPill({
   active,
   label,
   count,
   onClick,
-  C,
+  theme,
 }: {
   active: boolean;
   label: string;
   count?: number;
   onClick: () => void;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
 }) {
+  const displayLabel = count != null ? `${label} · ${count}` : label;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors"
-      style={{
-        backgroundColor: active ? C.accentLight : C.elevated,
-        color: active ? C.accent : C.textSecondary,
-        border: `1px solid ${active ? C.accent : C.border}`,
-      }}
+      className="cursor-pointer rounded-[9px] border px-2.5 py-2 text-[11px] font-medium transition-colors"
+      style={
+        active
+          ? {
+              backgroundColor: "#E9F2EA",
+              color: theme.primary,
+              borderColor: "#BCD4C1",
+              fontWeight: 700,
+            }
+          : {
+              backgroundColor: theme.white,
+              color: "#5D6D73",
+              borderColor: "#DCE4DC",
+            }
+      }
     >
-      {label}
-      {count != null ? (
-        <span
-          className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-          style={{
-            backgroundColor: active ? C.surface : C.bg,
-            color: active ? C.accent : C.textTertiary,
-          }}
-        >
-          {count}
-        </span>
-      ) : null}
+      {displayLabel}
     </button>
   );
 }
 
-function timingBadgeStyle(
-  timing: ScheduledVisitTiming,
-  C: AdminThemeTokens,
-): { backgroundColor: string; color: string } {
+function visitChipTone(timing: ScheduledVisitTiming): "info" | "success" | "purple" {
   switch (timing) {
-    case "upcoming":
-      return { backgroundColor: C.infoBg, color: C.info };
     case "happening":
-      return { backgroundColor: C.successBg, color: C.success };
+      return "success";
     case "past":
-      return { backgroundColor: C.elevated, color: C.textTertiary };
+      return "purple";
+    default:
+      return "info";
   }
 }
 
 export default function ScheduledVisitsSection({
+  theme,
   C,
   organizationId,
   selectedApplicationId,
   loadingSubmission,
   onVisitClick,
   showHeader = true,
+  onLoadingChange,
 }: ScheduledVisitsSectionProps) {
   const supabase = useMemo(() => createClient(), []);
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
@@ -171,6 +175,10 @@ export default function ScheduledVisitsSection({
       void loadVisits();
     });
   }, [loadVisits]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const timingCounts = useMemo(() => {
     const counts: Record<ScheduledVisitTiming, number> = {
@@ -210,10 +218,13 @@ export default function ScheduledVisitsSection({
     <div>
       {showHeader ? (
         <div className="mb-4">
-          <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          <h2
+            className="font-heading text-lg font-semibold"
+            style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+          >
             Scheduled visits
           </h2>
-          <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+          <p className="mt-1 text-xs" style={{ color: theme.muted }}>
             Tours, interviews, and observation days booked by families
           </p>
         </div>
@@ -221,20 +232,20 @@ export default function ScheduledVisitsSection({
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {VISIT_TYPE_FILTERS.map((filter) => (
-          <FilterChip
+          <StoryFilterPill
             key={filter.value}
             active={visitTypeFilter === filter.value}
             label={filter.label}
             count={visitTypeCounts[filter.value]}
             onClick={() => setVisitTypeFilter(filter.value)}
-            C={C}
+            theme={theme}
           />
         ))}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {TIMING_FILTERS.map((filter) => (
-          <FilterChip
+          <StoryFilterPill
             key={filter.value}
             active={timingFilter === filter.value}
             label={filter.label}
@@ -242,7 +253,7 @@ export default function ScheduledVisitsSection({
               filter.value === "all" ? visits.length : timingCounts[filter.value]
             }
             onClick={() => setTimingFilter(filter.value)}
-            C={C}
+            theme={theme}
           />
         ))}
       </div>
@@ -261,83 +272,88 @@ export default function ScheduledVisitsSection({
           {error}
         </p>
       ) : visits.length === 0 ? (
-        <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-          {EMPTY_MESSAGES.all}
-        </p>
+        <AdminCard theme={theme} padding="canvas">
+          <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+            {EMPTY_MESSAGES.all}
+          </p>
+        </AdminCard>
       ) : filteredVisits.length === 0 ? (
-        <p className="text-sm leading-relaxed" style={{ color: C.textSecondary }}>
-          {EMPTY_MESSAGES[timingFilter]}
-        </p>
+        <AdminCard theme={theme} padding="canvas">
+          <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+            {EMPTY_MESSAGES[timingFilter]}
+          </p>
+        </AdminCard>
       ) : (
-        <div className="overflow-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-            <thead style={{ borderBottom: `1px solid ${C.border}` }}>
-              <tr>
-                {["When", "Visit", "Student", "Form", "Status"].map((heading) => (
-                  <th
-                    key={heading}
-                    className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide first:pl-0 last:pr-0"
-                    style={{ color: C.textQuaternary }}
-                  >
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVisits.map((visit) => {
-                const isSelected = visit.applicationId === selectedApplicationId;
-                const timingStyle = timingBadgeStyle(visit.timing, C);
+        <AdminCard theme={theme} padding="none">
+          <div className="overflow-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead style={{ backgroundColor: "#FBFCFB", borderBottom: "1px solid #EDF1ED" }}>
+                <tr>
+                  {["When", "Visit", "Student", "Form", "Status"].map((heading) => (
+                    <th
+                      key={heading}
+                      className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-[0.08em] first:pl-5 last:pr-5"
+                      style={{ color: "#8B9699" }}
+                    >
+                      {heading}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredVisits.map((visit) => {
+                  const isSelected = visit.applicationId === selectedApplicationId;
+                  const slotDetail = shadowVisitDetailLabel(visit);
 
-                const slotDetail = shadowVisitDetailLabel(visit);
-                return (
-                  <tr
-                    key={visit.id}
-                    onClick={() => {
-                      if (visit.applicationId) {
-                        onVisitClick(visit);
+                  return (
+                    <tr
+                      key={visit.id}
+                      onClick={() => {
+                        if (visit.applicationId) {
+                          onVisitClick(visit);
+                        }
+                      }}
+                      className={
+                        visit.applicationId
+                          ? "cursor-pointer transition-colors hover:bg-[#FAFCFA]"
+                          : ""
                       }
-                    }}
-                    className={
-                      visit.applicationId ? "cursor-pointer transition-colors" : ""
-                    }
-                    style={{
-                      backgroundColor: isSelected ? C.accentLight : "transparent",
-                      borderBottom: `1px solid ${C.border}`,
-                      opacity: loadingSubmission && isSelected ? 0.7 : 1,
-                    }}
-                  >
-                    <td className="px-3 py-3 first:pl-0" style={{ color: C.textPrimary }}>
-                      <div className="font-medium">{visit.whenLabel}</div>
-                      {slotDetail ? (
-                        <div className="mt-0.5 text-[11px]" style={{ color: C.textTertiary }}>
-                          {slotDetail}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-3" style={{ color: C.textPrimary }}>
-                      {visit.stepTitle}
-                    </td>
-                    <td className="px-3 py-3" style={{ color: C.textSecondary }}>
-                      {visit.studentLabel ?? "—"}
-                    </td>
-                    <td className="px-3 py-3" style={{ color: C.textSecondary }}>
-                      {visit.formTitle}
-                    </td>
-                    <td className="px-3 py-3 last:pr-0">
-                      <span
-                        className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                        style={timingStyle}
-                      >
-                        {TIMING_LABELS[visit.timing]}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      style={{
+                        backgroundColor: isSelected ? "#E9F2EA" : "transparent",
+                        borderBottom: "1px solid #EDF1ED",
+                        boxShadow: isSelected ? `inset 3px 0 0 ${theme.primary}` : undefined,
+                        opacity: loadingSubmission && isSelected ? 0.7 : 1,
+                      }}
+                    >
+                      <td className="px-4 py-3 first:pl-5" style={{ color: theme.ink }}>
+                        <div className="text-xs font-medium">{visit.whenLabel}</div>
+                        {slotDetail ? (
+                          <div className="mt-0.5 text-[11px]" style={{ color: theme.muted }}>
+                            {slotDetail}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: theme.ink }}>
+                        {visit.stepTitle}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: theme.muted }}>
+                        {visit.studentLabel ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: theme.muted }}>
+                        {visit.formTitle}
+                      </td>
+                      <td className="px-4 py-3 last:pr-5">
+                        <AdminChip theme={theme} tone={visitChipTone(visit.timing)}>
+                          {TIMING_LABELS[visit.timing]}
+                        </AdminChip>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </AdminCard>
       )}
     </div>
   );

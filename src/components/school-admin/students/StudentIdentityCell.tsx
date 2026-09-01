@@ -1,3 +1,5 @@
+"use client";
+
 import StudentPhoto from "@/components/students/StudentPhoto";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -5,6 +7,7 @@ type StudentIdentityCellProps = {
   name: string;
   familyName: string | null;
   photoUrl: string | null;
+  hasStandingHealthItems?: boolean;
   C: AdminThemeTokens;
 };
 
@@ -12,6 +15,7 @@ export default function StudentIdentityCell({
   name,
   familyName,
   photoUrl,
+  hasStandingHealthItems = false,
   C,
 }: StudentIdentityCellProps) {
   return (
@@ -23,10 +27,14 @@ export default function StudentIdentityCell({
         shape="circle"
         accentColor={C.accent}
         accentGlowColor={C.accentLight}
+        healthIndicator={hasStandingHealthItems}
+        healthIndicatorColor={C.error}
       />
       <div className="min-w-0">
-        <div className="truncate text-xs font-semibold" style={{ color: "#2C3E43" }}>
-          {name}
+        <div className="flex items-center gap-1.5">
+          <div className="truncate text-xs font-semibold" style={{ color: "#2C3E43" }}>
+            {name}
+          </div>
         </div>
         {familyName ? (
           <div

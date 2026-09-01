@@ -15,6 +15,8 @@ type AdminMetricCardProps = {
   value: string;
   label: string;
   accent?: AdminMetricAccent;
+  onClick?: () => void;
+  className?: string;
 };
 
 export default function AdminMetricCard({
@@ -22,12 +24,14 @@ export default function AdminMetricCard({
   value,
   label,
   accent = "forest",
+  onClick,
+  className = "",
 }: AdminMetricCardProps) {
-  return (
-    <div
-      className="relative overflow-hidden rounded-[15px] border bg-white p-[15px]"
-      style={{ borderColor: "#E0E7E0" }}
-    >
+  const sharedClassName = `relative overflow-hidden rounded-[15px] border bg-white p-[15px] text-left ${className}`;
+  const borderStyle = { borderColor: "#E0E7E0" as const };
+
+  const content = (
+    <>
       <span
         className="absolute inset-y-0 left-0 w-1"
         style={{ backgroundColor: ACCENT_COLORS[accent] }}
@@ -42,6 +46,25 @@ export default function AdminMetricCard({
       <span className="text-[11px]" style={{ color: theme.muted }}>
         {label}
       </span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${sharedClassName} cursor-pointer transition-transform hover:-translate-y-px`}
+        style={borderStyle}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={sharedClassName} style={borderStyle}>
+      {content}
     </div>
   );
 }

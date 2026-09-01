@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import nextDynamic from "next/dynamic";
 import SchoolTeacherComingSoon from "@/components/school-teacher/SchoolTeacherComingSoon";
 import TeacherDashboardPage from "@/components/school-teacher/TeacherDashboardPage";
 import TeacherMyStudentsPage from "@/components/school-teacher/TeacherMyStudentsPage";
@@ -10,6 +11,9 @@ import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-rou
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadTeacherMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
+import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teacher-dashboard-data";
+import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
@@ -18,6 +22,17 @@ import {
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+
+const TeacherCalendarPage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherCalendarPage"),
+);
+
+const TeacherClassroomSignupsPage = nextDynamic(
+  () =>
+    import(
+      "@/components/classroom-signups/teacher/TeacherClassroomSignupsPage"
+    ),
+);
 
 export const dynamic = "force-dynamic";
 
@@ -91,8 +106,17 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         ? (membership.role as StaffPortalRole)
         : null;
 
+    const initialSummary = await loadTeacherDashboardInitialData({
+      organizationId: org.id,
+      slug,
+      features: org.features,
+      userId: user.id,
+      schoolName: org.name,
+    });
+
     return (
       <TeacherDashboardPage
+        organizationId={org.id}
         slug={slug}
         schoolName={org.name}
         branding={org.branding}
@@ -104,6 +128,7 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
             : null
         }
         portalRole={portalRole}
+        initialSummary={initialSummary}
       />
     );
   }
@@ -149,6 +174,61 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         branding={org.branding}
         staffMemberId={staffMemberId}
         initialInbox={initialInbox}
+      />
+    );
+  }
+
+  if (feature === "calendar") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const initialData = await loadTeacherCalendarInitialData({
+      organizationId: org.id,
+      userId: user.id,
+    });
+
+    return (
+      <TeacherCalendarPage
+        branding={org.branding}
+        initialData={initialData}
+        organizationId={org.id}
+      />
+    );
+  }
+
+  if (feature === "classroom_signups") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const userProfile = await getStaffUserProfile(
+      supabase,
+      user.id,
+      org.id,
+      user,
+    );
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      user.id,
+      org.id,
+    );
+
+    const admin = createAdminClient();
+    const pageData =
+      staffMemberId != null
+        ? await loadTeacherClassroomSignupsPageData(admin, org.id, staffMemberId)
+        : {
+            signups: [],
+            responsesBySignupId: {},
+            classroomOptions: [],
+            assignedFamilyCount: 0,
+          };
+
+    return (
+      <TeacherClassroomSignupsPage
+        slug={slug}
+        organizationId={org.id}
+        teacherName={userProfile.displayName}
+        staffMemberId={staffMemberId}
+        initialSignups={pageData.signups}
+        initialResponsesBySignupId={pageData.responsesBySignupId}
+        classroomOptions={pageData.classroomOptions}
+        assignedFamilyCount={pageData.assignedFamilyCount}
       />
     );
   }

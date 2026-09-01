@@ -27,12 +27,14 @@ export default function SchoolEventDetailPanel({
   onClose,
   onDelete,
   onEdit,
+  actionsDisabled = false,
 }: {
   event: OrganizationEvent | null;
   C: AdminThemeTokens;
   onClose: () => void;
   onDelete?: (eventId: string) => void;
   onEdit?: (event: OrganizationEvent) => void;
+  actionsDisabled?: boolean;
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -149,7 +151,8 @@ export default function SchoolEventDetailPanel({
                 <button
                   type="button"
                   onClick={() => onEdit(event)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium cursor-pointer"
+                  disabled={actionsDisabled}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ backgroundColor: C.accentLight, color: C.accent }}
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -160,7 +163,8 @@ export default function SchoolEventDetailPanel({
                 <button
                   type="button"
                   onClick={() => onDelete(event.id)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium cursor-pointer"
+                  disabled={actionsDisabled}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   style={{ backgroundColor: C.errorBg, color: C.error }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />

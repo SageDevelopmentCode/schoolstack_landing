@@ -24,6 +24,7 @@ type ParentCalendarPageProps = {
   branding: OrganizationBranding;
   initialData: ParentCalendarInitialData;
   previewMode?: boolean;
+  agendaTitle?: string;
 };
 
 function formatEventDate(date: string) {
@@ -222,7 +223,10 @@ function EmptyDaySidebar({
   );
 }
 
-export default function ParentCalendarPage({ initialData }: ParentCalendarPageProps) {
+export default function ParentCalendarPage({
+  initialData,
+  agendaTitle,
+}: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const [events] = useState(initialData.events);
   const [view, setView] = useState<CalendarViewMode>("week");
@@ -288,6 +292,7 @@ export default function ParentCalendarPage({ initialData }: ParentCalendarPagePr
               periodKey={periodKey}
               selectedEventId={selectedEvent?.id ?? null}
               onEventClick={handleEventClick}
+              agendaTitle={agendaTitle}
             />
           </div>
         </div>

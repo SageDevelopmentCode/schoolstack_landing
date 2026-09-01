@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
 import EventColorPicker from "@/components/school-admin/schedule/EventColorPicker";
-import EventTimePicker from "@/components/school-admin/schedule/EventTimePicker";
+import PopupTimePicker from "@/components/school-events/PopupTimePicker";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   addMinutesToTimeInput,
@@ -44,6 +47,7 @@ export const EMPTY_EVENT_FORM: EventFormState = {
 };
 
 type SchoolEventFormPanelProps = {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   open: boolean;
   mode: "create" | "edit";
@@ -54,18 +58,37 @@ type SchoolEventFormPanelProps = {
   onSave: () => void;
 };
 
-const inputClass = "w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2";
+const inputClass =
+  "w-full rounded-[10px] border px-3 py-2 text-sm outline-none focus:ring-2";
 
-function inputStyle(C: AdminThemeTokens): CSSProperties {
+function inputStyle(theme: ParentThemeTokens): CSSProperties {
   return {
-    borderColor: C.inputBorder,
-    backgroundColor: C.input,
-    color: C.textPrimary,
-    ...({ "--tw-ring-color": `${C.accent}40` } as CSSProperties),
+    borderColor: "#E0E7E0",
+    backgroundColor: theme.white,
+    color: theme.ink,
+    ...({ "--tw-ring-color": `${theme.primary}40` } as CSSProperties),
   };
 }
 
+function FieldLabel({
+  theme,
+  children,
+}: {
+  theme: ParentThemeTokens;
+  children: ReactNode;
+}) {
+  return (
+    <label
+      className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide"
+      style={{ color: theme.muted }}
+    >
+      {children}
+    </label>
+  );
+}
+
 export default function SchoolEventFormPanel({
+  theme,
   C,
   open,
   mode,
@@ -106,6 +129,7 @@ export default function SchoolEventFormPanel({
   };
 
   const canSave = Boolean(form.title.trim() && form.date);
+  const title = mode === "edit" ? "Edit event" : "Add event";
 
   return (
     <AnimatePresence>
@@ -116,64 +140,73 @@ export default function SchoolEventFormPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 backdrop-blur-sm"
-            style={{ background: "rgba(0,0,0,0.15)" }}
+            className="fixed inset-0 z-40"
+            style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="fixed top-0 right-0 bottom-0 z-50 flex w-[480px] max-w-[100vw] flex-col overflow-hidden border-l shadow-xl"
-            style={{ backgroundColor: C.surface, borderColor: C.border }}
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            className="fixed top-0 right-0 bottom-0 z-50 flex w-[min(100%,30rem)] max-w-[100vw] flex-col overflow-hidden"
+            style={{
+              backgroundColor: "#F8FAF8",
+              borderLeft: "1px solid #E0E8E0",
+              boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
+            }}
+            onClick={(event) => event.stopPropagation()}
           >
             <div
-              className="flex shrink-0 items-center justify-between border-b px-6 py-5"
-              style={{ borderColor: C.border }}
+              className="flex shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
+              style={{ borderBottom: "1px solid #E0E8E0" }}
             >
-              <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                {mode === "edit" ? "Edit event" : "Add event"}
-              </h2>
-              <button
-                type="button"
+              <div className="min-w-0 flex-1">
+                <AdminSectionKicker theme={theme}>School event</AdminSectionKicker>
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
+                  {title}
+                </AdminDisplayHeading>
+              </div>
+              <AdminButton
+                theme={theme}
+                variant="soft"
+                size="compact"
                 onClick={onClose}
-                className="cursor-pointer rounded-md p-1.5 transition-colors"
-                style={{ color: C.textTertiary }}
                 aria-label="Close"
+                className="shrink-0"
               >
-                <X className="h-4 w-4" />
-              </button>
+                Close ×
+              </AdminButton>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto px-7 py-5">
+            <div className="flex-1 space-y-4 overflow-y-auto px-[21px] py-5">
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                  Title
-                </label>
+                <FieldLabel theme={theme}>Title</FieldLabel>
                 <input
                   placeholder="Event title"
                   value={form.title}
                   onChange={(e) => onChange({ ...form, title: e.target.value })}
                   className={inputClass}
-                  style={inputStyle(C)}
+                  style={inputStyle(theme)}
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                  Date
-                </label>
+                <FieldLabel theme={theme}>Date</FieldLabel>
                 <input
                   type="date"
                   value={form.date}
                   onChange={(e) => onChange({ ...form, date: e.target.value })}
                   className={inputClass}
-                  style={inputStyle(C)}
+                  style={inputStyle(theme)}
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
+              <label
+                className="flex cursor-pointer items-center gap-2 text-sm"
+                style={{ color: theme.ink }}
+              >
                 <input
                   type="checkbox"
                   checked={form.isAllDay}
@@ -188,6 +221,8 @@ export default function SchoolEventFormPanel({
                       form.endTime || addMinutesToTimeInput(time, DEFAULT_EVENT_DURATION_MINUTES);
                     onChange({ ...form, isAllDay, time, endTime });
                   }}
+                  className="rounded"
+                  style={{ accentColor: theme.primary }}
                 />
                 All day
               </label>
@@ -195,23 +230,20 @@ export default function SchoolEventFormPanel({
               {!form.isAllDay ? (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                      Start time
-                    </label>
-                    <EventTimePicker
-                      C={C}
+                    <FieldLabel theme={theme}>Start time</FieldLabel>
+                    <PopupTimePicker
+                      theme={theme}
                       value={form.time}
                       onChange={handleStartTimeChange}
                       ariaLabel="Start time"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                      End time
-                    </label>
-                    <EventTimePicker
-                      C={C}
+                    <FieldLabel theme={theme}>End time</FieldLabel>
+                    <PopupTimePicker
+                      theme={theme}
                       value={form.endTime}
+                      scrollToTime={form.time}
                       onChange={(endTime) => onChange({ ...form, endTime })}
                       ariaLabel="End time"
                     />
@@ -220,9 +252,7 @@ export default function SchoolEventFormPanel({
               ) : null}
 
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                  Category
-                </label>
+                <FieldLabel theme={theme}>Category</FieldLabel>
                 <SchoolAdminSelect
                   C={C}
                   value={form.eventType}
@@ -249,54 +279,44 @@ export default function SchoolEventFormPanel({
               />
 
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                  Location (optional)
-                </label>
+                <FieldLabel theme={theme}>Location (optional)</FieldLabel>
                 <input
                   placeholder="Location"
                   value={form.location}
                   onChange={(e) => onChange({ ...form, location: e.target.value })}
                   className={inputClass}
-                  style={inputStyle(C)}
+                  style={inputStyle(theme)}
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: C.textTertiary }}>
-                  Description (optional)
-                </label>
+                <FieldLabel theme={theme}>Description (optional)</FieldLabel>
                 <textarea
                   placeholder="Add details families should know"
                   value={form.description}
                   onChange={(e) => onChange({ ...form, description: e.target.value })}
                   rows={5}
                   className={`${inputClass} resize-none`}
-                  style={inputStyle(C)}
+                  style={inputStyle(theme)}
                 />
               </div>
             </div>
 
             <div
-              className="flex shrink-0 justify-end gap-2 border-t px-6 py-4"
-              style={{ borderColor: C.border }}
+              className="flex shrink-0 justify-end gap-2 border-t bg-white px-[21px] py-4"
+              style={{ borderColor: "#E0E8E0" }}
             >
-              <button
-                type="button"
-                onClick={onClose}
-                className="cursor-pointer px-4 py-2 text-sm"
-                style={{ color: C.textSecondary }}
-              >
+              <AdminButton theme={theme} variant="soft" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                type="button"
+              </AdminButton>
+              <AdminButton
+                theme={theme}
+                variant="primary"
                 onClick={onSave}
                 disabled={saving || !canSave}
-                className="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
               >
                 {saving ? "Saving…" : mode === "edit" ? "Save changes" : "Add event"}
-              </button>
+              </AdminButton>
             </div>
           </motion.div>
         </>

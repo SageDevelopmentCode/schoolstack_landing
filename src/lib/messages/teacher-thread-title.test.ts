@@ -47,6 +47,7 @@ function buildContext(
             assignedTeachers: [{ id: "staff-1", name: "Julius Staff" }],
             assignedTeacherNames: "Julius Staff",
             profilePhotoUrl: null,
+            hasStandingHealthItems: false,
           },
         ],
       ],

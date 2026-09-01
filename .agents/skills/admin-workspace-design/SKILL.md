@@ -125,6 +125,31 @@ Always-on split-pane (prototype staff directory detail view):
   No table, metrics, filters, or Staff directory back navigation
 ```
 
+**Schedule (schedule tab):**
+
+```
+useSchoolAdminStoryTheme()
+  ScheduleStoryHeader: kicker + AdminDisplayHeading + dynamic subtitle + ParentDatePill + ParentStoryPillNav
+    pendingTabKey / loadingTabKey → Loader2 suffix on pill while tab data fetches
+  ?tab= routing: overview (default) · events · tours · shadow · visits
+
+Overview:
+  AdminMetricCard row (open slots · shadow days · upcoming visits) — clickable, navigates to subtab
+  2-col grid: AdminCard upcoming agenda (focus-queue rows) | AdminCard school events + quick setup
+
+Events:
+  Toolbar on paper canvas (date nav, Week/Month, Add event) — no outer AdminCard
+  OrganizationEventsCalendar variant=parent-story loadingBehavior=grid-only (toolbar stays during fetch)
+  SchoolEventFormPanel: story paper drawer (#F8FAF8) + AdminSectionKicker + AdminButton footer
+
+Tours / Shadow:
+  AdminCard > AdmissionsAvailabilityEditor / AdmissionsObservationDayAvailabilityEditor (storySurface)
+
+All visits:
+  StoryFilterPill rows (type + timing) | AdminCard prototype table + AdminChip status
+  Row click → ApplicationSubmissionDetailPanel slide-out
+```
+
 **Messages (messages tab):**
 
 ```
@@ -158,5 +183,6 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Programs: [`ProgramsPage.tsx`](src/components/school-admin/admissions/ProgramsPage.tsx), [`ProgramsOutline.tsx`](src/components/school-admin/admissions/ProgramsOutline.tsx)
 - Submissions: [`ApplicationSubmissionsPage.tsx`](src/components/school-admin/admissions/ApplicationSubmissionsPage.tsx), [`SubmissionNextStepCell.tsx`](src/components/school-admin/admissions/SubmissionNextStepCell.tsx)
 - Staff: [`StaffPage.tsx`](src/components/school-admin/staff/StaffPage.tsx), [`StaffDetailPane.tsx`](src/components/school-admin/staff/StaffDetailPane.tsx), [`StaffListSidebar.tsx`](src/components/school-admin/staff/StaffListSidebar.tsx)
+- Schedule: [`SchedulePage.tsx`](src/components/school-admin/SchedulePage.tsx), [`ScheduleStoryHeader.tsx`](src/components/school-admin/schedule/ScheduleStoryHeader.tsx), [`ScheduleOverviewTab.tsx`](src/components/school-admin/schedule/ScheduleOverviewTab.tsx)
 - Messages: [`AdminMessagesPage.tsx`](src/components/school-admin/AdminMessagesPage.tsx), [`AdminMessagesInboxHeader.tsx`](src/components/school-admin/messages/AdminMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="admin-story"`
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)

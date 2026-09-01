@@ -42,7 +42,9 @@ type AdmissionsObservationDayAvailabilityEditorProps = {
   readOnly?: boolean;
   timezone?: string;
   compactLayout?: boolean;
+  storySurface?: boolean;
   onMonthDayCountChange?: (count: number) => void;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 function footerTextForMode(mode: ShadowDaySchedulingMode): string {
@@ -73,7 +75,9 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   readOnly = false,
   timezone: timezoneProp,
   compactLayout = false,
+  storySurface = false,
   onMonthDayCountChange,
+  onLoadingChange,
 }: AdmissionsObservationDayAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
   const [schedulingMode, setSchedulingMode] = useState<ShadowDaySchedulingMode>("whole_day");
@@ -116,6 +120,10 @@ export default function AdmissionsObservationDayAvailabilityEditor({
   useEffect(() => {
     onMonthDayCountChangeRef.current = onMonthDayCountChange;
   }, [onMonthDayCountChange]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading || modeLoading);
+  }, [loading, modeLoading, onLoadingChange]);
 
   useEffect(() => {
     queueMicrotask(() =>
@@ -382,8 +390,15 @@ export default function AdmissionsObservationDayAvailabilityEditor({
         />
 
         <div
-          className="flex min-h-[280px] flex-col rounded-sm border"
-          style={{ borderColor: C.border, backgroundColor: C.surface }}
+          className={
+            storySurface
+              ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
+              : "flex min-h-[280px] flex-col rounded-sm border"
+          }
+          style={{
+            borderColor: storySurface ? "#E0E7E0" : C.border,
+            backgroundColor: storySurface ? "#FFFFFF" : C.surface,
+          }}
         >
           <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
             <p

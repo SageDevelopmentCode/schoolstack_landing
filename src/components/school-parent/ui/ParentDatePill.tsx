@@ -3,18 +3,22 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 type ParentDatePillProps = {
   theme: ParentThemeTokens;
   date?: Date;
+  label?: string;
 };
 
 export default function ParentDatePill({
   theme,
   date = new Date(),
+  label,
 }: ParentDatePillProps) {
-  const label = date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  const displayLabel =
+    label ??
+    date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
   return (
     <div
@@ -25,7 +29,7 @@ export default function ParentDatePill({
         boxShadow: theme.shadowPill,
       }}
     >
-      {label}
+      {displayLabel}
     </div>
   );
 }

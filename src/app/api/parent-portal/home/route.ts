@@ -72,22 +72,22 @@ export async function GET(request: Request) {
     const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
     const familyId = familyIds[0];
 
-    const [userProfile, familyChildren, upcomingEvents, onboardingItems] =
-      await Promise.all([
-        getFamilyUserProfile(supabase, user.id, organizationId, user),
-        listFamilyChildrenForHome(supabase, organizationId, user.id),
-        listUpcomingEventsForOrg(supabase, organizationId, 3),
-        familyId
-          ? loadResolvedParentOnboardingItems({
-              supabase,
-              organizationId,
-              familyId,
-              userId: user.id,
-              slug,
-              features: org.features,
-            })
-          : Promise.resolve([]),
-      ]);
+    const [userProfile, familyChildren, upcomingEvents] = await Promise.all([
+      getFamilyUserProfile(supabase, user.id, organizationId, user),
+      listFamilyChildrenForHome(supabase, organizationId, user.id),
+      listUpcomingEventsForOrg(supabase, organizationId, 3),
+    ]);
+    const onboardingItems = familyId
+      ? await loadResolvedParentOnboardingItems({
+          supabase,
+          organizationId,
+          familyId,
+          userId: user.id,
+          slug,
+          features: org.features,
+          familyChildren,
+        })
+      : [];
 
     const applicationIds = familyChildren.map((child) => child.applicationId);
     const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([

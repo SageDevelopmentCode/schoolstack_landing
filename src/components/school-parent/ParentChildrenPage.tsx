@@ -10,7 +10,10 @@ import ParentChildrenOverview from "@/components/school-parent/children/ParentCh
 import ParentChildrenOverviewSkeleton from "@/components/school-parent/children/ParentChildrenOverviewSkeleton";
 import ParentChildrenRecordSkeleton from "@/components/school-parent/children/ParentChildrenRecordSkeleton";
 import ParentChildrenStoryHeader from "@/components/school-parent/children/ParentChildrenStoryHeader";
-import type { ParentChildRecordSection } from "@/components/school-parent/children/parent-children-utils";
+import {
+  isParentChildRecordSection,
+  type ParentChildRecordSection,
+} from "@/components/school-parent/children/parent-children-utils";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { loadEnrollmentChecklistForApplication } from "@/lib/admissions/enrollment-checklist-materialization";
@@ -20,6 +23,7 @@ import type {
   FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
 import { loadApplicationDetail } from "@/lib/admissions/parent-portal-access";
+import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
 import { fetchAssignedTeachersForStudent } from "@/lib/school-parent/fetch-assigned-teachers";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -32,6 +36,7 @@ type ParentChildrenPageProps = {
   familyChildren: FamilyChildOverview[];
   userProfile?: FamilyUserProfile;
   childProfiles?: Record<string, ChildProfileData>;
+  initialHealthProfiles?: Record<string, StudentHealthProfile>;
   previewBasePath?: string;
 };
 
@@ -43,6 +48,7 @@ export default function ParentChildrenPage({
   familyChildren,
   userProfile: _userProfile,
   childProfiles: initialProfiles,
+  initialHealthProfiles,
   previewBasePath,
 }: ParentChildrenPageProps) {
   const { theme, adminCompat } = useParentTheme();
@@ -53,6 +59,9 @@ export default function ParentChildrenPage({
   );
   const [profiles, setProfiles] = useState<Record<string, ChildProfileData>>(
     initialProfiles ?? {},
+  );
+  const [healthProfiles, setHealthProfiles] = useState<Record<string, StudentHealthProfile>>(
+    initialHealthProfiles ?? {},
   );
   const initialApplicationId = familyChildren[0]?.applicationId ?? null;
   const [profileLoading, setProfileLoading] = useState(
@@ -74,6 +83,18 @@ export default function ParentChildrenPage({
   const selectedProfile = selectedApplicationId
     ? profiles[selectedApplicationId] ?? null
     : null;
+
+  const selectedHealthProfile =
+    selectedChild?.studentId != null
+      ? healthProfiles[selectedChild.studentId] ?? null
+      : null;
+
+  const handleHealthProfileChange = useCallback((studentId: string, profile: StudentHealthProfile) => {
+    setHealthProfiles((prev) => ({
+      ...prev,
+      [studentId]: profile,
+    }));
+  }, []);
 
   const isRecordLoading =
     Boolean(selectedChild) && !selectedProfile?.application && !profileError;
@@ -170,6 +191,9 @@ export default function ParentChildrenPage({
   useEffect(() => {
     if (deepLinkHandled.current) return;
     const applicationId = searchParams.get("applicationId");
+    const sectionParam = searchParams.get("section");
+    const section = isParentChildRecordSection(sectionParam) ? sectionParam : null;
+
     if (!applicationId) {
       if (familyChildren[0]) {
         queueMicrotask(() => {
@@ -184,6 +208,9 @@ export default function ParentChildrenPage({
     deepLinkHandled.current = true;
     queueMicrotask(() => {
       setSelectedApplicationId(applicationId);
+      if (section) {
+        setRecordSection(section);
+      }
       void loadProfile(applicationId);
       requestAnimationFrame(() => {
         recordWorkspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -251,6 +278,7 @@ export default function ParentChildrenPage({
               adminCompat={adminCompat}
               child={selectedChild}
               profile={selectedProfile}
+              healthProfile={selectedHealthProfile}
               onOpenRecordSection={openRecordSection}
             />
           ) : null}
@@ -276,6 +304,17 @@ export default function ParentChildrenPage({
             activeSection={recordSection}
             onSectionChange={setRecordSection}
             onPhotoUpdated={handlePhotoUpdated}
+            initialHealthProfile={
+              selectedProfile.application.studentId
+                ? healthProfiles[selectedProfile.application.studentId] ?? null
+                : null
+            }
+            onHealthProfileChange={
+              selectedProfile.application.studentId
+                ? (profile) =>
+                    handleHealthProfileChange(selectedProfile.application.studentId!, profile)
+                : undefined
+            }
             workspaceRef={recordWorkspaceRef}
           />
         ) : null}

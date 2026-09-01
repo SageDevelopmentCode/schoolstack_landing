@@ -30,6 +30,7 @@ function student(
     assignedTeacherNames: "",
     profilePhotoUrl: null,
     ...overrides,
+    hasStandingHealthItems: overrides.hasStandingHealthItems ?? false,
   };
 }
 

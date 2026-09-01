@@ -263,10 +263,12 @@ export default function OrganizationSettingsEditor({
   }, []);
 
   const parentOnboardingTargetOptions = useMemo(
-    () =>
-      FEATURE_CATALOG.filter(
+    () => [
+      ...FEATURE_CATALOG.filter(
         (def) => def.portal === "parent" && def.key !== "portal",
-      ),
+      ).map((def) => ({ key: def.key, label: def.label })),
+      { key: "health", label: "Children — health profile" },
+    ],
     [],
   );
 

@@ -3,6 +3,7 @@ import {
   listAssignedEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
+import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
 import { loadTeacherMessagesInbox } from "@/lib/messages/teacher-messages";
 import type { MessagesInboxData } from "@/lib/messages/types";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
@@ -203,7 +204,13 @@ export async function loadTeacherMyStudentsPreviewData(
     staffMemberId,
   );
 
-  return { students, staffMemberId };
+  const withFlags = await mergeStudentStandingHealthFlags(
+    admin,
+    organizationId,
+    students,
+  );
+
+  return { students: withFlags, staffMemberId };
 }
 
 export async function loadTeacherMessagesPreviewInbox(

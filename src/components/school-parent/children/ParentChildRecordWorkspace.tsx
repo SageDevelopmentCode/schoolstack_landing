@@ -2,7 +2,7 @@
 
 import { createElement, useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ClipboardCheck, FileText, Users } from "lucide-react";
+import { ChevronDown, ClipboardCheck, FileText, HeartPulse, Users } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import EnrollmentChecklistItemReadOnlyPanel from "@/components/admissions/EnrollmentChecklistItemReadOnlyPanel";
 import StudentPhoto from "@/components/students/StudentPhoto";
@@ -25,6 +25,8 @@ import {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { ApplicationDetail, ParentAssignedTeacher } from "@/lib/admissions/parent-portal-access";
 import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeachersTab";
+import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
+import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
@@ -60,6 +62,8 @@ type ParentChildRecordWorkspaceProps = {
   activeSection: ParentChildRecordSection;
   onSectionChange: (section: ParentChildRecordSection) => void;
   onPhotoUpdated?: (applicationId: string, profilePhotoUrl: string) => void;
+  initialHealthProfile?: StudentHealthProfile | null;
+  onHealthProfileChange?: (profile: StudentHealthProfile) => void;
   workspaceRef?: React.RefObject<HTMLElement | null>;
 };
 
@@ -167,10 +171,13 @@ export default function ParentChildRecordWorkspace({
   activeSection,
   onSectionChange,
   onPhotoUpdated,
+  initialHealthProfile,
+  onHealthProfileChange,
   workspaceRef,
 }: ParentChildRecordWorkspaceProps) {
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
+  const hasHealthTab = Boolean(application.studentId);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(application.profilePhotoUrl);
   const [photoUploading, setPhotoUploading] = useState(false);
 
@@ -247,6 +254,13 @@ export default function ParentChildRecordWorkspace({
       key: "teachers",
       label: "Teachers",
       icon: <Users className={RECORD_TAB_ICON_CLASS} aria-hidden />,
+    });
+  }
+  if (hasHealthTab) {
+    tabs.push({
+      key: "health",
+      label: "Health",
+      icon: <HeartPulse className={RECORD_TAB_ICON_CLASS} aria-hidden />,
     });
   }
 
@@ -372,6 +386,19 @@ export default function ParentChildRecordWorkspace({
 
             {activeSection === "teachers" && hasTeachersTab ? (
               <ParentChildTeachersTab teachers={assignedTeachers} C={C} />
+            ) : null}
+
+            {activeSection === "health" && hasHealthTab && application.studentId ? (
+              <ParentChildHealthTab
+                theme={theme}
+                adminCompat={C}
+                organizationId={organizationId}
+                studentId={application.studentId}
+                studentFirstName={firstName}
+                readOnly={readOnly}
+                initialProfile={initialHealthProfile}
+                onProfileChange={onHealthProfileChange}
+              />
             ) : null}
           </motion.div>
         </AnimatePresence>

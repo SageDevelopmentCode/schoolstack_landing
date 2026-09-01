@@ -24,6 +24,7 @@ export type AdminEnrolledStudentSummary = {
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
   profilePhotoUrl: string | null;
+  hasStandingHealthItems: boolean;
 };
 
 export type EnrolledStudentEnrollment = {
@@ -384,6 +385,7 @@ function mapEnrollmentRowToAggregate(
       student.profile_photo_url.trim() !== ""
         ? student.profile_photo_url.trim()
         : null,
+    hasStandingHealthItems: false,
   };
 
   return {
@@ -787,6 +789,24 @@ export async function loadTeacherAssignedStudentDetail(
   );
 
   if (!detail || !studentHasAssignedTeacher(detail, staffMemberId)) {
+    return null;
+  }
+
+  return detail;
+}
+
+export async function loadTeacherSchoolStudentDetail(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentId: string,
+): Promise<EnrolledStudentDetail | null> {
+  const detail = await loadEnrolledStudentDetail(
+    supabase,
+    organizationId,
+    studentId,
+  );
+
+  if (!detail || detail.enrollments.length === 0) {
     return null;
   }
 

@@ -14,6 +14,7 @@ import {
   loadAssignedTeachersForStudent,
   type ChildProfileData,
 } from "@/lib/admissions/parent-portal-access";
+import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
@@ -92,6 +93,15 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
     ),
   );
 
+  const studentIds = familyChildren
+    .map((child) => child.studentId)
+    .filter((studentId): studentId is string => Boolean(studentId));
+
+  const initialHealthProfiles =
+    studentIds.length > 0
+      ? await loadStudentHealthProfilesForStudents(admin, org.id, studentIds)
+      : {};
+
   const pageName = getParentPageLabel("children", org.features.feature_nav?.parent);
 
   return (
@@ -105,6 +115,7 @@ export default async function FamilyPreviewParentChildrenPage({ params }: PagePr
         userProfile={userProfile}
         childProfiles={childProfiles}
         previewBasePath={familyPreviewBasePath(slug, familyId)}
+        initialHealthProfiles={initialHealthProfiles}
       />
     </SchoolParentPageShell>
   );
