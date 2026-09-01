@@ -117,6 +117,12 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
     target: "children",
   },
   {
+    id: "update_child_health",
+    label: "Update your child's health profile",
+    icon: "heart-pulse",
+    target: "health",
+  },
+  {
     id: "message_teacher",
     label: "Message your teacher",
     icon: "message-square",

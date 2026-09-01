@@ -1,5 +1,7 @@
+import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import { DEFAULT_PARENT_ONBOARDING_ITEMS } from "./catalog";
 import {
+  childHealthDeepLinkHref,
   isParentFeatureEnabled,
   schoolParentPath,
 } from "./parent-routes";
@@ -23,6 +25,7 @@ export type ParentOnboardingCompletionStatus = {
   messages: boolean;
   committees: boolean;
   children: boolean;
+  health: boolean;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -113,23 +116,43 @@ export function getAutoCompletionType(
     target === "billing" ||
     target === "messages" ||
     target === "committees" ||
-    target === "children"
+    target === "children" ||
+    target === "health"
   ) {
     return target;
   }
   return null;
 }
 
+export function firstChildWithStudentId(
+  familyChildren: FamilyChildOverview[],
+): FamilyChildOverview | null {
+  return familyChildren.find((child) => Boolean(child.studentId)) ?? null;
+}
+
 export function resolveParentOnboardingHref(
   slug: string,
   target: string,
-  parentBasePath?: string,
+  options?: {
+    parentBasePath?: string;
+    familyChildren?: FamilyChildOverview[];
+  },
 ): string | null {
   const customUrl = getCustomOnboardingUrl(target);
   if (customUrl) return customUrl;
 
-  if (parentBasePath) {
-    return `${parentBasePath}/${target}`;
+  if (target === "health") {
+    const child = firstChildWithStudentId(options?.familyChildren ?? []);
+    if (!child) return null;
+    return childHealthDeepLinkHref(
+      slug,
+      child.applicationId,
+      options?.parentBasePath,
+    );
+  }
+
+  if (options?.parentBasePath) {
+    return `${options.parentBasePath}/${target}`;
   }
 
   return schoolParentPath(slug, target);
@@ -138,9 +161,17 @@ export function resolveParentOnboardingHref(
 export function shouldShowParentOnboardingItem(
   features: OrganizationFeatures,
   item: ParentOnboardingItem,
+  familyChildren?: FamilyChildOverview[],
 ): boolean {
   if (isCustomOnboardingUrlTarget(item.target)) {
     return getCustomOnboardingUrl(item.target) !== null;
+  }
+
+  if (item.target === "health") {
+    if (!isParentFeatureEnabled(features, "children")) {
+      return false;
+    }
+    return firstChildWithStudentId(familyChildren ?? []) !== null;
   }
 
   return isParentFeatureEnabled(features, item.target);
@@ -151,18 +182,21 @@ export function resolveParentOnboardingItems(input: {
   features: OrganizationFeatures;
   completion: ParentOnboardingCompletionStatus;
   previewBasePath?: string;
+  familyChildren?: FamilyChildOverview[];
 }): ResolvedParentOnboardingItem[] {
   const items = getParentOnboardingItems(input.features);
+  const familyChildren = input.familyChildren ?? [];
 
   return items
-    .filter((item) => shouldShowParentOnboardingItem(input.features, item))
+    .filter((item) =>
+      shouldShowParentOnboardingItem(input.features, item, familyChildren),
+    )
     .map((item) => {
       const autoType = getAutoCompletionType(item.target);
-      const href = resolveParentOnboardingHref(
-        input.slug,
-        item.target,
-        input.previewBasePath,
-      );
+      const href = resolveParentOnboardingHref(input.slug, item.target, {
+        parentBasePath: input.previewBasePath,
+        familyChildren,
+      });
 
       return {
         ...item,

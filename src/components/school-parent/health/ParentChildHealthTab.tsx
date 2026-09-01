@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { HealthFormValues } from "@/components/school-parent/health/ParentHealthFormPanel";
 import ParentHealthFormSidebar from "@/components/school-parent/health/ParentHealthFormSidebar";
@@ -20,13 +20,17 @@ import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 import {
   createStudentHealthItemClient,
   createStudentHealthItemAdmin,
+  createStudentHealthItemTeacher,
   deleteStudentHealthItemClient,
   deleteStudentHealthItemAdmin,
+  deleteStudentHealthItemTeacher,
   fetchStudentHealthProfile,
   fetchStudentHealthProfileAdmin,
+  fetchStudentHealthProfileTeacher,
   StudentHealthFetchError,
   updateStudentHealthItemClient,
   updateStudentHealthItemAdmin,
+  updateStudentHealthItemTeacher,
 } from "@/lib/student-health/fetch-student-health-profile-client";
 import {
   mergeHealthItemIntoProfile,
@@ -47,7 +51,7 @@ type ParentChildHealthTabProps = {
   readOnly?: boolean;
   initialProfile?: StudentHealthProfile | null;
   onProfileChange?: (profile: StudentHealthProfile) => void;
-  portal?: "parent" | "admin";
+  portal?: "parent" | "admin" | "teacher";
   schoolSlug?: string;
 };
 
@@ -72,6 +76,84 @@ function valuesToPayload(values: HealthFormValues): Record<string, unknown> {
   return { ...values };
 }
 
+async function fetchHealthProfile(
+  portal: "parent" | "admin" | "teacher",
+  organizationId: string,
+  studentId: string,
+  schoolSlug?: string,
+) {
+  if (portal === "admin" && schoolSlug) {
+    return fetchStudentHealthProfileAdmin(schoolSlug, studentId);
+  }
+  if (portal === "teacher") {
+    return fetchStudentHealthProfileTeacher(organizationId, studentId);
+  }
+  return fetchStudentHealthProfile(organizationId, studentId);
+}
+
+async function createHealthItem(
+  portal: "parent" | "admin" | "teacher",
+  organizationId: string,
+  studentId: string,
+  itemType: string,
+  payload: Record<string, unknown>,
+  schoolSlug?: string,
+) {
+  if (portal === "admin" && schoolSlug) {
+    return createStudentHealthItemAdmin(schoolSlug, studentId, itemType, payload);
+  }
+  if (portal === "teacher") {
+    return createStudentHealthItemTeacher(organizationId, studentId, itemType, payload);
+  }
+  return createStudentHealthItemClient(organizationId, studentId, itemType, payload);
+}
+
+async function updateHealthItem(
+  portal: "parent" | "admin" | "teacher",
+  organizationId: string,
+  studentId: string,
+  itemId: string,
+  itemType: string,
+  payload: Record<string, unknown>,
+  schoolSlug?: string,
+) {
+  if (portal === "admin" && schoolSlug) {
+    return updateStudentHealthItemAdmin(schoolSlug, studentId, itemId, itemType, payload);
+  }
+  if (portal === "teacher") {
+    return updateStudentHealthItemTeacher(
+      organizationId,
+      studentId,
+      itemId,
+      itemType,
+      payload,
+    );
+  }
+  return updateStudentHealthItemClient(
+    organizationId,
+    studentId,
+    itemId,
+    itemType,
+    payload,
+  );
+}
+
+async function deleteHealthItem(
+  portal: "parent" | "admin" | "teacher",
+  organizationId: string,
+  studentId: string,
+  itemId: string,
+  schoolSlug?: string,
+) {
+  if (portal === "admin" && schoolSlug) {
+    return deleteStudentHealthItemAdmin(schoolSlug, studentId, itemId);
+  }
+  if (portal === "teacher") {
+    return deleteStudentHealthItemTeacher(organizationId, studentId, itemId);
+  }
+  return deleteStudentHealthItemClient(organizationId, studentId, itemId);
+}
+
 export default function ParentChildHealthTab({
   theme,
   adminCompat,
@@ -85,6 +167,8 @@ export default function ParentChildHealthTab({
   schoolSlug,
 }: ParentChildHealthTabProps) {
   const isAdminPortal = portal === "admin";
+  const isTeacherPortal = portal === "teacher";
+  const isStaffPortal = isAdminPortal || isTeacherPortal;
   const toast = isAdminPortal ? adminToast : parentToast;
   const [profile, setProfile] = useState<StudentHealthProfile>(
     initialProfile ?? emptyStudentHealthProfile(),
@@ -93,13 +177,13 @@ export default function ParentChildHealthTab({
   const [formState, setFormState] = useState<FormState>({ mode: "closed" });
   const [saving, setSaving] = useState(false);
 
-  const updateProfile = useCallback(
-    (next: StudentHealthProfile) => {
-      setProfile(next);
-      onProfileChange?.(next);
-    },
-    [onProfileChange],
-  );
+  const onProfileChangeRef = useRef(onProfileChange);
+  onProfileChangeRef.current = onProfileChange;
+
+  const updateProfile = useCallback((next: StudentHealthProfile) => {
+    setProfile(next);
+    onProfileChangeRef.current?.(next);
+  }, []);
 
   useEffect(() => {
     if (initialProfile !== undefined) {
@@ -114,9 +198,7 @@ export default function ParentChildHealthTab({
     let cancelled = false;
     setLoading(true);
 
-    void (isAdminPortal && schoolSlug
-      ? fetchStudentHealthProfileAdmin(schoolSlug, studentId)
-      : fetchStudentHealthProfile(organizationId, studentId))
+    void fetchHealthProfile(portal, organizationId, studentId, schoolSlug)
       .then((nextProfile) => {
         if (cancelled) return;
         updateProfile(nextProfile);
@@ -137,7 +219,7 @@ export default function ParentChildHealthTab({
     return () => {
       cancelled = true;
     };
-  }, [initialProfile, isAdminPortal, organizationId, readOnly, schoolSlug, studentId, toast, updateProfile]);
+  }, [initialProfile, organizationId, portal, schoolSlug, studentId, toast, updateProfile]);
 
   const sortedUpdates = useMemo(() => sortUpdates(profile.updates), [profile.updates]);
 
@@ -221,26 +303,25 @@ export default function ParentChildHealthTab({
       try {
         const payload = valuesToPayload(values);
         if (formState.mode === "edit") {
-          const response = (await (isAdminPortal && schoolSlug
-            ? updateStudentHealthItemAdmin(
-                schoolSlug,
-                studentId,
-                formState.itemId,
-                itemType,
-                payload,
-              )
-            : updateStudentHealthItemClient(
-                organizationId,
-                studentId,
-                formState.itemId,
-                itemType,
-                payload,
-              ))) as { item: HealthAllergyItem | HealthMedicationItem | HealthUpdateItem };
+          const response = (await updateHealthItem(
+            portal,
+            organizationId,
+            studentId,
+            formState.itemId,
+            itemType,
+            payload,
+            schoolSlug,
+          )) as { item: HealthAllergyItem | HealthMedicationItem | HealthUpdateItem };
           updateProfile(mergeHealthItemIntoProfile(profile, response.item));
         } else {
-          const response = (await (isAdminPortal && schoolSlug
-            ? createStudentHealthItemAdmin(schoolSlug, studentId, itemType, payload)
-            : createStudentHealthItemClient(organizationId, studentId, itemType, payload))) as {
+          const response = (await createHealthItem(
+            portal,
+            organizationId,
+            studentId,
+            itemType,
+            payload,
+            schoolSlug,
+          )) as {
             item: HealthAllergyItem | HealthMedicationItem | HealthUpdateItem;
           };
           updateProfile(mergeHealthItemIntoProfile(profile, response.item));
@@ -249,7 +330,9 @@ export default function ParentChildHealthTab({
         toast.success(
           isAdminPortal
             ? "Health item saved."
-            : "Update saved. Teachers and the school office will be notified.",
+            : isTeacherPortal
+              ? "Health item saved."
+              : "Update saved. Teachers and the school office will be notified.",
         );
         setFormState({ mode: "closed" });
       } catch (error) {
@@ -262,7 +345,7 @@ export default function ParentChildHealthTab({
         setSaving(false);
       }
     },
-    [formState, isAdminPortal, organizationId, profile, readOnly, schoolSlug, studentId, toast, updateProfile],
+    [formState, isAdminPortal, isTeacherPortal, organizationId, portal, profile, readOnly, schoolSlug, studentId, toast, updateProfile],
   );
 
   const handleDelete = useCallback(async () => {
@@ -270,11 +353,7 @@ export default function ParentChildHealthTab({
 
     setSaving(true);
     try {
-      if (isAdminPortal && schoolSlug) {
-        await deleteStudentHealthItemAdmin(schoolSlug, studentId, formState.itemId);
-      } else {
-        await deleteStudentHealthItemClient(organizationId, studentId, formState.itemId);
-      }
+      await deleteHealthItem(portal, organizationId, studentId, formState.itemId, schoolSlug);
       updateProfile(
         removeHealthItemFromProfile(profile, formState.itemId, formState.itemType),
       );
@@ -289,7 +368,7 @@ export default function ParentChildHealthTab({
     } finally {
       setSaving(false);
     }
-  }, [formState, isAdminPortal, organizationId, profile, readOnly, schoolSlug, studentId, toast, updateProfile]);
+  }, [formState, organizationId, portal, profile, readOnly, schoolSlug, studentId, toast, updateProfile]);
 
   const activeItemCount =
     profile.allergies.length + profile.medications.length + profile.updates.length;
@@ -313,7 +392,9 @@ export default function ParentChildHealthTab({
           <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: theme.muted }}>
             {isAdminPortal
               ? "Families are notified when you add or update health items here."
-              : "Teachers and the school office are notified when you share updates here."}
+              : isTeacherPortal
+                ? "Families and the school office are notified when you add or update health items here."
+                : "Teachers and the school office are notified when you share updates here."}
             {activeItemCount > 0 ? ` ${activeItemCount} items on file.` : null}
           </p>
         </div>
@@ -428,7 +509,7 @@ export default function ParentChildHealthTab({
         initialValues={sidebarInitialValues}
         readOnly={readOnly}
         saving={saving}
-        variant={isAdminPortal ? "modal" : "sidebar"}
+        variant={isStaffPortal ? "modal" : "sidebar"}
         onClose={closeForm}
         onSave={handleSave}
         onDelete={formState.mode === "edit" ? handleDelete : undefined}

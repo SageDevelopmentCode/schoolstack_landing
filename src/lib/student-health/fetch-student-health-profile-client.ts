@@ -176,3 +176,90 @@ export async function deleteStudentHealthItemAdmin(
   }
   return payload;
 }
+
+function teacherHealthBasePath(studentId: string): string {
+  return `/api/teacher-portal/students/${encodeURIComponent(studentId)}/health`;
+}
+
+export async function fetchStudentHealthProfileTeacher(
+  organizationId: string,
+  studentId: string,
+): Promise<StudentHealthProfile> {
+  const params = new URLSearchParams({ organizationId });
+  const response = await fetch(
+    `${teacherHealthBasePath(studentId)}?${params.toString()}`,
+  );
+  const payload = (await response.json().catch(() => ({}))) as {
+    profile?: StudentHealthProfile;
+    error?: string;
+  };
+
+  if (!response.ok) {
+    throw new StudentHealthFetchError(payload.error ?? "Failed to load health profile.");
+  }
+
+  return payload.profile ?? emptyStudentHealthProfile();
+}
+
+export async function createStudentHealthItemTeacher(
+  organizationId: string,
+  studentId: string,
+  itemType: string,
+  values: Record<string, unknown>,
+) {
+  const response = await fetch(teacherHealthBasePath(studentId), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ organizationId, itemType, values }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new StudentHealthFetchError(
+      typeof payload.error === "string" ? payload.error : "Failed to save health item.",
+    );
+  }
+  return payload;
+}
+
+export async function updateStudentHealthItemTeacher(
+  organizationId: string,
+  studentId: string,
+  itemId: string,
+  itemType: string,
+  values: Record<string, unknown>,
+) {
+  const response = await fetch(
+    `${teacherHealthBasePath(studentId)}/${encodeURIComponent(itemId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organizationId, itemType, values }),
+    },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new StudentHealthFetchError(
+      typeof payload.error === "string" ? payload.error : "Failed to update health item.",
+    );
+  }
+  return payload;
+}
+
+export async function deleteStudentHealthItemTeacher(
+  organizationId: string,
+  studentId: string,
+  itemId: string,
+) {
+  const params = new URLSearchParams({ organizationId });
+  const response = await fetch(
+    `${teacherHealthBasePath(studentId)}/${encodeURIComponent(itemId)}?${params.toString()}`,
+    { method: "DELETE" },
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new StudentHealthFetchError(
+      typeof payload.error === "string" ? payload.error : "Failed to delete health item.",
+    );
+  }
+  return payload;
+}

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listFamilyChildrenForHomeByFamilyId } from "@/lib/admissions/family-preview-access";
+import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { familyHasOpenTuitionInstallments } from "@/lib/tuition/family-checklist-responses";
 import {
@@ -13,6 +14,11 @@ import type {
   OrganizationFeatures,
   ParentOnboardingItem,
 } from "@/lib/organization-settings/types";
+import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
+import {
+  emptyStudentHealthProfile,
+  studentHasStandingHealthItems,
+} from "@/lib/student-health/types";
 
 function needsBillingCheck(items: ParentOnboardingItem[]): boolean {
   return items.some((item) => getAutoCompletionType(item.target) === "billing");
@@ -28,6 +34,10 @@ function needsCommitteesCheck(items: ParentOnboardingItem[]): boolean {
 
 function needsChildrenCheck(items: ParentOnboardingItem[]): boolean {
   return items.some((item) => getAutoCompletionType(item.target) === "children");
+}
+
+function needsHealthCheck(items: ParentOnboardingItem[]): boolean {
+  return items.some((item) => getAutoCompletionType(item.target) === "health");
 }
 
 async function checkBillingComplete(
@@ -90,18 +100,42 @@ async function checkChildrenPhotosComplete(
   return uploadableChildren.some((child) => Boolean(child.profilePhotoUrl?.trim()));
 }
 
+async function checkHealthComplete(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyChildren: FamilyChildOverview[],
+): Promise<boolean> {
+  const studentIds = familyChildren
+    .map((child) => child.studentId)
+    .filter((studentId): studentId is string => Boolean(studentId));
+
+  if (studentIds.length === 0) return false;
+
+  const profiles = await loadStudentHealthProfilesForStudents(
+    supabase,
+    organizationId,
+    studentIds,
+  );
+
+  return studentIds.some((studentId) =>
+    studentHasStandingHealthItems(profiles[studentId] ?? emptyStudentHealthProfile()),
+  );
+}
+
 export async function loadParentOnboardingStatus(input: {
   supabase: SupabaseClient;
   organizationId: string;
   familyId: string;
   userId: string;
   items: ParentOnboardingItem[];
+  familyChildren?: FamilyChildOverview[];
 }): Promise<ParentOnboardingCompletionStatus> {
   const status: ParentOnboardingCompletionStatus = {
     billing: false,
     messages: false,
     committees: false,
     children: false,
+    health: false,
   };
 
   const checks: Promise<void>[] = [];
@@ -150,6 +184,26 @@ export async function loadParentOnboardingStatus(input: {
     );
   }
 
+  if (needsHealthCheck(input.items)) {
+    const familyChildren =
+      input.familyChildren ??
+      (await listFamilyChildrenForHomeByFamilyId(
+        input.supabase,
+        input.organizationId,
+        input.familyId,
+      ));
+
+    checks.push(
+      checkHealthComplete(
+        input.supabase,
+        input.organizationId,
+        familyChildren,
+      ).then((complete) => {
+        status.health = complete;
+      }),
+    );
+  }
+
   await Promise.all(checks);
 
   return status;
@@ -163,14 +217,23 @@ export async function loadResolvedParentOnboardingItems(input: {
   slug: string;
   features: OrganizationFeatures;
   previewBasePath?: string;
+  familyChildren?: FamilyChildOverview[];
 }): Promise<ResolvedParentOnboardingItem[]> {
   const items = getParentOnboardingItems(input.features);
+  const familyChildren =
+    input.familyChildren ??
+    (await listFamilyChildrenForHomeByFamilyId(
+      input.supabase,
+      input.organizationId,
+      input.familyId,
+    ));
   const completion = await loadParentOnboardingStatus({
     supabase: input.supabase,
     organizationId: input.organizationId,
     familyId: input.familyId,
     userId: input.userId,
     items,
+    familyChildren,
   });
 
   return resolveParentOnboardingItems({
@@ -178,5 +241,6 @@ export async function loadResolvedParentOnboardingItems(input: {
     features: input.features,
     completion,
     previewBasePath: input.previewBasePath,
+    familyChildren,
   });
 }

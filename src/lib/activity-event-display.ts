@@ -109,6 +109,7 @@ const ACTION_PHRASES: Record<string, string> = {
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {
   parent: "A parent",
+  teacher: "A teacher",
   school_admin: "A school admin",
   platform_admin: "A platform admin",
   system: "System",

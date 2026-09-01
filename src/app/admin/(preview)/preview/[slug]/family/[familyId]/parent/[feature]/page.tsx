@@ -127,6 +127,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       slug,
       features: org.features,
       previewBasePath: previewParentBasePath,
+      familyChildren,
     });
     const applicationIds = familyChildren.map((child) => child.applicationId);
     const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([

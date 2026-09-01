@@ -13,6 +13,7 @@ const PARENT_FEATURE_ICON_STYLES: Record<string, ParentFeatureIconStyle> = {
   megaphone: { iconBg: "bg-sky-100", iconColor: "text-sky-600" },
   users: { iconBg: "bg-rose-100", iconColor: "text-rose-600" },
   heart: { iconBg: "bg-pink-100", iconColor: "text-pink-600" },
+  "heart-pulse": { iconBg: "bg-red-100", iconColor: "text-red-600" },
   puzzle: { iconBg: "bg-gray-100", iconColor: "text-gray-500" },
 };
 

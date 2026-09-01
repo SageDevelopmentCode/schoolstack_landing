@@ -84,12 +84,14 @@ export type ActivityAction =
 
 export type ActorType =
   | "parent"
+  | "teacher"
   | "school_admin"
   | "platform_admin"
   | "system";
 
 export type ActivitySurface =
   | "parent_portal"
+  | "teacher_portal"
   | "school_admin"
   | "public_apply"
   | "login"

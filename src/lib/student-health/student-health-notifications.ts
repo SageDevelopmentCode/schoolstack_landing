@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
+import { ACTIVITY_ACTIONS, logActivityEvent, type ActorType } from "@/lib/activity-log";
 import type { HealthItemType } from "@/lib/student-health/types";
 import {
   healthItemLabel,
@@ -8,7 +8,7 @@ import {
 
 export type StudentHealthNotificationAction = "created" | "updated" | "deleted";
 
-export type StudentHealthActorType = "parent" | "school_admin";
+export type StudentHealthActorType = Extract<ActorType, "parent" | "school_admin" | "teacher">;
 
 function activityAction(action: StudentHealthNotificationAction): string {
   switch (action) {
@@ -59,7 +59,12 @@ export async function sendStudentHealthItemNotifications(
     actorUserId: input.actorUserId,
     actorEmail: input.actorEmail,
     actorName: input.actorName,
-    surface: input.actorType === "parent" ? "parent_portal" : "school_admin",
+    surface:
+      input.actorType === "parent"
+        ? "parent_portal"
+        : input.actorType === "teacher"
+          ? "teacher_portal"
+          : "school_admin",
     action: activityAction(input.action),
     entityType: "student_health_item",
     entityId: input.itemId,

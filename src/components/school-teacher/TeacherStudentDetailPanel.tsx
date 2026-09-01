@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Heart, LayoutDashboard, Users, type LucideIcon } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { SchoolAdminDetailPanelSkeleton } from "@/components/school-admin/skeletons";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
 import DetailPanelSectionGroup from "@/components/school-admin/admissions/DetailPanelSectionGroup";
-import FamilyGuardiansSection from "@/components/school-admin/admissions/FamilyGuardiansSection";
+import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
+import { SubmissionDetailStoryProvider } from "@/components/school-admin/admissions/SubmissionDetailStoryContext";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
@@ -18,8 +24,13 @@ import {
   type AdminEnrolledStudentSummary,
   type EnrolledStudentDetail,
 } from "@/lib/school-admin/enrolled-students";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { formatShortDate } from "@/lib/admissions/application-submissions";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { studentHasStandingHealthItems, type StudentHealthProfile } from "@/lib/student-health/types";
 import { createClient } from "@/utils/supabase/client";
 
 type TeacherStudentDetailPanelProps = {
@@ -29,20 +40,16 @@ type TeacherStudentDetailPanelProps = {
   branding: OrganizationBranding;
   schoolSlug: string;
   detailAccess?: "assigned" | "messageableFamily";
+  readOnly?: boolean;
+  onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
   onClose: () => void;
 };
 
 type DetailTab = {
   id: string;
   label: string;
+  icon: LucideIcon;
 };
-
-function enrolledBadgeStyle(C: ReturnType<typeof buildAdminThemeTokens>) {
-  return {
-    backgroundColor: C.successBg,
-    color: C.success,
-  };
-}
 
 function formatDateOfBirth(value: string | null): string {
   if (!value) return "—";
@@ -53,20 +60,30 @@ export default function TeacherStudentDetailPanel({
   student,
   organizationId,
   staffMemberId,
-  branding,
+  branding: _branding,
   schoolSlug,
   detailAccess = "assigned",
+  readOnly = false,
+  onStudentHealthChange,
   onClose,
 }: TeacherStudentDetailPanelProps) {
-  const C = buildAdminThemeTokens(branding);
+  const { theme, adminCompat: C } = useParentTheme();
+  const reducedMotion = useReducedMotion();
   const supabase = useMemo(() => createClient(), []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<EnrolledStudentDetail | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(["overview"]));
 
   const navigateToTab = useCallback((tabId: string) => {
+    setVisitedTabs((previous) => {
+      if (previous.has(tabId)) return previous;
+      const next = new Set(previous);
+      next.add(tabId);
+      return next;
+    });
     setActiveTab(tabId);
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -108,10 +125,18 @@ export default function TeacherStudentDetailPanel({
     });
   }, [loadDetail]);
 
+  const handleHealthProfileChange = useCallback(
+    (profile: StudentHealthProfile) => {
+      onStudentHealthChange?.(student.id, studentHasStandingHealthItems(profile));
+    },
+    [onStudentHealthChange, student.id],
+  );
+
   const tabs: DetailTab[] = useMemo(
     () => [
-      { id: "overview", label: "Overview" },
-      { id: "family", label: "Family" },
+      { id: "overview", label: "Overview", icon: LayoutDashboard },
+      { id: "family", label: "Family", icon: Users },
+      { id: "health", label: "Health", icon: Heart },
     ],
     [],
   );
@@ -121,6 +146,7 @@ export default function TeacherStudentDetailPanel({
   const programLabel =
     student.programNames.length > 0 ? student.programNames.join(" · ") : "No program";
   const contactLabel = student.primaryContactEmail ?? "No contact email";
+  const metaLine = [formattedGrade, programLabel].filter(Boolean).join(" · ");
 
   function renderOverviewTab(panelDetail: EnrolledStudentDetail) {
     return (
@@ -256,16 +282,32 @@ export default function TeacherStudentDetailPanel({
             </div>
           </dl>
         </DetailPanelSection>
-
-        <FamilyGuardiansSection
-          C={C}
-          organizationId={organizationId}
-          familyId={panelDetail.familyId || null}
-          schoolSlug={schoolSlug}
-          detail={null}
-        />
       </DetailPanelSectionGroup>
     );
+  }
+
+  function renderHealthTab(panelDetail: EnrolledStudentDetail) {
+    return (
+      <ParentChildHealthTab
+        theme={theme}
+        adminCompat={C}
+        organizationId={organizationId}
+        studentId={student.id}
+        studentFirstName={panelDetail.firstName}
+        portal="teacher"
+        schoolSlug={schoolSlug}
+        readOnly={readOnly}
+        onProfileChange={handleHealthProfileChange}
+      />
+    );
+  }
+
+  function renderTabPanel(tabId: string) {
+    if (!detail) return null;
+    if (tabId === "overview") return renderOverviewTab(detail);
+    if (tabId === "family") return renderFamilyTab(detail);
+    if (tabId === "health") return renderHealthTab(detail);
+    return null;
   }
 
   return (
@@ -278,7 +320,7 @@ export default function TeacherStudentDetailPanel({
     >
       <div
         className="absolute inset-0"
-        style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+        style={{ backgroundColor: "rgba(34,48,44,0.47)" }}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -289,17 +331,17 @@ export default function TeacherStudentDetailPanel({
         transition={{ type: "spring", damping: 28, stiffness: 300 }}
         className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden"
         style={{
-          backgroundColor: C.surface,
-          borderLeft: `1px solid ${C.border}`,
-          boxShadow: C.shadowMedium,
+          backgroundColor: "#F8FAF8",
+          borderLeft: "1px solid #E0E8E0",
+          boxShadow: "0 -18px 45px rgba(26,47,37,0.2)",
         }}
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="flex flex-shrink-0 items-start justify-between gap-3 px-4 py-3 sm:px-5"
-          style={{ borderBottom: `1px solid ${C.border}` }}
+          className="flex flex-shrink-0 items-start justify-between gap-3 bg-white px-[21px] py-[17px]"
+          style={{ borderBottom: "1px solid #E0E8E0" }}
         >
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
             <StudentPhoto
               name={studentName}
               photoUrl={detail?.profilePhotoUrl ?? student.profilePhotoUrl}
@@ -307,53 +349,52 @@ export default function TeacherStudentDetailPanel({
               shape="circle"
               accentColor={C.accent}
               accentGlowColor={C.accentLight}
+              healthIndicator={student.hasStandingHealthItems}
+              healthIndicatorColor={C.error}
             />
-            <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3
-                className="truncate text-sm font-semibold"
-                style={{ color: C.textPrimary }}
-              >
-                {studentName}
-              </h3>
-              <span
-                className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                style={enrolledBadgeStyle(C)}
-              >
-                Enrolled
-              </span>
-            </div>
-            <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
-              {formattedGrade ? `${formattedGrade} · ` : null}
-              {programLabel}
-            </p>
-            <p className="mt-1 truncate text-xs" style={{ color: C.textSecondary }}>
-              {student.primaryContactName ?? student.familyName ?? "Family"}
-              <span className="mx-1.5 opacity-50">·</span>
-              {contactLabel}
-              <span className="mx-1.5 opacity-50">·</span>
-              Enrolled {formatEnrolledDate(student.enrolledAt)}
-            </p>
+            <div className="min-w-0 flex-1">
+              <AdminSectionKicker theme={theme}>Student profile</AdminSectionKicker>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="truncate">
+                  {studentName}
+                </AdminDisplayHeading>
+                <AdminChip theme={theme} tone="success">
+                  Enrolled
+                </AdminChip>
+              </div>
+              {metaLine ? (
+                <p className="mt-1 truncate text-[11px]" style={{ color: theme.muted }}>
+                  {metaLine}
+                  <span className="mx-1.5 opacity-50">·</span>
+                  Enrolled {formatShortDate(student.enrolledAt)}
+                </p>
+              ) : null}
+              <p className="mt-0.5 truncate text-[11px]" style={{ color: theme.muted }}>
+                {student.primaryContactName ?? student.familyName ?? "Family"}
+                <span className="mx-1.5 opacity-50">·</span>
+                {contactLabel}
+              </p>
             </div>
           </div>
-          <button
-            type="button"
+          <AdminButton
+            theme={theme}
+            variant="soft"
+            size="compact"
             onClick={onClose}
-            className="flex-shrink-0 rounded p-1"
-            style={{ color: C.textTertiary }}
             aria-label="Close"
+            className="shrink-0"
           >
-            <X className="h-4 w-4" />
-          </button>
+            Close ×
+          </AdminButton>
         </div>
 
         {detail && !loading && !error ? (
           <div
-            className="flex flex-shrink-0 overflow-x-auto px-4 sm:px-5"
-            style={{ borderBottom: `1px solid ${C.border}` }}
+            className="flex flex-shrink-0 overflow-x-auto bg-white px-[21px]"
+            style={{ borderBottom: "1px solid #E1E8E1" }}
           >
             <div
-              className="-mb-px flex gap-6"
+              className="-mb-px flex gap-[3px]"
               role="tablist"
               aria-label="Student sections"
             >
@@ -371,12 +412,13 @@ export default function TeacherStudentDetailPanel({
                     aria-selected={isActive}
                     aria-controls={panelId}
                     onClick={() => navigateToTab(tab.id)}
-                    className="shrink-0 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
+                    className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
                     style={{
-                      borderBottomColor: isActive ? C.accent : "transparent",
-                      color: isActive ? C.accent : C.textTertiary,
+                      borderBottomColor: isActive ? theme.primary : "transparent",
+                      color: isActive ? theme.primary : "#77858A",
                     }}
                   >
+                    <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     {tab.label}
                   </button>
                 );
@@ -385,37 +427,43 @@ export default function TeacherStudentDetailPanel({
           </div>
         ) : null}
 
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto px-4 pb-6 pt-4 sm:px-5 sm:pb-8 sm:pt-5"
-        >
-          {loading ? (
-            <SchoolAdminDetailPanelSkeleton C={C} label="Loading student" />
-          ) : error ? (
-            <p className="text-sm" style={{ color: C.error }}>
-              {error}
-            </p>
-          ) : detail ? (
-            <>
-              <div
-                id="teacher-student-panel-overview"
-                role="tabpanel"
-                aria-labelledby="teacher-student-tab-overview"
-                hidden={activeTab !== "overview"}
-              >
-                {activeTab === "overview" ? renderOverviewTab(detail) : null}
-              </div>
-              <div
-                id="teacher-student-panel-family"
-                role="tabpanel"
-                aria-labelledby="teacher-student-tab-family"
-                hidden={activeTab !== "family"}
-              >
-                {activeTab === "family" ? renderFamilyTab(detail) : null}
-              </div>
-            </>
-          ) : null}
-        </div>
+        <SubmissionDetailStoryProvider variant="story" theme={theme}>
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto px-5 pb-6 pt-5 sm:px-5 sm:pb-8"
+          >
+            {loading ? (
+              <SchoolAdminDetailPanelSkeleton C={C} label="Loading student" />
+            ) : error ? (
+              <p className="text-sm" style={{ color: C.error }}>
+                {error}
+              </p>
+            ) : detail ? (
+              <>
+                {tabs.map((tab) =>
+                  visitedTabs.has(tab.id) ? (
+                    <div
+                      key={tab.id}
+                      id={`teacher-student-panel-${tab.id}`}
+                      role="tabpanel"
+                      aria-labelledby={`teacher-student-tab-${tab.id}`}
+                      hidden={activeTab !== tab.id}
+                    >
+                      <motion.div
+                        variants={tabPanelVariants(reducedMotion ?? false)}
+                        initial={false}
+                        animate={activeTab === tab.id ? "animate" : "initial"}
+                        transition={tabPanelTransition(reducedMotion ?? false)}
+                      >
+                        {renderTabPanel(tab.id)}
+                      </motion.div>
+                    </div>
+                  ) : null,
+                )}
+              </>
+            ) : null}
+          </div>
+        </SubmissionDetailStoryProvider>
       </motion.div>
     </motion.div>
   );

@@ -36,7 +36,7 @@ import {
 } from "@/lib/school-admin/admin-modal-motion";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { createClient } from "@/utils/supabase/client";
-import { studentHasStandingHealthItems } from "@/lib/student-health/types";
+import { studentHasStandingHealthItems, type StudentHealthProfile } from "@/lib/student-health/types";
 
 type StudentDetailPanelProps = {
   student: AdminEnrolledStudentSummary;
@@ -140,6 +140,13 @@ export default function StudentDetailPanel({
       await loadDetail({ silent: true });
     },
     [loadDetail, onAssignTeacher],
+  );
+
+  const handleHealthProfileChange = useCallback(
+    (profile: StudentHealthProfile) => {
+      onStudentHealthChange?.(student.id, studentHasStandingHealthItems(profile));
+    },
+    [onStudentHealthChange, student.id],
   );
 
   const tabs: DetailTab[] = useMemo(
@@ -352,9 +359,7 @@ export default function StudentDetailPanel({
         studentFirstName={panelDetail.firstName}
         portal="admin"
         schoolSlug={schoolSlug}
-        onProfileChange={(profile) =>
-          onStudentHealthChange?.(student.id, studentHasStandingHealthItems(profile))
-        }
+        onProfileChange={handleHealthProfileChange}
       />
     );
   }
