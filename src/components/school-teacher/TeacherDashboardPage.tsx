@@ -112,10 +112,12 @@ export default function TeacherDashboardPage({
 }: TeacherDashboardPageProps) {
   const { theme } = useParentTheme();
   const [summary, setSummary] = useState(initialSummary);
+  const [prevInitialSummary, setPrevInitialSummary] = useState(initialSummary);
 
-  useEffect(() => {
+  if (initialSummary !== prevInitialSummary) {
+    setPrevInitialSummary(initialSummary);
     setSummary(initialSummary);
-  }, [initialSummary]);
+  }
 
   const messagesHref = teacherBasePath
     ? `${teacherBasePath}/messages`

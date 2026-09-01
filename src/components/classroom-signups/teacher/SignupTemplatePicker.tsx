@@ -5,9 +5,9 @@ import {
   CalendarDays,
   FileText,
   Heart,
+  Puzzle,
   Users,
 } from "lucide-react";
-import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   CLASSROOM_SIGNUP_TEMPLATES,
@@ -24,6 +24,8 @@ const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   "file-text": <FileText className="h-5 w-5" />,
 };
 
+const DEFAULT_ICON = <Puzzle className="h-5 w-5" />;
+
 type SignupTemplatePickerProps = {
   theme: ParentThemeTokens;
   onSelect: (templateId: ClassroomSignupTemplateId) => void;
@@ -38,8 +40,7 @@ function TemplateCard({
   template: ClassroomSignupTemplate;
   onSelect: () => void;
 }) {
-  const Icon = getFeatureIcon(template.icon);
-  const iconNode = TEMPLATE_ICONS[template.icon] ?? <Icon className="h-5 w-5" />;
+  const iconNode = TEMPLATE_ICONS[template.icon] ?? DEFAULT_ICON;
 
   return (
     <button

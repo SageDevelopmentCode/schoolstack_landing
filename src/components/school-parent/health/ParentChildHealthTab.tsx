@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import type { HealthFormValues } from "@/components/school-parent/health/ParentHealthFormPanel";
 import ParentHealthFormSidebar from "@/components/school-parent/health/ParentHealthFormSidebar";
@@ -173,12 +173,36 @@ export default function ParentChildHealthTab({
   const [profile, setProfile] = useState<StudentHealthProfile>(
     initialProfile ?? emptyStudentHealthProfile(),
   );
-  const [loading, setLoading] = useState(initialProfile === undefined);
+  const [prevInitialProfile, setPrevInitialProfile] = useState(initialProfile);
+  const [prevStudentId, setPrevStudentId] = useState(studentId);
+
+  if (
+    initialProfile !== undefined &&
+    (initialProfile !== prevInitialProfile || studentId !== prevStudentId)
+  ) {
+    setPrevInitialProfile(initialProfile);
+    setPrevStudentId(studentId);
+    setProfile(initialProfile ?? emptyStudentHealthProfile());
+  }
+
+  const fetchKey =
+    initialProfile === undefined
+      ? `${portal}:${organizationId}:${studentId}:${schoolSlug ?? ""}`
+      : null;
+
+  const [loadedFetchKey, setLoadedFetchKey] = useState<string | null>(
+    fetchKey ? null : "provided",
+  );
+
+  const loading = fetchKey !== null && loadedFetchKey !== fetchKey;
   const [formState, setFormState] = useState<FormState>({ mode: "closed" });
   const [saving, setSaving] = useState(false);
 
   const onProfileChangeRef = useRef(onProfileChange);
-  onProfileChangeRef.current = onProfileChange;
+
+  useLayoutEffect(() => {
+    onProfileChangeRef.current = onProfileChange;
+  }, [onProfileChange]);
 
   const updateProfile = useCallback((next: StudentHealthProfile) => {
     setProfile(next);
@@ -186,17 +210,9 @@ export default function ParentChildHealthTab({
   }, []);
 
   useEffect(() => {
-    if (initialProfile !== undefined) {
-      setProfile(initialProfile ?? emptyStudentHealthProfile());
-      setLoading(false);
-    }
-  }, [initialProfile, studentId]);
-
-  useEffect(() => {
-    if (initialProfile !== undefined) return;
+    if (!fetchKey) return;
 
     let cancelled = false;
-    setLoading(true);
 
     void fetchHealthProfile(portal, organizationId, studentId, schoolSlug)
       .then((nextProfile) => {
@@ -213,13 +229,13 @@ export default function ParentChildHealthTab({
         updateProfile(emptyStudentHealthProfile());
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setLoadedFetchKey(fetchKey);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [initialProfile, organizationId, portal, schoolSlug, studentId, toast, updateProfile]);
+  }, [fetchKey, organizationId, portal, schoolSlug, studentId, toast, updateProfile]);
 
   const sortedUpdates = useMemo(() => sortUpdates(profile.updates), [profile.updates]);
 

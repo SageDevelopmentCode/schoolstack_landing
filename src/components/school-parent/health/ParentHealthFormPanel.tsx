@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import type {
@@ -65,6 +65,52 @@ function emptyUpdateValues(): Omit<HealthUpdateItem, "id" | "type" | "addedBy"> 
     startDate: todayIsoDate(),
     endDate: todayIsoDate(),
     createdAt: todayIsoDate(),
+  };
+}
+
+type FormInputs = {
+  mode: "create" | "edit";
+  initialType: HealthItemType;
+  initialValues?: HealthFormValues | null;
+};
+
+function buildFormStateFromInputs({
+  initialType,
+  initialValues,
+}: FormInputs) {
+  if (initialValues) {
+    if ("allergen" in initialValues) {
+      return {
+        itemType: initialType,
+        allergyValues: initialValues,
+        medicationValues: emptyMedicationValues(),
+        updateValues: emptyUpdateValues(),
+        confirmDelete: false,
+      };
+    }
+    if ("name" in initialValues && "timeOfDay" in initialValues) {
+      return {
+        itemType: initialType,
+        allergyValues: emptyAllergyValues(),
+        medicationValues: initialValues,
+        updateValues: emptyUpdateValues(),
+        confirmDelete: false,
+      };
+    }
+    return {
+      itemType: initialType,
+      allergyValues: emptyAllergyValues(),
+      medicationValues: emptyMedicationValues(),
+      updateValues: initialValues,
+      confirmDelete: false,
+    };
+  }
+  return {
+    itemType: initialType,
+    allergyValues: emptyAllergyValues(),
+    medicationValues: emptyMedicationValues(),
+    updateValues: emptyUpdateValues(),
+    confirmDelete: false,
   };
 }
 
@@ -141,29 +187,39 @@ export function useParentHealthForm({
   saving = false,
   onSave,
 }: UseParentHealthFormOptions) {
-  const [itemType, setItemType] = useState<HealthItemType>(initialType);
-  const [allergyValues, setAllergyValues] = useState(emptyAllergyValues);
-  const [medicationValues, setMedicationValues] = useState(emptyMedicationValues);
-  const [updateValues, setUpdateValues] = useState(emptyUpdateValues);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const initialFormState = buildFormStateFromInputs({
+    mode,
+    initialType,
+    initialValues,
+  });
+  const [itemType, setItemType] = useState<HealthItemType>(initialFormState.itemType);
+  const [allergyValues, setAllergyValues] = useState(initialFormState.allergyValues);
+  const [medicationValues, setMedicationValues] = useState(initialFormState.medicationValues);
+  const [updateValues, setUpdateValues] = useState(initialFormState.updateValues);
+  const [confirmDelete, setConfirmDelete] = useState(initialFormState.confirmDelete);
+  const [prevInputs, setPrevInputs] = useState<FormInputs>({
+    mode,
+    initialType,
+    initialValues,
+  });
 
-  useEffect(() => {
-    setItemType(initialType);
-    if (initialValues) {
-      if ("allergen" in initialValues) {
-        setAllergyValues(initialValues);
-      } else if ("name" in initialValues && "timeOfDay" in initialValues) {
-        setMedicationValues(initialValues);
-      } else {
-        setUpdateValues(initialValues);
-      }
-      return;
-    }
-    setAllergyValues(emptyAllergyValues());
-    setMedicationValues(emptyMedicationValues());
-    setUpdateValues(emptyUpdateValues());
-    setConfirmDelete(false);
-  }, [initialType, initialValues, mode]);
+  if (
+    mode !== prevInputs.mode ||
+    initialType !== prevInputs.initialType ||
+    initialValues !== prevInputs.initialValues
+  ) {
+    const nextFormState = buildFormStateFromInputs({
+      mode,
+      initialType,
+      initialValues,
+    });
+    setPrevInputs({ mode, initialType, initialValues });
+    setItemType(nextFormState.itemType);
+    setAllergyValues(nextFormState.allergyValues);
+    setMedicationValues(nextFormState.medicationValues);
+    setUpdateValues(nextFormState.updateValues);
+    setConfirmDelete(nextFormState.confirmDelete);
+  }
 
   const handleTypeChange = (nextType: string) => {
     if (mode === "edit") return;
