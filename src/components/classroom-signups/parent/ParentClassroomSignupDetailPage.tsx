@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
@@ -10,44 +10,41 @@ import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHea
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import { SignupTypeChip } from "@/components/classroom-signups/shared/SignupTypeChip";
 import ParentClassroomSignupResponseForm from "./ParentClassroomSignupResponseForm";
-import {
-  getMockResponsesForSignup,
-  getMockSignupById,
-} from "@/lib/classroom-signups/mock-data";
-import type { ClassroomSignupResponse } from "@/lib/classroom-signups/types";
+import type {
+  ClassroomSignup,
+  ClassroomSignupResponse,
+} from "@/lib/classroom-signups/types";
 import { formatSignupDeadline } from "@/lib/classroom-signups/utils";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 
 type ParentClassroomSignupDetailPageProps = {
   slug: string;
+  organizationId: string;
   signupId: string;
-  studentOptions?: { id: string; name: string }[];
+  initialSignup: ClassroomSignup | null;
+  initialResponses: ClassroomSignupResponse[];
+  initialFamilyResponse: ClassroomSignupResponse | null;
+  studentOptions: { id: string; name: string }[];
   previewBasePath?: string;
   readOnly?: boolean;
 };
 
-const DEFAULT_STUDENT_OPTIONS = [
-  { id: "student-1", name: "Mia Chen" },
-  { id: "student-2", name: "Leo Chen" },
-];
-
 export default function ParentClassroomSignupDetailPage({
   slug,
+  organizationId,
   signupId,
-  studentOptions = DEFAULT_STUDENT_OPTIONS,
+  initialSignup,
+  initialResponses,
+  initialFamilyResponse,
+  studentOptions,
   previewBasePath,
   readOnly = false,
 }: ParentClassroomSignupDetailPageProps) {
   const { theme } = useParentTheme();
-  const signup = getMockSignupById(signupId);
-
-  const initialResponse = useMemo(() => {
-    const responses = getMockResponsesForSignup(signupId);
-    return responses.find((r) => r.status === "confirmed") ?? null;
-  }, [signupId]);
-
+  const signup = initialSignup;
+  const [responses, setResponses] = useState(initialResponses);
   const [response, setResponse] = useState<ClassroomSignupResponse | null>(
-    initialResponse,
+    initialFamilyResponse,
   );
 
   const homeHref = previewBasePath
@@ -112,12 +109,27 @@ export default function ParentClassroomSignupDetailPage({
           Your response
         </h3>
         <ParentClassroomSignupResponseForm
+          organizationId={organizationId}
           signup={signup}
           existingResponse={response}
+          allResponses={responses}
           studentOptions={studentOptions}
           readOnly={readOnly}
-          onSubmitted={setResponse}
-          onWithdrawn={() => setResponse(null)}
+          onSubmitted={(nextResponse) => {
+            setResponse(nextResponse);
+            setResponses((current) => {
+              const withoutFamily = current.filter(
+                (entry) => entry.familyId !== nextResponse.familyId,
+              );
+              return [...withoutFamily, nextResponse];
+            });
+          }}
+          onWithdrawn={() => {
+            setResponse(null);
+            setResponses((current) =>
+              current.filter((entry) => entry.familyId !== response?.familyId),
+            );
+          }}
         />
       </ParentCard>
     </div>

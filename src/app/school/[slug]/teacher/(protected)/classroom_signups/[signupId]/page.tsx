@@ -6,9 +6,15 @@ import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
+  getTeacherClassroomSignupById,
+  listClassroomSignupResponses,
+} from "@/lib/classroom-signups/load-teacher-signups";
+import {
+  getStaffMemberIdForUser,
   getStaffUserProfile,
   requireTeacherPortalUser,
 } from "@/lib/staff/teacher-portal-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -51,12 +57,30 @@ export default async function TeacherClassroomSignupDetailRoute({
 
   const user = await requireTeacherPortalUser(supabase, org.id);
   const userProfile = await getStaffUserProfile(supabase, user.id, org.id, user);
+  const staffMemberId = await getStaffMemberIdForUser(supabase, user.id, org.id);
+
+  const admin = createAdminClient();
+  const initialSignup =
+    staffMemberId != null
+      ? await getTeacherClassroomSignupById(
+          admin,
+          org.id,
+          staffMemberId,
+          signupId,
+        )
+      : null;
+  const initialResponses = initialSignup
+    ? await listClassroomSignupResponses(admin, org.id, signupId)
+    : [];
 
   return (
     <TeacherClassroomSignupDetailPage
       slug={slug}
+      organizationId={org.id}
       signupId={signupId}
       teacherName={userProfile.displayName}
+      initialSignup={initialSignup}
+      initialResponses={initialResponses}
     />
   );
 }

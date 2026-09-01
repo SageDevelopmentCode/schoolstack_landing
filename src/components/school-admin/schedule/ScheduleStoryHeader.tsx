@@ -6,6 +6,7 @@ import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionK
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import { SCHEDULE_TABS, type ScheduleTabId } from "./schedule-tabs";
+import { formatPermittedStaffCountLabel } from "@/lib/school-events/schedule-settings";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ScheduleStoryHeaderProps = {
@@ -15,6 +16,7 @@ type ScheduleStoryHeaderProps = {
   monthSlotCount: number | null;
   monthObservationDayCount: number | null;
   upcomingVisitCount: number | null;
+  permittedStaffCount?: number | null;
   pendingTabKey?: ScheduleTabId | null;
   loadingTabKey?: ScheduleTabId | null;
   onTabChange: (tab: ScheduleTabId) => void;
@@ -51,6 +53,7 @@ function subtitleForTab(
   monthSlotCount: number | null,
   monthObservationDayCount: number | null,
   upcomingVisitCount: number | null,
+  permittedStaffCount: number | null,
 ): string {
   switch (tab) {
     case "overview":
@@ -63,6 +66,8 @@ function subtitleForTab(
       );
     case "events":
       return "School-wide events families see in the parent portal";
+    case "permissions":
+      return formatPermittedStaffCountLabel(permittedStaffCount ?? 0);
     case "tours":
       return "Set 30-minute slots for campus tours and family interviews";
     case "shadow":
@@ -87,6 +92,7 @@ export default function ScheduleStoryHeader({
   monthSlotCount,
   monthObservationDayCount,
   upcomingVisitCount,
+  permittedStaffCount = null,
   pendingTabKey = null,
   loadingTabKey = null,
   onTabChange,
@@ -96,6 +102,7 @@ export default function ScheduleStoryHeader({
     monthSlotCount,
     monthObservationDayCount,
     upcomingVisitCount,
+    permittedStaffCount,
   );
 
   const pillItems = SCHEDULE_TABS.map((tab) => {

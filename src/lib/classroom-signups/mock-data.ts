@@ -282,12 +282,7 @@ export function getMockSignupById(signupId: string): ClassroomSignup | undefined
   return MOCK_CLASSROOM_SIGNUPS.find((s) => s.id === signupId);
 }
 
-export type ParentSignupAttentionItem = {
-  signupId: string;
-  teacherName: string;
-  title: string;
-  classroomName: string | null;
-};
+export type ParentSignupAttentionItem = import("./types").ParentSignupAttentionItem;
 
 export function getMockParentSignupAttentionItems(): ParentSignupAttentionItem[] {
   const respondedSignupIds = new Set(

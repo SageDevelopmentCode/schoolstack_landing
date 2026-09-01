@@ -94,6 +94,13 @@ export type ClassroomSignupMetrics = {
   needsAttentionCount: number;
 };
 
+export type ParentSignupAttentionItem = {
+  signupId: string;
+  teacherName: string;
+  title: string;
+  classroomName: string | null;
+};
+
 export const SIGNUP_TYPE_LABELS: Record<ClassroomSignupType, string> = {
   time_slots: "Time slots",
   roles: "Roles & tasks",

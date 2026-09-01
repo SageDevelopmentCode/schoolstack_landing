@@ -4,8 +4,15 @@ import type { Metadata } from "next";
 import ParentClassroomSignupDetailPage from "@/components/classroom-signups/parent/ParentClassroomSignupDetailPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
 import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
+import {
+  getFamilyClassroomSignupResponse,
+  listClassroomSignupResponses,
+} from "@/lib/classroom-signups/load-teacher-signups";
+import { getParentVisibleClassroomSignup } from "@/lib/classroom-signups/load-parent-signups";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { listFamilyChildrenForHomeByFamilyId } from "@/lib/admissions/family-preview-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +49,34 @@ export default async function FamilyPreviewClassroomSignupPage({
   }
 
   const previewBasePath = familyPreviewBasePath(slug, familyId);
+  const admin = createAdminClient();
+  const [initialSignup, initialResponses, initialFamilyResponse, familyChildren] =
+    await Promise.all([
+      getParentVisibleClassroomSignup(admin, org.id, familyId, signupId),
+      listClassroomSignupResponses(admin, org.id, signupId),
+      getFamilyClassroomSignupResponse(admin, org.id, signupId, familyId),
+      listFamilyChildrenForHomeByFamilyId(supabase, org.id, familyId),
+    ]);
 
   return (
     <SchoolParentPageShell title="Help in the classroom">
       <ParentClassroomSignupDetailPage
         slug={slug}
+        organizationId={org.id}
         signupId={signupId}
+        initialSignup={initialSignup}
+        initialResponses={initialResponses}
+        initialFamilyResponse={
+          initialFamilyResponse?.status === "confirmed"
+            ? initialFamilyResponse
+            : null
+        }
+        studentOptions={familyChildren
+          .filter((child) => child.studentId)
+          .map((child) => ({
+            id: child.studentId!,
+            name: child.studentName,
+          }))}
         previewBasePath={previewBasePath}
         readOnly
       />

@@ -6,9 +6,14 @@ import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
+  getTeacherClassroomSignupById,
+  listClassroomSignupResponses,
+} from "@/lib/classroom-signups/load-teacher-signups";
+import {
   getStaffPreviewContext,
 } from "@/lib/staff/staff-preview-server-cache";
 import { staffPreviewBasePath } from "@/lib/staff/staff-preview-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -60,12 +65,25 @@ export default async function StaffTeacherSignupDetailPreviewPage({
   }
 
   const previewBasePath = staffPreviewBasePath(slug, staffMemberId);
+  const admin = createAdminClient();
+  const initialSignup = await getTeacherClassroomSignupById(
+    admin,
+    org.id,
+    staffMemberId,
+    signupId,
+  );
+  const initialResponses = initialSignup
+    ? await listClassroomSignupResponses(admin, org.id, signupId)
+    : [];
 
   return (
     <TeacherClassroomSignupDetailPage
       slug={slug}
+      organizationId={org.id}
       signupId={signupId}
       teacherName={previewContext.userProfile.displayName}
+      initialSignup={initialSignup}
+      initialResponses={initialResponses}
       teacherBasePath={previewBasePath}
       previewMode
     />

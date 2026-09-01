@@ -26,7 +26,7 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
-import { getMockParentSignupAttentionItems } from "@/lib/classroom-signups/mock-data";
+import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
@@ -159,7 +159,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       org.features,
       "classroom_signups",
     )
-      ? getMockParentSignupAttentionItems()
+      ? await loadParentSignupAttentionItems(admin, org.id, familyId)
       : [];
 
     return (

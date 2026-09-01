@@ -8,6 +8,7 @@ import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admi
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
 import ScheduledVisitsSection from "@/components/school-admin/ScheduledVisitsSection";
 import ScheduleOverviewTab from "@/components/school-admin/schedule/ScheduleOverviewTab";
+import ScheduleEventPermissionsTab from "@/components/school-admin/schedule/ScheduleEventPermissionsTab";
 import SchoolEventsTab from "@/components/school-admin/schedule/SchoolEventsTab";
 import ScheduleStoryHeader from "@/components/school-admin/schedule/ScheduleStoryHeader";
 import ScheduleVisitLoadingPanel from "@/components/school-admin/schedule/ScheduleVisitLoadingPanel";
@@ -59,6 +60,7 @@ export default function SchedulePage({
     null,
   );
   const [upcomingVisitCount, setUpcomingVisitCount] = useState<number | null>(null);
+  const [permittedStaffCount, setPermittedStaffCount] = useState<number | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
     null,
   );
@@ -188,6 +190,10 @@ export default function SchedulePage({
     setUpcomingVisitCount(count);
   }, []);
 
+  const handlePermittedStaffCountChange = useCallback((count: number) => {
+    setPermittedStaffCount(count);
+  }, []);
+
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-auto">
@@ -199,6 +205,7 @@ export default function SchedulePage({
             monthSlotCount={monthSlotCount}
             monthObservationDayCount={monthObservationDayCount}
             upcomingVisitCount={upcomingVisitCount}
+            permittedStaffCount={permittedStaffCount}
             pendingTabKey={pendingTabKey}
             loadingTabKey={loadingTabKey}
             onTabChange={handleTabChange}
@@ -237,6 +244,17 @@ export default function SchedulePage({
                   C={C}
                   organizationId={organizationId}
                   onLoadingChange={(loading) => reportTabLoading("events", loading)}
+                />
+              ) : null}
+
+              {activeTab === "permissions" ? (
+                <ScheduleEventPermissionsTab
+                  organizationId={organizationId}
+                  slug={slug}
+                  onLoadingChange={(loading) =>
+                    reportTabLoading("permissions", loading)
+                  }
+                  onPermittedStaffCountChange={handlePermittedStaffCountChange}
                 />
               ) : null}
 

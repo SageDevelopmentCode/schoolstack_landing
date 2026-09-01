@@ -162,6 +162,7 @@ export type OrganizationSettingsRow = {
   features: OrganizationFeatures;
   admissions?: import("@/lib/admissions/admissions-org-settings").AdmissionsOrgSettings | Record<string, unknown> | null;
   notifications?: import("@/lib/notifications/org-notification-settings").OrganizationNotificationSettings | Record<string, unknown> | null;
+  schedule?: import("@/lib/school-events/schedule-settings").OrganizationScheduleSettings | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

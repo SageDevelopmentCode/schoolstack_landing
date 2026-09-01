@@ -18,6 +18,7 @@ import {
   staffPreviewBasePath,
 } from "@/lib/staff/staff-preview-access";
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -158,23 +159,39 @@ export default async function StaffTeacherPreviewFeaturePage({
   if (feature === "calendar") {
     const initialData = await loadTeacherCalendarPreviewData({
       organizationId: org.id,
+      staffMemberId: previewContext.staffMemberId,
+      portalRole: previewContext.portalRole,
+      membershipStatus: previewContext.membershipStatus,
     });
 
     return (
       <TeacherCalendarPage
         branding={org.branding}
         initialData={initialData}
+        organizationId={org.id}
         previewMode
       />
     );
   }
 
   if (feature === "classroom_signups") {
+    const admin = createAdminClient();
+    const pageData = await loadTeacherClassroomSignupsPageData(
+      admin,
+      org.id,
+      staffMemberId,
+    );
+
     return (
       <TeacherClassroomSignupsPage
         slug={slug}
+        organizationId={org.id}
         teacherName={previewContext.userProfile.displayName}
         staffMemberId={staffMemberId}
+        initialSignups={pageData.signups}
+        initialResponsesBySignupId={pageData.responsesBySignupId}
+        classroomOptions={pageData.classroomOptions}
+        assignedFamilyCount={pageData.assignedFamilyCount}
         teacherBasePath={previewBasePath}
         previewMode
       />

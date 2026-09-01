@@ -17,10 +17,6 @@ import {
   buildSignupFromTemplate,
   emptySignupConfig,
 } from "@/lib/classroom-signups/templates";
-import {
-  MOCK_ASSIGNED_FAMILY_COUNT,
-  MOCK_TEACHER_CLASSROOMS,
-} from "@/lib/classroom-signups/mock-data";
 import type {
   ClassroomSignup,
   ClassroomSignupAudience,
@@ -28,6 +24,7 @@ import type {
   ClassroomSignupTemplateId,
   ClassroomSignupTimeSlot,
   ClassroomSignupType,
+  TeacherClassroomOption,
 } from "@/lib/classroom-signups/types";
 import { SIGNUP_TYPE_LABELS } from "@/lib/classroom-signups/types";
 import {
@@ -40,7 +37,10 @@ import { formatAudienceLabel } from "@/lib/classroom-signups/utils";
 type WizardStep = 1 | 2 | 3;
 
 type ClassroomSignupCreateWizardProps = {
+  organizationId: string;
   teacherName: string;
+  classroomOptions: TeacherClassroomOption[];
+  assignedFamilyCount: number;
   onCancel: () => void;
   onPublished: (signup: ClassroomSignup) => void;
 };
@@ -149,7 +149,10 @@ function SlotFieldLabel({ children }: { children: string }) {
 }
 
 export default function ClassroomSignupCreateWizard({
+  organizationId,
   teacherName,
+  classroomOptions,
+  assignedFamilyCount,
   onCancel,
   onPublished,
 }: ClassroomSignupCreateWizardProps) {
@@ -160,20 +163,20 @@ export default function ClassroomSignupCreateWizard({
   const [publishedSignup, setPublishedSignup] = useState<ClassroomSignup | null>(
     null,
   );
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const familyCount = useMemo(() => {
-    if (!draft) return MOCK_ASSIGNED_FAMILY_COUNT;
-    if (draft.audience === "assigned") return MOCK_ASSIGNED_FAMILY_COUNT;
-    const classroom = MOCK_TEACHER_CLASSROOMS.find(
-      (c) => c.id === draft.classroomId,
-    );
-    return classroom?.familyCount ?? MOCK_ASSIGNED_FAMILY_COUNT;
-  }, [draft]);
+    if (!draft) return assignedFamilyCount;
+    if (draft.audience === "assigned") return assignedFamilyCount;
+    const classroom = classroomOptions.find((c) => c.id === draft.classroomId);
+    return classroom?.familyCount ?? assignedFamilyCount;
+  }, [assignedFamilyCount, classroomOptions, draft]);
 
   const handleTemplateSelect = (templateId: ClassroomSignupTemplateId) => {
     setDraft(
       buildSignupFromTemplate(templateId, {
-        familyCount: MOCK_ASSIGNED_FAMILY_COUNT,
+        familyCount: assignedFamilyCount,
       }),
     );
     setStep(2);
@@ -191,42 +194,65 @@ export default function ClassroomSignupCreateWizard({
   };
 
   const handleAudienceChange = (audience: ClassroomSignupAudience) => {
-    const classroom = MOCK_TEACHER_CLASSROOMS[0];
+    const classroom = classroomOptions[0];
     updateDraft({
       audience,
-      classroomId: audience === "classroom" ? classroom.id : null,
-      classroomName: audience === "classroom" ? classroom.name : null,
+      classroomId: audience === "classroom" ? classroom?.id ?? null : null,
+      classroomName: audience === "classroom" ? classroom?.name ?? null : null,
       familyCount:
         audience === "assigned"
-          ? MOCK_ASSIGNED_FAMILY_COUNT
-          : classroom.familyCount,
+          ? assignedFamilyCount
+          : classroom?.familyCount ?? 0,
     });
   };
 
-  const publishSignup = (openNotify: boolean): ClassroomSignup | null => {
-    if (!draft || !draft.title.trim()) return null;
+  const publishSignup = async (openNotify: boolean) => {
+    if (!draft || !draft.title.trim() || publishing) return null;
 
-    const signup: ClassroomSignup = {
-      ...draft,
-      id: `signup-${newAdmissionsId()}`,
-      organizationId: "org-demo",
-      createdByStaffMemberId: "staff-demo",
-      teacherName,
-      familyCount,
-      status: "open",
-      publishedAt: new Date().toISOString(),
-      closedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    setPublishing(true);
+    setPublishError(null);
 
-    setPublishedSignup(signup);
-    if (openNotify) {
-      setNotifyOpen(true);
-    } else {
-      onPublished(signup);
+    try {
+      const response = await fetch("/api/teacher-portal/classroom-signups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          title: draft.title,
+          description: draft.description,
+          signupType: draft.signupType,
+          audience: draft.audience,
+          classroomId: draft.classroomId,
+          responseDeadline: draft.responseDeadline,
+          config: draft.config,
+          status: "open",
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        signup?: ClassroomSignup;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.signup) {
+        throw new Error(payload.error ?? "Failed to publish signup.");
+      }
+
+      setPublishedSignup(payload.signup);
+      if (openNotify) {
+        setNotifyOpen(true);
+      } else {
+        onPublished(payload.signup);
+      }
+      return payload.signup;
+    } catch (error) {
+      setPublishError(
+        error instanceof Error ? error.message : "Failed to publish signup.",
+      );
+      return null;
+    } finally {
+      setPublishing(false);
     }
-    return signup;
   };
 
   if (step === 1) {
@@ -358,7 +384,7 @@ export default function ClassroomSignupCreateWizard({
                   Families of my assigned students
                 </p>
                 <p className="text-xs" style={{ color: "#76828A" }}>
-                  {MOCK_ASSIGNED_FAMILY_COUNT} families
+                  {assignedFamilyCount} families
                 </p>
               </button>
               <button
@@ -379,7 +405,7 @@ export default function ClassroomSignupCreateWizard({
                   <select
                     value={draft.classroomId ?? ""}
                     onChange={(e) => {
-                      const classroom = MOCK_TEACHER_CLASSROOMS.find(
+                      const classroom = classroomOptions.find(
                         (c) => c.id === e.target.value,
                       );
                       updateDraft({
@@ -392,7 +418,7 @@ export default function ClassroomSignupCreateWizard({
                     className="mt-2 rounded-[8px] border px-2 py-1 text-xs"
                     style={{ borderColor: "#DCE4DC" }}
                   >
-                    {MOCK_TEACHER_CLASSROOMS.map((classroom) => (
+                    {classroomOptions.map((classroom) => (
                       <option key={classroom.id} value={classroom.id}>
                         {classroom.name} · {classroom.familyCount} families
                       </option>
@@ -692,20 +718,26 @@ export default function ClassroomSignupCreateWizard({
         </p>
       </ParentCard>
 
+      {publishError ? (
+        <p className="mt-4 text-sm text-red-600">{publishError}</p>
+      ) : null}
+
       <div className="mt-8 flex flex-wrap justify-end gap-2 pt-2">
         <AdminButton
           theme={theme}
           variant="outline"
-          onClick={() => publishSignup(false)}
+          disabled={publishing}
+          onClick={() => void publishSignup(false)}
         >
-          Publish
+          {publishing ? "Publishing…" : "Publish"}
         </AdminButton>
         <AdminButton
           theme={theme}
           variant="primary"
-          onClick={() => publishSignup(true)}
+          disabled={publishing}
+          onClick={() => void publishSignup(true)}
         >
-          Publish & notify
+          {publishing ? "Publishing…" : "Publish & notify"}
         </AdminButton>
       </div>
       </div>

@@ -13,6 +13,7 @@ import { loadTeacherMessagesPageData } from "@/lib/messages/load-messages-page-d
 import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
 import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
@@ -178,13 +179,18 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
   }
 
   if (feature === "calendar") {
-    await requireTeacherPortalUser(supabase, org.id);
+    const user = await requireTeacherPortalUser(supabase, org.id);
     const initialData = await loadTeacherCalendarInitialData({
       organizationId: org.id,
+      userId: user.id,
     });
 
     return (
-      <TeacherCalendarPage branding={org.branding} initialData={initialData} />
+      <TeacherCalendarPage
+        branding={org.branding}
+        initialData={initialData}
+        organizationId={org.id}
+      />
     );
   }
 
@@ -202,11 +208,27 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
       org.id,
     );
 
+    const admin = createAdminClient();
+    const pageData =
+      staffMemberId != null
+        ? await loadTeacherClassroomSignupsPageData(admin, org.id, staffMemberId)
+        : {
+            signups: [],
+            responsesBySignupId: {},
+            classroomOptions: [],
+            assignedFamilyCount: 0,
+          };
+
     return (
       <TeacherClassroomSignupsPage
         slug={slug}
+        organizationId={org.id}
         teacherName={userProfile.displayName}
         staffMemberId={staffMemberId}
+        initialSignups={pageData.signups}
+        initialResponsesBySignupId={pageData.responsesBySignupId}
+        classroomOptions={pageData.classroomOptions}
+        assignedFamilyCount={pageData.assignedFamilyCount}
       />
     );
   }

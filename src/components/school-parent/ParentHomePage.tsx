@@ -10,7 +10,7 @@ import {
   FileText,
   MessageSquare,
 } from "lucide-react";
-import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/mock-data";
+import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import { parentClassroomSignupPath } from "@/lib/organization-settings/parent-routes";
 import type {
   FamilyChildOverview,

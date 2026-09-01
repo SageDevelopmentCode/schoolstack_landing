@@ -3,7 +3,7 @@
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import EventColorPicker from "@/components/school-admin/schedule/EventColorPicker";
-import EventTimePicker from "@/components/school-admin/schedule/EventTimePicker";
+import PopupTimePicker from "@/components/school-events/PopupTimePicker";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -231,8 +231,8 @@ export default function SchoolEventFormPanel({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <FieldLabel theme={theme}>Start time</FieldLabel>
-                    <EventTimePicker
-                      C={C}
+                    <PopupTimePicker
+                      theme={theme}
                       value={form.time}
                       onChange={handleStartTimeChange}
                       ariaLabel="Start time"
@@ -240,9 +240,10 @@ export default function SchoolEventFormPanel({
                   </div>
                   <div>
                     <FieldLabel theme={theme}>End time</FieldLabel>
-                    <EventTimePicker
-                      C={C}
+                    <PopupTimePicker
+                      theme={theme}
                       value={form.endTime}
+                      scrollToTime={form.time}
                       onChange={(endTime) => onChange({ ...form, endTime })}
                       ariaLabel="End time"
                     />

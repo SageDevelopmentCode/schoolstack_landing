@@ -28,6 +28,9 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED,
+  ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
+  ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED,
+  ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -99,6 +102,9 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health update",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup published",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
+  [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -304,6 +310,25 @@ function isStudentHealthNotificationAction(action: string): boolean {
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED
   );
+}
+
+function isClassroomSignupNotificationAction(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED ||
+    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED ||
+    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED
+  );
+}
+
+function classroomSignupPreviewHref(
+  slug: string,
+  staffMemberId: string | null,
+  signupId: string | null,
+): string {
+  if (!staffMemberId || !signupId) {
+    return `/admin/preview/${slug}`;
+  }
+  return `/admin/preview/${slug}/teacher/${staffMemberId}/classroom_signups/${signupId}`;
 }
 
 function mapApplicationRowToContext(
@@ -849,6 +874,16 @@ export async function resolveActivityNotificationLink(
     return {
       href: studentsHref(slug),
       ctaLabel: "View students",
+    };
+  }
+
+  if (isClassroomSignupNotificationAction(event.action)) {
+    const staffMemberId = metadataString(event.metadata, "staffMemberId");
+    const signupId =
+      metadataString(event.metadata, "signupId") ?? event.entity_id;
+    return {
+      href: classroomSignupPreviewHref(slug, staffMemberId, signupId),
+      ctaLabel: "View signup",
     };
   }
 

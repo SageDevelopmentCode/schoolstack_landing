@@ -22,9 +22,9 @@ import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import {
-  getMockResponsesBySignupId,
-  getMockSignupsForTeacher,
-} from "@/lib/classroom-signups/mock-data";
+  listClassroomSignupResponsesBySignupIds,
+  listTeacherClassroomSignups,
+} from "@/lib/classroom-signups/load-teacher-signups";
 import { computeSignupMetrics } from "@/lib/classroom-signups/utils";
 
 export const IMPLEMENTED_TEACHER_FEATURES = [
@@ -203,14 +203,17 @@ export async function fetchTeacherDashboardSummary(
     ? `${options.teacherBasePath}/classroom_signups`
     : schoolTeacherPath(slug, "classroom_signups");
 
-  const mockSignups =
-    signupsEnabled && staffMemberId
-      ? getMockSignupsForTeacher(staffMemberId)
-      : [];
-  const signupMetrics = computeSignupMetrics(
-    mockSignups,
-    getMockResponsesBySignupId(),
-  );
+  let signups: Awaited<ReturnType<typeof listTeacherClassroomSignups>> = [];
+  let responsesBySignupId: Record<string, import("@/lib/classroom-signups/types").ClassroomSignupResponse[]> = {};
+  if (signupsEnabled && staffMemberId) {
+    signups = await listTeacherClassroomSignups(admin, organizationId, staffMemberId);
+    responsesBySignupId = await listClassroomSignupResponsesBySignupIds(
+      admin,
+      organizationId,
+      signups.map((signup) => signup.id),
+    );
+  }
+  const signupMetrics = computeSignupMetrics(signups, responsesBySignupId);
 
   const focusItems: TeacherDashboardFocusItem[] = [];
 

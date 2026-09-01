@@ -7,9 +7,6 @@ import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import RoleCard from "@/components/classroom-signups/shared/RoleCard";
 import SlotCard from "@/components/classroom-signups/shared/SlotCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
-import {
-  getMockResponsesForSignup,
-} from "@/lib/classroom-signups/mock-data";
 import type {
   ClassroomSignup,
   ClassroomSignupResponse,
@@ -22,8 +19,10 @@ import {
 } from "@/lib/classroom-signups/utils";
 
 type ParentClassroomSignupResponseFormProps = {
+  organizationId: string;
   signup: ClassroomSignup;
   existingResponse: ClassroomSignupResponse | null;
+  allResponses: ClassroomSignupResponse[];
   studentOptions: { id: string; name: string }[];
   readOnly?: boolean;
   onSubmitted?: (response: ClassroomSignupResponse) => void;
@@ -31,15 +30,16 @@ type ParentClassroomSignupResponseFormProps = {
 };
 
 export default function ParentClassroomSignupResponseForm({
+  organizationId,
   signup,
   existingResponse,
+  allResponses,
   studentOptions,
   readOnly = false,
   onSubmitted,
   onWithdrawn,
 }: ParentClassroomSignupResponseFormProps) {
   const { theme } = useParentTheme();
-  const allResponses = getMockResponsesForSignup(signup.id);
 
   const [studentId, setStudentId] = useState(
     existingResponse?.studentId ?? studentOptions[0]?.id ?? "",
@@ -107,66 +107,81 @@ export default function ParentClassroomSignupResponseForm({
     setSubmitting(true);
     setFeedback(null);
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      const response = await fetch(
+        `/api/parent-portal/classroom-signups/${signup.id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId,
+            studentId,
+            selectedSlotIds,
+            selectedRoleIds,
+            note: note.trim() || null,
+          }),
+        },
+      );
+      const payload = (await response.json()) as {
+        response?: ClassroomSignupResponse;
+        error?: string;
+      };
 
-    const response: ClassroomSignupResponse = {
-      id: existingResponse?.id ?? `resp-${Date.now()}`,
-      signupId: signup.id,
-      familyId: "family-demo",
-      familyName: "Your family",
-      guardianName: "You",
-      guardianEmail: "parent@example.com",
-      studentId,
-      studentName:
-        studentOptions.find((s) => s.id === studentId)?.name ?? "Student",
-      selectedSlotIds,
-      selectedRoleIds,
-      note: note.trim() || null,
-      status: "confirmed",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+      if (!response.ok || !payload.response) {
+        throw new Error(payload.error ?? "Failed to submit response.");
+      }
 
-    setFeedback({ type: "success", message: "Signup confirmed!" });
-    onSubmitted?.(response);
-    setSubmitting(false);
+      setFeedback({ type: "success", message: "Your signup was saved." });
+      onSubmitted?.(payload.response);
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to submit response.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleWithdraw = async () => {
-    if (readOnly || !hasResponse) return;
+    if (readOnly) return;
     setWithdrawing(true);
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    setFeedback({ type: "success", message: "Signup withdrawn." });
-    setSelectedSlotIds([]);
-    setSelectedRoleIds([]);
-    setNote("");
-    onWithdrawn?.();
-    setWithdrawing(false);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(
+        `/api/parent-portal/classroom-signups/${signup.id}?organizationId=${encodeURIComponent(organizationId)}`,
+        { method: "DELETE" },
+      );
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to withdraw response.");
+      }
+      setFeedback({ type: "success", message: "Your response was withdrawn." });
+      onWithdrawn?.();
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to withdraw response.",
+      });
+    } finally {
+      setWithdrawing(false);
+    }
   };
 
   return (
     <div className="space-y-4">
-      {hasResponse ? (
-        <div className="flex items-center gap-2">
-          <ParentChip theme={theme} tone="success">
-            Signed up
-          </ParentChip>
-        </div>
-      ) : null}
-
       {studentOptions.length > 1 ? (
         <div>
-          <label
-            htmlFor="student-select"
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]"
-          >
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]">
             Student
           </label>
           <select
-            id="student-select"
             value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
             disabled={readOnly || hasResponse}
+            onChange={(e) => setStudentId(e.target.value)}
             className="w-full rounded-[10px] border px-3 py-2 text-sm"
             style={{ borderColor: "#DCE4DC" }}
           >
@@ -180,10 +195,7 @@ export default function ParentClassroomSignupResponseForm({
       ) : null}
 
       {signup.signupType === "time_slots" ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#76828A]">
-            Choose a time slot
-          </p>
+        <div className="space-y-3">
           {(signup.config.slots ?? []).map((slot) => (
             <SlotCard
               key={slot.id}
@@ -191,8 +203,7 @@ export default function ParentClassroomSignupResponseForm({
               slot={slot}
               fillCount={getSlotFillCount(slot.id, allResponses)}
               selected={selectedSlotIds.includes(slot.id)}
-              disabled={submitting}
-              readOnly={readOnly}
+              disabled={readOnly}
               onSelect={() => toggleSlot(slot.id)}
             />
           ))}
@@ -200,10 +211,7 @@ export default function ParentClassroomSignupResponseForm({
       ) : null}
 
       {signup.signupType === "roles" ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#76828A]">
-            Choose how you can help
-          </p>
+        <div className="space-y-3">
           {(signup.config.roles ?? []).map((role) => (
             <RoleCard
               key={role.id}
@@ -211,8 +219,7 @@ export default function ParentClassroomSignupResponseForm({
               role={role}
               fillCount={getRoleFillCount(role.id, allResponses)}
               selected={selectedRoleIds.includes(role.id)}
-              disabled={submitting}
-              readOnly={readOnly}
+              disabled={readOnly}
               onToggle={() => toggleRole(role.id)}
             />
           ))}
@@ -221,92 +228,58 @@ export default function ParentClassroomSignupResponseForm({
 
       {signup.signupType === "open" ? (
         <div>
-          <label
-            htmlFor="open-note"
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]"
-          >
-            {signup.config.parentPrompt ?? "How would you like to help?"}
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]">
+            {signup.config.parentPrompt ?? "How can you help?"}
           </label>
           <textarea
-            id="open-note"
             rows={4}
             value={note}
+            disabled={readOnly}
             onChange={(e) => setNote(e.target.value)}
-            disabled={readOnly || hasResponse}
-            className="w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+            className="w-full rounded-[10px] border px-3 py-2 text-sm"
             style={{ borderColor: "#DCE4DC" }}
           />
         </div>
-      ) : (
-        <div>
-          <label
-            htmlFor="response-note"
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]"
-          >
-            Note (optional)
-          </label>
-          <textarea
-            id="response-note"
-            rows={2}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            disabled={readOnly || hasResponse}
-            placeholder="Any details for the teacher"
-            className="w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
-            style={{ borderColor: "#DCE4DC" }}
-          />
-        </div>
-      )}
+      ) : null}
 
       {feedback ? (
-        <p
-          className="text-sm font-medium"
-          style={{
-            color: feedback.type === "success" ? theme.primary : "#B5594A",
-          }}
+        <ParentChip
+          theme={theme}
+          tone={feedback.type === "success" ? "success" : "warning"}
         >
           {feedback.message}
-        </p>
+        </ParentChip>
       ) : null}
 
       {!readOnly ? (
         <div className="flex flex-wrap gap-2 pt-2">
-          {!hasResponse ? (
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            disabled={!canSubmit() || submitting}
+            onClick={() => void handleSubmit()}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : hasResponse ? (
+              "Update response"
+            ) : (
+              "Confirm signup"
+            )}
+          </AdminButton>
+          {hasResponse ? (
             <AdminButton
               theme={theme}
-              variant="primary"
-              onClick={handleSubmit}
-              disabled={!canSubmit() || submitting}
+              variant="outline"
+              disabled={withdrawing}
+              onClick={() => void handleWithdraw()}
             >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  Confirming…
-                </>
-              ) : (
-                "Confirm signup"
-              )}
+              {withdrawing ? "Withdrawing…" : "Withdraw"}
             </AdminButton>
-          ) : (
-            <>
-              <AdminButton
-                theme={theme}
-                variant="primary"
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                Update signup
-              </AdminButton>
-              <AdminButton
-                theme={theme}
-                variant="outline"
-                onClick={handleWithdraw}
-                disabled={withdrawing}
-              >
-                {withdrawing ? "Withdrawing…" : "Withdraw"}
-              </AdminButton>
-            </>
-          )}
+          ) : null}
         </div>
       ) : null}
     </div>

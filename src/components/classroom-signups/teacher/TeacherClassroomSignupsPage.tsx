@@ -17,11 +17,12 @@ import {
   SignupTypeChip,
 } from "@/components/classroom-signups/shared/SignupTypeChip";
 import ClassroomSignupCreateWizard from "./ClassroomSignupCreateWizard";
-import {
-  getMockResponsesBySignupId,
-  getMockSignupsForTeacher,
-} from "@/lib/classroom-signups/mock-data";
-import type { ClassroomSignup, ClassroomSignupStatus } from "@/lib/classroom-signups/types";
+import type {
+  ClassroomSignup,
+  ClassroomSignupResponse,
+  ClassroomSignupStatus,
+  TeacherClassroomOption,
+} from "@/lib/classroom-signups/types";
 import {
   computeSignupMetrics,
   filterSignupsByStatus,
@@ -34,8 +35,13 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 
 type TeacherClassroomSignupsPageProps = {
   slug: string;
+  organizationId: string;
   teacherName: string;
   staffMemberId: string | null;
+  initialSignups: ClassroomSignup[];
+  initialResponsesBySignupId: Record<string, ClassroomSignupResponse[]>;
+  classroomOptions: TeacherClassroomOption[];
+  assignedFamilyCount: number;
   teacherBasePath?: string;
   previewMode?: boolean;
 };
@@ -108,19 +114,23 @@ function signupDetailHref(
 
 export default function TeacherClassroomSignupsPage({
   slug,
+  organizationId,
   teacherName,
   staffMemberId,
+  initialSignups,
+  initialResponsesBySignupId,
+  classroomOptions,
+  assignedFamilyCount,
   teacherBasePath,
   previewMode = false,
 }: TeacherClassroomSignupsPageProps) {
   const { theme } = useParentTheme();
-  const [signups, setSignups] = useState<ClassroomSignup[]>(() =>
-    getMockSignupsForTeacher(staffMemberId),
+  const [signups, setSignups] = useState<ClassroomSignup[]>(initialSignups);
+  const [responsesBySignupId, setResponsesBySignupId] = useState(
+    initialResponsesBySignupId,
   );
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [creating, setCreating] = useState(false);
-
-  const responsesBySignupId = useMemo(() => getMockResponsesBySignupId(), []);
 
   const metrics = useMemo(
     () => computeSignupMetrics(signups, responsesBySignupId),
@@ -145,10 +155,17 @@ export default function TeacherClassroomSignupsPage({
     return (
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <ClassroomSignupCreateWizard
+          organizationId={organizationId}
           teacherName={teacherName}
+          classroomOptions={classroomOptions}
+          assignedFamilyCount={assignedFamilyCount}
           onCancel={() => setCreating(false)}
           onPublished={(signup) => {
             setSignups((current) => [signup, ...current]);
+            setResponsesBySignupId((current) => ({
+              ...current,
+              [signup.id]: current[signup.id] ?? [],
+            }));
             setCreating(false);
           }}
         />
