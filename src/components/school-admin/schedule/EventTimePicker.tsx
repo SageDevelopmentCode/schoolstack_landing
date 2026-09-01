@@ -11,6 +11,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 const HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MINUTES = ["00", "15", "30", "45"];
 const PERIODS = ["AM", "PM"] as const;
+const POPOVER_ESTIMATED_HEIGHT = 220;
 
 type TimeParts = {
   hour: number;
@@ -65,6 +66,7 @@ type EventTimePickerProps = {
   onChange: (value: string) => void;
   ariaLabel: string;
   disabled?: boolean;
+  className?: string;
 };
 
 function ColumnButton({
@@ -94,15 +96,28 @@ function ColumnButton({
   );
 }
 
+function ColumnHeader({ label, C }: { label: string; C: AdminThemeTokens }) {
+  return (
+    <p
+      className="mb-1 px-1 text-center text-[10px] font-semibold uppercase tracking-wide"
+      style={{ color: C.textTertiary }}
+    >
+      {label}
+    </p>
+  );
+}
+
 export default function EventTimePicker({
   C,
   value,
   onChange,
   ariaLabel,
   disabled = false,
+  className = "",
 }: EventTimePickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
 
   const parts = useMemo(() => {
     const parsed = partsFromValue(value);
@@ -118,6 +133,16 @@ export default function EventTimePicker({
       merged.minute = nearestMinute(parts.minute);
     }
     onChange(valueFromParts(merged));
+  };
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!open && rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUpward(spaceBelow < POPOVER_ESTIMATED_HEIGHT);
+    }
+    setOpen((prev) => !prev);
   };
 
   useEffect(() => {
@@ -153,8 +178,8 @@ export default function EventTimePicker({
         aria-label={ariaLabel}
         aria-haspopup="dialog"
         aria-expanded={open}
-        onClick={() => !disabled && setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+        onClick={handleToggle}
+        className={`flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2.5 text-left text-sm outline-none transition focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
         style={{
           borderColor: C.inputBorder,
           color: C.textPrimary,
@@ -168,44 +193,55 @@ export default function EventTimePicker({
 
       {open ? (
         <div
-          className="absolute left-0 right-0 z-50 mt-1 rounded-md border p-2 shadow-lg"
+          className={`absolute left-0 right-0 z-50 rounded-md border p-2 shadow-lg ${
+            openUpward ? "bottom-full mb-1" : "top-full mt-1"
+          }`}
           style={{ borderColor: C.border, backgroundColor: C.surface }}
           role="dialog"
           aria-label={ariaLabel}
         >
           <div className="grid grid-cols-3 gap-1">
-            <div className="max-h-48 overflow-y-auto">
-              {HOURS.map((hour) => (
-                <ColumnButton
-                  key={hour}
-                  label={String(hour)}
-                  selected={parts.hour === hour}
-                  onClick={() => updateParts({ hour })}
-                  C={C}
-                />
-              ))}
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {MINUTES.map((minute) => (
-                <ColumnButton
-                  key={minute}
-                  label={minute}
-                  selected={parts.minute === Number(minute)}
-                  onClick={() => updateParts({ minute: Number(minute) })}
-                  C={C}
-                />
-              ))}
+            <div>
+              <ColumnHeader label="Hour" C={C} />
+              <div className="max-h-48 overflow-y-auto">
+                {HOURS.map((hour) => (
+                  <ColumnButton
+                    key={hour}
+                    label={String(hour)}
+                    selected={parts.hour === hour}
+                    onClick={() => updateParts({ hour })}
+                    C={C}
+                  />
+                ))}
+              </div>
             </div>
             <div>
-              {PERIODS.map((period) => (
-                <ColumnButton
-                  key={period}
-                  label={period}
-                  selected={parts.period === period}
-                  onClick={() => updateParts({ period })}
-                  C={C}
-                />
-              ))}
+              <ColumnHeader label="Min" C={C} />
+              <div className="max-h-48 overflow-y-auto">
+                {MINUTES.map((minute) => (
+                  <ColumnButton
+                    key={minute}
+                    label={minute}
+                    selected={parts.minute === Number(minute)}
+                    onClick={() => updateParts({ minute: Number(minute) })}
+                    C={C}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <ColumnHeader label="AM/PM" C={C} />
+              <div>
+                {PERIODS.map((period) => (
+                  <ColumnButton
+                    key={period}
+                    label={period}
+                    selected={parts.period === period}
+                    onClick={() => updateParts({ period })}
+                    C={C}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

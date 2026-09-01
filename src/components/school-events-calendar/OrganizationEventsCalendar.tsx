@@ -47,6 +47,8 @@ export type OrganizationEventsCalendarProps = {
   }) => void;
   variant?: CalendarToolbarVariant;
   parentTheme?: ParentThemeTokens;
+  toolbarDetached?: boolean;
+  loadingBehavior?: "full" | "grid-only";
 };
 
 export default function OrganizationEventsCalendar({
@@ -67,6 +69,8 @@ export default function OrganizationEventsCalendar({
   onPeriodMetaChange,
   variant = "default",
   parentTheme,
+  toolbarDetached: _toolbarDetached = false,
+  loadingBehavior = "full",
 }: OrganizationEventsCalendarProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const viewDirection = view === "month" ? 1 : -1;
@@ -207,7 +211,7 @@ export default function OrganizationEventsCalendar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [eventsByDate, onDayClick, onEventClick, readOnly, selectedDate]);
 
-  if (loading) {
+  if (loading && loadingBehavior === "full") {
     return (
       <div className="space-y-4">
         {header}
@@ -216,30 +220,10 @@ export default function OrganizationEventsCalendar({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {header}
-
-      <CalendarToolbar
-        C={C}
-        view={view}
-        onViewChange={handleViewChange}
-        periodLabel={periodLabel}
-        onPrev={goPrev}
-        onNext={goNext}
-        onToday={goToday}
-        toolbarExtra={toolbarExtra}
-        compact={compact}
-        variant={variant}
-        theme={parentTheme}
-      />
-
-      {emptyHint && events.length === 0 ? (
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          {emptyHint}
-        </p>
-      ) : null}
-
+  const gridContent =
+    loading && loadingBehavior === "grid-only" ? (
+      <CalendarSkeleton C={C} />
+    ) : (
       <AnimatePresence mode="wait" initial={false}>
         {view === "month" ? (
           <motion.div
@@ -283,6 +267,33 @@ export default function OrganizationEventsCalendar({
           </motion.div>
         )}
       </AnimatePresence>
+    );
+
+  return (
+    <div className="space-y-4">
+      {header}
+
+      <CalendarToolbar
+        C={C}
+        view={view}
+        onViewChange={handleViewChange}
+        periodLabel={periodLabel}
+        onPrev={goPrev}
+        onNext={goNext}
+        onToday={goToday}
+        toolbarExtra={toolbarExtra}
+        compact={compact}
+        variant={variant}
+        theme={parentTheme}
+      />
+
+      {emptyHint && events.length === 0 && !loading ? (
+        <p className="text-xs" style={{ color: C.textTertiary }}>
+          {emptyHint}
+        </p>
+      ) : null}
+
+      {gridContent}
     </div>
   );
 }

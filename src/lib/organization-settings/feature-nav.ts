@@ -146,6 +146,7 @@ function mergeFeatureNavChildren(
 const TEACHER_ICON_DEFAULTS: Record<string, string> = {
   dashboard: "layout-dashboard",
   my_students: "users",
+  classroom_signups: "clipboard-list",
   my_hours: "clock",
   messages: "message-square",
   calendar: "calendar-days",
@@ -164,6 +165,7 @@ const PARENT_ICON_DEFAULTS: Record<string, string> = {
   feed: "megaphone",
   children: "users",
   committees: "heart",
+  classroom_signups: "clipboard-list",
 };
 
 function getCatalogEntriesForPortal(portal: Portal): PortalNavCatalogEntry[] {

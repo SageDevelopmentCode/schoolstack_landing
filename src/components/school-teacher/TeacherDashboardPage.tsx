@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
+  ClipboardList,
   MessageSquare,
   Users,
 } from "lucide-react";
@@ -78,6 +79,8 @@ function focusItemIcon(icon: TeacherDashboardFocusIcon, theme: ParentThemeTokens
       return <Calendar className="h-4 w-4" style={{ color: theme.primary }} />;
     case "students":
       return <Users className="h-4 w-4" style={{ color: theme.primary }} />;
+    case "signups":
+      return <ClipboardList className="h-4 w-4" style={{ color: theme.primary }} />;
   }
 }
 
@@ -89,6 +92,8 @@ function focusItemIconBg(icon: TeacherDashboardFocusIcon): string {
       return "#EEF7EF";
     case "students":
       return "#FFF4D9";
+    case "signups":
+      return "#E9F2EA";
   }
 }
 

@@ -124,3 +124,57 @@ export function addMinutesToTimeInput(time: string, deltaMinutes: number): strin
 }
 
 export const WEEK_GRID_TOTAL_HEIGHT = HOUR_HEIGHT_PX * (WEEK_END_HOUR - WEEK_START_HOUR);
+
+export const SIGNUP_TIME_PERIOD_IDS = ["morning", "afternoon"] as const;
+export type SignupTimePeriodId = (typeof SIGNUP_TIME_PERIOD_IDS)[number];
+
+export const SIGNUP_TIME_PERIODS = [
+  {
+    id: "morning" as const,
+    label: "Morning",
+    startMinutes: 6 * 60,
+    endMinutes: 11 * 60 + 45,
+  },
+  {
+    id: "afternoon" as const,
+    label: "Afternoon",
+    startMinutes: 12 * 60,
+    endMinutes: 18 * 60 + 45,
+  },
+] as const;
+
+const SIGNUP_TIME_STEP_MINUTES = 15;
+
+function minutesToTimeInput(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function signupTimeOptionsForPeriod(periodId: SignupTimePeriodId): string[] {
+  const period = SIGNUP_TIME_PERIODS.find((entry) => entry.id === periodId);
+  if (!period) return [];
+
+  const options: string[] = [];
+  for (
+    let minutes = period.startMinutes;
+    minutes <= period.endMinutes;
+    minutes += SIGNUP_TIME_STEP_MINUTES
+  ) {
+    options.push(minutesToTimeInput(minutes));
+  }
+  return options;
+}
+
+export function signupTimePeriodForValue(
+  value: string | null | undefined,
+): SignupTimePeriodId {
+  const minutes = parseTimeToMinutes(value);
+  if (minutes === null || minutes < 12 * 60) return "morning";
+  return "afternoon";
+}
+
+/** Default end time for signup slots: 30 minutes after start. */
+export function nextSignupEndTimeFromStart(startTime: string): string {
+  return addMinutesToTimeInput(startTime, 30);
+}

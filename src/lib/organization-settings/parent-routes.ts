@@ -18,6 +18,17 @@ export function schoolParentPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function parentClassroomSignupPath(
+  slug: string,
+  signupId: string,
+  previewBasePath?: string,
+): string {
+  if (previewBasePath) {
+    return `${previewBasePath}/parent/classroom_signups/${signupId}`;
+  }
+  return schoolParentPath(slug, "classroom_signups", signupId);
+}
+
 export function parentChildrenPagePath(
   slug: string,
   previewBasePath?: string,

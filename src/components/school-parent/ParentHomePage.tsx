@@ -6,9 +6,12 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ClipboardCheck,
+  ClipboardList,
   FileText,
   MessageSquare,
 } from "lucide-react";
+import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/mock-data";
+import { parentClassroomSignupPath } from "@/lib/organization-settings/parent-routes";
 import type {
   FamilyChildOverview,
   FamilyUserProfile,
@@ -47,6 +50,7 @@ type ParentHomePageProps = {
   upcomingEvents?: OrganizationEvent[];
   enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
+  classroomSignupAttentionItems?: ParentSignupAttentionItem[];
   previewMode?: boolean;
   previewBasePath?: string;
 };
@@ -136,8 +140,28 @@ function buildAttentionItems(input: {
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  classroomSignupAttentionItems: ParentSignupAttentionItem[];
+  schoolSlug: string;
+  previewBasePath?: string;
 }): AttentionItem[] {
   const items: AttentionItem[] = [];
+
+  for (const signup of input.classroomSignupAttentionItems) {
+    items.push({
+      key: `signup-${signup.signupId}`,
+      title: "Help in the classroom",
+      subtitle: `${signup.teacherName} needs help with ${signup.title}${
+        signup.classroomName ? ` (${signup.classroomName})` : ""
+      }`,
+      href: parentClassroomSignupPath(
+        input.schoolSlug,
+        signup.signupId,
+        input.previewBasePath,
+      ),
+      icon: <ClipboardList className="h-4 w-4" style={{ color: "#3D6B4F" }} />,
+      iconBg: "#E9F2EA",
+    });
+  }
 
   for (const item of input.enrollmentIncompleteBannerItems) {
     items.push({
@@ -274,6 +298,7 @@ export default function ParentHomePage({
   upcomingEvents = [],
   enrollmentAmendmentBannerItems = [],
   enrollmentIncompleteBannerItems = [],
+  classroomSignupAttentionItems = [],
   previewBasePath,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
@@ -295,6 +320,9 @@ export default function ParentHomePage({
     onboardingItems,
     enrollmentAmendmentBannerItems,
     enrollmentIncompleteBannerItems,
+    classroomSignupAttentionItems,
+    schoolSlug,
+    previewBasePath,
   });
   const enrolledCount = familyChildren.filter((c) => c.isEnrolled).length;
   const nextEvent = upcomingEvents[0] ?? null;

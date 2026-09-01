@@ -29,7 +29,9 @@ type AdmissionsAvailabilityEditorProps = {
   readOnly?: boolean;
   timezone?: string;
   compactLayout?: boolean;
+  storySurface?: boolean;
   onMonthSlotCountChange?: (count: number) => void;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 export default function AdmissionsAvailabilityEditor({
@@ -38,7 +40,9 @@ export default function AdmissionsAvailabilityEditor({
   readOnly = false,
   timezone: timezoneProp,
   compactLayout = false,
+  storySurface = false,
   onMonthSlotCountChange,
+  onLoadingChange,
 }: AdmissionsAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
   const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
@@ -71,6 +75,10 @@ export default function AdmissionsAvailabilityEditor({
   useEffect(() => {
     onMonthSlotCountChangeRef.current = onMonthSlotCountChange;
   }, [onMonthSlotCountChange]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const loadMonthData = useCallback(async () => {
     const [slots, occupied] = await Promise.all([
@@ -239,8 +247,15 @@ export default function AdmissionsAvailabilityEditor({
         />
 
         <div
-          className="flex min-h-[280px] flex-col rounded-sm border"
-          style={{ borderColor: C.border, backgroundColor: C.surface }}
+          className={
+            storySurface
+              ? "flex min-h-[280px] flex-col overflow-hidden rounded-[16px] border bg-white"
+              : "flex min-h-[280px] flex-col rounded-sm border"
+          }
+          style={{
+            borderColor: storySurface ? "#E0E7E0" : C.border,
+            backgroundColor: storySurface ? "#FFFFFF" : C.surface,
+          }}
         >
           <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
             {selectedDate ? (

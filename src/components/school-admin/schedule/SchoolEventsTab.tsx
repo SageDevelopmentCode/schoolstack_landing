@@ -9,8 +9,10 @@ import SchoolEventFormPanel, {
   EMPTY_EVENT_FORM,
   type EventFormState,
 } from "@/components/school-admin/schedule/SchoolEventFormPanel";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   addMinutesToTimeInput,
   DEFAULT_EVENT_DURATION_MINUTES,
@@ -27,11 +29,15 @@ import type { OrganizationEvent } from "@/lib/school-events/types";
 import { createClient } from "@/utils/supabase/client";
 
 export default function SchoolEventsTab({
+  theme,
   C,
   organizationId,
+  onLoadingChange,
 }: {
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   organizationId: string;
+  onLoadingChange?: (loading: boolean) => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
@@ -63,6 +69,10 @@ export default function SchoolEventsTab({
       void loadEvents();
     });
   }, [loadEvents]);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const openCreateForm = (prefillDate?: string) => {
     setSelectedEventId(null);
@@ -159,37 +169,26 @@ export default function SchoolEventsTab({
   };
 
   return (
-    <div className="w-full">
+    <div className="flex w-full flex-col gap-4">
       <OrganizationEventsCalendar
         C={C}
         events={events}
         loading={loading}
+        loadingBehavior="grid-only"
+        toolbarDetached
         view={view}
         onViewChange={setView}
         selectedEventId={selectedEventId}
         emptyHint="No events yet — click a day to add one, or use Add event."
         onDayClick={openCreateForm}
         onEventClick={(event) => setSelectedEventId(event.id)}
-        header={
-          <div className="mb-1">
-            <h2 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-              School calendar
-            </h2>
-            <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
-              Field trips, no-school days, and community events families see in the parent portal.
-            </p>
-          </div>
-        }
+        variant="parent-story"
+        parentTheme={theme}
         toolbarExtra={
-          <button
-            type="button"
-            onClick={() => openCreateForm()}
-            className="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-            style={{ backgroundColor: C.accent }}
-          >
+          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => openCreateForm()}>
             <Plus className="h-3.5 w-3.5" />
             Add event
-          </button>
+          </AdminButton>
         }
       />
 
@@ -202,6 +201,7 @@ export default function SchoolEventsTab({
       />
 
       <SchoolEventFormPanel
+        theme={theme}
         C={C}
         open={formOpen}
         mode={formMode}

@@ -30,6 +30,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { loadParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { loadParentCalendarInitialData } from "@/lib/school-events/load-parent-calendar-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import { getMockParentSignupAttentionItems } from "@/lib/classroom-signups/mock-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -152,6 +153,12 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
     const quickActions = buildParentQuickActions(slug, org.features);
+    const classroomSignupAttentionItems = isParentFeatureEnabled(
+      org.features,
+      "classroom_signups",
+    )
+      ? getMockParentSignupAttentionItems()
+      : [];
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -165,6 +172,7 @@ export default async function SchoolParentFeaturePage({ params }: PageProps) {
           upcomingEvents={upcomingEvents}
           enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
           enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+          classroomSignupAttentionItems={classroomSignupAttentionItems}
         />
       </SchoolParentPageShell>
     );

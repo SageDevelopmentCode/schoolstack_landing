@@ -26,6 +26,7 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { getMockParentSignupAttentionItems } from "@/lib/classroom-signups/mock-data";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
@@ -154,6 +155,12 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath,
     });
+    const classroomSignupAttentionItems = isParentFeatureEnabled(
+      org.features,
+      "classroom_signups",
+    )
+      ? getMockParentSignupAttentionItems()
+      : [];
 
     return (
       <SchoolParentPageShell title={pageName}>
@@ -167,6 +174,7 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
           upcomingEvents={upcomingEvents}
           enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
           enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+          classroomSignupAttentionItems={classroomSignupAttentionItems}
           previewMode
           previewBasePath={previewBasePath}
         />

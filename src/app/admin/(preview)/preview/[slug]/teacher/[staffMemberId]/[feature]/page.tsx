@@ -26,6 +26,13 @@ const TeacherCalendarPage = nextDynamic(
   () => import("@/components/school-teacher/TeacherCalendarPage"),
 );
 
+const TeacherClassroomSignupsPage = nextDynamic(
+  () =>
+    import(
+      "@/components/classroom-signups/teacher/TeacherClassroomSignupsPage"
+    ),
+);
+
 export const dynamic = "force-dynamic";
 
 type PageProps = {
@@ -157,6 +164,18 @@ export default async function StaffTeacherPreviewFeaturePage({
       <TeacherCalendarPage
         branding={org.branding}
         initialData={initialData}
+        previewMode
+      />
+    );
+  }
+
+  if (feature === "classroom_signups") {
+    return (
+      <TeacherClassroomSignupsPage
+        slug={slug}
+        teacherName={previewContext.userProfile.displayName}
+        staffMemberId={staffMemberId}
+        teacherBasePath={previewBasePath}
         previewMode
       />
     );

@@ -52,6 +52,7 @@ export type AdminFeatures = {
 export type TeacherFeatures = {
   dashboard: boolean;
   my_students: boolean;
+  classroom_signups: boolean;
   my_hours: boolean;
   messages: boolean;
   calendar: boolean;
@@ -70,6 +71,7 @@ export type ParentFeatures = {
   feed: boolean;
   children: boolean;
   committees: boolean;
+  classroom_signups: boolean;
 };
 
 export type AdditionalFeatures = {

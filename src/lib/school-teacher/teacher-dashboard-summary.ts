@@ -21,14 +21,20 @@ import {
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import {
+  getMockResponsesBySignupId,
+  getMockSignupsForTeacher,
+} from "@/lib/classroom-signups/mock-data";
+import { computeSignupMetrics } from "@/lib/classroom-signups/utils";
 
 export const IMPLEMENTED_TEACHER_FEATURES = [
   "my_students",
+  "classroom_signups",
   "messages",
   "calendar",
 ] as const;
 
-export type TeacherDashboardFocusIcon = "message" | "calendar" | "students";
+export type TeacherDashboardFocusIcon = "message" | "calendar" | "students" | "signups";
 
 export type TeacherDashboardFocusItem = {
   id: string;
@@ -60,6 +66,7 @@ export type TeacherDashboardSummary = {
   assignedStudents: AdminEnrolledStudentSummary[];
   upcomingEvents: OrganizationEvent[];
   messagesUnreadCount: number;
+  openSignupsCount: number;
 };
 
 const TEACHER_CATALOG_DESCRIPTIONS = Object.fromEntries(
@@ -143,6 +150,7 @@ export async function fetchTeacherDashboardSummary(
   const messagesEnabled = teacherFeatureEnabled(features, "messages");
   const calendarEnabled = teacherFeatureEnabled(features, "calendar");
   const myStudentsEnabled = teacherFeatureEnabled(features, "my_students");
+  const signupsEnabled = teacherFeatureEnabled(features, "classroom_signups");
 
   let staffMemberId = options.staffMemberId ?? null;
   if (!staffMemberId && options.userId) {
@@ -191,6 +199,18 @@ export async function fetchTeacherDashboardSummary(
   const myStudentsHref = options.teacherBasePath
     ? `${options.teacherBasePath}/my_students`
     : schoolTeacherPath(slug, "my_students");
+  const signupsHref = options.teacherBasePath
+    ? `${options.teacherBasePath}/classroom_signups`
+    : schoolTeacherPath(slug, "classroom_signups");
+
+  const mockSignups =
+    signupsEnabled && staffMemberId
+      ? getMockSignupsForTeacher(staffMemberId)
+      : [];
+  const signupMetrics = computeSignupMetrics(
+    mockSignups,
+    getMockResponsesBySignupId(),
+  );
 
   const focusItems: TeacherDashboardFocusItem[] = [];
 
@@ -214,6 +234,20 @@ export async function fetchTeacherDashboardSummary(
         ? "All day"
         : formatEventTimeRange(eventToday),
       href: calendarHref,
+    });
+  }
+
+  if (
+    signupsEnabled &&
+    signupMetrics.needsAttentionCount > 0 &&
+    focusItems.length < 3
+  ) {
+    focusItems.push({
+      id: "open-signups",
+      icon: "signups",
+      title: `${signupMetrics.needsAttentionCount} signup${signupMetrics.needsAttentionCount === 1 ? "" : "s"} need responses`,
+      subtitle: "Some slots or roles are still unfilled",
+      href: signupsHref,
     });
   }
 
@@ -255,6 +289,13 @@ export async function fetchTeacherDashboardSummary(
       accent: "sky",
       enabled: calendarEnabled,
     },
+    {
+      id: "open-signups",
+      label: "Open signups",
+      value: String(signupMetrics.openCount),
+      accent: "gold",
+      enabled: signupsEnabled,
+    },
   ];
 
   const quickActions = buildTeacherQuickActions(
@@ -270,6 +311,7 @@ export async function fetchTeacherDashboardSummary(
     assignedStudents,
     upcomingEvents,
     messagesUnreadCount,
+    openSignupsCount: signupMetrics.openCount,
   };
 }
 
