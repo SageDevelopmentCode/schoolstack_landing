@@ -795,6 +795,24 @@ export async function loadTeacherAssignedStudentDetail(
   return detail;
 }
 
+export async function loadTeacherSchoolStudentDetail(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentId: string,
+): Promise<EnrolledStudentDetail | null> {
+  const detail = await loadEnrolledStudentDetail(
+    supabase,
+    organizationId,
+    studentId,
+  );
+
+  if (!detail || detail.enrollments.length === 0) {
+    return null;
+  }
+
+  return detail;
+}
+
 async function validateActiveStaffMembers(
   supabase: SupabaseClient,
   organizationId: string,

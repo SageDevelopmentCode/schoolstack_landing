@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import StudentContactCell from "@/components/school-admin/students/StudentContactCell";
@@ -25,6 +26,7 @@ import {
   formatEnrolledStudentName,
   formatStudentGrade,
   listAssignedEnrolledStudents,
+  listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -39,6 +41,8 @@ type TeacherMyStudentsPageProps = {
   initialStudents?: AdminEnrolledStudentSummary[];
   previewMode?: boolean;
 };
+
+type TeacherRosterScope = "assigned" | "school";
 
 const STUDENTS_PAGE_SIZE = 50;
 
@@ -82,6 +86,16 @@ function StoryFilterPill({
   );
 }
 
+function updateStudentHealthFlag(
+  students: AdminEnrolledStudentSummary[],
+  studentId: string,
+  hasStandingHealthItems: boolean,
+): AdminEnrolledStudentSummary[] {
+  return students.map((student) =>
+    student.id === studentId ? { ...student, hasStandingHealthItems } : student,
+  );
+}
+
 export default function TeacherMyStudentsPage({
   organizationId,
   branding: _branding,
@@ -95,10 +109,17 @@ export default function TeacherMyStudentsPage({
   const hasInitialData = initialStudents !== undefined;
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
+  const [rosterScope, setRosterScope] = useState<TeacherRosterScope>("assigned");
+  const [assignedStudents, setAssignedStudents] = useState<AdminEnrolledStudentSummary[]>(
     initialStudents ?? [],
   );
-  const [loading, setLoading] = useState(!hasInitialData && staffMemberId != null);
+  const [schoolStudents, setSchoolStudents] = useState<AdminEnrolledStudentSummary[] | null>(
+    null,
+  );
+  const [loadingAssigned, setLoadingAssigned] = useState(
+    !hasInitialData && staffMemberId != null,
+  );
+  const [loadingSchool, setLoadingSchool] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>("all");
@@ -106,7 +127,18 @@ export default function TeacherMyStudentsPage({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(STUDENTS_PAGE_SIZE);
 
-  const metrics = useMemo(() => deriveStudentRosterMetrics(students), [students]);
+  const students = rosterScope === "assigned" ? assignedStudents : (schoolStudents ?? []);
+  const loading = rosterScope === "assigned" ? loadingAssigned : loadingSchool;
+
+  const assignedMetrics = useMemo(
+    () => deriveStudentRosterMetrics(assignedStudents),
+    [assignedStudents],
+  );
+  const schoolMetrics = useMemo(
+    () => deriveStudentRosterMetrics(schoolStudents ?? []),
+    [schoolStudents],
+  );
+  const metrics = rosterScope === "assigned" ? assignedMetrics : schoolMetrics;
 
   const healthFlagCount = useMemo(
     () => students.filter((student) => student.hasStandingHealthItems).length,
@@ -114,20 +146,28 @@ export default function TeacherMyStudentsPage({
   );
 
   const showProgramMetrics = metrics.programCount > 1;
+  const isSchoolScope = rosterScope === "school";
+
+  function changeRosterScope(next: TeacherRosterScope) {
+    setRosterScope(next);
+    setRosterFilter("all");
+    setVisibleCount(STUDENTS_PAGE_SIZE);
+    setSelectedId(null);
+  }
 
   function changeRosterFilter(next: StudentRosterFilter) {
     setRosterFilter(next);
     setVisibleCount(STUDENTS_PAGE_SIZE);
   }
 
-  const loadStudents = useCallback(async () => {
+  const loadAssignedStudents = useCallback(async () => {
     if (!staffMemberId) {
-      setStudents([]);
-      setLoading(false);
+      setAssignedStudents([]);
+      setLoadingAssigned(false);
       return;
     }
 
-    setLoading(true);
+    setLoadingAssigned(true);
     setError(null);
 
     try {
@@ -142,33 +182,67 @@ export default function TeacherMyStudentsPage({
         organizationId,
         rows,
       );
-      setStudents(withFlags);
+      setAssignedStudents(withFlags);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
-      setLoading(false);
+      setLoadingAssigned(false);
     }
   }, [organizationId, staffMemberId, supabase]);
+
+  const loadSchoolStudents = useCallback(async () => {
+    setLoadingSchool(true);
+    setError(null);
+
+    try {
+      const rows = await listOrgEnrolledStudents(supabase, organizationId, {
+        limit: 500,
+      });
+      const withFlags = await mergeStudentStandingHealthFlags(
+        supabase,
+        organizationId,
+        rows,
+      );
+      setSchoolStudents(withFlags);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load students.");
+    } finally {
+      setLoadingSchool(false);
+    }
+  }, [organizationId, supabase]);
 
   useEffect(() => {
     if (hasInitialData) return;
     queueMicrotask(() => {
-      void loadStudents();
+      void loadAssignedStudents();
     });
-  }, [hasInitialData, loadStudents]);
+  }, [hasInitialData, loadAssignedStudents]);
+
+  useEffect(() => {
+    if (rosterScope !== "school" || schoolStudents !== null) return;
+    queueMicrotask(() => {
+      void loadSchoolStudents();
+    });
+  }, [loadSchoolStudents, rosterScope, schoolStudents]);
 
   const handleStudentHealthChange = useCallback(
     (studentId: string, hasStandingHealthItems: boolean) => {
-      setStudents((current) =>
-        current.map((student) =>
-          student.id === studentId
-            ? { ...student, hasStandingHealthItems }
-            : student,
-        ),
+      setAssignedStudents((current) =>
+        updateStudentHealthFlag(current, studentId, hasStandingHealthItems),
+      );
+      setSchoolStudents((current) =>
+        current
+          ? updateStudentHealthFlag(current, studentId, hasStandingHealthItems)
+          : current,
       );
     },
     [],
   );
+
+  const focusUnassignedStudents = () => {
+    changeRosterFilter("unassigned");
+    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const filteredStudents = useMemo(() => {
     const byFilter = filterStudentsByRosterFilter(students, rosterFilter);
@@ -194,15 +268,29 @@ export default function TeacherMyStudentsPage({
     students.find((row) => row.id === selectedId) ??
     null;
 
-  const tableColumnCount = 5;
-  const tableMinWidth = "min-w-[820px]";
-  const tableHeadings = ["Student", "Grade", "Program", "Parent", "Enrolled"];
+  const tableColumnCount = isSchoolScope ? 6 : 5;
+  const tableMinWidth = isSchoolScope ? "min-w-[960px]" : "min-w-[820px]";
+  const tableHeadings = isSchoolScope
+    ? ["Student", "Grade", "Program", "Teacher", "Parent", "Enrolled"]
+    : ["Student", "Grade", "Program", "Parent", "Enrolled"];
 
   const inputStyle = {
     borderColor: "#DCE4DC",
     backgroundColor: theme.white,
     color: theme.ink,
   };
+
+  const headerSubtitle =
+    rosterScope === "assigned"
+      ? `${assignedStudents.length} assigned student${assignedStudents.length === 1 ? "" : "s"}`
+      : schoolStudents === null
+        ? "All enrolled students at your school"
+        : `${schoolStudents.length} enrolled student${schoolStudents.length === 1 ? "" : "s"} at your school`;
+
+  const emptyMessage =
+    rosterScope === "assigned"
+      ? "No students assigned to you yet. Your school admin can assign students from My School → My Students."
+      : "No enrolled students found at your school yet.";
 
   if (staffMemberId == null) {
     return (
@@ -225,37 +313,93 @@ export default function TeacherMyStudentsPage({
               My Students
             </ParentDisplayHeading>
             <p className="m-0 mt-2 text-sm" style={{ color: theme.muted }}>
-              {students.length} assigned student{students.length === 1 ? "" : "s"}
+              {headerSubtitle}
             </p>
           </header>
 
+          <div className="mb-[15px] flex flex-wrap items-center gap-2">
+            <StoryFilterPill
+              active={rosterScope === "assigned"}
+              label="My students"
+              count={assignedMetrics.totalCount}
+              onClick={() => changeRosterScope("assigned")}
+              theme={theme}
+            />
+            <StoryFilterPill
+              active={rosterScope === "school"}
+              label="All students"
+              count={
+                schoolStudents?.length ??
+                (schoolMetrics.totalCount > 0 ? schoolMetrics.totalCount : undefined)
+              }
+              onClick={() => changeRosterScope("school")}
+              theme={theme}
+            />
+          </div>
+
           {!loading && students.length > 0 ? (
-            <div
-              className={`mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 ${showProgramMetrics ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}
-            >
-              <AdminMetricCard
-                theme={theme}
-                value={String(metrics.totalCount)}
-                label="Assigned students"
-                accent="forest"
-              />
-              {healthFlagCount > 0 ? (
+            <>
+              <div
+                className={`mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 ${
+                  isSchoolScope && showProgramMetrics
+                    ? "xl:grid-cols-4"
+                    : isSchoolScope || showProgramMetrics
+                      ? "xl:grid-cols-3"
+                      : "xl:grid-cols-2"
+                }`}
+              >
                 <AdminMetricCard
                   theme={theme}
-                  value={String(healthFlagCount)}
-                  label="Health flags"
-                  accent="berry"
+                  value={String(metrics.totalCount)}
+                  label={isSchoolScope ? "All enrolled" : "Assigned students"}
+                  accent="forest"
                 />
+                {isSchoolScope && metrics.unassignedCount > 0 ? (
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.unassignedCount)}
+                    label="Unassigned teacher"
+                    accent="gold"
+                  />
+                ) : null}
+                {healthFlagCount > 0 ? (
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(healthFlagCount)}
+                    label="Health flags"
+                    accent="berry"
+                  />
+                ) : null}
+                {showProgramMetrics ? (
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.programCount)}
+                    label="Programs"
+                    accent="sky"
+                  />
+                ) : null}
+              </div>
+
+              {isSchoolScope && metrics.unassignedCount > 0 ? (
+                <div
+                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
+                  style={{
+                    backgroundColor: "#EAF4EB",
+                    borderColor: "#C7DFCB",
+                    color: "#42694F",
+                  }}
+                >
+                  <span className="text-xs">
+                    <b>Needs attention:</b> {metrics.unassignedCount} enrolled student
+                    {metrics.unassignedCount === 1 ? "" : "s"} don&apos;t have a teacher
+                    assigned.
+                  </span>
+                  <AdminButton theme={theme} variant="soft" onClick={focusUnassignedStudents}>
+                    View unassigned →
+                  </AdminButton>
+                </div>
               ) : null}
-              {showProgramMetrics ? (
-                <AdminMetricCard
-                  theme={theme}
-                  value={String(metrics.programCount)}
-                  label="Programs"
-                  accent="sky"
-                />
-              ) : null}
-            </div>
+            </>
           ) : null}
 
           <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
@@ -267,6 +411,15 @@ export default function TeacherMyStudentsPage({
                 onClick={() => changeRosterFilter("all")}
                 theme={theme}
               />
+              {isSchoolScope && metrics.unassignedCount > 0 ? (
+                <StoryFilterPill
+                  active={rosterFilter === "unassigned"}
+                  label="Unassigned"
+                  count={metrics.unassignedCount}
+                  onClick={() => changeRosterFilter("unassigned")}
+                  theme={theme}
+                />
+              ) : null}
             </div>
             <div className="relative min-w-[12rem] max-w-xs flex-1 sm:max-w-sm">
               <Search
@@ -327,8 +480,7 @@ export default function TeacherMyStudentsPage({
             ) : students.length === 0 ? (
               <AdminCard theme={theme} padding="canvas">
                 <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                  No students assigned to you yet. Your school admin can assign students
-                  from My School → My Students.
+                  {emptyMessage}
                 </p>
               </AdminCard>
             ) : filteredStudents.length === 0 ? (
@@ -367,6 +519,8 @@ export default function TeacherMyStudentsPage({
                           student.programNames.length > 0
                             ? student.programNames.join(", ")
                             : "—";
+                        const teacherLabel =
+                          student.assignedTeacherNames.trim() || "Unassigned";
 
                         return (
                           <tr
@@ -402,6 +556,14 @@ export default function TeacherMyStudentsPage({
                             >
                               <div className="max-w-[14rem] truncate">{programLabel}</div>
                             </td>
+                            {isSchoolScope ? (
+                              <td
+                                className="px-[15px] py-3 text-xs"
+                                style={{ color: "#5D6D73" }}
+                              >
+                                <div className="max-w-[12rem] truncate">{teacherLabel}</div>
+                              </td>
+                            ) : null}
                             <td className="px-[15px] py-3">
                               <StudentContactCell
                                 contactName={student.primaryContactName}
@@ -450,6 +612,7 @@ export default function TeacherMyStudentsPage({
             staffMemberId={staffMemberId}
             branding={_branding}
             schoolSlug={slug}
+            detailAccess={isSchoolScope ? "school" : "assigned"}
             readOnly={previewMode}
             onStudentHealthChange={handleStudentHealthChange}
             onClose={() => setSelectedId(null)}

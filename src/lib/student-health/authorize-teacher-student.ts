@@ -2,6 +2,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   loadTeacherAssignedStudentDetail,
   loadTeacherMessageableFamilyStudentDetail,
+  loadTeacherSchoolStudentDetail,
 } from "@/lib/school-admin/enrolled-students";
 import {
   getStaffMemberIdForUser,
@@ -31,7 +32,7 @@ export async function authorizeTeacherStudentHealthAccess(
     return { ok: false, reason: "no_staff_record" };
   }
 
-  const [assignedDetail, messageableDetail] = await Promise.all([
+  const [assignedDetail, messageableDetail, schoolDetail] = await Promise.all([
     loadTeacherAssignedStudentDetail(
       supabase,
       organizationId,
@@ -44,9 +45,10 @@ export async function authorizeTeacherStudentHealthAccess(
       staffMemberId,
       studentId,
     ),
+    loadTeacherSchoolStudentDetail(supabase, organizationId, studentId),
   ]);
 
-  if (!assignedDetail && !messageableDetail) {
+  if (!assignedDetail && !messageableDetail && !schoolDetail) {
     return { ok: false, reason: "forbidden" };
   }
 

@@ -68,7 +68,8 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
-    const profile = await loadStudentHealthProfile(supabase, organizationId, studentId);
+    const admin = createAdminClient();
+    const profile = await loadStudentHealthProfile(admin, organizationId, studentId);
     return NextResponse.json({ profile });
   } catch (error) {
     if (error instanceof TeacherPortalAuthError) {

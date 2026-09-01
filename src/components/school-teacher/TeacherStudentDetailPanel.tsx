@@ -20,6 +20,7 @@ import {
   formatStudentGrade,
   loadTeacherAssignedStudentDetail,
   loadTeacherMessageableFamilyStudentDetail,
+  loadTeacherSchoolStudentDetail,
   studentStatusLabel,
   type AdminEnrolledStudentSummary,
   type EnrolledStudentDetail,
@@ -39,7 +40,7 @@ type TeacherStudentDetailPanelProps = {
   staffMemberId: string;
   branding: OrganizationBranding;
   schoolSlug: string;
-  detailAccess?: "assigned" | "messageableFamily";
+  detailAccess?: "assigned" | "messageableFamily" | "school";
   readOnly?: boolean;
   onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
   onClose: () => void;
@@ -93,21 +94,36 @@ export default function TeacherStudentDetailPanel({
     setError(null);
 
     try {
-      const loader =
-        detailAccess === "messageableFamily"
-          ? loadTeacherMessageableFamilyStudentDetail
-          : loadTeacherAssignedStudentDetail;
-      const nextDetail = await loader(
-        supabase,
-        organizationId,
-        staffMemberId,
-        student.id,
-      );
+      let nextDetail: EnrolledStudentDetail | null = null;
+      if (detailAccess === "messageableFamily") {
+        nextDetail = await loadTeacherMessageableFamilyStudentDetail(
+          supabase,
+          organizationId,
+          staffMemberId,
+          student.id,
+        );
+      } else if (detailAccess === "school") {
+        nextDetail = await loadTeacherSchoolStudentDetail(
+          supabase,
+          organizationId,
+          student.id,
+        );
+      } else {
+        nextDetail = await loadTeacherAssignedStudentDetail(
+          supabase,
+          organizationId,
+          staffMemberId,
+          student.id,
+        );
+      }
+
       if (!nextDetail) {
         throw new Error(
           detailAccess === "messageableFamily"
             ? "Student not found or not available for this conversation."
-            : "Student not found or not assigned to you.",
+            : detailAccess === "school"
+              ? "Student not found or not enrolled at this school."
+              : "Student not found or not assigned to you.",
         );
       }
       setDetail(nextDetail);
@@ -173,6 +189,16 @@ export default function TeacherStudentDetailPanel({
                 {formatStudentGrade(panelDetail.grade) ?? "—"}
               </dd>
             </div>
+            {detailAccess === "school" ? (
+              <div>
+                <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
+                  Teachers
+                </dt>
+                <dd className="mt-0.5" style={{ color: C.textPrimary }}>
+                  {panelDetail.assignedTeacherNames.trim() || "Unassigned"}
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
                 Date of birth
