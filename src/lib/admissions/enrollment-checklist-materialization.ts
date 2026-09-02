@@ -45,6 +45,23 @@ import { tryAutoAssignTuitionForEnrollment } from "@/lib/tuition/enrollment-hook
 
 const ENROLLED_STUDENT_STATUS = "active" as const;
 
+export const STATUSES_THAT_CAN_START_ENROLLMENT = [
+  "submitted",
+  "fee_pending",
+  "under_review",
+  "observation",
+  "accepted",
+] as const;
+
+export type EnrollmentStartableApplicationStatus =
+  (typeof STATUSES_THAT_CAN_START_ENROLLMENT)[number];
+
+export function canStartEnrollmentFromApplicationStatus(
+  status: string,
+): status is EnrollmentStartableApplicationStatus {
+  return (STATUSES_THAT_CAN_START_ENROLLMENT as readonly string[]).includes(status);
+}
+
 export type NewlyCompletedEnrollment = {
   applicationId: string;
   enrollmentId: string;
@@ -146,13 +163,15 @@ export async function startEnrollmentFromApplication(
     );
   }
 
-  if (application.status !== "accepted") {
+  if (!canStartEnrollmentFromApplicationStatus(String(application.status))) {
     throw new EnrollmentMaterializationError(
-      "Only accepted applications can start enrollment.",
+      "Only submitted or accepted applications can start enrollment.",
       "invalid_status",
       400,
     );
   }
+
+  const previousStatus = String(application.status);
 
   if (!application.student_id || !application.program_id) {
     throw new EnrollmentMaterializationError(
@@ -276,6 +295,23 @@ export async function startEnrollmentFromApplication(
     .eq("id", applicationId);
 
   if (statusError) throw statusError;
+
+  if (previousStatus !== "accepted") {
+    void logActivityEvent(supabase, {
+      organizationId: String(application.organization_id),
+      actorType: "school_admin",
+      actorUserId,
+      surface: "school_admin",
+      action: ACTIVITY_ACTIONS.APPLICATION_ACCEPTED,
+      entityType: "application",
+      entityId: applicationId,
+      summary: "Application accepted",
+      metadata: {
+        fromStatus: previousStatus,
+        toStatus: "enrolling",
+      },
+    });
+  }
 
   if (application.family_id) {
     await tryAutoAssignTuitionForEnrollment(supabase, {

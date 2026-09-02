@@ -311,6 +311,11 @@ export default function ApplicationSubmissionDetailPanel({
               C={C}
               applicationId={submission.id}
               currentStatus={currentStatus}
+              onAccept={
+                hasPublishedEnrollmentChecklist && !hasChecklist
+                  ? () => setStartEnrollmentOpen(true)
+                  : undefined
+              }
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
                 onSubmissionUpdated?.({ status });

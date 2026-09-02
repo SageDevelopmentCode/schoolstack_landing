@@ -6,6 +6,7 @@ import {
   type ApplicantContact,
 } from "@/lib/admissions/application-notifications";
 import {
+  buildApplicationAcceptedEnrollmentHtml,
   buildPostSubmitVisitConfirmationHtml,
   buildPostSubmitVisitOwnerNotificationHtml,
 } from "@/lib/emails";
@@ -109,5 +110,27 @@ describe("visit notification email templates", () => {
     assert.match(html, /parent@example.com/);
     assert.match(html, /Student Evensen/);
     assert.match(html, /View submission/);
+  });
+});
+
+describe("application accepted enrollment email template", () => {
+  it("renders acceptance details and enrollment checklist CTA", () => {
+    const html = buildApplicationAcceptedEnrollmentHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows Waldorf School",
+      formTitle: "Rooted Meadows 2026 Application",
+      studentName: "Autumn Evensen",
+      enrollmentChecklistUrl:
+        "https://example.com/school/rooted-meadows/apply/app-1/enrollment",
+    });
+
+    assert.match(html, /Application Accepted/);
+    assert.match(html, /Rooted Meadows Waldorf School/);
+    assert.match(html, /Autumn Evensen/);
+    assert.match(html, /Continue enrollment checklist/);
+    assert.match(
+      html,
+      /https:\/\/example\.com\/school\/rooted-meadows\/apply\/app-1\/enrollment/,
+    );
   });
 });

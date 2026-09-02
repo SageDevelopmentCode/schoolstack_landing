@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  buildApplicationAcceptedEnrollmentHtml,
   buildApplicationSubmittedConfirmationHtml,
   buildApplicationSubmittedOwnerNotificationHtml,
   buildDraftApplicationReminderHtml,
@@ -108,6 +109,26 @@ const previews = [
       "Thank you",
       "View apply dashboard",
       "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "application-accepted-enrollment.html",
+    html: buildApplicationAcceptedEnrollmentHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows Waldorf School",
+      formTitle: "Rooted Meadows 2026 Application",
+      studentName: "Autumn Evensen",
+      enrollmentChecklistUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/apply/700bd103-0daa-47d2-8cd9-810029e4db8c/enrollment",
+    }),
+    checks: [
+      "Application Accepted",
+      "Congratulations",
+      "Autumn Evensen",
+      "Continue enrollment checklist",
+      "Rooted Meadows Waldorf School",
+      "/school/rooted-meadows/apply/",
+      "/enrollment",
     ],
   },
   {

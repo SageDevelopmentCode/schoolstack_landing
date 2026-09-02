@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import MarkEnrolledDialog from "@/components/school-admin/admissions/MarkEnrolledDialog";
 import DetailPanelSection from "@/components/school-admin/admissions/DetailPanelSection";
@@ -19,6 +20,13 @@ type AcceptedEnrollmentSectionProps = {
   onStatusChanged: (status: string) => void;
 };
 
+type MenuPosition = {
+  top: number;
+  left: number;
+};
+
+const MENU_GAP = 4;
+
 export default function AcceptedEnrollmentSection({
   C,
   applicationId,
@@ -33,6 +41,8 @@ export default function AcceptedEnrollmentSection({
   const [confirmMarkEnrolledOpen, setConfirmMarkEnrolledOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const secondaryActions = useMemo(
@@ -40,17 +50,66 @@ export default function AcceptedEnrollmentSection({
     [applicationStatus],
   );
 
+  const updateMenuPosition = () => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    setMenuPosition({
+      top: rect.bottom + MENU_GAP,
+      left: rect.right,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!menuOpen) return;
+
+    updateMenuPosition();
+
+    let frameId = 0;
+    const scheduleUpdate = () => {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        updateMenuPosition();
+      });
+    };
+
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, true);
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate, true);
+    };
+  }, [menuOpen]);
+
   useEffect(() => {
     if (!menuOpen) return;
 
     const handleClick = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        triggerRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         setMenuOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, [menuOpen]);
 
   async function handleAction(nextStatus: string) {
@@ -121,6 +180,61 @@ export default function AcceptedEnrollmentSection({
 
   const isDisabled = pendingStatus !== null || markingEnrolled;
 
+  const menu =
+    menuOpen && menuPosition
+      ? createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            className="fixed z-[200] min-w-[10rem] -translate-x-full rounded-md border py-1 shadow-lg"
+            style={{
+              top: menuPosition.top,
+              left: menuPosition.left,
+              borderColor: C.border,
+              backgroundColor: C.surface,
+            }}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isDisabled}
+              onClick={() => {
+                setMenuOpen(false);
+                setConfirmMarkEnrolledOpen(true);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-opacity disabled:opacity-60"
+              style={{ color: C.textPrimary }}
+            >
+              Mark as enrolled
+            </button>
+
+            {secondaryActions.map((action) => {
+              const isPending = pendingStatus === action.status;
+
+              return (
+                <button
+                  key={action.status}
+                  type="button"
+                  role="menuitem"
+                  disabled={isDisabled}
+                  onClick={() => void handleAction(action.status)}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-opacity disabled:opacity-60"
+                  style={{
+                    color: action.variant === "danger" ? C.error : C.textPrimary,
+                  }}
+                >
+                  {isPending ? (
+                    <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+                  ) : null}
+                  {action.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       <DetailPanelSection
@@ -155,8 +269,9 @@ export default function AcceptedEnrollmentSection({
             </button>
           )}
 
-          <div className="relative shrink-0" ref={menuRef}>
+          <div className="shrink-0">
             <button
+              ref={triggerRef}
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
               disabled={isDisabled}
@@ -168,51 +283,6 @@ export default function AcceptedEnrollmentSection({
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
-
-            {menuOpen ? (
-              <div
-                role="menu"
-                className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] rounded-md border py-1 shadow-lg"
-                style={{ borderColor: C.border, backgroundColor: C.surface }}
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={isDisabled}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setConfirmMarkEnrolledOpen(true);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-opacity disabled:opacity-60"
-                  style={{ color: C.textPrimary }}
-                >
-                  Mark as enrolled
-                </button>
-
-                {secondaryActions.map((action) => {
-                  const isPending = pendingStatus === action.status;
-
-                  return (
-                    <button
-                      key={action.status}
-                      type="button"
-                      role="menuitem"
-                      disabled={isDisabled}
-                      onClick={() => void handleAction(action.status)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium transition-opacity disabled:opacity-60"
-                      style={{
-                        color: action.variant === "danger" ? C.error : C.textPrimary,
-                      }}
-                    >
-                      {isPending ? (
-                        <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
-                      ) : null}
-                      {action.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -222,6 +292,8 @@ export default function AcceptedEnrollmentSection({
           </p>
         ) : null}
       </DetailPanelSection>
+
+      {menu}
 
       <MarkEnrolledDialog
         C={C}

@@ -17,6 +17,7 @@ type ApplicationDecisionSectionProps = {
   applicationId: string;
   currentStatus: string;
   onStatusChanged: (status: string) => void;
+  onAccept?: () => void;
 };
 
 function buttonStyle(
@@ -38,6 +39,7 @@ export default function ApplicationDecisionSection({
   applicationId,
   currentStatus,
   onStatusChanged,
+  onAccept,
 }: ApplicationDecisionSectionProps) {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +109,14 @@ export default function ApplicationDecisionSection({
     return null;
   }
 
+  function handleActionClick(action: ApplicationDecisionAction) {
+    if (action.status === "accepted" && onAccept) {
+      onAccept();
+      return;
+    }
+    void handleAction(action.status);
+  }
+
   async function handleAction(nextStatus: string) {
     setPendingStatus(nextStatus);
     setError(null);
@@ -159,7 +169,7 @@ export default function ApplicationDecisionSection({
                 key={action.status}
                 type="button"
                 disabled={isDisabled}
-                onClick={() => void handleAction(action.status)}
+                onClick={() => handleActionClick(action)}
                 className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-opacity disabled:opacity-60"
                 style={buttonStyle(action.variant, C)}
               >

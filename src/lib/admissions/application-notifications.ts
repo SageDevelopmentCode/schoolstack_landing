@@ -20,6 +20,7 @@ import {
 } from "@/lib/admissions/notification-logging";
 import { notifyApplicationSubmitted, notifyPostSubmitVisitScheduled } from "@/lib/discord";
 import {
+  sendApplicationAcceptedEnrollmentEmail,
   sendApplicationSubmittedConfirmation,
   sendApplicationSubmittedOwnerNotification,
   sendPostSubmitVisitConfirmation,
@@ -241,6 +242,122 @@ export async function sendApplicationSubmittedNotifications(
     await logNotificationFailure(admin, {
       organizationId,
       operation: "application_submitted_notifications",
+      entityType: "application",
+      entityId: applicationId,
+      error,
+    });
+  }
+}
+
+export async function sendApplicationAcceptedEnrollmentNotifications(
+  admin: SupabaseClient,
+  applicationId: string,
+): Promise<void> {
+  let organizationId: string | undefined;
+  try {
+    const { data: application, error } = await admin
+      .from("applications")
+      .select(
+        `
+        id,
+        responses,
+        organization_id,
+        family_id,
+        created_by_user_id,
+        primary_guardian_id,
+        application_form_versions (title),
+        programs (name)
+      `,
+      )
+      .eq("id", applicationId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!application) {
+      console.warn(
+        "Application accepted enrollment notifications: application not found",
+        applicationId,
+      );
+      return;
+    }
+
+    organizationId = String(application.organization_id);
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("name, slug")
+      .eq("id", application.organization_id)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org) {
+      console.warn(
+        "Application accepted enrollment notifications: organization not found",
+        applicationId,
+      );
+      return;
+    }
+
+    const contact = await resolveApplicantContact(admin, application);
+    if (!contact) {
+      console.warn(
+        "Application accepted enrollment notifications: no applicant contact",
+        applicationId,
+      );
+      return;
+    }
+
+    const formVersion = application.application_form_versions as
+      | { title?: string }
+      | { title?: string }[]
+      | null;
+    const form = Array.isArray(formVersion) ? formVersion[0] : formVersion;
+    const formTitle = form?.title ?? "Application";
+
+    const responses =
+      application.responses &&
+      typeof application.responses === "object" &&
+      !Array.isArray(application.responses)
+        ? (application.responses as Record<string, unknown>)
+        : {};
+    const stringResponses: Record<string, string> = {};
+    for (const [key, value] of Object.entries(responses)) {
+      if (typeof value === "string") stringResponses[key] = value;
+      else if (value != null) stringResponses[key] = String(value);
+    }
+    const studentName = extractStudentLabel(stringResponses) ?? undefined;
+
+    const schoolName = String(org.name);
+    const schoolSlug = String(org.slug);
+    const enrollmentChecklistUrl = `${SITE_URL}/school/${schoolSlug}/apply/${applicationId}/enrollment`;
+
+    const notificationTasks = contact.emails.map((email) =>
+      sendApplicationAcceptedEnrollmentEmail({
+        name: contact.displayName,
+        email,
+        schoolName,
+        formTitle,
+        studentName,
+        enrollmentChecklistUrl,
+      }),
+    );
+
+    const notificationResults = await Promise.allSettled(notificationTasks);
+    await logSettledNotificationFailures(
+      admin,
+      {
+        organizationId: application.organization_id,
+        operation: "application_accepted_enrollment_notifications",
+        entityType: "application",
+        entityId: applicationId,
+      },
+      notificationResults,
+    );
+  } catch (error) {
+    console.error("Application accepted enrollment notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId,
+      operation: "application_accepted_enrollment_notifications",
       entityType: "application",
       entityId: applicationId,
       error,
