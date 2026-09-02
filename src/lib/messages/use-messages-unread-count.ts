@@ -8,8 +8,9 @@ export function useMessagesUnreadCount(
   organizationId: string,
   schoolName: string,
   enabled = true,
+  options?: { initialUnreadCount?: number; skipInitialFetch?: boolean },
 ) {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(options?.initialUnreadCount ?? 0);
   const messagesRefresh = useMessagesRefresh();
 
   const fetchUnreadCount = useCallback(async () => {
@@ -26,10 +27,11 @@ export function useMessagesUnreadCount(
   }, [apiBasePath, enabled, organizationId, schoolName]);
 
   useEffect(() => {
+    if (options?.skipInitialFetch) return;
     queueMicrotask(() => {
       void fetchUnreadCount();
     });
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, options?.skipInitialFetch]);
 
   useEffect(() => {
     if (!enabled || !messagesRefresh) return undefined;

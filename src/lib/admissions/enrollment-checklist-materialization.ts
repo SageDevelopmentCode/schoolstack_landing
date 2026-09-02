@@ -1191,8 +1191,13 @@ export async function listEnrollmentProgressForApplications(
   >();
   const uniqueTemplateIds = [...new Set(checklists.map((checklist) => checklist.templateId))];
 
-  for (const templateId of uniqueTemplateIds) {
-    const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+  const loadedTemplates = await Promise.all(
+    uniqueTemplateIds.map(async (templateId) => {
+      const loaded = await getEnrollmentChecklistWithItems(supabase, templateId);
+      return [templateId, loaded] as const;
+    }),
+  );
+  for (const [templateId, loaded] of loadedTemplates) {
     templateCache.set(templateId, loaded);
   }
 

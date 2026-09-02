@@ -345,6 +345,34 @@ async function getUnreadCounts(
   return counts;
 }
 
+export async function countAdminUnreadMessages(
+  admin: SupabaseClient,
+  organizationId: string,
+  userId: string,
+): Promise<number> {
+  const { data, error } = await admin.rpc("count_admin_unread_messages", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+  });
+
+  if (!error && data != null) {
+    return Number(data);
+  }
+
+  const { data: threads, error: threadsError } = await admin
+    .from("message_threads")
+    .select("id")
+    .eq("organization_id", organizationId);
+
+  if (threadsError) throw new Error(threadsError.message);
+
+  const threadIds = (threads ?? []).map((row) => String(row.id));
+  if (threadIds.length === 0) return 0;
+
+  const unreadCounts = await getUnreadCounts(admin, threadIds, userId);
+  return [...unreadCounts.values()].reduce((sum, count) => sum + count, 0);
+}
+
 export async function getTotalUnreadCount(
   admin: SupabaseClient,
   organizationId: string,

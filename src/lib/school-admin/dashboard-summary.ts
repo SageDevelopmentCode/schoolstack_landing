@@ -5,11 +5,6 @@ import {
   todayMonthYearInTimezone,
 } from "@/lib/admissions/admissions-availability";
 import { countObservationDaysInMonth } from "@/lib/admissions/admissions-observation-availability";
-import { listOrgApplicationSubmissions } from "@/lib/admissions/application-submissions";
-import {
-  listOrganizationPayments,
-  summarizePaymentRows,
-} from "@/lib/admissions/payment-records";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { AdminFeatures } from "@/lib/organization-settings/types";
 import {
@@ -21,15 +16,15 @@ import {
   fetchAdmissionsSetupStatus,
   type AdmissionsSetupStatus,
 } from "@/lib/school-admin/admissions-setup-status";
-import { getAdminMessagesUnreadCount } from "@/lib/messages/unread-count-api";
+import {
+  fetchCollectedThisMonthCents,
+  fetchDashboardAggregateMetrics,
+  fetchDashboardApplicationMetrics,
+  fetchLatestSubmittedApplication,
+} from "@/lib/school-admin/dashboard-metrics";
+import { getCachedAdminMessagesUnreadCount } from "@/lib/school-admin/cached-admin-unread-counts";
 import { formatCents } from "@/lib/tuition/pricing";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
-
-const TERMINAL_APPLICATION_STATUSES = new Set([
-  "enrolled",
-  "declined",
-  "withdrawn",
-]);
 
 export type DashboardFocusItem = {
   id: string;
@@ -79,27 +74,20 @@ export async function fetchAdminDashboardSummary(
   features: AdminFeatures,
   options?: { userId?: string; schoolName?: string },
 ): Promise<AdminDashboardSummary> {
-  const setupStatus = await fetchAdmissionsSetupStatus(
-    supabase,
-    organizationId,
-    slug,
-  );
-  const setupComplete =
-    setupStatus.completedCount === setupStatus.totalCount;
-
   const [
-    submissions,
-    payments,
+    setupStatus,
+    aggregateMetrics,
+    latestSubmitted,
     activityPage,
-    messagesUnreadCount,
     scheduleStats,
   ] = await Promise.all([
+    fetchAdmissionsSetupStatus(supabase, organizationId, slug),
+    features.admissions || (options?.userId && features.messages)
+      ? fetchDashboardAggregateMetrics(supabase, organizationId, options?.userId)
+      : Promise.resolve(null),
     features.admissions
-      ? listOrgApplicationSubmissions(supabase, organizationId, { limit: 200 })
-      : Promise.resolve([]),
-    features.admissions
-      ? listOrganizationPayments(supabase, organizationId, { limit: 500 })
-      : Promise.resolve([]),
+      ? fetchLatestSubmittedApplication(supabase, organizationId)
+      : Promise.resolve(null),
     fetchSchoolAdminActivityNotifications(supabase, organizationId, slug, {
       limit: 8,
     }).catch(() => ({
@@ -107,28 +95,42 @@ export async function fetchAdminDashboardSummary(
       nextCursor: null,
       hasMore: false,
     })),
-    options?.userId && features.messages
-      ? getAdminMessagesUnreadCount(
-          admin,
-          organizationId,
-          options.userId,
-          options.schoolName ?? "School",
-        ).catch(() => 0)
-      : Promise.resolve(0),
     features.schedule
       ? loadScheduleStats(supabase, organizationId)
       : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
   ]);
 
-  const paymentSummary = summarizePaymentRows(payments);
-  const activeApplications = submissions.filter(
-    (row) => !TERMINAL_APPLICATION_STATUSES.has(row.status),
-  ).length;
-  const enrolledCount = submissions.filter((row) => row.status === "enrolled").length;
-  const submittedAwaitingReview = submissions.filter(
-    (row) => row.status === "submitted",
-  );
-  const latestSubmitted = submittedAwaitingReview[0] ?? null;
+  const setupComplete =
+    setupStatus.completedCount === setupStatus.totalCount;
+
+  let activeApplications = aggregateMetrics?.activeApplications ?? 0;
+  let enrolledCount = aggregateMetrics?.enrolledCount ?? 0;
+  let submittedAwaitingReview = aggregateMetrics?.submittedCount ?? 0;
+  let collectedThisMonthCents = aggregateMetrics?.collectedThisMonthCents ?? 0;
+  const resolvedMessagesUnreadCount =
+    aggregateMetrics?.messagesUnread ??
+    (options?.userId && features.messages
+      ? await getCachedAdminMessagesUnreadCount(
+          admin,
+          organizationId,
+          options.userId,
+          options.schoolName ?? "School",
+        ).catch(() => 0)
+      : 0);
+
+  if (features.admissions && !aggregateMetrics) {
+    const fallbackMetrics = await fetchDashboardApplicationMetrics(
+      supabase,
+      organizationId,
+    );
+    activeApplications = fallbackMetrics.activeApplications;
+    enrolledCount = fallbackMetrics.enrolledCount;
+    submittedAwaitingReview = fallbackMetrics.submittedCount;
+    collectedThisMonthCents = await fetchCollectedThisMonthCents(
+      supabase,
+      organizationId,
+    );
+  }
 
   const focusItems: DashboardFocusItem[] = [];
 
@@ -176,11 +178,11 @@ export async function fetchAdminDashboardSummary(
     });
   }
 
-  if (features.messages && messagesUnreadCount > 0 && focusItems.length < 3) {
+  if (features.messages && resolvedMessagesUnreadCount > 0 && focusItems.length < 3) {
     focusItems.push({
       id: "unread-messages",
       icon: "message",
-      title: `Reply to ${messagesUnreadCount} unread message${messagesUnreadCount === 1 ? "" : "s"}`,
+      title: `Reply to ${resolvedMessagesUnreadCount} unread message${resolvedMessagesUnreadCount === 1 ? "" : "s"}`,
       subtitle: "Families are waiting on your response",
       href: schoolAdminPath(slug, "messages"),
       ctaLabel: "Reply →",
@@ -188,21 +190,21 @@ export async function fetchAdminDashboardSummary(
   }
 
   const signal =
-    features.admissions && (enrolledCount > 0 || submittedAwaitingReview.length > 0)
+    features.admissions && (enrolledCount > 0 || submittedAwaitingReview > 0)
       ? {
           headline:
             enrolledCount > 0 ? "Enrollment is on track." : "Applications need attention.",
           body:
             enrolledCount > 0
               ? `${enrolledCount} learner${enrolledCount === 1 ? "" : "s"} enrolled${
-                  submittedAwaitingReview.length > 0
-                    ? `, with ${submittedAwaitingReview.length} application${
-                        submittedAwaitingReview.length === 1 ? "" : "s"
+                  submittedAwaitingReview > 0
+                    ? `, with ${submittedAwaitingReview} application${
+                        submittedAwaitingReview === 1 ? "" : "s"
                       } ready for review.`
                     : "."
                 }`
-              : `${submittedAwaitingReview.length} application${
-                  submittedAwaitingReview.length === 1 ? "" : "s"
+              : `${submittedAwaitingReview} application${
+                  submittedAwaitingReview === 1 ? "" : "s"
                 } waiting for your review.`,
           href: schoolAdminPath(slug, "admissions", "submissions"),
           ctaLabel: "Open admissions →",
@@ -230,14 +232,14 @@ export async function fetchAdminDashboardSummary(
     {
       id: "collected-month",
       label: "Collected this month",
-      value: formatCents(paymentSummary.collectedThisMonthCents),
+      value: formatCents(collectedThisMonthCents),
       accent: "gold",
       enabled: features.admissions,
     },
     {
       id: "unread-messages",
       label: "Unread family messages",
-      value: String(messagesUnreadCount),
+      value: String(resolvedMessagesUnreadCount),
       accent: "berry",
       enabled: features.messages,
     },
@@ -276,7 +278,7 @@ export async function fetchAdminDashboardSummary(
     metrics: metrics.filter((metric) => metric.enabled),
     recentActivity: activityPage.notifications,
     quickActions,
-    messagesUnreadCount,
+    messagesUnreadCount: resolvedMessagesUnreadCount,
     setupComplete,
   };
 }

@@ -766,86 +766,142 @@ export function formatActivityNotificationDetail(
   }
 }
 
-async function lookupApplicationIdForEnrollment(
+async function batchLookupPaymentApplicationIds(
   supabase: SupabaseClient,
-  enrollmentId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("enrollments")
-    .select("application_id")
-    .eq("id", enrollmentId)
-    .maybeSingle();
+  paymentIds: string[],
+): Promise<Map<string, string | null>> {
+  const results = new Map<string, string | null>();
+  if (paymentIds.length === 0) return results;
 
-  if (error) throw error;
-  return data?.application_id ? String(data.application_id) : null;
-}
-
-async function lookupApplicationIdForChecklistItem(
-  supabase: SupabaseClient,
-  checklistItemId: string,
-): Promise<string | null> {
   const { data, error } = await supabase
-    .from("enrollment_checklist_items")
-    .select("enrollment_checklists(application_id)")
-    .eq("id", checklistItemId)
-    .maybeSingle();
+    .from("application_payments")
+    .select("id, application_id")
+    .in("id", paymentIds);
 
   if (error) throw error;
 
-  const checklist = data?.enrollment_checklists as
-    | { application_id?: string }
-    | { application_id?: string }[]
-    | null;
-  const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
-  return checklistRow?.application_id
-    ? String(checklistRow.application_id)
-    : null;
+  for (const row of data ?? []) {
+    results.set(
+      String(row.id),
+      row.application_id ? String(row.application_id) : null,
+    );
+  }
+
+  return results;
 }
 
-async function resolveApplicationId(
+async function resolveApplicationIdsForEvents(
   supabase: SupabaseClient,
-  event: ActivityEventForNotification,
-  cache: Map<string, string | null>,
-): Promise<string | null> {
-  const fromMetadata = metadataString(event.metadata, "applicationId");
-  if (fromMetadata) return fromMetadata;
+  events: ActivityEventForNotification[],
+): Promise<Map<string, string | null>> {
+  const eventResults = new Map<string, string | null>();
+  const entityCache = new Map<string, string | null>();
+  const enrollmentIds = new Set<string>();
+  const checklistItemIds = new Set<string>();
+  const paymentIds = new Set<string>();
+  const deferredEvents: ActivityEventForNotification[] = [];
 
-  if (event.entity_type === "application" && event.entity_id) {
-    return event.entity_id;
+  for (const event of events) {
+    const fromMetadata = metadataString(event.metadata, "applicationId");
+    if (fromMetadata) {
+      eventResults.set(event.id, fromMetadata);
+      continue;
+    }
+
+    if (event.entity_type === "application" && event.entity_id) {
+      eventResults.set(event.id, event.entity_id);
+      continue;
+    }
+
+    const paymentIdFromMetadata = metadataString(event.metadata, "paymentId");
+    if (paymentIdFromMetadata) {
+      paymentIds.add(paymentIdFromMetadata);
+    }
+
+    if (!event.entity_id) {
+      deferredEvents.push(event);
+      continue;
+    }
+
+    const cacheKey = `${event.entity_type}:${event.entity_id}`;
+    if (entityCache.has(cacheKey)) {
+      eventResults.set(event.id, entityCache.get(cacheKey) ?? null);
+      continue;
+    }
+
+    if (event.entity_type === "enrollment") {
+      enrollmentIds.add(event.entity_id);
+    } else if (event.entity_type === "enrollment_checklist_item") {
+      checklistItemIds.add(event.entity_id);
+    } else if (event.entity_type === "payment") {
+      paymentIds.add(event.entity_id);
+    }
+
+    deferredEvents.push(event);
   }
 
-  if (!event.entity_id) return null;
+  const [enrollmentResult, checklistResult, paymentApplicationIds] =
+    await Promise.all([
+      enrollmentIds.size > 0
+        ? supabase
+            .from("enrollments")
+            .select("id, application_id")
+            .in("id", [...enrollmentIds])
+        : Promise.resolve({ data: [], error: null }),
+      checklistItemIds.size > 0
+        ? supabase
+            .from("enrollment_checklist_items")
+            .select("id, enrollment_checklists(application_id)")
+            .in("id", [...checklistItemIds])
+        : Promise.resolve({ data: [], error: null }),
+      batchLookupPaymentApplicationIds(supabase, [...paymentIds]),
+    ]);
 
-  const cacheKey = `${event.entity_type}:${event.entity_id}`;
-  if (cache.has(cacheKey)) {
-    return cache.get(cacheKey) ?? null;
-  }
+  if (enrollmentResult.error) throw enrollmentResult.error;
+  if (checklistResult.error) throw checklistResult.error;
 
-  let applicationId: string | null = null;
-
-  if (event.entity_type === "enrollment") {
-    applicationId = await lookupApplicationIdForEnrollment(
-      supabase,
-      event.entity_id,
+  for (const row of enrollmentResult.data ?? []) {
+    entityCache.set(
+      `enrollment:${String(row.id)}`,
+      row.application_id ? String(row.application_id) : null,
     );
-  } else if (event.entity_type === "enrollment_checklist_item") {
-    applicationId = await lookupApplicationIdForChecklistItem(
-      supabase,
-      event.entity_id,
+  }
+
+  for (const row of checklistResult.data ?? []) {
+    const checklist = row.enrollment_checklists as
+      | { application_id?: string }
+      | { application_id?: string }[]
+      | null;
+    const checklistRow = Array.isArray(checklist) ? checklist[0] : checklist;
+    entityCache.set(
+      `enrollment_checklist_item:${String(row.id)}`,
+      checklistRow?.application_id ? String(checklistRow.application_id) : null,
     );
-  } else if (event.entity_type === "payment") {
-    const payment = await getPaymentById(supabase, event.entity_id);
-    applicationId = payment?.applicationId ?? null;
   }
 
-  const paymentId = metadataString(event.metadata, "paymentId");
-  if (!applicationId && paymentId) {
-    const payment = await getPaymentById(supabase, paymentId);
-    applicationId = payment?.applicationId ?? null;
+  for (const [paymentId, applicationId] of paymentApplicationIds) {
+    entityCache.set(`payment:${paymentId}`, applicationId);
   }
 
-  cache.set(cacheKey, applicationId);
-  return applicationId;
+  for (const event of deferredEvents) {
+    if (eventResults.has(event.id)) continue;
+
+    let applicationId: string | null = null;
+
+    if (event.entity_id) {
+      const cacheKey = `${event.entity_type}:${event.entity_id}`;
+      applicationId = entityCache.get(cacheKey) ?? null;
+    }
+
+    const paymentId = metadataString(event.metadata, "paymentId");
+    if (!applicationId && paymentId) {
+      applicationId = paymentApplicationIds.get(paymentId) ?? null;
+    }
+
+    eventResults.set(event.id, applicationId);
+  }
+
+  return eventResults;
 }
 
 export async function resolveActivityNotificationLink(
@@ -1036,15 +1092,15 @@ export async function fetchSchoolAdminActivityNotifications(
   const hasMore = rawEvents.length > limit;
   const events = hasMore ? rawEvents.slice(0, limit) : rawEvents;
 
+  const applicationIdByEventId = await resolveApplicationIdsForEvents(
+    supabase,
+    events,
+  );
   const applicationIdCache = new Map<string, string | null>();
   const applicationIds: string[] = [];
 
   for (const event of events) {
-    const applicationId = await resolveApplicationId(
-      supabase,
-      event,
-      applicationIdCache,
-    );
+    const applicationId = applicationIdByEventId.get(event.id) ?? null;
     applicationIdCache.set(`event:${event.id}`, applicationId);
     if (applicationId) {
       applicationIds.push(applicationId);

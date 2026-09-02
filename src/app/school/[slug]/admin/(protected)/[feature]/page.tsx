@@ -12,12 +12,14 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { Suspense } from "react";
+import AdminDashboardContentSkeleton from "@/components/school-admin/AdminDashboardContentSkeleton";
+import AdminDashboardHeader from "@/components/school-admin/AdminDashboardHeader";
+import AdminDashboardSummaryLoader from "@/components/school-admin/AdminDashboardSummaryLoader";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadAdminMessagesPageData } from "@/lib/messages/load-messages-page-data";
 import { getRequestUser } from "@/lib/auth/session";
-import { fetchAdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -28,10 +30,6 @@ const SchedulePage = nextDynamic(
 const CommitteesPage = nextDynamic(
   () => import("@/components/school-admin/committees/CommitteesPage"),
   { loading: () => <AdminPageSkeleton label="Loading committees" /> },
-);
-const AdminDashboardPage = nextDynamic(
-  () => import("@/components/school-admin/AdminDashboardPage"),
-  { loading: () => <AdminPageSkeleton label="Loading dashboard" /> },
 );
 const AdminMessagesPage = nextDynamic(
   () => import("@/components/school-admin/AdminMessagesPage"),
@@ -113,19 +111,6 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
 
   if (feature === "dashboard") {
     const user = await getRequestUser();
-    const admin = createAdminClient();
-    const initialSummary = await fetchAdminDashboardSummary(
-      supabase,
-      admin,
-      org.id,
-      slug,
-      org.features.admin,
-      {
-        userId: user?.id,
-        schoolName: org.name,
-      },
-    );
-
     const userFirstName =
       user?.user_metadata?.first_name ??
       user?.user_metadata?.full_name?.split(" ")?.[0] ??
@@ -133,14 +118,16 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
       null;
 
     return (
-      <AdminDashboardPage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-        schoolName={org.name}
-        userFirstName={userFirstName}
-        initialSummary={initialSummary}
-      />
+      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
+        <AdminDashboardHeader
+          slug={slug}
+          schoolName={org.name}
+          userFirstName={userFirstName}
+        />
+        <Suspense fallback={<AdminDashboardContentSkeleton />}>
+          <AdminDashboardSummaryLoader org={org} slug={slug} user={user} />
+        </Suspense>
+      </div>
     );
   }
 

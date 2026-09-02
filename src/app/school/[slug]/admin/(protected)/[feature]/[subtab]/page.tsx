@@ -4,14 +4,17 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import ApplicationSubmissionsPageShell from "@/components/school-admin/admissions/ApplicationSubmissionsPageShell";
+import ApplicationSubmissionsTableLoader from "@/components/school-admin/admissions/ApplicationSubmissionsTableLoader";
+import ApplicationSubmissionsTableSkeleton from "@/components/school-admin/admissions/ApplicationSubmissionsTableSkeleton";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import {
   getAdminPageLabel,
   getAdminSubtabLabel,
 } from "@/lib/organization-settings/admin-nav";
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
-import { loadApplicationSubmissionsPageData } from "@/lib/school-admin/load-submissions-page-data";
 import { loadStudentsPageData } from "@/lib/school-admin/load-students-page-data";
+import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-meta";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -22,10 +25,6 @@ const ProgramsPage = nextDynamic(
 const ApplicationFormsPage = nextDynamic(
   () => import("@/components/school-admin/admissions/ApplicationFormsPage"),
   { loading: () => <AdminPageSkeleton label="Loading enrollment flows" /> },
-);
-const ApplicationSubmissionsPage = nextDynamic(
-  () => import("@/components/school-admin/admissions/ApplicationSubmissionsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading submissions" /> },
 );
 const PaymentsSetupPage = nextDynamic(
   () => import("@/components/school-admin/admissions/PaymentsSetupPage"),
@@ -145,18 +144,22 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
   }
 
   if (feature === "admissions" && subtab === "submissions") {
-    const initialData = await loadApplicationSubmissionsPageData(org.id);
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const initialMeta = await fetchSubmissionPageMeta(supabase, org.id);
 
     return (
-      <Suspense>
-        <ApplicationSubmissionsPage
-          organizationId={org.id}
-          branding={org.branding}
-          schoolName={org.name}
-          slug={slug}
-          initialSubmissions={initialData.submissions}
-        />
-      </Suspense>
+      <ApplicationSubmissionsPageShell
+        organizationId={org.id}
+        branding={org.branding}
+        schoolName={org.name}
+        slug={slug}
+        initialMeta={initialMeta}
+      >
+        <Suspense fallback={<ApplicationSubmissionsTableSkeleton />}>
+          <ApplicationSubmissionsTableLoader organizationId={org.id} />
+        </Suspense>
+      </ApplicationSubmissionsPageShell>
     );
   }
 
