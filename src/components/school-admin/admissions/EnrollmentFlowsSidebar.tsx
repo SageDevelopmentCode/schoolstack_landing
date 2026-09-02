@@ -136,12 +136,150 @@ function FlowListItem({
   );
 }
 
-function flowStatusLabel(status: ApplicationFormStatus | "none"): string {
-  if (status === "none") return "None";
-  return getStatusLabel(status);
+function ProgramFlowCard({
+  C,
+  theme,
+  programName,
+  applyForm,
+  checklist,
+  onSelectApply,
+  onSelectChecklist,
+}: {
+  C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
+  programName: string;
+  applyForm?: ApplicationFormVersion;
+  checklist?: EnrollmentChecklistTemplate;
+  onSelectApply?: () => void;
+  onSelectChecklist?: () => void;
+}) {
+  const story = Boolean(theme);
+  const lineColor = theme?.line ?? C.border;
+
+  function renderStepContent({
+    stepLabel,
+    title,
+    status,
+    emptyLabel,
+    onClick,
+  }: {
+    stepLabel: string;
+    title?: string | null;
+    status?: ApplicationFormStatus | "none";
+    emptyLabel?: string;
+    onClick?: () => void;
+  }) {
+    const isInteractive = Boolean(onClick && title);
+    const inner = (
+      <div className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+          {stepLabel}
+        </p>
+        {title ? (
+          <p className="text-xs font-medium leading-snug" style={{ color: C.textPrimary }}>
+            {title}
+          </p>
+        ) : (
+          <p className="text-xs leading-snug" style={{ color: C.textTertiary }}>
+            {emptyLabel ?? "None"}
+          </p>
+        )}
+        {title && status && status !== "none" ? (
+          story && theme ? (
+            <AdminChip theme={theme} tone={statusChipTone(status)}>
+              {getStatusLabel(status)}
+            </AdminChip>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: C.textTertiary }}>
+              <StatusIcon status={status} variant="plain" size="sm" />
+              <span>{getStatusLabel(status)}</span>
+            </span>
+          )
+        ) : null}
+      </div>
+    );
+
+    if (isInteractive) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          className="w-full rounded-md px-1 text-left transition-colors hover:bg-black/[0.03]"
+        >
+          {inner}
+        </button>
+      );
+    }
+
+    return <div className="px-1">{inner}</div>;
+  }
+
+  function renderIcon(kind: "apply" | "enrollment", hasItem: boolean) {
+    const Icon = kind === "apply" ? FileText : ClipboardList;
+    return (
+      <div
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+        style={{
+          backgroundColor: hasItem
+            ? (theme?.primarySoft ?? C.accentLight)
+            : (theme?.paper ?? C.bg),
+          border: hasItem ? "none" : `1px dashed ${lineColor}`,
+        }}
+      >
+        <Icon
+          className="h-3.5 w-3.5"
+          style={{ color: hasItem ? (theme?.primary ?? C.accent) : C.textTertiary }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <li
+      className="rounded-lg border px-2.5 py-2.5"
+      style={{
+        borderColor: lineColor,
+        backgroundColor: theme?.paper ?? C.surface,
+      }}
+    >
+      <p className="mb-1.5 px-1 text-sm font-semibold" style={{ color: C.textPrimary }}>
+        {programName}
+      </p>
+      <div className="flex gap-2.5">
+        <div className="flex flex-col items-center pt-1">
+          {renderIcon("apply", Boolean(applyForm))}
+          <div
+            className="my-1 w-px flex-1 min-h-[20px]"
+            style={
+              applyForm
+                ? { backgroundColor: lineColor }
+                : { borderLeft: `1px dashed ${lineColor}` }
+            }
+          />
+          {renderIcon("enrollment", Boolean(checklist))}
+        </div>
+        <div className="min-w-0 flex-1">
+          {renderStepContent({
+            stepLabel: FLOW_TYPE_LABELS.apply,
+            title: applyForm?.title,
+            status: applyForm?.status ?? "none",
+            emptyLabel: "None",
+            onClick: onSelectApply,
+          })}
+          {renderStepContent({
+            stepLabel: "Enrollment",
+            title: checklist?.name,
+            status: checklist?.status ?? "none",
+            emptyLabel: "None — mark enrolled directly",
+            onClick: onSelectChecklist,
+          })}
+        </div>
+      </div>
+    </li>
+  );
 }
 
-function ProgramPairingSummary({
+function ProgramFlowRoadmap({
   C,
   theme,
   programs,
@@ -166,9 +304,9 @@ function ProgramPairingSummary({
       style={{ borderColor: theme?.line ?? C.border, backgroundColor: theme?.paper ?? C.surface }}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
-        By program
+        Program flows
       </p>
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-2.5 space-y-2.5">
         {programs.map((program) => {
           const applyForm = forms.find(
             (form) =>
@@ -176,54 +314,27 @@ function ProgramPairingSummary({
               form.program_id === program.id &&
               form.status !== "archived",
           );
-          const checklist = activeChecklists.find(
-            (row) => row.programId === program.id,
-          );
+          const checklist = activeChecklists.find((row) => row.programId === program.id);
 
           return (
-            <li
+            <ProgramFlowCard
               key={program.id}
-              className="rounded-xl border px-3 py-3"
-              style={{ borderColor: theme?.line ?? C.border }}
-            >
-              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                {program.name}
-              </p>
-              <div className="mt-2 space-y-1.5 text-[11px]" style={{ color: C.textSecondary }}>
-                <div className="flex items-start justify-between gap-2">
-                  <span>Apply form</span>
-                  {applyForm ? (
-                    <button
-                      type="button"
-                      onClick={() => onSelect({ kind: "apply", id: applyForm.id })}
-                      className="text-right font-medium underline-offset-2 hover:underline"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {applyForm.title} · {flowStatusLabel(applyForm.status)}
-                    </button>
-                  ) : (
-                    <span style={{ color: C.textTertiary }}>None</span>
-                  )}
-                </div>
-                <div className="flex items-start justify-between gap-2">
-                  <span>Enrollment</span>
-                  {checklist ? (
-                    <button
-                      type="button"
-                      onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
-                      className="text-right font-medium underline-offset-2 hover:underline"
-                      style={{ color: C.textPrimary }}
-                    >
-                      {checklist.name} · {flowStatusLabel(checklist.status)}
-                    </button>
-                  ) : (
-                    <span style={{ color: C.textTertiary }}>
-                      None — mark enrolled directly
-                    </span>
-                  )}
-                </div>
-              </div>
-            </li>
+              C={C}
+              theme={theme}
+              programName={program.name}
+              applyForm={applyForm}
+              checklist={checklist}
+              onSelectApply={
+                applyForm
+                  ? () => onSelect({ kind: "apply", id: applyForm.id })
+                  : undefined
+              }
+              onSelectChecklist={
+                checklist
+                  ? () => onSelect({ kind: "checklist", id: checklist.id })
+                  : undefined
+              }
+            />
           );
         })}
       </ul>
@@ -433,7 +544,7 @@ export default function EnrollmentFlowsSidebar({
                       onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
                     />
                   ))}
-                  <ProgramPairingSummary
+                  <ProgramFlowRoadmap
                     C={C}
                     theme={theme}
                     programs={programs}
