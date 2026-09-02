@@ -43,7 +43,7 @@ as $$
         afv.public_slug
       from public.applications app
       inner join public.application_form_versions afv
-        on afv.id = app.application_form_version_id
+        on afv.id = app.form_version_id
       where app.organization_id = p_organization_id
       order by
         coalesce(nullif(trim(afv.public_slug), ''), afv.title),
