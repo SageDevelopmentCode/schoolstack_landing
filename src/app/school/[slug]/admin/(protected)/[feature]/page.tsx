@@ -16,9 +16,11 @@ import AdminDashboardContentSkeleton from "@/components/school-admin/AdminDashbo
 import AdminDashboardHeader from "@/components/school-admin/AdminDashboardHeader";
 import AdminDashboardSummaryLoader from "@/components/school-admin/AdminDashboardSummaryLoader";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import AdminMessagesPageShell from "@/components/school-admin/messages/AdminMessagesPageShell";
+import AdminMessagesInboxLoader from "@/components/school-admin/messages/AdminMessagesInboxLoader";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { loadAdminMessagesPageData } from "@/lib/messages/load-messages-page-data";
+import { loadAdminMessagesViewerContext } from "@/lib/messages/admin-messages";
 import { getRequestUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -30,10 +32,6 @@ const SchedulePage = nextDynamic(
 const CommitteesPage = nextDynamic(
   () => import("@/components/school-admin/committees/CommitteesPage"),
   { loading: () => <AdminPageSkeleton label="Loading committees" /> },
-);
-const AdminMessagesPage = nextDynamic(
-  () => import("@/components/school-admin/AdminMessagesPage"),
-  { loading: () => <AdminPageSkeleton label="Loading messages" /> },
 );
 const NotificationsSettingsPage = nextDynamic(
   () => import("@/components/school-admin/notifications/NotificationsSettingsPage"),
@@ -138,22 +136,28 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const admin = createAdminClient();
-    const initialInbox = await loadAdminMessagesPageData(
+    const viewerContext = await loadAdminMessagesViewerContext(
       admin,
       supabase,
       org.id,
       user.id,
-      org.name,
     );
 
     return (
-      <AdminMessagesPage
+      <AdminMessagesPageShell
         organizationId={org.id}
         organizationSlug={slug}
         schoolName={org.name}
         branding={org.branding}
-        initialInbox={initialInbox}
-      />
+        viewerContext={viewerContext}
+      >
+        <Suspense fallback={null}>
+          <AdminMessagesInboxLoader
+            organizationId={org.id}
+            schoolName={org.name}
+          />
+        </Suspense>
+      </AdminMessagesPageShell>
     );
   }
 

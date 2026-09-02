@@ -2,23 +2,46 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { listAdminMessageContacts } from "./contacts";
 import { listThreadsForOrganization } from "./threads";
-import type { MessagesInboxData } from "./types";
+import type { MessageThreadSummary, MessagesInboxData, MessagesViewerContext } from "./types";
 
-export async function loadAdminMessagesInbox(
+export async function loadAdminMessagesViewerContext(
+  admin: SupabaseClient,
+  supabase: SupabaseClient,
+  organizationId: string,
+  userId: string,
+): Promise<MessagesViewerContext> {
+  const staffMemberId = await getStaffMemberIdForUser(
+    supabase,
+    userId,
+    organizationId,
+  );
+
+  if (!staffMemberId) {
+    return { staffMemberId: null, staffDisplayName: null };
+  }
+
+  const { data: staffRow } = await admin
+    .from("staff_members")
+    .select("first_name, last_name")
+    .eq("id", staffMemberId)
+    .maybeSingle();
+
+  const staffDisplayName = staffRow
+    ? [staffRow.first_name, staffRow.last_name].filter(Boolean).join(" ") || null
+    : null;
+
+  return { staffMemberId, staffDisplayName };
+}
+
+export async function loadAdminMessagesThreads(
   admin: SupabaseClient,
   organizationId: string,
   userId: string,
   schoolName: string,
-  supabase?: SupabaseClient,
-): Promise<MessagesInboxData> {
+): Promise<MessageThreadSummary[]> {
   const schoolOfficeLabel = `${schoolName} Office`;
-  const contacts = await listAdminMessageContacts(
-    admin,
-    organizationId,
-    schoolOfficeLabel,
-  );
 
-  const threads = await listThreadsForOrganization(
+  return listThreadsForOrganization(
     admin,
     organizationId,
     userId,
@@ -26,35 +49,52 @@ export async function loadAdminMessagesInbox(
     "admin",
     { type: "admin" },
   );
+}
 
-  let staffMemberId: string | null = null;
-  let staffDisplayName: string | null = null;
+export async function loadAdminMessagesContacts(
+  admin: SupabaseClient,
+  organizationId: string,
+  schoolName: string,
+) {
+  const schoolOfficeLabel = `${schoolName} Office`;
+  return listAdminMessageContacts(admin, organizationId, schoolOfficeLabel);
+}
 
-  if (supabase) {
-    staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      userId,
+type LoadAdminMessagesInboxOptions = {
+  includeContacts?: boolean;
+};
+
+export async function loadAdminMessagesInbox(
+  admin: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  schoolName: string,
+  supabase?: SupabaseClient,
+  options: LoadAdminMessagesInboxOptions = {},
+): Promise<MessagesInboxData> {
+  const includeContacts = options.includeContacts ?? false;
+  const schoolOfficeLabel = `${schoolName} Office`;
+
+  const [threads, contacts, viewerContext] = await Promise.all([
+    listThreadsForOrganization(
+      admin,
       organizationId,
-    );
-
-    if (staffMemberId) {
-      const { data: staffRow } = await admin
-        .from("staff_members")
-        .select("first_name, last_name")
-        .eq("id", staffMemberId)
-        .maybeSingle();
-
-      if (staffRow) {
-        staffDisplayName =
-          [staffRow.first_name, staffRow.last_name].filter(Boolean).join(" ") ||
-          null;
-      }
-    }
-  }
+      userId,
+      schoolOfficeLabel,
+      "admin",
+      { type: "admin" },
+    ),
+    includeContacts
+      ? listAdminMessageContacts(admin, organizationId, schoolOfficeLabel)
+      : Promise.resolve([]),
+    supabase
+      ? loadAdminMessagesViewerContext(admin, supabase, organizationId, userId)
+      : Promise.resolve({ staffMemberId: null, staffDisplayName: null }),
+  ]);
 
   return {
     threads,
     contacts,
-    viewerContext: { staffMemberId, staffDisplayName },
+    viewerContext,
   };
 }
