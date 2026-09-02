@@ -4,10 +4,8 @@ import type { ReactNode } from "react";
 import ParentAuthPage from "@/components/admissions/ParentAuthPage";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import { getRequestUser } from "@/lib/auth/session";
-import {
-  getFamilyUserProfile,
-  userHasEnrolledAccess,
-} from "@/lib/admissions/parent-portal-access";
+import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
@@ -62,7 +60,7 @@ export default async function SchoolParentProtectedLayout({
 
   // Enrolled parents always have family access; skip re-checking both in the switcher.
   const [userProfile, portalOptions] = await Promise.all([
-    getFamilyUserProfile(supabase, user.id, org.id, user),
+    getParentPortalUserProfile(supabase, org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
       hasEnrolledAccess: true,

@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ParentNotificationSettingsPage from "@/components/school-parent/ParentNotificationSettingsPage";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
+import { getParentPortalPrimaryFamilyId, getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { getFamilyNotificationEmailSettings } from "@/lib/notifications/family-notification-emails";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -46,11 +48,31 @@ export default async function SchoolParentNotificationsPage({ params }: PageProp
     notFound();
   }
 
+  const [userProfile, familyId] = await Promise.all([
+    getParentPortalUserProfile(supabase, org.id),
+    getParentPortalPrimaryFamilyId(supabase, org.id),
+  ]);
+
+  const initialSettings = familyId
+    ? await getFamilyNotificationEmailSettings(supabase, {
+        familyId,
+        loginEmail: userProfile.email,
+      })
+    : null;
+
   return (
     <SchoolParentPageShell title="Notification settings">
       <ParentNotificationSettingsPage
         organizationId={org.id}
         branding={org.branding}
+        initialSettings={
+          familyId && initialSettings
+            ? {
+                familyId,
+                ...initialSettings,
+              }
+            : undefined
+        }
       />
     </SchoolParentPageShell>
   );

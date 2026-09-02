@@ -1,24 +1,25 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import nextDynamic from "next/dynamic";
+import { Suspense } from "react";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageShell";
+import ParentBillingPage from "@/components/school-parent/billing/ParentBillingPage";
+import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentCalendarPageShell";
+import ParentCalendarPreviewEventsLoader from "@/components/school-parent/calendar/ParentCalendarPreviewEventsLoader";
+import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
+import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
+import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
   familyPreviewParentPath,
-  getFamilyPreviewGuardianUserId,
-  listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
-import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
-import { buildEnrollmentAgreementIncompleteBannerItems } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
-import {
-  listEnrollmentAgreementAmendmentsForApplications,
-  listIncompleteEnrollmentAgreementsForApplications,
-} from "@/lib/admissions/enrollment-checklist-materialization";
-import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
+import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
+import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
+import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -26,36 +27,18 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
-import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
-import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
-import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
+import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
-import { loadParentCalendarPreviewData } from "@/lib/school-events/load-parent-calendar-preview-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
-const ParentHomePage = nextDynamic(
-  () => import("@/components/school-parent/ParentHomePage"),
-);
-const ParentBillingPage = nextDynamic(
-  () => import("@/components/school-parent/billing/ParentBillingPage"),
-);
-const ParentCommitteesPage = nextDynamic(
-  () => import("@/components/school-parent/committees/ParentCommitteesPage"),
-);
-const ParentMessagesPage = nextDynamic(
-  () => import("@/components/school-parent/ParentMessagesPage"),
-);
-const ParentCalendarPage = nextDynamic(
-  () => import("@/components/school-parent/calendar/ParentCalendarPage"),
-);
-
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; familyId: string; feature: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -78,8 +61,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function FamilyPreviewParentFeaturePage({ params }: PageProps) {
+export default async function FamilyPreviewParentFeaturePage({
+  params,
+  searchParams,
+}: PageProps) {
   const { slug, familyId, feature } = await params;
+  const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -105,79 +92,47 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   const previewBasePath = familyPreviewBasePath(slug, familyId);
   const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
   const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
+  const admin = createAdminClient();
 
   if (feature === "portal") {
-    const admin = createAdminClient();
-    const [familyChildren, upcomingEvents, previewGuardianUserId] =
-      await Promise.all([
-        listFamilyChildrenForHomeByFamilyId(supabase, org.id, familyId),
-        listUpcomingEventsForOrg(admin, org.id, 3),
-        getFamilyPreviewGuardianUserId(supabase, org.id, familyId),
-      ]);
+    const [upcomingEvents, homeMeta, classroomSignupAttentionItems] = await Promise.all([
+      listUpcomingEventsForOrg(admin, org.id, 3),
+      fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
+      isParentFeatureEnabled(org.features, "classroom_signups")
+        ? loadParentSignupAttentionItems(admin, org.id, familyId)
+        : Promise.resolve([]),
+    ]);
     const quickActions = buildParentQuickActions(
       slug,
       org.features,
       previewParentBasePath,
     );
-    const onboardingItems = await loadResolvedParentOnboardingItems({
-      supabase,
-      organizationId: org.id,
-      familyId,
-      userId:
-        previewGuardianUserId ?? "00000000-0000-0000-0000-000000000000",
-      slug,
-      features: org.features,
-      previewBasePath: previewParentBasePath,
-      familyChildren,
-    });
-    const applicationIds = familyChildren.map((child) => child.applicationId);
-    const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
-      listEnrollmentAgreementAmendmentsForApplications(
-        supabase,
-        org.id,
-        applicationIds,
-      ),
-      listIncompleteEnrollmentAgreementsForApplications(
-        supabase,
-        org.id,
-        applicationIds,
-      ),
-    ]);
-    const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
-      schoolSlug: slug,
-      familyChildren,
-      amendmentsByApplicationId: Object.fromEntries(amendmentsByApplicationId.entries()),
-      previewBasePath,
-    });
-    const enrollmentIncompleteBannerItems = buildEnrollmentAgreementIncompleteBannerItems({
-      schoolSlug: slug,
-      familyChildren,
-      incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
-      previewBasePath,
-    });
-    const classroomSignupAttentionItems = isParentFeatureEnabled(
-      org.features,
-      "classroom_signups",
-    )
-      ? await loadParentSignupAttentionItems(admin, org.id, familyId)
-      : [];
 
     return (
       <SchoolParentPageShell title={pageName}>
-        <ParentHomePage
+        <ParentHomePageShell
           branding={org.branding}
           schoolSlug={slug}
+          organizationId={org.id}
+          familyId={familyId}
           userProfile={userProfile}
-          familyChildren={familyChildren}
           quickActions={quickActions}
-          onboardingItems={onboardingItems}
           upcomingEvents={upcomingEvents}
-          enrollmentAmendmentBannerItems={enrollmentAmendmentBannerItems}
-          enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
-          classroomSignupAttentionItems={classroomSignupAttentionItems}
+          homeMeta={homeMeta}
+          initialSignupAttentionItems={classroomSignupAttentionItems}
           previewMode
           previewBasePath={previewBasePath}
-        />
+        >
+          <Suspense fallback={null}>
+            <ParentHomePreviewContentLoader
+              organizationId={org.id}
+              familyId={familyId}
+              slug={slug}
+              features={org.features}
+              previewBasePath={previewParentBasePath}
+            />
+          </Suspense>
+        </ParentHomePageShell>
       </SchoolParentPageShell>
     );
   }
@@ -204,15 +159,20 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   }
 
   if (feature === "committees") {
+    const selectedCommitteeId =
+      typeof resolvedSearchParams.committee === "string"
+        ? resolvedSearchParams.committee
+        : null;
     const initialData = await loadParentCommitteesPreviewData({
       organizationId: org.id,
       familyId,
+      selectedCommitteeId,
     });
     const guardianName = userProfile.displayName || userProfile.email || "Parent";
 
     return (
       <SchoolParentPageShell title={pageName}>
-        <ParentCommitteesPage
+        <ParentCommitteesPageShell
           organizationId={org.id}
           schoolSlug={slug}
           schoolName={org.name}
@@ -226,7 +186,6 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   }
 
   if (feature === "messages") {
-    const admin = createAdminClient();
     const { data: guardian } = await admin
       .from("guardians")
       .select("user_id")
@@ -264,17 +223,18 @@ export default async function FamilyPreviewParentFeaturePage({ params }: PagePro
   }
 
   if (feature === "calendar") {
-    const initialData = await loadParentCalendarPreviewData({
-      organizationId: org.id,
-    });
-
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
-        <ParentCalendarPage
+        <ParentCalendarPageShell
+          organizationId={org.id}
+          organizationSlug={slug}
           branding={org.branding}
-          initialData={initialData}
           previewMode
-        />
+        >
+          <Suspense fallback={null}>
+            <ParentCalendarPreviewEventsLoader organizationId={org.id} />
+          </Suspense>
+        </ParentCalendarPageShell>
       </SchoolParentPageShell>
     );
   }

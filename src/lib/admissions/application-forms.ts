@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   applicationFormFromRow,
   defaultApplicationFormFeeConfig,
+  defaultApplicationFormNotificationConfig,
+  defaultApplicationFormPostSubmitConfig,
   emptyApplicationFormSchema,
   emptyApplicationSection,
   normalizePublicSlug,
@@ -204,6 +206,60 @@ export async function listApplicationForms(
   if (error) throw error;
   return (data ?? []).map((row) =>
     applicationFormFromRow(row as Record<string, unknown>),
+  );
+}
+
+const APPLICATION_FORM_SUMMARY_SELECT = `
+  id,
+  organization_id,
+  program_id,
+  form_kind,
+  version,
+  status,
+  title,
+  intro,
+  public_slug,
+  published_at,
+  created_at,
+  updated_at
+`;
+
+export function applicationFormSummaryFromRow(
+  row: Record<string, unknown>,
+): ApplicationFormVersion {
+  return {
+    id: String(row.id),
+    organization_id: String(row.organization_id),
+    program_id: row.program_id ? String(row.program_id) : null,
+    form_kind: row.form_kind === "apply" ? "apply" : "custom",
+    version: Number(row.version),
+    status: row.status as ApplicationFormVersion["status"],
+    title: String(row.title),
+    intro: row.intro ? String(row.intro) : null,
+    public_slug: row.public_slug ? String(row.public_slug) : null,
+    schema: emptyApplicationFormSchema(),
+    fee_config: defaultApplicationFormFeeConfig(),
+    post_submit_config: defaultApplicationFormPostSubmitConfig(),
+    notification_config: defaultApplicationFormNotificationConfig(),
+    published_at: row.published_at ? String(row.published_at) : null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+  };
+}
+
+export async function listApplicationFormSummaries(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<ApplicationFormVersion[]> {
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .select(APPLICATION_FORM_SUMMARY_SELECT)
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) =>
+    applicationFormSummaryFromRow(row as Record<string, unknown>),
   );
 }
 

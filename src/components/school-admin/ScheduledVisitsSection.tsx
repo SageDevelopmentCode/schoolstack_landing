@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
 import {
-  listOrgScheduledVisits,
   type AdminScheduledVisit,
   type ScheduledVisitTiming,
 } from "@/lib/admissions/admin-scheduled-visits";
@@ -13,7 +13,6 @@ import { formatGradeValuesLabel } from "@/lib/admissions/admissions-observation-
 import type { PostSubmitActionType } from "@/lib/admissions/application-form-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { createClient } from "@/utils/supabase/client";
 
 type ScheduledVisitsSectionProps = {
   theme: ParentThemeTokens;
@@ -24,6 +23,7 @@ type ScheduledVisitsSectionProps = {
   onVisitClick: (visit: AdminScheduledVisit) => void;
   showHeader?: boolean;
   onLoadingChange?: (loading: boolean) => void;
+  visitsDeferred?: boolean;
 };
 
 type TimingFilter = "all" | ScheduledVisitTiming;
@@ -149,32 +149,12 @@ export default function ScheduledVisitsSection({
   onVisitClick,
   showHeader = true,
   onLoadingChange,
+  visitsDeferred = false,
 }: ScheduledVisitsSectionProps) {
-  const supabase = useMemo(() => createClient(), []);
-  const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { visits, visitsReady } = useScheduleVisitsContext();
+  const loading = visitsDeferred || !visitsReady;
   const [timingFilter, setTimingFilter] = useState<TimingFilter>("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState<VisitTypeFilter>("all");
-
-  const loadVisits = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await listOrgScheduledVisits(supabase, organizationId);
-      setVisits(rows);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load scheduled visits.");
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, supabase]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadVisits();
-    });
-  }, [loadVisits]);
 
   useEffect(() => {
     onLoadingChange?.(loading);
@@ -267,10 +247,6 @@ export default function ScheduledVisitsSection({
           compact
           label="Loading scheduled visits"
         />
-      ) : error ? (
-        <p className="text-sm" style={{ color: C.error }}>
-          {error}
-        </p>
       ) : visits.length === 0 ? (
         <AdminCard theme={theme} padding="canvas">
           <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>

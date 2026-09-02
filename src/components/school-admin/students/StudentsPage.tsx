@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+import type { StudentsApiResponse } from "@/app/api/school-admin/students/route";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -15,32 +16,28 @@ import StudentDetailPanel from "./StudentDetailPanel";
 import StudentEnrolledCell from "./StudentEnrolledCell";
 import StudentIdentityCell from "./StudentIdentityCell";
 import StudentTeacherCell from "./StudentTeacherCell";
-import {
-  deriveStudentRosterMetrics,
-  filterStudentsByRosterFilter,
-  matchesStudentSearch,
-  type StudentRosterFilter,
-} from "@/lib/school-admin/admin-student-roster-metrics";
+import type { StudentRosterFilter } from "@/lib/school-admin/admin-student-roster-metrics";
 import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
+import type { StudentsTableData } from "@/lib/school-admin/load-students-table-data";
+import type { StudentsPageMeta } from "@/lib/school-admin/students-page-meta";
 import {
   formatEnrolledStudentName,
   formatStaffMemberName,
   formatStudentGrade,
-  listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
-import { createClient } from "@/utils/supabase/client";
 
 type StudentsPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   slug: string;
-  initialStudents?: AdminEnrolledStudentSummary[];
+  initialMeta: StudentsPageMeta;
+  initialTableData?: StudentsTableData;
+  tableDeferred?: boolean;
 };
 
 const STUDENTS_PAGE_SIZE = 50;
@@ -89,29 +86,41 @@ export default function StudentsPage({
   organizationId,
   branding,
   slug,
-  initialStudents,
+  initialMeta,
+  initialTableData,
+  tableDeferred = false,
 }: StudentsPageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
-  const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const deepLinkStudentId = searchParams.get("student");
-  const hasInitialData = initialStudents !== undefined;
+  const hasInitialTable = initialTableData !== undefined;
   const tableRef = useRef<HTMLDivElement>(null);
 
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
-    initialStudents ?? [],
+    initialTableData?.students ?? [],
   );
-  const [loading, setLoading] = useState(!hasInitialData);
+  const [totalCount, setTotalCount] = useState(initialTableData?.totalCount ?? 0);
+  const [pageSize, setPageSize] = useState(initialTableData?.pageSize ?? STUDENTS_PAGE_SIZE);
+  const [metrics, setMetrics] = useState(initialMeta);
+  const [initialLoading, setInitialLoading] = useState(!hasInitialTable && !tableDeferred);
+  const [isRefetching, setIsRefetching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(STUDENTS_PAGE_SIZE);
+  const [tableReady, setTableReady] = useState(hasInitialTable);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffRequested, setStaffRequested] = useState(false);
   const [assigningStudentId, setAssigningStudentId] = useState<string | null>(
     null,
   );
+
+  const studentsLengthRef = useRef(students.length);
+  studentsLengthRef.current = students.length;
 
   const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
   const staffPath = schoolAdminPath(slug, "my_school", "staff");
@@ -121,74 +130,138 @@ export default function StudentsPage({
     [staffMembers],
   );
 
-  const metrics = useMemo(
-    () => deriveStudentRosterMetrics(students),
-    [students],
+  const showProgramMetrics = metrics.programCount > 1;
+
+  const applyTableData = useCallback((tableData: StudentsTableData, { append = false } = {}) => {
+    setStudents((prev) =>
+      append ? [...prev, ...tableData.students] : tableData.students,
+    );
+    setTotalCount(tableData.totalCount);
+    setPageSize(tableData.pageSize);
+    setTableReady(true);
+    setInitialLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!initialTableData) return;
+    applyTableData(initialTableData);
+  }, [applyTableData, initialTableData]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [searchQuery]);
+
+  const fetchStudentsPage = useCallback(
+    async ({
+      offset,
+      append,
+      includeMeta,
+    }: {
+      offset: number;
+      append: boolean;
+      includeMeta?: boolean;
+    }) => {
+      const params = new URLSearchParams({
+        organizationId,
+        offset: String(offset),
+        limit: String(pageSize),
+        filter: rosterFilter,
+      });
+      if (debouncedSearch) {
+        params.set("q", debouncedSearch);
+      }
+      if (includeMeta) {
+        params.set("includeMeta", "1");
+      }
+
+      const response = await fetch(`/api/school-admin/students?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to load students.");
+      }
+
+      const body = (await response.json()) as StudentsApiResponse;
+
+      if (body.meta) {
+        setMetrics(body.meta);
+      }
+
+      if (append) {
+        setStudents((prev) => [...prev, ...body.students]);
+        setTotalCount(body.totalCount);
+        setPageSize(body.limit);
+      } else {
+        applyTableData({
+          students: body.students,
+          totalCount: body.totalCount,
+          pageSize: body.limit,
+          hasMore: body.hasMore,
+        });
+      }
+    },
+    [applyTableData, debouncedSearch, organizationId, pageSize, rosterFilter],
   );
 
-  const showProgramMetrics = metrics.programCount > 1;
+  const loadStudents = useCallback(
+    async ({ append = false, offset }: { append?: boolean; offset?: number } = {}) => {
+      const requestOffset = offset ?? (append ? studentsLengthRef.current : 0);
+
+      if (append) {
+        setLoadingMore(true);
+      } else if (tableReady) {
+        setIsRefetching(true);
+      } else {
+        setInitialLoading(true);
+      }
+      setError(null);
+
+      try {
+        await fetchStudentsPage({
+          offset: requestOffset,
+          append,
+          includeMeta: !append,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load students.";
+        if (!append && !tableReady) {
+          setError(message);
+        }
+      } finally {
+        setInitialLoading(false);
+        setIsRefetching(false);
+        setLoadingMore(false);
+      }
+    },
+    [fetchStudentsPage, tableReady],
+  );
+
+  const ensureStaffLoaded = useCallback(async () => {
+    if (staffRequested) return;
+    setStaffRequested(true);
+    setStaffLoading(true);
+
+    try {
+      const response = await fetch(`/api/school/${slug}/staff`);
+      if (!response.ok) {
+        throw new Error("Failed to load staff.");
+      }
+      const payload = (await response.json()) as {
+        staffMembers?: StaffMemberRecord[];
+      };
+      setStaffMembers(payload.staffMembers ?? []);
+    } catch {
+      setStaffMembers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  }, [slug, staffRequested]);
 
   function changeRosterFilter(next: StudentRosterFilter) {
     setRosterFilter(next);
-    setVisibleCount(STUDENTS_PAGE_SIZE);
+    setSelectedId(null);
   }
-
-  const loadStudents = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const rows = await listOrgEnrolledStudents(supabase, organizationId, {
-        limit: 500,
-      });
-      const withFlags = await mergeStudentStandingHealthFlags(
-        supabase,
-        organizationId,
-        rows,
-      );
-      setStudents(withFlags);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load students.");
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, supabase]);
-
-  useEffect(() => {
-    if (hasInitialData) return;
-    queueMicrotask(() => {
-      void loadStudents();
-    });
-  }, [hasInitialData, loadStudents]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadStaff() {
-      try {
-        const response = await fetch(`/api/school/${slug}/staff`);
-        if (!response.ok) {
-          throw new Error("Failed to load staff.");
-        }
-        const payload = (await response.json()) as {
-          staffMembers?: StaffMemberRecord[];
-        };
-        if (!cancelled) {
-          setStaffMembers(payload.staffMembers ?? []);
-        }
-      } catch {
-        if (!cancelled) {
-          setStaffMembers([]);
-        }
-      }
-    }
-
-    void loadStaff();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
 
   const handleStudentHealthChange = useCallback(
     (studentId: string, hasStandingHealthItems: boolean) => {
@@ -205,6 +278,8 @@ export default function StudentsPage({
 
   const handleSetTeachers = useCallback(
     async (studentId: string, staffMemberIds: string[]) => {
+      await ensureStaffLoaded();
+
       let previousStudents: AdminEnrolledStudentSummary[] = [];
 
       setAssigningStudentId(studentId);
@@ -262,6 +337,18 @@ export default function StudentsPage({
               : row,
           ),
         );
+
+        setMetrics((current) => {
+          const wasUnassigned = previousStudents.find((row) => row.id === studentId)
+            ?.assignedTeachers.length === 0;
+          const isUnassigned = result.assignedTeachers.length === 0;
+          if (wasUnassigned === isUnassigned) return current;
+          const delta = wasUnassigned && !isUnassigned ? -1 : !wasUnassigned && isUnassigned ? 1 : 0;
+          return {
+            ...current,
+            unassignedCount: Math.max(0, current.unassignedCount + delta),
+          };
+        });
       } catch (error) {
         setStudents(previousStudents);
         adminToast.error(formatActionError(error, "Failed to assign teachers."));
@@ -269,40 +356,34 @@ export default function StudentsPage({
         setAssigningStudentId(null);
       }
     },
-    [activeStaff, slug],
+    [activeStaff, ensureStaffLoaded, slug],
   );
 
+  const skipFilterFetchRef = useRef(true);
+
   useEffect(() => {
-    if (!deepLinkStudentId || loading) return;
+    if (tableDeferred) return;
+    if (skipFilterFetchRef.current) {
+      skipFilterFetchRef.current = false;
+      if (hasInitialTable) return;
+    }
+    queueMicrotask(() => {
+      void loadStudents({ offset: 0 });
+    });
+  }, [debouncedSearch, hasInitialTable, loadStudents, rosterFilter, tableDeferred]);
+
+  useEffect(() => {
+    if (!deepLinkStudentId || initialLoading) return;
     const match = students.find((row) => row.id === deepLinkStudentId);
     if (match) {
       queueMicrotask(() => setSelectedId(match.id));
     }
-  }, [deepLinkStudentId, loading, students]);
-
-  const filteredStudents = useMemo(() => {
-    const byFilter = filterStudentsByRosterFilter(students, rosterFilter);
-    return byFilter.filter((student) =>
-      matchesStudentSearch(
-        student,
-        searchQuery,
-        formatStudentGrade,
-        formatEnrolledStudentName,
-      ),
-    );
-  }, [rosterFilter, searchQuery, students]);
-
-  const visibleStudents = useMemo(
-    () => filteredStudents.slice(0, visibleCount),
-    [filteredStudents, visibleCount],
-  );
-
-  const hasMoreStudents = visibleStudents.length < filteredStudents.length;
+  }, [deepLinkStudentId, initialLoading, students]);
 
   const selectedStudent =
-    filteredStudents.find((row) => row.id === selectedId) ??
-    students.find((row) => row.id === selectedId) ??
-    null;
+    students.find((row) => row.id === selectedId) ?? null;
+
+  const hasMoreStudents = students.length < totalCount;
 
   const tableColumnCount = 7;
   const tableMinWidth = "min-w-[1040px]";
@@ -327,11 +408,15 @@ export default function StudentsPage({
     tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const showMetrics = metrics.totalCount > 0;
+  const showEmptyFilteredState =
+    tableReady && !initialLoading && students.length === 0 && totalCount === 0 && metrics.totalCount > 0;
+
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          {!loading && students.length > 0 ? (
+          {showMetrics ? (
             <>
               <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
                 <AdminMetricCard
@@ -386,6 +471,13 @@ export default function StudentsPage({
 
           <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
+              {isRefetching ? (
+                <Loader2
+                  className="h-3.5 w-3.5 animate-spin"
+                  style={{ color: theme.primary }}
+                  aria-label="Updating students"
+                />
+              ) : null}
               <StoryFilterPill
                 active={rosterFilter === "all"}
                 label="All"
@@ -412,10 +504,7 @@ export default function StudentsPage({
               <input
                 type="search"
                 value={searchQuery}
-                onChange={(event) => {
-                  setSearchQuery(event.target.value);
-                  setVisibleCount(STUDENTS_PAGE_SIZE);
-                }}
+                onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search students, families, or email"
                 className="w-full rounded-md border py-2 pl-9 pr-3 text-sm outline-none"
                 style={inputStyle}
@@ -430,11 +519,6 @@ export default function StudentsPage({
                   key={programName}
                   active={rosterFilter === programName}
                   label={programName}
-                  count={
-                    students.filter((student) =>
-                      student.programNames.includes(programName),
-                    ).length
-                  }
                   onClick={() => changeRosterFilter(programName)}
                   theme={theme}
                 />
@@ -443,7 +527,7 @@ export default function StudentsPage({
           ) : null}
 
           <div ref={tableRef}>
-            {loading ? (
+            {initialLoading ? (
               <AdminCard theme={theme} padding="none">
                 <SchoolAdminTableSkeleton
                   C={C}
@@ -459,7 +543,17 @@ export default function StudentsPage({
                   {error}
                 </p>
               </AdminCard>
-            ) : students.length === 0 ? (
+            ) : !tableReady && tableDeferred ? (
+              <AdminCard theme={theme} padding="none">
+                <SchoolAdminTableSkeleton
+                  C={C}
+                  rows={8}
+                  columns={tableColumnCount}
+                  showFilters={false}
+                  label="Loading students"
+                />
+              </AdminCard>
+            ) : metrics.totalCount === 0 ? (
               <AdminCard theme={theme} padding="canvas">
                 <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
                   No enrolled students yet. Mark applications as enrolled in Admissions to add
@@ -473,15 +567,29 @@ export default function StudentsPage({
                   Go to Admissions Submissions →
                 </Link>
               </AdminCard>
-            ) : filteredStudents.length === 0 ? (
+            ) : showEmptyFilteredState ? (
               <AdminCard theme={theme} padding="canvas">
                 <p className="text-sm" style={{ color: theme.muted }}>
                   No students match the current filters.
                 </p>
               </AdminCard>
             ) : (
-              <AdminCard theme={theme} padding="none" className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <AdminCard theme={theme} padding="none" className="relative overflow-hidden">
+                {isRefetching ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/55 pt-16"
+                    aria-hidden="true"
+                  >
+                    <Loader2
+                      className="h-5 w-5 animate-spin"
+                      style={{ color: theme.primary }}
+                    />
+                  </div>
+                ) : null}
+                <div
+                  className="overflow-x-auto transition-opacity duration-200"
+                  style={{ opacity: isRefetching ? 0.55 : 1 }}
+                >
                   <table className={`w-full ${tableMinWidth} border-collapse text-left`}>
                     <thead style={{ backgroundColor: "#FBFCFB" }}>
                       <tr>
@@ -497,7 +605,7 @@ export default function StudentsPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {visibleStudents.map((student) => {
+                      {students.map((student) => {
                         const isSelected = student.id === selectedId;
                         const isHovered = hoveredId === student.id;
                         const rowStyle = adminStudentRowStyle(C, {
@@ -567,8 +675,10 @@ export default function StudentsPage({
                                 assignedTeachers={student.assignedTeachers}
                                 activeStaff={activeStaff}
                                 staffPath={staffPath}
+                                staffLoading={staffLoading}
                                 disabled={assigningStudentId === student.id}
                                 onAssign={handleSetTeachers}
+                                onInteract={() => void ensureStaffLoaded()}
                               />
                             </td>
                             <td className="px-[15px] py-3">
@@ -589,18 +699,19 @@ export default function StudentsPage({
 
                 {hasMoreStudents ? (
                   <div
-                    className="flex justify-center px-4 py-3"
+                    className="flex justify-center border-t px-4 py-3"
                     style={{ borderTop: "1px solid #EDF1ED" }}
                   >
                     <button
                       type="button"
-                      onClick={() =>
-                        setVisibleCount((count) => count + STUDENTS_PAGE_SIZE)
-                      }
-                      className="text-sm font-extrabold"
+                      disabled={loadingMore}
+                      onClick={() => void loadStudents({ append: true })}
+                      className="text-[11px] font-extrabold disabled:opacity-60"
                       style={{ color: theme.primary }}
                     >
-                      Show more ({filteredStudents.length - visibleStudents.length} remaining) →
+                      {loadingMore
+                        ? "Loading more..."
+                        : `Show more (${totalCount - students.length} remaining) →`}
                     </button>
                   </div>
                 ) : null}
@@ -620,8 +731,10 @@ export default function StudentsPage({
             schoolSlug={slug}
             activeStaff={activeStaff}
             staffPath={staffPath}
+            staffLoading={staffLoading}
             assigningTeacher={assigningStudentId === selectedStudent.id}
             onAssignTeacher={handleSetTeachers}
+            onRequestStaff={() => void ensureStaffLoaded()}
             onStudentHealthChange={handleStudentHealthChange}
             onClose={() => setSelectedId(null)}
           />

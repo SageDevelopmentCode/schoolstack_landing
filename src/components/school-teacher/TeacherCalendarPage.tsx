@@ -28,7 +28,9 @@ export default function TeacherCalendarPage({
     return (
       <ParentCalendarPage
         branding={branding}
-        initialData={initialData}
+        organizationId={organizationId}
+        organizationSlug=""
+        events={initialData.events}
         previewMode={previewMode}
         agendaTitle="School agenda"
       />

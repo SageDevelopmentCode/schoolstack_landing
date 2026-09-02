@@ -13,8 +13,10 @@ import {
   getAdminSubtabLabel,
 } from "@/lib/organization-settings/admin-nav";
 import { isAdminNavPathEnabled } from "@/lib/organization-settings/admin-routes";
-import { loadStudentsPageData } from "@/lib/school-admin/load-students-page-data";
+import { fetchStudentsPageMeta } from "@/lib/school-admin/students-page-meta";
 import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-meta";
+import StudentsPageShell from "@/components/school-admin/students/StudentsPageShell";
+import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -22,10 +24,8 @@ const ProgramsPage = nextDynamic(
   () => import("@/components/school-admin/admissions/ProgramsPage"),
   { loading: () => <AdminPageSkeleton label="Loading programs" /> },
 );
-const ApplicationFormsPage = nextDynamic(
-  () => import("@/components/school-admin/admissions/ApplicationFormsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading enrollment flows" /> },
-);
+import EnrollmentFlowsPageShell from "@/components/school-admin/admissions/EnrollmentFlowsPageShell";
+import EnrollmentFlowsListLoader from "@/components/school-admin/admissions/EnrollmentFlowsListLoader";
 const PaymentsSetupPage = nextDynamic(
   () => import("@/components/school-admin/admissions/PaymentsSetupPage"),
   { loading: () => <AdminPageSkeleton label="Loading payments setup" /> },
@@ -38,17 +38,12 @@ const FinancesTransactionsPage = nextDynamic(
   () => import("@/components/school-admin/finances/FinancesTransactionsPage"),
   { loading: () => <AdminPageSkeleton label="Loading transactions" /> },
 );
-const TuitionPage = nextDynamic(
-  () => import("@/components/school-admin/tuition/TuitionPage"),
-  { loading: () => <AdminPageSkeleton label="Loading tuition" /> },
-);
+import TuitionPageShell from "@/components/school-admin/tuition/TuitionPageShell";
+import TuitionDashboardLoader from "@/components/school-admin/tuition/TuitionDashboardLoader";
+import { fetchTuitionSetupStatus } from "@/lib/tuition/setup-status";
 const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
   { loading: () => <AdminPageSkeleton label="Loading staff" /> },
-);
-const StudentsPage = nextDynamic(
-  () => import("@/components/school-admin/students/StudentsPage"),
-  { loading: () => <AdminPageSkeleton label="Loading students" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -119,14 +114,16 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
 
   if (feature === "admissions" && subtab === "flows") {
     return (
-      <Suspense>
-        <ApplicationFormsPage
-          organizationId={org.id}
-          branding={org.branding}
-          schoolName={org.name}
-          slug={slug}
-        />
-      </Suspense>
+      <EnrollmentFlowsPageShell
+        organizationId={org.id}
+        branding={org.branding}
+        schoolName={org.name}
+        slug={slug}
+      >
+        <Suspense fallback={null}>
+          <EnrollmentFlowsListLoader organizationId={org.id} />
+        </Suspense>
+      </EnrollmentFlowsPageShell>
     );
   }
 
@@ -184,27 +181,38 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
   }
 
   if (feature === "my_school" && subtab === "tuition") {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    const setupStatus = await fetchTuitionSetupStatus(supabase, org.id);
+
     return (
-      <TuitionPage
+      <TuitionPageShell
         organizationId={org.id}
         branding={org.branding}
         slug={slug}
-      />
+        setupStatus={setupStatus}
+      >
+        <Suspense fallback={null}>
+          <TuitionDashboardLoader organizationId={org.id} />
+        </Suspense>
+      </TuitionPageShell>
     );
   }
 
   if (feature === "my_school" && subtab === "students") {
-    const initialData = await loadStudentsPageData(org.id);
+    const initialMeta = await fetchStudentsPageMeta(supabase, org.id);
 
     return (
-      <Suspense>
-        <StudentsPage
-          organizationId={org.id}
-          branding={org.branding}
-          slug={slug}
-          initialStudents={initialData.students}
-        />
-      </Suspense>
+      <StudentsPageShell
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+        initialMeta={initialMeta}
+      >
+        <Suspense fallback={null}>
+          <StudentsTableLoader organizationId={org.id} />
+        </Suspense>
+      </StudentsPageShell>
     );
   }
 

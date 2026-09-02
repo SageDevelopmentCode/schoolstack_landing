@@ -7,7 +7,6 @@ import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
-import { listFamilyBillingSummaries } from "@/lib/tuition/charges";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { childFirstNameFromFullName } from "@/lib/tuition/parent-billing-summary";
@@ -48,6 +47,35 @@ import {
 } from "@/components/school-admin/tuition/tuition-family-tabs";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
+
+const FAMILIES_PAGE_SIZE = 50;
+
+async function fetchFamiliesPage(
+  organizationId: string,
+  offset: number,
+): Promise<{
+  families: FamilyBillingSummary[];
+  hasMore: boolean;
+}> {
+  const params = new URLSearchParams({
+    organizationId,
+    limit: String(FAMILIES_PAGE_SIZE),
+    offset: String(offset),
+  });
+  const response = await fetch(`/api/school-admin/tuition/families?${params}`);
+  const payload = (await response.json()) as {
+    families?: FamilyBillingSummary[];
+    hasMore?: boolean;
+    error?: string;
+  };
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Failed to load families.");
+  }
+  return {
+    families: payload.families ?? [],
+    hasMore: payload.hasMore ?? false,
+  };
+}
 
 type TuitionFamiliesPanelProps = {
   organizationId: string;
@@ -254,6 +282,8 @@ export default function TuitionFamiliesPanel({
   const supabase = useMemo(() => createClient(), []);
   const reducedMotion = useReducedMotion() ?? false;
   const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
+  const [hasMoreFamilies, setHasMoreFamilies] = useState(false);
+  const [loadingMoreFamilies, setLoadingMoreFamilies] = useState(false);
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -284,8 +314,9 @@ export default function TuitionFamiliesPanel({
   const loadFamilies = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await listFamilyBillingSummaries(supabase, organizationId);
+      const { families: rows, hasMore } = await fetchFamiliesPage(organizationId, 0);
       setFamilies(rows);
+      setHasMoreFamilies(hasMore);
       const prev = selectedFamilyIdRef.current;
       const preferred =
         initialFamilyId && rows.some((row) => row.familyId === initialFamilyId)
@@ -302,13 +333,36 @@ export default function TuitionFamiliesPanel({
     } finally {
       setLoading(false);
     }
-  }, [initialFamilyId, organizationId, supabase]);
+  }, [initialFamilyId, organizationId]);
+
+  const loadMoreFamilies = useCallback(async () => {
+    if (!hasMoreFamilies || loadingMoreFamilies) return;
+    setLoadingMoreFamilies(true);
+    try {
+      const { families: rows, hasMore } = await fetchFamiliesPage(
+        organizationId,
+        families.length,
+      );
+      setFamilies((prev) => {
+        const existing = new Set(prev.map((family) => family.familyId));
+        const merged = [...prev];
+        for (const row of rows) {
+          if (!existing.has(row.familyId)) merged.push(row);
+        }
+        return merged;
+      });
+      setHasMoreFamilies(hasMore);
+    } finally {
+      setLoadingMoreFamilies(false);
+    }
+  }, [families.length, hasMoreFamilies, loadingMoreFamilies, organizationId]);
 
   const refreshFamilySummaries = useCallback(async () => {
-    const rows = await listFamilyBillingSummaries(supabase, organizationId);
+    const { families: rows, hasMore } = await fetchFamiliesPage(organizationId, 0);
     setFamilies(rows);
+    setHasMoreFamilies(hasMore);
     return rows;
-  }, [organizationId, supabase]);
+  }, [organizationId]);
 
   const refreshSelectedFamilyDetails = useCallback(async (familyId: string) => {
     const [charges, payments] = await Promise.all([
@@ -643,6 +697,23 @@ export default function TuitionFamiliesPanel({
             </p>
           </button>
         ))}
+        {hasMoreFamilies ? (
+          <div className="p-3">
+            <button
+              type="button"
+              onClick={() => void loadMoreFamilies()}
+              disabled={loadingMoreFamilies}
+              className="w-full rounded-lg px-3 py-2 text-sm font-medium cursor-pointer disabled:opacity-50"
+              style={{
+                backgroundColor: C.bg,
+                color: C.textSecondary,
+                border: `1px solid ${C.border}`,
+              }}
+            >
+              {loadingMoreFamilies ? "Loading…" : "Load more families"}
+            </button>
+          </div>
+        ) : null}
         {!families.length ? (
           <p className="p-4 text-sm" style={{ color: C.textTertiary }}>
             No families to display.

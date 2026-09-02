@@ -12,7 +12,6 @@ import { buildOccupiedSlotKeys } from "./admissions-booking";
 import { listObservationSlotsByIds } from "./admissions-observation-slots";
 import type { PostSubmitActionType } from "./application-form-schema";
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
-import { extractStudentLabel } from "./application-submissions";
 import {
   POST_SUBMIT_ACTION_TEMPLATES,
   postSubmitActionLabel,
@@ -39,22 +38,6 @@ export type AdminScheduledVisit = {
   timing: ScheduledVisitTiming;
   whenLabel: string;
 };
-
-function parseStringRecord(value: unknown): Record<string, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
-  }
-
-  const result: Record<string, string> = {};
-  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof entry === "string") {
-      result[key] = entry;
-    } else if (entry != null) {
-      result[key] = String(entry);
-    }
-  }
-  return result;
-}
 
 function resolveStepTitle(
   actionType: PostSubmitActionType,
@@ -84,12 +67,10 @@ export async function listOrgScheduledVisits(
   supabase: SupabaseClient,
   organizationId: string,
 ): Promise<AdminScheduledVisit[]> {
-  const timezone = await getOrganizationTimezone(supabase, organizationId);
+  return listOrgScheduledVisitsForAdminList(supabase, organizationId);
+}
 
-  const { data, error } = await supabase
-    .from("admissions_scheduled_visits")
-    .select(
-      `
+const ADMIN_SCHEDULED_VISITS_LIST_SELECT = `
       id,
       application_id,
       family_id,
@@ -102,7 +83,6 @@ export async function listOrgScheduledVisits(
       duration_minutes,
       visit_day_count,
       applications (
-        responses,
         application_form_versions (
           title,
           post_submit_config
@@ -119,8 +99,17 @@ export async function listOrgScheduledVisits(
           last_name
         )
       )
-    `,
-    )
+    `;
+
+export async function listOrgScheduledVisitsForAdminList(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<AdminScheduledVisit[]> {
+  const timezone = await getOrganizationTimezone(supabase, organizationId);
+
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .select(ADMIN_SCHEDULED_VISITS_LIST_SELECT)
     .eq("organization_id", organizationId)
     .eq("status", "scheduled")
     .is("completed_manually_at", null)
@@ -183,7 +172,6 @@ export async function listOrgScheduledVisits(
   const visits: AdminScheduledVisit[] = (data ?? []).map((row) => {
     const application = row.applications as
       | {
-          responses?: unknown;
           application_form_versions?:
             | { title?: string; post_submit_config?: unknown }
             | { title?: string; post_submit_config?: unknown }[]
@@ -194,7 +182,6 @@ export async function listOrgScheduledVisits(
             | null;
         }
       | {
-          responses?: unknown;
           application_form_versions?:
             | { title?: string; post_submit_config?: unknown }
             | { title?: string; post_submit_config?: unknown }[]
@@ -242,7 +229,6 @@ export async function listOrgScheduledVisits(
       ? [studentRow.first_name, studentRow.last_name].filter(Boolean).join(" ") || null
       : null;
 
-    const responses = parseStringRecord(app?.responses);
     const actionType = String(row.action_type) as PostSubmitActionType;
     const isPreApplication = row.application_id == null;
     const schedulingMode: AdmissionsSchedulingMode =
@@ -279,7 +265,7 @@ export async function listOrgScheduledVisits(
       ),
       studentLabel: isPreApplication
         ? familyLabel
-        : studentFromTable ?? extractStudentLabel(responses),
+        : studentFromTable,
       formTitle: isPreApplication
         ? "Pre-application tour"
         : String(form?.title ?? "Application"),

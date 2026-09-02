@@ -7,9 +7,10 @@ import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
   createApplyForm,
   duplicateForm,
+  getApplicationForm,
   isApplyFormVersion,
   isPublicSlugAvailable,
-  listApplicationForms,
+  listApplicationFormSummaries,
   listPrograms,
   listProgramsWithoutApplyForm,
   publicApplicationFormPath,
@@ -108,12 +109,15 @@ import {
   type EditableFormSnapshot,
 } from "@/lib/admissions/editable-snapshots";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import type { EnrollmentFlowsListData } from "@/lib/school-admin/load-enrollment-flows-list-data";
 
 type ApplicationFormsPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   schoolName: string;
   slug: string;
+  initialListData?: EnrollmentFlowsListData;
+  listDeferred?: boolean;
 };
 
 type EditableFormState = EditableFormSnapshot;
@@ -407,16 +411,25 @@ export default function ApplicationFormsPage({
   branding,
   schoolName,
   slug,
+  initialListData,
+  listDeferred = false,
 }: ApplicationFormsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const flowParam = searchParams.get("flow");
+  const hasInitialList = initialListData !== undefined;
 
-  const [forms, setForms] = useState<ApplicationFormVersion[]>([]);
-  const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>([]);
-  const [programs, setPrograms] = useState<ProgramOption[]>([]);
+  const [forms, setForms] = useState<ApplicationFormVersion[]>(
+    initialListData?.forms ?? [],
+  );
+  const [checklists, setChecklists] = useState<EnrollmentChecklistTemplate[]>(
+    initialListData?.checklists ?? [],
+  );
+  const [programs, setPrograms] = useState<ProgramOption[]>(
+    initialListData?.programs ?? [],
+  );
   const [selection, setSelection] = useState<FlowListSelection>(null);
   const [editable, setEditable] = useState<EditableFormState | null>(null);
   const [focus, setFocus] = useState<BuilderFocus>(DEFAULT_BUILDER_FOCUS);
@@ -425,7 +438,7 @@ export default function ApplicationFormsPage({
   const [checklistPreviewInitialItemId, setChecklistPreviewInitialItemId] = useState<
     string | undefined
   >();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasInitialList);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -434,7 +447,9 @@ export default function ApplicationFormsPage({
   const [unpublishOpen, setUnpublishOpen] = useState(false);
   const [checklistUnpublishOpen, setChecklistUnpublishOpen] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
-  const [stripePaymentsReady, setStripePaymentsReady] = useState(true);
+  const [stripePaymentsReady, setStripePaymentsReady] = useState(
+    initialListData?.stripePaymentsReady ?? true,
+  );
   const [checklistEditable, setChecklistEditable] = useState<ChecklistEditableState | null>(
     null,
   );
@@ -453,6 +468,7 @@ export default function ApplicationFormsPage({
   const [createChecklistDialogOpen, setCreateChecklistDialogOpen] = useState(false);
   const isApplyDirtyRef = useRef(false);
   const isChecklistDirtyRef = useRef(false);
+  const loadedFullFormIdsRef = useRef(new Set<string>());
 
   const selectedForm =
     selection?.kind === "apply"
@@ -585,11 +601,12 @@ export default function ApplicationFormsPage({
     setError(null);
     try {
       const [formRows, checklistRows, programRows, paymentsReady] = await Promise.all([
-        listApplicationForms(supabase, organizationId),
+        listApplicationFormSummaries(supabase, organizationId),
         listEnrollmentChecklistTemplates(supabase, organizationId),
         listPrograms(supabase, organizationId),
         orgPaymentsReadyForFees(supabase, organizationId),
       ]);
+      loadedFullFormIdsRef.current = new Set();
       setForms(formRows);
       setChecklists(checklistRows);
       setPrograms(programRows);
@@ -604,11 +621,29 @@ export default function ApplicationFormsPage({
     }
   }, [flowParam, organizationId, supabase]);
 
+  const applyInitialListData = useCallback((data: EnrollmentFlowsListData) => {
+    loadedFullFormIdsRef.current = new Set();
+    setForms(data.forms);
+    setChecklists(data.checklists);
+    setPrograms(data.programs);
+    setStripePaymentsReady(data.stripePaymentsReady);
+    setSelection((prev) =>
+      resolveFlowSelection(data.forms, data.checklists, flowParam, prev),
+    );
+    setLoading(false);
+  }, [flowParam]);
+
   useEffect(() => {
+    if (!initialListData) return;
+    applyInitialListData(initialListData);
+  }, [applyInitialListData, initialListData]);
+
+  useEffect(() => {
+    if (hasInitialList || listDeferred) return;
     queueMicrotask(() => {
       void loadForms();
     });
-  }, [loadForms]);
+  }, [hasInitialList, listDeferred, loadForms]);
 
   const selectedApplyFormId =
     selection?.kind === "apply" ? selection.id : null;
@@ -620,6 +655,30 @@ export default function ApplicationFormsPage({
       setApplySavedSnapshot(null);
     });
   }, [selectedApplyFormId]);
+
+  useEffect(() => {
+    if (!selectedApplyFormId) return;
+    if (loadedFullFormIdsRef.current.has(selectedApplyFormId)) return;
+
+    let cancelled = false;
+
+    async function loadFullForm() {
+      try {
+        const full = await getApplicationForm(supabase, selectedApplyFormId);
+        if (cancelled || !full) return;
+        loadedFullFormIdsRef.current.add(full.id);
+        setForms((prev) => prev.map((row) => (row.id === full.id ? full : row)));
+      } catch {
+        // syncEditable will surface edit errors if the full form cannot load.
+      }
+    }
+
+    void loadFullForm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedApplyFormId, supabase]);
 
   const selectedChecklistId =
     selection?.kind === "checklist" ? selection.id : null;

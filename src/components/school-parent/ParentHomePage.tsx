@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import StudentPhoto from "@/components/students/StudentPhoto";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ClipboardCheck,
@@ -11,6 +11,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
+import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
 import { parentClassroomSignupPath } from "@/lib/organization-settings/parent-routes";
 import type {
   FamilyChildOverview,
@@ -43,6 +44,8 @@ import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 type ParentHomePageProps = {
   branding: OrganizationBranding;
   schoolSlug: string;
+  organizationId?: string;
+  familyId?: string;
   userProfile: FamilyUserProfile;
   familyChildren: FamilyChildOverview[];
   quickActions: ParentQuickAction[];
@@ -51,6 +54,9 @@ type ParentHomePageProps = {
   enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   classroomSignupAttentionItems?: ParentSignupAttentionItem[];
+  homeMeta?: ParentPortalHomeMeta | null;
+  contentDeferred?: boolean;
+  deferSignupAttentionLoad?: boolean;
   previewMode?: boolean;
   previewBasePath?: string;
 };
@@ -291,6 +297,8 @@ function ChildStoryCard({
 export default function ParentHomePage({
   branding,
   schoolSlug,
+  organizationId,
+  familyId,
   userProfile,
   familyChildren,
   quickActions,
@@ -298,10 +306,37 @@ export default function ParentHomePage({
   upcomingEvents = [],
   enrollmentAmendmentBannerItems = [],
   enrollmentIncompleteBannerItems = [],
-  classroomSignupAttentionItems = [],
+  classroomSignupAttentionItems: initialSignupAttentionItems = [],
+  homeMeta = null,
+  contentDeferred = false,
+  deferSignupAttentionLoad = false,
   previewBasePath,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
+    initialSignupAttentionItems,
+  );
+
+  useEffect(() => {
+    if (!deferSignupAttentionLoad || !organizationId || !familyId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const params = new URLSearchParams({ organizationId, familyId });
+        const res = await fetch(`/api/parent-portal/signups/attention?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || cancelled) return;
+        setClassroomSignupAttentionItems(data.items ?? []);
+      } catch {
+        // Signup attention is non-blocking.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deferSignupAttentionLoad, familyId, organizationId]);
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const adminCompat = useMemo(
     () => parentThemeToAdminCompat(theme),
@@ -324,7 +359,9 @@ export default function ParentHomePage({
     schoolSlug,
     previewBasePath,
   });
-  const enrolledCount = familyChildren.filter((c) => c.isEnrolled).length;
+  const enrolledCount =
+    homeMeta?.enrolledChildrenCount ??
+    familyChildren.filter((c) => c.isEnrolled).length;
   const nextEvent = upcomingEvents[0] ?? null;
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 

@@ -34,6 +34,8 @@ export type OrganizationEvent = {
 
 export type ParentCalendarInitialData = {
   events: OrganizationEvent[];
+  windowStartDate?: string;
+  windowEndDate?: string;
 };
 
 export type TeacherCalendarInitialData = ParentCalendarInitialData & {

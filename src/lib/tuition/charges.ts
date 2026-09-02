@@ -41,6 +41,38 @@ export async function listChargesForFamily(
   return (data ?? []).map(rowToCharge);
 }
 
+export async function listChargesForFamilyPaginated(
+  supabase: SupabaseClient,
+  familyId: string,
+  options: { limit?: number; offset?: number } = {},
+): Promise<{ charges: TuitionCharge[]; totalCount: number }> {
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+  const offset = Math.max(options.offset ?? 0, 0);
+
+  const { count, error: countError } = await supabase
+    .from("tuition_charges")
+    .select("*", { count: "exact", head: true })
+    .eq("family_id", familyId)
+    .not("status", "eq", "void");
+
+  if (countError) throw countError;
+
+  const { data, error } = await supabase
+    .from("tuition_charges")
+    .select("*")
+    .eq("family_id", familyId)
+    .not("status", "eq", "void")
+    .order("due_date", { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+
+  return {
+    charges: (data ?? []).map(rowToCharge),
+    totalCount: count ?? 0,
+  };
+}
+
 export function filterChargesForFamilyGuardian(
   charges: TuitionCharge[],
   guardianId: string | null,
@@ -696,10 +728,7 @@ export async function getTuitionKpis(
   };
   const referenceDate = options?.referenceDate ?? new Date();
 
-  const [summaries, chargesResult, assignmentsResult] = await Promise.all([
-    listFamilyBillingSummaries(supabase, organizationId, {
-      limit: null,
-    }),
+  const [chargesResult, assignmentsResult] = await Promise.all([
     supabase
       .from("tuition_charges")
       .select("id, family_id, assignment_id, label, amount_cents, paid_cents, status, due_date, paid_at")
@@ -723,10 +752,33 @@ export async function getTuitionKpis(
     referenceDate,
   );
 
+  const yearStart = new Date(referenceDate);
+  yearStart.setUTCMonth(0, 1);
+  yearStart.setUTCHours(0, 0, 0, 0);
+
+  const collectedYtdCents = chargeRows
+    .filter(
+      (charge) =>
+        charge.status === "paid" &&
+        charge.paid_at != null &&
+        new Date(String(charge.paid_at)) >= yearStart,
+    )
+    .reduce((sum, charge) => sum + Number(charge.amount_cents), 0);
+
+  const familiesAtRisk = new Set(
+    chargeRows
+      .filter(
+        (charge) =>
+          charge.status === "overdue" &&
+          Number(charge.amount_cents) - Number(charge.paid_cents ?? 0) > 0,
+      )
+      .map((charge) => String(charge.family_id)),
+  ).size;
+
   return {
-    collectedYtdCents: summaries.reduce((s, f) => s + f.paidYtdCents, 0),
+    collectedYtdCents,
     outstandingCents,
-    familiesAtRisk: summaries.filter((f) => f.status === "overdue").length,
+    familiesAtRisk,
     activeAssignments: assignmentsResult.count ?? 0,
   };
 }

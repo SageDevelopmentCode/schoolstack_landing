@@ -18,8 +18,10 @@ type StudentTeacherAssignSelectProps = {
   assignedTeachers: AssignedTeacher[];
   activeStaff: StaffMemberRecord[];
   staffPath: string;
+  staffLoading?: boolean;
   disabled?: boolean;
   onAssign: (studentId: string, staffMemberIds: string[]) => Promise<void>;
+  onInteract?: () => void;
   className?: string;
 };
 
@@ -30,11 +32,23 @@ export default function StudentTeacherAssignSelect({
   assignedTeachers,
   activeStaff,
   staffPath,
+  staffLoading = false,
   disabled = false,
   onAssign,
+  onInteract,
   className,
 }: StudentTeacherAssignSelectProps) {
   const [open, setOpen] = useState(false);
+
+  if (staffLoading) {
+    return (
+      <div className={className}>
+        <span className="text-xs" style={{ color: C.textTertiary }}>
+          Loading staff...
+        </span>
+      </div>
+    );
+  }
 
   if (activeStaff.length === 0) {
     return (
@@ -67,7 +81,10 @@ export default function StudentTeacherAssignSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          onInteract?.();
+          setOpen(true);
+        }}
         className="inline-flex min-w-[9rem] max-w-[14rem] items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm disabled:opacity-60"
         style={{
           borderColor: isUnassigned ? unassignedBorder : C.inputBorder,

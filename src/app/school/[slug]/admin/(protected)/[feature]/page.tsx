@@ -25,10 +25,9 @@ import { getRequestUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
-const SchedulePage = nextDynamic(
-  () => import("@/components/school-admin/SchedulePage"),
-  { loading: () => <AdminPageSkeleton label="Loading schedule" /> },
-);
+import SchedulePageShell from "@/components/school-admin/schedule/SchedulePageShell";
+import ScheduleVisitsLoader from "@/components/school-admin/schedule/ScheduleVisitsLoader";
+import { fetchSchedulePageMeta } from "@/lib/school-admin/schedule-page-meta";
 const CommitteesPage = nextDynamic(
   () => import("@/components/school-admin/committees/CommitteesPage"),
   { loading: () => <AdminPageSkeleton label="Loading committees" /> },
@@ -84,13 +83,20 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
   }
 
   if (feature === "schedule") {
+    const initialMeta = await fetchSchedulePageMeta(supabase, org.id);
+
     return (
-      <SchedulePage
+      <SchedulePageShell
         organizationId={org.id}
         branding={org.branding}
         schoolName={org.name}
         slug={slug}
-      />
+        initialMeta={initialMeta}
+      >
+        <Suspense fallback={null}>
+          <ScheduleVisitsLoader organizationId={org.id} />
+        </Suspense>
+      </SchedulePageShell>
     );
   }
 
