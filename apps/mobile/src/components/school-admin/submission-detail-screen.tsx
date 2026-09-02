@@ -41,7 +41,7 @@ import { getChecklistForApplication, type LoadedEnrollmentChecklist } from '@/li
 import { listFamilyGuardians, type FamilyGuardianRecord } from '@/lib/admissions/family-guardians';
 import type { PaymentRecordDisplayRow } from '@/lib/admissions/payment-records';
 import {
-  checkPublishedEnrollmentChecklist,
+  getPublishedEnrollmentChecklistPreview,
   markApplicationEnrolled,
   patchApplicationStatus,
 } from '@/lib/school-admin-api';
@@ -68,6 +68,7 @@ export function SubmissionDetailScreen({
   const [currentStatus, setCurrentStatus] = useState<string>('draft');
   const [hasChecklist, setHasChecklist] = useState(false);
   const [hasPublishedEnrollmentChecklist, setHasPublishedEnrollmentChecklist] = useState(false);
+  const [enrollmentChecklistName, setEnrollmentChecklistName] = useState<string | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
@@ -115,7 +116,7 @@ export function SubmissionDetailScreen({
           loadApplicationDetail(supabase, applicationId, organizationId),
           getChecklistForApplication(supabase, applicationId),
           resolveApplicationFamilyId(supabase, organizationId, applicationId),
-          checkPublishedEnrollmentChecklist(applicationId),
+          getPublishedEnrollmentChecklistPreview(applicationId),
         ]);
 
       if (!submissionRow || !detailRow) {
@@ -130,7 +131,8 @@ export function SubmissionDetailScreen({
       setCurrentStatus(detailRow.status);
       setHasChecklist(Boolean(checklistRow));
       setFamilyId(resolvedFamilyId);
-      setHasPublishedEnrollmentChecklist(publishedChecklist);
+      setHasPublishedEnrollmentChecklist(publishedChecklist.hasChecklist);
+      setEnrollmentChecklistName(publishedChecklist.templateName);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load submission.');
       setSubmission(null);
@@ -355,6 +357,8 @@ export function SubmissionDetailScreen({
               <SubmissionEnrollmentActionsSection
                 currentStatus={currentStatus}
                 hasPublishedChecklist={hasPublishedEnrollmentChecklist || hasChecklist}
+                programName={submission.programName}
+                enrollmentChecklistName={enrollmentChecklistName}
                 onMarkEnrolled={() => void handleMarkEnrolled()}
                 loading={markEnrolledLoading}
               />

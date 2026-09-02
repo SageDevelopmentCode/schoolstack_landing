@@ -14,7 +14,9 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { ApplicationFormVersion, ApplicationFormStatus } from "@/lib/admissions/application-form-schema";
+import { isApplyFormVersion } from "@/lib/admissions/application-forms";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
+import type { ProgramOption } from "@/lib/admissions/application-forms";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
@@ -30,10 +32,12 @@ type EnrollmentFlowsSidebarProps = {
   open: boolean;
   forms: ApplicationFormVersion[];
   checklists: EnrollmentChecklistTemplate[];
+  programs: ProgramOption[];
   selected: FlowListSelection;
   creating: boolean;
-  hasApplyForm: boolean;
-  hasEnrollmentChecklist: boolean;
+  canCreateApplyForm: boolean;
+  canCreateChecklist: boolean;
+  programNameById: Map<string, string>;
   onClose: () => void;
   onSelect: (selection: FlowListSelection) => void;
   onCreateApply: () => void;
@@ -60,6 +64,7 @@ type FlowListItemProps = {
   theme?: ParentThemeTokens;
   active: boolean;
   title: string;
+  subtitle?: string | null;
   typeLabel: string;
   status: ApplicationFormStatus;
   icon: LucideIcon;
@@ -71,6 +76,7 @@ function FlowListItem({
   theme,
   active,
   title,
+  subtitle,
   typeLabel,
   status,
   icon: Icon,
@@ -104,6 +110,11 @@ function FlowListItem({
           >
             {title}
           </p>
+          {subtitle ? (
+            <p className="text-[11px] font-medium" style={{ color: C.textSecondary }}>
+              {subtitle}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px]" style={{ color: C.textTertiary }}>
               {typeLabel}
@@ -125,16 +136,113 @@ function FlowListItem({
   );
 }
 
+function flowStatusLabel(status: ApplicationFormStatus | "none"): string {
+  if (status === "none") return "None";
+  return getStatusLabel(status);
+}
+
+function ProgramPairingSummary({
+  C,
+  theme,
+  programs,
+  forms,
+  checklists,
+  onSelect,
+}: {
+  C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
+  programs: ProgramOption[];
+  forms: ApplicationFormVersion[];
+  checklists: EnrollmentChecklistTemplate[];
+  onSelect: (selection: FlowListSelection) => void;
+}) {
+  if (programs.length === 0) return null;
+
+  const activeChecklists = checklists.filter((checklist) => checklist.status !== "archived");
+
+  return (
+    <div
+      className="border-t px-4 py-4"
+      style={{ borderColor: theme?.line ?? C.border, backgroundColor: theme?.paper ?? C.surface }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+        By program
+      </p>
+      <ul className="mt-3 space-y-3">
+        {programs.map((program) => {
+          const applyForm = forms.find(
+            (form) =>
+              isApplyFormVersion(form) &&
+              form.program_id === program.id &&
+              form.status !== "archived",
+          );
+          const checklist = activeChecklists.find(
+            (row) => row.programId === program.id,
+          );
+
+          return (
+            <li
+              key={program.id}
+              className="rounded-xl border px-3 py-3"
+              style={{ borderColor: theme?.line ?? C.border }}
+            >
+              <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                {program.name}
+              </p>
+              <div className="mt-2 space-y-1.5 text-[11px]" style={{ color: C.textSecondary }}>
+                <div className="flex items-start justify-between gap-2">
+                  <span>Apply form</span>
+                  {applyForm ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelect({ kind: "apply", id: applyForm.id })}
+                      className="text-right font-medium underline-offset-2 hover:underline"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {applyForm.title} · {flowStatusLabel(applyForm.status)}
+                    </button>
+                  ) : (
+                    <span style={{ color: C.textTertiary }}>None</span>
+                  )}
+                </div>
+                <div className="flex items-start justify-between gap-2">
+                  <span>Enrollment</span>
+                  {checklist ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
+                      className="text-right font-medium underline-offset-2 hover:underline"
+                      style={{ color: C.textPrimary }}
+                    >
+                      {checklist.name} · {flowStatusLabel(checklist.status)}
+                    </button>
+                  ) : (
+                    <span style={{ color: C.textTertiary }}>
+                      None — mark enrolled directly
+                    </span>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default function EnrollmentFlowsSidebar({
   C,
   theme,
   open,
   forms,
   checklists,
+  programs,
   selected,
   creating,
-  hasApplyForm,
-  hasEnrollmentChecklist,
+  canCreateApplyForm,
+  canCreateChecklist,
+  programNameById,
   onClose,
   onSelect,
   onCreateApply,
@@ -234,7 +342,7 @@ export default function EnrollmentFlowsSidebar({
                     >
                       <button
                         type="button"
-                        disabled={hasApplyForm || creating}
+                        disabled={!canCreateApplyForm || creating}
                         onClick={() => {
                           setMenuOpen(false);
                           onCreateApply();
@@ -247,7 +355,7 @@ export default function EnrollmentFlowsSidebar({
                       </button>
                       <button
                         type="button"
-                        disabled={hasEnrollmentChecklist || creating}
+                        disabled={!canCreateChecklist || creating}
                         onClick={() => {
                           setMenuOpen(false);
                           onCreateChecklist();
@@ -290,7 +398,16 @@ export default function EnrollmentFlowsSidebar({
                       theme={theme}
                       active={selected?.kind === "apply" && selected.id === form.id}
                       title={form.title || "Untitled form"}
-                      typeLabel={FLOW_TYPE_LABELS.apply}
+                      subtitle={
+                        isApplyFormVersion(form) && form.program_id
+                          ? programNameById.get(form.program_id) ?? null
+                          : null
+                      }
+                      typeLabel={
+                        isApplyFormVersion(form)
+                          ? FLOW_TYPE_LABELS.apply
+                          : "Custom form"
+                      }
                       status={form.status}
                       icon={FileText}
                       onClick={() => onSelect({ kind: "apply", id: form.id })}
@@ -305,12 +422,25 @@ export default function EnrollmentFlowsSidebar({
                         selected?.kind === "checklist" && selected.id === checklist.id
                       }
                       title={checklist.name || "Enrollment checklist"}
+                      subtitle={
+                        checklist.programId
+                          ? programNameById.get(checklist.programId) ?? null
+                          : null
+                      }
                       typeLabel={FLOW_TYPE_LABELS.checklist}
                       status={checklist.status}
                       icon={ClipboardList}
                       onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
                     />
                   ))}
+                  <ProgramPairingSummary
+                    C={C}
+                    theme={theme}
+                    programs={programs}
+                    forms={forms}
+                    checklists={checklists}
+                    onSelect={onSelect}
+                  />
                 </>
               )}
             </div>

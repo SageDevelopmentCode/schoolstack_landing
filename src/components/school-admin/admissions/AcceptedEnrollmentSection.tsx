@@ -14,6 +14,8 @@ type AcceptedEnrollmentSectionProps = {
   C: AdminThemeTokens;
   applicationId: string;
   applicationStatus?: "accepted" | "enrolling";
+  programName?: string | null;
+  enrollmentChecklistName?: string | null;
   showStartEnrollment?: boolean;
   hasPublishedChecklist?: boolean;
   onStartEnrollment?: () => void;
@@ -31,6 +33,8 @@ export default function AcceptedEnrollmentSection({
   C,
   applicationId,
   applicationStatus = "accepted",
+  programName,
+  enrollmentChecklistName,
   showStartEnrollment = true,
   hasPublishedChecklist = false,
   onStartEnrollment,
@@ -235,16 +239,30 @@ export default function AcceptedEnrollmentSection({
         )
       : null;
 
+  const enrollmentDescription = (() => {
+    if (showStartEnrollment) {
+      if (enrollmentChecklistName && programName) {
+        return `Uses ${enrollmentChecklistName} for ${programName}. Choose the enrollment agreement and send the checklist to the family.`;
+      }
+      if (enrollmentChecklistName) {
+        return `Uses ${enrollmentChecklistName}. Choose the enrollment agreement and send the checklist to the family.`;
+      }
+      return "Choose the enrollment agreement and send the checklist to the family.";
+    }
+
+    if (programName) {
+      return `${programName} has no enrollment checklist — mark enrolled when paperwork and fees were handled offline.`;
+    }
+
+    return "Complete enrollment on the family's behalf when paperwork and fees were handled offline.";
+  })();
+
   return (
     <>
       <DetailPanelSection
         C={C}
         title="Enrollment"
-        description={
-          showStartEnrollment
-            ? "Choose the enrollment agreement and send the checklist to the family."
-            : "Complete enrollment on the family's behalf when paperwork and fees were handled offline."
-        }
+        description={enrollmentDescription}
       >
         <div className="flex items-center gap-2">
           {showStartEnrollment && onStartEnrollment ? (

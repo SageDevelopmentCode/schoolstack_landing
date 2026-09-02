@@ -156,8 +156,8 @@ export function buildAdmissionsSetupStatus(
     steps.find((step) => step.status !== "completed")?.id ?? null;
 
   const applyFormPublicPath =
-    applyFormPublished && data.applyFormPublicSlug
-      ? `/school/${slug}/forms/${data.applyFormPublicSlug}`
+    applyFormPublished
+      ? `/school/${slug}/forms/${APPLY_FORM_PUBLIC_SLUG}`
       : null;
 
   return {
@@ -191,18 +191,16 @@ export async function fetchAdmissionsSetupStatus(
       .from("application_form_versions")
       .select("status, public_slug")
       .eq("organization_id", organizationId)
-      .eq("public_slug", APPLY_FORM_PUBLIC_SLUG)
+      .eq("form_kind", "apply")
       .in("status", ["draft", "published"])
-      .limit(1)
-      .maybeSingle(),
+      .order("updated_at", { ascending: false }),
     supabase
       .from("enrollment_checklist_templates")
       .select("id, status, enrollment_checklist_template_items(id)")
       .eq("organization_id", organizationId)
       .eq("enrollment_path", ENROLLMENT_CHECKLIST_PATH)
       .in("status", ["draft", "published"])
-      .limit(1)
-      .maybeSingle(),
+      .order("updated_at", { ascending: false }),
     supabase
       .from("applications")
       .select("id")
@@ -215,33 +213,58 @@ export async function fetchAdmissionsSetupStatus(
   if (checklistResult.error) throw checklistResult.error;
   if (submissionsResult.error) throw submissionsResult.error;
 
-  const checklistRow = checklistResult.data as
-    | {
-        status?: string;
-        enrollment_checklist_template_items?: Array<{ id: string }>;
-      }
-    | null;
+  const checklistRows = (checklistResult.data ?? []) as Array<{
+    status?: string;
+    enrollment_checklist_template_items?: Array<{ id: string }>;
+  }>;
+
+  const applyFormRows = applyFormResult.data ?? [];
+  const publishedApplyForm = applyFormRows.find((row) => row.status === "published");
+  const publishedChecklist = checklistRows.find((row) => row.status === "published");
+  const draftChecklist = checklistRows.find((row) => row.status === "draft");
+  const checklistRow = publishedChecklist ?? draftChecklist ?? null;
 
   const rawData: AdmissionsSetupRawData = {
     hasPrograms: (programsResult.data ?? []).length > 0,
     paymentAccount,
-    applyFormStatus: normalizeApplyFormStatus(applyFormResult.data?.status),
+    applyFormStatus: normalizeApplyFormRowsStatus(applyFormRows),
     applyFormPublicSlug:
-      typeof applyFormResult.data?.public_slug === "string"
-        ? applyFormResult.data.public_slug
-        : null,
-    checklistStatus: normalizeChecklistStatus(checklistRow?.status),
-    checklistItemCount: checklistRow?.enrollment_checklist_template_items?.length ?? 0,
+      typeof publishedApplyForm?.public_slug === "string"
+        ? publishedApplyForm.public_slug
+        : typeof applyFormRows[0]?.public_slug === "string"
+          ? applyFormRows[0].public_slug
+          : null,
+    checklistStatus: normalizeChecklistRowsStatus(checklistRows),
+    checklistItemCount:
+      publishedChecklist?.enrollment_checklist_template_items?.length ??
+      draftChecklist?.enrollment_checklist_template_items?.length ??
+      0,
     hasSubmissions: (submissionsResult.data ?? []).length > 0,
   };
 
   return buildAdmissionsSetupStatus(slug, rawData);
 }
 
+function normalizeApplyFormRowsStatus(
+  rows: Array<{ status?: string }>,
+): "none" | "draft" | "published" {
+  if (rows.some((row) => row.status === "published")) return "published";
+  if (rows.some((row) => row.status === "draft")) return "draft";
+  return "none";
+}
+
 function normalizeApplyFormStatus(
   status: string | undefined,
 ): "none" | "draft" | "published" {
   if (status === "draft" || status === "published") return status;
+  return "none";
+}
+
+function normalizeChecklistRowsStatus(
+  rows: Array<{ status?: string }>,
+): "none" | "draft" | "published" {
+  if (rows.some((row) => row.status === "published")) return "published";
+  if (rows.some((row) => row.status === "draft")) return "draft";
   return "none";
 }
 

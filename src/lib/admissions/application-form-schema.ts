@@ -149,10 +149,13 @@ const SUBMISSION_NOTIFY_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type ApplicationFormStatus = "draft" | "published" | "archived";
 
+export type ApplicationFormKind = "apply" | "custom";
+
 export interface ApplicationFormVersion {
   id: string;
   organization_id: string;
   program_id: string | null;
+  form_kind: ApplicationFormKind;
   version: number;
   status: ApplicationFormStatus;
   title: string;
@@ -444,6 +447,35 @@ export function emptyApplicationSection(title = "Step 1"): ApplicationSection {
   };
 }
 
+function cloneApplicationField(field: ApplicationField): ApplicationField {
+  return {
+    ...field,
+    id: newAdmissionsId(),
+    options: field.options ? field.options.map((option) => ({ ...option })) : undefined,
+    system: undefined,
+  };
+}
+
+export function cloneApplicationSection(
+  source: ApplicationSection,
+  options?: { title?: string },
+): ApplicationSection {
+  if (source.system) {
+    throw new Error("System steps cannot be reused.");
+  }
+
+  return {
+    id: newAdmissionsId(),
+    title: options?.title?.trim() || source.title,
+    description: source.description,
+    stepNotice: source.stepNotice
+      ? { ...source.stepNotice }
+      : undefined,
+    allowMultiple: source.allowMultiple,
+    fields: source.fields.map(cloneApplicationField),
+  };
+}
+
 export function parseApplicationFormSchema(raw: unknown): ApplicationFormSchema {
   if (!raw || typeof raw !== "object") {
     return emptyApplicationFormSchema();
@@ -561,11 +593,18 @@ export function validatePublicSlug(slug: string | null | undefined): string | nu
   return null;
 }
 
+function parseApplicationFormKind(
+  value: unknown,
+): ApplicationFormKind {
+  return value === "apply" ? "apply" : "custom";
+}
+
 export function applicationFormFromRow(row: Record<string, unknown>): ApplicationFormVersion {
   return {
     id: String(row.id),
     organization_id: String(row.organization_id),
     program_id: row.program_id ? String(row.program_id) : null,
+    form_kind: parseApplicationFormKind(row.form_kind),
     version: Number(row.version),
     status: row.status as ApplicationFormStatus,
     title: String(row.title),
