@@ -189,12 +189,6 @@ export default function TuitionDashboard({
   }, [applyDashboardData, hasLoadedDashboardRef, organizationId, outstandingPeriod, supabase]);
 
   useEffect(() => {
-    if (!initialDashboardData) return;
-    applyDashboardData(initialDashboardData);
-    setInitialLoading(false);
-  }, [applyDashboardData, initialDashboardData]);
-
-  useEffect(() => {
     if (dashboardDeferred && !initialDashboardData) return;
     if (initialDashboardData) return;
     queueMicrotask(() => {

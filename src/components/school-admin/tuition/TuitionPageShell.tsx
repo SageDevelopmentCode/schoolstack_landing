@@ -68,6 +68,7 @@ export default function TuitionPageShell({
   return (
     <TuitionPageContext.Provider value={contextValue}>
       <TuitionDashboard
+        key={dashboardHydrated ? "hydrated" : "deferred"}
         organizationId={organizationId}
         branding={branding}
         slug={slug}
