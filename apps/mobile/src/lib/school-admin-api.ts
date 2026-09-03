@@ -77,11 +77,23 @@ export async function fetchWithdrawnDecisionActions(
 }
 
 export async function checkPublishedEnrollmentChecklist(applicationId: string): Promise<boolean> {
+  const preview = await getPublishedEnrollmentChecklistPreview(applicationId);
+  return preview.hasChecklist;
+}
+
+export async function getPublishedEnrollmentChecklistPreview(
+  applicationId: string,
+): Promise<{ hasChecklist: boolean; templateName: string | null }> {
   try {
-    await fetchSchoolAdminApi(`/api/admissions/applications/${applicationId}/start-enrollment`);
-    return true;
+    const payload = await fetchSchoolAdminApi<{ templateName?: string }>(
+      `/api/admissions/applications/${applicationId}/start-enrollment`,
+    );
+    return {
+      hasChecklist: true,
+      templateName: typeof payload.templateName === 'string' ? payload.templateName : null,
+    };
   } catch {
-    return false;
+    return { hasChecklist: false, templateName: null };
   }
 }
 

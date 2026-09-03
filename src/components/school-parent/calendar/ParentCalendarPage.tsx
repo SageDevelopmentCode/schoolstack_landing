@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
@@ -15,14 +15,18 @@ import {
   SCHOOL_EVENT_TYPE_LABELS,
 } from "@/components/school-parent/calendar/parent-calendar-agenda-utils";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
+import { calendarEventWindowForMonth } from "@/lib/school-events/calendar-window";
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
-import type { OrganizationEvent, ParentCalendarInitialData } from "@/lib/school-events/types";
+import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type ParentCalendarPageProps = {
   branding: OrganizationBranding;
-  initialData: ParentCalendarInitialData;
+  organizationId: string;
+  organizationSlug: string;
+  events: OrganizationEvent[];
+  eventsDeferred?: boolean;
   previewMode?: boolean;
   agendaTitle?: string;
 };
@@ -224,15 +228,72 @@ function EmptyDaySidebar({
 }
 
 export default function ParentCalendarPage({
-  initialData,
+  organizationId,
+  organizationSlug,
+  events,
+  eventsDeferred = false,
+  previewMode = false,
   agendaTitle,
 }: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
-  const [events] = useState(initialData.events);
+  const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
+  const loadedWindowsRef = useRef<Set<string>>(new Set());
   const [view, setView] = useState<CalendarViewMode>("week");
   const [selectedEvent, setSelectedEvent] = useState<OrganizationEvent | null>(null);
   const [selectedEmptyDay, setSelectedEmptyDay] = useState<string | null>(null);
   const [periodKey, setPeriodKey] = useState("initial");
+
+  const calendarEvents = useMemo(() => {
+    const byId = new Map(events.map((event) => [event.id, event]));
+    for (const event of fetchedEvents) {
+      byId.set(event.id, event);
+    }
+    return Array.from(byId.values()).sort((left, right) => {
+      if (left.date !== right.date) return left.date.localeCompare(right.date);
+      return left.sortOrder - right.sortOrder;
+    });
+  }, [events, fetchedEvents]);
+
+  const fetchEventsForMonth = useCallback(
+    async (year: number, month: number) => {
+      if (previewMode) return;
+
+      const { startDate, endDate } = calendarEventWindowForMonth(year, month);
+      const windowKey = `${startDate}:${endDate}`;
+      if (loadedWindowsRef.current.has(windowKey)) return;
+
+      try {
+        const params = new URLSearchParams({
+          organizationId,
+          start: startDate,
+          end: endDate,
+        });
+        const res = await fetch(`/api/parent-portal/calendar/events?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return;
+
+        loadedWindowsRef.current.add(windowKey);
+        const nextEvents = (data.events ?? []) as OrganizationEvent[];
+        setFetchedEvents((prev) => {
+          const byId = new Map(prev.map((event) => [event.id, event]));
+          for (const event of nextEvents) {
+            byId.set(event.id, event);
+          }
+          return Array.from(byId.values());
+        });
+      } catch {
+        // Keep showing the current window if a refetch fails.
+      }
+    },
+    [organizationId, previewMode],
+  );
+
+  const handlePeriodChange = useCallback(
+    (year: number, month: number) => {
+      void fetchEventsForMonth(year, month);
+    },
+    [fetchEventsForMonth],
+  );
 
   const handlePeriodMetaChange = useCallback(
     (meta: { periodLabel: string; isCurrentPeriod: boolean }) => {
@@ -242,7 +303,7 @@ export default function ParentCalendarPage({
   );
 
   const handleDayClick = (date: string) => {
-    const dayEvents = events.filter((e) => e.date === date);
+    const dayEvents = calendarEvents.filter((e) => e.date === date);
     setSelectedEvent(null);
     if (dayEvents.length > 0) {
       setSelectedEmptyDay(null);
@@ -272,23 +333,28 @@ export default function ParentCalendarPage({
             <ParentCard theme={theme} className="!p-3 sm:!p-4">
               <OrganizationEventsCalendar
                 C={C}
-                events={events}
+                events={calendarEvents}
                 view={view}
                 onViewChange={setView}
                 readOnly
                 variant="parent-story"
                 parentTheme={theme}
-                emptyHint="No events scheduled yet. Your school calendar will appear here when events are added."
+                emptyHint={
+                  eventsDeferred
+                    ? "Loading calendar events…"
+                    : "No events scheduled yet. Your school calendar will appear here when events are added."
+                }
                 selectedEventId={selectedEvent?.id ?? null}
                 onDayClick={handleDayClick}
                 onEventClick={handleEventClick}
+                onPeriodChange={handlePeriodChange}
                 onPeriodMetaChange={handlePeriodMetaChange}
               />
             </ParentCard>
 
             <ParentCalendarAgendaPanel
               theme={theme}
-              events={events}
+              events={calendarEvents}
               periodKey={periodKey}
               selectedEventId={selectedEvent?.id ?? null}
               onEventClick={handleEventClick}

@@ -159,6 +159,57 @@ export async function listParentTuitionPaymentHistory(
   });
 }
 
+export async function listParentTuitionPaymentHistoryPaginated(
+  supabase: SupabaseClient,
+  familyId: string,
+  options: { limit?: number; offset?: number } = {},
+): Promise<{ payments: ParentTuitionPaymentRecord[]; totalCount: number }> {
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+  const offset = Math.max(options.offset ?? 0, 0);
+
+  const { count, error: countError } = await supabase
+    .from("application_payments")
+    .select("*", { count: "exact", head: true })
+    .eq("family_id", familyId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded");
+
+  if (countError) throw countError;
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("family_id", familyId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+
+  const payments = mapTuitionPaymentRows(data ?? [], familyId);
+  const studentContextByChargeId = await fetchStudentContextByChargeId(
+    supabase,
+    payments
+      .map((payment) => payment.tuitionChargeId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return {
+    payments: payments.map((payment) => {
+      const context = payment.tuitionChargeId
+        ? studentContextByChargeId.get(payment.tuitionChargeId)
+        : undefined;
+      return {
+        ...payment,
+        studentFirstName: context?.firstName ?? null,
+        enrollmentId: context?.enrollmentId ?? null,
+      };
+    }),
+    totalCount: count ?? 0,
+  };
+}
+
 async function fetchStudentContextByChargeId(
   supabase: SupabaseClient,
   chargeIds: string[],

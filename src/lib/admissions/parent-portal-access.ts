@@ -6,7 +6,6 @@ import {
   type PostSubmitActionType,
 } from "./application-form-schema";
 import { extractStudentFromResponses, ensureApplySystemSchema } from "./apply-system-fields";
-import { isApplyFormSlug } from "./application-forms";
 import { extractStudentLabel } from "./application-submissions";
 import {
   postSubmitActionLabel,
@@ -665,6 +664,7 @@ export async function loadApplicationDetail(
       application_form_versions!inner (
         title,
         public_slug,
+        form_kind,
         schema,
         fee_config,
         post_submit_config
@@ -687,6 +687,7 @@ export async function loadApplicationDetail(
     | {
         title?: string;
         public_slug?: string | null;
+        form_kind?: string | null;
         schema?: ApplicationFormSchema;
         fee_config?: unknown;
         post_submit_config?: unknown;
@@ -694,6 +695,7 @@ export async function loadApplicationDetail(
     | {
         title?: string;
         public_slug?: string | null;
+        form_kind?: string | null;
         schema?: ApplicationFormSchema;
         fee_config?: unknown;
         post_submit_config?: unknown;
@@ -714,9 +716,10 @@ export async function loadApplicationDetail(
     sections: [],
     acknowledgments: [],
   };
-  const schema = isApplyFormSlug(form?.public_slug)
-    ? ensureApplySystemSchema(rawSchema)
-    : rawSchema;
+  const schema =
+    form?.form_kind === "apply"
+      ? ensureApplySystemSchema(rawSchema)
+      : rawSchema;
 
   const studentRow = data.students as
     | { profile_photo_url?: string | null }

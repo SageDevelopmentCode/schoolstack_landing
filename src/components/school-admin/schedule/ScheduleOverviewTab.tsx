@@ -8,10 +8,8 @@ import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import {
-  listOrgScheduledVisits,
-  type AdminScheduledVisit,
-} from "@/lib/admissions/admin-scheduled-visits";
+import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
+import type { AdminScheduledVisit } from "@/lib/admissions/admin-scheduled-visits";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createClient } from "@/utils/supabase/client";
@@ -36,6 +34,7 @@ type ScheduleOverviewTabProps = {
   onTabChange: (tab: ScheduleTabId) => void;
   onUpcomingCountChange?: (count: number) => void;
   onLoadingChange?: (loading: boolean) => void;
+  visitsDeferred?: boolean;
 };
 
 function visitChipTone(
@@ -63,32 +62,14 @@ export default function ScheduleOverviewTab({
   onTabChange,
   onUpcomingCountChange,
   onLoadingChange,
+  visitsDeferred = false,
 }: ScheduleOverviewTabProps) {
   const supabase = useMemo(() => createClient(), []);
-  const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
+  const { visits, visitsReady } = useScheduleVisitsContext();
   const [upcomingEvents, setUpcomingEvents] = useState<OrganizationEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadVisits = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await listOrgScheduledVisits(supabase, organizationId);
-      setVisits(rows);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load scheduled visits.");
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId, supabase]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void loadVisits();
-    });
-  }, [loadVisits]);
+  const loading = visitsDeferred || !visitsReady;
 
   const loadEvents = useCallback(async () => {
     setEventsLoading(true);
@@ -195,10 +176,6 @@ export default function ScheduleOverviewTab({
 
           {loading ? (
             <SchoolAdminSummaryCardsSkeleton C={C} count={3} label="Loading upcoming visits" />
-          ) : error ? (
-            <p className="text-sm" style={{ color: C.error }}>
-              {error}
-            </p>
           ) : upcomingVisits.length === 0 ? (
             <div className="py-2 text-center">
               <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>

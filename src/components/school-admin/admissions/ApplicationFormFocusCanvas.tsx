@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Copy, Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import ApplicationStepNotice from "@/components/admissions/ApplicationStepNotice";
@@ -11,6 +11,7 @@ import {
   APPLY_FORM_PUBLIC_SLUG,
   type ProgramOption,
 } from "@/lib/admissions/application-forms";
+import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   DRAFT_REMINDER_DELAY_PRESETS,
@@ -21,6 +22,7 @@ import {
   type ApplicationFormNotificationConfig,
   type ApplicationFormPostSubmitConfig,
   type ApplicationFormSchema,
+  type ApplicationFormVersion,
   type ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
 import {
@@ -43,6 +45,7 @@ import {
 import { builderCanvasTransition } from "./builder-canvas-motion";
 import { focusKey, type BuilderFocus } from "./builder-focus";
 import { BUILDER_CANVAS_BG } from "./outline-item-styles";
+import ReuseApplicationStepDialog from "./ReuseApplicationStepDialog";
 
 export type EditableFormSlice = {
   title: string;
@@ -75,6 +78,11 @@ type ApplicationFormFocusCanvasProps = {
     updater: (schema: ApplicationFormSchema) => ApplicationFormSchema,
   ) => void;
   onDeleteStep: (stepId: string) => void;
+  sourceForms?: ApplicationFormVersion[];
+  programNameById?: Map<string, string>;
+  onReuseStep?: (targetStepId: string, sourceSection: ApplicationSection) => void;
+  programEnrollmentChecklist?: EnrollmentChecklistTemplate | null;
+  onOpenEnrollmentChecklist?: (checklistId: string) => void;
 };
 
 type PendingDelete =
@@ -133,6 +141,8 @@ function SetupView({
   lockApplySlug = false,
   setupHighlight,
   slugError,
+  programEnrollmentChecklist,
+  onOpenEnrollmentChecklist,
   onEditableChange,
 }: {
   C: AdminThemeTokens;
@@ -144,6 +154,8 @@ function SetupView({
   lockApplySlug?: boolean;
   setupHighlight?: "publicSlug" | null;
   slugError?: string | null;
+  programEnrollmentChecklist?: EnrollmentChecklistTemplate | null;
+  onOpenEnrollmentChecklist?: (checklistId: string) => void;
   onEditableChange: (patch: Partial<EditableFormSlice>) => void;
 }) {
   const slugInputRef = useRef<HTMLInputElement>(null);
@@ -264,7 +276,7 @@ function SetupView({
         }
         helper={
           lockApplySlug
-            ? "Your main application form always uses `/apply`. This link is fixed so families always know where to start."
+            ? "This link is fixed for this program. Families can also start from /forms/apply when your school has multiple programs."
             : "Use lowercase letters, numbers, and hyphens only."
         }
         highlightError={slugHighlighted}
@@ -286,7 +298,7 @@ function SetupView({
                   color: C.textSecondary,
                 }}
               >
-                {APPLY_FORM_PUBLIC_SLUG}
+                {editable.publicSlug || APPLY_FORM_PUBLIC_SLUG}
               </span>
             ) : (
               <input
@@ -353,6 +365,46 @@ function SetupView({
           ) : null}
         </div>
       </BuilderQuestionCard>
+
+      {editable.programId ? (
+        <BuilderQuestionCard
+          C={C}
+          tone="info"
+          question="Enrollment for this program"
+          helper="After acceptance, submissions use the published checklist for this program. Programs without a checklist can be marked enrolled directly."
+        >
+          {programEnrollmentChecklist ? (
+            <div className="space-y-2 text-sm" style={{ color: C.textSecondary }}>
+              <p>
+                <span className="font-semibold" style={{ color: C.textPrimary }}>
+                  {programEnrollmentChecklist.name}
+                </span>{" "}
+                ·{" "}
+                {programEnrollmentChecklist.status === "published"
+                  ? "Published"
+                  : programEnrollmentChecklist.status === "draft"
+                    ? "Draft"
+                    : "Archived"}
+              </p>
+              {onOpenEnrollmentChecklist ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenEnrollmentChecklist(programEnrollmentChecklist.id)}
+                  className="text-sm font-medium underline-offset-2 hover:underline"
+                  style={{ color: C.accent }}
+                >
+                  Open enrollment checklist
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              No enrollment checklist for this program yet. Accepted families can be
+              marked enrolled directly until you publish one.
+            </p>
+          )}
+        </BuilderQuestionCard>
+      ) : null}
 
       <BuilderQuestionCard
         C={C}
@@ -454,6 +506,8 @@ function StepView({
   onFocusChange,
   onUpdateStep,
   onRequestDeleteStep,
+  onRequestReuseStep,
+  canReuseStep,
   onAddField,
   onReorderFields,
 }: {
@@ -468,6 +522,8 @@ function StepView({
   onFocusChange: (focus: BuilderFocus) => void;
   onUpdateStep: (patch: Partial<ApplicationSection>) => void;
   onRequestDeleteStep: () => void;
+  onRequestReuseStep?: () => void;
+  canReuseStep?: boolean;
   onAddField: (field: ApplicationField) => void;
   onReorderFields: (fields: ApplicationField[]) => void;
 }) {
@@ -506,15 +562,32 @@ function StepView({
           }
         />
         {!readOnly && !isLockedStep ? (
-          <button
-            type="button"
-            onClick={onRequestDeleteStep}
-            className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
-            style={{ color: C.error, backgroundColor: C.errorBg }}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete step
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {canReuseStep && onRequestReuseStep ? (
+              <button
+                type="button"
+                onClick={onRequestReuseStep}
+                className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
+                style={{
+                  color: C.textSecondary,
+                  backgroundColor: C.elevated,
+                  border: `1px solid ${C.border}`,
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Reuse step
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onRequestDeleteStep}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium"
+              style={{ color: C.error, backgroundColor: C.errorBg }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete step
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -728,8 +801,15 @@ export default function ApplicationFormFocusCanvas({
   onEditableChange,
   onUpdateSchema,
   onDeleteStep,
+  sourceForms = [],
+  programNameById = new Map(),
+  onReuseStep,
+  programEnrollmentChecklist = null,
+  onOpenEnrollmentChecklist,
 }: ApplicationFormFocusCanvasProps) {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [reuseDialogOpen, setReuseDialogOpen] = useState(false);
+  const [reuseTargetStepId, setReuseTargetStepId] = useState<string | null>(null);
   const key = focusKey(focus);
 
   const step =
@@ -846,6 +926,8 @@ export default function ApplicationFormFocusCanvas({
               lockApplySlug={lockApplySlug}
               setupHighlight={setupHighlight}
               slugError={slugError}
+              programEnrollmentChecklist={programEnrollmentChecklist}
+              onOpenEnrollmentChecklist={onOpenEnrollmentChecklist}
               onEditableChange={onEditableChange}
             />
           )}
@@ -874,6 +956,11 @@ export default function ApplicationFormFocusCanvas({
                     stepTitle: step.title || `Step ${stepIdx + 1}`,
                     questionCount: step.fields.length,
                   });
+                }}
+                canReuseStep={sourceForms.length > 0 && Boolean(onReuseStep)}
+                onRequestReuseStep={() => {
+                  setReuseTargetStepId(step.id);
+                  setReuseDialogOpen(true);
                 }}
                 onAddField={(newField) => addField(step.id, newField)}
                 onReorderFields={(fields) =>
@@ -1004,6 +1091,25 @@ export default function ApplicationFormFocusCanvas({
       variant="destructive"
       onConfirm={handleConfirmDelete}
       onClose={() => setPendingDelete(null)}
+    />
+
+    <ReuseApplicationStepDialog
+      C={C}
+      theme={theme}
+      open={reuseDialogOpen}
+      sourceForms={sourceForms}
+      programNameById={programNameById}
+      onClose={() => {
+        setReuseDialogOpen(false);
+        setReuseTargetStepId(null);
+      }}
+      onConfirm={(sourceSection) => {
+        if (reuseTargetStepId && onReuseStep) {
+          onReuseStep(reuseTargetStepId, sourceSection);
+        }
+        setReuseDialogOpen(false);
+        setReuseTargetStepId(null);
+      }}
     />
     </>
   );

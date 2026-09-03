@@ -267,6 +267,64 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   }
 }
 
+export function buildApplicationAcceptedEnrollmentHtml(payload: {
+  name: string;
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  enrollmentChecklistUrl: string;
+}): string {
+  const studentLine = payload.studentName
+    ? ` for ${escapeHtml(payload.studentName)}`
+    : "";
+
+  return composeEmail({
+    preheader: `Your application to ${payload.schoolName} was accepted — continue enrollment.`,
+    contentHtml: `
+      ${emailBadge("Application Accepted")}
+      ${emailHeading(`Congratulations, ${firstName(payload.name)}!`)}
+      ${emailParagraph(
+        `Great news — your application${studentLine} for ${escapeHtml(payload.formTitle)} at ${escapeHtml(payload.schoolName)} has been accepted.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Application", value: payload.formTitle },
+        ...(payload.studentName ? [{ label: "Student", value: payload.studentName }] : []),
+      ])}
+      ${emailParagraph(
+        "The next step is to complete your enrollment checklist — agreements, forms, and any required fees.",
+      )}
+      ${emailCta({
+        label: "Continue enrollment checklist",
+        href: payload.enrollmentChecklistUrl,
+      })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendApplicationAcceptedEnrollmentEmail(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  formTitle: string;
+  studentName?: string;
+  enrollmentChecklistUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildApplicationAcceptedEnrollmentHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Congratulations — continue enrollment at ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Application accepted enrollment email failed:", result.error);
+  }
+}
+
 export function buildDraftApplicationReminderHtml(payload: {
   name: string;
   schoolName: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
@@ -15,21 +15,17 @@ import ScheduleVisitLoadingPanel from "@/components/school-admin/schedule/Schedu
 import { parseScheduleTab, SCHEDULE_TABS, type ScheduleTabId } from "@/components/school-admin/schedule/schedule-tabs";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import type { AdminScheduledVisit } from "@/lib/admissions/admin-scheduled-visits";
 import {
-  listOrgScheduledVisits,
-  type AdminScheduledVisit,
-} from "@/lib/admissions/admin-scheduled-visits";
-import {
-  countAdmissionsAvailabilitySlotsInMonth,
   formatOrganizationTimezoneLabel,
-  getOrganizationTimezone,
-  todayMonthYearInTimezone,
 } from "@/lib/admissions/admissions-availability";
-import { countObservationDaysInMonth } from "@/lib/admissions/admissions-observation-availability";
 import {
   getOrgApplicationSubmissionById,
   type AdminApplicationSubmission,
 } from "@/lib/admissions/application-submissions";
+import type { SchedulePageMeta } from "@/lib/school-admin/schedule-page-meta";
+import { upcomingVisitCountFromVisits } from "@/lib/school-admin/schedule-page-meta";
+import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -38,6 +34,8 @@ type SchedulePageProps = {
   branding: OrganizationBranding;
   schoolName: string;
   slug: string;
+  initialMeta: SchedulePageMeta;
+  visitsDeferred?: boolean;
 };
 
 export default function SchedulePage({
@@ -45,21 +43,32 @@ export default function SchedulePage({
   branding,
   schoolName,
   slug,
+  initialMeta,
+  visitsDeferred = false,
 }: SchedulePageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const supabase = useMemo(() => createClient(), []);
+  const { visits, visitsReady } = useScheduleVisitsContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const activeTab = parseScheduleTab(searchParams.get("tab"));
 
-  const [timezone, setTimezone] = useState("America/Chicago");
-  const [monthSlotCount, setMonthSlotCount] = useState<number | null>(null);
-  const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
-    null,
+  const [timezone] = useState(initialMeta.timezone);
+  const [monthSlotCount, setMonthSlotCount] = useState<number | null>(
+    initialMeta.monthSlotCount,
   );
-  const [upcomingVisitCount, setUpcomingVisitCount] = useState<number | null>(null);
+  const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
+    initialMeta.monthObservationDayCount,
+  );
+  const [overviewCount, setOverviewCount] = useState<number | null>(null);
+  const visitsCount = visitsReady ? upcomingVisitCountFromVisits(visits) : null;
+  const upcomingVisitCount =
+    visitsCount ?? overviewCount ?? initialMeta.upcomingVisitCount;
+  const [visitedTabs, setVisitedTabs] = useState<Set<ScheduleTabId>>(
+    () => new Set([activeTab]),
+  );
   const [permittedStaffCount, setPermittedStaffCount] = useState<number | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
     null,
@@ -89,6 +98,12 @@ export default function SchedulePage({
 
   const handleTabChange = useCallback(
     (tab: ScheduleTabId) => {
+      setVisitedTabs((current) => {
+        if (current.has(tab)) return current;
+        const next = new Set(current);
+        next.add(tab);
+        return next;
+      });
       if (tab !== activeTab) {
         setPendingTabKey(tab);
       }
@@ -105,41 +120,6 @@ export default function SchedulePage({
     setLoadingTabKey((current) => (current === tab ? null : current));
     setPendingTabKey((current) => (current === tab ? null : current));
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPageStats() {
-      try {
-        const tz = await getOrganizationTimezone(supabase, organizationId);
-        if (cancelled) return;
-        setTimezone(tz);
-
-        const { year, month } = todayMonthYearInTimezone(tz);
-        const [slotCount, dayCount, visits] = await Promise.all([
-          countAdmissionsAvailabilitySlotsInMonth(supabase, organizationId, year, month),
-          countObservationDaysInMonth(supabase, organizationId, year, month),
-          listOrgScheduledVisits(supabase, organizationId),
-        ]);
-
-        if (!cancelled) {
-          setMonthSlotCount(slotCount);
-          setMonthObservationDayCount(dayCount);
-          setUpcomingVisitCount(
-            visits.filter((visit) => visit.timing === "upcoming").length,
-          );
-        }
-      } catch {
-        // Stats are supplementary; editors will still load their own data.
-      }
-    }
-
-    void loadPageStats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [organizationId, supabase]);
 
   const handleVisitClick = useCallback(
     async (visit: AdminScheduledVisit) => {
@@ -187,7 +167,7 @@ export default function SchedulePage({
   }, []);
 
   const handleUpcomingCountChange = useCallback((count: number) => {
-    setUpcomingVisitCount(count);
+    setOverviewCount(count);
   }, []);
 
   const handlePermittedStaffCountChange = useCallback((count: number) => {
@@ -222,79 +202,93 @@ export default function SchedulePage({
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.18 }}
             >
-              {activeTab === "overview" ? (
-                <ScheduleOverviewTab
-                  theme={theme}
-                  C={C}
-                  organizationId={organizationId}
-                  monthSlotCount={monthSlotCount}
-                  monthObservationDayCount={monthObservationDayCount}
-                  selectedApplicationId={selectedApplicationId}
-                  loadingSubmission={loadingSubmission}
-                  onVisitClick={handleVisitClick}
-                  onTabChange={handleTabChange}
-                  onUpcomingCountChange={handleUpcomingCountChange}
-                  onLoadingChange={(loading) => reportTabLoading("overview", loading)}
-                />
-              ) : null}
-
-              {activeTab === "events" ? (
-                <SchoolEventsTab
-                  theme={theme}
-                  C={C}
-                  organizationId={organizationId}
-                  onLoadingChange={(loading) => reportTabLoading("events", loading)}
-                />
-              ) : null}
-
-              {activeTab === "permissions" ? (
-                <ScheduleEventPermissionsTab
-                  organizationId={organizationId}
-                  slug={slug}
-                  onLoadingChange={(loading) =>
-                    reportTabLoading("permissions", loading)
-                  }
-                  onPermittedStaffCountChange={handlePermittedStaffCountChange}
-                />
-              ) : null}
-
-              {activeTab === "tours" ? (
-                <AdminCard theme={theme}>
-                  <AdmissionsAvailabilityEditor
+              {visitedTabs.has("overview") ? (
+                <div hidden={activeTab !== "overview"}>
+                  <ScheduleOverviewTab
+                    theme={theme}
                     C={C}
                     organizationId={organizationId}
-                    onMonthSlotCountChange={handleMonthSlotCountChange}
-                    compactLayout
-                    storySurface
-                    onLoadingChange={(loading) => reportTabLoading("tours", loading)}
+                    monthSlotCount={monthSlotCount}
+                    monthObservationDayCount={monthObservationDayCount}
+                    selectedApplicationId={selectedApplicationId}
+                    loadingSubmission={loadingSubmission}
+                    onVisitClick={handleVisitClick}
+                    onTabChange={handleTabChange}
+                    onUpcomingCountChange={handleUpcomingCountChange}
+                    onLoadingChange={(loading) => reportTabLoading("overview", loading)}
+                    visitsDeferred={visitsDeferred && !visitsReady}
                   />
-                </AdminCard>
+                </div>
               ) : null}
 
-              {activeTab === "shadow" ? (
-                <AdminCard theme={theme}>
-                  <AdmissionsObservationDayAvailabilityEditor
+              {visitedTabs.has("events") ? (
+                <div hidden={activeTab !== "events"}>
+                  <SchoolEventsTab
+                    theme={theme}
                     C={C}
                     organizationId={organizationId}
-                    onMonthDayCountChange={handleMonthDayCountChange}
-                    compactLayout
-                    storySurface
-                    onLoadingChange={(loading) => reportTabLoading("shadow", loading)}
+                    onLoadingChange={(loading) => reportTabLoading("events", loading)}
                   />
-                </AdminCard>
+                </div>
               ) : null}
 
-              {activeTab === "visits" ? (
-                <ScheduledVisitsSection
-                  theme={theme}
-                  C={C}
-                  organizationId={organizationId}
-                  selectedApplicationId={selectedApplicationId}
-                  loadingSubmission={loadingSubmission}
-                  onVisitClick={handleVisitClick}
-                  showHeader={false}
-                  onLoadingChange={(loading) => reportTabLoading("visits", loading)}
-                />
+              {visitedTabs.has("permissions") ? (
+                <div hidden={activeTab !== "permissions"}>
+                  <ScheduleEventPermissionsTab
+                    organizationId={organizationId}
+                    slug={slug}
+                    onLoadingChange={(loading) =>
+                      reportTabLoading("permissions", loading)
+                    }
+                    onPermittedStaffCountChange={handlePermittedStaffCountChange}
+                  />
+                </div>
+              ) : null}
+
+              {visitedTabs.has("tours") ? (
+                <div hidden={activeTab !== "tours"}>
+                  <AdminCard theme={theme}>
+                    <AdmissionsAvailabilityEditor
+                      C={C}
+                      organizationId={organizationId}
+                      onMonthSlotCountChange={handleMonthSlotCountChange}
+                      compactLayout
+                      storySurface
+                      onLoadingChange={(loading) => reportTabLoading("tours", loading)}
+                    />
+                  </AdminCard>
+                </div>
+              ) : null}
+
+              {visitedTabs.has("shadow") ? (
+                <div hidden={activeTab !== "shadow"}>
+                  <AdminCard theme={theme}>
+                    <AdmissionsObservationDayAvailabilityEditor
+                      C={C}
+                      organizationId={organizationId}
+                      onMonthDayCountChange={handleMonthDayCountChange}
+                      compactLayout
+                      storySurface
+                      onLoadingChange={(loading) => reportTabLoading("shadow", loading)}
+                    />
+                  </AdminCard>
+                </div>
+              ) : null}
+
+              {visitedTabs.has("visits") ? (
+                <div hidden={activeTab !== "visits"}>
+                  <ScheduledVisitsSection
+                    theme={theme}
+                    C={C}
+                    organizationId={organizationId}
+                    selectedApplicationId={selectedApplicationId}
+                    loadingSubmission={loadingSubmission}
+                    onVisitClick={handleVisitClick}
+                    showHeader={false}
+                    onLoadingChange={(loading) => reportTabLoading("visits", loading)}
+                    visitsDeferred={visitsDeferred && !visitsReady}
+                  />
+                </div>
               ) : null}
             </motion.div>
           </AnimatePresence>

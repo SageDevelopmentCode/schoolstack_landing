@@ -45,11 +45,13 @@ type StudentDetailPanelProps = {
   schoolSlug: string;
   activeStaff: StaffMemberRecord[];
   staffPath: string;
+  staffLoading?: boolean;
   assigningTeacher?: boolean;
   onAssignTeacher: (
     studentId: string,
     staffMemberIds: string[],
   ) => Promise<void>;
+  onRequestStaff?: () => void;
   onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
   onClose: () => void;
 };
@@ -72,8 +74,10 @@ export default function StudentDetailPanel({
   schoolSlug,
   activeStaff,
   staffPath,
+  staffLoading = false,
   assigningTeacher = false,
   onAssignTeacher,
+  onRequestStaff,
   onStudentHealthChange,
   onClose,
 }: StudentDetailPanelProps) {
@@ -133,6 +137,10 @@ export default function StudentDetailPanel({
       void loadDetail();
     });
   }, [loadDetail]);
+
+  useEffect(() => {
+    onRequestStaff?.();
+  }, [onRequestStaff]);
 
   const handleAssignTeacher = useCallback(
     async (studentId: string, staffMemberIds: string[]) => {
@@ -203,8 +211,10 @@ export default function StudentDetailPanel({
                   assignedTeachers={student.assignedTeachers}
                   activeStaff={activeStaff}
                   staffPath={staffPath}
+                  staffLoading={staffLoading}
                   disabled={assigningTeacher}
                   onAssign={handleAssignTeacher}
+                  onInteract={onRequestStaff}
                 />
               </dd>
             </div>

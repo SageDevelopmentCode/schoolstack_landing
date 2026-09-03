@@ -16,6 +16,7 @@ function baseForm(
     id: "form-1",
     organization_id: "org-1",
     program_id: "program-1",
+    form_kind: "apply",
     version: 1,
     status: "published",
     title: "Rooted Meadows 2026 Application",

@@ -17,7 +17,11 @@ import {
   parseApplicationFormStepIndex,
   summarizeApplicationFormProgress,
 } from "./application-form-steps";
-import { applicationStatusLabel, FEE_STATUS_LABELS } from "./application-status-ui";
+import {
+  APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL,
+  applicationStatusLabel,
+  FEE_STATUS_LABELS,
+} from "./application-status-ui";
 import type { ApplicationFormSchema } from "./application-form-schema";
 import { parseApplicationFormFeeConfig, parseApplicationFormPostSubmitConfig } from "./application-form-schema";
 
@@ -237,6 +241,49 @@ const APPLICATION_SUBMISSION_SELECT = `
   )
 `;
 
+const APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT = `
+  id,
+  status,
+  fee_status,
+  primary_guardian_id,
+  created_at,
+  submitted_at,
+  updated_at,
+  application_form_versions!inner (
+    title,
+    public_slug,
+    fee_config,
+    post_submit_config
+  ),
+  guardians:primary_guardian_id (
+    id,
+    first_name,
+    last_name,
+    email
+  ),
+  families (
+    name,
+    primary_email
+  ),
+  programs (
+    name
+  ),
+  students:student_id (
+    first_name,
+    last_name
+  )
+`;
+
+const APPLICATION_SUBMISSION_DRAFT_PROGRESS_SELECT = `
+  id,
+  responses,
+  fee_status,
+  application_form_versions!inner (
+    schema,
+    fee_config
+  )
+`;
+
 const APPLICATION_SUBMISSION_LIST_SELECT = `
   id,
   status,
@@ -273,10 +320,26 @@ const APPLICATION_SUBMISSION_LIST_SELECT = `
 `;
 
 export const ORG_SUBMISSIONS_LIST_DEFAULT_LIMIT = 100;
+export const ORG_SUBMISSIONS_PAGE_DEFAULT_SIZE = 50;
 
 export type ListOrgApplicationSubmissionsOptions = {
   limit?: number;
   offset?: number;
+};
+
+export type SubmissionListStatusFilter = "all" | string;
+
+export type ListOrgApplicationSubmissionsPageOptions = {
+  limit?: number;
+  offset?: number;
+  statusFilter?: SubmissionListStatusFilter;
+  formKey?: string | "all";
+  enrichment?: "minimal" | "full";
+};
+
+export type OrgApplicationSubmissionsPage = {
+  submissions: AdminApplicationSubmission[];
+  totalCount: number;
 };
 
 function mapApplicationRowToAdminSubmission(
@@ -400,6 +463,118 @@ function mapApplicationRowToAdminSubmission(
     };
 }
 
+export function applySubmissionListFilters<
+  T extends {
+    eq: (column: string, value: string) => T;
+    neq: (column: string, value: string) => T;
+    or: (filters: string) => T;
+  },
+>(query: T, options: Pick<ListOrgApplicationSubmissionsPageOptions, "statusFilter" | "formKey">): T {
+  const statusFilter = options.statusFilter ?? "all";
+  if (statusFilter !== "all") {
+    query = query.eq("status", statusFilter);
+  } else {
+    for (const excluded of APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL) {
+      query = query.neq("status", excluded);
+    }
+  }
+
+  const formKey = options.formKey ?? "all";
+  if (formKey !== "all") {
+    query = query.or(
+      `application_form_versions.public_slug.eq.${formKey},application_form_versions.title.eq.${formKey}`,
+    );
+  }
+
+  return query;
+}
+
+async function enrichDraftSubmissionProgress(
+  supabase: SupabaseClient,
+  rows: Record<string, unknown>[],
+): Promise<Map<string, Record<string, unknown>>> {
+  const draftIds = rows
+    .filter((row) => String(row.status) === "draft")
+    .map((row) => String(row.id));
+
+  const enrichedById = new Map<string, Record<string, unknown>>();
+  if (draftIds.length === 0) {
+    return enrichedById;
+  }
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_DRAFT_PROGRESS_SELECT)
+    .in("id", draftIds);
+
+  if (error) throw error;
+
+  for (const draftRow of (data ?? []) as Record<string, unknown>[]) {
+    enrichedById.set(String(draftRow.id), draftRow);
+  }
+
+  return enrichedById;
+}
+
+async function mapApplicationRowsToAdminSubmissionsSummary(
+  supabase: SupabaseClient,
+  organizationId: string,
+  rows: Record<string, unknown>[],
+  enrichment: "minimal" | "full" = "full",
+): Promise<AdminApplicationSubmission[]> {
+  const draftEnrichment = await enrichDraftSubmissionProgress(supabase, rows);
+  const mergedRows = rows.map((row) => {
+    const draftRow = draftEnrichment.get(String(row.id));
+    if (!draftRow) return row;
+
+    const summaryForm = row.application_form_versions;
+    const draftForm = draftRow.application_form_versions;
+    const summaryFormRow = Array.isArray(summaryForm) ? summaryForm[0] : summaryForm;
+    const draftFormRow = Array.isArray(draftForm) ? draftForm[0] : draftForm;
+    const mergedForm =
+      summaryFormRow || draftFormRow
+        ? { ...(summaryFormRow ?? {}), ...(draftFormRow ?? {}) }
+        : summaryFormRow;
+    const applicationFormVersions = Array.isArray(summaryForm)
+      ? [mergedForm]
+      : mergedForm;
+
+    return {
+      ...row,
+      responses: draftRow.responses,
+      fee_status: draftRow.fee_status ?? row.fee_status,
+      application_form_versions: applicationFormVersions,
+    };
+  });
+
+  return mapApplicationRowsToAdminSubmissions(
+    supabase,
+    organizationId,
+    mergedRows,
+    enrichment,
+  );
+}
+
+async function countOrgApplicationSubmissions(
+  supabase: SupabaseClient,
+  organizationId: string,
+  options: Pick<ListOrgApplicationSubmissionsPageOptions, "statusFilter" | "formKey">,
+): Promise<number> {
+  let query = supabase
+    .from("applications")
+    .select("id, application_form_versions!inner(public_slug, title)", {
+      count: "exact",
+      head: true,
+    })
+    .eq("organization_id", organizationId);
+
+  query = applySubmissionListFilters(query, options);
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function listOrgApplicationSubmissions(
   supabase: SupabaseClient,
   organizationId: string,
@@ -425,6 +600,48 @@ export async function listOrgApplicationSubmissions(
     organizationId,
     (data ?? []) as Record<string, unknown>[],
   );
+}
+
+export async function listOrgApplicationSubmissionsPage(
+  supabase: SupabaseClient,
+  organizationId: string,
+  options: ListOrgApplicationSubmissionsPageOptions = {},
+): Promise<OrgApplicationSubmissionsPage> {
+  const limit = Math.min(
+    Math.max(options.limit ?? ORG_SUBMISSIONS_PAGE_DEFAULT_SIZE, 1),
+    500,
+  );
+  const offset = Math.max(options.offset ?? 0, 0);
+  const filterOptions = {
+    statusFilter: options.statusFilter,
+    formKey: options.formKey,
+  };
+  const enrichment = options.enrichment ?? "minimal";
+
+  let query = supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT)
+    .eq("organization_id", organizationId);
+
+  query = applySubmissionListFilters(query, filterOptions);
+
+  query = query.order("updated_at", { ascending: false }).range(offset, offset + limit - 1);
+
+  const [{ data, error }, totalCount] = await Promise.all([
+    query,
+    countOrgApplicationSubmissions(supabase, organizationId, filterOptions),
+  ]);
+
+  if (error) throw error;
+
+  const submissions = await mapApplicationRowsToAdminSubmissionsSummary(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+    enrichment,
+  );
+
+  return { submissions, totalCount };
 }
 
 export async function getOrgApplicationSubmissionById(
@@ -498,24 +715,34 @@ async function mapApplicationRowsToAdminSubmissions(
   supabase: SupabaseClient,
   organizationId: string,
   rows: Record<string, unknown>[],
+  enrichment: "minimal" | "full" = "full",
 ): Promise<AdminApplicationSubmission[]> {
   const submittedIds = rows
     .filter((row) => String(row.status) !== "draft")
     .map((row) => String(row.id));
-  const applicationIds = rows.map((row) => String(row.id));
-  const [visits, enrollmentByApplicationId] = await Promise.all([
-    listScheduledVisitsForApplications(supabase, submittedIds),
-    listEnrollmentProgressForApplications(
-      supabase,
-      organizationId,
-      applicationIds,
-    ),
-  ]);
-  const visitsByApplicationId = new Map<string, typeof visits>();
-  for (const visit of visits) {
-    const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
-    existing.push(visit);
-    visitsByApplicationId.set(visit.applicationId, existing);
+
+  const visitsByApplicationId = new Map<
+    string,
+    Awaited<ReturnType<typeof listScheduledVisitsForApplications>>
+  >();
+  let enrollmentByApplicationId = new Map<string, EnrollmentProgressSummary>();
+
+  if (enrichment === "full" && rows.length > 0) {
+    const applicationIds = rows.map((row) => String(row.id));
+    const [visits, enrollment] = await Promise.all([
+      listScheduledVisitsForApplications(supabase, submittedIds),
+      listEnrollmentProgressForApplications(
+        supabase,
+        organizationId,
+        applicationIds,
+      ),
+    ]);
+    enrollmentByApplicationId = enrollment;
+    for (const visit of visits) {
+      const existing = visitsByApplicationId.get(visit.applicationId) ?? [];
+      existing.push(visit);
+      visitsByApplicationId.set(visit.applicationId, existing);
+    }
   }
 
   return rows.map((row) =>
@@ -708,3 +935,44 @@ export async function listFamilyAdmissionHistory(
       new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
   );
 }
+
+export type ApplicationSubmissionEnrichmentPatch = Pick<
+  AdminApplicationSubmission,
+  "enrollmentSummary" | "postSubmitSummary" | "hasPostSubmitActions"
+>;
+
+export async function enrichApplicationSubmissionsForList(
+  supabase: SupabaseClient,
+  organizationId: string,
+  applicationIds: string[],
+): Promise<Record<string, ApplicationSubmissionEnrichmentPatch>> {
+  const uniqueIds = [...new Set(applicationIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT)
+    .eq("organization_id", organizationId)
+    .in("id", uniqueIds);
+
+  if (error) throw error;
+
+  const enrichedRows = await mapApplicationRowsToAdminSubmissions(
+    supabase,
+    organizationId,
+    (data ?? []) as Record<string, unknown>[],
+    "full",
+  );
+
+  return Object.fromEntries(
+    enrichedRows.map((row) => [
+      row.id,
+      {
+        enrollmentSummary: row.enrollmentSummary,
+        postSubmitSummary: row.postSubmitSummary,
+        hasPostSubmitActions: row.hasPostSubmitActions,
+      },
+    ]),
+  );
+}
+

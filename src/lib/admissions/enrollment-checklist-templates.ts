@@ -20,6 +20,24 @@ export {
 
 export const ENROLLMENT_CHECKLIST_PATH = "enrollment";
 
+export type ProgramOption = {
+  id: string;
+  name: string;
+};
+
+export function listProgramsWithoutEnrollmentChecklist(
+  programs: ProgramOption[],
+  checklists: EnrollmentChecklistTemplate[],
+): ProgramOption[] {
+  const programsWithChecklist = new Set(
+    checklists
+      .filter((checklist) => checklist.status !== "archived" && checklist.programId)
+      .map((checklist) => checklist.programId as string),
+  );
+
+  return programs.filter((program) => !programsWithChecklist.has(program.id));
+}
+
 export function publicEnrollmentChecklistPath(
   orgSlug: string,
   path = ENROLLMENT_CHECKLIST_PATH,
@@ -83,6 +101,27 @@ export async function listEnrollmentChecklistTemplates(
   );
 }
 
+export async function programHasEnrollmentChecklist(
+  supabase: SupabaseClient,
+  organizationId: string,
+  programId: string,
+): Promise<boolean> {
+  const normalizedProgramId = programId.trim();
+  if (!normalizedProgramId) return false;
+
+  const { data, error } = await supabase
+    .from("enrollment_checklist_templates")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("program_id", normalizedProgramId)
+    .in("status", ["draft", "published"])
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+/** @deprecated Use programHasEnrollmentChecklist for per-program checks. */
 export async function orgHasEnrollmentChecklist(
   supabase: SupabaseClient,
   organizationId: string,
@@ -102,17 +141,44 @@ export async function orgHasEnrollmentChecklist(
 export async function createEnrollmentChecklistTemplate(
   supabase: SupabaseClient,
   organizationId: string,
+  input: { programId: string; programName?: string },
 ): Promise<EnrollmentChecklistTemplate> {
-  const exists = await orgHasEnrollmentChecklist(supabase, organizationId);
-  if (exists) {
-    throw new Error("Your school already has an enrollment checklist.");
+  const programId = input.programId.trim();
+  if (!programId) {
+    throw new Error("Select a program before creating an enrollment checklist.");
   }
+
+  const exists = await programHasEnrollmentChecklist(
+    supabase,
+    organizationId,
+    programId,
+  );
+  if (exists) {
+    throw new Error("This program already has an enrollment checklist.");
+  }
+
+  let programName = input.programName?.trim() ?? "";
+  if (!programName) {
+    const { data: programRow, error: programError } = await supabase
+      .from("programs")
+      .select("name")
+      .eq("id", programId)
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+    if (programError) throw programError;
+    programName = programRow?.name ? String(programRow.name) : "";
+  }
+
+  const name = programName
+    ? `${programName} enrollment`
+    : "Enrollment checklist";
 
   const { data, error } = await supabase
     .from("enrollment_checklist_templates")
     .insert({
       organization_id: organizationId,
-      name: "Enrollment checklist",
+      program_id: programId,
+      name,
       enrollment_path: ENROLLMENT_CHECKLIST_PATH,
       status: "draft",
     })
@@ -221,7 +287,7 @@ export async function publishEnrollmentChecklistTemplate(
     .from("enrollment_checklist_templates")
     .update({ status: "archived" })
     .eq("organization_id", template.organizationId)
-    .eq("enrollment_path", template.enrollmentPath)
+    .eq("program_id", template.programId)
     .eq("status", "published")
     .neq("id", template.id);
 

@@ -12,30 +12,25 @@ import {
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
 import { Suspense } from "react";
+import AdminDashboardContentSkeleton from "@/components/school-admin/AdminDashboardContentSkeleton";
+import AdminDashboardHeader from "@/components/school-admin/AdminDashboardHeader";
+import AdminDashboardSummaryLoader from "@/components/school-admin/AdminDashboardSummaryLoader";
 import AdminPageSkeleton from "@/components/school-admin/AdminPageSkeleton";
+import AdminMessagesPageShell from "@/components/school-admin/messages/AdminMessagesPageShell";
+import AdminMessagesInboxLoader from "@/components/school-admin/messages/AdminMessagesInboxLoader";
 import SchoolAdminComingSoon from "@/components/school-admin/SchoolAdminComingSoon";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { loadAdminMessagesPageData } from "@/lib/messages/load-messages-page-data";
+import { loadAdminMessagesViewerContext } from "@/lib/messages/admin-messages";
 import { getRequestUser } from "@/lib/auth/session";
-import { fetchAdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
-const SchedulePage = nextDynamic(
-  () => import("@/components/school-admin/SchedulePage"),
-  { loading: () => <AdminPageSkeleton label="Loading schedule" /> },
-);
+import SchedulePageShell from "@/components/school-admin/schedule/SchedulePageShell";
+import ScheduleVisitsLoader from "@/components/school-admin/schedule/ScheduleVisitsLoader";
+import { fetchSchedulePageMeta } from "@/lib/school-admin/schedule-page-meta";
 const CommitteesPage = nextDynamic(
   () => import("@/components/school-admin/committees/CommitteesPage"),
   { loading: () => <AdminPageSkeleton label="Loading committees" /> },
-);
-const AdminDashboardPage = nextDynamic(
-  () => import("@/components/school-admin/AdminDashboardPage"),
-  { loading: () => <AdminPageSkeleton label="Loading dashboard" /> },
-);
-const AdminMessagesPage = nextDynamic(
-  () => import("@/components/school-admin/AdminMessagesPage"),
-  { loading: () => <AdminPageSkeleton label="Loading messages" /> },
 );
 const NotificationsSettingsPage = nextDynamic(
   () => import("@/components/school-admin/notifications/NotificationsSettingsPage"),
@@ -88,13 +83,20 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
   }
 
   if (feature === "schedule") {
+    const initialMeta = await fetchSchedulePageMeta(supabase, org.id);
+
     return (
-      <SchedulePage
+      <SchedulePageShell
         organizationId={org.id}
         branding={org.branding}
         schoolName={org.name}
         slug={slug}
-      />
+        initialMeta={initialMeta}
+      >
+        <Suspense fallback={null}>
+          <ScheduleVisitsLoader organizationId={org.id} />
+        </Suspense>
+      </SchedulePageShell>
     );
   }
 
@@ -113,19 +115,6 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
 
   if (feature === "dashboard") {
     const user = await getRequestUser();
-    const admin = createAdminClient();
-    const initialSummary = await fetchAdminDashboardSummary(
-      supabase,
-      admin,
-      org.id,
-      slug,
-      org.features.admin,
-      {
-        userId: user?.id,
-        schoolName: org.name,
-      },
-    );
-
     const userFirstName =
       user?.user_metadata?.first_name ??
       user?.user_metadata?.full_name?.split(" ")?.[0] ??
@@ -133,14 +122,16 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
       null;
 
     return (
-      <AdminDashboardPage
-        organizationId={org.id}
-        slug={slug}
-        branding={org.branding}
-        schoolName={org.name}
-        userFirstName={userFirstName}
-        initialSummary={initialSummary}
-      />
+      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
+        <AdminDashboardHeader
+          slug={slug}
+          schoolName={org.name}
+          userFirstName={userFirstName}
+        />
+        <Suspense fallback={<AdminDashboardContentSkeleton />}>
+          <AdminDashboardSummaryLoader org={org} slug={slug} user={user} />
+        </Suspense>
+      </div>
     );
   }
 
@@ -151,22 +142,28 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const admin = createAdminClient();
-    const initialInbox = await loadAdminMessagesPageData(
+    const viewerContext = await loadAdminMessagesViewerContext(
       admin,
       supabase,
       org.id,
       user.id,
-      org.name,
     );
 
     return (
-      <AdminMessagesPage
+      <AdminMessagesPageShell
         organizationId={org.id}
         organizationSlug={slug}
         schoolName={org.name}
         branding={org.branding}
-        initialInbox={initialInbox}
-      />
+        viewerContext={viewerContext}
+      >
+        <Suspense fallback={null}>
+          <AdminMessagesInboxLoader
+            organizationId={org.id}
+            schoolName={org.name}
+          />
+        </Suspense>
+      </AdminMessagesPageShell>
     );
   }
 

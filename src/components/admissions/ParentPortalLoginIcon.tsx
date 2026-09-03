@@ -11,6 +11,7 @@ import {
 
 type ParentPortalLoginIconProps = {
   status: ParentPortalLoginDisplayStatus | null | undefined;
+  loading?: boolean;
   C?: AdminThemeTokens;
   theme?: ParentThemeTokens;
   className?: string;
@@ -49,12 +50,28 @@ function LoginStatusIcon({
 
 export default function ParentPortalLoginIcon({
   status,
+  loading = false,
   C,
   theme,
   className = "",
 }: ParentPortalLoginIconProps) {
+  if (loading) {
+    return (
+      <span
+        className={`inline-flex h-3.5 w-3.5 shrink-0 rounded-full ${className}`}
+        style={{ backgroundColor: C?.bg ?? "#E8EDEE" }}
+        aria-hidden="true"
+      />
+    );
+  }
+
   if (!status) {
-    return null;
+    return (
+      <span
+        className={`inline-flex h-3.5 w-3.5 shrink-0 ${className}`}
+        aria-hidden="true"
+      />
+    );
   }
 
   const tooltip = getParentPortalLoginTooltip(status);

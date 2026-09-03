@@ -2,8 +2,16 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ApplicationFormSetupRequired from "@/components/admissions/ApplicationFormSetupRequired";
+import ApplyProgramPicker, {
+  loadApplyProgramPickerData,
+} from "@/components/admissions/ApplyProgramPicker";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
-import { getPublishedApplicationFormBySlug } from "@/lib/admissions/application-forms";
+import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
+import {
+  getPublishedApplicationFormBySlug,
+  isCanonicalApplyEntrySlug,
+  listPublishedApplyForms,
+} from "@/lib/admissions/application-forms";
 import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -15,6 +23,37 @@ type PageProps = {
   params: Promise<{ slug: string; formSlug: string }>;
 };
 
+type ResolvedApplyEntry =
+  | ApplicationFormVersion
+  | { kind: "picker"; forms: ApplicationFormVersion[] }
+  | null;
+
+function isApplyProgramPicker(
+  entry: NonNullable<ResolvedApplyEntry>,
+): entry is { kind: "picker"; forms: ApplicationFormVersion[] } {
+  return "kind" in entry && entry.kind === "picker";
+}
+
+async function resolvePublishedApplyEntry(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  formSlug: string,
+): Promise<ResolvedApplyEntry> {
+  if (!isCanonicalApplyEntrySlug(formSlug)) {
+    return getPublishedApplicationFormBySlug(supabase, organizationId, formSlug);
+  }
+
+  const publishedApplyForms = await listPublishedApplyForms(supabase, organizationId);
+  if (publishedApplyForms.length === 0) {
+    return null;
+  }
+  if (publishedApplyForms.length === 1) {
+    return publishedApplyForms[0];
+  }
+
+  return { kind: "picker" as const, forms: publishedApplyForms };
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug, formSlug } = await params;
   const cookieStore = await cookies();
@@ -25,16 +64,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  const form = await getPublishedApplicationFormBySlug(
-    supabase,
-    org.id,
-    formSlug,
-  );
+  const resolved = await resolvePublishedApplyEntry(supabase, org.id, formSlug);
 
-  if (!form) {
+  if (!resolved) {
     return { title: "Application Not Found" };
   }
 
+  if (isApplyProgramPicker(resolved)) {
+    return {
+      title: `Apply | ${org.name}`,
+      description: `Choose a program to apply to ${org.name}.`,
+    };
+  }
+
+  const form = resolved;
   return {
     title: `${form.title} | ${org.name}`,
     description: form.intro ?? `Apply to ${org.name}`,
@@ -51,15 +94,26 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
     notFound();
   }
 
-  const form = await getPublishedApplicationFormBySlug(
-    supabase,
-    org.id,
-    formSlug,
-  );
+  const resolved = await resolvePublishedApplyEntry(supabase, org.id, formSlug);
 
-  if (!form) {
+  if (!resolved) {
     notFound();
   }
+
+  if (isApplyProgramPicker(resolved)) {
+    const { programsById } = await loadApplyProgramPickerData(supabase, org.id);
+    return (
+      <ApplyProgramPicker
+        branding={org.branding}
+        schoolName={org.name}
+        schoolSlug={slug}
+        forms={resolved.forms}
+        programsById={programsById}
+      />
+    );
+  }
+
+  const form = resolved;
 
   if (!form.program_id) {
     return (

@@ -12,6 +12,7 @@ type SubmissionContactCellProps = {
   contactEmail: string | null;
   primaryGuardianId: string | null;
   loginStatusByGuardianId: Record<string, ParentPortalLoginStatus>;
+  loginStatusLoading?: boolean;
   C?: AdminThemeTokens;
   theme?: ParentThemeTokens;
 };
@@ -21,6 +22,7 @@ export default function SubmissionContactCell({
   contactEmail,
   primaryGuardianId,
   loginStatusByGuardianId,
+  loginStatusLoading = false,
   C,
   theme,
 }: SubmissionContactCellProps) {
@@ -45,7 +47,12 @@ export default function SubmissionContactCell({
           <span className="truncate text-xs font-semibold" style={{ color: "#2C3E43" }}>
             {displayName}
           </span>
-          <ParentPortalLoginIcon status={loginStatus} C={C} theme={theme} />
+          <ParentPortalLoginIcon
+            status={loginStatus}
+            loading={loginStatusLoading && primaryGuardianId != null}
+            C={C}
+            theme={theme}
+          />
         </div>
         {contactEmail ? (
           <div

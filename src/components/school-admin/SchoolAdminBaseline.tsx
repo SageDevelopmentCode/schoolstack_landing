@@ -25,6 +25,7 @@ import SchoolAdminStoryShell, {
 } from "@/components/school-admin/SchoolAdminStoryShell";
 import SchoolAdminStorySidebar from "@/components/school-admin/SchoolAdminStorySidebar";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
+import { useSchoolPortalOptions } from "@/lib/auth/use-school-portal-options";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import { AdminNotificationsPanelProvider } from "@/lib/school-admin/admin-notifications-panel-context";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
@@ -50,6 +51,8 @@ type SchoolAdminBaselineProps = {
   features: OrganizationFeatures;
   userProfile: SchoolAdminUserProfile | null;
   portalOptions?: SchoolPortalOption[];
+  initialMessagesUnreadCount?: number;
+  initialActivityUnreadCount?: number;
   previewMode?: boolean;
   children: ReactNode;
 };
@@ -62,6 +65,8 @@ function SchoolAdminBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  initialMessagesUnreadCount,
+  initialActivityUnreadCount,
   previewMode = false,
   children,
 }: SchoolAdminBaselineProps) {
@@ -83,15 +88,29 @@ function SchoolAdminBaselineInner({
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [supportOpen, setSupportOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(initialActivityUnreadCount ?? 0);
   const lastUnreadFetchRef = useRef(0);
   const FOCUS_REFETCH_MS = 60_000;
   const messagesEnabled = Boolean(features.admin.messages);
+  const skipInitialUnreadFetch = !previewMode && initialActivityUnreadCount != null;
+  const { options: loadedPortalOptions } = useSchoolPortalOptions(
+    organizationId,
+    slug,
+    {
+      enabled: !previewMode,
+      initialOptions: previewMode ? portalOptions : undefined,
+    },
+  );
+  const resolvedPortalOptions = previewMode ? portalOptions : loadedPortalOptions;
   const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
     "/api/school-admin/messages",
     organizationId,
     schoolName,
     messagesEnabled && !previewMode,
+    {
+      initialUnreadCount: initialMessagesUnreadCount,
+      skipInitialFetch: !previewMode && initialMessagesUnreadCount != null,
+    },
   );
 
   const fetchUnreadCount = useCallback(async () => {
@@ -111,11 +130,11 @@ function SchoolAdminBaselineInner({
   }, [organizationId]);
 
   useEffect(() => {
-    if (previewMode) return;
+    if (previewMode || skipInitialUnreadFetch) return;
     queueMicrotask(() => {
       void fetchUnreadCount();
     });
-  }, [fetchUnreadCount, previewMode]);
+  }, [fetchUnreadCount, previewMode, skipInitialUnreadFetch]);
 
   useEffect(() => {
     if (previewMode) return;
@@ -158,7 +177,7 @@ function SchoolAdminBaselineInner({
             onToggleExpand={() => setSidebarExpanded((v) => !v)}
             userProfile={userProfile}
             onSignOut={handleSignOut}
-            portalOptions={portalOptions}
+            portalOptions={resolvedPortalOptions}
             previewMode={previewMode}
             onOpenSupport={() => setSupportOpen(true)}
             onOpenNotifications={openNotifications}

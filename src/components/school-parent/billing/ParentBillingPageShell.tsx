@@ -1,0 +1,63 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-meta";
+import ParentBillingPage from "./ParentBillingPage";
+import { ParentBillingPageContext } from "./parent-billing-page-context";
+
+type ParentBillingPageShellProps = {
+  organizationId: string;
+  familyId: string;
+  branding: OrganizationBranding;
+  slug: string;
+  previewMode?: boolean;
+  children?: React.ReactNode;
+};
+
+export default function ParentBillingPageShell({
+  organizationId,
+  familyId,
+  branding,
+  slug,
+  previewMode = false,
+  children,
+}: ParentBillingPageShellProps) {
+  const [billingData, setBillingData] = useState<ParentBillingInitialData | null>(null);
+  const [billingHydrated, setBillingHydrated] = useState(false);
+  const [pageMeta, setPageMeta] = useState<ParentBillingPageMeta | null>(null);
+
+  const hydrateBillingData = useCallback((data: ParentBillingInitialData) => {
+    setBillingData(data);
+    setBillingHydrated(true);
+  }, []);
+
+  const hydrateMeta = useCallback((meta: ParentBillingPageMeta) => {
+    setPageMeta(meta);
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      hydrateBillingData,
+      hydrateMeta,
+    }),
+    [hydrateBillingData, hydrateMeta],
+  );
+
+  return (
+    <ParentBillingPageContext.Provider value={contextValue}>
+      <ParentBillingPage
+        organizationId={organizationId}
+        familyId={familyId}
+        branding={branding}
+        slug={slug}
+        previewMode={previewMode}
+        initialData={billingData ?? undefined}
+        billingDeferred={!billingHydrated}
+        pageMeta={pageMeta}
+      />
+      {children}
+    </ParentBillingPageContext.Provider>
+  );
+}

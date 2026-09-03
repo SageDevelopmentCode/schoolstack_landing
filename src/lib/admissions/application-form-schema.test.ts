@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  cloneApplicationSection,
   defaultApplicationFormNotificationConfig,
   emptyApplicationFormSchema,
   emptyApplicationSection,
@@ -16,6 +17,7 @@ import {
   validateSubmissionNotifyEmails,
   type ApplicationFormNotificationConfig,
   type ApplicationFormSchema,
+  type ApplicationSection,
 } from "./application-form-schema";
 import {
   ensureApplySystemSchema,
@@ -279,6 +281,53 @@ describe("extractStudentFromResponses", () => {
         student_grade: "k",
       }),
       null,
+    );
+  });
+});
+
+describe("cloneApplicationSection", () => {
+  it("clones content with new section and field ids", () => {
+    const source: ApplicationSection = {
+      id: "section-old",
+      title: "Parent information",
+      description: "Tell us about you",
+      stepNotice: { body: "Note", placement: "top" },
+      allowMultiple: true,
+      fields: [
+        {
+          id: "field-old",
+          label: "Phone",
+          type: "tel",
+          required: true,
+          options: [{ value: "a", label: "A" }],
+        },
+      ],
+    };
+
+    const cloned = cloneApplicationSection(source);
+
+    assert.notEqual(cloned.id, source.id);
+    assert.equal(cloned.title, "Parent information");
+    assert.equal(cloned.description, "Tell us about you");
+    assert.deepEqual(cloned.stepNotice, source.stepNotice);
+    assert.equal(cloned.allowMultiple, true);
+    assert.equal(cloned.fields.length, 1);
+    assert.notEqual(cloned.fields[0]?.id, "field-old");
+    assert.equal(cloned.fields[0]?.label, "Phone");
+    assert.equal(cloned.system, undefined);
+    assert.equal(cloned.fields[0]?.system, undefined);
+  });
+
+  it("rejects cloning system sections", () => {
+    assert.throws(
+      () =>
+        cloneApplicationSection({
+          id: "system",
+          title: "Student information",
+          system: true,
+          fields: [],
+        }),
+      /System steps cannot be reused/,
     );
   });
 });

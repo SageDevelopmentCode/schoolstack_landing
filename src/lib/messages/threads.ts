@@ -18,6 +18,7 @@ import {
   validateParticipantSet,
 } from "./participant-signature";
 import { loadAttachmentsForMessages, getMessageAttachmentSignedUrl } from "./message-attachment-storage";
+import { mapThreadUnreadCountRows } from "./thread-list-helpers";
 import type {
   MessageParticipantInput,
   MessageThreadDetail,
@@ -303,7 +304,7 @@ function collectIdsFromParticipants(
   };
 }
 
-async function getUnreadCounts(
+async function getUnreadCountsFallback(
   admin: SupabaseClient,
   threadIds: string[],
   userId: string,
@@ -343,6 +344,89 @@ async function getUnreadCounts(
   }
 
   return counts;
+}
+
+async function getUnreadCounts(
+  admin: SupabaseClient,
+  threadIds: string[],
+  userId: string,
+): Promise<Map<string, number>> {
+  if (threadIds.length === 0) return new Map();
+
+  const { data, error } = await admin.rpc("thread_unread_counts", {
+    p_user_id: userId,
+    p_thread_ids: threadIds,
+  });
+
+  if (!error && data != null) {
+    return mapThreadUnreadCountRows(threadIds, data);
+  }
+
+  return getUnreadCountsFallback(admin, threadIds, userId);
+}
+
+async function getLatestMessagesForThreads(
+  admin: SupabaseClient,
+  threadIds: string[],
+): Promise<Map<string, PortalMessageRow>> {
+  const lastMessageByThread = new Map<string, PortalMessageRow>();
+  if (threadIds.length === 0) return lastMessageByThread;
+
+  const { data, error } = await admin.rpc("latest_messages_for_threads", {
+    p_thread_ids: threadIds,
+  });
+
+  if (!error && data != null) {
+    for (const message of data as PortalMessageRow[]) {
+      lastMessageByThread.set(String(message.thread_id), message);
+    }
+    return lastMessageByThread;
+  }
+
+  const { data: latestMessages, error: latestError } = await admin
+    .from("portal_messages")
+    .select("*")
+    .in("thread_id", threadIds)
+    .order("created_at", { ascending: false });
+
+  if (latestError) throw new Error(latestError.message);
+
+  for (const message of (latestMessages ?? []) as PortalMessageRow[]) {
+    const threadId = String(message.thread_id);
+    if (!lastMessageByThread.has(threadId)) {
+      lastMessageByThread.set(threadId, message);
+    }
+  }
+
+  return lastMessageByThread;
+}
+
+export async function countAdminUnreadMessages(
+  admin: SupabaseClient,
+  organizationId: string,
+  userId: string,
+): Promise<number> {
+  const { data, error } = await admin.rpc("count_admin_unread_messages", {
+    p_organization_id: organizationId,
+    p_user_id: userId,
+  });
+
+  if (!error && data != null) {
+    return Number(data);
+  }
+
+  const { data: threads, error: threadsError } = await admin
+    .from("message_threads")
+    .select("id")
+    .eq("organization_id", organizationId);
+
+  if (threadsError) throw new Error(threadsError.message);
+
+  const threadIds = (threads ?? []).map((row) => String(row.id));
+  if (threadIds.length === 0) return 0;
+
+  const unreadCounts = await getUnreadCounts(admin, threadIds, userId);
+  return [...unreadCounts.values()].reduce((sum, count) => sum + count, 0);
 }
 
 export async function getTotalUnreadCount(
@@ -520,11 +604,64 @@ export async function listThreadsForOrganization(
   } else {
     const { data, error } = await admin
       .from("message_threads")
-      .select("id")
-      .eq("organization_id", organizationId);
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("last_message_at", { ascending: false, nullsFirst: false });
 
     if (error) throw new Error(error.message);
-    threadIds = (data ?? []).map((row) => String(row.id));
+
+    const threads = (data ?? []) as MessageThreadRow[];
+    if (threads.length === 0) return [];
+
+    const threadIds = threads.map((row) => String(row.id));
+
+    const { data: participantRows, error: participantsError } = await admin
+      .from("message_thread_participants")
+      .select("*")
+      .in("thread_id", threadIds);
+
+    if (participantsError) throw new Error(participantsError.message);
+
+    const participantsByThread = new Map<string, MessageThreadParticipantRow[]>();
+    for (const row of (participantRows ?? []) as MessageThreadParticipantRow[]) {
+      const threadId = String(row.thread_id);
+      const list = participantsByThread.get(threadId) ?? [];
+      list.push(row);
+      participantsByThread.set(threadId, list);
+    }
+
+    const { familyIds, staffMemberIds, guardianIds } = collectIdsFromParticipants(
+      (participantRows ?? []) as MessageThreadParticipantRow[],
+    );
+
+    const [context, unreadCounts, lastMessageByThread] = await Promise.all([
+      loadDisplayContext(
+        admin,
+        organizationId,
+        currentUserId,
+        schoolOfficeLabel,
+        familyIds,
+        staffMemberIds,
+        guardianIds,
+        { viewer, currentStaffMemberId: null },
+      ),
+      getUnreadCounts(admin, threadIds, currentUserId),
+      getLatestMessagesForThreads(admin, threadIds),
+    ]);
+
+    return threads.map((thread) => {
+      const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
+        mapParticipantRow,
+      );
+      return mapThreadSummary(
+        thread,
+        participants,
+        context,
+        viewer,
+        lastMessageByThread.get(String(thread.id)) ?? null,
+        unreadCounts.get(String(thread.id)) ?? 0,
+      );
+    });
   }
 
   if (threadIds.length === 0) return [];
@@ -572,21 +709,7 @@ export async function listThreadsForOrganization(
 
   const unreadCounts = await getUnreadCounts(admin, threadIds, currentUserId);
 
-  const { data: latestMessages, error: latestError } = await admin
-    .from("portal_messages")
-    .select("*")
-    .in("thread_id", threadIds)
-    .order("created_at", { ascending: false });
-
-  if (latestError) throw new Error(latestError.message);
-
-  const lastMessageByThread = new Map<string, PortalMessageRow>();
-  for (const message of (latestMessages ?? []) as PortalMessageRow[]) {
-    const threadId = String(message.thread_id);
-    if (!lastMessageByThread.has(threadId)) {
-      lastMessageByThread.set(threadId, message);
-    }
-  }
+  const lastMessageByThread = await getLatestMessagesForThreads(admin, threadIds);
 
   return ((threads ?? []) as MessageThreadRow[]).map((thread) => {
     const participants = (participantsByThread.get(String(thread.id)) ?? []).map(

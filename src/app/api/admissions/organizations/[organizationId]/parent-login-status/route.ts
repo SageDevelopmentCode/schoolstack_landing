@@ -18,16 +18,29 @@ type RouteContext = {
   params: Promise<{ organizationId: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { organizationId } = await context.params;
+  const url = new URL(request.url);
+  const guardianIdsParam = url.searchParams.get("guardianIds")?.trim() ?? "";
+  const guardianIds = guardianIdsParam
+    ? guardianIdsParam
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .slice(0, 50)
+    : undefined;
 
   try {
     await requireSchoolAdminUser(supabase, organizationId);
 
     const admin = createAdminClient();
-    const statuses = await listOrgParentPortalLoginStatus(admin, organizationId);
+    const statuses = await listOrgParentPortalLoginStatus(
+      admin,
+      organizationId,
+      guardianIds,
+    );
 
     return NextResponse.json({
       statuses,

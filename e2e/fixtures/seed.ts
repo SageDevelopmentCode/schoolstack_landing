@@ -200,6 +200,7 @@ async function ensureE2eApplicationFormContext(
       .insert({
         organization_id: organizationId,
         program_id: programId,
+        form_kind: "apply",
         version: 1,
         status: "published",
         title: "E2E Application",
@@ -217,6 +218,8 @@ async function ensureE2eApplicationFormContext(
     const { error: formUpdateError } = await admin
       .from("application_form_versions")
       .update({
+        program_id: programId,
+        form_kind: "apply",
         public_slug: "apply",
         schema: e2eFormSchema,
         fee_config: e2eFormFeeConfig,
@@ -263,6 +266,7 @@ async function ensureE2eFeeApplicationFormContext(
     const { error: formUpdateError } = await admin
       .from("application_form_versions")
       .update({
+        form_kind: "custom",
         schema: e2eFormSchema,
         fee_config: e2eFormFeeConfig,
         status: "published",
@@ -292,6 +296,7 @@ async function ensureE2eFeeApplicationFormContext(
     .insert({
       organization_id: organizationId,
       program_id: programId,
+      form_kind: "custom",
       version: nextVersion,
       status: "published",
       title: "E2E Application With Fee",

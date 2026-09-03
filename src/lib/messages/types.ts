@@ -124,4 +124,5 @@ export type MessagesInboxData = {
   contacts: MessageContact[];
   viewerContext?: MessagesViewerContext;
   guardianId?: string | null;
+  threadsDeferred?: boolean;
 };

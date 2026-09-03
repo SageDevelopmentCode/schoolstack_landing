@@ -133,16 +133,36 @@ export async function cleanupParentDraftApplications(): Promise<void> {
 
 const STUDENT_DATE_PLACEHOLDER = "Select date…";
 const STEP_ADVANCE_TIMEOUT_MS = process.env.CI ? 15_000 : 10_000;
+const APPLY_FORM_TIMEOUT_MS = process.env.CI ? 60_000 : 30_000;
 
-function isApplicantBootstrapResponse(response: {
+function isApplicantBootstrapPost(response: {
   url: () => string;
   request: () => { method: () => string };
-  ok: () => boolean;
 }): boolean {
   return (
     response.url().includes("/api/admissions/applicant-bootstrap") &&
-    response.request().method() === "POST" &&
-    response.ok()
+    response.request().method() === "POST"
+  );
+}
+
+async function assertApplicantBootstrapSucceeded(
+  response: {
+    ok: () => boolean;
+    status: () => number;
+    json: () => Promise<unknown>;
+  },
+): Promise<void> {
+  if (response.ok()) return;
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+
+  throw new Error(
+    `applicant-bootstrap failed with ${response.status()}: ${JSON.stringify(body)}`,
   );
 }
 
@@ -270,16 +290,22 @@ export async function advanceFromStudentStep(page: Page): Promise<void> {
 export async function openNewApplicationForm(page: Page): Promise<void> {
   await cleanupParentDraftApplications();
 
-  const bootstrapResponse = page.waitForResponse(isApplicantBootstrapResponse, {
-    timeout: process.env.CI ? 60_000 : 30_000,
+  const bootstrapResponse = page.waitForResponse(isApplicantBootstrapPost, {
+    timeout: APPLY_FORM_TIMEOUT_MS,
   });
 
   await page.goto(`/school/${TEST_ORG_SLUG}/forms/apply?new=1`, {
     waitUntil: process.env.CI ? "domcontentloaded" : "load",
-    timeout: process.env.CI ? 60_000 : 30_000,
+    timeout: APPLY_FORM_TIMEOUT_MS,
   });
 
-  await bootstrapResponse;
+  await expect(page.getByRole("heading", { name: "This page could not be found." })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("heading", { name: "Choose a program" })).toHaveCount(0);
+
+  const response = await bootstrapResponse;
+  await assertApplicantBootstrapSucceeded(response);
 
   const firstName = page.locator("#student_first_name");
   await expect(firstName).toBeVisible({ timeout: 15_000 });

@@ -132,24 +132,45 @@ export default function ParentChildrenPage({
       setProfileLoading(true);
       setProfileError(null);
       try {
-        const [application, checklist] = await Promise.all([
-          loadApplicationDetail(supabase, applicationId, organizationId),
-          loadEnrollmentChecklistForApplication(
-            supabase,
-            applicationId,
-            organizationId,
-          ),
-        ]);
-        if (!application) {
+        if (previewBasePath) {
+          const [application, checklist] = await Promise.all([
+            loadApplicationDetail(supabase, applicationId, organizationId),
+            loadEnrollmentChecklistForApplication(
+              supabase,
+              applicationId,
+              organizationId,
+            ),
+          ]);
+          if (!application) {
+            setProfileError("Could not load this student profile.");
+            return;
+          }
+          const assignedTeachers = application.studentId
+            ? await fetchAssignedTeachersForStudent(organizationId, application.studentId)
+            : [];
+          setProfiles((prev) => ({
+            ...prev,
+            [applicationId]: { application, checklist, assignedTeachers },
+          }));
+          return;
+        }
+
+        const params = new URLSearchParams({ organizationId });
+        const res = await fetch(
+          `/api/parent-portal/children/${applicationId}/profile?${params}`,
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setProfileError(data.error ?? "Could not load this student profile.");
+          return;
+        }
+        if (!data.profile?.application) {
           setProfileError("Could not load this student profile.");
           return;
         }
-        const assignedTeachers = application.studentId
-          ? await fetchAssignedTeachersForStudent(organizationId, application.studentId)
-          : [];
         setProfiles((prev) => ({
           ...prev,
-          [applicationId]: { application, checklist, assignedTeachers },
+          [applicationId]: data.profile,
         }));
       } catch (err) {
         setProfileError(
@@ -159,7 +180,7 @@ export default function ParentChildrenPage({
         setProfileLoading(false);
       }
     },
-    [organizationId, profiles, supabase],
+    [organizationId, previewBasePath, profiles, supabase],
   );
 
   const selectChild = useCallback(

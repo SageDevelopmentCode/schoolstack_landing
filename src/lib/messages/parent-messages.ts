@@ -2,7 +2,73 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getGuardianIdsForUser } from "@/lib/messages/messages";
 import { listParentMessageContacts } from "./contacts";
 import { listThreadsForOrganization } from "./threads";
-import type { MessagesInboxData } from "./types";
+import type { MessageThreadSummary, MessagesInboxData } from "./types";
+
+type LoadParentMessagesInboxOptions = {
+  includeContacts?: boolean;
+};
+
+export async function loadParentMessagesThreads(
+  admin: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  schoolName: string,
+  supabase?: SupabaseClient,
+): Promise<{
+  threads: MessageThreadSummary[];
+  guardianId: string | null;
+}> {
+  const schoolOfficeLabel = `${schoolName} Office`;
+
+  let guardianId: string | null = null;
+  if (supabase) {
+    const contactsResult = await listParentMessageContacts(
+      admin,
+      supabase,
+      organizationId,
+      userId,
+      schoolOfficeLabel,
+    );
+    guardianId = contactsResult.guardianId;
+  }
+
+  const guardianIds =
+    guardianId !== null
+      ? [guardianId]
+      : await getGuardianIdsForUser(admin, userId, organizationId);
+
+  const threads =
+    guardianIds.length > 0
+      ? await listThreadsForOrganization(
+          admin,
+          organizationId,
+          userId,
+          schoolOfficeLabel,
+          "parent",
+          { type: "guardian", guardianIds },
+        )
+      : [];
+
+  return { threads, guardianId };
+}
+
+export async function loadParentMessagesContacts(
+  admin: SupabaseClient,
+  supabase: SupabaseClient,
+  organizationId: string,
+  userId: string,
+  schoolName: string,
+) {
+  const schoolOfficeLabel = `${schoolName} Office`;
+  const { contacts } = await listParentMessageContacts(
+    admin,
+    supabase,
+    organizationId,
+    userId,
+    schoolOfficeLabel,
+  );
+  return contacts;
+}
 
 export async function loadParentMessagesInbox(
   admin: SupabaseClient,
@@ -10,15 +76,22 @@ export async function loadParentMessagesInbox(
   organizationId: string,
   userId: string,
   schoolName: string,
+  options: LoadParentMessagesInboxOptions = {},
 ): Promise<MessagesInboxData> {
+  const includeContacts = options.includeContacts ?? true;
   const schoolOfficeLabel = `${schoolName} Office`;
-  const { familyId, guardianId, contacts } = await listParentMessageContacts(
-    admin,
-    supabase,
-    organizationId,
-    userId,
-    schoolOfficeLabel,
-  );
+
+  const contactsResult = includeContacts
+    ? await listParentMessageContacts(
+        admin,
+        supabase,
+        organizationId,
+        userId,
+        schoolOfficeLabel,
+      )
+    : { familyId: null, guardianId: null, contacts: [] as MessagesInboxData["contacts"] };
+
+  const { guardianId, contacts } = contactsResult;
 
   const guardianIds =
     guardianId

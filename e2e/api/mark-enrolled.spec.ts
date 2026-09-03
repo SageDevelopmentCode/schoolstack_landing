@@ -419,3 +419,61 @@ test("mark-enrolled POST completes an in-progress enrollment checklist", async (
 
   expect(checklist?.status).toBe("completed");
 });
+
+test("start-enrollment POST moves submitted application directly to enrolling", async ({
+  request,
+}) => {
+  const manifest = getSeedManifest();
+  const admin = createAdminClient();
+  const applicationId = manifest.applications.enrollTarget;
+
+  await resetApplicationEnrollmentState(admin, applicationId, "submitted");
+
+  const { data: application, error: applicationLookupError } = await admin
+    .from("applications")
+    .select("program_id, organization_id")
+    .eq("id", applicationId)
+    .single();
+
+  expect(applicationLookupError).toBeNull();
+  expect(application?.program_id).toBeTruthy();
+
+  await ensurePublishedEnrollmentChecklistWithPayment(
+    admin,
+    manifest.organizationId,
+    String(application?.program_id),
+  );
+
+  await materializeApplicationStudent(admin, applicationId);
+
+  const startResponse = await request.post(
+    `/api/admissions/applications/${applicationId}/start-enrollment`,
+    { data: { variantResolutions: {} } },
+  );
+
+  expect(startResponse.status()).toBe(200);
+  const body = await startResponse.json();
+  expect(body.applicationId).toBe(applicationId);
+  expect(body.enrollmentId).toBeTruthy();
+  expect(body.checklistId).toBeTruthy();
+
+  const { data: updatedApplication } = await admin
+    .from("applications")
+    .select("status")
+    .eq("id", applicationId)
+    .single();
+
+  expect(updatedApplication?.status).toBe("enrolling");
+
+  const { data: acceptedEvent } = await admin
+    .from("activity_events")
+    .select("action")
+    .eq("entity_type", "application")
+    .eq("entity_id", applicationId)
+    .eq("action", "application.accepted")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  expect(acceptedEvent?.action).toBe("application.accepted");
+});

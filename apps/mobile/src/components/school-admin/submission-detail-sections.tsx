@@ -170,27 +170,39 @@ export function SubmissionDecisionSection({
 export function SubmissionEnrollmentActionsSection({
   currentStatus,
   hasPublishedChecklist,
+  programName,
+  enrollmentChecklistName,
   onMarkEnrolled,
   loading,
 }: {
   currentStatus: string;
   hasPublishedChecklist: boolean;
+  programName?: string | null;
+  enrollmentChecklistName?: string | null;
   onMarkEnrolled: () => void;
   loading: boolean;
 }) {
   const theme = useAdminTheme();
   if (currentStatus !== 'accepted' && currentStatus !== 'enrolling') return null;
 
+  const description = (() => {
+    if (currentStatus === 'enrolling') {
+      return 'Mark this student as enrolled when the checklist is complete.';
+    }
+    if (hasPublishedChecklist) {
+      if (enrollmentChecklistName && programName) {
+        return `Uses ${enrollmentChecklistName} for ${programName}. Start enrollment from the web admin to choose checklist variants.`;
+      }
+      return 'Start enrollment from the web admin to choose checklist variants.';
+    }
+    if (programName) {
+      return `${programName} has no enrollment checklist — mark enrolled directly when paperwork is handled offline.`;
+    }
+    return 'No published enrollment checklist is linked to this program yet.';
+  })();
+
   return (
-    <DetailSection
-      title="Enrollment"
-      description={
-        currentStatus === 'accepted'
-          ? hasPublishedChecklist
-            ? 'Start enrollment from the web admin to choose checklist variants.'
-            : 'No published enrollment checklist is linked to this program yet.'
-          : 'Mark this student as enrolled when the checklist is complete.'
-      }>
+    <DetailSection title="Enrollment" description={description}>
       {currentStatus === 'enrolling' ? (
         <Pressable
           accessibilityRole="button"

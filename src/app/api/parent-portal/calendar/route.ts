@@ -26,6 +26,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
   const slug = url.searchParams.get("slug")?.trim() ?? "";
+  const startDate = url.searchParams.get("start")?.trim() ?? "";
+  const endDate = url.searchParams.get("end")?.trim() ?? "";
 
   if (!organizationId || !slug) {
     return apiError(ROUTE, {
@@ -57,8 +59,13 @@ export async function GET(request: Request) {
       });
     }
 
+    const eventWindow =
+      startDate && endDate
+        ? { startDate, endDate }
+        : undefined;
+
     const [events, timezone] = await Promise.all([
-      listEventsForOrg(supabase, organizationId),
+      listEventsForOrg(supabase, organizationId, eventWindow),
       getOrganizationTimezone(supabase, organizationId),
     ]);
 

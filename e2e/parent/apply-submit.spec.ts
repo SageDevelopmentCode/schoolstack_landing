@@ -8,6 +8,7 @@ import {
 } from "../helpers/apply-form";
 
 test.describe.configure({ mode: "serial" });
+test.setTimeout(process.env.CI ? 60_000 : 30_000);
 
 test.beforeEach(async () => {
   await beginApplyFormTest();

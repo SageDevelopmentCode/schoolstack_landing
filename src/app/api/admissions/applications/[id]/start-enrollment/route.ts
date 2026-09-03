@@ -17,6 +17,7 @@ import {
 } from "@/lib/school-admin/access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { sendApplicationAcceptedEnrollmentNotifications } from "@/lib/admissions/application-notifications";
 
 const ROUTE = "/api/admissions/applications/[id]/start-enrollment";
 
@@ -158,6 +159,8 @@ export async function POST(request: Request, context: RouteContext) {
       variantResolutions: body.variantResolutions ?? {},
       actorUserId: user.id,
     });
+
+    void sendApplicationAcceptedEnrollmentNotifications(admin, applicationId);
 
     return NextResponse.json(result);
   } catch (error) {

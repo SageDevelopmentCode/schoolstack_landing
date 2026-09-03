@@ -11,6 +11,8 @@ type EnrollmentFlowsEmptyStateProps = {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   creating: boolean;
+  canCreateApplyForm: boolean;
+  canCreateChecklist: boolean;
   onCreateApply: () => void;
   onCreateChecklist: () => void;
 };
@@ -19,6 +21,8 @@ export default function EnrollmentFlowsEmptyState({
   C: _C,
   theme,
   creating,
+  canCreateApplyForm,
+  canCreateChecklist,
   onCreateApply,
   onCreateChecklist,
 }: EnrollmentFlowsEmptyStateProps) {
@@ -40,7 +44,12 @@ export default function EnrollmentFlowsEmptyState({
       </p>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <AdminButton theme={theme} variant="primary" onClick={onCreateApply} disabled={creating}>
+        <AdminButton
+          theme={theme}
+          variant="primary"
+          onClick={onCreateApply}
+          disabled={creating || !canCreateApplyForm}
+        >
           {creating ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -52,7 +61,7 @@ export default function EnrollmentFlowsEmptyState({
           theme={theme}
           variant="soft"
           onClick={onCreateChecklist}
-          disabled={creating}
+          disabled={creating || !canCreateChecklist}
         >
           {creating ? (
             <Loader2 className="h-4 w-4 animate-spin" />

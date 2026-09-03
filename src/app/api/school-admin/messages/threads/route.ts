@@ -37,6 +37,7 @@ export async function GET(request: Request) {
       user.id,
       schoolName,
       supabase,
+      { includeContacts: false },
     );
 
     return NextResponse.json(inbox);

@@ -25,6 +25,7 @@ export type ParentCommitteesInitialData = {
 export async function loadParentCommitteesInitialData(input: {
   organizationId: string;
   userId: string;
+  selectedCommitteeId?: string | null;
 }): Promise<ParentCommitteesInitialData> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -43,21 +44,17 @@ export async function loadParentCommitteesInitialData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
-  const workspaceResults = await Promise.allSettled(
-    myCommittees.map((committee) =>
-      getParentCommitteeWorkspace(
-        supabase,
-        input.organizationId,
-        input.userId,
-        committee.id,
-      ).then((workspace) => [committee.id, workspace] as const),
-    ),
-  );
-
-  for (const result of workspaceResults) {
-    if (result.status === "fulfilled") {
-      const [committeeId, workspace] = result.value;
-      workspacesByCommitteeId[committeeId] = workspace;
+  if (input.selectedCommitteeId) {
+    try {
+      workspacesByCommitteeId[input.selectedCommitteeId] =
+        await getParentCommitteeWorkspace(
+          supabase,
+          input.organizationId,
+          input.userId,
+          input.selectedCommitteeId,
+        );
+    } catch {
+      // Workspace loads on selection when deep-link fetch fails.
     }
   }
 
@@ -71,6 +68,7 @@ export async function loadParentCommitteesInitialData(input: {
 export async function loadParentCommitteesPreviewData(input: {
   organizationId: string;
   familyId: string;
+  selectedCommitteeId?: string | null;
 }): Promise<ParentCommitteesInitialData> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -91,23 +89,17 @@ export async function loadParentCommitteesPreviewData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
-  if (guardianUserId) {
-    const workspaceResults = await Promise.allSettled(
-      myCommittees.map((committee) =>
-        getParentCommitteeWorkspace(
+  if (guardianUserId && input.selectedCommitteeId) {
+    try {
+      workspacesByCommitteeId[input.selectedCommitteeId] =
+        await getParentCommitteeWorkspace(
           admin,
           input.organizationId,
           guardianUserId,
-          committee.id,
-        ).then((workspace) => [committee.id, workspace] as const),
-      ),
-    );
-
-    for (const result of workspaceResults) {
-      if (result.status === "fulfilled") {
-        const [committeeId, workspace] = result.value;
-        workspacesByCommitteeId[committeeId] = workspace;
-      }
+          input.selectedCommitteeId,
+        );
+    } catch {
+      // Workspace loads on selection when deep-link fetch fails.
     }
   }
 

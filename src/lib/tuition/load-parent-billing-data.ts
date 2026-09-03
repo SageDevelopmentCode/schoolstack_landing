@@ -43,6 +43,8 @@ export type ParentBillingInitialData = {
   hasBillingSplit: boolean;
   initialChildKey: string | null;
   showTaxCreditPaymentBanner: boolean;
+  chargesDeferred?: boolean;
+  paymentsDeferred?: boolean;
 };
 
 export async function loadParentBillingInitialDataWithClient(
@@ -146,4 +148,21 @@ export async function loadParentBillingInitialData(input: {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   return loadParentBillingInitialDataWithClient(supabase, input);
+}
+
+export async function loadParentBillingStreamedData(input: {
+  organizationId: string;
+  familyId: string;
+  slug: string;
+  userId: string;
+}): Promise<ParentBillingInitialData> {
+  const data = await loadParentBillingInitialData(input);
+  return {
+    ...data,
+    charges: [],
+    allFamilyCharges: [],
+    payments: [],
+    chargesDeferred: true,
+    paymentsDeferred: true,
+  };
 }

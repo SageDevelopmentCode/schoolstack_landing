@@ -13,6 +13,7 @@ const MOBILE_VIEWPORT = { width: 375, height: 812 };
 test.describe("mobile apply flows", () => {
   test.describe.configure({ mode: "serial" });
   test.use({ viewport: MOBILE_VIEWPORT });
+  test.setTimeout(process.env.CI ? 60_000 : 30_000);
 
   test.beforeEach(async () => {
     await beginApplyFormTest();

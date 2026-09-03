@@ -18,6 +18,7 @@ import { isStoryMessagesVariant } from "@/lib/messages/messages-layout-variant";
 export default function MessagesNewConversationModal({
   open,
   contacts,
+  loadingContacts = false,
   onClose,
   onSelect,
   C,
@@ -26,6 +27,7 @@ export default function MessagesNewConversationModal({
 }: {
   open: boolean;
   contacts: MessageContact[];
+  loadingContacts?: boolean;
   onClose: () => void;
   onSelect: (contact: MessageContact) => void;
   C: AdminThemeTokens;
@@ -129,7 +131,11 @@ export default function MessagesNewConversationModal({
             </div>
 
             <div className="max-h-[min(32rem,85dvh)] overflow-y-auto sm:max-h-[min(24rem,60vh)]">
-              {contacts.length === 0 ? (
+              {loadingContacts ? (
+                <p className="px-5 py-8 text-center text-sm" style={{ color: textSecondary }}>
+                  Loading contacts…
+                </p>
+              ) : contacts.length === 0 ? (
                 <p className="px-5 py-8 text-center text-sm" style={{ color: textSecondary }}>
                   No contacts available to message right now.
                 </p>

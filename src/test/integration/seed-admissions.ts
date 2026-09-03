@@ -267,6 +267,87 @@ export async function seedPendingPayment(
   };
 }
 
+const INTEGRATION_ENROLLMENT_CHECKLIST_PATH = "integration-enrollment";
+const INTEGRATION_PAYMENT_ITEM_KEY = "integration_payment";
+
+async function ensureIntegrationEnrollmentChecklistTemplate(
+  admin: SupabaseClient,
+  organizationId: string,
+  programId: string,
+): Promise<{ templateId: string; templateItemId: string }> {
+  const { data: existingTemplate, error: templateLookupError } = await admin
+    .from("enrollment_checklist_templates")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("program_id", programId)
+    .in("status", ["draft", "published"])
+    .maybeSingle();
+
+  if (templateLookupError) throw templateLookupError;
+
+  let templateId = existingTemplate?.id ? String(existingTemplate.id) : null;
+
+  if (!templateId) {
+    const { data: template, error: templateError } = await admin
+      .from("enrollment_checklist_templates")
+      .insert({
+        organization_id: organizationId,
+        program_id: programId,
+        name: "Integration Checklist",
+        enrollment_path: INTEGRATION_ENROLLMENT_CHECKLIST_PATH,
+        status: "published",
+      })
+      .select("id")
+      .single();
+
+    if (templateError) throw templateError;
+    templateId = String(template.id);
+  }
+
+  const { data: existingTemplateItem, error: templateItemLookupError } = await admin
+    .from("enrollment_checklist_template_items")
+    .select("id")
+    .eq("template_id", templateId)
+    .eq("item_key", INTEGRATION_PAYMENT_ITEM_KEY)
+    .maybeSingle();
+
+  if (templateItemLookupError) throw templateItemLookupError;
+
+  if (existingTemplateItem?.id) {
+    return {
+      templateId,
+      templateItemId: String(existingTemplateItem.id),
+    };
+  }
+
+  const { data: templateItem, error: templateItemError } = await admin
+    .from("enrollment_checklist_template_items")
+    .insert({
+      template_id: templateId,
+      organization_id: organizationId,
+      item_key: INTEGRATION_PAYMENT_ITEM_KEY,
+      sort_order: 0,
+      label: "Enrollment fee",
+      type: "payment",
+      required: true,
+      metadata: {
+        payment: {
+          label: "Enrollment fee",
+          amountCents: 2500,
+        },
+      },
+    })
+    .select("id")
+    .single();
+
+  if (templateItemError) throw templateItemError;
+
+  return {
+    templateId,
+    templateItemId: String(templateItem.id),
+  };
+}
+
 export async function seedEnrollmentChecklistPayment(
   admin: SupabaseClient,
 ): Promise<EnrollmentChecklistPaymentSeed> {
@@ -305,48 +386,19 @@ export async function seedEnrollmentChecklistPayment(
 
   if (enrollmentError) throw enrollmentError;
 
-  const { data: template, error: templateError } = await admin
-    .from("enrollment_checklist_templates")
-    .insert({
-      organization_id: form.organizationId,
-      program_id: form.programId,
-      name: "Integration Checklist",
-      enrollment_path: `integration-${randomUUID().slice(0, 8)}`,
-      status: "published",
-    })
-    .select("id")
-    .single();
-
-  if (templateError) throw templateError;
-
-  const { data: templateItem, error: templateItemError } = await admin
-    .from("enrollment_checklist_template_items")
-    .insert({
-      template_id: template.id,
-      organization_id: form.organizationId,
-      item_key: "integration_payment",
-      sort_order: 0,
-      label: "Enrollment fee",
-      type: "payment",
-      required: true,
-      metadata: {
-        payment: {
-          label: "Enrollment fee",
-          amountCents: 2500,
-        },
-      },
-    })
-    .select("id")
-    .single();
-
-  if (templateItemError) throw templateItemError;
+  const { templateId, templateItemId } =
+    await ensureIntegrationEnrollmentChecklistTemplate(
+      admin,
+      form.organizationId,
+      form.programId,
+    );
 
   const { data: checklist, error: checklistError } = await admin
     .from("enrollment_checklists")
     .insert({
       organization_id: form.organizationId,
       enrollment_id: enrollment.id,
-      template_id: template.id,
+      template_id: templateId,
       application_id: draft.applicationId,
       status: "in_progress",
     })
@@ -360,8 +412,8 @@ export async function seedEnrollmentChecklistPayment(
     .insert({
       checklist_id: checklist.id,
       organization_id: form.organizationId,
-      template_item_id: templateItem.id,
-      item_key: "integration_payment",
+      template_item_id: templateItemId,
+      item_key: INTEGRATION_PAYMENT_ITEM_KEY,
       status: "not_started",
       payment_status: "pending",
     })

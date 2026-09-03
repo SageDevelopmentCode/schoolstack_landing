@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Loader2, Plus } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { buildAdminSectionedListItems } from "@/lib/messages/admin-thread-sections";
@@ -43,6 +43,7 @@ import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStuden
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
 import type { MessageStudentSummary } from "@/lib/messages/types";
+import { initialInboxLoadingState } from "@/lib/messages/thread-list-helpers";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -155,6 +156,7 @@ export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
+  deferContactsLoad = false,
   C,
   variant = "card",
   theme,
@@ -164,6 +166,7 @@ export default function MessagesInboxLayout({
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
+  deferContactsLoad?: boolean;
   C: AdminThemeTokens;
   variant?: MessagesLayoutVariant;
   theme?: ParentThemeTokens;
@@ -178,7 +181,11 @@ export default function MessagesInboxLayout({
   const [activeThread, setActiveThread] = useState<MessageThreadDetail | null>(null);
   const [input, setInput] = useState("");
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
-  const [loadingInbox, setLoadingInbox] = useState(!initialInbox);
+  const [loadingInbox, setLoadingInbox] = useState(() =>
+    initialInboxLoadingState(initialInbox),
+  );
+  const [isRefetchingInbox, setIsRefetchingInbox] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,6 +198,7 @@ export default function MessagesInboxLayout({
   const [inboxSearch, setInboxSearch] = useState("");
   const deepLinkHandled = useRef(false);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
+  const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
 
   const query = useMemo(
     () =>
@@ -202,20 +210,54 @@ export default function MessagesInboxLayout({
   );
 
   const loadInbox = useCallback(async () => {
+    if (hasLoadedThreadsRef.current) {
+      setIsRefetchingInbox(true);
+    } else {
+      setLoadingInbox(true);
+    }
+
     try {
       const data = await fetchJson<MessagesInboxData>(
         `${api.basePath}/threads?${query}`,
       );
       setThreads(data.threads);
-      setContacts(data.contacts);
+      if (!deferContactsLoad) {
+        setContacts(data.contacts);
+      }
       setViewerContext(data.viewerContext);
+      hasLoadedThreadsRef.current = data.threads.length > 0;
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load messages.");
     } finally {
       setLoadingInbox(false);
+      setIsRefetchingInbox(false);
     }
-  }, [api.basePath, query]);
+  }, [api.basePath, deferContactsLoad, query]);
+
+  const loadContacts = useCallback(async () => {
+    if (!deferContactsLoad || contacts.length > 0 || loadingContacts) return;
+
+    setLoadingContacts(true);
+    try {
+      const data = await fetchJson<{ contacts: MessageContact[] }>(
+        `${api.basePath}/contacts?${query}`,
+      );
+      setContacts(data.contacts);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load contacts.");
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, [api.basePath, contacts.length, deferContactsLoad, loadingContacts, query]);
+
+  const handleOpenNewConversation = useCallback(async () => {
+    if (deferContactsLoad) {
+      await loadContacts();
+    }
+    setNewConversationOpen(true);
+  }, [deferContactsLoad, loadContacts]);
 
   const clearThreadUnread = useCallback((threadId: string) => {
     setThreads((prev) =>
@@ -488,11 +530,10 @@ export default function MessagesInboxLayout({
   useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
 
   useEffect(() => {
-    if (!initialInbox) {
-      queueMicrotask(() => {
-        void loadInbox();
-      });
-    }
+    if (initialInbox) return;
+    queueMicrotask(() => {
+      void loadInbox();
+    });
   }, [initialInbox, loadInbox]);
 
   useEffect(() => {
@@ -552,10 +593,12 @@ export default function MessagesInboxLayout({
 
   useEffect(() => {
     onRegisterActions?.({
-      openNewConversation: () => setNewConversationOpen(true),
-      canStartNewConversation: contacts.length > 0,
+      openNewConversation: () => {
+        void handleOpenNewConversation();
+      },
+      canStartNewConversation: deferContactsLoad || contacts.length > 0,
     });
-  }, [contacts.length, onRegisterActions]);
+  }, [contacts.length, deferContactsLoad, handleOpenNewConversation, onRegisterActions]);
 
   const adminComposeState = useMemo(
     () =>
@@ -702,7 +745,7 @@ export default function MessagesInboxLayout({
     );
   }
 
-  if (!loadingInbox && threads.length === 0 && contacts.length === 0) {
+  if (!loadingInbox && threads.length === 0 && contacts.length === 0 && !initialInbox?.threadsDeferred) {
     return (
       <MessagesEmptyState
         title="No messages yet"
@@ -774,8 +817,10 @@ export default function MessagesInboxLayout({
               theme={theme}
               searchQuery={inboxSearch}
               onSearchChange={setInboxSearch}
-              onNewMessage={() => setNewConversationOpen(true)}
-              newMessageDisabled={contacts.length === 0}
+              onNewMessage={() => {
+                void handleOpenNewConversation();
+              }}
+              newMessageDisabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
               readOnly={readOnly}
             />
           ) : adminStory && theme ? (
@@ -783,8 +828,10 @@ export default function MessagesInboxLayout({
               theme={theme}
               searchQuery={inboxSearch}
               onSearchChange={setInboxSearch}
-              onNewMessage={() => setNewConversationOpen(true)}
-              newMessageDisabled={contacts.length === 0}
+              onNewMessage={() => {
+                void handleOpenNewConversation();
+              }}
+              newMessageDisabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
             />
           ) : splitPane ? (
             <div
@@ -796,8 +843,10 @@ export default function MessagesInboxLayout({
               </p>
               <motion.button
                 type="button"
-                onClick={() => setNewConversationOpen(true)}
-                disabled={contacts.length === 0}
+                onClick={() => {
+                  void handleOpenNewConversation();
+                }}
+                disabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
                 className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium cursor-pointer transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: C.accent, color: "#ffffff" }}
                 aria-label="Start a new conversation"
@@ -815,16 +864,26 @@ export default function MessagesInboxLayout({
               </p>
             </div>
           )}
-          <MessagesConversationList
-            items={listItems}
-            activeKey={activeKey}
-            onSelect={handleSelect}
-            C={C}
-            theme={theme}
-            showContactsHeader={!splitPane}
-            variant={variant}
-            hideStudentSubtitle={api.viewer === "teacher" && (embedded || storyVariant)}
-          />
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            {isRefetchingInbox ? (
+              <div
+                className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/60 pt-6"
+                aria-hidden="true"
+              >
+                <Loader2 className="h-5 w-5 animate-spin" style={{ color: C.textSecondary }} />
+              </div>
+            ) : null}
+            <MessagesConversationList
+              items={listItems}
+              activeKey={activeKey}
+              onSelect={handleSelect}
+              C={C}
+              theme={theme}
+              showContactsHeader={!splitPane}
+              variant={variant}
+              hideStudentSubtitle={api.viewer === "teacher" && (embedded || storyVariant)}
+            />
+          </div>
         </motion.div>
 
         <motion.div
@@ -883,6 +942,7 @@ export default function MessagesInboxLayout({
         <MessagesNewConversationModal
           open={newConversationOpen}
           contacts={newConversationContacts}
+          loadingContacts={loadingContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}
           C={C}

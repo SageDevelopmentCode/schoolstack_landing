@@ -66,6 +66,7 @@ import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-meta";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
 import { createClient } from "@/utils/supabase/client";
 
@@ -76,6 +77,8 @@ type ParentBillingPageProps = {
   slug: string;
   previewMode?: boolean;
   initialData?: ParentBillingInitialData;
+  billingDeferred?: boolean;
+  pageMeta?: ParentBillingPageMeta | null;
 };
 
 function ParentBillingPageFallback() {
@@ -99,6 +102,8 @@ function ParentBillingPageContent({
   slug,
   previewMode = false,
   initialData,
+  billingDeferred = false,
+  pageMeta: _pageMeta = null,
 }: ParentBillingPageProps) {
   const { theme } = useParentTheme();
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
@@ -112,6 +117,8 @@ function ParentBillingPageContent({
   const cardSaved = searchParams.get("card_saved");
   const paymentCompleted = searchParams.get("paid");
   const hasInitialData = initialData !== undefined;
+  const chargesDeferred = initialData?.chargesDeferred ?? false;
+  const paymentsDeferred = initialData?.paymentsDeferred ?? false;
 
   const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
   const [payments, setPayments] = useState<ParentTuitionPaymentRecord[]>(
@@ -139,7 +146,7 @@ function ParentBillingPageContent({
   const [paymentMethodLoading, setPaymentMethodLoading] = useState(false);
   const [guardianId] = useState<string | null>(initialData?.guardianId ?? null);
   const [hasBillingSplit] = useState(initialData?.hasBillingSplit ?? false);
-  const [initialLoading, setInitialLoading] = useState(!hasInitialData);
+  const [initialLoading, setInitialLoading] = useState(!hasInitialData || billingDeferred);
   const [refreshing, setRefreshing] = useState(false);
   const [pendingTabKey, setPendingTabKey] = useState<string | null>(null);
   const hasLoadedBillingRef = useRef(hasInitialData);
@@ -338,6 +345,51 @@ function ParentBillingPageContent({
       setRefreshing(false);
     }
   }, [familyId, guardianId, organizationId, slug, supabase]);
+
+  const fetchDeferredBillingLists = useCallback(async () => {
+    if (previewMode) return;
+
+    const params = new URLSearchParams({
+      organizationId,
+      familyId,
+      limit: "200",
+      offset: "0",
+    });
+
+    const requests: Promise<Response>[] = [];
+    if (chargesDeferred) {
+      requests.push(fetch(`/api/parent-portal/billing/charges?${params}`));
+    }
+    if (paymentsDeferred) {
+      requests.push(fetch(`/api/parent-portal/billing/payments?${params}`));
+    }
+    if (requests.length === 0) return;
+
+    const responses = await Promise.all(requests);
+    const payloads = await Promise.all(responses.map((res) => res.json().catch(() => ({}))));
+
+    if (chargesDeferred) {
+      const chargesPayload = payloads[0];
+      if (responses[0]?.ok) {
+        setCharges(chargesPayload.charges ?? []);
+      }
+    }
+
+    if (paymentsDeferred) {
+      const paymentsPayload = payloads[chargesDeferred ? 1 : 0];
+      const paymentsResponse = responses[chargesDeferred ? 1 : 0];
+      if (paymentsResponse?.ok) {
+        setPayments(paymentsPayload.payments ?? []);
+      }
+    }
+  }, [chargesDeferred, familyId, organizationId, paymentsDeferred, previewMode]);
+
+  useEffect(() => {
+    if (!initialData || (!chargesDeferred && !paymentsDeferred)) return;
+    queueMicrotask(() => {
+      void fetchDeferredBillingLists();
+    });
+  }, [chargesDeferred, fetchDeferredBillingLists, initialData, paymentsDeferred]);
 
   useEffect(() => {
     if (hasInitialData) return;

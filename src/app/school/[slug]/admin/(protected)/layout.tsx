@@ -11,8 +11,12 @@ import {
   requireSchoolAdminUser,
   schoolAdminLoginPath,
 } from "@/lib/school-admin/access";
-import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import {
+  getCachedActivityNotificationUnreadCount,
+  getCachedAdminMessagesUnreadCount,
+} from "@/lib/school-admin/cached-admin-unread-counts";
 
 export const dynamic = "force-dynamic";
 
@@ -69,12 +73,23 @@ export default async function SchoolAdminProtectedLayout({
   }
 
   const userProfile = user ? getSchoolAdminUserProfile(user) : null;
-  const portalOptions = user
-    ? await listSchoolPortalOptionsForUser(supabase, user.id, slug, {
-        org,
-        hasAdminAccess: true,
-      })
-    : [];
+  const admin = createAdminClient();
+  const messagesEnabled = Boolean(org.features.admin.messages);
+  const [initialMessagesUnreadCount, initialActivityUnreadCount] = user
+    ? await Promise.all([
+        messagesEnabled
+          ? getCachedAdminMessagesUnreadCount(
+              admin,
+              org.id,
+              user.id,
+              org.name,
+            ).catch(() => 0)
+          : Promise.resolve(0),
+        getCachedActivityNotificationUnreadCount(admin, user.id, org.id).catch(
+          () => 0,
+        ),
+      ])
+    : [0, 0];
 
   return (
     <SchoolAdminBaseline
@@ -84,7 +99,8 @@ export default async function SchoolAdminProtectedLayout({
       branding={org.branding}
       features={org.features}
       userProfile={userProfile}
-      portalOptions={portalOptions}
+      initialMessagesUnreadCount={initialMessagesUnreadCount}
+      initialActivityUnreadCount={initialActivityUnreadCount}
     >
       {children}
     </SchoolAdminBaseline>

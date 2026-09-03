@@ -89,6 +89,9 @@ export default function ApplicationSubmissionDetailPanel({
   const [hasChecklist, setHasChecklist] = useState(false);
   const [hasPublishedEnrollmentChecklist, setHasPublishedEnrollmentChecklist] =
     useState(false);
+  const [enrollmentChecklistName, setEnrollmentChecklistName] = useState<string | null>(
+    null,
+  );
   const [startEnrollmentOpen, setStartEnrollmentOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(submission.status);
   const [activeTab, setActiveTab] = useState("overview");
@@ -119,9 +122,19 @@ export default function ApplicationSubmissionDetailPanel({
       const response = await fetch(
         `/api/admissions/applications/${submission.id}/start-enrollment`,
       );
-      setHasPublishedEnrollmentChecklist(response.ok);
+      if (response.ok) {
+        const body = (await response.json()) as { templateName?: string };
+        setHasPublishedEnrollmentChecklist(true);
+        setEnrollmentChecklistName(
+          typeof body.templateName === "string" ? body.templateName : null,
+        );
+      } else {
+        setHasPublishedEnrollmentChecklist(false);
+        setEnrollmentChecklistName(null);
+      }
     } catch {
       setHasPublishedEnrollmentChecklist(false);
+      setEnrollmentChecklistName(null);
     }
   }, [submission.id]);
 
@@ -229,7 +242,10 @@ export default function ApplicationSubmissionDetailPanel({
     [historyEvents],
   );
 
-  const canStartEnrollment = currentStatus === "accepted" && !hasChecklist;
+  const canStartEnrollment =
+    currentStatus === "accepted" &&
+    !hasChecklist &&
+    hasPublishedEnrollmentChecklist;
   const canMarkEnrolled =
     currentStatus === "accepted" || currentStatus === "enrolling";
   const showEnrollmentStatus =
@@ -293,6 +309,8 @@ export default function ApplicationSubmissionDetailPanel({
               applicationStatus={
                 currentStatus === "enrolling" ? "enrolling" : "accepted"
               }
+              programName={submission.programName}
+              enrollmentChecklistName={enrollmentChecklistName}
               showStartEnrollment={canStartEnrollment}
               hasPublishedChecklist={
                 hasPublishedEnrollmentChecklist || hasChecklist
@@ -311,6 +329,11 @@ export default function ApplicationSubmissionDetailPanel({
               C={C}
               applicationId={submission.id}
               currentStatus={currentStatus}
+              onAccept={
+                hasPublishedEnrollmentChecklist && !hasChecklist
+                  ? () => setStartEnrollmentOpen(true)
+                  : undefined
+              }
               onStatusChanged={(status) => {
                 setCurrentStatus(status);
                 onSubmissionUpdated?.({ status });

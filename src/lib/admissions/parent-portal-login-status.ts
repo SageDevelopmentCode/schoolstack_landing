@@ -120,14 +120,25 @@ type OrgGuardianRow = {
 export async function listOrgParentPortalLoginStatus(
   admin: SupabaseClient,
   organizationId: string,
+  guardianIds?: string[],
 ): Promise<ParentPortalLoginStatus[]> {
-  const { data, error } = await admin
+  let query = admin
     .from("guardians")
     .select(
       "id, first_name, last_name, email, user_id, family_id, families!inner(organization_id)",
     )
     .eq("families.organization_id", organizationId)
     .order("created_at", { ascending: true });
+
+  const scopedGuardianIds = [...new Set((guardianIds ?? []).filter(Boolean))].slice(
+    0,
+    50,
+  );
+  if (scopedGuardianIds.length > 0) {
+    query = query.in("id", scopedGuardianIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 

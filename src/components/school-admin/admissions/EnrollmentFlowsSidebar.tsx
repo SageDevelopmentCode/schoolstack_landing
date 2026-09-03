@@ -14,7 +14,9 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { ApplicationFormVersion, ApplicationFormStatus } from "@/lib/admissions/application-form-schema";
+import { isApplyFormVersion } from "@/lib/admissions/application-forms";
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
+import type { ProgramOption } from "@/lib/admissions/application-forms";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
@@ -30,10 +32,12 @@ type EnrollmentFlowsSidebarProps = {
   open: boolean;
   forms: ApplicationFormVersion[];
   checklists: EnrollmentChecklistTemplate[];
+  programs: ProgramOption[];
   selected: FlowListSelection;
   creating: boolean;
-  hasApplyForm: boolean;
-  hasEnrollmentChecklist: boolean;
+  canCreateApplyForm: boolean;
+  canCreateChecklist: boolean;
+  programNameById: Map<string, string>;
   onClose: () => void;
   onSelect: (selection: FlowListSelection) => void;
   onCreateApply: () => void;
@@ -60,6 +64,7 @@ type FlowListItemProps = {
   theme?: ParentThemeTokens;
   active: boolean;
   title: string;
+  subtitle?: string | null;
   typeLabel: string;
   status: ApplicationFormStatus;
   icon: LucideIcon;
@@ -71,6 +76,7 @@ function FlowListItem({
   theme,
   active,
   title,
+  subtitle,
   typeLabel,
   status,
   icon: Icon,
@@ -104,6 +110,11 @@ function FlowListItem({
           >
             {title}
           </p>
+          {subtitle ? (
+            <p className="text-[11px] font-medium" style={{ color: C.textSecondary }}>
+              {subtitle}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px]" style={{ color: C.textTertiary }}>
               {typeLabel}
@@ -125,16 +136,224 @@ function FlowListItem({
   );
 }
 
+function ProgramFlowCard({
+  C,
+  theme,
+  programName,
+  applyForm,
+  checklist,
+  onSelectApply,
+  onSelectChecklist,
+}: {
+  C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
+  programName: string;
+  applyForm?: ApplicationFormVersion;
+  checklist?: EnrollmentChecklistTemplate;
+  onSelectApply?: () => void;
+  onSelectChecklist?: () => void;
+}) {
+  const story = Boolean(theme);
+  const lineColor = theme?.line ?? C.border;
+
+  function renderStepContent({
+    stepLabel,
+    title,
+    status,
+    emptyLabel,
+    onClick,
+  }: {
+    stepLabel: string;
+    title?: string | null;
+    status?: ApplicationFormStatus | "none";
+    emptyLabel?: string;
+    onClick?: () => void;
+  }) {
+    const isInteractive = Boolean(onClick && title);
+    const inner = (
+      <div className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+          {stepLabel}
+        </p>
+        {title ? (
+          <p className="text-xs font-medium leading-snug" style={{ color: C.textPrimary }}>
+            {title}
+          </p>
+        ) : (
+          <p className="text-xs leading-snug" style={{ color: C.textTertiary }}>
+            {emptyLabel ?? "None"}
+          </p>
+        )}
+        {title && status && status !== "none" ? (
+          story && theme ? (
+            <AdminChip theme={theme} tone={statusChipTone(status)}>
+              {getStatusLabel(status)}
+            </AdminChip>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: C.textTertiary }}>
+              <StatusIcon status={status} variant="plain" size="sm" />
+              <span>{getStatusLabel(status)}</span>
+            </span>
+          )
+        ) : null}
+      </div>
+    );
+
+    if (isInteractive) {
+      return (
+        <button
+          type="button"
+          onClick={onClick}
+          className="w-full rounded-md px-1 text-left transition-colors hover:bg-black/[0.03]"
+        >
+          {inner}
+        </button>
+      );
+    }
+
+    return <div className="px-1">{inner}</div>;
+  }
+
+  function renderIcon(kind: "apply" | "enrollment", hasItem: boolean) {
+    const Icon = kind === "apply" ? FileText : ClipboardList;
+    return (
+      <div
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+        style={{
+          backgroundColor: hasItem
+            ? (theme?.primarySoft ?? C.accentLight)
+            : (theme?.paper ?? C.bg),
+          border: hasItem ? "none" : `1px dashed ${lineColor}`,
+        }}
+      >
+        <Icon
+          className="h-3.5 w-3.5"
+          style={{ color: hasItem ? (theme?.primary ?? C.accent) : C.textTertiary }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <li
+      className="rounded-lg border px-2.5 py-2.5"
+      style={{
+        borderColor: lineColor,
+        backgroundColor: theme?.paper ?? C.surface,
+      }}
+    >
+      <p className="mb-1.5 px-1 text-sm font-semibold" style={{ color: C.textPrimary }}>
+        {programName}
+      </p>
+      <div className="flex gap-2.5">
+        <div className="flex flex-col items-center pt-1">
+          {renderIcon("apply", Boolean(applyForm))}
+          <div
+            className="my-1 w-px flex-1 min-h-[20px]"
+            style={
+              applyForm
+                ? { backgroundColor: lineColor }
+                : { borderLeft: `1px dashed ${lineColor}` }
+            }
+          />
+          {renderIcon("enrollment", Boolean(checklist))}
+        </div>
+        <div className="min-w-0 flex-1">
+          {renderStepContent({
+            stepLabel: FLOW_TYPE_LABELS.apply,
+            title: applyForm?.title,
+            status: applyForm?.status ?? "none",
+            emptyLabel: "None",
+            onClick: onSelectApply,
+          })}
+          {renderStepContent({
+            stepLabel: "Enrollment",
+            title: checklist?.name,
+            status: checklist?.status ?? "none",
+            emptyLabel: "None — mark enrolled directly",
+            onClick: onSelectChecklist,
+          })}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function ProgramFlowRoadmap({
+  C,
+  theme,
+  programs,
+  forms,
+  checklists,
+  onSelect,
+}: {
+  C: AdminThemeTokens;
+  theme?: ParentThemeTokens;
+  programs: ProgramOption[];
+  forms: ApplicationFormVersion[];
+  checklists: EnrollmentChecklistTemplate[];
+  onSelect: (selection: FlowListSelection) => void;
+}) {
+  if (programs.length === 0) return null;
+
+  const activeChecklists = checklists.filter((checklist) => checklist.status !== "archived");
+
+  return (
+    <div
+      className="border-t px-4 py-4"
+      style={{ borderColor: theme?.line ?? C.border, backgroundColor: theme?.paper ?? C.surface }}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textTertiary }}>
+        Program flows
+      </p>
+      <ul className="mt-2.5 space-y-2.5">
+        {programs.map((program) => {
+          const applyForm = forms.find(
+            (form) =>
+              isApplyFormVersion(form) &&
+              form.program_id === program.id &&
+              form.status !== "archived",
+          );
+          const checklist = activeChecklists.find((row) => row.programId === program.id);
+
+          return (
+            <ProgramFlowCard
+              key={program.id}
+              C={C}
+              theme={theme}
+              programName={program.name}
+              applyForm={applyForm}
+              checklist={checklist}
+              onSelectApply={
+                applyForm
+                  ? () => onSelect({ kind: "apply", id: applyForm.id })
+                  : undefined
+              }
+              onSelectChecklist={
+                checklist
+                  ? () => onSelect({ kind: "checklist", id: checklist.id })
+                  : undefined
+              }
+            />
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default function EnrollmentFlowsSidebar({
   C,
   theme,
   open,
   forms,
   checklists,
+  programs,
   selected,
   creating,
-  hasApplyForm,
-  hasEnrollmentChecklist,
+  canCreateApplyForm,
+  canCreateChecklist,
+  programNameById,
   onClose,
   onSelect,
   onCreateApply,
@@ -234,7 +453,7 @@ export default function EnrollmentFlowsSidebar({
                     >
                       <button
                         type="button"
-                        disabled={hasApplyForm || creating}
+                        disabled={!canCreateApplyForm || creating}
                         onClick={() => {
                           setMenuOpen(false);
                           onCreateApply();
@@ -247,7 +466,7 @@ export default function EnrollmentFlowsSidebar({
                       </button>
                       <button
                         type="button"
-                        disabled={hasEnrollmentChecklist || creating}
+                        disabled={!canCreateChecklist || creating}
                         onClick={() => {
                           setMenuOpen(false);
                           onCreateChecklist();
@@ -290,7 +509,16 @@ export default function EnrollmentFlowsSidebar({
                       theme={theme}
                       active={selected?.kind === "apply" && selected.id === form.id}
                       title={form.title || "Untitled form"}
-                      typeLabel={FLOW_TYPE_LABELS.apply}
+                      subtitle={
+                        isApplyFormVersion(form) && form.program_id
+                          ? programNameById.get(form.program_id) ?? null
+                          : null
+                      }
+                      typeLabel={
+                        isApplyFormVersion(form)
+                          ? FLOW_TYPE_LABELS.apply
+                          : "Custom form"
+                      }
                       status={form.status}
                       icon={FileText}
                       onClick={() => onSelect({ kind: "apply", id: form.id })}
@@ -305,12 +533,25 @@ export default function EnrollmentFlowsSidebar({
                         selected?.kind === "checklist" && selected.id === checklist.id
                       }
                       title={checklist.name || "Enrollment checklist"}
+                      subtitle={
+                        checklist.programId
+                          ? programNameById.get(checklist.programId) ?? null
+                          : null
+                      }
                       typeLabel={FLOW_TYPE_LABELS.checklist}
                       status={checklist.status}
                       icon={ClipboardList}
                       onClick={() => onSelect({ kind: "checklist", id: checklist.id })}
                     />
                   ))}
+                  <ProgramFlowRoadmap
+                    C={C}
+                    theme={theme}
+                    programs={programs}
+                    forms={forms}
+                    checklists={checklists}
+                    onSelect={onSelect}
+                  />
                 </>
               )}
             </div>
