@@ -17,7 +17,10 @@ import {
   resolveAssignmentTier,
 } from "@/lib/tuition/assignments";
 import { listChargesForAssignment } from "@/lib/tuition/charges";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { resolveAdjustmentReasons } from "@/lib/tuition/adjustment-reasons";
 import type { AdjustmentType, TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -79,7 +82,9 @@ export default function TuitionAdjustPanel({
   onClose,
   onSaved,
 }: TuitionAdjustPanelProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
 
   const [adjustType, setAdjustType] = useState<AdjustmentType>("percent_discount");
@@ -311,9 +316,9 @@ export default function TuitionAdjustPanel({
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
             style={{
-              backgroundColor: C.surface,
-              borderLeft: `1px solid ${C.border}`,
-              boxShadow: C.shadowMedium,
+              backgroundColor: "#F8FAF8",
+              borderLeft: "1px solid #E1E8E1",
+              boxShadow: theme.shadowCard,
             }}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -326,7 +331,8 @@ export default function TuitionAdjustPanel({
               style={{ borderBottom: `1px solid ${C.border}` }}
             >
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                <AdminSectionKicker theme={theme}>Tuition adjustment</AdminSectionKicker>
+                <h3 className="mt-1 font-heading text-sm font-semibold" style={{ color: theme.ink }}>
                   {panelTitle}
                 </h3>
               </div>
@@ -588,25 +594,18 @@ export default function TuitionAdjustPanel({
 
             <div
               className="flex shrink-0 justify-end gap-2 border-t px-4 py-3 sm:px-5"
-              style={{ borderColor: C.border }}
+              style={{ borderColor: "#E1E8E1" }}
             >
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm rounded-md"
-                style={{ color: C.textSecondary }}
-              >
+              <AdminButton theme={theme} variant="soft" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                type="button"
+              </AdminButton>
+              <AdminButton
+                theme={theme}
                 disabled={saving || !canSave}
                 onClick={() => void handleSave()}
-                className="px-4 py-2 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: C.accent, color: "#fff" }}
               >
                 {saving ? "Saving…" : "Apply adjustment"}
-              </button>
+              </AdminButton>
             </div>
           </motion.div>
         </motion.div>

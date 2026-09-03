@@ -537,6 +537,20 @@ export default function MessagesInboxLayout({
   }, [initialInbox, loadInbox]);
 
   useEffect(() => {
+    if (!initialInbox || initialInbox.threadsDeferred) return;
+
+    setThreads(initialInbox.threads);
+    if (initialInbox.contacts.length > 0) {
+      setContacts(initialInbox.contacts);
+    }
+    if (initialInbox.viewerContext) {
+      setViewerContext(initialInbox.viewerContext);
+    }
+    hasLoadedThreadsRef.current = initialInbox.threads.length > 0;
+    setLoadingInbox(false);
+  }, [initialInbox]);
+
+  useEffect(() => {
     const threadParam = searchParams.get("thread");
     if (!threadParam || deepLinkHandled.current || loadingInbox) return;
     deepLinkHandled.current = true;

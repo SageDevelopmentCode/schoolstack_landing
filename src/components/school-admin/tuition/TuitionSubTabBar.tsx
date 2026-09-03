@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type TuitionSubTab<T extends string> = {
   id: T;
@@ -8,7 +8,7 @@ type TuitionSubTab<T extends string> = {
 };
 
 type TuitionSubTabBarProps<T extends string> = {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   tabs: ReadonlyArray<TuitionSubTab<T>>;
   activeTab: T;
   onTabChange: (tab: T) => void;
@@ -17,7 +17,7 @@ type TuitionSubTabBarProps<T extends string> = {
 };
 
 export default function TuitionSubTabBar<T extends string>({
-  C,
+  theme,
   tabs,
   activeTab,
   onTabChange,
@@ -26,11 +26,11 @@ export default function TuitionSubTabBar<T extends string>({
 }: TuitionSubTabBarProps<T>) {
   return (
     <div
-      className="overflow-x-auto overflow-y-hidden scrollbar-hide"
-      style={{ borderBottom: `1px solid ${C.border}` }}
+      className="overflow-x-auto overflow-y-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={{ borderBottom: "1px solid #E1E8E1" }}
       data-testid={`${testIdPrefix}-tab-bar`}
     >
-      <div className="-mb-px flex gap-4" role="tablist" aria-label={ariaLabel}>
+      <div className="-mb-px flex gap-[3px]" role="tablist" aria-label={ariaLabel}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const tabId = `${testIdPrefix}-tab-${tab.id}`;
@@ -45,10 +45,10 @@ export default function TuitionSubTabBar<T extends string>({
               aria-selected={isActive}
               aria-controls={panelId}
               onClick={() => onTabChange(tab.id)}
-              className="shrink-0 whitespace-nowrap border-b-2 py-2.5 text-sm font-medium transition-colors"
+              className="shrink-0 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
               style={{
-                borderBottomColor: isActive ? C.accent : "transparent",
-                color: isActive ? C.accent : C.textTertiary,
+                borderBottomColor: isActive ? theme.primary : "transparent",
+                color: isActive ? theme.primary : "#77858A",
               }}
               data-testid={tabId}
             >

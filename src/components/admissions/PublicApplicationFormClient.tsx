@@ -60,14 +60,22 @@ type PublicApplicationFormClientProps = {
   formVersionId: string;
   shellLayout?: "standalone" | "embedded";
   serverAuthState?: ServerAuthState;
+  initialApplicationId?: string | null;
   tourEntryOption?: ApplyAuthEntryOption | null;
 };
 
 type ClientPhase = "checking_session" | "auth" | "loading_draft" | "form" | "error";
 
-function getInitialPhase(serverAuthState?: ServerAuthState): ClientPhase {
+function getInitialPhase(
+  serverAuthState?: ServerAuthState,
+  initialApplicationId?: string | null,
+): ClientPhase {
   if (serverAuthState === "unauthenticated") {
     return "auth";
+  }
+
+  if (initialApplicationId) {
+    return "loading_draft";
   }
 
   return "checking_session";
@@ -112,6 +120,7 @@ export default function PublicApplicationFormClient({
   formVersionId,
   shellLayout = "standalone",
   serverAuthState,
+  initialApplicationId = null,
   tourEntryOption = null,
 }: PublicApplicationFormClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
@@ -122,7 +131,7 @@ export default function PublicApplicationFormClient({
   const forceNew = searchParams.get("new") === "1";
 
   const [phase, setPhase] = useState<ClientPhase>(() =>
-    getInitialPhase(serverAuthState),
+    getInitialPhase(serverAuthState, initialApplicationId),
   );
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ApplicationDraft | null>(null);
@@ -246,6 +255,12 @@ export default function PublicApplicationFormClient({
     let cancelled = false;
 
     async function checkSession() {
+      if (initialApplicationId) {
+        if (cancelled) return;
+        await resumeWithApplication(initialApplicationId);
+        return;
+      }
+
       if (serverAuthState !== "authenticated") {
         const {
           data: { session },
@@ -267,12 +282,15 @@ export default function PublicApplicationFormClient({
         await handleBootstrapResult(result);
       } catch (err) {
         if (cancelled) return;
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setError(
           err instanceof Error
             ? err.message
             : "Failed to resume your application.",
         );
-        setPhase("auth");
+        setPhase(session ? "error" : "auth");
       }
     }
 
@@ -285,7 +303,9 @@ export default function PublicApplicationFormClient({
     forceNew,
     formVersionId,
     handleBootstrapResult,
+    initialApplicationId,
     organizationId,
+    resumeWithApplication,
     router,
     schoolSlug,
     serverAuthState,

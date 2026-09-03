@@ -2,9 +2,8 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ApplicationFormSetupRequired from "@/components/admissions/ApplicationFormSetupRequired";
-import ApplyProgramPicker, {
-  loadApplyProgramPickerData,
-} from "@/components/admissions/ApplyProgramPicker";
+import CanonicalApplyEntryClient from "@/components/admissions/CanonicalApplyEntryClient";
+import { loadApplyProgramPickerData } from "@/components/admissions/ApplyProgramPicker";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
 import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
 import {
@@ -52,6 +51,25 @@ async function resolvePublishedApplyEntry(
   }
 
   return { kind: "picker" as const, forms: publishedApplyForms };
+}
+
+async function userHasGuardianForOrg(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("guardians")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -102,14 +120,28 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
 
   if (isApplyProgramPicker(resolved)) {
     const { programsById } = await loadApplyProgramPickerData(supabase, org.id);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const hasGuardianForOrg = user
+      ? await userHasGuardianForOrg(supabase, user.id, org.id)
+      : false;
+    const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
+
     return (
-      <ApplyProgramPicker
-        branding={org.branding}
-        schoolName={org.name}
-        schoolSlug={slug}
-        forms={resolved.forms}
-        programsById={programsById}
-      />
+      <Suspense>
+        <CanonicalApplyEntryClient
+          branding={org.branding}
+          schoolName={org.name}
+          schoolSlug={slug}
+          organizationId={org.id}
+          forms={resolved.forms}
+          programsById={programsById}
+          tourEntryOption={tourEntryOption}
+          serverAuthState={user ? "authenticated" : "unauthenticated"}
+          hasGuardianForOrg={hasGuardianForOrg}
+        />
+      </Suspense>
     );
   }
 

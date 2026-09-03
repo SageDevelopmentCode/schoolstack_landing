@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
 import {
   TUITION_FAMILY_TABS,
@@ -8,19 +8,19 @@ import {
 } from "./tuition-family-tabs";
 
 type TuitionFamilyTabBarProps = {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   activeTab: TuitionFamilyTabId;
   onTabChange: (tab: TuitionFamilyTabId) => void;
 };
 
 export default function TuitionFamilyTabBar({
-  C,
+  theme,
   activeTab,
   onTabChange,
 }: TuitionFamilyTabBarProps) {
   return (
     <TuitionSubTabBar
-      C={C}
+      theme={theme}
       tabs={TUITION_FAMILY_TABS}
       activeTab={activeTab}
       onTabChange={onTabChange}

@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import TuitionLateFeeSettingsPanel from "@/components/school-admin/tuition/TuitionLateFeeSettingsPanel";
 import {
   DEFAULT_TUITION_RULES_TAB,
@@ -20,7 +24,6 @@ import {
   updateAdjustmentRule,
   type RulePreviewMatch,
 } from "@/lib/tuition/rules-engine";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { TuitionAdjustmentRule } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
@@ -36,7 +39,8 @@ export default function TuitionRulesPanel({
   organizationId,
   branding,
 }: TuitionRulesPanelProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
   const supabase = useMemo(() => createClient(), []);
   const reducedMotion = useReducedMotion() ?? false;
   const [rules, setRules] = useState<TuitionAdjustmentRule[]>([]);
@@ -137,40 +141,50 @@ export default function TuitionRulesPanel({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
-      <div
-        className="rounded-lg p-3 flex flex-col gap-2"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-        role="tablist"
-        aria-label="Tuition rules sections"
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[240px_1fr]">
+      <AdminCard
+        theme={theme}
+        padding="none"
+        className="p-2"
         data-testid="tuition-rules-tab-bar"
       >
-        {VISIBLE_TUITION_RULES_TABS.map((tab) => {
-          const isActive = activeRulesTab === tab.id;
-          const tabId = `tuition-rules-tab-${tab.id}`;
-          const panelId = `tuition-rules-panel-${tab.id}`;
+        <div role="tablist" aria-label="Tuition rules sections" className="flex flex-col gap-1">
+          {VISIBLE_TUITION_RULES_TABS.map((tab) => {
+            const isActive = activeRulesTab === tab.id;
+            const tabId = `tuition-rules-tab-${tab.id}`;
+            const panelId = `tuition-rules-panel-${tab.id}`;
 
-          return (
-            <button
-              key={tab.id}
-              id={tabId}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              aria-controls={panelId}
-              onClick={() => handleRulesTabChange(tab.id)}
-              className="text-left px-3 py-2 rounded-md text-sm font-medium"
-              style={{
-                backgroundColor: isActive ? C.accentLight : "transparent",
-                color: isActive ? C.accent : C.textPrimary,
-              }}
-              data-testid={tabId}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={tab.id}
+                id={tabId}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={panelId}
+                onClick={() => handleRulesTabChange(tab.id)}
+                className="rounded-[11px] border px-[11px] py-[11px] text-left text-[12px] font-bold transition-colors"
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: "#EDF5EE",
+                        borderColor: "#CCE0CF",
+                        color: theme.primary,
+                      }
+                    : {
+                        backgroundColor: "transparent",
+                        borderColor: "transparent",
+                        color: theme.ink,
+                      }
+                }
+                data-testid={tabId}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </AdminCard>
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -198,96 +212,86 @@ export default function TuitionRulesPanel({
 
           {TUITION_ADJUSTMENT_RULES_UI_ENABLED && activeRulesTab === "adjustments" ? (
             <div
-              className="rounded-lg p-4 flex flex-col gap-4"
-              style={{
-                border: `1px solid ${C.border}`,
-                backgroundColor: C.surface,
-              }}
               id="tuition-rules-panel-adjustments"
               role="tabpanel"
               aria-labelledby="tuition-rules-tab-adjustments"
               data-testid="tuition-rules-panel-adjustments"
             >
+            <AdminCard
+              theme={theme}
+              padding="canvas"
+              className="flex flex-col gap-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  <p className="text-sm font-medium" style={{ color: theme.ink }}>
                     What tuition discounts or adjustments should apply automatically?
                   </p>
-                  <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                  <p className="mt-1 text-xs" style={{ color: theme.muted }}>
                     Rules run when enrollments are created or updated.
                   </p>
                 </div>
-                <button
-                  type="button"
+                <AdminButton
+                  theme={theme}
+                  variant="soft"
+                  size="compact"
+                  className="shrink-0"
                   onClick={() => void handleCreateSiblingRule()}
-                  className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-md shrink-0"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="h-3.5 w-3.5" />
                   Add sibling discount rule
-                </button>
+                </AdminButton>
               </div>
 
               <div className="flex flex-col gap-2">
                 {rules.map((rule) => (
-                  <div
-                    key={rule.id}
-                    className="rounded-lg text-sm"
-                    style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
-                  >
-                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <AdminCard key={rule.id} theme={theme} padding="default" className="!p-0">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                       <div>
-                        <p className="font-medium" style={{ color: C.textPrimary }}>
+                        <p className="font-medium" style={{ color: theme.ink }}>
                           {rule.name}
                         </p>
-                        <p style={{ color: C.textTertiary }}>
+                        <p style={{ color: theme.muted }}>
                           {rule.reason} · priority {rule.priority}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
+                        <AdminButton
+                          theme={theme}
+                          variant="outline"
+                          size="compact"
                           onClick={() => void handlePreviewRule(rule)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{
-                            backgroundColor: C.bg,
-                            color: C.textPrimary,
-                            border: `1px solid ${C.border}`,
-                          }}
                           data-testid="tuition-rule-preview-button"
                         >
                           {previewRuleId === rule.id ? "Hide preview" : "Preview"}
-                        </button>
-                        <button
-                          type="button"
+                        </AdminButton>
+                        <AdminButton
+                          theme={theme}
+                          variant={rule.active ? "soft" : "outline"}
+                          size="compact"
                           onClick={() => void handleToggleRule(rule)}
-                          className="text-xs font-medium px-2 py-1 rounded"
-                          style={{
-                            backgroundColor: rule.active ? C.accentLight : C.bg,
-                            color: rule.active ? C.accent : C.textTertiary,
-                          }}
                         >
                           {rule.active ? "Active" : "Inactive"}
-                        </button>
+                        </AdminButton>
                       </div>
                     </div>
                     {previewRuleId === rule.id ? (
                       <div
-                        className="border-t px-4 py-3 flex flex-col gap-2"
-                        style={{ borderColor: C.border }}
+                        className="flex flex-col gap-2 border-t px-4 py-3"
+                        style={{ borderColor: "#E1E8E1" }}
                         data-testid="tuition-rule-preview"
                       >
                         {previewLoading ? (
-                          <p className="text-xs" style={{ color: C.textSecondary }}>
+                          <p className="text-xs" style={{ color: theme.muted }}>
                             Loading preview…
                           </p>
                         ) : previewError ? (
-                          <p className="text-xs" style={{ color: C.error }}>
+                          <p className="text-xs" style={{ color: "#AD574C" }}>
                             {previewError}
                           </p>
                         ) : previewMatches.length > 0 ? (
                           <>
-                            <p className="text-xs" style={{ color: C.textSecondary }}>
+                            <p className="text-xs" style={{ color: theme.muted }}>
                               {previewMatches.length === 1
                                 ? "1 student would be affected"
                                 : `${previewMatches.length} students would be affected`}
@@ -299,39 +303,34 @@ export default function TuitionRulesPanel({
                                   className="flex items-center justify-between gap-3 text-xs"
                                   data-testid="tuition-rule-preview-row"
                                 >
-                                  <span style={{ color: C.textPrimary }}>
+                                  <span style={{ color: theme.ink }}>
                                     {match.familyName} — {match.studentName}
                                   </span>
                                   {match.alreadyApplied ? (
-                                    <span
-                                      className="rounded-full px-2 py-0.5 font-medium"
-                                      style={{
-                                        backgroundColor: C.accentLight,
-                                        color: C.accent,
-                                      }}
-                                    >
+                                    <AdminChip theme={theme} tone="success">
                                       Applied
-                                    </span>
+                                    </AdminChip>
                                   ) : null}
                                 </li>
                               ))}
                             </ul>
                           </>
                         ) : (
-                          <p className="text-xs" style={{ color: C.textSecondary }}>
+                          <p className="text-xs" style={{ color: theme.muted }}>
                             No families match this rule yet.
                           </p>
                         )}
                       </div>
                     ) : null}
-                  </div>
+                  </AdminCard>
                 ))}
                 {!rules.length ? (
-                  <p className="text-sm" style={{ color: C.textTertiary }}>
+                  <p className="text-sm" style={{ color: theme.muted }}>
                     No automatic adjustments yet.
                   </p>
                 ) : null}
               </div>
+            </AdminCard>
             </div>
           ) : null}
         </motion.div>

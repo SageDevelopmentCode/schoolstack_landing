@@ -9,11 +9,20 @@ import {
   type ApplicationFormVersion,
 } from "./application-form-schema";
 import {
+  applicationFormSummaryFromRow,
+  canPersistApplySystemSchemaUpgrade,
+  canonicalApplyFormPublicPath,
+  isApplicationFormSummaryStub,
   isApplyFormVersion,
   isCanonicalApplyEntrySlug,
   listProgramsWithoutApplyForm,
   suggestApplyFormPublicSlug,
 } from "./application-forms";
+import {
+  applySystemSchemaChanged,
+  buildApplySystemSection,
+  ensureApplySystemSchema,
+} from "./apply-system-fields";
 
 function applyForm(
   overrides: Partial<ApplicationFormVersion> = {},
@@ -114,5 +123,84 @@ describe("isCanonicalApplyEntrySlug", () => {
   it("matches only the shared /forms/apply entry slug", () => {
     assert.equal(isCanonicalApplyEntrySlug("apply"), true);
     assert.equal(isCanonicalApplyEntrySlug("apply-kindergarten-co-op"), false);
+  });
+});
+
+describe("canonicalApplyFormPublicPath", () => {
+  it("returns the shared family apply entry path", () => {
+    assert.equal(
+      canonicalApplyFormPublicPath("rooted-meadows"),
+      "/school/rooted-meadows/forms/apply",
+    );
+  });
+});
+
+describe("applicationFormSummaryFromRow", () => {
+  it("returns a summary stub with an empty schema", () => {
+    const summary = applicationFormSummaryFromRow({
+      id: "form-1",
+      organization_id: "org-1",
+      program_id: "program-1",
+      form_kind: "apply",
+      version: 1,
+      status: "published",
+      title: "Rooted Meadows 2026 Application",
+      intro: null,
+      public_slug: "apply",
+      published_at: "2026-09-01T00:00:00.000Z",
+      created_at: "2026-09-01T00:00:00.000Z",
+      updated_at: "2026-09-01T00:00:00.000Z",
+    });
+
+    assert.equal(isApplicationFormSummaryStub(summary), true);
+  });
+});
+
+describe("canPersistApplySystemSchemaUpgrade", () => {
+  it("blocks summary stubs even when ensureApplySystemSchema would change them", () => {
+    const summary = applicationFormSummaryFromRow({
+      id: "form-1",
+      organization_id: "org-1",
+      program_id: "program-1",
+      form_kind: "apply",
+      version: 1,
+      status: "published",
+      title: "Rooted Meadows 2026 Application",
+      intro: null,
+      public_slug: "apply",
+      published_at: "2026-09-01T00:00:00.000Z",
+      created_at: "2026-09-01T00:00:00.000Z",
+      updated_at: "2026-09-01T00:00:00.000Z",
+    });
+    const ensured = ensureApplySystemSchema(summary.schema);
+
+    assert.equal(applySystemSchemaChanged(summary.schema, ensured), true);
+    assert.equal(
+      canPersistApplySystemSchemaUpgrade(summary, { hasLoadedFullForm: true }),
+      false,
+    );
+    assert.equal(
+      canPersistApplySystemSchemaUpgrade(summary, { hasLoadedFullForm: false }),
+      false,
+    );
+  });
+
+  it("allows upgrades after the full form has loaded", () => {
+    const full = applyForm({
+      schema: {
+        sections: [buildApplySystemSection()],
+        acknowledgments: [],
+      },
+    });
+
+    assert.equal(isApplicationFormSummaryStub(full), false);
+    assert.equal(
+      canPersistApplySystemSchemaUpgrade(full, { hasLoadedFullForm: true }),
+      true,
+    );
+    assert.equal(
+      canPersistApplySystemSchemaUpgrade(full, { hasLoadedFullForm: false }),
+      false,
+    );
   });
 });

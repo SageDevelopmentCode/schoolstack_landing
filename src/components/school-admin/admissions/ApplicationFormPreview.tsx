@@ -20,6 +20,7 @@ type ApplicationFormPreviewProps = {
   schoolName: string;
   slug: string;
   publicSlug: string | null;
+  displayPath?: string | null;
   title: string;
   intro: string | null;
   schema: ApplicationFormSchema;
@@ -33,15 +34,18 @@ export default function ApplicationFormPreview({
   schoolName,
   slug,
   publicSlug,
+  displayPath,
   title,
   intro,
   schema,
   feeConfig,
 }: ApplicationFormPreviewProps) {
   const C = buildAdminThemeTokens(branding);
-  const previewPath = publicSlug
-    ? publicApplicationFormPath(slug, publicSlug)
-    : `${slug}/forms/your-slug`;
+  const previewPath =
+    displayPath ??
+    (publicSlug
+      ? publicApplicationFormPath(slug, publicSlug)
+      : `${slug}/forms/your-slug`);
 
   return (
     <AnimatePresence>
