@@ -12,10 +12,9 @@ import {
 } from "@/lib/admissions/application-status-ui";
 import { parseApplicationFileFieldValue } from "@/lib/admissions/application-file-storage";
 import {
-  formatApplicationAddress,
-  isApplicationAddressEmpty,
-  parseApplicationAddressFieldValue,
-} from "@/lib/admissions/application-address";
+  formatReadOnlyApplicationFieldValue,
+  isEmptyReadOnlyApplicationFieldValue,
+} from "@/lib/admissions/read-only-field-utils";
 import ApplyPortalPageShell from "@/components/admissions/ApplyPortalPageShell";
 import {
   type ApplicationDetail,
@@ -26,8 +25,6 @@ import type {
   ApplicationFormSchema,
   ApplicationSection,
 } from "@/lib/admissions/application-form-schema";
-import { formatPhoneNumberInput } from "@/lib/phone-format";
-import { formatSelectedDate } from "@/lib/demo-scheduler";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
@@ -53,46 +50,6 @@ type ApplicationReadOnlyViewProps = {
   portalOptions?: SchoolPortalOption[];
 };
 
-function formatFieldValue(field: ApplicationField, value: string | undefined): string {
-  if (!value) return "—";
-
-  if (field.type === "checkbox") {
-    return value === "true" || value === "on" || value === "1" ? "Yes" : "No";
-  }
-
-  if (field.type === "select" || field.type === "radio") {
-    const option = field.options?.find((entry) => entry.value === value);
-    return option?.label ?? value;
-  }
-
-  if (field.type === "tel") {
-    return formatPhoneNumberInput(value);
-  }
-
-  if (field.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return formatSelectedDate(value);
-  }
-
-  if (field.type === "address") {
-    const address = parseApplicationAddressFieldValue(value);
-    if (isApplicationAddressEmpty(address)) return "—";
-    return formatApplicationAddress(address);
-  }
-
-  return value;
-}
-
-function isEmptyFieldValue(field: ApplicationField, value: string | undefined): boolean {
-  if (!value) return true;
-  if (field.type === "file") {
-    return parseApplicationFileFieldValue(value).length === 0;
-  }
-  if (field.type === "address") {
-    return isApplicationAddressEmpty(parseApplicationAddressFieldValue(value));
-  }
-  return false;
-}
-
 function ReadOnlyField({
   field,
   value,
@@ -106,8 +63,8 @@ function ReadOnlyField({
 }) {
   const fileValue =
     field.type === "file" ? parseApplicationFileFieldValue(value ?? "") : [];
-  const formattedValue = formatFieldValue(field, value);
-  const isEmpty = isEmptyFieldValue(field, value);
+  const formattedValue = formatReadOnlyApplicationFieldValue(field, value);
+  const isEmpty = isEmptyReadOnlyApplicationFieldValue(field, value);
 
   const labelClassName =
     layout === "detail" ? "text-[13px] leading-snug" : "text-sm font-medium leading-snug";
@@ -160,7 +117,8 @@ function ReadOnlySection({
 }) {
   if (layout === "detail") {
     const visibleFields = section.fields.filter(
-      (field) => field.required || !isEmptyFieldValue(field, responses[field.id]),
+      (field) =>
+        field.required || !isEmptyReadOnlyApplicationFieldValue(field, responses[field.id]),
     );
 
     return (

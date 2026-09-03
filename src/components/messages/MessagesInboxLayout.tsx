@@ -177,6 +177,7 @@ export default function MessagesInboxLayout({
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
   const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
+  const [prevInitialInbox, setPrevInitialInbox] = useState(initialInbox);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<MessageThreadDetail | null>(null);
   const [input, setInput] = useState("");
@@ -199,6 +200,20 @@ export default function MessagesInboxLayout({
   const deepLinkHandled = useRef(false);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
   const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
+
+  if (initialInbox !== prevInitialInbox) {
+    setPrevInitialInbox(initialInbox);
+    if (initialInbox && !initialInbox.threadsDeferred) {
+      setThreads(initialInbox.threads);
+      if (initialInbox.contacts.length > 0) {
+        setContacts(initialInbox.contacts);
+      }
+      if (initialInbox.viewerContext) {
+        setViewerContext(initialInbox.viewerContext);
+      }
+      setLoadingInbox(false);
+    }
+  }
 
   const query = useMemo(
     () =>
@@ -530,25 +545,15 @@ export default function MessagesInboxLayout({
   useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
 
   useEffect(() => {
+    hasLoadedThreadsRef.current = threads.length > 0;
+  }, [threads]);
+
+  useEffect(() => {
     if (initialInbox) return;
     queueMicrotask(() => {
       void loadInbox();
     });
   }, [initialInbox, loadInbox]);
-
-  useEffect(() => {
-    if (!initialInbox || initialInbox.threadsDeferred) return;
-
-    setThreads(initialInbox.threads);
-    if (initialInbox.contacts.length > 0) {
-      setContacts(initialInbox.contacts);
-    }
-    if (initialInbox.viewerContext) {
-      setViewerContext(initialInbox.viewerContext);
-    }
-    hasLoadedThreadsRef.current = initialInbox.threads.length > 0;
-    setLoadingInbox(false);
-  }, [initialInbox]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");

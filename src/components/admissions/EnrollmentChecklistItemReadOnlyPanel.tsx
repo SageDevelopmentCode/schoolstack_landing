@@ -10,6 +10,7 @@ import {
 } from "@/lib/admissions/application-file-storage";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import type { ApplicationField } from "@/lib/admissions/application-form-schema";
+import { formatReadOnlyApplicationFieldValue } from "@/lib/admissions/read-only-field-utils";
 import {
   isMultiEntryResponses,
   normalizeFormResponses,
@@ -40,21 +41,6 @@ type EnrollmentChecklistItemReadOnlyPanelProps = {
   item: EnrollmentChecklistItem;
   instance?: EnrollmentChecklistItemInstance;
 };
-
-function formatFieldValue(field: ApplicationField, value: string | undefined): string {
-  if (!value) return "—";
-
-  if (field.type === "checkbox") {
-    return value === "true" || value === "on" || value === "1" ? "Yes" : "No";
-  }
-
-  if (field.type === "select" || field.type === "radio") {
-    const option = field.options?.find((entry) => entry.value === value);
-    return option?.label ?? value;
-  }
-
-  return value;
-}
 
 function ReadOnlyField({
   field,
@@ -87,7 +73,7 @@ function ReadOnlyField({
                 "—"
               )
             ) : (
-              formatFieldValue(field, value)
+              formatReadOnlyApplicationFieldValue(field, value)
             )}
           </div>
         </ReadOnlyAnswerBacking>
