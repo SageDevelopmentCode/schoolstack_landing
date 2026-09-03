@@ -28,6 +28,12 @@ type ResolvedApplyEntry =
   | { kind: "picker"; forms: ApplicationFormVersion[] }
   | null;
 
+function isApplyProgramPicker(
+  entry: NonNullable<ResolvedApplyEntry>,
+): entry is { kind: "picker"; forms: ApplicationFormVersion[] } {
+  return "kind" in entry && entry.kind === "picker";
+}
+
 async function resolvePublishedApplyEntry(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
@@ -64,7 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Application Not Found" };
   }
 
-  if ("kind" in resolved && resolved.kind === "picker") {
+  if (isApplyProgramPicker(resolved)) {
     return {
       title: `Apply | ${org.name}`,
       description: `Choose a program to apply to ${org.name}.`,
@@ -94,7 +100,7 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
     notFound();
   }
 
-  if ("kind" in resolved && resolved.kind === "picker") {
+  if (isApplyProgramPicker(resolved)) {
     const { programsById } = await loadApplyProgramPickerData(supabase, org.id);
     return (
       <ApplyProgramPicker

@@ -650,13 +650,14 @@ export default function ApplicationFormsPage({
 
   useEffect(() => {
     if (!selectedApplyFormId) return;
-    if (loadedFullFormIdsRef.current.has(selectedApplyFormId)) return;
+    const formId = selectedApplyFormId;
+    if (loadedFullFormIdsRef.current.has(formId)) return;
 
     let cancelled = false;
 
     async function loadFullForm() {
       try {
-        const full = await getApplicationForm(supabase, selectedApplyFormId);
+        const full = await getApplicationForm(supabase, formId);
         if (cancelled || !full) return;
         loadedFullFormIdsRef.current.add(full.id);
         setForms((prev) => prev.map((row) => (row.id === full.id ? full : row)));
