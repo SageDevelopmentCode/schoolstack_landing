@@ -8,6 +8,88 @@ export type ApplicationFileUploadMeta = {
   sizeBytes: number | null;
 };
 
+type ApplicationAddressValue = {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+};
+
+const EMPTY_APPLICATION_ADDRESS: ApplicationAddressValue = {
+  line1: '',
+  line2: '',
+  city: '',
+  state: '',
+  zip: '',
+};
+
+function isApplicationAddressValue(value: unknown): value is ApplicationAddressValue {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.line1 === 'string' &&
+    typeof record.city === 'string' &&
+    typeof record.state === 'string' &&
+    typeof record.zip === 'string' &&
+    (record.line2 === undefined || typeof record.line2 === 'string')
+  );
+}
+
+function parseApplicationAddressFieldValue(value: string): ApplicationAddressValue {
+  if (!value.trim()) return { ...EMPTY_APPLICATION_ADDRESS };
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!isApplicationAddressValue(parsed)) {
+      return { ...EMPTY_APPLICATION_ADDRESS };
+    }
+    return {
+      line1: parsed.line1,
+      line2: parsed.line2 ?? '',
+      city: parsed.city,
+      state: parsed.state,
+      zip: parsed.zip,
+    };
+  } catch {
+    return { ...EMPTY_APPLICATION_ADDRESS };
+  }
+}
+
+function isApplicationAddressEmpty(address: ApplicationAddressValue): boolean {
+  return (
+    !address.line1.trim() &&
+    !address.line2?.trim() &&
+    !address.city.trim() &&
+    !address.state.trim() &&
+    !address.zip.trim()
+  );
+}
+
+function formatApplicationAddress(address: ApplicationAddressValue): string {
+  const parts: string[] = [];
+  const line1 = address.line1.trim();
+  const line2 = address.line2?.trim();
+  const city = address.city.trim();
+  const state = address.state.trim();
+  const zip = address.zip.trim();
+
+  if (line1) parts.push(line1);
+  if (line2) parts.push(line2);
+
+  const cityStateZip = [city, state].filter(Boolean).join(', ');
+  const locality = [cityStateZip, zip].filter(Boolean).join(' ');
+  if (locality) parts.push(locality);
+
+  return parts.join(', ');
+}
+
+function formatStoredAddressValue(value: string): string | null {
+  if (!value.trim().startsWith('{')) return null;
+  const address = parseApplicationAddressFieldValue(value);
+  if (isApplicationAddressEmpty(address)) return '—';
+  return formatApplicationAddress(address);
+}
+
 export function parseApplicationFileFieldValue(value: string): ApplicationFileUploadMeta[] {
   if (!value.trim()) return [];
   try {
@@ -58,22 +140,13 @@ export function formatReadOnlyFieldValue(field: ApplicationField, value: string 
   }
 
   if (field.type === 'address') {
-    try {
-      const parsed = JSON.parse(value) as Record<string, unknown>;
-      const parts = [
-        parsed.line1,
-        parsed.line2,
-        parsed.city,
-        parsed.state,
-        parsed.postalCode,
-      ]
-        .filter((part) => typeof part === 'string' && part.trim())
-        .map((part) => String(part).trim());
-      return parts.length > 0 ? parts.join(', ') : '—';
-    } catch {
-      return value;
-    }
+    const address = parseApplicationAddressFieldValue(value);
+    if (isApplicationAddressEmpty(address)) return '—';
+    return formatApplicationAddress(address);
   }
+
+  const formattedAddress = formatStoredAddressValue(value);
+  if (formattedAddress !== null) return formattedAddress;
 
   return value;
 }

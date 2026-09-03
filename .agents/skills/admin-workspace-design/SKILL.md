@@ -163,6 +163,24 @@ useSchoolAdminStoryTheme()
   Full-height inside SchoolAdminBaseline (isMessagesPage overflow-hidden)
 ```
 
+**Tuition (my_school tab):**
+
+```
+useSchoolAdminStoryTheme()
+  TuitionStoryHeader: AdminSectionKicker + AdminDisplayHeading + dynamic KPI subtitle
+    TuitionSetupButton (AdminButton) + AdminButton "New rate plan"
+    ParentStoryPillNav: Families · Rate catalog · Rules
+  AdminMetricCard row (collected YTD · outstanding + period select · families at risk · active assignments)
+  Sage "Needs attention" banner when unassigned enrollments need sync
+  Families tab: Staff-style split pane
+    TuitionFamilyListSidebar in AdminCard (search, sage active rows, mobile strip)
+    Family detail in AdminCard + TuitionSubTabBar forest underline tabs
+      Assignments · Balance · Autopay · Schedule · Payments
+  Rate catalog: plan sidebar AdminCard + detail AdminCard + TuitionSubTabBar
+  Rules: vertical tab AdminCard + late fee / adjustment AdminCard panels
+  Drawers: KPI breakdown, setup readiness, adjust tuition — paper #F8FAF8 + AdminSectionKicker
+```
+
 Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts), [`admin-staff-roster-metrics.ts`](src/lib/school-admin/admin-staff-roster-metrics.ts). Staff display helpers: [`staff-display.ts`](src/lib/staff/staff-display.ts). Assigned learner counts: [`fetchAssignedStudentCountsByStaffIds`](src/lib/school-admin/enrolled-students.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
 
 ### Scope
@@ -185,4 +203,5 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Staff: [`StaffPage.tsx`](src/components/school-admin/staff/StaffPage.tsx), [`StaffDetailPane.tsx`](src/components/school-admin/staff/StaffDetailPane.tsx), [`StaffListSidebar.tsx`](src/components/school-admin/staff/StaffListSidebar.tsx)
 - Schedule: [`SchedulePage.tsx`](src/components/school-admin/SchedulePage.tsx), [`ScheduleStoryHeader.tsx`](src/components/school-admin/schedule/ScheduleStoryHeader.tsx), [`ScheduleOverviewTab.tsx`](src/components/school-admin/schedule/ScheduleOverviewTab.tsx)
 - Messages: [`AdminMessagesPage.tsx`](src/components/school-admin/AdminMessagesPage.tsx), [`AdminMessagesInboxHeader.tsx`](src/components/school-admin/messages/AdminMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="admin-story"`
+- Tuition: [`TuitionDashboard.tsx`](src/components/school-admin/tuition/TuitionDashboard.tsx), [`TuitionStoryHeader.tsx`](src/components/school-admin/tuition/TuitionStoryHeader.tsx), [`TuitionFamilyListSidebar.tsx`](src/components/school-admin/tuition/TuitionFamilyListSidebar.tsx)
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)

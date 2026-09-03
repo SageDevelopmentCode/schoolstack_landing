@@ -25,6 +25,9 @@ import { AUTH_GATE_PROMO } from "@/lib/site";
 import {
   AuthGatePromoPlaceholder,
 } from "@/components/admissions/AuthGatePromoPanel";
+import ApplyProgramSelectStep, {
+  type ApplyProgramOption,
+} from "@/components/admissions/ApplyProgramSelectStep";
 import { createClient } from "@/utils/supabase/client";
 
 const AuthGatePromoPanelLazy = dynamic(
@@ -44,11 +47,13 @@ const AuthHelpButton = dynamic(
 );
 
 type AuthMode = "create" | "login";
-type AuthPhase = "choice" | "credentials" | "verify";
+type AuthPhase = "choice" | "credentials" | "verify" | "program";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
 type AuthEntryIntent = "apply" | "schedule_campus_tour";
+
+export type { ApplyProgramOption };
 
 export type ApplicationAuthGateProps = {
   branding: OrganizationBranding;
@@ -58,9 +63,15 @@ export type ApplicationAuthGateProps = {
   organizationId: string;
   formVersionId: string;
   forceNew?: boolean;
+  genericEntry?: boolean;
+  programOptions?: ApplyProgramOption[];
+  initialPhase?: AuthPhase;
+  programOnly?: boolean;
   tourEntryOption?: ApplyAuthEntryOption | null;
   onComplete: () => void;
   onBootstrapped?: (result: BootstrapApplicantResult) => void;
+  onProgramSelected?: (formVersionId: string) => void;
+  onAuthComplete?: () => void;
   onRedirectApplyDashboard?: () => void;
   onRedirectScheduleTour?: () => void;
 };
@@ -140,9 +151,15 @@ export default function ApplicationAuthGate({
   organizationId,
   formVersionId,
   forceNew = false,
+  genericEntry = false,
+  programOptions = [],
+  initialPhase = "choice",
+  programOnly = false,
   tourEntryOption = null,
   onComplete,
   onBootstrapped,
+  onProgramSelected,
+  onAuthComplete,
   onRedirectApplyDashboard,
   onRedirectScheduleTour,
 }: ApplicationAuthGateProps) {
@@ -151,7 +168,7 @@ export default function ApplicationAuthGate({
   const supabase = useMemo(() => createClient(), []);
   const pageBg = branding.colors.bg;
 
-  const [phase, setPhase] = useState<AuthPhase>("choice");
+  const [phase, setPhase] = useState<AuthPhase>(initialPhase);
   const [direction, setDirection] = useState(1);
   const [mode, setMode] = useState<AuthMode>("create");
   const [entryIntent, setEntryIntent] = useState<AuthEntryIntent>("apply");
@@ -210,6 +227,39 @@ export default function ApplicationAuthGate({
     }, 1000);
     return () => clearInterval(id);
   }, [resendCooldown]);
+
+  useEffect(() => {
+    if (!programOnly) return;
+
+    let cancelled = false;
+
+    async function prefillNamesFromMetadata() {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled || !data.user?.user_metadata) return;
+
+      const meta = data.user.user_metadata;
+      const metaFirst =
+        typeof meta.first_name === "string" ? meta.first_name.trim() : "";
+      const metaLast =
+        typeof meta.last_name === "string" ? meta.last_name.trim() : "";
+
+      if (metaFirst) {
+        setFirstName(metaFirst);
+      }
+      if (metaLast) {
+        setLastName(metaLast);
+      }
+      if (metaFirst || metaLast) {
+        setMode("create");
+      }
+    }
+
+    void prefillNamesFromMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [programOnly, supabase.auth]);
 
   const goToPhase = (nextPhase: AuthPhase, nextDirection: number) => {
     setDirection(nextDirection);
@@ -293,17 +343,17 @@ export default function ApplicationAuthGate({
     }
   };
 
-  const bootstrapApplicant = async () => {
+  const bootstrapApplicant = async (bootstrapFormVersionId: string, bootstrapFormTitle: string) => {
     const response = await fetch("/api/admissions/applicant-bootstrap", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         organizationId,
-        formVersionId,
+        formVersionId: bootstrapFormVersionId,
         firstName: mode === "create" ? firstName.trim() : undefined,
         lastName: mode === "create" ? lastName.trim() : undefined,
         schoolName,
-        formTitle,
+        formTitle: bootstrapFormTitle,
         mode,
         forceNew,
         entryIntent,
@@ -341,6 +391,70 @@ export default function ApplicationAuthGate({
     return payload;
   };
 
+  const bootstrapGenericProgramSelection = async (selectedFormVersionId: string) => {
+    const option = programOptions.find(
+      (row) => row.formVersionId === selectedFormVersionId,
+    );
+    const bootstrapTitle =
+      option?.formTitle ?? option?.programName ?? "Application";
+
+    setIsSubmitting(true);
+    setAuthError(null);
+
+    try {
+      const result = await bootstrapApplicant(selectedFormVersionId, bootstrapTitle);
+      if (result.action === "resume" && result.applicationId) {
+        onProgramSelected?.(selectedFormVersionId);
+        onAuthComplete?.();
+        onComplete();
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Failed to set up your application.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const continueAfterAuth = async () => {
+    if (
+      schoolSlug &&
+      (await attemptPostSignInRedirect(router, schoolSlug, "otp"))
+    ) {
+      return;
+    }
+
+    if (entryIntent === "schedule_campus_tour") {
+      const result = await bootstrapApplicant(formVersionId, formTitle);
+      if (result.action === "redirect_schedule_tour") {
+        onRedirectScheduleTour?.();
+      }
+      return;
+    }
+
+    if (genericEntry && programOptions.length > 1) {
+      goToPhase("program", 1);
+      return;
+    }
+
+    if (genericEntry && programOptions.length === 1) {
+      await bootstrapGenericProgramSelection(programOptions[0]!.formVersionId);
+      return;
+    }
+
+    const result = await bootstrapApplicant(formVersionId, formTitle);
+    if (
+      result.action !== "redirect_apply_dashboard" &&
+      result.action !== "redirect_teacher_portal" &&
+      result.action !== "redirect_schedule_tour"
+    ) {
+      onComplete();
+    }
+  };
+
   const handleVerifySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -357,21 +471,7 @@ export default function ApplicationAuthGate({
         throw new Error(verifyError.message);
       }
 
-      if (
-        schoolSlug &&
-        (await attemptPostSignInRedirect(router, schoolSlug, "otp"))
-      ) {
-        return;
-      }
-
-      const result = await bootstrapApplicant();
-      if (
-        result.action !== "redirect_apply_dashboard" &&
-        result.action !== "redirect_teacher_portal" &&
-        result.action !== "redirect_schedule_tour"
-      ) {
-        onComplete();
-      }
+      await continueAfterAuth();
     } catch (error) {
       reportAuthOtpFailed({
         email: email.trim().toLowerCase(),
@@ -418,6 +518,18 @@ export default function ApplicationAuthGate({
     setCode("");
   };
 
+  const handleBackFromProgram = () => {
+    if (programOnly) {
+      onRedirectApplyDashboard?.();
+      return;
+    }
+    goToPhase("verify", -1);
+  };
+
+  const handleProgramSelect = (selectedFormVersionId: string) => {
+    void bootstrapGenericProgramSelection(selectedFormVersionId);
+  };
+
   const switchMode = (nextMode: AuthMode) => {
     if (nextMode !== mode) {
       setMode(nextMode);
@@ -432,7 +544,9 @@ export default function ApplicationAuthGate({
   const phaseHeading =
     phase === "choice"
       ? "Begin your application"
-      : phase === "credentials"
+      : phase === "program"
+        ? "Choose a program"
+        : phase === "credentials"
         ? entryIntent === "schedule_campus_tour"
           ? "Schedule your campus tour"
           : mode === "create"
@@ -442,13 +556,21 @@ export default function ApplicationAuthGate({
 
   const phaseSubtext =
     phase === "choice" ? (
-      <>
-        Save your progress for{" "}
-        <span className="font-medium" style={{ color: C.textPrimary }}>
-          {formTitle}
-        </span>{" "}
-        at {schoolName} and pick up where you left off.
-      </>
+      genericEntry ? (
+        <>
+          Save your progress at {schoolName} and pick up where you left off.
+        </>
+      ) : (
+        <>
+          Save your progress for{" "}
+          <span className="font-medium" style={{ color: C.textPrimary }}>
+            {formTitle}
+          </span>{" "}
+          at {schoolName} and pick up where you left off.
+        </>
+      )
+    ) : phase === "program" ? (
+      "Select the program you want to apply for. You can start another application later for a sibling."
     ) : phase === "credentials" ? (
       entryIntent === "schedule_campus_tour" ? (
         "Create your account so we can save your tour booking and connect it when you apply later."
@@ -481,10 +603,16 @@ export default function ApplicationAuthGate({
       >
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 pb-20 sm:px-6 sm:py-8 sm:pb-24 lg:flex lg:items-center lg:justify-center lg:py-12">
           <div className="mx-auto w-full max-w-md">
-            {phase !== "choice" ? (
+            {phase !== "choice" && !(programOnly && phase === "program") ? (
               <button
                 type="button"
-                onClick={phase === "credentials" ? handleBackToChoice : handleBackToCredentials}
+                onClick={
+                  phase === "credentials"
+                    ? handleBackToChoice
+                    : phase === "program"
+                      ? handleBackFromProgram
+                      : handleBackToCredentials
+                }
                 disabled={isSubmitting}
                 className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ color: C.textSecondary }}
@@ -713,6 +841,23 @@ export default function ApplicationAuthGate({
                       </>
                     )}
                   </p>
+                </motion.div>
+              ) : phase === "program" ? (
+                <motion.div
+                  key="program"
+                  custom={direction}
+                  variants={stepVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={stepTransition}
+                >
+                  <ApplyProgramSelectStep
+                    options={programOptions}
+                    disabled={isSubmitting}
+                    onSelect={handleProgramSelect}
+                    C={C}
+                  />
                 </motion.div>
               ) : (
                 <motion.div

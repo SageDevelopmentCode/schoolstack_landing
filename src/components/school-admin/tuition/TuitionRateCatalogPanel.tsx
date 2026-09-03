@@ -49,9 +49,12 @@ import {
   SUGGESTED_PAYMENT_SCHEDULES,
   validateCustomPaymentCount,
 } from "@/lib/tuition/setup-wizard";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -71,12 +74,12 @@ type WizardLaunch = {
   initialStepIndex: number;
 };
 
-function inputStyle(C: ReturnType<typeof buildAdminThemeTokens>): React.CSSProperties {
+function inputStyle(theme: ParentThemeTokens): React.CSSProperties {
   return {
-    backgroundColor: C.input,
-    border: `1px solid ${C.inputBorder}`,
-    color: C.textPrimary,
-    borderRadius: C.r.md,
+    backgroundColor: theme.white,
+    border: "1px solid #DCE4DC",
+    color: theme.ink,
+    borderRadius: "10px",
     fontSize: "14px",
     padding: "10px 12px",
     width: "100%",
@@ -136,7 +139,9 @@ export default function TuitionRateCatalogPanel({
   onStartSetup,
   saving = false,
 }: TuitionRateCatalogPanelProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const reducedMotion = useReducedMotion() ?? false;
   const selectedPlanIdRef = useRef<string | null>(selectedPlanId);
@@ -364,60 +369,54 @@ export default function TuitionRateCatalogPanel({
 
   if (!catalogRatePlans.length) {
     return (
-      <div
-        className="rounded-xl p-10 text-center flex flex-col items-center gap-4"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-      >
-        <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <AdminCard theme={theme} padding="canvas" className="text-center">
+        <p className="text-lg font-semibold font-heading" style={{ color: theme.ink }}>
           No rate plans yet
         </p>
-        <p className="text-sm max-w-md" style={{ color: C.textSecondary }}>
+        <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: theme.muted }}>
           Set up your first tuition rate plan to define annual tuition, payment
           schedules, and fees.
         </p>
-        <button
-          type="button"
-          onClick={onStartSetup}
-          style={getAdminButtonStyle(C, "primary")}
-          className="px-4 py-2 text-sm font-medium"
-        >
+        <AdminButton theme={theme} className="mt-4" onClick={onStartSetup}>
           Set up tuition rate plan
-        </button>
-      </div>
+        </AdminButton>
+      </AdminCard>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-      <div
-        className="rounded-lg p-3 flex flex-col gap-2"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-      >
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
+      <AdminCard theme={theme} padding="none" className="p-2">
         {catalogRatePlans.map((plan) => (
           <button
             key={plan.id}
             type="button"
             onClick={() => onSelectPlan(plan.id)}
-            className="text-left px-3 py-2 rounded-md text-sm"
-            style={{
-              backgroundColor:
-                selectedPlanId === plan.id ? C.accentLight : "transparent",
-              color: selectedPlanId === plan.id ? C.accent : C.textPrimary,
-            }}
+            className="mb-[3px] w-full rounded-[11px] border px-[11px] py-[11px] text-left text-sm transition-colors"
+            style={
+              selectedPlanId === plan.id
+                ? {
+                    backgroundColor: "#EDF5EE",
+                    borderColor: "#CCE0CF",
+                    color: theme.primary,
+                  }
+                : {
+                    backgroundColor: "transparent",
+                    borderColor: "transparent",
+                    color: theme.ink,
+                  }
+            }
           >
-            <span className="block font-medium">{plan.name}</span>
-            <span className="text-xs" style={{ color: C.textTertiary }}>
+            <span className="block font-bold">{plan.name}</span>
+            <span className="text-[10px]" style={{ color: theme.muted }}>
               {plan.programName ?? "No program"} · {planTierRangeLabel(plan)}
             </span>
           </button>
         ))}
-      </div>
+      </AdminCard>
 
       {activePlan ? (
-        <div
-          className="rounded-lg p-6 flex flex-col gap-5"
-          style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-        >
+        <AdminCard theme={theme} padding="canvas" className="flex flex-col gap-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
@@ -427,22 +426,22 @@ export default function TuitionRateCatalogPanel({
                 {activePlan.name}
               </h3>
             </div>
-            <button
-              type="button"
+            <AdminButton
+              theme={theme}
+              variant="soft"
+              size="compact"
               onClick={() => openSetupWizard(TUITION_WIZARD_STEP_PROGRAM)}
-              className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
             >
-              <Pencil className="w-3.5 h-3.5" />
+              <Pencil className="h-3.5 w-3.5" />
               Edit setup
-            </button>
+            </AdminButton>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               <span style={{ color: C.textSecondary }}>Plan name</span>
               <input
-                style={inputStyle(C)}
+                style={inputStyle(theme)}
                 value={activePlan.name}
                 onChange={(e) =>
                   setLocalPlan((prev) =>
@@ -454,7 +453,7 @@ export default function TuitionRateCatalogPanel({
           </div>
 
           <TuitionSubTabBar
-            C={C}
+            theme={theme}
             tabs={TUITION_RATE_CATALOG_TABS}
             activeTab={activeCatalogTab}
             onTabChange={setActiveCatalogTab}
@@ -568,15 +567,16 @@ export default function TuitionRateCatalogPanel({
                     <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
                       Payment options
                     </p>
-                    <button
-                      type="button"
+                    <AdminButton
+                      theme={theme}
+                      variant="soft"
+                      size="compact"
+                      className="shrink-0"
                       disabled={paymentCounts.length === 0}
                       onClick={() => setPreviewModalOpen(true)}
-                      className="text-sm px-3 py-1.5 rounded-md font-medium shrink-0 disabled:opacity-50"
-                      style={getAdminButtonStyle(C, "secondary")}
                     >
                       Preview schedules
-                    </button>
+                    </AdminButton>
                   </div>
                   {schoolYearMonths != null ? (
                     <p className="text-xs" style={{ color: C.textTertiary }}>
@@ -702,12 +702,11 @@ export default function TuitionRateCatalogPanel({
                     </p>
                   ) : null}
 
-                  <button
-                    type="button"
+                  <AdminButton
+                    theme={theme}
+                    className="self-start"
                     onClick={() => void handleSavePlan()}
                     disabled={savingPlan || saving || !isPaymentOptionsDirty}
-                    style={getAdminButtonStyle(C, "primary")}
-                    className="self-start inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {savingPlan ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -715,7 +714,7 @@ export default function TuitionRateCatalogPanel({
                       <Save className="w-4 h-4" />
                     )}
                     Save payment options
-                  </button>
+                  </AdminButton>
                 </div>
               ) : null}
 
@@ -766,7 +765,7 @@ export default function TuitionRateCatalogPanel({
               ) : null}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </AdminCard>
       ) : null}
 
       {activePlan && paymentCounts.length > 0 ? (

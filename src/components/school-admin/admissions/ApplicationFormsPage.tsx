@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EyeOff, Loader2, Save, Send } from "lucide-react";
 import {
+  canPersistApplySystemSchemaUpgrade,
+  canonicalApplyFormPublicPath,
   createApplyForm,
   duplicateForm,
   getApplicationForm,
@@ -447,7 +449,7 @@ export default function ApplicationFormsPage({
   const [checklistPreviewInitialItemId, setChecklistPreviewInitialItemId] = useState<
     string | undefined
   >();
-  const [loading, setLoading] = useState(!hasInitialList);
+  const [loading, setLoading] = useState(!hasInitialList || listDeferred);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -475,6 +477,7 @@ export default function ApplicationFormsPage({
   const [flowsSidebarOpen, setFlowsSidebarOpen] = useState(false);
   const [createApplyDialogOpen, setCreateApplyDialogOpen] = useState(false);
   const [createChecklistDialogOpen, setCreateChecklistDialogOpen] = useState(false);
+  const [selectedApplyFormHydrated, setSelectedApplyFormHydrated] = useState(false);
   const isApplyDirtyRef = useRef(false);
   const isChecklistDirtyRef = useRef(false);
   const loadedFullFormIdsRef = useRef(new Set<string>());
@@ -550,8 +553,12 @@ export default function ApplicationFormsPage({
   const isPublished = selectedForm?.status === "published";
   const readOnly = isArchived;
   const publishedPublicUrl =
-    isPublished && selectedForm.public_slug
-      ? publicApplicationFormPath(slug, selectedForm.public_slug)
+    isPublished && selectedForm
+      ? isApplyFormSelected
+        ? canonicalApplyFormPublicPath(slug)
+        : selectedForm.public_slug
+          ? publicApplicationFormPath(slug, selectedForm.public_slug)
+          : null
       : null;
   const checklistIsArchived = selectedChecklist?.status === "archived";
   const checklistIsDraft = selectedChecklist?.status === "draft";
@@ -649,11 +656,18 @@ export default function ApplicationFormsPage({
   }, [selectedApplyFormId]);
 
   useEffect(() => {
-    if (!selectedApplyFormId) return;
+    if (!selectedApplyFormId) {
+      queueMicrotask(() => setSelectedApplyFormHydrated(false));
+      return;
+    }
     const formId = selectedApplyFormId;
-    if (loadedFullFormIdsRef.current.has(formId)) return;
+    if (loadedFullFormIdsRef.current.has(formId)) {
+      queueMicrotask(() => setSelectedApplyFormHydrated(true));
+      return;
+    }
 
     let cancelled = false;
+    queueMicrotask(() => setSelectedApplyFormHydrated(false));
 
     async function loadFullForm() {
       try {
@@ -661,6 +675,9 @@ export default function ApplicationFormsPage({
         if (cancelled || !full) return;
         loadedFullFormIdsRef.current.add(full.id);
         setForms((prev) => prev.map((row) => (row.id === full.id ? full : row)));
+        if (!cancelled) {
+          setSelectedApplyFormHydrated(true);
+        }
       } catch {
         // syncEditable will surface edit errors if the full form cannot load.
       }
@@ -733,17 +750,25 @@ export default function ApplicationFormsPage({
     }
 
     const form = selectedForm;
+    const isApply = isApplyFormVersion(form);
+    if (isApply && !selectedApplyFormHydrated) {
+      return;
+    }
+
     let cancelled = false;
 
     async function syncEditable() {
       let next = toEditableState(form);
-      const isApply = isApplyFormVersion(form);
 
       if (isApply) {
         const ensured = ensureApplySystemSchema(next.schema);
         if (applySystemSchemaChanged(next.schema, ensured)) {
           next = { ...next, schema: ensured };
-          if (form.status !== "archived") {
+          if (
+            canPersistApplySystemSchemaUpgrade(form, {
+              hasLoadedFullForm: loadedFullFormIdsRef.current.has(form.id),
+            })
+          ) {
             try {
               const updated = await updateApplicationForm(supabase, form.id, {
                 schema: ensured,
@@ -782,6 +807,7 @@ export default function ApplicationFormsPage({
     selectedForm?.id,
     selectedForm?.updated_at,
     selectedForm?.status,
+    selectedApplyFormHydrated,
     supabase,
   ]);
 
@@ -869,8 +895,10 @@ export default function ApplicationFormsPage({
         programId,
         programName,
       });
+      loadedFullFormIdsRef.current.add(created.id);
       setForms((prev) => [created, ...prev]);
       setSelection({ kind: "apply", id: created.id });
+      setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
       setFlowsSidebarOpen(false);
       setCreateApplyDialogOpen(false);
@@ -939,8 +967,10 @@ export default function ApplicationFormsPage({
     setError(null);
     try {
       const copy = await duplicateForm(supabase, selectedForm.id);
+      loadedFullFormIdsRef.current.add(copy.id);
       setForms((prev) => [copy, ...prev]);
       setSelection({ kind: "apply", id: copy.id });
+      setSelectedApplyFormHydrated(true);
       setFocus(DEFAULT_BUILDER_FOCUS);
       adminToast.success("Form duplicated");
     } catch (err) {
@@ -1812,6 +1842,11 @@ export default function ApplicationFormsPage({
           editable?.publicSlug.trim()
             ? normalizePublicSlug(editable.publicSlug)
             : selectedForm?.public_slug ?? null
+        }
+        displayPath={
+          isApplyFormSelected && isPublished
+            ? canonicalApplyFormPublicPath(slug)
+            : null
         }
         title={editable?.title ?? selectedForm?.title ?? "Application"}
         intro={

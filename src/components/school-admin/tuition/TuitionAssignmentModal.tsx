@@ -7,8 +7,9 @@ import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { getAssignmentById } from "@/lib/tuition/assignments";
 import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import { paymentScheduleLabel } from "@/lib/tuition/setup-wizard";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
@@ -28,7 +29,9 @@ export default function TuitionAssignmentModal({
   onClose,
   onSaved,
 }: TuitionAssignmentModalProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
 
   const [loading, setLoading] = useState(true);
@@ -151,7 +154,7 @@ export default function TuitionAssignmentModal({
       onClose={onClose}
       maxWidth="md"
       ariaLabel={modalTitle}
-      panelStyle={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
+      panelStyle={{ backgroundColor: "#F8FAF8", border: "1px solid #E1E8E1" }}
     >
       <div
         className="flex items-center justify-between px-5 py-4"
@@ -227,25 +230,17 @@ export default function TuitionAssignmentModal({
         className="px-5 py-4 flex justify-end gap-2"
         style={{ borderTop: `1px solid ${C.border}` }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={saving}
-          className="text-sm px-4 py-2 rounded-md"
-          style={{ color: C.textSecondary }}
-        >
+        <AdminButton theme={theme} variant="soft" onClick={onClose} disabled={saving}>
           Cancel
-        </button>
-        <button
-          type="button"
+        </AdminButton>
+        <AdminButton
+          theme={theme}
           onClick={() => void handleSave()}
           disabled={saving || loading || !isAssignmentDirty}
-          style={getAdminButtonStyle(C, "primary")}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Save changes
-        </button>
+        </AdminButton>
       </div>
     </SchoolAdminModalShell>
   );

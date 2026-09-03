@@ -46,6 +46,11 @@ export function publicApplicationFormPath(
 
 export const APPLY_FORM_PUBLIC_SLUG = "apply";
 
+/** Family-facing apply entry point; use for share/copy UI instead of per-program slugs. */
+export function canonicalApplyFormPublicPath(orgSlug: string): string {
+  return publicApplicationFormPath(orgSlug, APPLY_FORM_PUBLIC_SLUG);
+}
+
 const ACTIVE_FORM_STATUSES = ["draft", "published"] as const;
 
 export function isApplyFormVersion(
@@ -245,6 +250,26 @@ export function applicationFormSummaryFromRow(
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
+}
+
+/** List summaries omit schema; never persist schema changes from this stub. */
+export function isApplicationFormSummaryStub(
+  form: ApplicationFormVersion,
+): boolean {
+  return (
+    form.schema.sections.length === 0 &&
+    form.schema.acknowledgments.length === 0
+  );
+}
+
+export function canPersistApplySystemSchemaUpgrade(
+  form: ApplicationFormVersion,
+  options: { hasLoadedFullForm: boolean },
+): boolean {
+  if (form.status === "archived") return false;
+  if (isApplicationFormSummaryStub(form)) return false;
+  if (!options.hasLoadedFullForm) return false;
+  return true;
 }
 
 export async function listApplicationFormSummaries(

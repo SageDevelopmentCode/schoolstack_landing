@@ -8,15 +8,18 @@ import {
   sanitizeDollarDraft,
 } from "@/lib/admissions/application-form-schema";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import { formatCents } from "@/lib/tuition/pricing";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
-import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   maxTuitionPayCents,
   validateTuitionPayAmountCents,
 } from "@/lib/tuition/tuition-pay-amount";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ManualPaymentCharge = {
   id: string;
@@ -36,6 +39,7 @@ type TuitionManualPaymentModalProps = {
 
 type TuitionManualPaymentFormProps = {
   charge: ManualPaymentCharge;
+  theme: ParentThemeTokens;
   C: AdminThemeTokens;
   saving: boolean;
   onClose: () => void;
@@ -44,6 +48,7 @@ type TuitionManualPaymentFormProps = {
 
 function TuitionManualPaymentForm({
   charge,
+  theme,
   C,
   saving,
   onClose,
@@ -77,12 +82,12 @@ function TuitionManualPaymentForm({
     <div className="flex flex-col">
       <div
         className="flex items-center justify-between gap-3 px-5 py-4"
-        style={{ borderBottom: `1px solid ${C.border}` }}
+        style={{ borderBottom: "1px solid #E1E8E1" }}
       >
         <h2
           id="tuition-manual-payment-modal-title"
-          className="text-base font-semibold"
-          style={{ color: C.textPrimary }}
+          className="font-heading text-base font-semibold"
+          style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
         >
           Record manual payment
         </h2>
@@ -92,16 +97,16 @@ function TuitionManualPaymentForm({
           className="rounded-md p-1"
           aria-label="Close"
         >
-          <X className="h-4 w-4" style={{ color: C.textSecondary }} />
+          <X className="h-4 w-4" style={{ color: theme.muted }} />
         </button>
       </div>
 
       <div className="space-y-4 px-5 py-4">
         <div>
-          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+          <p className="text-sm font-medium" style={{ color: theme.ink }}>
             {charge.label}
           </p>
-          <p className="text-xs mt-1" style={{ color: C.textSecondary }}>
+          <p className="mt-1 text-xs" style={{ color: theme.muted }}>
             Remaining balance: {formatCents(remainingCents)}
           </p>
         </div>
@@ -110,14 +115,14 @@ function TuitionManualPaymentForm({
           <label
             htmlFor="tuition-manual-payment-amount"
             className="mb-1 block text-xs font-medium"
-            style={{ color: C.textSecondary }}
+            style={{ color: theme.muted }}
           >
             Payment amount
           </label>
           <div className="relative">
             <span
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-              style={{ color: C.textTertiary }}
+              style={{ color: theme.muted }}
             >
               $
             </span>
@@ -135,20 +140,20 @@ function TuitionManualPaymentForm({
               }}
               className="w-full rounded-lg border py-2 pl-7 pr-3 text-sm"
               style={{
-                borderColor: error ? C.error : C.border,
-                backgroundColor: C.surface,
-                color: C.textPrimary,
+                borderColor: error ? "#AD574C" : "#DCE4DC",
+                backgroundColor: theme.white,
+                color: theme.ink,
               }}
               data-testid="tuition-manual-payment-amount-input"
             />
           </div>
-          <p className="mt-1 text-xs" style={{ color: C.textTertiary }}>
+          <p className="mt-1 text-xs" style={{ color: theme.muted }}>
             Between {formatCents(remainingCents)} and{" "}
             {formatCents(maxTuitionPayCents({ remainingCents }))}. Amounts above the
             balance reduce future installments.
           </p>
           {error ? (
-            <p className="mt-1 text-xs" style={{ color: C.error }} role="alert">
+            <p className="mt-1 text-xs" style={{ color: "#AD574C" }} role="alert">
               {error}
             </p>
           ) : null}
@@ -157,28 +162,20 @@ function TuitionManualPaymentForm({
 
       <div
         className="flex justify-end gap-2 px-5 py-4"
-        style={{ borderTop: `1px solid ${C.border}` }}
+        style={{ borderTop: "1px solid #E1E8E1" }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={saving}
-          style={getAdminButtonStyle(C, "secondary")}
-          className="px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
+        <AdminButton theme={theme} variant="soft" onClick={onClose} disabled={saving}>
           Cancel
-        </button>
-        <button
-          type="button"
+        </AdminButton>
+        <AdminButton
+          theme={theme}
           onClick={() => void handleConfirm()}
           disabled={saving || Boolean(validationError)}
-          style={getAdminButtonStyle(C, "primary")}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium disabled:opacity-50"
           data-testid="tuition-manual-payment-confirm"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           Record payment
-        </button>
+        </AdminButton>
       </div>
     </div>
   );
@@ -192,7 +189,9 @@ export default function TuitionManualPaymentModal({
   onClose,
   onConfirm,
 }: TuitionManualPaymentModalProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
 
   return (
     <SchoolAdminModalShell
@@ -202,15 +201,16 @@ export default function TuitionManualPaymentModal({
       ariaLabelledBy="tuition-manual-payment-modal-title"
       testId="tuition-manual-payment-modal"
       panelStyle={{
-        backgroundColor: C.surface,
-        border: `1px solid ${C.border}`,
-        boxShadow: C.shadowMedium,
+        backgroundColor: "#F8FAF8",
+        border: "1px solid #E1E8E1",
+        boxShadow: theme.shadowCard,
       }}
     >
       {charge ? (
         <TuitionManualPaymentForm
           key={charge.id}
           charge={charge}
+          theme={theme}
           C={C}
           saving={saving}
           onClose={onClose}

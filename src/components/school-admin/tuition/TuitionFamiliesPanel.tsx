@@ -2,11 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
+import TuitionFamilyListSidebar, {
+  EnrollmentStatusChip,
+} from "@/components/school-admin/tuition/TuitionFamilyListSidebar";
+import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
+import TuitionManualPaymentModal from "@/components/school-admin/tuition/TuitionManualPaymentModal";
+import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
+import {
+  DEFAULT_TUITION_FAMILY_TAB,
+  type TuitionFamilyTabId,
+} from "@/components/school-admin/tuition/tuition-family-tabs";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { childFirstNameFromFullName } from "@/lib/tuition/parent-billing-summary";
@@ -15,20 +30,14 @@ import {
   buildStudentColorIndexMap,
   getStudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
-import { buildAdminThemeTokens, type AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   assignTuitionLabel,
   partitionUnassignedEnrollments,
 } from "@/lib/tuition/tuition-readiness";
-import {
-  familyEnrollmentBadgeLabel,
-  familyEnrollmentStatusBadges,
-  formatEnrollmentStatusLabel,
-  type FamilyEnrollmentBadgeKind,
-} from "@/lib/tuition/enrollment-status-labels";
 import type {
   CatalogTuitionSummary,
-  EnrollmentBillingStatus,
   FamilyAssignmentSummary,
   FamilyBillingSummary,
   UnassignedEnrollmentSummary,
@@ -37,14 +46,6 @@ import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
-import TuitionBillingSplitModal from "@/components/school-admin/tuition/TuitionBillingSplitModal";
-import TuitionManualPaymentModal from "@/components/school-admin/tuition/TuitionManualPaymentModal";
-import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
-import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
-import {
-  DEFAULT_TUITION_FAMILY_TAB,
-  type TuitionFamilyTabId,
-} from "@/components/school-admin/tuition/tuition-family-tabs";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
@@ -88,95 +89,23 @@ type TuitionFamiliesPanelProps = {
   onRefresh: () => void;
 };
 
-type EnrollmentBadgeStyle = {
-  backgroundColor: string;
-  color: string;
-  border?: string;
-};
-
-function enrollingOutlineBadgeStyle(C: AdminThemeTokens): EnrollmentBadgeStyle {
-  return {
-    backgroundColor: "transparent",
-    color: C.accent,
-    border: `1px solid ${C.accent}`,
-  };
-}
-
-function enrollmentStatusBadgeStyle(
-  status: EnrollmentBillingStatus,
-  C: AdminThemeTokens,
-): EnrollmentBadgeStyle {
-  if (status === "pending") {
-    return enrollingOutlineBadgeStyle(C);
-  }
-  if (status === "enrolled") {
-    return { backgroundColor: C.successBg, color: C.success };
-  }
-  return { backgroundColor: C.elevated, color: C.textSecondary };
-}
-
-function familyEnrollmentBadgeStyle(
-  kind: FamilyEnrollmentBadgeKind,
-  C: AdminThemeTokens,
-): EnrollmentBadgeStyle {
-  if (kind === "enrolling") {
-    return enrollingOutlineBadgeStyle(C);
-  }
-  return { backgroundColor: C.successBg, color: C.success };
-}
-
-function EnrollmentStatusBadge({
-  status,
-  C,
-}: {
-  status: EnrollmentBillingStatus;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <span
-      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-      style={enrollmentStatusBadgeStyle(status, C)}
-    >
-      {formatEnrollmentStatusLabel(status)}
-    </span>
-  );
-}
-
-function FamilyEnrollmentStatusBadge({
-  kind,
-  C,
-}: {
-  kind: FamilyEnrollmentBadgeKind;
-  C: AdminThemeTokens;
-}) {
-  return (
-    <span
-      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-      style={familyEnrollmentBadgeStyle(kind, C)}
-    >
-      {familyEnrollmentBadgeLabel(kind)}
-    </span>
-  );
-}
-
-
 function CatalogTuitionAmount({
   catalogTuition,
-  C,
+  theme,
   size = "lg",
 }: {
   catalogTuition: CatalogTuitionSummary;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   size?: "lg" | "sm";
 }) {
   const hasDiscount = catalogTuition.baseCents !== catalogTuition.adjustedCents;
   const amountClass = size === "lg" ? "text-lg font-semibold" : "text-sm font-medium";
 
   return (
-    <p className={`${amountClass} flex items-center gap-2`} style={{ color: C.textPrimary }}>
+    <p className={`${amountClass} flex items-center gap-2`} style={{ color: theme.ink }}>
       {hasDiscount ? (
         <>
-          <span style={{ color: C.textTertiary, textDecoration: "line-through" }}>
+          <span style={{ color: theme.muted, textDecoration: "line-through" }}>
             {formatCents(catalogTuition.baseCents)}
           </span>
           <span>{formatCents(catalogTuition.adjustedCents)}</span>
@@ -190,24 +119,21 @@ function CatalogTuitionAmount({
 
 function UnassignedStudentRow({
   enrollment,
-  C,
+  theme,
 }: {
   enrollment: UnassignedEnrollmentSummary;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
 }) {
   return (
     <li className="flex flex-col gap-1 text-sm">
-      <span className="font-medium" style={{ color: C.textPrimary }}>
+      <span className="font-medium" style={{ color: theme.ink }}>
         {enrollment.studentName}
       </span>
       <div className="flex flex-wrap items-center gap-1.5">
-        <EnrollmentStatusBadge status={enrollment.status} C={C} />
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={{ backgroundColor: C.accentLight, color: C.accentDark }}
-        >
+        <EnrollmentStatusChip status={enrollment.status} theme={theme} />
+        <AdminChip theme={theme} tone="purple">
           {enrollment.programName}
-        </span>
+        </AdminChip>
       </div>
     </li>
   );
@@ -215,54 +141,42 @@ function UnassignedStudentRow({
 
 function AssignmentMetaBadges({
   assignment,
-  C,
+  theme,
 }: {
   assignment: FamilyAssignmentSummary;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
 }) {
-  const neutralStyle = { backgroundColor: C.accentLight, color: C.accentDark };
-
   return (
     <div className="flex flex-wrap gap-1.5">
-      <EnrollmentStatusBadge status={assignment.enrollmentStatus} C={C} />
-      <span
-        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-        style={neutralStyle}
-      >
+      <EnrollmentStatusChip status={assignment.enrollmentStatus} theme={theme} />
+      <AdminChip theme={theme} tone="info">
         {assignment.ratePlanName}
-      </span>
+      </AdminChip>
       {assignment.tierLabel ? (
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={neutralStyle}
-        >
+        <AdminChip theme={theme} tone="info">
           {assignment.tierLabel}
-        </span>
+        </AdminChip>
       ) : null}
       {!assignment.pendingPaymentPlanSelection ? (
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={neutralStyle}
-        >
+        <AdminChip theme={theme} tone="info">
           {assignment.paymentPlanLabel}
-        </span>
+        </AdminChip>
       ) : null}
       {assignment.pendingPaymentPlanSelection ? (
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={{ backgroundColor: C.accent, color: "#fff" }}
-        >
+        <AdminChip theme={theme} tone="warning">
           Awaiting schedule choice
-        </span>
+        </AdminChip>
       ) : null}
       {assignment.activeAdjustmentCount > 0 && assignment.adjustmentSummaryLabel ? (
-        <span
-          className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-          style={{ backgroundColor: C.successBg, color: C.success }}
-          title={assignment.adjustmentSummaryFull ?? assignment.adjustmentSummaryLabel}
+        <AdminChip
+          theme={theme}
+          tone="success"
+          className="max-w-full truncate"
         >
-          {assignment.adjustmentSummaryLabel}
-        </span>
+          <span title={assignment.adjustmentSummaryFull ?? assignment.adjustmentSummaryLabel}>
+            {assignment.adjustmentSummaryLabel}
+          </span>
+        </AdminChip>
       ) : null}
     </div>
   );
@@ -278,8 +192,11 @@ export default function TuitionFamiliesPanel({
   onEditAssignment,
   onRefresh,
 }: TuitionFamiliesPanelProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
+  const [familySearchQuery, setFamilySearchQuery] = useState("");
   const reducedMotion = useReducedMotion() ?? false;
   const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
   const [hasMoreFamilies, setHasMoreFamilies] = useState(false);
@@ -532,45 +449,12 @@ export default function TuitionFamiliesPanel({
     }
   };
 
-  const familyStatusLabel = (family: FamilyBillingSummary) => {
-    const autopayLabel =
-      family.autopayStatus === "on"
-        ? "Autopay on"
-        : family.autopayStatus === "partial"
-          ? "Autopay partial"
-          : "Autopay off";
-    const { enrolling, enrolledUnassigned } = partitionUnassignedEnrollments(
-      family.unassignedEnrollments,
-    );
-    const catalogAmountLabel = family.catalogTuition
-      ? formatCents(family.catalogTuition.adjustedCents)
-      : null;
-
-    if (family.readiness === "ready" && enrolling.length === 0) {
-      return `${formatCents(family.balanceDueCents)} · ${family.status} · ${autopayLabel}`;
-    }
-    if (enrolledUnassigned.length > 0) {
-      return catalogAmountLabel
-        ? `${catalogAmountLabel} · Setup needed`
-        : "Setup needed";
-    }
-    if (enrolling.length > 0) {
-      return catalogAmountLabel ? `${catalogAmountLabel} · Enrolling` : "Enrolling";
-    }
-    if (catalogAmountLabel && family.readiness !== "ready") {
-      return `${catalogAmountLabel} · Setup needed`;
-    }
-    return "Setup needed";
-  };
-
-  const autopayBadgeStyle = (status: FamilyBillingSummary["autopayStatus"]) => {
-    if (status === "on") {
-      return { backgroundColor: C.accentLight, color: C.accent };
-    }
-    if (status === "partial") {
-      return { backgroundColor: C.elevated, color: C.warning };
-    }
-    return { backgroundColor: C.elevated, color: C.textSecondary };
+  const autopayChipTone = (
+    status: FamilyBillingSummary["autopayStatus"],
+  ): "success" | "warning" | "info" => {
+    if (status === "on") return "success";
+    if (status === "partial") return "warning";
+    return "info";
   };
 
   useEffect(() => {
@@ -639,140 +523,75 @@ export default function TuitionFamiliesPanel({
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm" style={{ color: C.textSecondary }}>
-        <Loader2 className="w-4 h-4 animate-spin" />
-        Loading families…
-      </div>
-    );
+    return <SchoolAdminSplitPaneSkeleton C={C} label="Loading families" />;
   }
 
   if (!families.length) {
     return (
-      <div
-        className="rounded-xl p-10 text-center flex flex-col items-center gap-3"
-        style={{ backgroundColor: C.surface, border: `1px solid ${C.border}` }}
-      >
-        <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+      <AdminCard theme={theme} padding="canvas" className="text-center">
+        <p className="text-lg font-semibold font-heading" style={{ color: theme.ink }}>
           No family billing yet
         </p>
-        <p className="text-sm max-w-md" style={{ color: C.textSecondary }}>
+        <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: theme.muted }}>
           When students enroll and are assigned a rate plan, families will appear here
           with their tuition schedule and balance.
         </p>
-      </div>
+      </AdminCard>
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
-      >
-        {families.map((family) => (
-          <button
-            key={family.familyId}
-            type="button"
-            onClick={() => selectFamily(family.familyId)}
-            className="w-full text-left px-4 py-3 border-b"
-            style={{
-              borderColor: C.border,
-              backgroundColor:
-                selectedFamilyId === family.familyId ? C.accentLight : "transparent",
-            }}
+  const detailPane = selectedFamily ? (
+    <AdminCard theme={theme} padding="canvas" className="flex min-h-[420px] flex-col gap-4">
+      {invoiceNotice ? (
+        <p
+          className="rounded-md border px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "#F4F8F4",
+            color: theme.muted,
+            borderColor: "#DCE4DC",
+          }}
+          data-testid="tuition-invoice-notice"
+        >
+          {invoiceNotice}
+        </p>
+      ) : null}
+
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2
+            className="font-heading text-base font-semibold"
+            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
           >
-            <div className="flex flex-wrap items-center gap-1.5">
-              <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
-                {family.familyName}
-              </p>
-              {family.enrollments.length > 0
-                ? familyEnrollmentStatusBadges(family.enrollments).map((kind) => (
-                    <FamilyEnrollmentStatusBadge key={kind} kind={kind} C={C} />
-                  ))
-                : null}
-            </div>
-            <p className="text-xs mt-0.5" style={{ color: C.textTertiary }}>
-              {familyStatusLabel(family)}
+            {selectedFamily.familyName}
+          </h2>
+          {selectedFamily.billingSplitSummary ? (
+            <p className="mt-1 text-xs" style={{ color: theme.muted }}>
+              Split billing: {selectedFamily.billingSplitSummary}
             </p>
-          </button>
-        ))}
-        {hasMoreFamilies ? (
-          <div className="p-3">
-            <button
-              type="button"
-              onClick={() => void loadMoreFamilies()}
-              disabled={loadingMoreFamilies}
-              className="w-full rounded-lg px-3 py-2 text-sm font-medium cursor-pointer disabled:opacity-50"
-              style={{
-                backgroundColor: C.bg,
-                color: C.textSecondary,
-                border: `1px solid ${C.border}`,
-              }}
-            >
-              {loadingMoreFamilies ? "Loading…" : "Load more families"}
-            </button>
-          </div>
-        ) : null}
-        {!families.length ? (
-          <p className="p-4 text-sm" style={{ color: C.textTertiary }}>
-            No families to display.
-          </p>
-        ) : null}
+          ) : null}
+        </div>
+        <AdminButton
+          theme={theme}
+          variant="outline"
+          size="compact"
+          onClick={() => setSplitModalOpen(true)}
+          data-testid="tuition-billing-split-button"
+        >
+          Billing split
+        </AdminButton>
       </div>
 
-      {selectedFamily ? (
-        <div
-          className="rounded-lg p-5 flex flex-col gap-4"
-          style={{ border: `1px solid ${C.border}`, backgroundColor: C.surface }}
-        >
-          {invoiceNotice ? (
-            <p
-              className="text-sm rounded-md px-3 py-2"
-              style={{ backgroundColor: C.bg, color: C.textSecondary, border: `1px solid ${C.border}` }}
-              data-testid="tuition-invoice-notice"
-            >
-              {invoiceNotice}
-            </p>
-          ) : null}
+      {panelError ? (
+        <p className="text-sm" style={{ color: "#AD574C" }}>
+          {panelError}
+        </p>
+      ) : null}
 
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                {selectedFamily.familyName}
-              </h2>
-              {selectedFamily.billingSplitSummary ? (
-                <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
-                  Split billing: {selectedFamily.billingSplitSummary}
-                </p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={() => setSplitModalOpen(true)}
-              className="text-xs font-medium px-2 py-1 rounded shrink-0"
-              style={{
-                backgroundColor: C.bg,
-                color: C.textPrimary,
-                border: `1px solid ${C.border}`,
-              }}
-              data-testid="tuition-billing-split-button"
-            >
-              Billing split
-            </button>
-          </div>
-
-          {panelError ? (
-            <p className="text-sm" style={{ color: C.error }}>
-              {panelError}
-            </p>
-          ) : null}
-
-          <TuitionFamilyTabBar
-            C={C}
-            activeTab={activeFamilyTab}
-            onTabChange={setActiveFamilyTab}
-          />
+      <TuitionFamilyTabBar
+        theme={theme}
+        activeTab={activeFamilyTab}
+        onTabChange={setActiveFamilyTab}
+      />
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -808,15 +627,15 @@ export default function TuitionFamiliesPanel({
                       <div
                         className="rounded-lg p-4 flex flex-col gap-3"
                         style={{
-                          backgroundColor: C.accentLight,
-                          border: `1px solid ${C.border}`,
+                          backgroundColor: "#EAF4EB",
+                          border: "1px solid #C7DFCB",
                         }}
                       >
                         <div>
-                          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                          <p className="text-sm font-medium" style={{ color: theme.ink }}>
                             Enrollment in progress
                           </p>
-                          <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                          <p className="text-sm mt-1" style={{ color: theme.muted }}>
                             Tuition rate is set. Installments are created when enrollment is complete.
                           </p>
                         </div>
@@ -826,19 +645,20 @@ export default function TuitionFamiliesPanel({
                               <UnassignedStudentRow
                                 key={enrollment.enrollmentId}
                                 enrollment={enrollment}
-                                C={C}
+                                theme={theme}
                               />
                             ))}
                           </ul>
-                          <button
-                            type="button"
+                          <AdminButton
+                            theme={theme}
+                            variant="primary"
+                            size="compact"
+                            className="self-start"
                             disabled={actionLoading === "sync"}
                             onClick={() => void handleSyncAssignments()}
-                            className="self-start text-xs font-medium px-2 py-1 rounded"
-                            style={{ backgroundColor: C.accent, color: "#fff" }}
                           >
                             {assignTuitionLabel(enrollingWithoutAssignment.length)}
-                          </button>
+                          </AdminButton>
                         </div>
                       </div>
                     ) : null}
@@ -847,15 +667,15 @@ export default function TuitionFamiliesPanel({
                       <div
                         className="rounded-lg p-4 flex flex-col gap-3"
                         style={{
-                          backgroundColor: C.accentLight,
-                          border: `1px solid ${C.border}`,
+                          backgroundColor: "#EAF4EB",
+                          border: "1px solid #C7DFCB",
                         }}
                       >
                         <div>
-                          <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                          <p className="text-sm font-medium" style={{ color: theme.ink }}>
                             Tuition not assigned yet
                           </p>
-                          <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
+                          <p className="text-sm mt-1" style={{ color: theme.muted }}>
                             These students are enrolled but don&apos;t have a rate plan applied.
                             This usually means they enrolled before your rate plan was ready.
                           </p>
@@ -867,19 +687,20 @@ export default function TuitionFamiliesPanel({
                               <UnassignedStudentRow
                                 key={enrollment.enrollmentId}
                                 enrollment={enrollment}
-                                C={C}
+                                theme={theme}
                               />
                             ))}
                           </ul>
-                          <button
-                            type="button"
+                          <AdminButton
+                            theme={theme}
+                            variant="primary"
+                            size="compact"
+                            className="self-start"
                             disabled={actionLoading === "sync"}
                             onClick={() => void handleSyncAssignments()}
-                            className="self-start text-xs font-medium px-2 py-1 rounded"
-                            style={{ backgroundColor: C.accent, color: "#fff" }}
                           >
                             {assignTuitionLabel(enrolledUnassigned.length)}
-                          </button>
+                          </AdminButton>
                         </div>
                       </div>
                     ) : null}
@@ -890,13 +711,13 @@ export default function TuitionFamiliesPanel({
               {selectedFamily.assignments.length > 0 ? (
                 <div
                   className="rounded-lg p-4 flex flex-col gap-3"
-                  style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                  style={{ backgroundColor: "#F4F8F4", border: "1px solid #E0E7E0" }}
                 >
-                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  <p className="text-sm font-medium" style={{ color: theme.ink }}>
                     Enrollment assignments
                   </p>
                   {selectedFamily.readiness === "no_charges" ? (
-                    <p className="text-sm" style={{ color: C.textSecondary }}>
+                    <p className="text-sm" style={{ color: theme.muted }}>
                       Charges appear after tuition is assigned and the payment schedule is
                       confirmed.
                     </p>
@@ -908,19 +729,15 @@ export default function TuitionFamiliesPanel({
                         className="flex flex-col gap-1 text-sm"
                       >
                         <div className="flex items-center justify-between gap-3">
-                          <span style={{ color: C.textPrimary }}>
+                          <span style={{ color: theme.ink }}>
                             {assignment.studentName ?? "Student"}
                           </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
+                          <div className="flex flex-wrap items-center gap-2">
+                            <AdminButton
+                              theme={theme}
+                              variant="outline"
+                              size="compact"
                               onClick={() => onEditAssignment(assignment.assignmentId)}
-                              className="text-xs font-medium px-2 py-1 rounded"
-                              style={{
-                                backgroundColor: C.bg,
-                                color: C.textPrimary,
-                                border: `1px solid ${C.border}`,
-                              }}
                               aria-label={
                                 assignment.pendingPaymentPlanSelection
                                   ? `Set payment schedule for ${assignment.studentName ?? "student"}`
@@ -930,9 +747,11 @@ export default function TuitionFamiliesPanel({
                               {assignment.pendingPaymentPlanSelection
                                 ? "Set schedule"
                                 : "Edit"}
-                            </button>
-                            <button
-                              type="button"
+                            </AdminButton>
+                            <AdminButton
+                              theme={theme}
+                              variant="soft"
+                              size="compact"
                               aria-label={`Adjust tuition for ${assignment.studentName ?? "student"}`}
                               onClick={() =>
                                 onAdjust(
@@ -941,27 +760,21 @@ export default function TuitionFamiliesPanel({
                                   assignment.studentName,
                                 )
                               }
-                              className="text-xs font-medium px-2 py-1 rounded"
-                              style={{ backgroundColor: C.accentLight, color: C.accent }}
                             >
                               Adjust tuition
-                            </button>
-                            <button
-                              type="button"
+                            </AdminButton>
+                            <AdminButton
+                              theme={theme}
+                              variant="outline"
+                              size="compact"
                               disabled={actionLoading === assignment.assignmentId}
                               onClick={() => void handleUnassign(assignment.assignmentId)}
-                              className="text-xs font-medium px-2 py-1 rounded"
-                              style={{
-                                backgroundColor: C.bg,
-                                color: C.textSecondary,
-                                border: `1px solid ${C.border}`,
-                              }}
                             >
                               Unassign
-                            </button>
+                            </AdminButton>
                           </div>
                         </div>
-                        <AssignmentMetaBadges assignment={assignment} C={C} />
+                        <AssignmentMetaBadges assignment={assignment} theme={theme} />
                       </li>
                     ))}
                   </ul>
@@ -981,7 +794,7 @@ export default function TuitionFamiliesPanel({
                   enrolledUnassigned.length === 0;
 
                 return showEmptyState ? (
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                  <p className="text-sm" style={{ color: theme.muted }}>
                     No enrollment assignments yet.
                   </p>
                 ) : null;
@@ -998,38 +811,38 @@ export default function TuitionFamiliesPanel({
             >
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                  <p className="text-xs uppercase" style={{ color: theme.muted }}>
                     {selectedFamily.catalogTuition ? "Tuition rate" : "Balance due"}
                   </p>
                   {selectedFamily.catalogTuition ? (
                     <CatalogTuitionAmount
                       catalogTuition={selectedFamily.catalogTuition}
-                      C={C}
+                      theme={theme}
                     />
                   ) : (
-                    <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                    <p className="text-lg font-semibold" style={{ color: theme.ink }}>
                       {formatCents(selectedFamily.balanceDueCents)}
                     </p>
                   )}
                   {selectedFamily.catalogTuition && selectedFamily.hasPendingEnrollment ? (
-                    <p className="text-xs mt-1" style={{ color: C.textSecondary }}>
+                    <p className="text-xs mt-1" style={{ color: theme.muted }}>
                       Billing starts after enrollment is complete.
                     </p>
                   ) : null}
                 </div>
                 <div>
-                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                  <p className="text-xs uppercase" style={{ color: theme.muted }}>
                     Paid YTD
                   </p>
-                  <p className="text-lg font-semibold" style={{ color: C.textPrimary }}>
+                  <p className="text-lg font-semibold" style={{ color: theme.ink }}>
                     {formatCents(selectedFamily.paidYtdCents)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase" style={{ color: C.textTertiary }}>
+                  <p className="text-xs uppercase" style={{ color: theme.muted }}>
                     Next due
                   </p>
-                  <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                  <p className="text-sm font-medium" style={{ color: theme.ink }}>
                     {selectedFamily.nextDue
                       ? `${selectedFamily.nextDue.label} · ${formatCents(selectedFamily.nextDue.amountCents)}`
                       : "—"}
@@ -1042,26 +855,23 @@ export default function TuitionFamiliesPanel({
           {activeFamilyTab === "autopay" ? (
             <div
               className="rounded-lg p-4 flex flex-col gap-3"
-              style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+              style={{ backgroundColor: "#F4F8F4", border: "1px solid #E0E7E0" }}
               id="tuition-family-panel-autopay"
               role="tabpanel"
               aria-labelledby="tuition-family-tab-autopay"
               data-testid="tuition-family-panel-autopay"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium" style={{ color: C.textPrimary }}>
+                <p className="text-sm font-medium" style={{ color: theme.ink }}>
                   Autopay
                 </p>
-                <span
-                  className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                  style={autopayBadgeStyle(selectedFamily.autopayStatus)}
-                >
+                <AdminChip theme={theme} tone={autopayChipTone(selectedFamily.autopayStatus)}>
                   {selectedFamily.autopayStatus === "on"
                     ? "On"
                     : selectedFamily.autopayStatus === "partial"
                       ? "Partial"
                       : "Off"}
-                </span>
+                </AdminChip>
               </div>
 
               {selectedFamily.guardianAutopay.length > 0 ? (
@@ -1071,8 +881,8 @@ export default function TuitionFamiliesPanel({
                       key={guardian.guardianId}
                       className="flex items-center justify-between gap-3 text-sm"
                     >
-                      <span style={{ color: C.textPrimary }}>{guardian.name}</span>
-                      <span className="text-xs" style={{ color: C.textSecondary }}>
+                      <span style={{ color: theme.ink }}>{guardian.name}</span>
+                      <span className="text-xs" style={{ color: theme.muted }}>
                         Autopay {guardian.autopayEnabled ? "on" : "off"} · Card{" "}
                         {guardian.hasPaymentMethod ? "on file" : "missing"}
                       </span>
@@ -1080,13 +890,13 @@ export default function TuitionFamiliesPanel({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm" style={{ color: C.textSecondary }}>
+                <p className="text-sm" style={{ color: theme.muted }}>
                   Card on file: {selectedFamily.hasPaymentMethod ? "Yes" : "No"}
                 </p>
               )}
 
               {selectedFamily.lastAutopayFailedAt ? (
-                <p className="text-xs" style={{ color: C.error }}>
+                <p className="text-xs" style={{ color: "#AD574C" }}>
                   Last autopay failed on{" "}
                   {new Date(selectedFamily.lastAutopayFailedAt).toLocaleDateString()}
                 </p>
@@ -1101,7 +911,7 @@ export default function TuitionFamiliesPanel({
               aria-labelledby="tuition-family-tab-schedule"
               data-testid="tuition-family-panel-schedule"
             >
-              <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+              <p className="text-sm font-medium mb-2" style={{ color: theme.ink }}>
                 Schedule
               </p>
               <div className="flex flex-col gap-2">
@@ -1114,7 +924,7 @@ export default function TuitionFamiliesPanel({
                     <div
                       key={charge.id}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
-                      style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                      style={{ backgroundColor: "#F4F8F4", border: "1px solid #E0E7E0" }}
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -1124,31 +934,33 @@ export default function TuitionFamiliesPanel({
                               badgeColors={studentBadge.badgeColors}
                             />
                           ) : null}
-                          <p style={{ color: C.textPrimary }}>{charge.label}</p>
+                          <p style={{ color: theme.ink }}>{charge.label}</p>
                         </div>
-                        <p className="text-xs" style={{ color: C.textTertiary }}>
+                        <p className="text-xs" style={{ color: theme.muted }}>
                           Due {charge.dueDate} · {charge.status}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium" style={{ color: C.textPrimary }}>
+                        <span className="font-medium" style={{ color: theme.ink }}>
                           {formatCents(charge.amountCents)}
                         </span>
                         {charge.status !== "paid" && charge.status !== "void" ? (
                           <>
                             {charge.status === "scheduled" ? (
-                              <button
-                                type="button"
+                              <AdminButton
+                                theme={theme}
+                                variant="primary"
+                                size="compact"
                                 disabled={actionLoading === charge.id}
                                 onClick={() => void handleSendInvoice(charge.id)}
-                                className="text-xs font-medium px-2 py-1 rounded"
-                                style={{ backgroundColor: C.accent, color: "#fff" }}
                               >
                                 Send invoice
-                              </button>
+                              </AdminButton>
                             ) : null}
-                            <button
-                              type="button"
+                            <AdminButton
+                              theme={theme}
+                              variant="soft"
+                              size="compact"
                               disabled={actionLoading === charge.id}
                               onClick={() =>
                                 setManualPaymentCharge({
@@ -1158,11 +970,9 @@ export default function TuitionFamiliesPanel({
                                   paidCents: charge.paidCents,
                                 })
                               }
-                              className="text-xs font-medium px-2 py-1 rounded"
-                              style={{ backgroundColor: C.accentLight, color: C.accent }}
                             >
                               Mark paid
-                            </button>
+                            </AdminButton>
                           </>
                         ) : null}
                       </div>
@@ -1173,9 +983,9 @@ export default function TuitionFamiliesPanel({
                   <p
                     className="text-sm px-3 py-2 rounded-md"
                     style={{
-                      color: C.textSecondary,
-                      backgroundColor: C.bg,
-                      border: `1px solid ${C.border}`,
+                      color: theme.muted,
+                      backgroundColor: "#F4F8F4",
+                      border: "1px solid #E0E7E0",
                     }}
                   >
                     No upcoming charges. Paid installments appear in Payment history.
@@ -1184,9 +994,9 @@ export default function TuitionFamiliesPanel({
                   <p
                     className="text-sm px-3 py-2 rounded-md"
                     style={{
-                      color: C.textSecondary,
-                      backgroundColor: C.bg,
-                      border: `1px solid ${C.border}`,
+                      color: theme.muted,
+                      backgroundColor: "#F4F8F4",
+                      border: "1px solid #E0E7E0",
                     }}
                   >
                     No charges yet. Assign a rate plan and choose a payment schedule to generate
@@ -1204,7 +1014,7 @@ export default function TuitionFamiliesPanel({
               aria-labelledby="tuition-family-tab-payments"
               data-testid="tuition-family-panel-payments"
             >
-              <p className="text-sm font-medium mb-2" style={{ color: C.textPrimary }}>
+              <p className="text-sm font-medium mb-2" style={{ color: theme.ink }}>
                 Payment history
               </p>
               {displayedFamilyPayments.some((payment) => payment.status === "succeeded") ? (
@@ -1219,7 +1029,7 @@ export default function TuitionFamiliesPanel({
                       <div
                         key={payment.id}
                         className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
-                        style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}
+                        style={{ backgroundColor: "#F4F8F4", border: "1px solid #E0E7E0" }}
                       >
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -1229,40 +1039,36 @@ export default function TuitionFamiliesPanel({
                                 badgeColors={studentBadge.badgeColors}
                               />
                             ) : null}
-                            <p style={{ color: C.textPrimary }}>
+                            <p style={{ color: theme.ink }}>
                               {payment.label ?? "Tuition payment"}
                             </p>
                           </div>
-                          <p className="text-xs" style={{ color: C.textTertiary }}>
+                          <p className="text-xs" style={{ color: theme.muted }}>
                             {payment.paidAt
                               ? new Date(payment.paidAt).toLocaleDateString()
                               : payment.status}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium" style={{ color: C.textPrimary }}>
+                          <span className="font-medium" style={{ color: theme.ink }}>
                             {formatCents(payment.amountCents)}
                           </span>
-                          <button
-                            type="button"
+                          <AdminButton
+                            theme={theme}
+                            variant="outline"
+                            size="compact"
                             disabled={actionLoading === payment.id}
                             onClick={() => void handleRefund(payment.id)}
-                            className="text-xs font-medium px-2 py-1 rounded"
-                            style={{
-                              backgroundColor: C.bg,
-                              color: C.textPrimary,
-                              border: `1px solid ${C.border}`,
-                            }}
                           >
                             Refund
-                          </button>
+                          </AdminButton>
                         </div>
                       </div>
                       );
                     })}
                 </div>
               ) : (
-                <p className="text-sm" style={{ color: C.textSecondary }}>
+                <p className="text-sm" style={{ color: theme.muted }}>
                   No payments recorded yet.
                 </p>
               )}
@@ -1270,8 +1076,45 @@ export default function TuitionFamiliesPanel({
           ) : null}
             </motion.div>
           </AnimatePresence>
+    </AdminCard>
+  ) : (
+    <AdminCard theme={theme} padding="canvas">
+      <p className="text-sm" style={{ color: theme.muted }}>
+        Select a family from the list to view billing details.
+      </p>
+    </AdminCard>
+  );
+
+  return (
+    <>
+      <div className="mb-3 lg:hidden">
+        <TuitionFamilyListSidebar
+          families={families}
+          selectedId={selectedFamilyId}
+          onSelect={selectFamily}
+          theme={theme}
+          layout="strip"
+          searchQuery={familySearchQuery}
+          onSearchChange={setFamilySearchQuery}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
+        <div className="hidden lg:block">
+          <TuitionFamilyListSidebar
+            families={families}
+            selectedId={selectedFamilyId}
+            onSelect={selectFamily}
+            theme={theme}
+            hasMore={hasMoreFamilies}
+            loadingMore={loadingMoreFamilies}
+            onLoadMore={() => void loadMoreFamilies()}
+            searchQuery={familySearchQuery}
+            onSearchChange={setFamilySearchQuery}
+          />
         </div>
-      ) : null}
+        {detailPane}
+      </div>
 
       <TuitionBillingSplitModal
         open={splitModalOpen && selectedFamily != null}
@@ -1290,6 +1133,6 @@ export default function TuitionFamiliesPanel({
         onClose={() => setManualPaymentCharge(null)}
         onConfirm={handleManualPayment}
       />
-    </div>
+    </>
   );
 }

@@ -147,14 +147,35 @@ export async function bootstrapApplicant(
       .single();
 
     if (membershipInsertError || !newMembership) {
-      throw new BootstrapApplicantError(
-        membershipInsertError?.message ?? "Failed to create membership.",
-        "membership_insert_failed",
-        500,
-      );
-    }
+      if (membershipInsertError?.code === "23505") {
+        const { data: racedMembership, error: racedLookupError } = await admin
+          .from("organization_memberships")
+          .select("id")
+          .eq("organization_id", organizationId)
+          .eq("user_id", userId)
+          .maybeSingle();
 
-    membershipId = newMembership.id as string;
+        if (racedLookupError || !racedMembership) {
+          throw new BootstrapApplicantError(
+            racedLookupError?.message ??
+              membershipInsertError.message ??
+              "Failed to create membership.",
+            "membership_insert_failed",
+            500,
+          );
+        }
+
+        membershipId = racedMembership.id as string;
+      } else {
+        throw new BootstrapApplicantError(
+          membershipInsertError?.message ?? "Failed to create membership.",
+          "membership_insert_failed",
+          500,
+        );
+      }
+    } else {
+      membershipId = newMembership.id as string;
+    }
   }
 
   let guardianId: string;

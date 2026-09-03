@@ -38,7 +38,7 @@ import {
   type AdminApplicationSubmission,
   type ApplicationSubmissionEnrichmentPatch,
 } from "@/lib/admissions/application-submissions";
-import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
+import { canonicalApplyFormPublicPath } from "@/lib/admissions/application-forms";
 import type { ParentPortalLoginStatus } from "@/lib/admissions/parent-portal-login-status";
 import type { ApplicationSubmissionsApiResponse } from "@/app/api/school-admin/admissions/submissions/route";
 import type { ApplicationSubmissionsPageMeta } from "@/lib/school-admin/load-submissions-page-data";
@@ -466,14 +466,8 @@ export default function ApplicationSubmissionsPageShell({
     ...(showFeesColumn ? ["Fees"] : []),
   ];
 
-  const applyFormSlug = useMemo(() => {
-    const withSlug = formOptions.find((option) => option.key.includes("-"));
-    return withSlug?.key ?? formOptions[0]?.key ?? null;
-  }, [formOptions]);
-
-  const applyPublicPath = applyFormSlug
-    ? publicApplicationFormPath(slug, applyFormSlug)
-    : null;
+  const applyPublicPath =
+    formOptions.length > 0 ? canonicalApplyFormPublicPath(slug) : null;
 
   const hasAnyApplications =
     activeSubmissionsCount + (statusCounts.withdrawn ?? 0) > 0;

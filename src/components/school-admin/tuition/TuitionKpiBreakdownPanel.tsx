@@ -5,7 +5,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
 import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/TuitionOutstandingPeriodSelect";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import {
   getTuitionKpiBreakdown,
@@ -69,7 +73,9 @@ export default function TuitionKpiBreakdownPanel({
   onClose,
   onOpenFamily,
 }: TuitionKpiBreakdownPanelProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme } = useSchoolAdminStoryTheme();
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,9 +162,9 @@ export default function TuitionKpiBreakdownPanel({
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,40rem)] max-w-full flex-col overflow-hidden"
             style={{
-              backgroundColor: C.surface,
-              borderLeft: `1px solid ${C.border}`,
-              boxShadow: C.shadowMedium,
+              backgroundColor: "#F8FAF8",
+              borderLeft: "1px solid #E1E8E1",
+              boxShadow: theme.shadowCard,
             }}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -168,15 +174,13 @@ export default function TuitionKpiBreakdownPanel({
           >
             <div
               className="flex shrink-0 items-start justify-between gap-3 px-4 py-4 sm:px-5"
-              style={{ borderBottom: `1px solid ${C.border}` }}
+              style={{ borderBottom: "1px solid #E1E8E1" }}
             >
               <div className="min-w-0">
-                <p className="text-xs uppercase tracking-wide" style={{ color: C.textTertiary }}>
-                  Tuition overview
-                </p>
-                <h3 className="text-base font-semibold mt-1" style={{ color: C.textPrimary }}>
+                <AdminSectionKicker theme={theme}>Tuition overview</AdminSectionKicker>
+                <AdminDisplayHeading theme={theme} as="h3" size="canvas" className="mt-1">
                   {title}
-                </h3>
+                </AdminDisplayHeading>
                 {outstandingSubtitle ? (
                   <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
                     {outstandingSubtitle}
@@ -203,15 +207,9 @@ export default function TuitionKpiBreakdownPanel({
                     />
                   </div>
                 ) : null}
-                <button
-                type="button"
-                onClick={onClose}
-                className="shrink-0 rounded-md p-1.5"
-                style={{ color: C.textSecondary, border: `1px solid ${C.border}` }}
-                aria-label="Close breakdown"
-              >
-                <X className="h-4 w-4" />
-              </button>
+                <AdminButton theme={theme} variant="soft" size="compact" onClick={onClose} aria-label="Close breakdown">
+                  <X className="h-4 w-4" />
+                </AdminButton>
               </div>
             </div>
 

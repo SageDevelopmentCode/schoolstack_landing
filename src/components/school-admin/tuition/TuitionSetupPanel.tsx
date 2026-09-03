@@ -7,8 +7,10 @@ import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailP
 import DetailPanelStepTimeline, {
   type DetailPanelStepTimelineItem,
 } from "@/components/school-admin/admissions/DetailPanelStepTimeline";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import {
   assignTuitionLabel,
@@ -100,6 +102,7 @@ export default function TuitionSetupPanel({
   onSwitchToFamilies,
   onRefresh,
 }: TuitionSetupPanelProps) {
+  const { theme } = useSchoolAdminStoryTheme();
   const [syncLoading, setSyncLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -203,8 +206,8 @@ export default function TuitionSetupPanel({
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
             style={{
-              backgroundColor: C.surface,
-              borderLeft: `1px solid ${C.border}`,
+              backgroundColor: "#F8FAF8",
+              borderLeft: "1px solid #E1E8E1",
               boxShadow: C.shadowMedium,
             }}
             onClick={(event) => event.stopPropagation()}
@@ -215,7 +218,8 @@ export default function TuitionSetupPanel({
               style={{ borderBottom: `1px solid ${C.border}` }}
             >
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                <AdminSectionKicker theme={theme}>Billing readiness</AdminSectionKicker>
+                <h3 className="mt-1 font-heading text-base font-semibold" style={{ color: theme.ink }}>
                   Billing setup
                 </h3>
                 <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
@@ -262,16 +266,15 @@ export default function TuitionSetupPanel({
                       ? "1 enrolled student does not have a tuition assignment yet."
                       : `${readiness.unassignedEnrollmentCount} enrolled students do not have tuition assignments yet.`}
                   </p>
-                  <button
-                    type="button"
+                  <AdminButton
+                    theme={theme}
+                    variant="soft"
                     disabled={syncLoading}
                     onClick={() => void handleSyncAssignments()}
-                    style={getAdminButtonStyle(C, "secondary")}
-                    className="inline-flex w-fit items-center gap-2 px-4 py-2 text-sm font-medium"
                   >
                     {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     {assignTuitionLabel(readiness.unassignedEnrollmentCount)}
-                  </button>
+                  </AdminButton>
                 </div>
               ) : null}
 
@@ -296,14 +299,12 @@ export default function TuitionSetupPanel({
 
               {primaryAction ? (
                 <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
+                  <AdminButton
+                    theme={theme}
                     onClick={() => void handlePrimaryAction(primaryAction.stepId)}
-                    style={getAdminButtonStyle(C, "primary")}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium"
                   >
                     {primaryAction.label}
-                  </button>
+                  </AdminButton>
                   {readiness.firstIncompleteStepId === "rate_plan" ? (
                     <button
                       type="button"

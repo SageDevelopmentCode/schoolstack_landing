@@ -105,10 +105,9 @@ set
           {
             "id": "p2f011e1f2a3",
             "label": "Parent 2: Home address",
-            "type": "textarea",
+            "type": "address",
             "required": false,
-            "width": "full",
-            "rows": 3
+            "width": "full"
           },
           {
             "id": "p2f012f2a3b4",

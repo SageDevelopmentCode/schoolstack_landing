@@ -16,6 +16,7 @@ import {
   type ApplyAuthMode,
 } from "@/lib/discord";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
+import { resolveBootstrapNames } from "@/lib/admissions/resolve-bootstrap-names";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -94,13 +95,19 @@ export async function POST(request: Request) {
     const entryIntent =
       body.entryIntent === "schedule_campus_tour" ? "schedule_campus_tour" : "apply";
 
+    const { firstName, lastName } = resolveBootstrapNames({
+      bodyFirstName: body.firstName,
+      bodyLastName: body.lastName,
+      userMetadata: user.user_metadata,
+    });
+
     const result = await bootstrapApplicant(admin, {
       userId: user.id,
       email,
       organizationId,
       formVersionId,
-      firstName: body.firstName,
-      lastName: body.lastName,
+      firstName,
+      lastName,
       forceNew: body.forceNew === true,
       entryIntent,
     });
@@ -171,8 +178,8 @@ export async function POST(request: Request) {
           mode: body.mode,
           applicationId: result.applicationId,
           formTitle: body.formTitle,
-          firstName: body.firstName,
-          lastName: body.lastName,
+          firstName: firstName ?? body.firstName,
+          lastName: lastName ?? body.lastName,
         });
       } catch (discordError) {
         console.error("applicant-bootstrap Discord notify failed:", discordError);

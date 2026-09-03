@@ -276,7 +276,7 @@ function SetupView({
         }
         helper={
           lockApplySlug
-            ? "This link is fixed for this program. Families can also start from /forms/apply when your school has multiple programs."
+            ? "Families apply at this link and choose their program when you have more than one."
             : "Use lowercase letters, numbers, and hyphens only."
         }
         highlightError={slugHighlighted}
@@ -298,7 +298,7 @@ function SetupView({
                   color: C.textSecondary,
                 }}
               >
-                {editable.publicSlug || APPLY_FORM_PUBLIC_SLUG}
+                {APPLY_FORM_PUBLIC_SLUG}
               </span>
             ) : (
               <input

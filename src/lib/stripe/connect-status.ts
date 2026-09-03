@@ -1,6 +1,6 @@
 import type { OrganizationPaymentAccount } from "@/lib/stripe/organization-payment-account";
 import { isPaymentReady } from "@/lib/stripe/organization-payment-account";
-import { publicApplicationFormPath } from "@/lib/admissions/application-forms";
+import { canonicalApplyFormPublicPath } from "@/lib/admissions/application-forms";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 
 export const STRIPE_DASHBOARD_LINK_SENTINEL = "__stripe_dashboard__";
@@ -176,7 +176,7 @@ export function buildConnectStatusResult(input: {
     if (input.publishedFormSlug) {
       nextSteps.push({
         label: "Test the apply flow",
-        href: publicApplicationFormPath(input.orgSlug, input.publishedFormSlug),
+        href: canonicalApplyFormPublicPath(input.orgSlug),
       });
     }
 
