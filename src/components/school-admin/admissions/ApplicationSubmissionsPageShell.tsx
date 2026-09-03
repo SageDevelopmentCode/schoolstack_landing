@@ -168,7 +168,9 @@ export default function ApplicationSubmissionsPageShell({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tableReady, setTableReady] = useState(hasInitialTable);
   const submissionsLengthRef = useRef(submissions.length);
-  submissionsLengthRef.current = submissions.length;
+  useEffect(() => {
+    submissionsLengthRef.current = submissions.length;
+  }, [submissions.length]);
   const enrichedIdsRef = useRef(new Set<string>());
 
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");

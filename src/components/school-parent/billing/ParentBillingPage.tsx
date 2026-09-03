@@ -346,19 +346,6 @@ function ParentBillingPageContent({
     }
   }, [familyId, guardianId, organizationId, slug, supabase]);
 
-  useEffect(() => {
-    if (!initialData) return;
-
-    setAdjustments(initialData.adjustments);
-    setReadiness(initialData.readiness);
-    setFamilySummary(initialData.familySummary);
-    setAutopayEnabledState(initialData.autopayEnabled);
-    setSavedPaymentMethod(initialData.savedPaymentMethod);
-    setRecentAutopayFailure(initialData.recentAutopayFailure);
-    setInitialLoading(false);
-    hasLoadedBillingRef.current = true;
-  }, [initialData]);
-
   const fetchDeferredBillingLists = useCallback(async () => {
     if (previewMode) return;
 
@@ -399,7 +386,9 @@ function ParentBillingPageContent({
 
   useEffect(() => {
     if (!initialData || (!chargesDeferred && !paymentsDeferred)) return;
-    void fetchDeferredBillingLists();
+    queueMicrotask(() => {
+      void fetchDeferredBillingLists();
+    });
   }, [chargesDeferred, fetchDeferredBillingLists, initialData, paymentsDeferred]);
 
   useEffect(() => {

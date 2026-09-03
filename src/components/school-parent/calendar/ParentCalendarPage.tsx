@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPin, X } from "lucide-react";
 import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
@@ -236,16 +236,23 @@ export default function ParentCalendarPage({
   agendaTitle,
 }: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
-  const [calendarEvents, setCalendarEvents] = useState(events);
+  const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
   const loadedWindowsRef = useRef<Set<string>>(new Set());
   const [view, setView] = useState<CalendarViewMode>("week");
   const [selectedEvent, setSelectedEvent] = useState<OrganizationEvent | null>(null);
   const [selectedEmptyDay, setSelectedEmptyDay] = useState<string | null>(null);
   const [periodKey, setPeriodKey] = useState("initial");
 
-  useEffect(() => {
-    setCalendarEvents(events);
-  }, [events]);
+  const calendarEvents = useMemo(() => {
+    const byId = new Map(events.map((event) => [event.id, event]));
+    for (const event of fetchedEvents) {
+      byId.set(event.id, event);
+    }
+    return Array.from(byId.values()).sort((left, right) => {
+      if (left.date !== right.date) return left.date.localeCompare(right.date);
+      return left.sortOrder - right.sortOrder;
+    });
+  }, [events, fetchedEvents]);
 
   const fetchEventsForMonth = useCallback(
     async (year: number, month: number) => {
@@ -267,15 +274,12 @@ export default function ParentCalendarPage({
 
         loadedWindowsRef.current.add(windowKey);
         const nextEvents = (data.events ?? []) as OrganizationEvent[];
-        setCalendarEvents((prev) => {
+        setFetchedEvents((prev) => {
           const byId = new Map(prev.map((event) => [event.id, event]));
           for (const event of nextEvents) {
             byId.set(event.id, event);
           }
-          return Array.from(byId.values()).sort((left, right) => {
-            if (left.date !== right.date) return left.date.localeCompare(right.date);
-            return left.sortOrder - right.sortOrder;
-          });
+          return Array.from(byId.values());
         });
       } catch {
         // Keep showing the current window if a refetch fails.

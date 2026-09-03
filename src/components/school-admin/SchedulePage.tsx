@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
@@ -62,9 +62,10 @@ export default function SchedulePage({
   const [monthObservationDayCount, setMonthObservationDayCount] = useState<number | null>(
     initialMeta.monthObservationDayCount,
   );
-  const [upcomingVisitCount, setUpcomingVisitCount] = useState<number | null>(
-    initialMeta.upcomingVisitCount,
-  );
+  const [overviewCount, setOverviewCount] = useState<number | null>(null);
+  const visitsCount = visitsReady ? upcomingVisitCountFromVisits(visits) : null;
+  const upcomingVisitCount =
+    visitsCount ?? overviewCount ?? initialMeta.upcomingVisitCount;
   const [visitedTabs, setVisitedTabs] = useState<Set<ScheduleTabId>>(
     () => new Set([activeTab]),
   );
@@ -97,6 +98,12 @@ export default function SchedulePage({
 
   const handleTabChange = useCallback(
     (tab: ScheduleTabId) => {
+      setVisitedTabs((current) => {
+        if (current.has(tab)) return current;
+        const next = new Set(current);
+        next.add(tab);
+        return next;
+      });
       if (tab !== activeTab) {
         setPendingTabKey(tab);
       }
@@ -113,20 +120,6 @@ export default function SchedulePage({
     setLoadingTabKey((current) => (current === tab ? null : current));
     setPendingTabKey((current) => (current === tab ? null : current));
   }, []);
-
-  useEffect(() => {
-    setVisitedTabs((current) => {
-      if (current.has(activeTab)) return current;
-      const next = new Set(current);
-      next.add(activeTab);
-      return next;
-    });
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (!visitsReady) return;
-    setUpcomingVisitCount(upcomingVisitCountFromVisits(visits));
-  }, [visits, visitsReady]);
 
   const handleVisitClick = useCallback(
     async (visit: AdminScheduledVisit) => {
@@ -174,7 +167,7 @@ export default function SchedulePage({
   }, []);
 
   const handleUpcomingCountChange = useCallback((count: number) => {
-    setUpcomingVisitCount(count);
+    setOverviewCount(count);
   }, []);
 
   const handlePermittedStaffCountChange = useCallback((count: number) => {

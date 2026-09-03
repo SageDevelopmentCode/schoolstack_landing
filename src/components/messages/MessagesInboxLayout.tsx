@@ -530,29 +530,6 @@ export default function MessagesInboxLayout({
   useVisibilityPolling(pollInbox, 300_000, !readOnly && !realtimeConnected);
 
   useEffect(() => {
-    if (!initialInbox) return;
-
-    setThreads(initialInbox.threads);
-    if (!deferContactsLoad && initialInbox.contacts.length > 0) {
-      setContacts(initialInbox.contacts);
-    }
-    if (initialInbox.viewerContext) {
-      setViewerContext(initialInbox.viewerContext);
-    }
-    if (!initialInbox.threadsDeferred) {
-      hasLoadedThreadsRef.current = initialInbox.threads.length > 0;
-      setLoadingInbox(false);
-    }
-  }, [
-    deferContactsLoad,
-    initialInbox,
-    initialInbox?.contacts,
-    initialInbox?.threads,
-    initialInbox?.threadsDeferred,
-    initialInbox?.viewerContext,
-  ]);
-
-  useEffect(() => {
     if (initialInbox) return;
     queueMicrotask(() => {
       void loadInbox();

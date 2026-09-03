@@ -147,8 +147,8 @@ describe("listOrgApplicationSubmissionsPage", () => {
 
     function createApplicationsQuery(calls: QueryCall[], mode: "list" | "count" | "draft") {
       const query = {
-        select() {
-          calls.push({ method: "select", args: [...arguments] });
+        select(...args: unknown[]) {
+          calls.push({ method: "select", args });
           return query;
         },
         eq(column: string, value: string) {

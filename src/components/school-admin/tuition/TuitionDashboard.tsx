@@ -99,8 +99,14 @@ export default function TuitionDashboard({
   const [ratePlans, setRatePlans] = useState<RatePlanWithDetails[]>(
     initialDashboardData?.ratePlans ?? [],
   );
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [initialLoading, setInitialLoading] = useState(dashboardDeferred);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(() => {
+    const plans = initialDashboardData?.ratePlans ?? [];
+    const activePlans = plans.filter((plan) => plan.status !== "draft");
+    return activePlans[0]?.id ?? null;
+  });
+  const [initialLoading, setInitialLoading] = useState(
+    () => dashboardDeferred || !initialDashboardData,
+  );
   const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kpis, setKpis] = useState(
@@ -181,12 +187,6 @@ export default function TuitionDashboard({
       setIsRefetching(false);
     }
   }, [applyDashboardData, hasLoadedDashboardRef, organizationId, outstandingPeriod, supabase]);
-
-  useEffect(() => {
-    if (!initialDashboardData) return;
-    applyDashboardData(initialDashboardData);
-    setInitialLoading(false);
-  }, [applyDashboardData, initialDashboardData]);
 
   useEffect(() => {
     if (dashboardDeferred && !initialDashboardData) return;

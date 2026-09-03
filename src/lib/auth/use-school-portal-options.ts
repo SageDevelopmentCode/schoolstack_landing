@@ -44,11 +44,7 @@ export function useSchoolPortalOptions(
   }, [enabled, initialOptions, organizationId, slug]);
 
   useEffect(() => {
-    if (initialOptions !== undefined) {
-      setPortalOptions(initialOptions);
-      setIsLoading(false);
-      return;
-    }
+    if (initialOptions !== undefined) return;
 
     queueMicrotask(() => {
       void fetchPortalOptions();

@@ -721,7 +721,7 @@ async function mapApplicationRowsToAdminSubmissions(
     .filter((row) => String(row.status) !== "draft")
     .map((row) => String(row.id));
 
-  let visitsByApplicationId = new Map<
+  const visitsByApplicationId = new Map<
     string,
     Awaited<ReturnType<typeof listScheduledVisitsForApplications>>
   >();

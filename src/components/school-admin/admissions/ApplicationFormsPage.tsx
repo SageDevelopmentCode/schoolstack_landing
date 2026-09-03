@@ -430,7 +430,16 @@ export default function ApplicationFormsPage({
   const [programs, setPrograms] = useState<ProgramOption[]>(
     initialListData?.programs ?? [],
   );
-  const [selection, setSelection] = useState<FlowListSelection>(null);
+  const [selection, setSelection] = useState<FlowListSelection>(() =>
+    initialListData
+      ? resolveFlowSelection(
+          initialListData.forms,
+          initialListData.checklists,
+          flowParam,
+          null,
+        )
+      : null,
+  );
   const [editable, setEditable] = useState<EditableFormState | null>(null);
   const [focus, setFocus] = useState<BuilderFocus>(DEFAULT_BUILDER_FOCUS);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -620,23 +629,6 @@ export default function ApplicationFormsPage({
       setLoading(false);
     }
   }, [flowParam, organizationId, supabase]);
-
-  const applyInitialListData = useCallback((data: EnrollmentFlowsListData) => {
-    loadedFullFormIdsRef.current = new Set();
-    setForms(data.forms);
-    setChecklists(data.checklists);
-    setPrograms(data.programs);
-    setStripePaymentsReady(data.stripePaymentsReady);
-    setSelection((prev) =>
-      resolveFlowSelection(data.forms, data.checklists, flowParam, prev),
-    );
-    setLoading(false);
-  }, [flowParam]);
-
-  useEffect(() => {
-    if (!initialListData) return;
-    applyInitialListData(initialListData);
-  }, [applyInitialListData, initialListData]);
 
   useEffect(() => {
     if (hasInitialList || listDeferred) return;

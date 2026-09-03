@@ -120,7 +120,9 @@ export default function StudentsPage({
   );
 
   const studentsLengthRef = useRef(students.length);
-  studentsLengthRef.current = students.length;
+  useEffect(() => {
+    studentsLengthRef.current = students.length;
+  }, [students.length]);
 
   const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
   const staffPath = schoolAdminPath(slug, "my_school", "staff");
@@ -141,11 +143,6 @@ export default function StudentsPage({
     setTableReady(true);
     setInitialLoading(false);
   }, []);
-
-  useEffect(() => {
-    if (!initialTableData) return;
-    applyTableData(initialTableData);
-  }, [applyTableData, initialTableData]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
