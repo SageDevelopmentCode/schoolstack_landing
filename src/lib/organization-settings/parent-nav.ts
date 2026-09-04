@@ -160,8 +160,14 @@ export function getFirstParentNavPath(
   slug: string,
   parentFeatures: ParentFeatures,
   portalNav?: PortalFeatureNav,
+  parentBasePath?: string,
 ): ParentNavPath | null {
-  const items = buildParentNavItems(slug, parentFeatures, portalNav);
+  const items = buildParentNavItems(
+    slug,
+    parentFeatures,
+    portalNav,
+    parentBasePath,
+  );
   if (items.length === 0) return null;
 
   const item = items[0];

@@ -46,6 +46,17 @@ export function familyPreviewParentPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function familyPreviewProgramParentPath(
+  slug: string,
+  familyId: string,
+  programSlug: string,
+  featureKey: string,
+  subtab?: string,
+): string {
+  const base = `${familyPreviewParentBasePath(slug, familyId)}/p/${programSlug}/${featureKey}`;
+  return subtab ? `${base}/${subtab}` : base;
+}
+
 export async function findOwnerLinkedFamilyId(
   supabase: SupabaseClient,
   organizationId: string,

@@ -54,9 +54,16 @@ type SchoolParentHeaderProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  parentNavBasePath?: string;
+  mainParentBasePath?: string;
+  portalContextLabel?: string;
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
+  embeddedPreview?: {
+    pathname: string;
+    onNavigate: (href: string) => void;
+  };
 };
 
 const parentNavTextClass = "text-[13px] font-semibold";
@@ -67,25 +74,25 @@ function NavLink({
   theme,
   adminCompat,
   messagesUnreadCount,
+  onNavigate,
 }: {
   item: ParentNavItem;
   pathname: string;
   theme: ParentThemeTokens;
   adminCompat: ReturnType<typeof useParentTheme>["adminCompat"];
   messagesUnreadCount: number;
+  onNavigate?: (href: string) => void;
 }) {
   const Icon = item.icon;
   const active = isParentNavItemActive(pathname, item);
   const iconColorClass = getParentFeatureIconColor(item.iconSlug);
+  const className = `flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`;
+  const style = {
+    backgroundColor: active ? theme.primaryLight : "transparent",
+  };
 
-  return (
-    <NavigationLink
-      href={item.href}
-      className={`flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
-      style={{
-        backgroundColor: active ? theme.primaryLight : "transparent",
-      }}
-    >
+  const inner = (
+    <>
       <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColorClass}`} />
       <span style={{ color: active ? theme.primary : theme.muted }}>
         {item.name}
@@ -99,6 +106,25 @@ function NavLink({
           }}
         />
       ) : null}
+    </>
+  );
+
+  if (onNavigate) {
+    return (
+      <button
+        type="button"
+        onClick={() => onNavigate(item.href)}
+        className={className}
+        style={style}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <NavigationLink href={item.href} className={className} style={style}>
+      {inner}
     </NavigationLink>
   );
 }
@@ -111,11 +137,17 @@ export default function SchoolParentHeader({
   features,
   userProfile,
   portalOptions = [],
+  parentNavBasePath,
+  mainParentBasePath,
+  portalContextLabel,
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
+  embeddedPreview,
 }: SchoolParentHeaderProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = embeddedPreview?.pathname ?? routerPathname;
+  const onPreviewNavigate = embeddedPreview?.onNavigate;
   const router = useRouter();
   const { theme, adminCompat: C } = useParentTheme();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -136,15 +168,24 @@ export default function SchoolParentHeader({
   const moreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const resolvedNavBasePath =
+    parentNavBasePath ??
+    previewParentBasePath ??
+    `/school/${slug}/parent`;
+  const resolvedMainParentBasePath =
+    mainParentBasePath ??
+    previewParentBasePath ??
+    `/school/${slug}/parent`;
+
   const navItems = useMemo(
     () =>
       buildParentNavItems(
         slug,
         features.parent,
         features.feature_nav?.parent,
-        previewParentBasePath,
+        resolvedNavBasePath,
       ),
-    [slug, features.parent, features.feature_nav?.parent, previewParentBasePath],
+    [slug, features.parent, features.feature_nav?.parent, resolvedNavBasePath],
   );
   const messagesEnabled = Boolean(features.parent.messages);
   const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
@@ -158,14 +199,9 @@ export default function SchoolParentHeader({
     [navItems],
   );
   const homeHref =
-    navItems[0]?.href ??
-    (previewParentBasePath
-      ? `${previewParentBasePath}/portal`
-      : `/school/${slug}/parent/portal`);
+    navItems[0]?.href ?? `${resolvedNavBasePath}/portal`;
   const applicationsHref = previewBasePath ?? `/school/${slug}/apply`;
-  const notificationsHref = previewParentBasePath
-    ? `${previewParentBasePath}/notifications`
-    : `/school/${slug}/parent/notifications`;
+  const notificationsHref = `${resolvedMainParentBasePath}/notifications`;
   const moreActive = more.some((item) => isParentNavItemActive(pathname, item));
   const canUploadPhoto = !previewMode;
 
@@ -273,19 +309,59 @@ export default function SchoolParentHeader({
             style={{ backgroundColor: theme.line }}
             aria-hidden
           />
+          {onPreviewNavigate ? (
+            <button
+              type="button"
+              onClick={() => onPreviewNavigate(homeHref)}
+              className="min-w-0 shrink rounded-sm text-left transition-opacity hover:opacity-80"
+            >
+              <div className="min-w-0">
+                <SchoolDemoWordmark
+                  logo={{
+                    src: branding.logo.src,
+                    alt: branding.logo.alt || schoolName,
+                    width: branding.logo.width,
+                    height: branding.logo.height,
+                    text: branding.logo.src ? undefined : schoolName,
+                  }}
+                  className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+                  sizes="(max-width: 640px) 160px, 200px"
+                />
+                {portalContextLabel ? (
+                  <p
+                    className="mt-0.5 truncate text-[11px] font-semibold sm:text-xs"
+                    style={{ color: theme.muted }}
+                  >
+                    {portalContextLabel}
+                  </p>
+                ) : null}
+              </div>
+            </button>
+          ) : (
           <NavigationLink href={homeHref} className="min-w-0 shrink rounded-sm transition-opacity hover:opacity-80">
-            <SchoolDemoWordmark
-              logo={{
-                src: branding.logo.src,
-                alt: branding.logo.alt || schoolName,
-                width: branding.logo.width,
-                height: branding.logo.height,
-                text: branding.logo.src ? undefined : schoolName,
-              }}
-              className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
-              sizes="(max-width: 640px) 160px, 200px"
-            />
+            <div className="min-w-0">
+              <SchoolDemoWordmark
+                logo={{
+                  src: branding.logo.src,
+                  alt: branding.logo.alt || schoolName,
+                  width: branding.logo.width,
+                  height: branding.logo.height,
+                  text: branding.logo.src ? undefined : schoolName,
+                }}
+                className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+                sizes="(max-width: 640px) 160px, 200px"
+              />
+              {portalContextLabel ? (
+                <p
+                  className="mt-0.5 truncate text-[11px] font-semibold sm:text-xs"
+                  style={{ color: theme.muted }}
+                >
+                  {portalContextLabel}
+                </p>
+              ) : null}
+            </div>
           </NavigationLink>
+          )}
         </div>
 
         <nav className="hidden items-center gap-1 lg:flex">
@@ -297,6 +373,7 @@ export default function SchoolParentHeader({
               theme={theme}
               adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
+              onNavigate={onPreviewNavigate}
             />
           ))}
           {more.length > 0 ? (
@@ -327,17 +404,13 @@ export default function SchoolParentHeader({
                     const Icon = item.icon;
                     const active = isParentNavItemActive(pathname, item);
                     const iconColorClass = getParentFeatureIconColor(item.iconSlug);
-                    return (
-                      <NavigationLink
-                        key={item.key}
-                        href={item.href}
-                        onClick={() => setMoreOpen(false)}
-                        className={`flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`}
-                        style={{
-                          color: active ? theme.primary : theme.ink,
-                          backgroundColor: active ? theme.primaryLight : "transparent",
-                        }}
-                      >
+                    const itemClassName = `flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`;
+                    const itemStyle = {
+                      color: active ? theme.primary : theme.ink,
+                      backgroundColor: active ? theme.primaryLight : "transparent",
+                    };
+                    const itemContent = (
+                      <>
                         <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
                         <span>{item.name}</span>
                         {item.key === "messages" ? (
@@ -349,6 +422,35 @@ export default function SchoolParentHeader({
                             }}
                           />
                         ) : null}
+                      </>
+                    );
+
+                    if (onPreviewNavigate) {
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => {
+                            onPreviewNavigate(item.href);
+                            setMoreOpen(false);
+                          }}
+                          className={itemClassName}
+                          style={itemStyle}
+                        >
+                          {itemContent}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <NavigationLink
+                        key={item.key}
+                        href={item.href}
+                        onClick={() => setMoreOpen(false)}
+                        className={itemClassName}
+                        style={itemStyle}
+                      >
+                        {itemContent}
                       </NavigationLink>
                     );
                   })}
@@ -469,6 +571,7 @@ export default function SchoolParentHeader({
               theme={theme}
               adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
+              onNavigate={onPreviewNavigate}
             />
           ))}
         </nav>

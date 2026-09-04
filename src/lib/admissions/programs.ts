@@ -3,6 +3,12 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
+import {
+  ensureUniqueProgramPortalSlug,
+  parseProgramParentPortalSettings,
+  suggestProgramPortalSlug,
+  type ProgramParentPortalSettings,
+} from "./program-parent-portal";
 
 export type ProgramStatus = "draft" | "open" | "waitlist" | "full" | "closed";
 
@@ -23,6 +29,8 @@ export type Program = {
   organization_id: string;
   name: string;
   description: string | null;
+  portal_slug: string;
+  parent_portal_settings: ProgramParentPortalSettings;
   type: ProgramType;
   status: ProgramStatus;
   start_date: string | null;
@@ -40,6 +48,7 @@ export type CreateProgramInput = {
   start_date?: string | null;
   end_date?: string | null;
   capacity?: number | null;
+  parent_portal_settings?: ProgramParentPortalSettings;
 };
 
 export type UpdateProgramInput = Partial<CreateProgramInput>;
@@ -76,6 +85,10 @@ function programFromRow(row: Record<string, unknown>): Program {
     organization_id: String(row.organization_id),
     name: String(row.name),
     description,
+    portal_slug: String(row.portal_slug ?? suggestProgramPortalSlug(String(row.name))),
+    parent_portal_settings: parseProgramParentPortalSettings(
+      row.parent_portal_settings,
+    ),
     type: String(row.type),
     status: row.status as ProgramStatus,
     start_date: row.start_date ? String(row.start_date) : null,
@@ -136,11 +149,19 @@ export async function createProgram(
     throw new Error("Program name is required.");
   }
 
+  const portalSlug = await ensureUniqueProgramPortalSlug(
+    supabase,
+    organizationId,
+    name,
+  );
+
   const { data, error } = await supabase
     .from("programs")
     .insert({
       organization_id: organizationId,
       name,
+      portal_slug: portalSlug,
+      parent_portal_settings: input.parent_portal_settings ?? { mode: "inherit" },
       description: input.description?.trim() || null,
       type: input.type.trim() || "school_year",
       status: input.status ?? "open",
@@ -190,6 +211,9 @@ export async function updateProgram(
   if (input.start_date !== undefined) patch.start_date = input.start_date || null;
   if (input.end_date !== undefined) patch.end_date = input.end_date || null;
   if (input.capacity !== undefined) patch.capacity = input.capacity;
+  if (input.parent_portal_settings !== undefined) {
+    patch.parent_portal_settings = input.parent_portal_settings;
+  }
 
   const { data, error } = await supabase
     .from("programs")
@@ -212,6 +236,7 @@ export async function updateProgram(
     metadata: {
       type: program.type,
       status: program.status,
+      parentPortalMode: program.parent_portal_settings.mode,
     },
   });
   return program;

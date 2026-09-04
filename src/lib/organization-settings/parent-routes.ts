@@ -18,6 +18,36 @@ export function schoolParentPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function schoolProgramParentPath(
+  slug: string,
+  programSlug: string,
+  featureKey: string,
+  subtab?: string,
+): string {
+  const base = `/school/${slug}/parent/p/${programSlug}/${featureKey}`;
+  return subtab ? `${base}/${subtab}` : base;
+}
+
+export function schoolParentRootPath(slug: string): string {
+  return `/school/${slug}/parent`;
+}
+
+export function parseProgramParentPath(pathname: string): {
+  programSlug: string;
+  feature: string;
+  subtab?: string;
+} | null {
+  const match = pathname.match(
+    /\/school\/[^/]+\/parent\/p\/([^/]+)\/([^/]+)(?:\/([^/]+))?$/,
+  );
+  if (!match) return null;
+  return {
+    programSlug: match[1],
+    feature: match[2],
+    subtab: match[3],
+  };
+}
+
 export function parentClassroomSignupPath(
   slug: string,
   signupId: string,

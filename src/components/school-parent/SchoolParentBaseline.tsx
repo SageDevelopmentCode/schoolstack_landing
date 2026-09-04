@@ -21,6 +21,11 @@ import type {
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
 
+export type SchoolParentEmbeddedPreview = {
+  pathname: string;
+  onNavigate: (href: string) => void;
+};
+
 type SchoolParentBaselineProps = {
   slug: string;
   organizationId: string;
@@ -29,14 +34,21 @@ type SchoolParentBaselineProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  parentNavBasePath?: string;
+  portalContextLabel?: string;
   children: ReactNode;
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
+  embeddedPreview?: SchoolParentEmbeddedPreview;
 };
 
 function isParentHelpPage(pathname: string, slug: string): boolean {
-  return pathname.startsWith(`/school/${slug}/parent/`);
+  return (
+    pathname.startsWith(`/school/${slug}/parent/`) ||
+    (pathname.includes(`/admin/preview/${slug}/`) &&
+      pathname.includes("/parent/"))
+  );
 }
 
 function SchoolParentBaselineInner({
@@ -47,12 +59,16 @@ function SchoolParentBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  parentNavBasePath,
+  portalContextLabel,
   children,
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
+  embeddedPreview,
 }: SchoolParentBaselineProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = embeddedPreview?.pathname ?? routerPathname;
   const { theme, adminCompat: C } = useParentTheme();
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
@@ -83,9 +99,15 @@ function SchoolParentBaselineInner({
         features={features}
         userProfile={userProfile}
         portalOptions={portalOptions}
+        parentNavBasePath={parentNavBasePath ?? previewParentBasePath}
+        mainParentBasePath={
+          previewParentBasePath ?? `/school/${slug}/parent`
+        }
+        portalContextLabel={portalContextLabel}
         previewMode={previewMode}
         previewBasePath={previewBasePath}
         previewParentBasePath={previewParentBasePath}
+        embeddedPreview={embeddedPreview}
       />
 
       <main

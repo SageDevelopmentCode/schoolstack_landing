@@ -1,0 +1,367 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
+import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
+import ParentBillingPageShell from "@/components/school-parent/billing/ParentBillingPageShell";
+import { useParentBillingPageContext } from "@/components/school-parent/billing/parent-billing-page-context";
+import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentCalendarPageShell";
+import { useParentCalendarPageContext } from "@/components/school-parent/calendar/parent-calendar-page-context";
+import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
+import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
+import ParentHomePage from "@/components/school-parent/ParentHomePage";
+import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
+import { useParentMessagesPageContext } from "@/components/school-parent/messages/parent-messages-page-context";
+import type { ParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
+import {
+  deriveProgramPortalSettingsFromEditor,
+  type ProgramParentPortalEditorState,
+  wouldUseIsolatedProgramPortal,
+} from "@/lib/admissions/program-parent-portal";
+import {
+  getProgramParentPortalPreviewBillingInitialData,
+  getProgramParentPortalPreviewBillingPageMeta,
+  getProgramParentPortalPreviewChildren,
+  getProgramParentPortalPreviewCommitteesInitialData,
+  getProgramParentPortalPreviewEvents,
+  getProgramParentPortalPreviewMessageThreads,
+  getProgramParentPortalPreviewUserProfile,
+  PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID,
+} from "@/lib/admissions/program-parent-portal-preview-data";
+import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
+import {
+  buildParentNavItems,
+  getParentPageLabel,
+  isParentNavItemActive,
+} from "@/lib/organization-settings/parent-nav";
+import { resolveProgramOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
+import type {
+  OrganizationBranding,
+  OrganizationFeatures,
+} from "@/lib/organization-settings/types";
+
+type ProgramParentPortalPreviewFrameProps = {
+  branding: OrganizationBranding;
+  orgFeatures: OrganizationFeatures;
+  editor: ProgramParentPortalEditorState;
+  schoolSlug: string;
+  schoolName: string;
+  organizationId: string;
+  programName: string;
+  portalSlug: string | null;
+};
+
+function PreviewMessagesHydrator() {
+  const { hydrateThreads } = useParentMessagesPageContext();
+
+  useEffect(() => {
+    hydrateThreads(getProgramParentPortalPreviewMessageThreads(), "preview-guardian");
+  }, [hydrateThreads]);
+
+  return null;
+}
+
+function PreviewCalendarHydrator({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
+  const { hydrateEvents } = useParentCalendarPageContext();
+
+  useEffect(() => {
+    hydrateEvents(getProgramParentPortalPreviewEvents(organizationId));
+  }, [hydrateEvents, organizationId]);
+
+  return null;
+}
+
+function PreviewBillingHydrator({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
+  const { hydrateBillingData, hydrateMeta } = useParentBillingPageContext();
+
+  useEffect(() => {
+    hydrateBillingData(getProgramParentPortalPreviewBillingInitialData(organizationId));
+    hydrateMeta(getProgramParentPortalPreviewBillingPageMeta());
+  }, [hydrateBillingData, hydrateMeta, organizationId]);
+
+  return null;
+}
+
+function PreviewCommitteesSection({
+  organizationId,
+  schoolSlug,
+  schoolName,
+  branding,
+  guardianName,
+}: {
+  organizationId: string;
+  schoolSlug: string;
+  schoolName: string;
+  branding: ProgramParentPortalPreviewFrameProps["branding"];
+  guardianName: string;
+}) {
+  const [initialData, setInitialData] = useState<ParentCommitteesInitialData>(
+    () => getProgramParentPortalPreviewCommitteesInitialData(),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCommittees() {
+      try {
+        const params = new URLSearchParams({ organizationId });
+        const response = await fetch(
+          `/api/school-admin/program-parent-portal-preview/committees?${params}`,
+        );
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload || cancelled) return;
+        setInitialData(payload as ParentCommitteesInitialData);
+      } catch {
+        // Keep static fallback committees on fetch failure.
+      }
+    }
+
+    void loadCommittees();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
+  return (
+    <ParentCommitteesPageShell
+      organizationId={organizationId}
+      schoolSlug={schoolSlug}
+      schoolName={schoolName}
+      branding={branding}
+      guardianName={guardianName}
+      previewMode
+      initialData={initialData}
+    />
+  );
+}
+
+function PreviewFeatureBody({
+  activeFeature,
+  branding,
+  schoolSlug,
+  organizationId,
+  schoolName,
+  resolvedFeatures,
+  parentNavBasePath,
+  userProfile,
+}: {
+  activeFeature: string;
+  branding: OrganizationBranding;
+  schoolSlug: string;
+  organizationId: string;
+  schoolName: string;
+  resolvedFeatures: OrganizationFeatures;
+  parentNavBasePath: string;
+  userProfile: ReturnType<typeof getProgramParentPortalPreviewUserProfile>;
+}) {
+  if (activeFeature === "portal") {
+    const quickActions = buildParentQuickActions(
+      schoolSlug,
+      resolvedFeatures,
+      parentNavBasePath,
+    );
+
+    return (
+      <ParentHomePage
+        branding={branding}
+        schoolSlug={schoolSlug}
+        organizationId={organizationId}
+        userProfile={userProfile}
+        familyChildren={getProgramParentPortalPreviewChildren()}
+        quickActions={quickActions}
+        onboardingItems={[]}
+        upcomingEvents={getProgramParentPortalPreviewEvents(organizationId)}
+        previewMode
+        previewBasePath={parentNavBasePath}
+      />
+    );
+  }
+
+  if (activeFeature === "messages") {
+    return (
+      <ParentMessagesPageShell
+        organizationId={organizationId}
+        organizationSlug={schoolSlug}
+        schoolName={schoolName}
+        branding={branding}
+        previewMode
+        readOnly
+      >
+        <PreviewMessagesHydrator />
+      </ParentMessagesPageShell>
+    );
+  }
+
+  if (activeFeature === "calendar") {
+    return (
+      <ParentCalendarPageShell
+        organizationId={organizationId}
+        organizationSlug={schoolSlug}
+        branding={branding}
+        previewMode
+      >
+        <PreviewCalendarHydrator organizationId={organizationId} />
+      </ParentCalendarPageShell>
+    );
+  }
+
+  if (activeFeature === "billing") {
+    return (
+      <ParentBillingPageShell
+        organizationId={organizationId}
+        familyId={PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID}
+        branding={branding}
+        slug={schoolSlug}
+        previewMode
+      >
+        <PreviewBillingHydrator organizationId={organizationId} />
+      </ParentBillingPageShell>
+    );
+  }
+
+  if (activeFeature === "children") {
+    return (
+      <ParentChildrenPage
+        branding={branding}
+        schoolName={schoolName}
+        schoolSlug={schoolSlug}
+        organizationId={organizationId}
+        familyChildren={getProgramParentPortalPreviewChildren()}
+        userProfile={userProfile}
+        previewBasePath={parentNavBasePath}
+        initialHealthProfiles={{}}
+      />
+    );
+  }
+
+  if (activeFeature === "committees") {
+    return (
+      <PreviewCommitteesSection
+        organizationId={organizationId}
+        schoolSlug={schoolSlug}
+        schoolName={schoolName}
+        branding={branding}
+        guardianName={userProfile.displayName ?? "Parent"}
+      />
+    );
+  }
+
+  return (
+    <SchoolParentComingSoon
+      branding={branding}
+      schoolSlug={schoolSlug}
+      schoolName={schoolName}
+      organizationId={organizationId}
+      featureKey={activeFeature}
+      featureLabel={getParentPageLabel(
+        activeFeature,
+        resolvedFeatures.feature_nav?.parent,
+      )}
+      userProfile={userProfile}
+    />
+  );
+}
+
+export default function ProgramParentPortalPreviewFrame({
+  branding,
+  orgFeatures,
+  editor,
+  schoolSlug,
+  schoolName,
+  organizationId,
+  programName,
+  portalSlug,
+}: ProgramParentPortalPreviewFrameProps) {
+  const userProfile = useMemo(
+    () => getProgramParentPortalPreviewUserProfile(),
+    [],
+  );
+
+  const resolvedFeatures = useMemo(() => {
+    const derived = deriveProgramPortalSettingsFromEditor(editor, orgFeatures);
+    return resolveProgramOrganizationFeatures(orgFeatures, derived);
+  }, [editor, orgFeatures]);
+
+  const usesSeparatePortal = wouldUseIsolatedProgramPortal(editor, orgFeatures);
+
+  const parentNavBasePath = useMemo(() => {
+    if (usesSeparatePortal && portalSlug) {
+      return `/school/${schoolSlug}/parent/p/${portalSlug}`;
+    }
+    return `/school/${schoolSlug}/parent`;
+  }, [portalSlug, schoolSlug, usesSeparatePortal]);
+
+  const portalContextLabel = editor.label?.trim() || programName;
+
+  const [previewPathname, setPreviewPathname] = useState(
+    `${parentNavBasePath}/portal`,
+  );
+
+  useEffect(() => {
+    setPreviewPathname(`${parentNavBasePath}/portal`);
+  }, [parentNavBasePath]);
+
+  const navItems = useMemo(
+    () =>
+      buildParentNavItems(
+        schoolSlug,
+        resolvedFeatures.parent,
+        resolvedFeatures.feature_nav?.parent,
+        parentNavBasePath,
+      ),
+    [parentNavBasePath, resolvedFeatures, schoolSlug],
+  );
+
+  const activeFeature = useMemo(() => {
+    const match = navItems.find((item) =>
+      isParentNavItemActive(previewPathname, item),
+    );
+    return match?.key ?? "portal";
+  }, [navItems, previewPathname]);
+
+  const embeddedPreview = useMemo(
+    () => ({
+      pathname: previewPathname,
+      onNavigate: (href: string) => setPreviewPathname(href),
+    }),
+    [previewPathname],
+  );
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#D9E0DA] bg-white">
+      <SchoolParentBaseline
+        slug={schoolSlug}
+        organizationId={organizationId}
+        schoolName={schoolName}
+        branding={branding}
+        features={resolvedFeatures}
+        userProfile={userProfile}
+        parentNavBasePath={parentNavBasePath}
+        portalContextLabel={usesSeparatePortal ? portalContextLabel : undefined}
+        previewMode
+        previewParentBasePath={`/school/${schoolSlug}/parent`}
+        embeddedPreview={embeddedPreview}
+      >
+        <PreviewFeatureBody
+          activeFeature={activeFeature}
+          branding={branding}
+          schoolSlug={schoolSlug}
+          organizationId={organizationId}
+          schoolName={schoolName}
+          resolvedFeatures={resolvedFeatures}
+          parentNavBasePath={parentNavBasePath}
+          userProfile={userProfile}
+        />
+      </SchoolParentBaseline>
+    </div>
+  );
+}

@@ -107,6 +107,7 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
       <ProgramsPage
         organizationId={org.id}
         branding={org.branding}
+        orgFeatures={org.features}
         slug={slug}
       />
     );

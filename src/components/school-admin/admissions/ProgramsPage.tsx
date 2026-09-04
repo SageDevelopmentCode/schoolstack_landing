@@ -12,6 +12,7 @@ import SchoolAdminDatePicker, {
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSaveStateBar from "@/components/school-admin/ui/story/AdminSaveStateBar";
+import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
 import { SchoolAdminSplitPaneSkeleton } from "@/components/school-admin/skeletons";
 import {
   createProgram,
@@ -25,6 +26,13 @@ import {
   type ProgramStatus,
   type ProgramType,
 } from "@/lib/admissions/programs";
+import {
+  deriveProgramPortalSettingsFromEditor,
+  emptyProgramPortalEditorState,
+  expandProgramPortalSettingsForEditor,
+  programPortalEditorStatesEqual,
+  type ProgramParentPortalEditorState,
+} from "@/lib/admissions/program-parent-portal";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   buildParentThemeTokens,
@@ -32,7 +40,8 @@ import {
 } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
+import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import { createClient } from "@/utils/supabase/client";
 import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
@@ -48,8 +57,11 @@ import { BUILDER_CANVAS_BG } from "./outline-item-styles";
 type ProgramsPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
+  orgFeatures: OrganizationFeatures;
   slug: string;
 };
+
+type ProgramEditorTab = "details" | "portal";
 
 type EditableProgramState = {
   name: string;
@@ -59,9 +71,18 @@ type EditableProgramState = {
   startDate: string;
   endDate: string;
   capacity: string;
+  parentPortalEditor: ProgramParentPortalEditorState;
 };
 
-function toEditableState(program: Program): EditableProgramState {
+const PROGRAM_EDITOR_TABS = [
+  { id: "details" as const, label: "Program details" },
+  { id: "portal" as const, label: "Portal configuration" },
+];
+
+function toEditableState(
+  program: Program,
+  orgFeatures: OrganizationFeatures,
+): EditableProgramState {
   return {
     name: program.name,
     description: program.description ?? "",
@@ -70,10 +91,14 @@ function toEditableState(program: Program): EditableProgramState {
     startDate: program.start_date ?? "",
     endDate: program.end_date ?? "",
     capacity: program.capacity != null ? String(program.capacity) : "",
+    parentPortalEditor: expandProgramPortalSettingsForEditor(
+      program.parent_portal_settings,
+      orgFeatures.parent,
+    ),
   };
 }
 
-function emptyEditableState(): EditableProgramState {
+function emptyEditableState(orgFeatures: OrganizationFeatures): EditableProgramState {
   return {
     name: "",
     description: "",
@@ -82,6 +107,7 @@ function emptyEditableState(): EditableProgramState {
     startDate: "",
     endDate: "",
     capacity: "",
+    parentPortalEditor: emptyProgramPortalEditorState(orgFeatures.parent),
   };
 }
 
@@ -102,6 +128,7 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
 export default function ProgramsPage({
   organizationId,
   branding,
+  orgFeatures,
   slug,
 }: ProgramsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
@@ -111,6 +138,7 @@ export default function ProgramsPage({
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editable, setEditable] = useState<EditableProgramState | null>(null);
+  const [activeEditorTab, setActiveEditorTab] = useState<ProgramEditorTab>("details");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -148,21 +176,27 @@ export default function ProgramsPage({
 
   useEffect(() => {
     if (isNew) {
-      queueMicrotask(() => setEditable(emptyEditableState()));
+      queueMicrotask(() => {
+        setEditable(emptyEditableState(orgFeatures));
+        setActiveEditorTab("details");
+      });
       return;
     }
     if (!selectedProgram) {
       queueMicrotask(() => setEditable(null));
       return;
     }
-    queueMicrotask(() => setEditable(toEditableState(selectedProgram)));
-  }, [isNew, selectedProgram?.id, selectedProgram?.updated_at]);
+    queueMicrotask(() => {
+      setEditable(toEditableState(selectedProgram, orgFeatures));
+      setActiveEditorTab("details");
+    });
+  }, [isNew, orgFeatures, selectedProgram?.id, selectedProgram?.updated_at]);
 
   const isProgramDirty = useMemo(() => {
     if (!editable) return false;
     if (isNew) return editable.name.trim().length > 0;
     if (!selectedProgram) return false;
-    const saved = toEditableState(selectedProgram);
+    const saved = toEditableState(selectedProgram, orgFeatures);
     return (
       editable.name !== saved.name ||
       editable.description !== saved.description ||
@@ -170,18 +204,25 @@ export default function ProgramsPage({
       editable.status !== saved.status ||
       editable.startDate !== saved.startDate ||
       editable.endDate !== saved.endDate ||
-      editable.capacity !== saved.capacity
+      editable.capacity !== saved.capacity ||
+      !programPortalEditorStatesEqual(
+        editable.parentPortalEditor,
+        saved.parentPortalEditor,
+        orgFeatures,
+      )
     );
-  }, [editable, isNew, selectedProgram]);
+  }, [editable, isNew, orgFeatures, selectedProgram]);
 
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
-    setEditable(emptyEditableState());
+    setEditable(emptyEditableState(orgFeatures));
+    setActiveEditorTab("details");
     setError(null);
   };
 
   const handleSelect = (id: string) => {
     setSelectedId(id);
+    setActiveEditorTab("details");
     setError(null);
   };
 
@@ -209,6 +250,12 @@ export default function ProgramsPage({
       start_date: editable.startDate.trim() || null,
       end_date: editable.endDate.trim() || null,
       capacity: parsedCapacity,
+      parent_portal_settings: isNew
+        ? undefined
+        : deriveProgramPortalSettingsFromEditor(
+            editable.parentPortalEditor,
+            orgFeatures,
+          ),
     };
 
     try {
@@ -230,6 +277,7 @@ export default function ProgramsPage({
             .map((row) => (row.id === updated.id ? updated : row))
             .sort((a, b) => a.name.localeCompare(b.name)),
         );
+        setEditable(toEditableState(updated, orgFeatures));
       }
       adminToast.success(isNew ? "Program created" : "Program saved");
     } catch (err) {
@@ -340,6 +388,19 @@ export default function ProgramsPage({
             }
           />
 
+          {!isNew && editable ? (
+            <div className="shrink-0 bg-white px-5 sm:px-6">
+              <TuitionSubTabBar
+                theme={theme}
+                tabs={PROGRAM_EDITOR_TABS}
+                activeTab={activeEditorTab}
+                onTabChange={setActiveEditorTab}
+                ariaLabel="Program editor sections"
+                testIdPrefix="program-editor"
+              />
+            </div>
+          ) : null}
+
           <div
             className="flex-1 overflow-y-auto p-5 sm:p-6"
             style={{ backgroundColor: BUILDER_CANVAS_BG }}
@@ -361,159 +422,185 @@ export default function ProgramsPage({
             <AnimatePresence mode="wait">
               {editable ? (
                 <motion.div
-                  key={canvasKey}
+                  key={`${canvasKey}-${activeEditorTab}`}
                   className="mx-auto max-w-xl space-y-4"
                   {...builderCanvasTransition}
                 >
-                  <BuilderSectionIntro
-                    C={C}
-                    theme={theme}
-                    eyebrow="Program details"
-                    title={isNew ? "Set up your program" : "Edit program"}
-                    subtitle="Define the enrollment period families apply to. Link it to an application form on Enrollment Flows."
-                  />
+                  {activeEditorTab === "details" || isNew ? (
+                    <>
+                      <BuilderSectionIntro
+                        C={C}
+                        theme={theme}
+                        eyebrow="Program details"
+                        title={isNew ? "Set up your program" : "Edit program"}
+                        subtitle="Define the enrollment period families apply to. Link it to an application form on Enrollment Flows."
+                      />
 
-                  <BuilderQuestionCard C={C} tone="accent" question="Program name">
-                    <input
-                      type="text"
-                      value={editable.name}
-                      onChange={(e) =>
+                      <BuilderQuestionCard C={C} tone="accent" question="Program name">
+                        <input
+                          type="text"
+                          value={editable.name}
+                          onChange={(e) =>
+                            setEditable((prev) =>
+                              prev ? { ...prev, name: e.target.value } : prev,
+                            )
+                          }
+                          placeholder="e.g. School Year 2026–27"
+                          style={inputStyle(C)}
+                        />
+                      </BuilderQuestionCard>
+
+                      <BuilderQuestionCard
+                        C={C}
+                        tone="accent"
+                        question="Description"
+                        helper="Optional. Shown internally to help your team distinguish programs."
+                      >
+                        <textarea
+                          rows={3}
+                          value={editable.description}
+                          onChange={(e) =>
+                            setEditable((prev) =>
+                              prev ? { ...prev, description: e.target.value } : prev,
+                            )
+                          }
+                          placeholder="e.g. Friday enrichment program for K–2 families"
+                          style={{ ...inputStyle(C), resize: "vertical" }}
+                        />
+                      </BuilderQuestionCard>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <BuilderQuestionCard C={C} tone="accent" question="Type">
+                          <SchoolAdminSelect
+                            C={C}
+                            value={editable.type}
+                            onChange={(value) =>
+                              setEditable((prev) =>
+                                prev ? { ...prev, type: value as ProgramType } : prev,
+                              )
+                            }
+                            options={PROGRAM_TYPE_OPTIONS.map((option) => ({
+                              value: option.value,
+                              label: option.label,
+                            }))}
+                            ariaLabel="Program type"
+                          />
+                        </BuilderQuestionCard>
+
+                        <BuilderQuestionCard C={C} tone="accent" question="Status">
+                          <SchoolAdminSelect
+                            C={C}
+                            value={editable.status}
+                            onChange={(value) =>
+                              setEditable((prev) =>
+                                prev
+                                  ? { ...prev, status: value as ProgramStatus }
+                                  : prev,
+                              )
+                            }
+                            options={PROGRAM_STATUS_OPTIONS.map((option) => ({
+                              value: option.value,
+                              label: option.label,
+                            }))}
+                            ariaLabel="Program status"
+                          />
+                        </BuilderQuestionCard>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <BuilderQuestionCard C={C} tone="accent" question="Start date">
+                          <SchoolAdminDatePicker
+                            id="program-start-date"
+                            C={C}
+                            value={editable.startDate}
+                            onChange={(value) =>
+                              setEditable((prev) =>
+                                prev ? { ...prev, startDate: value } : prev,
+                              )
+                            }
+                            maxDate={
+                              editable.endDate || schoolAdminDateRangeBounds().maxDate
+                            }
+                            placeholder="Select start date"
+                          />
+                        </BuilderQuestionCard>
+
+                        <BuilderQuestionCard C={C} tone="accent" question="End date">
+                          <SchoolAdminDatePicker
+                            id="program-end-date"
+                            C={C}
+                            value={editable.endDate}
+                            onChange={(value) =>
+                              setEditable((prev) =>
+                                prev ? { ...prev, endDate: value } : prev,
+                              )
+                            }
+                            minDate={
+                              editable.startDate || schoolAdminDateRangeBounds().minDate
+                            }
+                            placeholder="Select end date"
+                          />
+                        </BuilderQuestionCard>
+                      </div>
+
+                      <BuilderQuestionCard
+                        C={C}
+                        tone="accent"
+                        question="Capacity"
+                        helper="Optional maximum number of enrolled students."
+                      >
+                        <input
+                          type="number"
+                          min={1}
+                          value={editable.capacity}
+                          onChange={(e) =>
+                            setEditable((prev) =>
+                              prev ? { ...prev, capacity: e.target.value } : prev,
+                            )
+                          }
+                          placeholder="Optional"
+                          style={inputStyle(C)}
+                        />
+                      </BuilderQuestionCard>
+
+                      {!isNew && selectedProgram ? (
+                        <p className="text-xs" style={{ color: C.textTertiary }}>
+                          {programTypeLabel(selectedProgram.type)} · Updated{" "}
+                          {new Date(selectedProgram.updated_at).toLocaleDateString()}
+                        </p>
+                      ) : null}
+
+                      <AdminSaveStateBar theme={theme}>
+                        Next, link this program on{" "}
+                        <Link
+                          href={flowsPath}
+                          className="font-extrabold underline-offset-2 hover:underline"
+                          style={{ color: "#487354" }}
+                        >
+                          Enrollment Flows
+                        </Link>
+                        .
+                      </AdminSaveStateBar>
+                    </>
+                  ) : (
+                    <ProgramParentPortalSettingsCard
+                      C={C}
+                      theme={theme}
+                      branding={branding}
+                      organizationId={organizationId}
+                      programName={editable.name}
+                      orgFeatures={orgFeatures}
+                      schoolSlug={slug}
+                      schoolName={branding.logo.alt || slug}
+                      portalSlug={selectedProgram?.portal_slug ?? null}
+                      editor={editable.parentPortalEditor}
+                      onChange={(parentPortalEditor) =>
                         setEditable((prev) =>
-                          prev ? { ...prev, name: e.target.value } : prev,
+                          prev ? { ...prev, parentPortalEditor } : prev,
                         )
                       }
-                      placeholder="e.g. School Year 2026–27"
-                      style={inputStyle(C)}
                     />
-                  </BuilderQuestionCard>
-
-                  <BuilderQuestionCard
-                    C={C}
-                    tone="accent"
-                    question="Description"
-                    helper="Optional. Shown internally to help your team distinguish programs."
-                  >
-                    <textarea
-                      rows={3}
-                      value={editable.description}
-                      onChange={(e) =>
-                        setEditable((prev) =>
-                          prev ? { ...prev, description: e.target.value } : prev,
-                        )
-                      }
-                      placeholder="e.g. Friday enrichment program for K–2 families"
-                      style={{ ...inputStyle(C), resize: "vertical" }}
-                    />
-                  </BuilderQuestionCard>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <BuilderQuestionCard C={C} tone="accent" question="Type">
-                      <SchoolAdminSelect
-                        C={C}
-                        value={editable.type}
-                        onChange={(value) =>
-                          setEditable((prev) =>
-                            prev ? { ...prev, type: value as ProgramType } : prev,
-                          )
-                        }
-                        options={PROGRAM_TYPE_OPTIONS.map((option) => ({
-                          value: option.value,
-                          label: option.label,
-                        }))}
-                        ariaLabel="Program type"
-                      />
-                    </BuilderQuestionCard>
-
-                    <BuilderQuestionCard C={C} tone="accent" question="Status">
-                      <SchoolAdminSelect
-                        C={C}
-                        value={editable.status}
-                        onChange={(value) =>
-                          setEditable((prev) =>
-                            prev
-                              ? { ...prev, status: value as ProgramStatus }
-                              : prev,
-                          )
-                        }
-                        options={PROGRAM_STATUS_OPTIONS.map((option) => ({
-                          value: option.value,
-                          label: option.label,
-                        }))}
-                        ariaLabel="Program status"
-                      />
-                    </BuilderQuestionCard>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <BuilderQuestionCard C={C} tone="accent" question="Start date">
-                      <SchoolAdminDatePicker
-                        id="program-start-date"
-                        C={C}
-                        value={editable.startDate}
-                        onChange={(value) =>
-                          setEditable((prev) =>
-                            prev ? { ...prev, startDate: value } : prev,
-                          )
-                        }
-                        maxDate={editable.endDate || schoolAdminDateRangeBounds().maxDate}
-                        placeholder="Select start date"
-                      />
-                    </BuilderQuestionCard>
-
-                    <BuilderQuestionCard C={C} tone="accent" question="End date">
-                      <SchoolAdminDatePicker
-                        id="program-end-date"
-                        C={C}
-                        value={editable.endDate}
-                        onChange={(value) =>
-                          setEditable((prev) =>
-                            prev ? { ...prev, endDate: value } : prev,
-                          )
-                        }
-                        minDate={editable.startDate || schoolAdminDateRangeBounds().minDate}
-                        placeholder="Select end date"
-                      />
-                    </BuilderQuestionCard>
-                  </div>
-
-                  <BuilderQuestionCard
-                    C={C}
-                    tone="accent"
-                    question="Capacity"
-                    helper="Optional maximum number of enrolled students."
-                  >
-                    <input
-                      type="number"
-                      min={1}
-                      value={editable.capacity}
-                      onChange={(e) =>
-                        setEditable((prev) =>
-                          prev ? { ...prev, capacity: e.target.value } : prev,
-                        )
-                      }
-                      placeholder="Optional"
-                      style={inputStyle(C)}
-                    />
-                  </BuilderQuestionCard>
-
-                  {!isNew && selectedProgram ? (
-                    <p className="text-xs" style={{ color: C.textTertiary }}>
-                      {programTypeLabel(selectedProgram.type)} · Updated{" "}
-                      {new Date(selectedProgram.updated_at).toLocaleDateString()}
-                    </p>
-                  ) : null}
-
-                  <AdminSaveStateBar theme={theme}>
-                    Next, link this program on{" "}
-                    <Link
-                      href={flowsPath}
-                      className="font-extrabold underline-offset-2 hover:underline"
-                      style={{ color: "#487354" }}
-                    >
-                      Enrollment Flows
-                    </Link>
-                    .
-                  </AdminSaveStateBar>
+                  )}
                 </motion.div>
               ) : null}
             </AnimatePresence>

@@ -21,11 +21,13 @@ import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
   isParentFeatureEnabled,
   schoolParentPath,
+  schoolProgramParentPath,
 } from "@/lib/organization-settings/parent-routes";
 import {
   getEnabledFeatureNavChildren,
   mergePortalFeatureNav,
 } from "@/lib/organization-settings/feature-nav";
+import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import {
@@ -35,28 +37,62 @@ import {
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { createClient } from "@/utils/supabase/server";
 
-export const dynamic = "force-dynamic";
-
-type PageProps = {
-  params: Promise<{ slug: string; feature: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+export type SchoolParentFeaturePageContext = {
+  slug: string;
+  feature: string;
+  searchParams: Record<string, string | string[] | undefined>;
+  programSlug?: string;
+  parentNavBasePath?: string;
 };
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { slug, feature } = await params;
+function featurePath(
+  slug: string,
+  feature: string,
+  subtab?: string,
+  programSlug?: string,
+): string {
+  if (programSlug) {
+    return schoolProgramParentPath(slug, programSlug, feature, subtab);
+  }
+  return schoolParentPath(slug, feature, subtab);
+}
+
+export async function generateSchoolParentFeatureMetadata(
+  context: Pick<SchoolParentFeaturePageContext, "slug" | "feature" | "programSlug">,
+): Promise<Metadata> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(supabase, context.slug);
 
-  if (!org || !isParentFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    return { title: "School Not Found" };
+  }
+
+  let features: OrganizationFeatures = org.features;
+  if (context.programSlug) {
+    const { loadProgramParentPortalContext } = await import(
+      "@/lib/admissions/program-parent-portal-access"
+    );
+    const programContext = await loadProgramParentPortalContext({
+      supabase,
+      organizationId: org.id,
+      schoolSlug: context.slug,
+      programSlug: context.programSlug,
+      orgFeatures: org.features,
+    });
+    if (!programContext) {
+      return { title: "School Not Found" };
+    }
+    features = programContext.effectiveFeatures;
+  }
+
+  if (!isParentFeatureEnabled(features, context.feature)) {
     return { title: "School Not Found" };
   }
 
   const pageName = getParentPageLabel(
-    feature,
-    org.features.feature_nav?.parent,
+    context.feature,
+    features.feature_nav?.parent,
   );
 
   return {
@@ -64,33 +100,66 @@ export async function generateMetadata({
   };
 }
 
-export default async function SchoolParentFeaturePage({
-  params,
-  searchParams,
-}: PageProps) {
-  const { slug, feature } = await params;
-  const resolvedSearchParams = await searchParams;
+export async function renderSchoolParentFeaturePage(
+  context: SchoolParentFeaturePageContext,
+) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-  const org = await fetchOrganizationWithSettings(supabase, slug);
+  const org = await fetchOrganizationWithSettings(supabase, context.slug);
 
-  if (!org || !isParentFeatureEnabled(org.features, feature)) {
+  if (!org) {
+    notFound();
+  }
+
+  let features: OrganizationFeatures = org.features;
+  let parentNavBasePath = context.parentNavBasePath;
+
+  if (context.programSlug) {
+    const { loadProgramParentPortalContext } = await import(
+      "@/lib/admissions/program-parent-portal-access"
+    );
+    const programContext = await loadProgramParentPortalContext({
+      supabase,
+      organizationId: org.id,
+      schoolSlug: context.slug,
+      programSlug: context.programSlug,
+      orgFeatures: org.features,
+    });
+    if (!programContext) {
+      notFound();
+    }
+    features = programContext.effectiveFeatures;
+    parentNavBasePath = programContext.parentNavBasePath;
+  }
+
+  if (!isParentFeatureEnabled(features, context.feature)) {
     notFound();
   }
 
   const portalNav = mergePortalFeatureNav(
     "parent",
-    org.features.feature_nav?.parent,
+    features.feature_nav?.parent,
   );
-  const children = getEnabledFeatureNavChildren("parent", feature, portalNav);
+  const children = getEnabledFeatureNavChildren(
+    "parent",
+    context.feature,
+    portalNav,
+  );
 
   if (children.length > 0) {
-    redirect(schoolParentPath(slug, feature, children[0].key));
+    redirect(
+      featurePath(
+        context.slug,
+        context.feature,
+        children[0].key,
+        context.programSlug,
+      ),
+    );
   }
 
   const pageName = getParentPageLabel(
-    feature,
-    org.features.feature_nav?.parent,
+    context.feature,
+    features.feature_nav?.parent,
   );
 
   const user = await getRequestUser();
@@ -102,20 +171,24 @@ export default async function SchoolParentFeaturePage({
   const userProfile = await getParentPortalUserProfile(supabase, org.id);
   const familyId = await getParentPortalPrimaryFamilyId(supabase, org.id);
 
-  if (feature === "portal") {
+  if (context.feature === "portal") {
     const [upcomingEvents, homeMeta] = await Promise.all([
       listUpcomingEventsForOrg(supabase, org.id, 3),
       familyId
         ? fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId)
         : Promise.resolve(null),
     ]);
-    const quickActions = buildParentQuickActions(slug, org.features);
+    const quickActions = buildParentQuickActions(
+      context.slug,
+      features,
+      parentNavBasePath,
+    );
 
     return (
       <SchoolParentPageShell title={pageName}>
         <ParentHomePageShell
           branding={org.branding}
-          schoolSlug={slug}
+          schoolSlug={context.slug}
           organizationId={org.id}
           familyId={familyId ?? undefined}
           userProfile={userProfile}
@@ -128,8 +201,8 @@ export default async function SchoolParentFeaturePage({
               <ParentHomeContentLoader
                 organizationId={org.id}
                 familyId={familyId}
-                slug={slug}
-                features={org.features}
+                slug={context.slug}
+                features={features}
               />
             </Suspense>
           ) : null}
@@ -138,16 +211,16 @@ export default async function SchoolParentFeaturePage({
     );
   }
 
-  if (feature === "billing") {
+  if (context.feature === "billing") {
     if (!familyId) {
       return (
         <SchoolParentPageShell title={pageName}>
           <SchoolParentComingSoon
             branding={org.branding}
-            schoolSlug={slug}
+            schoolSlug={context.slug}
             schoolName={org.name}
             organizationId={org.id}
-            featureKey={feature}
+            featureKey={context.feature}
             featureLabel={pageName}
             userProfile={userProfile}
           />
@@ -161,7 +234,7 @@ export default async function SchoolParentFeaturePage({
           organizationId={org.id}
           familyId={familyId}
           branding={org.branding}
-          slug={slug}
+          slug={context.slug}
         >
           <Suspense fallback={null}>
             <ParentBillingMetaLoader
@@ -173,7 +246,7 @@ export default async function SchoolParentFeaturePage({
             <ParentBillingDataLoader
               organizationId={org.id}
               familyId={familyId}
-              slug={slug}
+              slug={context.slug}
             />
           </Suspense>
         </ParentBillingPageShell>
@@ -181,11 +254,11 @@ export default async function SchoolParentFeaturePage({
     );
   }
 
-  if (feature === "committees") {
+  if (context.feature === "committees") {
     const guardianName = userProfile.displayName || user.email || "Parent";
     const selectedCommitteeId =
-      typeof resolvedSearchParams.committee === "string"
-        ? resolvedSearchParams.committee
+      typeof context.searchParams.committee === "string"
+        ? context.searchParams.committee
         : null;
     const initialData = await loadParentCommitteesInitialData({
       organizationId: org.id,
@@ -197,7 +270,7 @@ export default async function SchoolParentFeaturePage({
       <SchoolParentPageShell title={pageName}>
         <ParentCommitteesPageShell
           organizationId={org.id}
-          schoolSlug={slug}
+          schoolSlug={context.slug}
           schoolName={org.name}
           branding={org.branding}
           guardianName={guardianName}
@@ -207,12 +280,12 @@ export default async function SchoolParentFeaturePage({
     );
   }
 
-  if (feature === "messages") {
+  if (context.feature === "messages") {
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentMessagesPageShell
           organizationId={org.id}
-          organizationSlug={slug}
+          organizationSlug={context.slug}
           schoolName={org.name}
           branding={org.branding}
           familyId={familyId ?? undefined}
@@ -228,12 +301,12 @@ export default async function SchoolParentFeaturePage({
     );
   }
 
-  if (feature === "calendar") {
+  if (context.feature === "calendar") {
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCalendarPageShell
           organizationId={org.id}
-          organizationSlug={slug}
+          organizationSlug={context.slug}
           branding={org.branding}
         >
           <Suspense fallback={null}>
@@ -248,10 +321,10 @@ export default async function SchoolParentFeaturePage({
     <SchoolParentPageShell title={pageName}>
       <SchoolParentComingSoon
         branding={org.branding}
-        schoolSlug={slug}
+        schoolSlug={context.slug}
         schoolName={org.name}
         organizationId={org.id}
-        featureKey={feature}
+        featureKey={context.feature}
         featureLabel={pageName}
         userProfile={userProfile}
       />
