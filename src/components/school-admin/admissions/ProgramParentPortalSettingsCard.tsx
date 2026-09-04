@@ -1,6 +1,8 @@
 "use client";
 
 import { createElement, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { Eye } from "lucide-react";
 import { FEATURE_CATALOG } from "@/lib/organization-settings/catalog";
 import {
@@ -28,6 +30,13 @@ import BuilderInfoTooltip from "./BuilderInfoTooltip";
 import ProgramParentPortalPreviewModal from "./ProgramParentPortalPreviewModal";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
+const AdminSupportRequestModal = dynamic(
+  () => import("@/components/school-admin/AdminSupportRequestModal"),
+  { ssr: false },
+);
+
+const DEFAULT_SUPPORT_SUBMIT_ENDPOINT = "/api/school-admin/support-requests";
+
 const PARENT_FEATURE_CATALOG = FEATURE_CATALOG.filter(
   (entry) => entry.portal === "parent",
 );
@@ -45,9 +54,6 @@ const SECTION_INTRO_EDIT_TOOLTIP =
 const SECTION_INTRO_MAIN_PORTAL_TOOLTIP =
   "This program uses the main parent portal. Families see the school-wide parent features below.";
 
-const PORTAL_LABEL_TOOLTIP =
-  "Optional. Shown in the portal header and future context switcher.";
-
 const FEATURES_CARD_TOOLTIP =
   "Only features enabled in Organization settings appear here.";
 
@@ -57,8 +63,8 @@ const HOME_ROW_TOOLTIP =
 const COOP_MODE_TOOLTIP =
   "Shows a co-op banner on this program's parent home page.";
 
-const COOP_MODE_READ_ONLY_NOTE =
-  "Co-op mode is enabled for this program (configured by MudKitchen).";
+const PHOTOS_LABEL_TOOLTIP =
+  "Optional label for the feed tab in this program's parent portal.";
 
 function inputStyle(C: AdminThemeTokens, disabled: boolean): React.CSSProperties {
   return {
@@ -244,6 +250,9 @@ type ProgramParentPortalSettingsCardProps = {
   programParentPortalEnabled: boolean;
   canEditPortalConfig?: boolean;
   embedded?: boolean;
+  userEmail?: string | null;
+  documentationHref?: string;
+  supportSubmitEndpoint?: string;
   onChange: (next: ProgramParentPortalEditorState) => void;
 };
 
@@ -262,8 +271,12 @@ export default function ProgramParentPortalSettingsCard({
   programParentPortalEnabled,
   canEditPortalConfig = false,
   embedded = false,
+  userEmail,
+  documentationHref,
+  supportSubmitEndpoint = DEFAULT_SUPPORT_SUBMIT_ENDPOINT,
   onChange,
 }: ProgramParentPortalSettingsCardProps) {
+  const pathname = usePathname();
   const orgParent = orgFeatures.parent;
   const programFeatures = editor.features;
   const portalGovernance = { isolationAllowed };
@@ -276,6 +289,7 @@ export default function ProgramParentPortalSettingsCard({
     canEditPortalConfig && programParentPortalEnabled && isolationAllowed;
   const showIsolatedPortal = programParentPortalEnabled && isolationAllowed;
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const mergedParentNav = useMemo(
     () => mergePortalFeatureNav("parent", orgFeatures.feature_nav?.parent),
@@ -292,9 +306,10 @@ export default function ProgramParentPortalSettingsCard({
       PARENT_FEATURE_CATALOG.filter(
         (entry) =>
           entry.key !== "portal" &&
-          Boolean((orgParent as Record<string, boolean>)[entry.key]),
+          Boolean((orgParent as Record<string, boolean>)[entry.key]) &&
+          (entry.key !== "curriculum" || Boolean(editor.coop_mode)),
       ),
-    [orgParent],
+    [orgParent, editor.coop_mode],
   );
 
   const resolveScopeBadge = (key: string) => {
@@ -322,13 +337,6 @@ export default function ProgramParentPortalSettingsCard({
         ...programFeatures,
         [key]: enabled,
       },
-    });
-  };
-
-  const setLabel = (label: string) => {
-    onChange({
-      ...editor,
-      label: label.trim() || undefined,
     });
   };
 
@@ -424,31 +432,6 @@ export default function ProgramParentPortalSettingsCard({
         </div>
       ) : null}
 
-      {showIsolatedPortal ? (
-        <BuilderQuestionCard
-          C={C}
-          tone="accent"
-          question="Portal label"
-          action={
-            <BuilderInfoTooltip
-              C={C}
-              content={PORTAL_LABEL_TOOLTIP}
-              ariaLabel="About portal label"
-            />
-          }
-        >
-          <input
-            type="text"
-            value={editor.label ?? ""}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Defaults to program name"
-            disabled={!canEdit}
-            readOnly={!canEdit}
-            style={inputStyle(C, !canEdit)}
-          />
-        </BuilderQuestionCard>
-      ) : null}
-
       {showIsolatedPortal && usesSeparatePortal ? (
         <BuilderQuestionCard
           C={C}
@@ -462,26 +445,32 @@ export default function ProgramParentPortalSettingsCard({
             />
           }
         >
-          {canEdit ? (
-            <label className="flex cursor-pointer items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: C.textSecondary }}>
-                Show co-op banner on parent home
-              </span>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm" style={{ color: C.textSecondary }}>
+              Show co-op banner on parent home
+            </span>
+            {canEdit ? (
               <button
                 type="button"
                 role="switch"
                 aria-checked={Boolean(editor.coop_mode)}
+                aria-label={`${editor.coop_mode ? "Disable" : "Enable"} co-op mode`}
                 onClick={() => setCoopMode(!editor.coop_mode)}
-                className="shrink-0"
+                className="shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} />
               </button>
-            </label>
-          ) : editor.coop_mode ? (
-            <p className="text-sm" style={{ color: C.textSecondary }}>
-              {COOP_MODE_READ_ONLY_NOTE}
-            </p>
-          ) : null}
+            ) : (
+              <span
+                role="switch"
+                aria-checked={Boolean(editor.coop_mode)}
+                aria-disabled="true"
+                className="shrink-0"
+              >
+                <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} disabled />
+              </span>
+            )}
+          </div>
         </BuilderQuestionCard>
       ) : null}
 
@@ -528,8 +517,31 @@ export default function ProgramParentPortalSettingsCard({
               }
             />
           ))}
+          <p className="pt-1">
+            <button
+              type="button"
+              onClick={() => setSupportOpen(true)}
+              className="text-xs font-medium underline-offset-2 hover:underline"
+              style={{ color: C.accent }}
+            >
+              Want to enable or disable a feature?
+            </button>
+          </p>
         </div>
       </BuilderQuestionCard>
+
+      {supportOpen ? (
+        <AdminSupportRequestModal
+          C={C}
+          open={supportOpen}
+          onClose={() => setSupportOpen(false)}
+          organizationId={organizationId}
+          userEmail={userEmail}
+          currentPath={pathname}
+          submitEndpoint={supportSubmitEndpoint}
+          documentationHref={documentationHref}
+        />
+      ) : null}
 
       {showPhotosLabel ? (
         <BuilderQuestionCard

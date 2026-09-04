@@ -47,6 +47,7 @@ begin
       'open',
       jsonb_build_object(
         'mode', 'isolated',
+        'coop_mode', true,
         'label', 'Kindergarten Co-op',
         'features', jsonb_build_object(
           'portal', true,
@@ -57,7 +58,8 @@ begin
           'children', false,
           'committees', false,
           'classroom_signups', false,
-          'attendance', false
+          'attendance', false,
+          'curriculum', true
         ),
         'feature_nav', jsonb_build_object(
           'parent', jsonb_build_object(
@@ -75,6 +77,7 @@ begin
       portal_slug = coalesce(nullif(portal_slug, ''), 'kindergarten-co-op'),
       parent_portal_settings = jsonb_build_object(
         'mode', 'isolated',
+        'coop_mode', true,
         'label', 'Kindergarten Co-op',
         'features', jsonb_build_object(
           'portal', true,
@@ -85,7 +88,8 @@ begin
           'children', false,
           'committees', false,
           'classroom_signups', false,
-          'attendance', false
+          'attendance', false,
+          'curriculum', true
         ),
         'feature_nav', jsonb_build_object(
           'parent', jsonb_build_object(
@@ -114,13 +118,20 @@ begin
     '{program_parent_portal,isolated_program_ids}',
     jsonb_build_array(v_program_id::text),
     true
+  ),
+  features = jsonb_set(
+    coalesce(features, '{}'::jsonb),
+    '{parent,curriculum}',
+    'true'::jsonb,
+    true
   )
   where organization_id = v_org_id;
 
   if not found then
     insert into public.organization_settings (
       organization_id,
-      admissions
+      admissions,
+      features
     )
     values (
       v_org_id,
@@ -129,6 +140,9 @@ begin
           'enabled', true,
           'isolated_program_ids', jsonb_build_array(v_program_id::text)
         )
+      ),
+      jsonb_build_object(
+        'parent', jsonb_build_object('curriculum', true)
       )
     );
   end if;

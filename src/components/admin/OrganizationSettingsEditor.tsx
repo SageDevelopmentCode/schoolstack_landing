@@ -1596,6 +1596,7 @@ export default function OrganizationSettingsEditor({
                                 editor={portalEditor}
                                 isolationAllowed
                                 programParentPortalEnabled={programPortalConfig.enabled}
+                                documentationHref={`/school/${organizationSlug}/admin/documentation`}
                                 onChange={(next) =>
                                   setProgramPortalEditors((prev) => ({
                                     ...prev,

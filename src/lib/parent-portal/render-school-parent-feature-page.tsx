@@ -13,6 +13,7 @@ import ParentCommitteesPageShell from "@/components/school-parent/committees/Par
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
+import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -48,6 +49,7 @@ import { createClient } from "@/utils/supabase/server";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
+import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -387,6 +389,24 @@ export async function renderSchoolParentFeaturePage(
           userProfile={userProfile}
           initialHealthProfiles={initialHealthProfiles}
           programPortalLabel={programPortalLabel}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "curriculum") {
+    if (!programId || !coopModeEnabled) {
+      notFound();
+    }
+
+    const curriculum = await getProgramCoopCurriculum(supabase, programId);
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentCurriculumPage
+          schoolName={org.name}
+          programPortalLabel={programPortalLabel}
+          curriculum={curriculum}
         />
       </SchoolParentPageShell>
     );

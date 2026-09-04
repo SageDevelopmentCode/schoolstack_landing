@@ -166,6 +166,7 @@ const PARENT_ICON_DEFAULTS: Record<string, string> = {
   children: "users",
   committees: "heart",
   classroom_signups: "clipboard-list",
+  curriculum: "book-open",
 };
 
 function getCatalogEntriesForPortal(portal: Portal): PortalNavCatalogEntry[] {

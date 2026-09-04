@@ -83,6 +83,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     children: true,
     committees: false,
     classroom_signups: true,
+    curriculum: false,
   },
   observation_booking: true,
   homeschool_drop_in: false,
@@ -167,6 +168,7 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "parent", key: "children", label: "My children", description: "Child profiles and details" },
   { portal: "parent", key: "classroom_signups", label: "Classroom signups", description: "Respond to teacher volunteer requests" },
   { portal: "parent", key: "committees", label: "Committees", description: "Volunteer committee participation" },
+  { portal: "parent", key: "curriculum", label: "Curriculum", description: "Co-op curriculum guide (PDF)" },
   { portal: "additional", key: "observation_booking", label: "Observation booking", description: "Schedule classroom observation visits" },
   { portal: "additional", key: "homeschool_drop_in", label: "Homeschool drop-in", description: "Homeschool drop-in program module" },
 ];

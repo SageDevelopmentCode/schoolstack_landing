@@ -10,6 +10,7 @@ import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageS
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
+import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
@@ -35,6 +36,7 @@ import {
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
+import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -281,7 +283,42 @@ export default async function FamilyPreviewProgramParentFeaturePage({
     );
   }
 
+  if (feature === "curriculum") {
+    if (!programContext.coopMode) {
+      notFound();
+    }
+
+    const curriculum = await getProgramCoopCurriculum(
+      admin,
+      programContext.programId,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentCurriculumPage
+          schoolName={org.name}
+          programPortalLabel={programContext.displayLabel}
+          curriculum={curriculum}
+          previewMode
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
   return (
+    <SchoolParentPageShell title={pageName}>
+      <SchoolParentComingSoon
+        branding={org.branding}
+        schoolSlug={slug}
+        schoolName={org.name}
+        organizationId={org.id}
+        featureKey={feature}
+        featureLabel={pageName}
+        userProfile={userProfile}
+      />
+    </SchoolParentPageShell>
+  );
+}
     <SchoolParentPageShell title={pageName}>
       <SchoolParentComingSoon
         branding={org.branding}

@@ -29,6 +29,7 @@ import {
 import {
   emptyProgramPortalEditorState,
   expandProgramPortalSettingsForEditor,
+  isProgramParentPortalCoopMode,
   type ProgramParentPortalEditorState,
 } from "@/lib/admissions/program-parent-portal";
 import {
@@ -44,6 +45,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
+import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
 import { createClient } from "@/utils/supabase/client";
 import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
@@ -64,7 +66,7 @@ type ProgramsPageProps = {
   programParentPortalConfig: ProgramParentPortalOrgConfig;
 };
 
-type ProgramEditorTab = "details" | "portal";
+type ProgramEditorTab = "details" | "portal" | "curriculum";
 
 type EditableProgramState = {
   name: string;
@@ -77,10 +79,15 @@ type EditableProgramState = {
   parentPortalEditor: ProgramParentPortalEditorState;
 };
 
-const PROGRAM_EDITOR_TABS = [
+const BASE_PROGRAM_EDITOR_TABS = [
   { id: "details" as const, label: "Program details" },
   { id: "portal" as const, label: "Portal configuration" },
 ];
+
+const COOP_CURRICULUM_TAB = {
+  id: "curriculum" as const,
+  label: "Co-op curriculum",
+};
 
 function toEditableState(
   program: Program,
@@ -151,6 +158,15 @@ export default function ProgramsPage({
 
   const isNew = selectedId === NEW_PROGRAM_ID;
   const selectedProgram = programs.find((program) => program.id === selectedId) ?? null;
+  const coopModeEnabled = selectedProgram
+    ? isProgramParentPortalCoopMode(selectedProgram.parent_portal_settings)
+    : false;
+  const programEditorTabs = useMemo(() => {
+    if (!selectedProgram || isNew) return BASE_PROGRAM_EDITOR_TABS;
+    return coopModeEnabled
+      ? [...BASE_PROGRAM_EDITOR_TABS, COOP_CURRICULUM_TAB]
+      : BASE_PROGRAM_EDITOR_TABS;
+  }, [selectedProgram, isNew, coopModeEnabled]);
   const portalGovernance = useMemo(
     () => ({
       isolationAllowed: selectedProgram
@@ -206,6 +222,12 @@ export default function ProgramsPage({
       setActiveEditorTab("details");
     });
   }, [isNew, orgFeatures, selectedProgram?.id, selectedProgram?.updated_at]);
+
+  useEffect(() => {
+    if (activeEditorTab === "curriculum" && !coopModeEnabled) {
+      setActiveEditorTab("portal");
+    }
+  }, [activeEditorTab, coopModeEnabled]);
 
   const isProgramDirty = useMemo(() => {
     if (!editable) return false;
@@ -396,7 +418,7 @@ export default function ProgramsPage({
             <div className="shrink-0 bg-white px-5 sm:px-6">
               <TuitionSubTabBar
                 theme={theme}
-                tabs={PROGRAM_EDITOR_TABS}
+                tabs={programEditorTabs}
                 activeTab={activeEditorTab}
                 onTabChange={setActiveEditorTab}
                 ariaLabel="Program editor sections"
@@ -586,7 +608,7 @@ export default function ProgramsPage({
                         .
                       </AdminSaveStateBar>
                     </>
-                  ) : (
+                  ) : activeEditorTab === "portal" ? (
                     <ProgramParentPortalSettingsCard
                       C={C}
                       theme={theme}
@@ -603,13 +625,32 @@ export default function ProgramsPage({
                         programParentPortalConfig.enabled
                       }
                       canEditPortalConfig={false}
+                      documentationHref={`/school/${slug}/admin/documentation`}
                       onChange={(parentPortalEditor) =>
                         setEditable((prev) =>
                           prev ? { ...prev, parentPortalEditor } : prev,
                         )
                       }
                     />
-                  )}
+                  ) : selectedProgram ? (
+                    <>
+                      <BuilderSectionIntro
+                        C={C}
+                        theme={theme}
+                        eyebrow="Co-op curriculum"
+                        title="Curriculum guide"
+                        subtitle="Upload a PDF for families on the Curriculum tab in this program's parent portal."
+                      />
+                      <ProgramCoopCurriculumUploadCard
+                        C={C}
+                        theme={theme}
+                        supabase={supabase}
+                        organizationId={organizationId}
+                        programId={selectedProgram.id}
+                        coopModeEnabled={coopModeEnabled}
+                      />
+                    </>
+                  ) : null}
                 </motion.div>
               ) : null}
             </AnimatePresence>

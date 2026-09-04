@@ -204,6 +204,34 @@ describe("resolveProgramParentFeatures", () => {
     const resolved = resolveProgramParentFeatures(orgFeatures, { mode: "inherit" });
     assert.equal(resolved.messages, true);
     assert.equal(resolved.billing, true);
+    assert.equal(resolved.curriculum, false);
+  });
+
+  it("enables curriculum only for co-op isolated programs", () => {
+    const orgWithCurriculum = {
+      ...orgFeatures,
+      parent: { ...orgFeatures.parent, curriculum: true },
+    };
+
+    const enabled = resolveProgramParentFeatures(orgWithCurriculum, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true, curriculum: true },
+    });
+    assert.equal(enabled.curriculum, true);
+
+    const coopOff = resolveProgramParentFeatures(orgWithCurriculum, {
+      mode: "isolated",
+      features: { portal: true, curriculum: true },
+    });
+    assert.equal(coopOff.curriculum, false);
+
+    const orgOff = resolveProgramParentFeatures(orgFeatures, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true, curriculum: true },
+    });
+    assert.equal(orgOff.curriculum, false);
   });
 
   it("applies org ceiling AND program subset for isolated mode", () => {

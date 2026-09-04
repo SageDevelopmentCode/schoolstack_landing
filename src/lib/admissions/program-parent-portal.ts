@@ -147,6 +147,7 @@ export function getProgramPortalFeatureScopeBadgeLabel(
     case "portal":
     case "calendar":
     case "children":
+    case "curriculum":
       return "This program only";
     case "messages":
       return "This program + school office";
@@ -174,6 +175,11 @@ export function getProgramPortalFeatureScopeTooltip(
       return {
         variant: "isolation",
         content: "Shows only children enrolled in this program.",
+      };
+    case "curriculum":
+      return {
+        variant: "isolation",
+        content: "Co-op curriculum PDF for families in this program.",
       };
     case "billing":
       return {
