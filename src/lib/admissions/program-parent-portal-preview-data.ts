@@ -1,7 +1,12 @@
 import type {
+  ChildProfileData,
   FamilyChildOverview,
   FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
+import {
+  defaultApplicationFormFeeConfig,
+  emptyApplicationFormSchema,
+} from "@/lib/admissions/application-form-schema";
 import type { ParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import type { MessageThreadSummary } from "@/lib/messages/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
@@ -10,6 +15,10 @@ import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-me
 
 export const PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID = "preview-family-id";
 export const PROGRAM_PARENT_PORTAL_PREVIEW_GUARDIAN_ID = "preview-guardian-id";
+
+export function isProgramParentPortalPreviewFamilyId(familyId: string): boolean {
+  return familyId === PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID;
+}
 
 export function getProgramParentPortalPreviewUserProfile(): FamilyUserProfile {
   return {
@@ -225,6 +234,66 @@ export function getProgramParentPortalPreviewBillingInitialData(
     hasBillingSplit: false,
     initialChildKey: "preview-student-1",
     showTaxCreditPaymentBanner: false,
+  };
+}
+
+function buildPreviewChildProfile(input: {
+  applicationId: string;
+  studentId: string;
+  studentName: string;
+  grade: string;
+  formTitle: string;
+}): ChildProfileData {
+  return {
+    application: {
+      id: input.applicationId,
+      status: "enrolled",
+      submittedAt: previewDueDate(-120),
+      formTitle: input.formTitle,
+      schema: emptyApplicationFormSchema(),
+      feeConfig: defaultApplicationFormFeeConfig(),
+      stepIndex: 0,
+      responses: {
+        student_first_name: input.studentName.split(" ")[0] ?? input.studentName,
+        student_last_name: input.studentName.split(" ").slice(1).join(" ") || "Morgan",
+        grade: input.grade,
+      },
+      acknowledgments: {},
+      postSubmitSteps: [],
+      studentId: input.studentId,
+      profilePhotoUrl: null,
+    },
+    checklist: null,
+    assignedTeachers: [
+      {
+        id: "preview-teacher-1",
+        name: "Ms. Rivera",
+        roleTitle: "Lead teacher",
+        profilePhotoUrl: null,
+      },
+    ],
+  };
+}
+
+export function getProgramParentPortalPreviewChildProfiles(): Record<
+  string,
+  ChildProfileData
+> {
+  return {
+    "preview-app-1": buildPreviewChildProfile({
+      applicationId: "preview-app-1",
+      studentId: "preview-student-1",
+      studentName: "Jordan Morgan",
+      grade: "Kindergarten",
+      formTitle: "Kindergarten application",
+    }),
+    "preview-app-2": buildPreviewChildProfile({
+      applicationId: "preview-app-2",
+      studentId: "preview-student-2",
+      studentName: "Sam Morgan",
+      grade: "3rd grade",
+      formTitle: "Elementary application",
+    }),
   };
 }
 

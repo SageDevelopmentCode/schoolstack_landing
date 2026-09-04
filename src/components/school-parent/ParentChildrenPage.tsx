@@ -38,6 +38,7 @@ type ParentChildrenPageProps = {
   childProfiles?: Record<string, ChildProfileData>;
   initialHealthProfiles?: Record<string, StudentHealthProfile>;
   previewBasePath?: string;
+  previewMode?: boolean;
 };
 
 export default function ParentChildrenPage({
@@ -50,6 +51,7 @@ export default function ParentChildrenPage({
   childProfiles: initialProfiles,
   initialHealthProfiles,
   previewBasePath,
+  previewMode = false,
 }: ParentChildrenPageProps) {
   const { theme, adminCompat } = useParentTheme();
   const supabase = useMemo(() => createClient(), []);
@@ -66,6 +68,7 @@ export default function ParentChildrenPage({
   const initialApplicationId = familyChildren[0]?.applicationId ?? null;
   const [profileLoading, setProfileLoading] = useState(
     () =>
+      !previewMode &&
       Boolean(initialApplicationId) &&
       !(initialProfiles?.[initialApplicationId ?? ""]),
   );
@@ -73,7 +76,7 @@ export default function ParentChildrenPage({
   const [recordSection, setRecordSection] = useState<ParentChildRecordSection>("application");
   const recordWorkspaceRef = useRef<HTMLElement>(null);
   const applyDashboardHref = previewBasePath ?? `/school/${schoolSlug}/apply`;
-  const readOnly = Boolean(previewBasePath);
+  const readOnly = Boolean(previewBasePath || previewMode);
 
   const selectedChild = useMemo(
     () => children.find((child) => child.applicationId === selectedApplicationId) ?? null,
@@ -129,6 +132,10 @@ export default function ParentChildrenPage({
         setProfileLoading(false);
         return;
       }
+      if (previewMode) {
+        setProfileLoading(false);
+        return;
+      }
       setProfileLoading(true);
       setProfileError(null);
       try {
@@ -180,7 +187,7 @@ export default function ParentChildrenPage({
         setProfileLoading(false);
       }
     },
-    [organizationId, previewBasePath, profiles, supabase],
+    [organizationId, previewBasePath, previewMode, profiles, supabase],
   );
 
   const selectChild = useCallback(

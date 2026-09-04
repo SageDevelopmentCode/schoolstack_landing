@@ -13,6 +13,8 @@ type ParentBillingPageShellProps = {
   branding: OrganizationBranding;
   slug: string;
   previewMode?: boolean;
+  initialPreviewData?: ParentBillingInitialData;
+  initialPreviewMeta?: ParentBillingPageMeta;
   children?: React.ReactNode;
 };
 
@@ -22,11 +24,19 @@ export default function ParentBillingPageShell({
   branding,
   slug,
   previewMode = false,
+  initialPreviewData,
+  initialPreviewMeta,
   children,
 }: ParentBillingPageShellProps) {
-  const [billingData, setBillingData] = useState<ParentBillingInitialData | null>(null);
-  const [billingHydrated, setBillingHydrated] = useState(false);
-  const [pageMeta, setPageMeta] = useState<ParentBillingPageMeta | null>(null);
+  const [billingData, setBillingData] = useState<ParentBillingInitialData | null>(
+    previewMode && initialPreviewData ? initialPreviewData : null,
+  );
+  const [billingHydrated, setBillingHydrated] = useState(
+    Boolean(previewMode && initialPreviewData),
+  );
+  const [pageMeta, setPageMeta] = useState<ParentBillingPageMeta | null>(
+    previewMode && initialPreviewMeta ? initialPreviewMeta : null,
+  );
 
   const hydrateBillingData = useCallback((data: ParentBillingInitialData) => {
     setBillingData(data);
@@ -45,6 +55,8 @@ export default function ParentBillingPageShell({
     [hydrateBillingData, hydrateMeta],
   );
 
+  const staticPreview = previewMode && initialPreviewData;
+
   return (
     <ParentBillingPageContext.Provider value={contextValue}>
       <ParentBillingPage
@@ -53,9 +65,9 @@ export default function ParentBillingPageShell({
         branding={branding}
         slug={slug}
         previewMode={previewMode}
-        initialData={billingData ?? undefined}
-        billingDeferred={!billingHydrated}
-        pageMeta={pageMeta}
+        initialData={staticPreview ? initialPreviewData : (billingData ?? undefined)}
+        billingDeferred={staticPreview ? false : !billingHydrated}
+        pageMeta={staticPreview ? (initialPreviewMeta ?? null) : pageMeta}
       />
       {children}
     </ParentBillingPageContext.Provider>

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import SchoolParentComingSoon from "@/components/school-parent/SchoolParentComingSoon";
 import ParentBillingPageShell from "@/components/school-parent/billing/ParentBillingPageShell";
-import { useParentBillingPageContext } from "@/components/school-parent/billing/parent-billing-page-context";
 import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentCalendarPageShell";
 import { useParentCalendarPageContext } from "@/components/school-parent/calendar/parent-calendar-page-context";
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
@@ -12,7 +11,6 @@ import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { useParentMessagesPageContext } from "@/components/school-parent/messages/parent-messages-page-context";
-import type { ParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import {
   deriveProgramPortalSettingsFromEditor,
   type ProgramParentPortalEditorState,
@@ -21,6 +19,7 @@ import {
 import {
   getProgramParentPortalPreviewBillingInitialData,
   getProgramParentPortalPreviewBillingPageMeta,
+  getProgramParentPortalPreviewChildProfiles,
   getProgramParentPortalPreviewChildren,
   getProgramParentPortalPreviewCommitteesInitialData,
   getProgramParentPortalPreviewEvents,
@@ -73,75 +72,6 @@ function PreviewCalendarHydrator({
   }, [hydrateEvents, organizationId]);
 
   return null;
-}
-
-function PreviewBillingHydrator({
-  organizationId,
-}: {
-  organizationId: string;
-}) {
-  const { hydrateBillingData, hydrateMeta } = useParentBillingPageContext();
-
-  useEffect(() => {
-    hydrateBillingData(getProgramParentPortalPreviewBillingInitialData(organizationId));
-    hydrateMeta(getProgramParentPortalPreviewBillingPageMeta());
-  }, [hydrateBillingData, hydrateMeta, organizationId]);
-
-  return null;
-}
-
-function PreviewCommitteesSection({
-  organizationId,
-  schoolSlug,
-  schoolName,
-  branding,
-  guardianName,
-}: {
-  organizationId: string;
-  schoolSlug: string;
-  schoolName: string;
-  branding: ProgramParentPortalPreviewFrameProps["branding"];
-  guardianName: string;
-}) {
-  const [initialData, setInitialData] = useState<ParentCommitteesInitialData>(
-    () => getProgramParentPortalPreviewCommitteesInitialData(),
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadCommittees() {
-      try {
-        const params = new URLSearchParams({ organizationId });
-        const response = await fetch(
-          `/api/school-admin/program-parent-portal-preview/committees?${params}`,
-        );
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || !payload || cancelled) return;
-        setInitialData(payload as ParentCommitteesInitialData);
-      } catch {
-        // Keep static fallback committees on fetch failure.
-      }
-    }
-
-    void loadCommittees();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [organizationId]);
-
-  return (
-    <ParentCommitteesPageShell
-      organizationId={organizationId}
-      schoolSlug={schoolSlug}
-      schoolName={schoolName}
-      branding={branding}
-      guardianName={guardianName}
-      previewMode
-      initialData={initialData}
-    />
-  );
 }
 
 function PreviewFeatureBody({
@@ -222,9 +152,9 @@ function PreviewFeatureBody({
         branding={branding}
         slug={schoolSlug}
         previewMode
-      >
-        <PreviewBillingHydrator organizationId={organizationId} />
-      </ParentBillingPageShell>
+        initialPreviewData={getProgramParentPortalPreviewBillingInitialData(organizationId)}
+        initialPreviewMeta={getProgramParentPortalPreviewBillingPageMeta()}
+      />
     );
   }
 
@@ -237,7 +167,9 @@ function PreviewFeatureBody({
         organizationId={organizationId}
         familyChildren={getProgramParentPortalPreviewChildren()}
         userProfile={userProfile}
+        childProfiles={getProgramParentPortalPreviewChildProfiles()}
         previewBasePath={parentNavBasePath}
+        previewMode
         initialHealthProfiles={{}}
       />
     );
@@ -245,12 +177,14 @@ function PreviewFeatureBody({
 
   if (activeFeature === "committees") {
     return (
-      <PreviewCommitteesSection
+      <ParentCommitteesPageShell
         organizationId={organizationId}
         schoolSlug={schoolSlug}
         schoolName={schoolName}
         branding={branding}
         guardianName={userProfile.displayName ?? "Parent"}
+        previewMode
+        initialData={getProgramParentPortalPreviewCommitteesInitialData()}
       />
     );
   }

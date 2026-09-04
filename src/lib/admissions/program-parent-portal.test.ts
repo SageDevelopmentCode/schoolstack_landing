@@ -17,10 +17,13 @@ import { resolveProgramParentFeatures } from "@/lib/organization-settings/resolv
 import {
   getProgramParentPortalPreviewBillingInitialData,
   getProgramParentPortalPreviewBillingPageMeta,
+  getProgramParentPortalPreviewChildProfiles,
   getProgramParentPortalPreviewChildren,
   getProgramParentPortalPreviewCommitteesInitialData,
   getProgramParentPortalPreviewMessageThreads,
   getProgramParentPortalPreviewUserProfile,
+  isProgramParentPortalPreviewFamilyId,
+  PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID,
 } from "./program-parent-portal-preview-data";
 
 const orgFeatures = {
@@ -262,5 +265,20 @@ describe("programParentPortalPreviewData", () => {
     const committees = getProgramParentPortalPreviewCommitteesInitialData();
     assert.ok(committees.browseCommittees.length >= 1);
     assert.equal(committees.myCommittees.length, 0);
+  });
+
+  it("returns mock child profiles for preview application ids", () => {
+    const profiles = getProgramParentPortalPreviewChildProfiles();
+    assert.equal(profiles["preview-app-1"]?.application.status, "enrolled");
+    assert.equal(profiles["preview-app-2"]?.application.status, "enrolled");
+    assert.ok(profiles["preview-app-1"]?.assignedTeachers.length >= 1);
+  });
+
+  it("identifies program portal preview family ids", () => {
+    assert.equal(
+      isProgramParentPortalPreviewFamilyId(PROGRAM_PARENT_PORTAL_PREVIEW_FAMILY_ID),
+      true,
+    );
+    assert.equal(isProgramParentPortalPreviewFamilyId("real-family-uuid"), false);
   });
 });

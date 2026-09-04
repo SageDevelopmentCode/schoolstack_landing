@@ -68,6 +68,7 @@ import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-meta";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
+import { isProgramParentPortalPreviewFamilyId } from "@/lib/admissions/program-parent-portal-preview-data";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentBillingPageProps = {
@@ -265,6 +266,8 @@ function ParentBillingPageContent({
   }, [pendingPayCharge, familySummary]);
 
   const loadBilling = useCallback(async (): Promise<ParentBillingFamilySummary | null> => {
+    if (previewMode || isProgramParentPortalPreviewFamilyId(familyId)) return null;
+
     if (hasLoadedBillingRef.current) {
       setRefreshing(true);
     } else {
@@ -340,14 +343,17 @@ function ParentBillingPageContent({
 
       hasLoadedBillingRef.current = true;
       return summary;
+    } catch (error) {
+      console.error(error);
+      return null;
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
     }
-  }, [familyId, guardianId, organizationId, slug, supabase]);
+  }, [familyId, guardianId, organizationId, previewMode, slug, supabase]);
 
   const fetchDeferredBillingLists = useCallback(async () => {
-    if (previewMode) return;
+    if (previewMode || isProgramParentPortalPreviewFamilyId(familyId)) return;
 
     const params = new URLSearchParams({
       organizationId,
@@ -392,11 +398,11 @@ function ParentBillingPageContent({
   }, [chargesDeferred, fetchDeferredBillingLists, initialData, paymentsDeferred]);
 
   useEffect(() => {
-    if (hasInitialData) return;
+    if (previewMode || hasInitialData) return;
     queueMicrotask(() => {
       void loadBilling();
     });
-  }, [hasInitialData, loadBilling]);
+  }, [hasInitialData, loadBilling, previewMode]);
 
   const deepLinkTargetCharge = useMemo(() => {
     if (!deepLinkChargeId || initialLoading) return null;
@@ -827,24 +833,24 @@ function ParentBillingPageContent({
   };
 
   useEffect(() => {
-    if (cardSaved !== "1") return;
+    if (previewMode || cardSaved !== "1") return;
 
     queueMicrotask(() => {
       void loadBilling().then(() => {
         router.replace(pathname, { scroll: false });
       });
     });
-  }, [cardSaved, loadBilling, pathname, router]);
+  }, [cardSaved, loadBilling, pathname, previewMode, router]);
 
   useEffect(() => {
-    if (paymentCompleted !== "1") return;
+    if (previewMode || paymentCompleted !== "1") return;
 
     queueMicrotask(() => {
       void loadBilling().then(() => {
         router.replace(pathname, { scroll: false });
       });
     });
-  }, [paymentCompleted, loadBilling, pathname, router]);
+  }, [paymentCompleted, loadBilling, pathname, previewMode, router]);
 
   const handleScheduleComplete = async () => {
     const currentKey = activeTabKey;
