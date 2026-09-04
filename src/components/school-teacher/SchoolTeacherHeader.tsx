@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +18,7 @@ import {
   splitTeacherNavForHeader,
   type TeacherNavItem,
 } from "@/lib/organization-settings/teacher-nav";
+import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
@@ -59,6 +61,7 @@ function NavLink({
 }) {
   const Icon = item.icon;
   const active = isTeacherNavItemActive(pathname, item);
+  const iconColorClass = getParentFeatureIconColor(item.iconSlug);
 
   return (
     <Link
@@ -68,10 +71,7 @@ function NavLink({
         backgroundColor: active ? theme.primaryLight : "transparent",
       }}
     >
-      <Icon
-        className="h-3.5 w-3.5 shrink-0"
-        style={{ color: active ? theme.primary : theme.muted }}
-      />
+      <Icon className={`h-3.5 w-3.5 shrink-0 ${iconColorClass}`} />
       <span style={{ color: active ? theme.primary : theme.muted }}>
         {item.name}
       </span>
@@ -210,9 +210,32 @@ export default function SchoolTeacherHeader({
         borderColor: theme.line,
       }}
     >
-      <div className="flex items-center px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link href={homeHref} className="min-w-0 shrink">
+      <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
+        <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-sm transition-opacity hover:opacity-80"
+          >
+            <Image
+              src="/images/schoolstack-logo.png"
+              alt="SchoolStack"
+              width={40}
+              height={40}
+              priority
+              className="h-8 w-auto shrink-0 object-contain sm:h-10"
+            />
+          </Link>
+          <div
+            className="h-7 w-px shrink-0 sm:h-8"
+            style={{ backgroundColor: theme.line }}
+            aria-hidden
+          />
+          <Link
+            href={homeHref}
+            className="min-w-0 shrink rounded-sm transition-opacity hover:opacity-80"
+          >
             <SchoolDemoWordmark
               logo={{
                 src: branding.logo.src,
@@ -221,7 +244,8 @@ export default function SchoolTeacherHeader({
                 height: branding.logo.height,
                 text: branding.logo.src ? undefined : schoolName,
               }}
-              className="h-8 w-auto max-w-[min(180px,40vw)] object-contain sm:h-10"
+              className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
+              sizes="(max-width: 640px) 160px, 200px"
             />
           </Link>
         </div>
@@ -264,6 +288,7 @@ export default function SchoolTeacherHeader({
                   {more.map((item) => {
                     const Icon = item.icon;
                     const active = isTeacherNavItemActive(pathname, item);
+                    const iconColorClass = getParentFeatureIconColor(item.iconSlug);
                     return (
                       <Link
                         key={item.key}
@@ -275,10 +300,7 @@ export default function SchoolTeacherHeader({
                           backgroundColor: active ? theme.primaryLight : "transparent",
                         }}
                       >
-                        <Icon
-                          className="h-4 w-4 shrink-0"
-                          style={{ color: active ? theme.primary : theme.muted }}
-                        />
+                        <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
                         <span>{item.name}</span>
                         {item.key === "messages" ? (
                           <MessagesNavBadge
@@ -298,8 +320,7 @@ export default function SchoolTeacherHeader({
           ) : null}
         </nav>
 
-        <div className="flex flex-1 justify-end">
-          <div className="relative z-[100]" ref={menuRef}>
+        <div className="relative z-[100] shrink-0" ref={menuRef}>
             <ParentProfileMenuTrigger
               displayName={userProfile.displayName}
               profilePhotoUrl={profilePhotoUrl}
@@ -371,7 +392,6 @@ export default function SchoolTeacherHeader({
               </div>
             ) : null}
           </div>
-        </div>
       </div>
 
       {navItems.length > 0 ? (

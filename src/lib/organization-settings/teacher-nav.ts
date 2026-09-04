@@ -15,6 +15,7 @@ export type TeacherNavItem = {
   key: string;
   name: string;
   icon: LucideIcon;
+  iconSlug: string;
   href: string;
 };
 
@@ -57,10 +58,12 @@ export function buildTeacherNavItems(
   for (const key of orderedKeys) {
     if (!record[key]) continue;
     const resolved = resolveFeatureNavItem("teacher", key, mergedNav);
+    const iconSlug = resolved.icon ?? "puzzle";
     items.push({
       key,
       name: resolved.label ?? getTeacherPageLabel(key, mergedNav),
-      icon: getFeatureIcon(resolved.icon),
+      icon: getFeatureIcon(iconSlug),
+      iconSlug,
       href: teacherBasePath
         ? `${teacherBasePath}/${key}`
         : schoolTeacherPath(slug, key),
