@@ -23,6 +23,7 @@ type ParentHomePageShellProps = {
   initialSignupAttentionItems?: ParentSignupAttentionItem[];
   previewMode?: boolean;
   previewBasePath?: string;
+  programPortalLabel?: string;
   children?: React.ReactNode;
 };
 
@@ -38,6 +39,7 @@ export default function ParentHomePageShell({
   initialSignupAttentionItems = [],
   previewMode = false,
   previewBasePath,
+  programPortalLabel,
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
@@ -70,6 +72,7 @@ export default function ParentHomePageShell({
         classroomSignupAttentionItems={initialSignupAttentionItems}
         previewMode={previewMode}
         previewBasePath={previewBasePath}
+        programPortalLabel={programPortalLabel}
       />
       {children}
     </ParentHomePageContext.Provider>

@@ -145,6 +145,11 @@ export default function StudentsPage({
   }, []);
 
   useEffect(() => {
+    if (!initialTableData) return;
+    applyTableData(initialTableData);
+  }, [initialTableData, applyTableData]);
+
+  useEffect(() => {
     const handle = window.setTimeout(() => {
       setDebouncedSearch(searchQuery.trim());
     }, 300);

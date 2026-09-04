@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { mapOrganizationEventRow, type OrganizationEventRow } from "./mappers";
 import type { OrganizationEvent, SchoolEventColorKey, SchoolEventType } from "./types";
 
+export type OrganizationEventAudienceScope =
+  | { mode: "all" }
+  | { mode: "main_portal" }
+  | { mode: "program_portal"; programId: string };
+
 export type CreateOrganizationEventInput = {
   title: string;
   date: string;
@@ -12,6 +17,7 @@ export type CreateOrganizationEventInput = {
   colorKey?: SchoolEventColorKey;
   location?: string;
   description?: string;
+  programId?: string | null;
 };
 
 export type UpdateOrganizationEventInput = {
@@ -24,6 +30,7 @@ export type UpdateOrganizationEventInput = {
   colorKey?: SchoolEventColorKey | null;
   location?: string | null;
   description?: string | null;
+  programId?: string | null;
 };
 
 function sortEvents(events: OrganizationEvent[]): OrganizationEvent[] {
@@ -46,6 +53,21 @@ export function groupOrganizationEventsByDate(
   return map;
 }
 
+function applyOrganizationEventAudienceScope<
+  T extends {
+    is(column: string, value: null): T;
+    or(filter: string): T;
+  },
+>(query: T, scope?: OrganizationEventAudienceScope): T {
+  if (!scope || scope.mode === "all") {
+    return query;
+  }
+  if (scope.mode === "main_portal") {
+    return query.is("program_id", null);
+  }
+  return query.or(`program_id.is.null,program_id.eq.${scope.programId}`);
+}
+
 export async function listEventsForOrg(
   supabase: SupabaseClient,
   organizationId: string,
@@ -53,6 +75,7 @@ export async function listEventsForOrg(
     startDate?: string;
     endDate?: string;
     limit?: number;
+    audienceScope?: OrganizationEventAudienceScope;
   },
 ): Promise<OrganizationEvent[]> {
   let query = supabase
@@ -61,6 +84,8 @@ export async function listEventsForOrg(
     .eq("organization_id", organizationId)
     .order("event_date", { ascending: true })
     .order("sort_order", { ascending: true });
+
+  query = applyOrganizationEventAudienceScope(query, options?.audienceScope);
 
   if (options?.startDate) {
     query = query.gte("event_date", options.startDate);
@@ -82,6 +107,7 @@ export async function listUpcomingEventsForOrg(
   supabase: SupabaseClient,
   organizationId: string,
   limit = 5,
+  audienceScope?: OrganizationEventAudienceScope,
 ): Promise<OrganizationEvent[]> {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -89,6 +115,7 @@ export async function listUpcomingEventsForOrg(
   return listEventsForOrg(supabase, organizationId, {
     startDate: todayKey,
     limit,
+    audienceScope,
   });
 }
 
@@ -112,6 +139,7 @@ export async function createOrganizationEvent(
       color_key: input.colorKey ?? null,
       location: input.location ?? null,
       description: input.description ?? null,
+      program_id: input.programId ?? null,
     })
     .select()
     .single();
@@ -135,6 +163,7 @@ export async function updateOrganizationEvent(
   if (input.colorKey !== undefined) patch.color_key = input.colorKey;
   if (input.location !== undefined) patch.location = input.location;
   if (input.description !== undefined) patch.description = input.description;
+  if (input.programId !== undefined) patch.program_id = input.programId;
 
   const { error } = await supabase
     .from("organization_events")

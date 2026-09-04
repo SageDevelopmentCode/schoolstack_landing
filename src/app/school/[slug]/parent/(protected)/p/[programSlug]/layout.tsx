@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import { getRequestUser } from "@/lib/auth/session";
 import {
+  loadParentPortalNavContextsForUser,
   loadProgramParentPortalContext,
   userHasEnrolledAccessInProgram,
 } from "@/lib/admissions/program-parent-portal-access";
@@ -66,12 +67,20 @@ export default async function SchoolProgramParentLayout({
     notFound();
   }
 
-  const [userProfile, portalOptions] = await Promise.all([
+  const [userProfile, portalOptions, parentPortalContexts] = await Promise.all([
     getParentPortalUserProfile(supabase, org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
       hasEnrolledAccess: true,
       hasFamilyAccess: true,
+    }),
+    loadParentPortalNavContextsForUser({
+      supabase,
+      userId: user.id,
+      organizationId: org.id,
+      schoolSlug: slug,
+      schoolName: org.name,
+      orgFeatures: org.features,
     }),
   ]);
 
@@ -84,8 +93,8 @@ export default async function SchoolProgramParentLayout({
       features={programContext.effectiveFeatures}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      parentPortalContexts={parentPortalContexts}
       parentNavBasePath={programContext.parentNavBasePath}
-      portalContextLabel={programContext.displayLabel}
     >
       {children}
     </SchoolParentBaseline>

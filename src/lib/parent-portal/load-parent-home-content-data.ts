@@ -9,6 +9,7 @@ import { buildEnrollmentAgreementIncompleteBannerItems } from "@/lib/admissions/
 import { listFamilyChildrenForHomeByFamilyId, getFamilyPreviewGuardianUserId } from "@/lib/admissions/family-preview-access";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
+import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { getRequestUser } from "@/lib/auth/session";
 import { createClient } from "@/utils/supabase/server";
@@ -26,6 +27,7 @@ export async function loadParentHomeContentData(input: {
   slug: string;
   features: OrganizationFeatures;
   previewBasePath?: string;
+  programId?: string;
   supabase?: SupabaseClient;
 }): Promise<ParentHomeContentData> {
   const user = await getRequestUser();
@@ -41,11 +43,12 @@ export async function loadParentHomeContentData(input: {
   const cookieStore = await cookies();
   const supabase = input.supabase ?? createClient(cookieStore);
 
-  const familyChildren = await listFamilyChildrenForHome(
-    supabase,
-    input.organizationId,
-    user.id,
-  );
+  const familyChildren = input.programId
+    ? filterFamilyChildrenForProgramPortal(
+        await listFamilyChildrenForHome(supabase, input.organizationId, user.id),
+        input.programId,
+      )
+    : await listFamilyChildrenForHome(supabase, input.organizationId, user.id);
 
   const onboardingItems = await loadResolvedParentOnboardingItems({
     supabase,
@@ -96,13 +99,23 @@ export async function loadParentHomePreviewContentData(input: {
   slug: string;
   features: OrganizationFeatures;
   previewBasePath?: string;
+  programId?: string;
   supabase: SupabaseClient;
 }): Promise<ParentHomeContentData> {
-  const familyChildren = await listFamilyChildrenForHomeByFamilyId(
-    input.supabase,
-    input.organizationId,
-    input.familyId,
-  );
+  const familyChildren = input.programId
+    ? filterFamilyChildrenForProgramPortal(
+        await listFamilyChildrenForHomeByFamilyId(
+          input.supabase,
+          input.organizationId,
+          input.familyId,
+        ),
+        input.programId,
+      )
+    : await listFamilyChildrenForHomeByFamilyId(
+        input.supabase,
+        input.organizationId,
+        input.familyId,
+      );
 
   const previewGuardianUserId = await getFamilyPreviewGuardianUserId(
     input.supabase,

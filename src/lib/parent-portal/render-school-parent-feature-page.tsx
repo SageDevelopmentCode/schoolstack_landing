@@ -12,6 +12,7 @@ import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentC
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -35,7 +36,18 @@ import {
   getParentPortalUserProfile,
 } from "@/lib/parent-portal/parent-portal-server-cache";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import {
+  mainPortalMessageAudienceScope,
+  programPortalMessageAudienceScope,
+} from "@/lib/messages/message-audience";
+import {
+  mainPortalAudienceScope,
+  programPortalAudienceScope,
+} from "@/lib/school-events/event-audience";
 import { createClient } from "@/utils/supabase/server";
+import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
+import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
+import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -113,6 +125,8 @@ export async function renderSchoolParentFeaturePage(
 
   let features: OrganizationFeatures = org.features;
   let parentNavBasePath = context.parentNavBasePath;
+  let programId: string | undefined;
+  let programPortalLabel: string | undefined;
 
   if (context.programSlug) {
     const { loadProgramParentPortalContext } = await import(
@@ -130,6 +144,8 @@ export async function renderSchoolParentFeaturePage(
     }
     features = programContext.effectiveFeatures;
     parentNavBasePath = programContext.parentNavBasePath;
+    programId = programContext.programId;
+    programPortalLabel = programContext.displayLabel;
   }
 
   if (!isParentFeatureEnabled(features, context.feature)) {
@@ -172,8 +188,11 @@ export async function renderSchoolParentFeaturePage(
   const familyId = await getParentPortalPrimaryFamilyId(supabase, org.id);
 
   if (context.feature === "portal") {
+    const upcomingAudienceScope = programId
+      ? programPortalAudienceScope(programId)
+      : mainPortalAudienceScope();
     const [upcomingEvents, homeMeta] = await Promise.all([
-      listUpcomingEventsForOrg(supabase, org.id, 3),
+      listUpcomingEventsForOrg(supabase, org.id, 3, upcomingAudienceScope),
       familyId
         ? fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId)
         : Promise.resolve(null),
@@ -195,6 +214,7 @@ export async function renderSchoolParentFeaturePage(
           quickActions={quickActions}
           upcomingEvents={upcomingEvents}
           homeMeta={homeMeta}
+          programPortalLabel={programPortalLabel}
         >
           {familyId ? (
             <Suspense fallback={null}>
@@ -203,6 +223,7 @@ export async function renderSchoolParentFeaturePage(
                 familyId={familyId}
                 slug={context.slug}
                 features={features}
+                programId={programId}
               />
             </Suspense>
           ) : null}
@@ -281,6 +302,9 @@ export async function renderSchoolParentFeaturePage(
   }
 
   if (context.feature === "messages") {
+    const messagesAudienceScope = programId
+      ? programPortalMessageAudienceScope(programId)
+      : mainPortalMessageAudienceScope();
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentMessagesPageShell
@@ -289,11 +313,14 @@ export async function renderSchoolParentFeaturePage(
           schoolName={org.name}
           branding={org.branding}
           familyId={familyId ?? undefined}
+          programId={programId}
         >
           <Suspense fallback={null}>
             <ParentMessagesInboxLoader
               organizationId={org.id}
               schoolName={org.name}
+              programId={programId}
+              audienceScope={messagesAudienceScope}
             />
           </Suspense>
         </ParentMessagesPageShell>
@@ -302,17 +329,59 @@ export async function renderSchoolParentFeaturePage(
   }
 
   if (context.feature === "calendar") {
+    const calendarAudienceScope = programId
+      ? programPortalAudienceScope(programId)
+      : mainPortalAudienceScope();
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCalendarPageShell
           organizationId={org.id}
           organizationSlug={context.slug}
           branding={org.branding}
+          programId={programId}
         >
           <Suspense fallback={null}>
-            <ParentCalendarEventsLoader organizationId={org.id} />
+            <ParentCalendarEventsLoader
+              organizationId={org.id}
+              audienceScope={calendarAudienceScope}
+            />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "children") {
+    const allFamilyChildren = await listFamilyChildrenForHome(
+      supabase,
+      org.id,
+      user.id,
+    );
+    const familyChildren = programId
+      ? filterFamilyChildrenForProgramPortal(allFamilyChildren, programId)
+      : allFamilyChildren;
+
+    const studentIds = familyChildren
+      .map((child) => child.studentId)
+      .filter((studentId): studentId is string => Boolean(studentId));
+
+    const initialHealthProfiles =
+      studentIds.length > 0
+        ? await loadStudentHealthProfilesForStudents(supabase, org.id, studentIds)
+        : {};
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentChildrenPage
+          branding={org.branding}
+          schoolName={org.name}
+          schoolSlug={context.slug}
+          organizationId={org.id}
+          familyChildren={familyChildren}
+          userProfile={userProfile}
+          initialHealthProfiles={initialHealthProfiles}
+          programPortalLabel={programPortalLabel}
+        />
       </SchoolParentPageShell>
     );
   }

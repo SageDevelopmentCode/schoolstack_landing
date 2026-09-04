@@ -95,6 +95,7 @@ export type MessageThreadListAvatar = {
 
 export type MessageThreadSummary = {
   id: string;
+  programId?: string;
   subject: string | null;
   title: string;
   subtitle?: string;

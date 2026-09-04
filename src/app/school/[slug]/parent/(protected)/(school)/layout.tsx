@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import { getRequestUser } from "@/lib/auth/session";
+import { loadParentPortalNavContextsForUser } from "@/lib/admissions/program-parent-portal-access";
 import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
@@ -28,12 +29,20 @@ export default async function SchoolParentMainLayout({
     return children;
   }
 
-  const [userProfile, portalOptions] = await Promise.all([
+  const [userProfile, portalOptions, parentPortalContexts] = await Promise.all([
     getParentPortalUserProfile(supabase, org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
       hasEnrolledAccess: true,
       hasFamilyAccess: true,
+    }),
+    loadParentPortalNavContextsForUser({
+      supabase,
+      userId: user.id,
+      organizationId: org.id,
+      schoolSlug: slug,
+      schoolName: org.name,
+      orgFeatures: org.features,
     }),
   ]);
 
@@ -46,6 +55,7 @@ export default async function SchoolParentMainLayout({
       features={org.features}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      parentPortalContexts={parentPortalContexts}
     >
       {children}
     </SchoolParentBaseline>

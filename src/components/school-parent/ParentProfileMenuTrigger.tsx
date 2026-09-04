@@ -13,6 +13,7 @@ type ParentProfileMenuTriggerProps = {
   parentTheme?: ParentThemeTokens;
   variant?: "default" | "story";
   menuOpen?: boolean;
+  contextLabel?: string;
   className?: string;
   onClick?: () => void;
   "aria-expanded"?: boolean;
@@ -45,6 +46,7 @@ export default function ParentProfileMenuTrigger({
   parentTheme,
   variant = "default",
   menuOpen = false,
+  contextLabel,
   className = "",
   onClick,
   "aria-expanded": ariaExpanded,
@@ -89,13 +91,21 @@ export default function ParentProfileMenuTrigger({
         size="sm"
         src={profilePhotoUrl ?? undefined}
       />
-      <span
-        className={`min-w-0 max-w-[10rem] flex-1 truncate text-sm font-medium ${
-          isStory ? "hidden sm:block" : ""
-        }`}
-        style={{ color: nameColor }}
-      >
-        {firstName}
+      <span className={`min-w-0 flex-1 ${isStory ? "hidden sm:block" : ""}`}>
+        <span
+          className="block max-w-[10rem] truncate text-sm font-medium"
+          style={{ color: nameColor }}
+        >
+          {firstName}
+        </span>
+        {contextLabel ? (
+          <span
+            className="mt-0.5 block max-w-[10rem] truncate text-[11px] font-semibold"
+            style={{ color: parentTheme?.muted ?? C.textTertiary }}
+          >
+            {contextLabel}
+          </span>
+        ) : null}
       </span>
       <ChevronDown
         className={`h-4 w-4 shrink-0 transition-transform ${menuOpen ? "rotate-180" : ""}`}

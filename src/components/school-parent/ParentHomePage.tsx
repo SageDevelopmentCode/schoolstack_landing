@@ -25,6 +25,12 @@ import {
   parentThemeToAdminCompat,
 } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  childIsolatedPortalHref,
+  childIsolatedPortalLabel,
+  formatChildProgramLine,
+  programPortalChildrenEmptyMessage,
+} from "@/components/school-parent/children/parent-children-utils";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
@@ -32,6 +38,7 @@ import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboarding
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import ParentPortalContextHomeBanner from "@/components/school-parent/ParentPortalContextHomeBanner";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
@@ -59,6 +66,7 @@ type ParentHomePageProps = {
   deferSignupAttentionLoad?: boolean;
   previewMode?: boolean;
   previewBasePath?: string;
+  programPortalLabel?: string;
 };
 
 type AttentionItem = {
@@ -108,10 +116,14 @@ function greetingParts(): { prefix: string; emoji: string } {
 
 function childSubtitleLine(child: FamilyChildOverview): string {
   const gradePart = child.grade ? `Grade ${child.grade}` : "Grade not listed";
+  const programs = formatChildProgramLine(child);
   if (child.checklistProgress && child.checklistProgress.total > 0) {
-    return `${gradePart} · Enrollment checklist: ${child.checklistProgress.completed} of ${child.checklistProgress.total} complete`;
+    const checklistPart = `Enrollment checklist: ${child.checklistProgress.completed} of ${child.checklistProgress.total} complete`;
+    return programs
+      ? `${gradePart} · ${programs} · ${checklistPart}`
+      : `${gradePart} · ${checklistPart}`;
   }
-  return gradePart;
+  return programs ? `${gradePart} · ${programs}` : gradePart;
 }
 
 function childApplicationHref(
@@ -236,6 +248,12 @@ function ChildStoryCard({
   const statusTone = child.isEnrolled ? "success" : "info";
   const showEnrollmentLink =
     child.isEnrolled || child.status === "enrolling";
+  const isolatedPortalHref = childIsolatedPortalHref(
+    schoolSlug,
+    child,
+    previewBasePath ? `${previewBasePath}/parent` : undefined,
+  );
+  const isolatedPortalLabel = childIsolatedPortalLabel(child);
 
   return (
     <motion.div custom={index + 4} initial="hidden" animate="visible" variants={fadeUp}>
@@ -288,6 +306,11 @@ function ChildStoryCard({
               Enrollment checklist
             </ParentTextLink>
           ) : null}
+          {isolatedPortalHref && isolatedPortalLabel ? (
+            <ParentTextLink theme={theme} href={isolatedPortalHref}>
+              Open {isolatedPortalLabel} portal
+            </ParentTextLink>
+          ) : null}
         </div>
       </ParentCard>
     </motion.div>
@@ -311,6 +334,7 @@ export default function ParentHomePage({
   contentDeferred = false,
   deferSignupAttentionLoad = false,
   previewBasePath,
+  programPortalLabel,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
@@ -405,6 +429,8 @@ export default function ParentHomePage({
             <ParentDatePill theme={theme} />
           </div>
         </motion.header>
+
+        <ParentPortalContextHomeBanner />
 
         {enrollmentAmendmentBannerItems.length > 0 ||
         enrollmentIncompleteBannerItems.length > 0 ? (
@@ -540,16 +566,22 @@ export default function ParentHomePage({
           {familyChildren.length === 0 ? (
             <ParentCard theme={theme}>
               <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                We don&apos;t have any student records from your applications yet.
-                Visit your{" "}
-                <Link
-                  href={applyDashboardHref}
-                  className="font-bold"
-                  style={{ color: theme.primary }}
-                >
-                  application dashboard
-                </Link>{" "}
-                to get started.
+                {programPortalLabel
+                  ? programPortalChildrenEmptyMessage(programPortalLabel)
+                  : (
+                    <>
+                      We don&apos;t have any student records from your applications yet.
+                      Visit your{" "}
+                      <Link
+                        href={applyDashboardHref}
+                        className="font-bold"
+                        style={{ color: theme.primary }}
+                      >
+                        application dashboard
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  )}
               </p>
             </ParentCard>
           ) : (

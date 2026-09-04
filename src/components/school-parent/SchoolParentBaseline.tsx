@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
+import { ParentPortalContextProvider } from "@/components/school-parent/ParentPortalContextProvider";
 import ParentToaster from "@/components/school-parent/ParentToaster";
 import { ParentThemeProvider, useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
@@ -11,6 +12,7 @@ import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context
 import { fraunces, dmSans } from "@/lib/fonts";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   isParentBillingPath,
   isParentMessagesPath,
@@ -34,8 +36,8 @@ type SchoolParentBaselineProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  parentPortalContexts?: ParentPortalContextOption[];
   parentNavBasePath?: string;
-  portalContextLabel?: string;
   children: ReactNode;
   previewMode?: boolean;
   previewBasePath?: string;
@@ -59,8 +61,8 @@ function SchoolParentBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  parentPortalContexts = [],
   parentNavBasePath,
-  portalContextLabel,
   children,
   previewMode = false,
   previewBasePath,
@@ -77,60 +79,67 @@ function SchoolParentBaselineInner({
   const showHelpButton = isParentHelpPage(pathname, slug) && !isMessagesPage;
 
   const shell = (
-    <div
-      className={
-        previewMode
-          ? `flex min-h-0 flex-1 w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
-          : `flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
-      }
-      data-parent-portal
-      style={{
-        ...parentThemeCssVars(theme),
-        fontFamily: theme.fontBody,
-        color: theme.ink,
-        backgroundColor: theme.paper,
-      }}
+    <ParentPortalContextProvider
+      slug={slug}
+      contexts={parentPortalContexts}
+      previewParentBasePath={previewParentBasePath}
+      onPreviewNavigate={embeddedPreview?.onNavigate}
+      pathnameOverride={embeddedPreview?.pathname}
     >
-      <SchoolParentHeader
-        slug={slug}
-        organizationId={organizationId}
-        schoolName={schoolName}
-        branding={branding}
-        features={features}
-        userProfile={userProfile}
-        portalOptions={portalOptions}
-        parentNavBasePath={parentNavBasePath ?? previewParentBasePath}
-        mainParentBasePath={
-          previewParentBasePath ?? `/school/${slug}/parent`
+      <div
+        className={
+          previewMode
+            ? `flex min-h-0 flex-1 w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
+            : `flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
         }
-        portalContextLabel={portalContextLabel}
-        previewMode={previewMode}
-        previewBasePath={previewBasePath}
-        previewParentBasePath={previewParentBasePath}
-        embeddedPreview={embeddedPreview}
-      />
-
-      <main
-        className={`flex min-h-0 flex-1 flex-col ${
-          isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
-        }`}
-        style={{ backgroundColor: theme.paper }}
+        data-parent-portal
+        style={{
+          ...parentThemeCssVars(theme),
+          fontFamily: theme.fontBody,
+          color: theme.ink,
+          backgroundColor: theme.paper,
+        }}
       >
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-      </main>
+        <SchoolParentHeader
+          slug={slug}
+          organizationId={organizationId}
+          schoolName={schoolName}
+          branding={branding}
+          features={features}
+          userProfile={userProfile}
+          portalOptions={portalOptions}
+          parentNavBasePath={parentNavBasePath ?? previewParentBasePath}
+          mainParentBasePath={
+            previewParentBasePath ?? `/school/${slug}/parent`
+          }
+          previewMode={previewMode}
+          previewBasePath={previewBasePath}
+          previewParentBasePath={previewParentBasePath}
+          embeddedPreview={embeddedPreview}
+        />
 
-      <PortalHelpFab
-        C={C}
-        organizationId={organizationId}
-        userEmail={userProfile.email}
-        currentPath={pathname}
-        submitEndpoint="/api/parent-portal/support-requests"
-        visible={showHelpButton}
-        readOnly={previewMode}
-      />
+        <main
+          className={`flex min-h-0 flex-1 flex-col ${
+            isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+          style={{ backgroundColor: theme.paper }}
+        >
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        </main>
 
-      <ParentToaster C={C} helpButtonVisible={showHelpButton} />
-    </div>
+        <PortalHelpFab
+          C={C}
+          organizationId={organizationId}
+          userEmail={userProfile.email}
+          currentPath={pathname}
+          submitEndpoint="/api/parent-portal/support-requests"
+          visible={showHelpButton}
+          readOnly={previewMode}
+        />
+
+        <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+      </div>
+    </ParentPortalContextProvider>
   );
 
   const wrappedShell = (

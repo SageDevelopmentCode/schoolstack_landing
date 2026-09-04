@@ -12,6 +12,7 @@ type ParentCalendarPageShellProps = {
   branding: OrganizationBranding;
   previewMode?: boolean;
   agendaTitle?: string;
+  programId?: string;
   children?: React.ReactNode;
 };
 
@@ -21,6 +22,7 @@ export default function ParentCalendarPageShell({
   branding,
   previewMode = false,
   agendaTitle,
+  programId,
   children,
 }: ParentCalendarPageShellProps) {
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
@@ -41,6 +43,7 @@ export default function ParentCalendarPageShell({
         organizationSlug={organizationSlug}
         previewMode={previewMode}
         agendaTitle={agendaTitle}
+        programId={programId}
         events={events}
         eventsDeferred={!eventsHydrated}
       />

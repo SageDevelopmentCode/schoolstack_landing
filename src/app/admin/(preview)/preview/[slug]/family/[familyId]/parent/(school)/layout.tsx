@@ -4,6 +4,7 @@ import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
 } from "@/lib/admissions/family-preview-access";
+import { loadParentPortalNavContextsForFamily } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { cookies } from "next/headers";
@@ -32,6 +33,15 @@ export default async function FamilyPreviewMainParentLayout({
   const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
   const previewBasePath = familyPreviewBasePath(slug, familyId);
   const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
+  const parentPortalContexts = await loadParentPortalNavContextsForFamily({
+    supabase,
+    organizationId: org.id,
+    familyId,
+    schoolSlug: slug,
+    schoolName: org.name,
+    orgFeatures: org.features,
+    previewParentBasePath,
+  });
 
   return (
     <SchoolParentBaseline
@@ -41,6 +51,7 @@ export default async function FamilyPreviewMainParentLayout({
       branding={org.branding}
       features={org.features}
       userProfile={userProfile}
+      parentPortalContexts={parentPortalContexts}
       previewMode
       previewBasePath={previewBasePath}
       previewParentBasePath={previewParentBasePath}

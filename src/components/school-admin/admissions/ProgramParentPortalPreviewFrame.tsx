@@ -33,7 +33,11 @@ import {
   getParentPageLabel,
   isParentNavItemActive,
 } from "@/lib/organization-settings/parent-nav";
-import { resolveProgramOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
+import {
+  buildMainParentPortalContext,
+  buildProgramParentPortalContext,
+  resolveProgramOrganizationFeatures,
+} from "@/lib/organization-settings/resolve-program-parent-features";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
@@ -48,6 +52,7 @@ type ProgramParentPortalPreviewFrameProps = {
   organizationId: string;
   programName: string;
   portalSlug: string | null;
+  isolationAllowed: boolean;
 };
 
 function PreviewMessagesHydrator() {
@@ -214,18 +219,32 @@ export default function ProgramParentPortalPreviewFrame({
   organizationId,
   programName,
   portalSlug,
+  isolationAllowed,
 }: ProgramParentPortalPreviewFrameProps) {
   const userProfile = useMemo(
     () => getProgramParentPortalPreviewUserProfile(),
     [],
   );
 
-  const resolvedFeatures = useMemo(() => {
-    const derived = deriveProgramPortalSettingsFromEditor(editor, orgFeatures);
-    return resolveProgramOrganizationFeatures(orgFeatures, derived);
-  }, [editor, orgFeatures]);
+  const portalGovernance = useMemo(
+    () => ({ isolationAllowed }),
+    [isolationAllowed],
+  );
 
-  const usesSeparatePortal = wouldUseIsolatedProgramPortal(editor, orgFeatures);
+  const resolvedFeatures = useMemo(() => {
+    const derived = deriveProgramPortalSettingsFromEditor(
+      editor,
+      orgFeatures,
+      portalGovernance,
+    );
+    return resolveProgramOrganizationFeatures(orgFeatures, derived);
+  }, [editor, orgFeatures, portalGovernance]);
+
+  const usesSeparatePortal = wouldUseIsolatedProgramPortal(
+    editor,
+    orgFeatures,
+    portalGovernance,
+  );
 
   const parentNavBasePath = useMemo(() => {
     if (usesSeparatePortal && portalSlug) {
@@ -235,6 +254,21 @@ export default function ProgramParentPortalPreviewFrame({
   }, [portalSlug, schoolSlug, usesSeparatePortal]);
 
   const portalContextLabel = editor.label?.trim() || programName;
+
+  const parentPortalContexts = useMemo(() => {
+    if (!usesSeparatePortal || !portalSlug) {
+      return [buildMainParentPortalContext(schoolName)];
+    }
+
+    return [
+      buildMainParentPortalContext(schoolName),
+      buildProgramParentPortalContext({
+        programId: "preview-program",
+        portalSlug,
+        label: portalContextLabel,
+      }),
+    ];
+  }, [portalContextLabel, portalSlug, schoolName, usesSeparatePortal]);
 
   const [previewPathname, setPreviewPathname] = useState(
     `${parentNavBasePath}/portal`,
@@ -280,7 +314,7 @@ export default function ProgramParentPortalPreviewFrame({
         features={resolvedFeatures}
         userProfile={userProfile}
         parentNavBasePath={parentNavBasePath}
-        portalContextLabel={usesSeparatePortal ? portalContextLabel : undefined}
+        parentPortalContexts={parentPortalContexts}
         previewMode
         previewParentBasePath={`/school/${schoolSlug}/parent`}
         embeddedPreview={embeddedPreview}

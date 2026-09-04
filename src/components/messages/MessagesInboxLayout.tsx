@@ -52,6 +52,7 @@ export type MessagesApiConfig = {
   schoolName: string;
   familyId?: string;
   guardianId?: string;
+  programId?: string;
   viewer: "parent" | "teacher" | "admin";
 };
 
@@ -215,14 +216,16 @@ export default function MessagesInboxLayout({
     }
   }
 
-  const query = useMemo(
-    () =>
-      new URLSearchParams({
-        organizationId: api.organizationId,
-        schoolName: api.schoolName,
-      }).toString(),
-    [api.organizationId, api.schoolName],
-  );
+  const query = useMemo(() => {
+    const params = new URLSearchParams({
+      organizationId: api.organizationId,
+      schoolName: api.schoolName,
+    });
+    if (api.programId) {
+      params.set("programId", api.programId);
+    }
+    return params.toString();
+  }, [api.organizationId, api.programId, api.schoolName]);
 
   const loadInbox = useCallback(async () => {
     if (hasLoadedThreadsRef.current) {
@@ -335,7 +338,14 @@ export default function MessagesInboxLayout({
           staffMemberId:
             teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null,
         });
-        return key === contact.key;
+        if (key !== contact.key) return false;
+        if (!api.programId) {
+          return !thread.programId;
+        }
+        if (contact.kind === "school_office") {
+          return !thread.programId;
+        }
+        return thread.programId === api.programId;
       });
 
       if (existing) {
@@ -356,6 +366,7 @@ export default function MessagesInboxLayout({
           body: JSON.stringify({
             organizationId: api.organizationId,
             familyId: api.familyId,
+            programId: api.programId ?? null,
             contact,
           }),
         });
@@ -372,8 +383,10 @@ export default function MessagesInboxLayout({
     },
     [
       api.basePath,
+      api.familyId,
       api.guardianId,
       api.organizationId,
+      api.programId,
       api.viewer,
       loadThread,
       readOnly,
@@ -675,10 +688,6 @@ export default function MessagesInboxLayout({
     ];
   }, [adminStory, api.viewer, contactKeysWithThreads, contacts, splitPane, threadsForList]);
 
-  const newConversationContacts = contacts.filter(
-    (contact) => !contactKeysWithThreads.has(contact.key),
-  );
-
   const activeKey = activeThreadId;
   const reducedMotion = useReducedMotion() ?? false;
 
@@ -960,7 +969,7 @@ export default function MessagesInboxLayout({
       {splitPane ? (
         <MessagesNewConversationModal
           open={newConversationOpen}
-          contacts={newConversationContacts}
+          contacts={contacts}
           loadingContacts={loadingContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}

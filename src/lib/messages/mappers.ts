@@ -18,6 +18,7 @@ import type {
 export type MessageThreadRow = {
   id: string;
   organization_id: string;
+  program_id: string | null;
   subject: string | null;
   participant_signature: string;
   last_message_at: string | null;
@@ -543,6 +544,7 @@ export function mapThreadSummary(
 
   return {
     id: String(thread.id),
+    programId: thread.program_id ? String(thread.program_id) : undefined,
     subject: thread.subject,
     title: display.title,
     subtitle: display.subtitle,

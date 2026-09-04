@@ -18,6 +18,8 @@ import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-met
 import StudentsPageShell from "@/components/school-admin/students/StudentsPageShell";
 import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-parent-portal-governance";
+import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
 import { createClient } from "@/utils/supabase/server";
 
 const ProgramsPage = nextDynamic(
@@ -103,12 +105,22 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     (feature === "admissions" && subtab === "programs") ||
     (feature === "my_school" && subtab === "programs")
   ) {
+    const { data: settingsRow } = await supabase
+      .from("organization_settings")
+      .select("admissions")
+      .eq("organization_id", org.id)
+      .maybeSingle();
+    const programParentPortalConfig = parseProgramParentPortalOrgConfig(
+      parseAdmissionsOrgSettings(settingsRow?.admissions),
+    );
+
     return (
       <ProgramsPage
         organizationId={org.id}
         branding={org.branding}
         orgFeatures={org.features}
         slug={slug}
+        programParentPortalConfig={programParentPortalConfig}
       />
     );
   }

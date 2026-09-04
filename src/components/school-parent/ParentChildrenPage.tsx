@@ -12,6 +12,7 @@ import ParentChildrenRecordSkeleton from "@/components/school-parent/children/Pa
 import ParentChildrenStoryHeader from "@/components/school-parent/children/ParentChildrenStoryHeader";
 import {
   isParentChildRecordSection,
+  programPortalChildrenEmptyMessage,
   type ParentChildRecordSection,
 } from "@/components/school-parent/children/parent-children-utils";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
@@ -39,6 +40,7 @@ type ParentChildrenPageProps = {
   initialHealthProfiles?: Record<string, StudentHealthProfile>;
   previewBasePath?: string;
   previewMode?: boolean;
+  programPortalLabel?: string;
 };
 
 export default function ParentChildrenPage({
@@ -52,6 +54,7 @@ export default function ParentChildrenPage({
   initialHealthProfiles,
   previewBasePath,
   previewMode = false,
+  programPortalLabel,
 }: ParentChildrenPageProps) {
   const { theme, adminCompat } = useParentTheme();
   const supabase = useMemo(() => createClient(), []);
@@ -259,16 +262,22 @@ export default function ParentChildrenPage({
         <div className="mx-auto max-w-[1250px] px-4 py-6 sm:py-8 md:px-9">
           <ParentCard theme={theme} className="text-center">
             <p className="m-0 text-sm leading-relaxed" style={{ color: theme.muted }}>
-              We don&apos;t have any student records from your applications yet. Visit
-              your{" "}
-              <Link
-                href={applyDashboardHref}
-                className="font-bold underline underline-offset-2"
-                style={{ color: theme.primary }}
-              >
-                application dashboard
-              </Link>{" "}
-              to get started.
+              {programPortalLabel ? (
+                programPortalChildrenEmptyMessage(programPortalLabel)
+              ) : (
+                <>
+                  We don&apos;t have any student records from your applications yet. Visit
+                  your{" "}
+                  <Link
+                    href={applyDashboardHref}
+                    className="font-bold underline underline-offset-2"
+                    style={{ color: theme.primary }}
+                  >
+                    application dashboard
+                  </Link>{" "}
+                  to get started.
+                </>
+              )}
             </p>
           </ParentCard>
         </div>
@@ -328,6 +337,7 @@ export default function ParentChildrenPage({
             application={selectedProfile.application}
             checklist={selectedProfile.checklist}
             assignedTeachers={selectedProfile.assignedTeachers}
+            enrolledPrograms={selectedChild?.enrolledPrograms ?? []}
             readOnly={readOnly}
             activeSection={recordSection}
             onSectionChange={setRecordSection}

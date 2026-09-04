@@ -25,6 +25,9 @@ import {
   reportAuthActivityAndWait,
 } from "@/lib/activity-auth-client";
 import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
+import ParentPortalContextSwitcherMenuItems from "@/components/school-parent/ParentPortalContextSwitcherMenuItems";
+import ParentPortalContextTopBar from "@/components/school-parent/ParentPortalContextTopBar";
+import { useParentPortalContext } from "@/components/school-parent/ParentPortalContextProvider";
 import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import {
   detectPortalFromPathname,
@@ -56,7 +59,6 @@ type SchoolParentHeaderProps = {
   portalOptions?: SchoolPortalOption[];
   parentNavBasePath?: string;
   mainParentBasePath?: string;
-  portalContextLabel?: string;
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
@@ -139,7 +141,6 @@ export default function SchoolParentHeader({
   portalOptions = [],
   parentNavBasePath,
   mainParentBasePath,
-  portalContextLabel,
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
@@ -150,6 +151,7 @@ export default function SchoolParentHeader({
   const onPreviewNavigate = embeddedPreview?.onNavigate;
   const router = useRouter();
   const { theme, adminCompat: C } = useParentTheme();
+  const { showSwitcher, activeContext } = useParentPortalContext();
   const previewPortalOptions = usePreviewPortalOptions();
   const resolvedPortalOptions =
     previewMode && previewPortalOptions.length > 0
@@ -159,6 +161,7 @@ export default function SchoolParentHeader({
     previewMode && shouldShowPortalSwitcher(resolvedPortalOptions);
   const supabase = useMemo(() => createClient(), []);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(
@@ -166,6 +169,7 @@ export default function SchoolParentHeader({
   );
   const [photoUploading, setPhotoUploading] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const mobileMoreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const resolvedNavBasePath =
@@ -249,6 +253,17 @@ export default function SchoolParentHeader({
   }, [moreOpen]);
 
   useEffect(() => {
+    if (!mobileMoreOpen) return;
+    const handler = (event: MouseEvent) => {
+      if (!mobileMoreRef.current?.contains(event.target as Node)) {
+        setMobileMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [mobileMoreOpen]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const handler = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
@@ -287,6 +302,7 @@ export default function SchoolParentHeader({
         borderColor: theme.line,
       }}
     >
+      <ParentPortalContextTopBar />
       <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
         <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <Link
@@ -327,14 +343,6 @@ export default function SchoolParentHeader({
                   className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
                   sizes="(max-width: 640px) 160px, 200px"
                 />
-                {portalContextLabel ? (
-                  <p
-                    className="mt-0.5 truncate text-[11px] font-semibold sm:text-xs"
-                    style={{ color: theme.muted }}
-                  >
-                    {portalContextLabel}
-                  </p>
-                ) : null}
               </div>
             </button>
           ) : (
@@ -351,14 +359,6 @@ export default function SchoolParentHeader({
                 className="h-8 w-auto max-w-[min(120px,28vw)] object-contain sm:max-w-[min(180px,40vw)] sm:h-10"
                 sizes="(max-width: 640px) 160px, 200px"
               />
-              {portalContextLabel ? (
-                <p
-                  className="mt-0.5 truncate text-[11px] font-semibold sm:text-xs"
-                  style={{ color: theme.muted }}
-                >
-                  {portalContextLabel}
-                </p>
-              ) : null}
             </div>
           </NavigationLink>
           )}
@@ -468,6 +468,9 @@ export default function SchoolParentHeader({
             parentTheme={theme}
             variant="story"
             menuOpen={menuOpen}
+            contextLabel={
+              showSwitcher && activeContext ? activeContext.label : undefined
+            }
             onClick={() => setMenuOpen((open) => !open)}
           />
           {menuOpen ? (
@@ -512,6 +515,12 @@ export default function SchoolParentHeader({
                   </div>
                 </div>
               </div>
+              <ParentPortalContextSwitcherMenuItems
+                C={C}
+                themeInk={theme.ink}
+                themeMuted={theme.muted}
+                onNavigate={() => setMenuOpen(false)}
+              />
               <SchoolPortalSwitcherMenuItems
                 C={C}
                 options={resolvedPortalOptions}
@@ -563,7 +572,7 @@ export default function SchoolParentHeader({
           className="flex gap-1 overflow-x-auto border-t px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
           style={{ borderColor: theme.line }}
         >
-          {navItems.map((item) => (
+          {primary.map((item) => (
             <NavLink
               key={item.key}
               item={item}
@@ -574,6 +583,79 @@ export default function SchoolParentHeader({
               onNavigate={onPreviewNavigate}
             />
           ))}
+          {more.length > 0 ? (
+            <div className="relative shrink-0" ref={mobileMoreRef}>
+              <button
+                type="button"
+                onClick={() => setMobileMoreOpen((open) => !open)}
+                className={`flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-lg px-3 py-1.5 transition-colors ${parentNavTextClass}`}
+                style={{
+                  color: moreActive ? theme.primary : theme.muted,
+                  backgroundColor: moreActive ? theme.primaryLight : "transparent",
+                }}
+              >
+                More
+                <ChevronDown
+                  className={`h-3 w-3 transition-transform ${mobileMoreOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {mobileMoreOpen ? (
+                <div
+                  className="absolute right-0 z-[100] mt-1.5 w-52 rounded-xl py-1.5 shadow-lg"
+                  style={{
+                    border: `1px solid ${theme.line}`,
+                    backgroundColor: theme.white,
+                  }}
+                >
+                  {more.map((item) => {
+                    const Icon = item.icon;
+                    const active = isParentNavItemActive(pathname, item);
+                    const iconColorClass = getParentFeatureIconColor(item.iconSlug);
+                    const itemClassName = `flex w-full items-center gap-2 px-4 py-2 text-left transition-colors ${parentNavTextClass}`;
+                    const itemStyle = {
+                      color: active ? theme.primary : theme.ink,
+                      backgroundColor: active ? theme.primaryLight : "transparent",
+                    };
+                    const itemContent = (
+                      <>
+                        <Icon className={`h-4 w-4 shrink-0 ${iconColorClass}`} />
+                        <span>{item.name}</span>
+                      </>
+                    );
+
+                    if (onPreviewNavigate) {
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => {
+                            onPreviewNavigate(item.href);
+                            setMobileMoreOpen(false);
+                          }}
+                          className={itemClassName}
+                          style={itemStyle}
+                        >
+                          {itemContent}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <NavigationLink
+                        key={item.key}
+                        href={item.href}
+                        onClick={() => setMobileMoreOpen(false)}
+                        className={itemClassName}
+                        style={itemStyle}
+                      >
+                        {itemContent}
+                      </NavigationLink>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </nav>
       ) : null}
     </header>

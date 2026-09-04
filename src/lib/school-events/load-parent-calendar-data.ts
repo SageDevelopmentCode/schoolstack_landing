@@ -3,7 +3,7 @@ import {
   calendarEventWindowForMonth,
   calendarEventWindowForToday,
 } from "./calendar-window";
-import { listEventsForOrg } from "./events";
+import { listEventsForOrg, type OrganizationEventAudienceScope } from "./events";
 import type { ParentCalendarInitialData } from "./types";
 import { createClient } from "@/utils/supabase/server";
 
@@ -11,6 +11,7 @@ export async function loadParentCalendarInitialData(input: {
   organizationId: string;
   year?: number;
   month?: number;
+  audienceScope?: OrganizationEventAudienceScope;
 }): Promise<ParentCalendarInitialData> {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -23,9 +24,14 @@ export async function loadParentCalendarInitialData(input: {
       ? calendarEventWindowForToday(referenceDate)
       : calendarEventWindowForMonth(year, month);
 
+  const audienceScope =
+    input.audienceScope ??
+    ({ mode: "main_portal" } satisfies OrganizationEventAudienceScope);
+
   const events = await listEventsForOrg(supabase, input.organizationId, {
     startDate,
     endDate,
+    audienceScope,
   });
 
   return { events, windowStartDate: startDate, windowEndDate: endDate };

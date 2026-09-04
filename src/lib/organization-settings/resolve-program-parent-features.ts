@@ -14,6 +14,7 @@ export type ParentPortalContextOption = {
   label: string;
   portalSlug?: string;
   programId?: string;
+  entryHref?: string;
 };
 
 function toParentFeatureRecord(

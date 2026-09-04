@@ -23,7 +23,11 @@ import {
   type EnrollmentChecklistItem,
   type EnrollmentChecklistItemInstance,
 } from "@/lib/admissions/enrollment-checklist-schema";
-import type { ApplicationDetail, ParentAssignedTeacher } from "@/lib/admissions/parent-portal-access";
+import type {
+  ApplicationDetail,
+  FamilyChildEnrolledProgram,
+  ParentAssignedTeacher,
+} from "@/lib/admissions/parent-portal-access";
 import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeachersTab";
 import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
 import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
@@ -58,6 +62,7 @@ type ParentChildRecordWorkspaceProps = {
   application: ApplicationDetail;
   checklist: LoadedEnrollmentChecklist | null;
   assignedTeachers: ParentAssignedTeacher[];
+  enrolledPrograms?: FamilyChildEnrolledProgram[];
   readOnly?: boolean;
   activeSection: ParentChildRecordSection;
   onSectionChange: (section: ParentChildRecordSection) => void;
@@ -167,6 +172,7 @@ export default function ParentChildRecordWorkspace({
   application,
   checklist,
   assignedTeachers,
+  enrolledPrograms = [],
   readOnly = false,
   activeSection,
   onSectionChange,
@@ -301,6 +307,16 @@ export default function ParentChildRecordWorkspace({
                     Grade {student.grade}
                   </ParentChip>
                 ) : null}
+                {enrolledPrograms.map((program) => (
+                  <ParentChip
+                    key={program.programId}
+                    theme={theme}
+                    tone="info"
+                    className="!normal-case !tracking-normal"
+                  >
+                    {program.portalLabel || program.programName}
+                  </ParentChip>
+                ))}
                 {birthDate ? (
                   <ParentChip theme={theme} tone="info" className="!normal-case !tracking-normal">
                     Born {birthDate}

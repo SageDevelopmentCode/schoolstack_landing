@@ -8,6 +8,7 @@ import {
 } from "@/lib/admissions/family-preview-access";
 import {
   familyHasEnrolledAccessInProgram,
+  loadParentPortalNavContextsForFamily,
   loadProgramParentPortalContext,
 } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
@@ -64,6 +65,15 @@ export default async function FamilyPreviewProgramParentLayout({
   }
 
   const userProfile = await getFamilyPreviewProfile(supabase, org.id, familyId);
+  const parentPortalContexts = await loadParentPortalNavContextsForFamily({
+    supabase,
+    organizationId: org.id,
+    familyId,
+    schoolSlug: slug,
+    schoolName: org.name,
+    orgFeatures: org.features,
+    previewParentBasePath,
+  });
 
   return (
     <SchoolParentBaseline
@@ -73,12 +83,11 @@ export default async function FamilyPreviewProgramParentLayout({
       branding={org.branding}
       features={programContext.effectiveFeatures}
       userProfile={userProfile}
+      parentPortalContexts={parentPortalContexts}
       previewMode
       previewBasePath={familyPreviewBasePath(slug, familyId)}
       previewParentBasePath={previewParentBasePath}
       parentNavBasePath={programContext.parentNavBasePath}
-      mainParentBasePath={previewParentBasePath}
-      portalContextLabel={programContext.displayLabel}
     >
       {children}
     </SchoolParentBaseline>

@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId")?.trim() ?? "";
   const schoolName = searchParams.get("schoolName")?.trim() ?? "School";
+  const programId = searchParams.get("programId")?.trim() || null;
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -53,6 +54,7 @@ export async function GET(request: Request) {
       organizationId,
       user.id,
       schoolName,
+      programId,
     );
 
     return NextResponse.json({ contacts });

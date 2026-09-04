@@ -29,7 +29,9 @@ import {
   listEventsForOrg,
   updateOrganizationEvent,
 } from "@/lib/school-events/events";
+import { formatOrganizationEventAudienceLabel } from "@/lib/school-events/event-audience";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { listPrograms, type ProgramOption } from "@/lib/admissions/programs";
 import { createClient } from "@/utils/supabase/client";
 
 type ToastVariant = "admin" | "parent";
@@ -82,6 +84,12 @@ export default function OrganizationEventsCalendarManager({
   const [form, setForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
   const [saving, setSaving] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [programOptions, setProgramOptions] = useState<ProgramOption[]>([]);
+
+  const programNameById = useMemo(
+    () => new Map(programOptions.map((program) => [program.id, program.name])),
+    [programOptions],
+  );
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
   const interactionsDisabled = readOnly;
@@ -103,6 +111,21 @@ export default function OrganizationEventsCalendarManager({
       void loadEvents();
     });
   }, [loadEvents]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(async () => {
+      try {
+        const rows = await listPrograms(supabase, organizationId);
+        if (!cancelled) setProgramOptions(rows);
+      } catch {
+        if (!cancelled) setProgramOptions([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId, supabase]);
 
   useEffect(() => {
     onLoadingChange?.(loading);
@@ -137,6 +160,7 @@ export default function OrganizationEventsCalendarManager({
       colorManuallySet: Boolean(event.colorKey),
       location: event.location ?? "",
       description: event.description ?? "",
+      programId: event.programId ?? null,
     });
     setFormOpen(true);
   };
@@ -166,6 +190,7 @@ export default function OrganizationEventsCalendarManager({
         colorKey: form.colorKey,
         location: form.location || undefined,
         description: form.description || undefined,
+        programId: form.programId,
       };
 
       if (editingEventId) {
@@ -176,6 +201,7 @@ export default function OrganizationEventsCalendarManager({
           colorKey: form.colorKey,
           location: form.location || null,
           description: form.description || null,
+          programId: form.programId,
         });
         toasts.success("Event updated");
       } else {
@@ -240,6 +266,11 @@ export default function OrganizationEventsCalendarManager({
       <SchoolEventDetailPanel
         event={formOpen ? null : selectedEvent}
         C={C}
+        audienceLabel={
+          selectedEvent
+            ? formatOrganizationEventAudienceLabel(selectedEvent, programNameById)
+            : undefined
+        }
         onClose={() => setSelectedEventId(null)}
         onDelete={handleDelete}
         onEdit={openEditForm}
@@ -253,6 +284,7 @@ export default function OrganizationEventsCalendarManager({
         mode={formMode}
         form={form}
         saving={saving || interactionsDisabled}
+        programOptions={programOptions}
         onClose={() => setFormOpen(false)}
         onChange={setForm}
         onSave={handleSave}

@@ -12,6 +12,7 @@ import {
   type ParentPortalContextOption,
 } from "@/lib/organization-settings/resolve-program-parent-features";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
+import { buildParentPortalContextOptionsWithEntryHrefs } from "./program-parent-portal-context-switch";
 
 async function getStudentIdsForFamilies(
   supabase: SupabaseClient,
@@ -79,6 +80,62 @@ export async function familyHasEnrolledAccessInProgram(
 
   if (error) throw error;
   return (data ?? []).length > 0;
+}
+
+export async function listAccessibleIsolatedProgramsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+): Promise<
+  Array<{
+    id: string;
+    name: string;
+    portal_slug: string;
+    parent_portal_settings: ProgramParentPortalSettings;
+  }>
+> {
+  const studentIds = await getStudentIdsForFamilies(supabase, organizationId, [
+    familyId,
+  ]);
+  if (studentIds.length === 0) return [];
+
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from("enrollments")
+    .select("program_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("student_id", studentIds);
+
+  if (enrollmentError) throw enrollmentError;
+
+  const programIds = [
+    ...new Set(
+      (enrollments ?? [])
+        .map((row) => (row.program_id ? String(row.program_id) : null))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (programIds.length === 0) return [];
+
+  const { data: programs, error: programError } = await supabase
+    .from("programs")
+    .select("id, name, portal_slug, parent_portal_settings")
+    .eq("organization_id", organizationId)
+    .in("id", programIds);
+
+  if (programError) throw programError;
+
+  return (programs ?? [])
+    .map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      portal_slug: String(row.portal_slug),
+      parent_portal_settings: parseProgramParentPortalSettings(
+        row.parent_portal_settings,
+      ),
+    }))
+    .filter((program) => isProgramParentPortalIsolated(program.parent_portal_settings))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function listAccessibleIsolatedProgramsForUser(
@@ -198,6 +255,122 @@ export async function listParentPortalContextsForUser(
     supabase,
     userId,
     organizationId,
+  );
+
+  const contexts: ParentPortalContextOption[] = [
+    { id: "main", label: schoolName },
+  ];
+
+  for (const program of isolatedPrograms) {
+    contexts.push({
+      id: `program:${program.id}`,
+      label: getProgramPortalDisplayLabel(
+        program.name,
+        program.parent_portal_settings,
+      ),
+      portalSlug: program.portal_slug,
+      programId: program.id,
+    });
+  }
+
+  return contexts;
+}
+
+function enrichParentPortalContextsWithEntryHrefs(input: {
+  slug: string;
+  schoolName: string;
+  orgFeatures: OrganizationFeatures;
+  contexts: ParentPortalContextOption[];
+  isolatedPrograms: Array<{
+    id: string;
+    parent_portal_settings: ProgramParentPortalSettings;
+  }>;
+  previewParentBasePath?: string;
+}): ParentPortalContextOption[] {
+  const programSettingsById = new Map(
+    input.isolatedPrograms.map((program) => [program.id, program.parent_portal_settings]),
+  );
+
+  return buildParentPortalContextOptionsWithEntryHrefs({
+    slug: input.slug,
+    schoolName: input.schoolName,
+    orgFeatures: input.orgFeatures,
+    contexts: input.contexts,
+    programSettingsById,
+    previewParentBasePath: input.previewParentBasePath,
+  });
+}
+
+export async function loadParentPortalNavContextsForUser(input: {
+  supabase: SupabaseClient;
+  userId: string;
+  organizationId: string;
+  schoolSlug: string;
+  schoolName: string;
+  orgFeatures: OrganizationFeatures;
+}): Promise<ParentPortalContextOption[]> {
+  const isolatedPrograms = await listAccessibleIsolatedProgramsForUser(
+    input.supabase,
+    input.userId,
+    input.organizationId,
+  );
+  const contexts = await listParentPortalContextsForUser(
+    input.supabase,
+    input.userId,
+    input.organizationId,
+    input.schoolName,
+  );
+
+  return enrichParentPortalContextsWithEntryHrefs({
+    slug: input.schoolSlug,
+    schoolName: input.schoolName,
+    orgFeatures: input.orgFeatures,
+    contexts,
+    isolatedPrograms,
+  });
+}
+
+export async function loadParentPortalNavContextsForFamily(input: {
+  supabase: SupabaseClient;
+  organizationId: string;
+  familyId: string;
+  schoolSlug: string;
+  schoolName: string;
+  orgFeatures: OrganizationFeatures;
+  previewParentBasePath?: string;
+}): Promise<ParentPortalContextOption[]> {
+  const isolatedPrograms = await listAccessibleIsolatedProgramsForFamily(
+    input.supabase,
+    input.organizationId,
+    input.familyId,
+  );
+  const contexts = await listParentPortalContextsForFamily(
+    input.supabase,
+    input.organizationId,
+    input.familyId,
+    input.schoolName,
+  );
+
+  return enrichParentPortalContextsWithEntryHrefs({
+    slug: input.schoolSlug,
+    schoolName: input.schoolName,
+    orgFeatures: input.orgFeatures,
+    contexts,
+    isolatedPrograms,
+    previewParentBasePath: input.previewParentBasePath,
+  });
+}
+
+export async function listParentPortalContextsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  schoolName: string,
+): Promise<ParentPortalContextOption[]> {
+  const isolatedPrograms = await listAccessibleIsolatedProgramsForFamily(
+    supabase,
+    organizationId,
+    familyId,
   );
 
   const contexts: ParentPortalContextOption[] = [

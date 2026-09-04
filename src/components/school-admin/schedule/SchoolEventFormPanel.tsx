@@ -31,6 +31,7 @@ export type EventFormState = {
   colorManuallySet: boolean;
   location: string;
   description: string;
+  programId: string | null;
 };
 
 export const EMPTY_EVENT_FORM: EventFormState = {
@@ -44,6 +45,7 @@ export const EMPTY_EVENT_FORM: EventFormState = {
   colorManuallySet: false,
   location: "",
   description: "",
+  programId: null,
 };
 
 type SchoolEventFormPanelProps = {
@@ -53,6 +55,7 @@ type SchoolEventFormPanelProps = {
   mode: "create" | "edit";
   form: EventFormState;
   saving: boolean;
+  programOptions: Array<{ id: string; name: string }>;
   onClose: () => void;
   onChange: (form: EventFormState) => void;
   onSave: () => void;
@@ -94,6 +97,7 @@ export default function SchoolEventFormPanel({
   mode,
   form,
   saving,
+  programOptions,
   onClose,
   onChange,
   onSave,
@@ -112,6 +116,14 @@ export default function SchoolEventFormPanel({
       label: SCHOOL_EVENT_TYPE_LABELS[type],
     }),
   );
+
+  const audienceOptions = [
+    { value: "", label: "All families (school-wide)" },
+    ...programOptions.map((program) => ({
+      value: program.id,
+      label: `${program.name} only`,
+    })),
+  ];
 
   const handleStartTimeChange = (time: string) => {
     const nextEnd =
@@ -260,6 +272,26 @@ export default function SchoolEventFormPanel({
                   options={categoryOptions}
                   ariaLabel="Event category"
                 />
+              </div>
+
+              <div>
+                <FieldLabel theme={theme}>Audience</FieldLabel>
+                <SchoolAdminSelect
+                  C={C}
+                  value={form.programId ?? ""}
+                  onChange={(value) =>
+                    onChange({
+                      ...form,
+                      programId: value ? value : null,
+                    })
+                  }
+                  options={audienceOptions}
+                  ariaLabel="Event audience"
+                />
+                <p className="mt-1.5 text-xs leading-relaxed" style={{ color: theme.muted }}>
+                  School-wide events appear on the main portal and every program portal.
+                  Program-only events appear in that program&apos;s portal.
+                </p>
               </div>
 
               <EventColorPicker

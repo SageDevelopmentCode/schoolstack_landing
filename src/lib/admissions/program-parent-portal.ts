@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FEATURE_CATALOG, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import type { OrganizationFeatures, ParentFeatures, PortalFeatureNav } from "@/lib/organization-settings/types";
+import type { ProgramPortalGovernanceOptions } from "./program-parent-portal-governance";
 import { slugifyFormTitle } from "./application-form-schema";
 
 export type ProgramParentPortalMode = "inherit" | "isolated";
@@ -186,7 +187,14 @@ export function programPortalSettingsMatchOrg(
 export function wouldUseIsolatedProgramPortal(
   editor: ProgramParentPortalEditorState,
   orgFeatures: OrganizationFeatures,
+  governance?: ProgramPortalGovernanceOptions,
 ): boolean {
+  if (governance && !governance.isolationAllowed) {
+    return false;
+  }
+  if (governance?.isolationAllowed) {
+    return true;
+  }
   const orgParent = orgFeatures.parent ?? DEFAULT_FEATURES.parent;
   return !programPortalSettingsMatchOrg(editor, orgParent);
 }
@@ -194,21 +202,33 @@ export function wouldUseIsolatedProgramPortal(
 export function deriveProgramPortalSettingsFromEditor(
   editor: ProgramParentPortalEditorState,
   orgFeatures: OrganizationFeatures,
+  governance?: ProgramPortalGovernanceOptions,
 ): ProgramParentPortalSettings {
   const orgParent = orgFeatures.parent ?? DEFAULT_FEATURES.parent;
-  const defaults = getDefaultProgramPortalFeatureToggles(orgParent);
 
-  if (programPortalSettingsMatchOrg(editor, orgParent)) {
+  if (governance && !governance.isolationAllowed) {
     return { mode: "inherit" };
   }
 
   const normalizedFeatures: Partial<ParentFeatures> = {};
   for (const key of getOrgEnabledParentCatalogKeys(orgParent)) {
-    const requested = Boolean(editor.features[key]);
-    normalizedFeatures[key] = requested;
+    normalizedFeatures[key] = Boolean(editor.features[key]);
   }
   if (orgParent.portal) {
     normalizedFeatures.portal = true;
+  }
+
+  if (governance?.isolationAllowed) {
+    return {
+      mode: "isolated",
+      features: normalizedFeatures,
+      ...(editor.label?.trim() ? { label: editor.label.trim() } : {}),
+      ...(editor.feature_nav ? { feature_nav: editor.feature_nav } : {}),
+    };
+  }
+
+  if (programPortalSettingsMatchOrg(editor, orgParent)) {
+    return { mode: "inherit" };
   }
 
   return {
@@ -223,10 +243,11 @@ export function programPortalEditorStatesEqual(
   a: ProgramParentPortalEditorState,
   b: ProgramParentPortalEditorState,
   orgFeatures: OrganizationFeatures,
+  governance?: ProgramPortalGovernanceOptions,
 ): boolean {
   return (
-    JSON.stringify(deriveProgramPortalSettingsFromEditor(a, orgFeatures)) ===
-    JSON.stringify(deriveProgramPortalSettingsFromEditor(b, orgFeatures))
+    JSON.stringify(deriveProgramPortalSettingsFromEditor(a, orgFeatures, governance)) ===
+    JSON.stringify(deriveProgramPortalSettingsFromEditor(b, orgFeatures, governance))
   );
 }
 

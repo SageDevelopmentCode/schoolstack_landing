@@ -33,6 +33,10 @@ import {
   programPortalEditorStatesEqual,
   type ProgramParentPortalEditorState,
 } from "@/lib/admissions/program-parent-portal";
+import {
+  isProgramIsolationAllowed,
+  type ProgramParentPortalOrgConfig,
+} from "@/lib/admissions/program-parent-portal-governance";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   buildParentThemeTokens,
@@ -59,6 +63,7 @@ type ProgramsPageProps = {
   branding: OrganizationBranding;
   orgFeatures: OrganizationFeatures;
   slug: string;
+  programParentPortalConfig: ProgramParentPortalOrgConfig;
 };
 
 type ProgramEditorTab = "details" | "portal";
@@ -130,6 +135,7 @@ export default function ProgramsPage({
   branding,
   orgFeatures,
   slug,
+  programParentPortalConfig,
 }: ProgramsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
@@ -147,6 +153,17 @@ export default function ProgramsPage({
 
   const isNew = selectedId === NEW_PROGRAM_ID;
   const selectedProgram = programs.find((program) => program.id === selectedId) ?? null;
+  const portalGovernance = useMemo(
+    () => ({
+      isolationAllowed: selectedProgram
+        ? isProgramIsolationAllowed(
+            selectedProgram.id,
+            programParentPortalConfig,
+          )
+        : false,
+    }),
+    [programParentPortalConfig, selectedProgram?.id],
+  );
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
   const canvasKey = selectedId ?? "none";
 
@@ -209,9 +226,10 @@ export default function ProgramsPage({
         editable.parentPortalEditor,
         saved.parentPortalEditor,
         orgFeatures,
+        portalGovernance,
       )
     );
-  }, [editable, isNew, orgFeatures, selectedProgram]);
+  }, [editable, isNew, orgFeatures, portalGovernance, selectedProgram]);
 
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
@@ -255,6 +273,7 @@ export default function ProgramsPage({
         : deriveProgramPortalSettingsFromEditor(
             editable.parentPortalEditor,
             orgFeatures,
+            portalGovernance,
           ),
     };
 
@@ -594,6 +613,10 @@ export default function ProgramsPage({
                       schoolName={branding.logo.alt || slug}
                       portalSlug={selectedProgram?.portal_slug ?? null}
                       editor={editable.parentPortalEditor}
+                      isolationAllowed={portalGovernance.isolationAllowed}
+                      programParentPortalEnabled={
+                        programParentPortalConfig.enabled
+                      }
                       onChange={(parentPortalEditor) =>
                         setEditable((prev) =>
                           prev ? { ...prev, parentPortalEditor } : prev,

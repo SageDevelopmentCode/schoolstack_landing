@@ -11,6 +11,8 @@ import {
   mergePortalFeatureNav,
   resolveFeatureNavItem,
 } from "@/lib/organization-settings/feature-nav";
+import { describeParentPortalCalendarScope } from "@/lib/school-events/event-audience";
+import { describeParentPortalMessagesScope } from "@/lib/messages/message-audience";
 import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
 import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
@@ -38,7 +40,10 @@ const HOME_CATALOG_ENTRY = PARENT_FEATURE_CATALOG.find(
 );
 
 const SECTION_INTRO_TOOLTIP =
-  "Features below follow your school-wide parent portal settings. All are on by default — turn off any feature this program should not include. Saving changes creates a separate program portal when settings differ from the school.";
+  "Choose which parent portal features appear in this program's separate portal. Features follow your school-wide parent portal settings.";
+
+const SECTION_INTRO_READONLY_TOOLTIP =
+  "This program uses the main parent portal. Separate program portals are enabled by MudKitchen for specific programs.";
 
 const PORTAL_LABEL_TOOLTIP =
   "Optional. Shown in the portal header and future context switcher.";
@@ -176,6 +181,8 @@ type ProgramParentPortalSettingsCardProps = {
   schoolName: string;
   portalSlug: string | null;
   editor: ProgramParentPortalEditorState;
+  isolationAllowed: boolean;
+  programParentPortalEnabled: boolean;
   onChange: (next: ProgramParentPortalEditorState) => void;
 };
 
@@ -190,11 +197,19 @@ export default function ProgramParentPortalSettingsCard({
   schoolName,
   portalSlug,
   editor,
+  isolationAllowed,
+  programParentPortalEnabled,
   onChange,
 }: ProgramParentPortalSettingsCardProps) {
   const orgParent = orgFeatures.parent;
   const programFeatures = editor.features;
-  const usesSeparatePortal = wouldUseIsolatedProgramPortal(editor, orgFeatures);
+  const portalGovernance = { isolationAllowed };
+  const usesSeparatePortal = wouldUseIsolatedProgramPortal(
+    editor,
+    orgFeatures,
+    portalGovernance,
+  );
+  const isReadOnly = !programParentPortalEnabled || !isolationAllowed;
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const mergedParentNav = useMemo(
@@ -216,6 +231,19 @@ export default function ProgramParentPortalSettingsCard({
       ),
     [orgParent],
   );
+
+  const enabledTabLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (showHomeRow && HOME_CATALOG_ENTRY) {
+      labels.push(HOME_CATALOG_ENTRY.label);
+    }
+    for (const entry of configurableFeatures) {
+      if ((programFeatures as Record<string, boolean>)[entry.key]) {
+        labels.push(entry.label);
+      }
+    }
+    return labels;
+  }, [configurableFeatures, programFeatures, showHomeRow]);
 
   const setFeature = (key: keyof ParentFeatures, enabled: boolean) => {
     onChange({
@@ -263,20 +291,24 @@ export default function ProgramParentPortalSettingsCard({
             </AdminDisplayHeading>
             <BuilderInfoTooltip
               C={C}
-              content={SECTION_INTRO_TOOLTIP}
+              content={
+                isReadOnly ? SECTION_INTRO_READONLY_TOOLTIP : SECTION_INTRO_TOOLTIP
+              }
               ariaLabel="About portal configuration"
             />
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setPreviewOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
-          style={getAdminButtonStyle(C, "warning")}
-        >
-          <Eye className="h-3.5 w-3.5" />
-          Preview
-        </button>
+        {!isReadOnly ? (
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-semibold"
+            style={getAdminButtonStyle(C, "warning")}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Preview
+          </button>
+        ) : null}
       </div>
 
       <div
@@ -287,31 +319,92 @@ export default function ProgramParentPortalSettingsCard({
           color: C.textSecondary,
         }}
       >
-        {usesSeparatePortal && portalSlug ? (
-          <>
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              Uses a separate program portal.
-            </span>{" "}
-            Families use{" "}
-            <code className="rounded bg-black/5 px-1 py-0.5">
-              /school/{schoolSlug}/parent/p/{portalSlug}/...
-            </code>
-            .
-          </>
+        {isReadOnly ? (
+          <div className="space-y-2">
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Uses the main parent portal.
+              </span>{" "}
+              Separate program portals are configured by MudKitchen.
+            </p>
+            <p>
+              This program&apos;s families use{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5">
+                /school/{schoolSlug}/parent/...
+              </code>
+              .
+            </p>
+          </div>
+        ) : usesSeparatePortal && portalSlug ? (
+          <div className="space-y-2">
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Isolated now:
+              </span>{" "}
+              separate portal at{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5">
+                /school/{schoolSlug}/parent/p/{portalSlug}/...
+              </code>
+              {enabledTabLabels.length > 0 ? (
+                <>
+                  {" "}
+                  with {enabledTabLabels.join(", ")}.
+                </>
+              ) : (
+                "."
+              )}
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Calendar:
+              </span>{" "}
+              {describeParentPortalCalendarScope(true)}
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Messages:
+              </span>{" "}
+              {describeParentPortalMessagesScope(true)}
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Still shared:
+              </span>{" "}
+              Billing, feed, and other content stay org-wide for now.
+            </p>
+          </div>
         ) : (
-          <>
-            <span className="font-medium" style={{ color: C.textPrimary }}>
-              Uses the main parent portal.
-            </span>{" "}
-            All features below match your school-wide settings. Families use{" "}
-            <code className="rounded bg-black/5 px-1 py-0.5">
-              /school/{schoolSlug}/parent/...
-            </code>
-            .
-          </>
+          <div className="space-y-2">
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Separate parent portal enabled for this program.
+              </span>{" "}
+              Portal URL will be assigned when you save.
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Calendar:
+              </span>{" "}
+              {describeParentPortalCalendarScope(true)}
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Messages:
+              </span>{" "}
+              {describeParentPortalMessagesScope(true)}
+            </p>
+            <p>
+              <span className="font-medium" style={{ color: C.textPrimary }}>
+                Still shared:
+              </span>{" "}
+              Billing, feed, and other content stay org-wide for now.
+            </p>
+          </div>
         )}
       </div>
 
+      {isReadOnly ? null : (
+        <>
       <BuilderQuestionCard
         C={C}
         tone="accent"
@@ -409,7 +502,10 @@ export default function ProgramParentPortalSettingsCard({
         organizationId={organizationId}
         programName={programName}
         portalSlug={portalSlug}
+        isolationAllowed={isolationAllowed}
       />
+        </>
+      )}
     </div>
   );
 }

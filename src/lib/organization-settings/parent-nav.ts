@@ -38,7 +38,11 @@ const CATALOG_PAGE_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 const PRIMARY_NAV_COUNT = 7;
-const PARENT_MORE_NAV_KEYS = new Set(["attendance", "enrollment_checklist"]);
+const PARENT_MORE_NAV_KEYS = new Set([
+  "attendance",
+  "enrollment_checklist",
+  "classroom_signups",
+]);
 
 function toParentFeatureRecord(
   parentFeatures: ParentFeatures,

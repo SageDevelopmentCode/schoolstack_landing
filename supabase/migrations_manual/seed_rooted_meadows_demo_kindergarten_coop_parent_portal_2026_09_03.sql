@@ -1,11 +1,14 @@
 -- Configure Kindergarten Co-op isolated parent portal for rooted-meadows-demo.
 -- Run in Supabase SQL Editor after add_program_parent_portal_settings migration.
+-- Platform allowlist (organization_settings.admissions.program_parent_portal) is the
+-- source of truth for which programs may use an isolated portal.
 -- Date: 2026-09-03
 
 do $$
 declare
   v_org_id uuid;
   v_program_id uuid;
+  v_admissions jsonb;
 begin
   select id into v_org_id
   from public.organizations
@@ -93,5 +96,40 @@ begin
         )
       )
     where id = v_program_id;
+  end if;
+
+  select coalesce(admissions, '{}'::jsonb)
+  into v_admissions
+  from public.organization_settings
+  where organization_id = v_org_id;
+
+  update public.organization_settings
+  set admissions = jsonb_set(
+    jsonb_set(
+      v_admissions,
+      '{program_parent_portal,enabled}',
+      'true'::jsonb,
+      true
+    ),
+    '{program_parent_portal,isolated_program_ids}',
+    jsonb_build_array(v_program_id::text),
+    true
+  )
+  where organization_id = v_org_id;
+
+  if not found then
+    insert into public.organization_settings (
+      organization_id,
+      admissions
+    )
+    values (
+      v_org_id,
+      jsonb_build_object(
+        'program_parent_portal', jsonb_build_object(
+          'enabled', true,
+          'isolated_program_ids', jsonb_build_array(v_program_id::text)
+        )
+      )
+    );
   end if;
 end $$;

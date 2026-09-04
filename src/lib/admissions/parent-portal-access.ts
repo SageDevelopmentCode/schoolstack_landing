@@ -30,6 +30,11 @@ import {
 } from "./application-auth";
 import { listFamilyPreApplicationVisits as loadFamilyPreApplicationVisits } from "./family-tour-booking";
 import { applicationStatusLabel } from "./application-status-ui";
+import {
+  getProgramPortalDisplayLabel,
+  isProgramParentPortalIsolated,
+  parseProgramParentPortalSettings,
+} from "./program-parent-portal";
 
 const PROGRESS_KEY = "__progress";
 
@@ -117,6 +122,14 @@ export type FamilyUserProfile = {
   profilePhotoUrl: string | null;
 };
 
+export type FamilyChildEnrolledProgram = {
+  programId: string;
+  programName: string;
+  portalSlug: string | null;
+  isIsolatedPortal: boolean;
+  portalLabel: string;
+};
+
 export type FamilyChildOverview = {
   applicationId: string;
   studentId: string | null;
@@ -127,6 +140,7 @@ export type FamilyChildOverview = {
   statusLabel: string;
   isEnrolled: boolean;
   checklistProgress: { completed: number; total: number } | null;
+  enrolledPrograms: FamilyChildEnrolledProgram[];
 };
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
@@ -362,10 +376,84 @@ export async function loadAssignedTeachersForStudent(
   return teachers.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export async function loadEnrolledProgramsByStudentId(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, FamilyChildEnrolledProgram[]>> {
+  const byStudentId = new Map<string, FamilyChildEnrolledProgram[]>();
+  if (studentIds.length === 0) return byStudentId;
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(
+      `
+      student_id,
+      programs!inner (
+        id,
+        name,
+        portal_slug,
+        parent_portal_settings
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("student_id", studentIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    const studentId = row.student_id ? String(row.student_id) : null;
+    if (!studentId) continue;
+
+    const program = row.programs as
+      | {
+          id?: string;
+          name?: string;
+          portal_slug?: string | null;
+          parent_portal_settings?: unknown;
+        }
+      | {
+          id?: string;
+          name?: string;
+          portal_slug?: string | null;
+          parent_portal_settings?: unknown;
+        }[]
+      | null;
+    const programRow = Array.isArray(program) ? program[0] : program;
+    if (!programRow?.id) continue;
+
+    const settings = parseProgramParentPortalSettings(programRow.parent_portal_settings);
+    const programName = String(programRow.name ?? "Program");
+    const entry: FamilyChildEnrolledProgram = {
+      programId: String(programRow.id),
+      programName,
+      portalSlug: programRow.portal_slug ? String(programRow.portal_slug) : null,
+      isIsolatedPortal: isProgramParentPortalIsolated(settings),
+      portalLabel: getProgramPortalDisplayLabel(programName, settings),
+    };
+
+    const existing = byStudentId.get(studentId) ?? [];
+    existing.push(entry);
+    byStudentId.set(studentId, existing);
+  }
+
+  for (const [studentId, programs] of byStudentId) {
+    byStudentId.set(
+      studentId,
+      programs.sort((a, b) => a.programName.localeCompare(b.programName)),
+    );
+  }
+
+  return byStudentId;
+}
+
 export function buildFamilyChildOverviews(
   applications: FamilyApplication[],
   progressByApplicationId: Map<string, EnrollmentProgressSummary>,
   photosByStudentId: Map<string, string | null>,
+  enrolledProgramsByStudentId: Map<string, FamilyChildEnrolledProgram[]> = new Map(),
 ): FamilyChildOverview[] {
   const eligible = applications.filter(
     (application) =>
@@ -394,6 +482,9 @@ export function buildFamilyChildOverviews(
       checklistProgress: enrollmentProgress
         ? { completed: enrollmentProgress.completed, total: enrollmentProgress.total }
         : null,
+      enrolledPrograms: application.studentId
+        ? (enrolledProgramsByStudentId.get(application.studentId) ?? [])
+        : [],
     };
   });
 
@@ -618,7 +709,8 @@ export async function listFamilyChildrenForHome(
 
   if (eligible.length === 0) return [];
 
-  const [progressByApplicationId, photosByStudentId] = await Promise.all([
+  const [progressByApplicationId, photosByStudentId, enrolledProgramsByStudentId] =
+    await Promise.all([
     listEnrollmentProgressForApplications(
       supabase,
       organizationId,
@@ -629,12 +721,20 @@ export async function listFamilyChildrenForHome(
       organizationId,
       eligible.map((application) => application.studentId ?? ""),
     ),
+    loadEnrolledProgramsByStudentId(
+      supabase,
+      organizationId,
+      eligible
+        .map((application) => application.studentId)
+        .filter((id): id is string => Boolean(id)),
+    ),
   ]);
 
   return buildFamilyChildOverviews(
     applications,
     progressByApplicationId,
     photosByStudentId,
+    enrolledProgramsByStudentId,
   );
 }
 

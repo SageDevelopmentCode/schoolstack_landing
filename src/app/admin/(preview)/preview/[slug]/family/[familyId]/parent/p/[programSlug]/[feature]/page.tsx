@@ -9,10 +9,12 @@ import ParentCalendarPreviewEventsLoader from "@/components/school-parent/calend
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
+import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
   familyPreviewProgramParentPath,
+  listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
 import { loadProgramParentPortalContext } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
@@ -26,7 +28,13 @@ import {
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import {
+  mainPortalAudienceScope,
+  programPortalAudienceScope,
+} from "@/lib/school-events/event-audience";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
+import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -124,7 +132,12 @@ export default async function FamilyPreviewProgramParentFeaturePage({
 
   if (feature === "portal") {
     const [upcomingEvents, homeMeta] = await Promise.all([
-      listUpcomingEventsForOrg(admin, org.id, 3),
+      listUpcomingEventsForOrg(
+        admin,
+        org.id,
+        3,
+        programPortalAudienceScope(programContext.programId),
+      ),
       fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
     ]);
     const quickActions = buildParentQuickActions(
@@ -146,6 +159,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           homeMeta={homeMeta}
           previewMode
           previewBasePath={previewBasePath}
+          programPortalLabel={programContext.displayLabel}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader
@@ -154,6 +168,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
               slug={slug}
               features={features}
               previewBasePath={programContext.parentNavBasePath}
+              programId={programContext.programId}
             />
           </Suspense>
         </ParentHomePageShell>
@@ -180,6 +195,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       familyId,
       org.name,
       previewUserId,
+      { programId: programContext.programId },
     );
 
     return (
@@ -191,6 +207,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           branding={org.branding}
           familyId={familyId}
           guardianId={initialInbox.guardianId}
+          programId={programContext.programId}
           previewMode
           initialInbox={initialInbox}
         />
@@ -199,6 +216,9 @@ export default async function FamilyPreviewProgramParentFeaturePage({
   }
 
   if (feature === "calendar") {
+    const calendarAudienceScope = programPortalAudienceScope(
+      programContext.programId,
+    );
     return (
       <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCalendarPageShell
@@ -206,11 +226,53 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           organizationSlug={slug}
           branding={org.branding}
           previewMode
+          programId={programContext.programId}
         >
           <Suspense fallback={null}>
-            <ParentCalendarPreviewEventsLoader organizationId={org.id} />
+            <ParentCalendarPreviewEventsLoader
+              organizationId={org.id}
+              audienceScope={calendarAudienceScope}
+            />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "children") {
+    const allFamilyChildren = await listFamilyChildrenForHomeByFamilyId(
+      admin,
+      org.id,
+      familyId,
+    );
+    const familyChildren = filterFamilyChildrenForProgramPortal(
+      allFamilyChildren,
+      programContext.programId,
+    );
+
+    const studentIds = familyChildren
+      .map((child) => child.studentId)
+      .filter((studentId): studentId is string => Boolean(studentId));
+
+    const initialHealthProfiles =
+      studentIds.length > 0
+        ? await loadStudentHealthProfilesForStudents(admin, org.id, studentIds)
+        : {};
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentChildrenPage
+          branding={org.branding}
+          schoolName={org.name}
+          schoolSlug={slug}
+          organizationId={org.id}
+          familyChildren={familyChildren}
+          userProfile={userProfile}
+          initialHealthProfiles={initialHealthProfiles}
+          previewBasePath={previewBasePath}
+          previewMode
+          programPortalLabel={programContext.displayLabel}
+        />
       </SchoolParentPageShell>
     );
   }

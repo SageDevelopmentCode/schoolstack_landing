@@ -20,6 +20,9 @@ export async function listParentMessageContacts(
   organizationId: string,
   userId: string,
   schoolOfficeLabel: string,
+  options?: {
+    programId?: string | null;
+  },
 ): Promise<{ familyId: string | null; guardianId: string | null; contacts: MessageContact[] }> {
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   const familyId = familyIds[0] ?? null;
@@ -27,6 +30,7 @@ export async function listParentMessageContacts(
     ? await getGuardianIdForUser(admin, userId, organizationId, familyId)
     : null;
   const contacts: MessageContact[] = [];
+  const programId = options?.programId?.trim() || null;
 
   contacts.push({
     key: "school_office",
@@ -40,7 +44,28 @@ export async function listParentMessageContacts(
     return { familyId, guardianId, contacts };
   }
 
-  const { data: assignments, error } = await admin
+  let enrolledStudentIds: string[] | null = null;
+  if (programId) {
+    const { data: enrollmentRows, error: enrollmentError } = await admin
+      .from("enrollments")
+      .select("student_id, students!inner(family_id)")
+      .eq("organization_id", organizationId)
+      .eq("program_id", programId)
+      .eq("status", "enrolled")
+      .eq("students.family_id", familyId);
+
+    if (enrollmentError) throw new Error(enrollmentError.message);
+
+    enrolledStudentIds = (enrollmentRows ?? [])
+      .map((row) => (row.student_id ? String(row.student_id) : null))
+      .filter((id): id is string => Boolean(id));
+
+    if (enrolledStudentIds.length === 0) {
+      return { familyId, guardianId, contacts };
+    }
+  }
+
+  let assignmentsQuery = admin
     .from("student_teacher_assignments")
     .select(
       `
@@ -52,12 +77,19 @@ export async function listParentMessageContacts(
         profile_photo_url
       ),
       students!inner (
+        id,
         family_id
       )
     `,
     )
     .eq("organization_id", organizationId)
     .eq("students.family_id", familyId);
+
+  if (enrolledStudentIds) {
+    assignmentsQuery = assignmentsQuery.in("students.id", enrolledStudentIds);
+  }
+
+  const { data: assignments, error } = await assignmentsQuery;
 
   if (error) throw new Error(error.message);
 

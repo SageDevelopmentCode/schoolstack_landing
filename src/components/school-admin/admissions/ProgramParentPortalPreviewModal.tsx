@@ -23,6 +23,7 @@ type ProgramParentPortalPreviewModalProps = {
   organizationId: string;
   programName: string;
   portalSlug: string | null;
+  isolationAllowed: boolean;
 };
 
 export default function ProgramParentPortalPreviewModal({
@@ -36,6 +37,7 @@ export default function ProgramParentPortalPreviewModal({
   organizationId,
   programName,
   portalSlug,
+  isolationAllowed,
 }: ProgramParentPortalPreviewModalProps) {
   const C = buildAdminThemeTokens(branding);
 
@@ -91,6 +93,7 @@ export default function ProgramParentPortalPreviewModal({
                 organizationId={organizationId}
                 programName={programName}
                 portalSlug={portalSlug}
+                isolationAllowed={isolationAllowed}
               />
             </div>
           </div>

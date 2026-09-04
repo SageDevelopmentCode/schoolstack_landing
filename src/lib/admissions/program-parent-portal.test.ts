@@ -12,6 +12,13 @@ import {
   suggestProgramPortalSlug,
   wouldUseIsolatedProgramPortal,
 } from "./program-parent-portal";
+import {
+  buildInitialIsolatedProgramPortalSettings,
+  isProgramIsolationAllowed,
+  isProgramParentPortalEnabled,
+  parseProgramParentPortalOrgConfig,
+} from "./program-parent-portal-governance";
+import { parseAdmissionsOrgSettings } from "./admissions-org-settings";
 import { DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import { resolveProgramParentFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
@@ -222,6 +229,115 @@ describe("deriveProgramPortalSettingsFromEditor", () => {
     assert.equal(derived.mode, "isolated");
     assert.equal(derived.features?.feed, undefined);
     assert.equal(derived.features?.messages, false);
+  });
+});
+
+describe("program parent portal governance", () => {
+  const coopProgramId = "program-coop-id";
+  const enabledConfig = {
+    enabled: true,
+    isolated_program_ids: [coopProgramId],
+  };
+
+  it("parses org config with defaults", () => {
+    assert.deepEqual(parseProgramParentPortalOrgConfig(undefined), {
+      enabled: false,
+      isolated_program_ids: [],
+    });
+  });
+
+  it("parses admissions org settings", () => {
+    const parsed = parseAdmissionsOrgSettings({
+      program_parent_portal: {
+        enabled: true,
+        isolated_program_ids: [coopProgramId, coopProgramId, ""],
+      },
+    });
+    assert.deepEqual(parseProgramParentPortalOrgConfig(parsed), {
+      enabled: true,
+      isolated_program_ids: [coopProgramId],
+    });
+  });
+
+  it("checks allowlist membership", () => {
+    assert.equal(isProgramParentPortalEnabled(enabledConfig), true);
+    assert.equal(
+      isProgramIsolationAllowed(coopProgramId, enabledConfig),
+      true,
+    );
+    assert.equal(
+      isProgramIsolationAllowed("other-program", enabledConfig),
+      false,
+    );
+    assert.equal(
+      isProgramIsolationAllowed(coopProgramId, {
+        enabled: false,
+        isolated_program_ids: [coopProgramId],
+      }),
+      false,
+    );
+  });
+
+  it("builds initial isolated settings from org parent features", () => {
+    const settings = buildInitialIsolatedProgramPortalSettings(orgFeatures.parent);
+    assert.equal(settings.mode, "isolated");
+    assert.equal(settings.features?.messages, true);
+    assert.equal(settings.features?.portal, true);
+  });
+
+  it("derive returns inherit when isolation is not allowed", () => {
+    const editor = expandProgramPortalSettingsForEditor(
+      { mode: "inherit" },
+      orgFeatures.parent,
+    );
+    editor.features.messages = false;
+
+    assert.deepEqual(
+      deriveProgramPortalSettingsFromEditor(editor, orgFeatures, {
+        isolationAllowed: false,
+      }),
+      { mode: "inherit" },
+    );
+    assert.equal(
+      wouldUseIsolatedProgramPortal(editor, orgFeatures, {
+        isolationAllowed: false,
+      }),
+      false,
+    );
+  });
+
+  it("derive returns isolated when isolation is allowed", () => {
+    const editor = expandProgramPortalSettingsForEditor(
+      { mode: "inherit" },
+      orgFeatures.parent,
+    );
+
+    const derived = deriveProgramPortalSettingsFromEditor(editor, orgFeatures, {
+      isolationAllowed: true,
+    });
+    assert.equal(derived.mode, "isolated");
+    assert.equal(derived.features?.messages, true);
+    assert.equal(
+      wouldUseIsolatedProgramPortal(editor, orgFeatures, {
+        isolationAllowed: true,
+      }),
+      true,
+    );
+  });
+
+  it("derive returns isolated for allowlisted program even when toggles match org", () => {
+    const editor = expandProgramPortalSettingsForEditor(
+      { mode: "inherit" },
+      orgFeatures.parent,
+    );
+
+    assert.equal(programPortalSettingsMatchOrg(editor, orgFeatures.parent), true);
+    assert.equal(
+      deriveProgramPortalSettingsFromEditor(editor, orgFeatures, {
+        isolationAllowed: true,
+      }).mode,
+      "isolated",
+    );
   });
 });
 
