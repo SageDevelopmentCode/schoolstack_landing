@@ -163,6 +163,7 @@ export function formatFamilyEnrolledStudentSubtitle(
 type LoadDisplayContextOptions = {
   viewer?: "parent" | "teacher" | "admin";
   currentStaffMemberId?: string | null;
+  viewerGuardianId?: string | null;
 };
 
 async function loadDisplayContext(
@@ -284,6 +285,7 @@ async function loadDisplayContext(
     familyEnrolledStudents,
     schoolOfficeLabel,
     currentUserId,
+    viewerGuardianId: options.viewerGuardianId ?? null,
   };
 }
 
@@ -754,6 +756,7 @@ export async function listThreadsForOrganization(
     {
       viewer,
       currentStaffMemberId: filter.type === "staff" ? filter.staffMemberId : null,
+      viewerGuardianId: filter.type === "guardian" ? filter.guardianIds[0] ?? null : null,
     },
   );
 

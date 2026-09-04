@@ -10,8 +10,17 @@ import { listFamilyChildrenForHomeByFamilyId, getFamilyPreviewGuardianUserId } f
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
+import {
+  familyHasEnrolledAccessInProgram,
+  userHasEnrolledAccessInProgram,
+} from "@/lib/admissions/program-parent-portal-access";
+import {
+  listProgramCoopFamilies,
+  type ProgramCoopFamily,
+} from "@/lib/admissions/program-coop-directory";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { getRequestUser } from "@/lib/auth/session";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export type ParentHomeContentData = {
@@ -19,7 +28,27 @@ export type ParentHomeContentData = {
   onboardingItems: Awaited<ReturnType<typeof loadResolvedParentOnboardingItems>>;
   enrollmentAmendmentBannerItems: ReturnType<typeof buildEnrollmentAgreementAmendmentBannerItems>;
   enrollmentIncompleteBannerItems: ReturnType<typeof buildEnrollmentAgreementIncompleteBannerItems>;
+  coopFamilies?: ProgramCoopFamily[];
 };
+
+async function loadCoopFamiliesForHome(input: {
+  organizationId: string;
+  familyId: string;
+  programId?: string;
+  coopModeEnabled?: boolean;
+  hasProgramAccess: boolean;
+}): Promise<ProgramCoopFamily[] | undefined> {
+  if (!input.coopModeEnabled || !input.programId || !input.hasProgramAccess) {
+    return undefined;
+  }
+
+  const admin = createAdminClient();
+  return listProgramCoopFamilies(admin, {
+    organizationId: input.organizationId,
+    programId: input.programId,
+    currentFamilyId: input.familyId,
+  });
+}
 
 export async function loadParentHomeContentData(input: {
   organizationId: string;
@@ -28,6 +57,7 @@ export async function loadParentHomeContentData(input: {
   features: OrganizationFeatures;
   previewBasePath?: string;
   programId?: string;
+  coopModeEnabled?: boolean;
   supabase?: SupabaseClient;
 }): Promise<ParentHomeContentData> {
   const user = await getRequestUser();
@@ -42,6 +72,15 @@ export async function loadParentHomeContentData(input: {
 
   const cookieStore = await cookies();
   const supabase = input.supabase ?? createClient(cookieStore);
+
+  const hasProgramAccess = input.programId
+    ? await userHasEnrolledAccessInProgram(
+        supabase,
+        user.id,
+        input.organizationId,
+        input.programId,
+      )
+    : false;
 
   const familyChildren = input.programId
     ? filterFamilyChildrenForProgramPortal(
@@ -62,7 +101,8 @@ export async function loadParentHomeContentData(input: {
   });
 
   const applicationIds = familyChildren.map((child) => child.applicationId);
-  const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
+  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies] =
+    await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       supabase,
       input.organizationId,
@@ -73,6 +113,13 @@ export async function loadParentHomeContentData(input: {
       input.organizationId,
       applicationIds,
     ),
+    loadCoopFamiliesForHome({
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      programId: input.programId,
+      coopModeEnabled: input.coopModeEnabled,
+      hasProgramAccess,
+    }),
   ]);
 
   return {
@@ -90,6 +137,7 @@ export async function loadParentHomeContentData(input: {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath: input.previewBasePath,
     }),
+    coopFamilies,
   };
 }
 
@@ -100,8 +148,18 @@ export async function loadParentHomePreviewContentData(input: {
   features: OrganizationFeatures;
   previewBasePath?: string;
   programId?: string;
+  coopModeEnabled?: boolean;
   supabase: SupabaseClient;
 }): Promise<ParentHomeContentData> {
+  const hasProgramAccess = input.programId
+    ? await familyHasEnrolledAccessInProgram(
+        input.supabase,
+        input.organizationId,
+        input.familyId,
+        input.programId,
+      )
+    : false;
+
   const familyChildren = input.programId
     ? filterFamilyChildrenForProgramPortal(
         await listFamilyChildrenForHomeByFamilyId(
@@ -134,7 +192,8 @@ export async function loadParentHomePreviewContentData(input: {
   });
 
   const applicationIds = familyChildren.map((child) => child.applicationId);
-  const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
+  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies] =
+    await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       input.supabase,
       input.organizationId,
@@ -145,6 +204,13 @@ export async function loadParentHomePreviewContentData(input: {
       input.organizationId,
       applicationIds,
     ),
+    loadCoopFamiliesForHome({
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      programId: input.programId,
+      coopModeEnabled: input.coopModeEnabled,
+      hasProgramAccess,
+    }),
   ]);
 
   return {
@@ -162,5 +228,6 @@ export async function loadParentHomePreviewContentData(input: {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath: input.previewBasePath,
     }),
+    coopFamilies,
   };
 }

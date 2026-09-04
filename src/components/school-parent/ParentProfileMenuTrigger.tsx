@@ -14,6 +14,8 @@ type ParentProfileMenuTriggerProps = {
   variant?: "default" | "story";
   menuOpen?: boolean;
   contextLabel?: string;
+  coopModeEnabled?: boolean;
+  coopProgramLabel?: string;
   className?: string;
   onClick?: () => void;
   "aria-expanded"?: boolean;
@@ -47,6 +49,8 @@ export default function ParentProfileMenuTrigger({
   variant = "default",
   menuOpen = false,
   contextLabel,
+  coopModeEnabled = false,
+  coopProgramLabel,
   className = "",
   onClick,
   "aria-expanded": ariaExpanded,
@@ -92,11 +96,24 @@ export default function ParentProfileMenuTrigger({
         src={profilePhotoUrl ?? undefined}
       />
       <span className={`min-w-0 flex-1 ${isStory ? "hidden sm:block" : ""}`}>
-        <span
-          className="block max-w-[10rem] truncate text-sm font-medium"
-          style={{ color: nameColor }}
-        >
-          {firstName}
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className="block max-w-[10rem] truncate text-sm font-medium"
+            style={{ color: nameColor }}
+          >
+            {firstName}
+          </span>
+          {coopModeEnabled ? (
+            <span
+              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]"
+              style={{
+                backgroundColor: parentTheme?.infoBg ?? C.accentLight,
+                color: parentTheme?.primary ?? C.accent,
+              }}
+            >
+              Co-op
+            </span>
+          ) : null}
         </span>
         {contextLabel ? (
           <span
@@ -104,6 +121,13 @@ export default function ParentProfileMenuTrigger({
             style={{ color: parentTheme?.muted ?? C.textTertiary }}
           >
             {contextLabel}
+          </span>
+        ) : coopModeEnabled && coopProgramLabel ? (
+          <span
+            className="mt-0.5 block max-w-[10rem] truncate text-[11px] font-semibold sm:hidden"
+            style={{ color: parentTheme?.muted ?? C.textTertiary }}
+          >
+            {coopProgramLabel}
           </span>
         ) : null}
       </span>

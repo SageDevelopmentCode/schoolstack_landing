@@ -9,6 +9,7 @@ type ParentHomeContentLoaderProps = {
   features: OrganizationFeatures;
   previewBasePath?: string;
   programId?: string;
+  coopModeEnabled?: boolean;
 };
 
 export default async function ParentHomeContentLoader({
@@ -18,6 +19,7 @@ export default async function ParentHomeContentLoader({
   features,
   previewBasePath,
   programId,
+  coopModeEnabled,
 }: ParentHomeContentLoaderProps) {
   const contentData = await loadParentHomeContentData({
     organizationId,
@@ -26,6 +28,7 @@ export default async function ParentHomeContentLoader({
     features,
     previewBasePath,
     programId,
+    coopModeEnabled,
   });
 
   return <ParentHomeContentData contentData={contentData} />;

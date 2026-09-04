@@ -8,6 +8,7 @@ import {
   programStatusLabel,
   type Program,
 } from "@/lib/admissions/programs";
+import { isProgramParentPortalCoopMode } from "@/lib/admissions/program-parent-portal";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { outlineActiveRowStyle } from "./outline-item-styles";
@@ -68,10 +69,15 @@ function ProgramOutlineRow({
             {program.description}
           </p>
         ) : null}
-        <span className="mt-1.5 inline-flex">
+        <span className="mt-1.5 inline-flex flex-wrap gap-1">
           <AdminChip theme={theme} tone={programStatusChipTone(program.status)}>
             {programStatusLabel(program.status)}
           </AdminChip>
+          {isProgramParentPortalCoopMode(program.parent_portal_settings) ? (
+            <AdminChip theme={theme} tone="info">
+              Co-op mode
+            </AdminChip>
+          ) : null}
         </span>
       </button>
     </motion.div>

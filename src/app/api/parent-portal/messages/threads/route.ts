@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       admin,
       organizationId,
       body.contact,
-      { guardianId, viewer: "parent" },
+      { guardianId, familyId, viewer: "parent", programId: body.programId },
     );
     const programId = resolveThreadProgramIdForContact({
       contactKind: body.contact.kind,

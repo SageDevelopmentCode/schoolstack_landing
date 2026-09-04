@@ -95,6 +95,8 @@ export default async function SchoolProgramParentLayout({
       portalOptions={portalOptions}
       parentPortalContexts={parentPortalContexts}
       parentNavBasePath={programContext.parentNavBasePath}
+      coopModeEnabled={programContext.coopMode}
+      coopProgramLabel={programContext.displayLabel}
     >
       {children}
     </SchoolParentBaseline>

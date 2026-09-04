@@ -38,6 +38,8 @@ type SchoolParentBaselineProps = {
   portalOptions?: SchoolPortalOption[];
   parentPortalContexts?: ParentPortalContextOption[];
   parentNavBasePath?: string;
+  coopModeEnabled?: boolean;
+  coopProgramLabel?: string;
   children: ReactNode;
   previewMode?: boolean;
   previewBasePath?: string;
@@ -63,6 +65,8 @@ function SchoolParentBaselineInner({
   portalOptions = [],
   parentPortalContexts = [],
   parentNavBasePath,
+  coopModeEnabled = false,
+  coopProgramLabel,
   children,
   previewMode = false,
   previewBasePath,
@@ -116,6 +120,8 @@ function SchoolParentBaselineInner({
           previewBasePath={previewBasePath}
           previewParentBasePath={previewParentBasePath}
           embeddedPreview={embeddedPreview}
+          coopModeEnabled={coopModeEnabled}
+          coopProgramLabel={coopProgramLabel}
         />
 
         <main

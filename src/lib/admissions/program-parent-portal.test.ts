@@ -8,6 +8,7 @@ import {
   getOrgEnabledParentCatalogKeys,
   getProgramPortalFeatureScopeBadgeLabel,
   getProgramPortalFeatureScopeTooltip,
+  isProgramParentPortalCoopMode,
   parseProgramParentPortalSettings,
   programPortalEditorStatesEqual,
   programPortalSettingsMatchOrg,
@@ -137,6 +138,64 @@ describe("parseProgramParentPortalSettings", () => {
     assert.equal(parsed.label, "Co-op");
     assert.equal(parsed.features?.calendar, true);
     assert.equal(parsed.feature_nav?.parent?.items?.feed?.label, "Photos");
+  });
+
+  it("parses coop_mode when enabled on isolated programs", () => {
+    const parsed = parseProgramParentPortalSettings({
+      mode: "isolated",
+      coop_mode: true,
+    });
+
+    assert.equal(parsed.coop_mode, true);
+  });
+});
+
+describe("isProgramParentPortalCoopMode", () => {
+  it("is true only for isolated programs with coop_mode enabled", () => {
+    assert.equal(
+      isProgramParentPortalCoopMode({
+        mode: "isolated",
+        coop_mode: true,
+      }),
+      true,
+    );
+    assert.equal(
+      isProgramParentPortalCoopMode({
+        mode: "isolated",
+      }),
+      false,
+    );
+    assert.equal(
+      isProgramParentPortalCoopMode({
+        mode: "inherit",
+        coop_mode: true,
+      }),
+      false,
+    );
+  });
+});
+
+describe("coop_mode editor round-trip", () => {
+  it("derives and expands coop_mode on isolated programs", () => {
+    const editor = expandProgramPortalSettingsForEditor(
+      {
+        mode: "isolated",
+        coop_mode: true,
+        features: { calendar: true, messages: true },
+      },
+      orgFeatures.parent,
+    );
+
+    assert.equal(editor.coop_mode, true);
+
+    const derived = deriveProgramPortalSettingsFromEditor(
+      editor,
+      orgFeatures,
+      { isolationAllowed: true },
+    );
+
+    assert.equal(derived.mode, "isolated");
+    assert.equal(derived.coop_mode, true);
   });
 });
 

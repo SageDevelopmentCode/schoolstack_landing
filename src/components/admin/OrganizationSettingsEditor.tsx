@@ -97,6 +97,7 @@ import {
 import {
   deriveProgramPortalSettingsFromEditor,
   expandProgramPortalSettingsForEditor,
+  isProgramParentPortalCoopMode,
   programPortalEditorStatesEqual,
   type ProgramParentPortalEditorState,
 } from "@/lib/admissions/program-parent-portal";
@@ -275,12 +276,18 @@ export default function OrganizationSettingsEditor({
     const isolatedPrograms = orgPrograms.filter((program) =>
       isolatedIds.has(program.id),
     );
+    const coopModePrograms = isolatedPrograms.filter((program) => {
+      const editor = programPortalEditors[program.id];
+      if (editor?.coop_mode) return true;
+      return isProgramParentPortalCoopMode(program.parent_portal_settings);
+    });
     return {
       isolatedPrograms,
       isolatedCount: isolatedPrograms.length,
       mainCount: orgPrograms.length - isolatedPrograms.length,
+      coopModePrograms,
     };
-  }, [orgPrograms, programPortalConfig.isolated_program_ids]);
+  }, [orgPrograms, programPortalConfig.isolated_program_ids, programPortalEditors]);
 
   useEffect(() => {
     if (!programPortalConfig.enabled) {
@@ -1611,6 +1618,11 @@ export default function OrganizationSettingsEditor({
                     {portalProgramSummary.isolatedCount === 1 ? "" : "s"} isolated
                     {portalProgramSummary.mainCount > 0
                       ? ` · ${portalProgramSummary.mainCount} on main portal`
+                      : ""}
+                    {portalProgramSummary.coopModePrograms.length > 0
+                      ? ` · Co-op mode on ${portalProgramSummary.coopModePrograms
+                          .map((program) => program.name)
+                          .join(", ")}`
                       : ""}
                   </p>
                   <p className="text-xs text-admin-muted font-secondary">

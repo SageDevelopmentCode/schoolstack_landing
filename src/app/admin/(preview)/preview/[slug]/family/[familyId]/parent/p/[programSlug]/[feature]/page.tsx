@@ -160,6 +160,9 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           previewMode
           previewBasePath={previewBasePath}
           programPortalLabel={programContext.displayLabel}
+          programId={programContext.programId}
+          schoolName={org.name}
+          coopModeEnabled={programContext.coopMode}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader
@@ -169,6 +172,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
               features={features}
               previewBasePath={programContext.parentNavBasePath}
               programId={programContext.programId}
+              coopModeEnabled={programContext.coopMode}
             />
           </Suspense>
         </ParentHomePageShell>

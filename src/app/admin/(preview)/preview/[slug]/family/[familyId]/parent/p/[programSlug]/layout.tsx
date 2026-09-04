@@ -88,6 +88,8 @@ export default async function FamilyPreviewProgramParentLayout({
       previewBasePath={familyPreviewBasePath(slug, familyId)}
       previewParentBasePath={previewParentBasePath}
       parentNavBasePath={programContext.parentNavBasePath}
+      coopModeEnabled={programContext.coopMode}
+      coopProgramLabel={programContext.displayLabel}
     >
       {children}
     </SchoolParentBaseline>

@@ -34,7 +34,14 @@ export function validateParticipantSet(participants: MessageParticipantInput[]):
   const officeCount = kinds.filter((k) => k === "school_office").length;
   const parentSideCount = familyCount + guardianCount;
 
-  if (parentSideCount > 1 || staffCount > 2 || officeCount > 1) {
+  if (parentSideCount > 2 || staffCount > 2 || officeCount > 1) {
+    throw new Error("Invalid participant combination.");
+  }
+
+  if (
+    parentSideCount > 1 &&
+    !(guardianCount === 2 && familyCount === 0 && officeCount === 0 && staffCount === 0)
+  ) {
     throw new Error("Invalid participant combination.");
   }
 
@@ -55,6 +62,10 @@ export function validateParticipantSet(participants: MessageParticipantInput[]):
   }
 
   if (parentSideCount === 0 && staffCount === 2 && officeCount === 0) {
+    return;
+  }
+
+  if (guardianCount === 2 && familyCount === 0 && officeCount === 0 && staffCount === 0) {
     return;
   }
 

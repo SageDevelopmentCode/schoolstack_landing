@@ -24,6 +24,9 @@ type ParentHomePageShellProps = {
   previewMode?: boolean;
   previewBasePath?: string;
   programPortalLabel?: string;
+  programId?: string;
+  schoolName?: string;
+  coopModeEnabled?: boolean;
   children?: React.ReactNode;
 };
 
@@ -40,6 +43,9 @@ export default function ParentHomePageShell({
   previewMode = false,
   previewBasePath,
   programPortalLabel,
+  programId,
+  schoolName,
+  coopModeEnabled = false,
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
@@ -73,6 +79,10 @@ export default function ParentHomePageShell({
         previewMode={previewMode}
         previewBasePath={previewBasePath}
         programPortalLabel={programPortalLabel}
+        programId={programId}
+        schoolName={schoolName}
+        coopModeEnabled={coopModeEnabled}
+        coopFamilies={homeContent?.coopFamilies ?? []}
       />
       {children}
     </ParentHomePageContext.Provider>

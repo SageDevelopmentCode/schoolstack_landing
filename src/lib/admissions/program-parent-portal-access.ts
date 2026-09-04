@@ -3,6 +3,7 @@ import { getFamilyIdsForUser } from "./application-auth";
 import {
   getProgramByPortalSlug,
   getProgramPortalDisplayLabel,
+  isProgramParentPortalCoopMode,
   isProgramParentPortalIsolated,
   parseProgramParentPortalSettings,
   type ProgramParentPortalSettings,
@@ -277,6 +278,7 @@ export type LoadedProgramParentPortalContext = {
   portalSlug: string;
   displayLabel: string;
   settings: ProgramParentPortalSettings;
+  coopMode: boolean;
   effectiveFeatures: OrganizationFeatures;
   parentNavBasePath: string;
 };
@@ -311,6 +313,7 @@ export async function loadProgramParentPortalContext(input: {
       program.parent_portal_settings,
     ),
     settings: program.parent_portal_settings,
+    coopMode: isProgramParentPortalCoopMode(program.parent_portal_settings),
     effectiveFeatures: resolveProgramOrganizationFeatures(
       input.orgFeatures,
       program.parent_portal_settings,

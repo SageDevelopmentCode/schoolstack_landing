@@ -62,6 +62,8 @@ type SchoolParentHeaderProps = {
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
+  coopModeEnabled?: boolean;
+  coopProgramLabel?: string;
   embeddedPreview?: {
     pathname: string;
     onNavigate: (href: string) => void;
@@ -144,6 +146,8 @@ export default function SchoolParentHeader({
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
+  coopModeEnabled = false,
+  coopProgramLabel,
   embeddedPreview,
 }: SchoolParentHeaderProps) {
   const routerPathname = usePathname();
@@ -298,8 +302,13 @@ export default function SchoolParentHeader({
     <header
       className="relative z-40 shrink-0 border-b backdrop-blur-sm"
       style={{
-        backgroundColor: "rgba(255, 255, 255, 0.89)",
-        borderColor: theme.line,
+        backgroundColor: coopModeEnabled
+          ? theme.primarySoft
+          : "rgba(255, 255, 255, 0.89)",
+        borderColor: coopModeEnabled ? theme.primaryLight : theme.line,
+        boxShadow: coopModeEnabled
+          ? `inset 0 -1px 0 ${theme.primary}33`
+          : undefined,
       }}
     >
       <ParentPortalContextTopBar />
@@ -471,6 +480,8 @@ export default function SchoolParentHeader({
             contextLabel={
               showSwitcher && activeContext ? activeContext.label : undefined
             }
+            coopModeEnabled={coopModeEnabled}
+            coopProgramLabel={coopProgramLabel}
             onClick={() => setMenuOpen((open) => !open)}
           />
           {menuOpen ? (
@@ -515,6 +526,22 @@ export default function SchoolParentHeader({
                   </div>
                 </div>
               </div>
+              {coopModeEnabled && coopProgramLabel ? (
+                <div
+                  className="border-b px-3 py-2.5"
+                  style={{
+                    borderColor: theme.line,
+                    backgroundColor: theme.primarySoft,
+                  }}
+                >
+                  <p
+                    className="text-xs font-semibold"
+                    style={{ color: theme.primary }}
+                  >
+                    Co-op mode · {coopProgramLabel}
+                  </p>
+                </div>
+              ) : null}
               <ParentPortalContextSwitcherMenuItems
                 C={C}
                 themeInk={theme.ink}

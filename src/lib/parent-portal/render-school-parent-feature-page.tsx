@@ -127,6 +127,7 @@ export async function renderSchoolParentFeaturePage(
   let parentNavBasePath = context.parentNavBasePath;
   let programId: string | undefined;
   let programPortalLabel: string | undefined;
+  let coopModeEnabled = false;
 
   if (context.programSlug) {
     const { loadProgramParentPortalContext } = await import(
@@ -146,6 +147,7 @@ export async function renderSchoolParentFeaturePage(
     parentNavBasePath = programContext.parentNavBasePath;
     programId = programContext.programId;
     programPortalLabel = programContext.displayLabel;
+    coopModeEnabled = programContext.coopMode;
   }
 
   if (!isParentFeatureEnabled(features, context.feature)) {
@@ -215,6 +217,9 @@ export async function renderSchoolParentFeaturePage(
           upcomingEvents={upcomingEvents}
           homeMeta={homeMeta}
           programPortalLabel={programPortalLabel}
+          programId={programId}
+          schoolName={org.name}
+          coopModeEnabled={context.feature === "portal" ? coopModeEnabled : false}
         >
           {familyId ? (
             <Suspense fallback={null}>
@@ -224,6 +229,7 @@ export async function renderSchoolParentFeaturePage(
                 slug={context.slug}
                 features={features}
                 programId={programId}
+                coopModeEnabled={coopModeEnabled}
               />
             </Suspense>
           ) : null}

@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   MessageSquare,
+  Sprout,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
@@ -38,7 +39,8 @@ import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboarding
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
-import ParentPortalContextHomeBanner from "@/components/school-parent/ParentPortalContextHomeBanner";
+import ParentCoopFamiliesSection from "@/components/school-parent/ParentCoopFamiliesSection";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
@@ -67,6 +69,10 @@ type ParentHomePageProps = {
   previewMode?: boolean;
   previewBasePath?: string;
   programPortalLabel?: string;
+  programId?: string;
+  schoolName?: string;
+  coopModeEnabled?: boolean;
+  coopFamilies?: ProgramCoopFamily[];
 };
 
 type AttentionItem = {
@@ -334,7 +340,12 @@ export default function ParentHomePage({
   contentDeferred = false,
   deferSignupAttentionLoad = false,
   previewBasePath,
+  previewMode = false,
   programPortalLabel,
+  programId,
+  schoolName,
+  coopModeEnabled = false,
+  coopFamilies = [],
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
@@ -375,6 +386,7 @@ export default function ParentHomePage({
     previewBasePath ?? `/school/${schoolSlug}/apply`;
   const messagesAction = quickActions.find((a) => a.key === "messages");
   const messagesHref = messagesAction?.href;
+  const messagesEnabled = Boolean(messagesHref);
   const attentionItems = buildAttentionItems({
     onboardingItems,
     enrollmentAmendmentBannerItems,
@@ -414,9 +426,19 @@ export default function ParentHomePage({
           className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5"
         >
           <div>
-            <ParentSectionKicker theme={theme}>
-              {familyKickerLabel(userProfile.displayName)}
-            </ParentSectionKicker>
+            <div className="mb-2 flex items-center gap-2">
+              <ParentSectionKicker theme={theme} className="!mb-0">
+                {familyKickerLabel(userProfile.displayName)}
+              </ParentSectionKicker>
+              {coopModeEnabled && programPortalLabel ? (
+                <Sprout
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: theme.primary }}
+                  aria-label={`Co-op mode · ${programPortalLabel}`}
+                  title={`Co-op mode · ${programPortalLabel}`}
+                />
+              ) : null}
+            </div>
             <ParentDisplayHeading theme={theme} as="h1">
               {greetingPrefix}, {name}.{" "}
               <span aria-hidden="true">{greetingEmoji}</span>
@@ -429,8 +451,6 @@ export default function ParentHomePage({
             <ParentDatePill theme={theme} />
           </div>
         </motion.header>
-
-        <ParentPortalContextHomeBanner />
 
         {enrollmentAmendmentBannerItems.length > 0 ||
         enrollmentIncompleteBannerItems.length > 0 ? (
@@ -600,6 +620,19 @@ export default function ParentHomePage({
             </div>
           )}
         </motion.section>
+
+        {coopModeEnabled && programPortalLabel ? (
+          <ParentCoopFamiliesSection
+            programLabel={programPortalLabel}
+            families={coopFamilies}
+            organizationId={organizationId}
+            programId={programId}
+            schoolName={schoolName}
+            messagesHref={messagesHref}
+            messagesEnabled={messagesEnabled}
+            previewMode={previewMode}
+          />
+        ) : null}
 
         <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
           <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>

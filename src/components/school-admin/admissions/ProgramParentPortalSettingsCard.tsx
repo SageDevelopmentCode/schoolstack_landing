@@ -54,8 +54,11 @@ const FEATURES_CARD_TOOLTIP =
 const HOME_ROW_TOOLTIP =
   "Always included — every parent portal needs a home overview.";
 
-const PHOTOS_LABEL_TOOLTIP =
-  'Optional nav label override for the feed feature (e.g. "Photos").';
+const COOP_MODE_TOOLTIP =
+  "Shows a co-op banner on this program's parent home page.";
+
+const COOP_MODE_READ_ONLY_NOTE =
+  "Co-op mode is enabled for this program (configured by MudKitchen).";
 
 function inputStyle(C: AdminThemeTokens, disabled: boolean): React.CSSProperties {
   return {
@@ -347,6 +350,13 @@ export default function ProgramParentPortalSettingsCard({
     });
   };
 
+  const setCoopMode = (enabled: boolean) => {
+    onChange({
+      ...editor,
+      coop_mode: enabled || undefined,
+    });
+  };
+
   const sectionIntroTooltip = canEdit
     ? SECTION_INTRO_EDIT_TOOLTIP
     : showIsolatedPortal
@@ -436,6 +446,42 @@ export default function ProgramParentPortalSettingsCard({
             readOnly={!canEdit}
             style={inputStyle(C, !canEdit)}
           />
+        </BuilderQuestionCard>
+      ) : null}
+
+      {showIsolatedPortal && usesSeparatePortal ? (
+        <BuilderQuestionCard
+          C={C}
+          tone="accent"
+          question="Co-op mode"
+          action={
+            <BuilderInfoTooltip
+              C={C}
+              content={COOP_MODE_TOOLTIP}
+              ariaLabel="About co-op mode"
+            />
+          }
+        >
+          {canEdit ? (
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="text-sm" style={{ color: C.textSecondary }}>
+                Show co-op banner on parent home
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(editor.coop_mode)}
+                onClick={() => setCoopMode(!editor.coop_mode)}
+                className="shrink-0"
+              >
+                <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} />
+              </button>
+            </label>
+          ) : editor.coop_mode ? (
+            <p className="text-sm" style={{ color: C.textSecondary }}>
+              {COOP_MODE_READ_ONLY_NOTE}
+            </p>
+          ) : null}
         </BuilderQuestionCard>
       ) : null}
 

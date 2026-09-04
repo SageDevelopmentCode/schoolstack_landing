@@ -15,6 +15,7 @@ export type ProgramParentPortalMode = "inherit" | "isolated";
 
 export type ProgramParentPortalSettings = {
   mode: ProgramParentPortalMode;
+  coop_mode?: boolean;
   label?: string;
   features?: Partial<ParentFeatures>;
   feature_nav?: {
@@ -25,6 +26,7 @@ export type ProgramParentPortalSettings = {
 /** Expanded portal config used by the Programs editor UI. */
 export type ProgramParentPortalEditorState = {
   features: Partial<ParentFeatures>;
+  coop_mode?: boolean;
   label?: string;
   feature_nav?: ProgramParentPortalSettings["feature_nav"];
 };
@@ -95,8 +97,11 @@ export function parseProgramParentPortalSettings(
     };
   }
 
+  const coop_mode = value.coop_mode === true ? true : undefined;
+
   return {
     mode,
+    ...(coop_mode ? { coop_mode } : {}),
     ...(label ? { label } : {}),
     ...(features ? { features } : {}),
     ...(feature_nav ? { feature_nav } : {}),
@@ -107,6 +112,25 @@ export function isProgramParentPortalIsolated(
   settings: ProgramParentPortalSettings,
 ): boolean {
   return settings.mode === "isolated";
+}
+
+export function isProgramParentPortalCoopMode(
+  settings: ProgramParentPortalSettings,
+): boolean {
+  return settings.mode === "isolated" && settings.coop_mode === true;
+}
+
+function isolatedPortalSettingsFromEditor(
+  editor: ProgramParentPortalEditorState,
+  normalizedFeatures: Partial<ParentFeatures>,
+): ProgramParentPortalSettings {
+  return {
+    mode: "isolated",
+    features: normalizedFeatures,
+    ...(editor.coop_mode ? { coop_mode: true } : {}),
+    ...(editor.label?.trim() ? { label: editor.label.trim() } : {}),
+    ...(editor.feature_nav ? { feature_nav: editor.feature_nav } : {}),
+  };
 }
 
 export function getProgramPortalDisplayLabel(
@@ -220,6 +244,7 @@ export function expandProgramPortalSettingsForEditor(
       ...defaults,
       ...(settings.features ?? {}),
     },
+    ...(settings.coop_mode ? { coop_mode: true } : {}),
     ...(settings.label ? { label: settings.label } : {}),
     ...(settings.feature_nav ? { feature_nav: settings.feature_nav } : {}),
   };
@@ -277,24 +302,14 @@ export function deriveProgramPortalSettingsFromEditor(
   }
 
   if (governance?.isolationAllowed) {
-    return {
-      mode: "isolated",
-      features: normalizedFeatures,
-      ...(editor.label?.trim() ? { label: editor.label.trim() } : {}),
-      ...(editor.feature_nav ? { feature_nav: editor.feature_nav } : {}),
-    };
+    return isolatedPortalSettingsFromEditor(editor, normalizedFeatures);
   }
 
   if (programPortalSettingsMatchOrg(editor, orgParent)) {
     return { mode: "inherit" };
   }
 
-  return {
-    mode: "isolated",
-    features: normalizedFeatures,
-    ...(editor.label?.trim() ? { label: editor.label.trim() } : {}),
-    ...(editor.feature_nav ? { feature_nav: editor.feature_nav } : {}),
-  };
+  return isolatedPortalSettingsFromEditor(editor, normalizedFeatures);
 }
 
 export function programPortalEditorStatesEqual(
