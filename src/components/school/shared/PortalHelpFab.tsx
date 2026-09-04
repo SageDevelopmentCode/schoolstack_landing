@@ -20,6 +20,7 @@ type PortalHelpFabProps = {
   readOnly?: boolean;
   documentationHref?: string;
   variant?: "fixed" | "inline";
+  iconOnly?: boolean;
   className?: string;
 };
 
@@ -33,14 +34,16 @@ export default function PortalHelpFab({
   readOnly = false,
   documentationHref,
   variant = "fixed",
+  iconOnly = false,
   className = "",
 }: PortalHelpFabProps) {
   const [supportOpen, setSupportOpen] = useState(false);
 
   if (!visible) return null;
 
-  const variantClassName =
-    variant === "inline"
+  const variantClassName = iconOnly
+    ? "fixed bottom-4 right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full p-0 shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6"
+    : variant === "inline"
       ? "inline-flex shrink-0 items-center gap-2 rounded-pill px-3 py-2 text-xs font-medium shadow-lg transition hover:opacity-90"
       : "fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-pill px-4 py-2.5 text-xs font-medium shadow-lg transition hover:opacity-90 sm:bottom-6 sm:right-6 sm:px-5 sm:py-3 sm:text-sm";
 
@@ -49,6 +52,7 @@ export default function PortalHelpFab({
       <button
         type="button"
         title="Need help?"
+        aria-label="Need help?"
         onClick={() => setSupportOpen(true)}
         className={`${variantClassName} ${className}`.trim()}
         style={{
@@ -65,7 +69,7 @@ export default function PortalHelpFab({
           className="h-5 w-5 w-auto object-contain"
           aria-hidden
         />
-        Need help?
+        {iconOnly ? null : "Need help?"}
       </button>
 
       {supportOpen ? (

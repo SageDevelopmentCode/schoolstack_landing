@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, Loader2 } from "lucide-react";
 import { buildEmbeddedPdfViewerUrl } from "@/lib/admissions/enrollment-checklist-document-storage";
+import type { ProgramCoopCurriculumDiscussionMessage } from "@/lib/admissions/program-coop-curriculum-discussion";
 import {
   createProgramCoopCurriculumSignedUrl,
   type ProgramCoopCurriculumRecord,
 } from "@/lib/admissions/program-coop-curriculum-storage";
+import CurriculumDiscussionPanel from "@/components/school-parent/curriculum/CurriculumDiscussionPanel";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentCurriculumPageProps = {
-  schoolName: string;
-  programPortalLabel?: string;
+  organizationId: string;
+  programId: string;
   curriculum: ProgramCoopCurriculumRecord | null;
+  initialDiscussionMessages?: ProgramCoopCurriculumDiscussionMessage[];
+  currentGuardianId?: string | null;
   previewMode?: boolean;
 };
 
@@ -61,7 +64,7 @@ function CurriculumPdfViewer({ curriculum }: { curriculum: ProgramCoopCurriculum
   if (loading) {
     return (
       <div
-        className="flex items-center justify-center gap-2 py-16 text-sm"
+        className="flex h-full min-h-0 flex-1 items-center justify-center gap-2 text-sm"
         style={{ color: theme.muted }}
       >
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -73,10 +76,10 @@ function CurriculumPdfViewer({ curriculum }: { curriculum: ProgramCoopCurriculum
   if (error || !viewerUrl) {
     return (
       <p
-        className="rounded-[14px] border px-4 py-6 text-sm"
+        className="rounded-[12px] border px-4 py-6 text-sm"
         style={{
-          borderColor: theme.border,
-          backgroundColor: theme.surface,
+          borderColor: theme.line,
+          backgroundColor: theme.cream,
           color: theme.muted,
         }}
       >
@@ -86,74 +89,81 @@ function CurriculumPdfViewer({ curriculum }: { curriculum: ProgramCoopCurriculum
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm" style={{ color: theme.muted }}>{curriculum.fileName}</p>
+    <ParentCard
+      theme={theme}
+      className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] p-0"
+    >
+      <div
+        className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2"
+        style={{ borderColor: theme.line }}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <FileText className="h-4 w-4 shrink-0" style={{ color: theme.muted }} />
+          <p className="truncate text-xs font-medium" style={{ color: theme.ink }}>
+            {curriculum.fileName}
+          </p>
+        </div>
         {downloadUrl ? (
           <a
             href={downloadUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold hover:underline"
             style={{ color: theme.primary }}
           >
             Open in new tab
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3 w-3" />
           </a>
         ) : null}
       </div>
-      <div
-        className="overflow-hidden rounded-[14px] border bg-white"
-        style={{ borderColor: theme.border }}
-      >
+      <div className="min-h-0 flex-1 bg-white">
         <iframe
           title={curriculum.fileName}
           src={viewerUrl}
-          className="h-[min(72vh,900px)] w-full"
+          className="h-full min-h-0 w-full"
         />
       </div>
-    </div>
+    </ParentCard>
   );
 }
 
 export default function ParentCurriculumPage({
-  schoolName,
-  programPortalLabel,
+  organizationId,
+  programId,
   curriculum,
+  initialDiscussionMessages = [],
+  currentGuardianId = null,
   previewMode = false,
 }: ParentCurriculumPageProps) {
   const { theme } = useParentTheme();
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
-      <div>
-        <ParentSectionKicker theme={theme}>
-          {programPortalLabel ?? schoolName}
-        </ParentSectionKicker>
-        <ParentDisplayHeading theme={theme} as="h1">
-          Curriculum
-        </ParentDisplayHeading>
-        <p className="mt-2 text-[15px]" style={{ color: theme.muted }}>
-          Your co-op curriculum guide
-          {previewMode ? " (preview)" : ""}.
-        </p>
-      </div>
-
-      {curriculum ? (
-        <CurriculumPdfViewer curriculum={curriculum} />
-      ) : (
-        <div
-          className="rounded-[14px] border px-4 py-8 text-center"
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.surface,
-          }}
-        >
-          <p className="text-sm" style={{ color: theme.muted }}>
-            Curriculum hasn&apos;t been published yet. Check back soon.
-          </p>
+    <div className="mx-auto flex h-full min-h-0 w-full max-w-[1250px] flex-1 flex-col px-3 pt-2 pb-0 sm:px-5 md:px-7">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-4">
+        {curriculum ? (
+          <div className="flex min-h-0 flex-col" data-testid="curriculum-pdf-viewer">
+            <CurriculumPdfViewer curriculum={curriculum} />
+          </div>
+        ) : (
+          <ParentCard
+            theme={theme}
+            className="flex min-h-0 items-center justify-center rounded-[14px] px-4 py-8 text-center"
+          >
+            <p className="text-sm" style={{ color: theme.muted }}>
+              Curriculum hasn&apos;t been published yet. Check back soon.
+            </p>
+          </ParentCard>
+        )}
+        <div className="flex min-h-[280px] flex-col lg:min-h-0">
+          <CurriculumDiscussionPanel
+            organizationId={organizationId}
+            programId={programId}
+            initialMessages={initialDiscussionMessages}
+            currentGuardianId={currentGuardianId}
+            previewMode={previewMode}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }

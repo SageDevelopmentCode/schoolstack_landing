@@ -15,6 +15,7 @@ import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   isParentBillingPath,
+  isParentCurriculumPath,
   isParentMessagesPath,
 } from "@/lib/organization-settings/parent-routes";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
@@ -78,7 +79,7 @@ function SchoolParentBaselineInner({
   const { theme, adminCompat: C } = useParentTheme();
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
-    isMessagesPage || isParentBillingPath(pathname);
+    isMessagesPage || isParentBillingPath(pathname) || isParentCurriculumPath(pathname);
   const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton = isParentHelpPage(pathname, slug) && !isMessagesPage;
 
@@ -141,6 +142,7 @@ function SchoolParentBaselineInner({
           submitEndpoint="/api/parent-portal/support-requests"
           visible={showHelpButton}
           readOnly={previewMode}
+          iconOnly={isParentCurriculumPath(pathname)}
         />
 
         <ParentToaster C={C} helpButtonVisible={showHelpButton} />

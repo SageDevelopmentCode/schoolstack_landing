@@ -49,7 +49,10 @@ import { createClient } from "@/utils/supabase/server";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
+import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { getGuardianIdForUser } from "@/lib/messages/messages";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -399,14 +402,27 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
-    const curriculum = await getProgramCoopCurriculum(supabase, programId);
+    const admin = createAdminClient();
+    const currentGuardianId = familyId
+      ? await getGuardianIdForUser(admin, user.id, org.id, familyId)
+      : null;
+
+    const [curriculum, discussionMessages] = await Promise.all([
+      getProgramCoopCurriculum(supabase, programId),
+      listProgramCoopCurriculumDiscussionMessages(admin, {
+        organizationId: org.id,
+        programId,
+      }),
+    ]);
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCurriculumPage
-          schoolName={org.name}
-          programPortalLabel={programPortalLabel}
+          organizationId={org.id}
+          programId={programId}
           curriculum={curriculum}
+          initialDiscussionMessages={discussionMessages}
+          currentGuardianId={currentGuardianId}
         />
       </SchoolParentPageShell>
     );

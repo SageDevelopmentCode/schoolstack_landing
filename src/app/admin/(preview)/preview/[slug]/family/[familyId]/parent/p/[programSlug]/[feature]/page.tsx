@@ -36,6 +36,7 @@ import {
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
+import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -288,17 +289,31 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       notFound();
     }
 
-    const curriculum = await getProgramCoopCurriculum(
-      admin,
-      programContext.programId,
-    );
+    const { data: previewGuardian } = await admin
+      .from("guardians")
+      .select("id")
+      .eq("organization_id", org.id)
+      .eq("family_id", familyId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const [curriculum, discussionMessages] = await Promise.all([
+      getProgramCoopCurriculum(admin, programContext.programId),
+      listProgramCoopCurriculumDiscussionMessages(admin, {
+        organizationId: org.id,
+        programId: programContext.programId,
+      }),
+    ]);
 
     return (
-      <SchoolParentPageShell title={pageName}>
+      <SchoolParentPageShell title={pageName} layout="embedded">
         <ParentCurriculumPage
-          schoolName={org.name}
-          programPortalLabel={programContext.displayLabel}
+          organizationId={org.id}
+          programId={programContext.programId}
           curriculum={curriculum}
+          initialDiscussionMessages={discussionMessages}
+          currentGuardianId={previewGuardian?.id ? String(previewGuardian.id) : null}
           previewMode
         />
       </SchoolParentPageShell>

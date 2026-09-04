@@ -100,6 +100,12 @@ export function isParentBillingPath(pathname: string): boolean {
   return /\/parent\/billing(?:\/|$)/.test(pathname);
 }
 
+export function isParentCurriculumPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "curriculum") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "curriculum") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
+}
+
 export function isParentFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,
