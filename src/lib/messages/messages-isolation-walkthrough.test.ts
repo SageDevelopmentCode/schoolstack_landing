@@ -5,6 +5,7 @@ import {
   programPortalMessageAudienceScope,
   resolveThreadProgramIdForContact,
   threadMatchesPortalContext,
+  threadVisibleInProgramPortalInbox,
 } from "./message-audience";
 
 const COOP_PROGRAM_ID = "0e4d91d2-9f42-41d5-9b6f-a651cb46bd78";
@@ -21,7 +22,14 @@ function threadVisibleInMainPortal(thread: WalkthroughThread): boolean {
 }
 
 function threadVisibleInCoopPortal(thread: WalkthroughThread, programId: string): boolean {
-  return thread.programId === null || thread.programId === programId;
+  const participants = thread.participantSignature.includes("school_office")
+    ? [{ kind: "school_office" as const }]
+    : [{ kind: "staff_member" as const }];
+  return threadVisibleInProgramPortalInbox({
+    threadProgramId: thread.programId,
+    participants,
+    programId,
+  });
 }
 
 function buildWalkthroughThreads(input: {
@@ -120,16 +128,19 @@ describe("messages isolation walkthrough (rooted-meadows-demo Cecilia family)", 
     assert.equal(coopThreadOnMainPortal, false);
   });
 
-  it("Steps 4–5: co-op portal includes shared office and legacy main threads", () => {
+  it("Steps 4–5: co-op portal includes office and co-op teacher threads only", () => {
     const threads = buildWalkthroughThreads({ hasCoopTeacherThread: true });
     const coopThreads = threads.filter((thread) =>
       threadVisibleInCoopPortal(thread, COOP_PROGRAM_ID),
     );
 
-    assert.equal(coopThreads.length, 3);
+    assert.equal(coopThreads.length, 2);
     assert.ok(coopThreads.some((thread) => thread.id === "office-main"));
-    assert.ok(coopThreads.some((thread) => thread.id === "julius-staff-main"));
     assert.ok(coopThreads.some((thread) => thread.id === "julius-staff-coop"));
+    assert.equal(
+      coopThreads.some((thread) => thread.id === "julius-staff-main"),
+      false,
+    );
   });
 
   it("Step 6: preview/live scopes match main vs program portal audience", () => {

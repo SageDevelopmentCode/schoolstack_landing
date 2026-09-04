@@ -1,8 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FEATURE_CATALOG, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import type { OrganizationFeatures, ParentFeatures, PortalFeatureNav } from "@/lib/organization-settings/types";
+import { describeParentPortalMessagesScope } from "@/lib/messages/message-audience";
+import { describeParentPortalCalendarScope } from "@/lib/school-events/event-audience";
 import type { ProgramPortalGovernanceOptions } from "./program-parent-portal-governance";
 import { slugifyFormTitle } from "./application-form-schema";
+
+export type ProgramPortalFeatureScopeTooltip = {
+  variant: "isolation" | "shared";
+  content: string;
+};
 
 export type ProgramParentPortalMode = "inherit" | "isolated";
 
@@ -107,6 +114,57 @@ export function getProgramPortalDisplayLabel(
   settings: ProgramParentPortalSettings,
 ): string {
   return settings.label?.trim() || programName;
+}
+
+export function getProgramPortalFeatureScopeBadgeLabel(
+  featureKey: keyof ParentFeatures,
+): string | null {
+  switch (featureKey) {
+    case "portal":
+    case "calendar":
+    case "children":
+      return "This program only";
+    case "messages":
+      return "This program + school office";
+    default:
+      return null;
+  }
+}
+
+export function getProgramPortalFeatureScopeTooltip(
+  featureKey: keyof ParentFeatures,
+): ProgramPortalFeatureScopeTooltip | null {
+  switch (featureKey) {
+    case "portal":
+    case "calendar":
+      return {
+        variant: "isolation",
+        content: describeParentPortalCalendarScope(true),
+      };
+    case "messages":
+      return {
+        variant: "isolation",
+        content: describeParentPortalMessagesScope(true),
+      };
+    case "children":
+      return {
+        variant: "isolation",
+        content: "Shows only children enrolled in this program.",
+      };
+    case "billing":
+      return {
+        variant: "shared",
+        content:
+          "Billing stays org-wide — same invoices and balances as the main portal.",
+      };
+    case "feed":
+      return {
+        variant: "shared",
+        content: "School feed stays org-wide for now.",
+      };
+    default:
+      return null;
+  }
 }
 
 export function defaultIsolatedProgramParentFeatures(

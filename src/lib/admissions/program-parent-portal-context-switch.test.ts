@@ -4,7 +4,9 @@ import {
   detectParentPortalContextFromPathname,
   getActiveParentPortalContextId,
   parseParentPortalFeatureFromPathname,
+  resolveDefaultParentPortalEntryHrefFromContexts,
   resolveParentPortalContextSwitchHref,
+  shouldRedirectAwayFromMainParentPortal,
 } from "./program-parent-portal-context-switch";
 import {
   formatChildProgramLine,
@@ -100,6 +102,52 @@ describe("program parent portal context switch", () => {
     assert.equal(
       needsParentPortalContextSwitcher([{ id: "main", label: "Rooted Meadows" }]),
       false,
+    );
+    assert.equal(
+      needsParentPortalContextSwitcher([
+        {
+          id: "program:coop",
+          label: "Kindergarten Co-op",
+          portalSlug: "kindergarten-co-op",
+          programId: "coop",
+        },
+      ]),
+      false,
+    );
+  });
+
+  it("flags program-only families for main portal redirect", () => {
+    assert.equal(
+      shouldRedirectAwayFromMainParentPortal([
+        {
+          id: "program:coop",
+          label: "Kindergarten Co-op",
+          portalSlug: "kindergarten-co-op",
+          programId: "coop",
+          entryHref:
+            "/school/rooted-meadows-demo/parent/p/kindergarten-co-op/portal",
+        },
+      ]),
+      true,
+    );
+  });
+
+  it("prefers the first context entry href for default navigation", () => {
+    assert.equal(
+      resolveDefaultParentPortalEntryHrefFromContexts(
+        [
+          {
+            id: "program:coop",
+            label: "Kindergarten Co-op",
+            portalSlug: "kindergarten-co-op",
+            programId: "coop",
+            entryHref:
+              "/school/rooted-meadows-demo/parent/p/kindergarten-co-op/portal",
+          },
+        ],
+        "/school/rooted-meadows-demo/parent/portal",
+      ),
+      "/school/rooted-meadows-demo/parent/p/kindergarten-co-op/portal",
     );
   });
 

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { resolveDefaultParentPortalEntryHrefForUser } from "@/lib/admissions/program-parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
@@ -218,11 +218,14 @@ async function resolveParentLoginDestination(
   ]);
 
   if (hasEnrolledAccess && portalEnabled) {
-    const parentHref = getParentPortalHomeHref(
-      slug,
-      org.features.parent,
-      org.features.feature_nav?.parent,
-    );
+    const parentHref = await resolveDefaultParentPortalEntryHrefForUser({
+      supabase,
+      userId,
+      organizationId: org.id,
+      schoolSlug: slug,
+      schoolName: org.name,
+      orgFeatures: org.features,
+    });
 
     if (parentHref) {
       return { ok: true, href: parentHref };

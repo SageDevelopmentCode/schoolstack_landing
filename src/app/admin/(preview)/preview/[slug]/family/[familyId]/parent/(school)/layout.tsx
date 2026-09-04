@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
 } from "@/lib/admissions/family-preview-access";
-import { loadParentPortalNavContextsForFamily } from "@/lib/admissions/program-parent-portal-access";
+import {
+  loadParentPortalNavContextsForFamily,
+  shouldRedirectAwayFromMainParentPortal,
+} from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { cookies } from "next/headers";
@@ -42,6 +46,13 @@ export default async function FamilyPreviewMainParentLayout({
     orgFeatures: org.features,
     previewParentBasePath,
   });
+
+  if (shouldRedirectAwayFromMainParentPortal(parentPortalContexts)) {
+    const entryHref = parentPortalContexts[0]?.entryHref;
+    if (entryHref) {
+      redirect(entryHref);
+    }
+  }
 
   return (
     <SchoolParentBaseline

@@ -22,7 +22,7 @@ describe("event audience helpers", () => {
 
     assert.equal(
       formatOrganizationEventAudienceLabel(event, new Map()),
-      "All families (main portal + every program portal)",
+      "All families (main portal only)",
     );
   });
 

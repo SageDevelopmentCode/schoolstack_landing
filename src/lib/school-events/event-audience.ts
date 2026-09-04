@@ -6,7 +6,7 @@ export function formatOrganizationEventAudienceLabel(
   programNameById: ReadonlyMap<string, string>,
 ): string {
   if (!event.programId) {
-    return "All families (main portal + every program portal)";
+    return "All families (main portal only)";
   }
 
   return programNameById.get(event.programId) ?? "Program families only";
@@ -14,7 +14,7 @@ export function formatOrganizationEventAudienceLabel(
 
 export function describeParentPortalCalendarScope(isProgramPortal = false): string {
   if (isProgramPortal) {
-    return "School-wide events appear here too. Events marked for this program only appear in this portal.";
+    return "Shows events posted for this program only. School-wide events appear in the main parent portal.";
   }
   return "Shows school-wide events only. Program-only events appear in that program's portal.";
 }

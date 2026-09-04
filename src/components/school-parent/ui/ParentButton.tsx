@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentButtonVariant = "primary" | "soft" | "outline";
@@ -33,26 +33,34 @@ function variantStyle(
   }
 }
 
-export default function ParentButton({
-  theme,
-  variant = "primary",
-  children,
-  className = "",
-  style,
-  ...props
-}: ParentButtonProps) {
-  return (
-    <button
-      type="button"
-      className={`border-0 px-[15px] py-[11px] text-[13px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50 ${className}`}
-      style={{
-        borderRadius: theme.radiusButton,
-        ...variantStyle(theme, variant),
-        ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+const ParentButton = forwardRef<HTMLButtonElement, ParentButtonProps>(
+  function ParentButton(
+    {
+      theme,
+      variant = "primary",
+      children,
+      className = "",
+      style,
+      ...props
+    },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        className={`border-0 px-[15px] py-[11px] text-[13px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50 ${className}`}
+        style={{
+          borderRadius: theme.radiusButton,
+          ...variantStyle(theme, variant),
+          ...style,
+        }}
+        {...props}
+      >
+        {children}
+      </button>
+    );
+  },
+);
+
+export default ParentButton;

@@ -21,6 +21,7 @@ import { loadAttachmentsForMessages, getMessageAttachmentSignedUrl } from "./mes
 import { mapThreadUnreadCountRows } from "./thread-list-helpers";
 import {
   applyMessageThreadAudienceScope,
+  threadVisibleInProgramPortalInbox,
   type MessageThreadAudienceScope,
 } from "./message-audience";
 import type {
@@ -547,6 +548,26 @@ export async function findOrCreateThread(
   return threadId;
 }
 
+function filterThreadsForAudienceScope(
+  threads: MessageThreadRow[],
+  participantsByThread: Map<string, MessageThreadParticipantRow[]>,
+  audienceScope?: MessageThreadAudienceScope,
+): MessageThreadRow[] {
+  if (audienceScope?.mode !== "program_portal") {
+    return threads;
+  }
+
+  return threads.filter((thread) =>
+    threadVisibleInProgramPortalInbox({
+      threadProgramId: thread.program_id,
+      participants: (participantsByThread.get(String(thread.id)) ?? []).map(
+        mapParticipantRow,
+      ),
+      programId: audienceScope.programId,
+    }),
+  );
+}
+
 export async function listThreadsForOrganization(
   admin: SupabaseClient,
   organizationId: string,
@@ -668,7 +689,13 @@ export async function listThreadsForOrganization(
       getLatestMessagesForThreads(admin, threadIds),
     ]);
 
-    return threads.map((thread) => {
+    const visibleThreads = filterThreadsForAudienceScope(
+      threads,
+      participantsByThread,
+      audienceScope,
+    );
+
+    return visibleThreads.map((thread) => {
       const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
         mapParticipantRow,
       );
@@ -734,7 +761,13 @@ export async function listThreadsForOrganization(
 
   const lastMessageByThread = await getLatestMessagesForThreads(admin, threadIds);
 
-  return ((threads ?? []) as MessageThreadRow[]).map((thread) => {
+  const visibleThreads = filterThreadsForAudienceScope(
+    (threads ?? []) as MessageThreadRow[],
+    participantsByThread,
+    audienceScope,
+  );
+
+  return visibleThreads.map((thread) => {
     const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
       mapParticipantRow,
     );

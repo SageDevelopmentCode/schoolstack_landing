@@ -135,6 +135,22 @@ export function resolveParentPortalContextSwitchHref(input: {
   return href;
 }
 
+export function shouldRedirectAwayFromMainParentPortal(
+  contexts: ParentPortalContextOption[],
+): boolean {
+  const hasMain = contexts.some((context) => context.id === "main");
+  const hasProgram = contexts.some((context) => context.id.startsWith("program:"));
+  return !hasMain && hasProgram;
+}
+
+export function resolveDefaultParentPortalEntryHrefFromContexts(
+  contexts: ParentPortalContextOption[],
+  fallbackHref: string,
+): string {
+  const firstContext = contexts[0];
+  return firstContext?.entryHref ?? fallbackHref;
+}
+
 export function buildParentPortalContextOptionsWithEntryHrefs(input: {
   slug: string;
   schoolName: string;

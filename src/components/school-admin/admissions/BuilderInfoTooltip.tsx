@@ -1,23 +1,34 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Globe, Layers } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+
+type BuilderInfoTooltipVariant = "help" | "isolation" | "shared";
 
 type BuilderInfoTooltipProps = {
   C: AdminThemeTokens;
   content: string;
   ariaLabel?: string;
+  variant?: BuilderInfoTooltipVariant;
 };
+
+const VARIANT_ICONS = {
+  help: CircleHelp,
+  isolation: Layers,
+  shared: Globe,
+} as const;
 
 export default function BuilderInfoTooltip({
   C,
   content,
   ariaLabel = "More information",
+  variant = "help",
 }: BuilderInfoTooltipProps) {
   const tooltipId = useId();
   const rootRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
+  const Icon = VARIANT_ICONS[variant];
 
   useEffect(() => {
     if (!open) return;
@@ -51,7 +62,7 @@ export default function BuilderInfoTooltip({
         className="rounded p-0.5 transition-opacity hover:opacity-80"
         style={{ color: C.textTertiary }}
       >
-        <CircleHelp className="h-3.5 w-3.5" />
+        <Icon className="h-3.5 w-3.5" />
       </button>
       {open ? (
         <span

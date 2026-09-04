@@ -27,10 +27,8 @@ import {
   type ProgramType,
 } from "@/lib/admissions/programs";
 import {
-  deriveProgramPortalSettingsFromEditor,
   emptyProgramPortalEditorState,
   expandProgramPortalSettingsForEditor,
-  programPortalEditorStatesEqual,
   type ProgramParentPortalEditorState,
 } from "@/lib/admissions/program-parent-portal";
 import {
@@ -221,15 +219,9 @@ export default function ProgramsPage({
       editable.status !== saved.status ||
       editable.startDate !== saved.startDate ||
       editable.endDate !== saved.endDate ||
-      editable.capacity !== saved.capacity ||
-      !programPortalEditorStatesEqual(
-        editable.parentPortalEditor,
-        saved.parentPortalEditor,
-        orgFeatures,
-        portalGovernance,
-      )
+      editable.capacity !== saved.capacity
     );
-  }, [editable, isNew, orgFeatures, portalGovernance, selectedProgram]);
+  }, [editable, isNew, selectedProgram]);
 
   const handleCreate = () => {
     setSelectedId(NEW_PROGRAM_ID);
@@ -268,13 +260,6 @@ export default function ProgramsPage({
       start_date: editable.startDate.trim() || null,
       end_date: editable.endDate.trim() || null,
       capacity: parsedCapacity,
-      parent_portal_settings: isNew
-        ? undefined
-        : deriveProgramPortalSettingsFromEditor(
-            editable.parentPortalEditor,
-            orgFeatures,
-            portalGovernance,
-          ),
     };
 
     try {
@@ -617,6 +602,7 @@ export default function ProgramsPage({
                       programParentPortalEnabled={
                         programParentPortalConfig.enabled
                       }
+                      canEditPortalConfig={false}
                       onChange={(parentPortalEditor) =>
                         setEditable((prev) =>
                           prev ? { ...prev, parentPortalEditor } : prev,

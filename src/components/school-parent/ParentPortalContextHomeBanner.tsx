@@ -20,7 +20,7 @@ export default function ParentPortalContextHomeBanner() {
         <div className="min-w-0">
           <ParentSectionKicker theme={theme}>Your portal</ParentSectionKicker>
           <p className="mt-1 text-sm leading-relaxed" style={{ color: theme.muted }}>
-            You&apos;re signed in to{" "}
+            You&apos;re viewing{" "}
             <span className="font-semibold" style={{ color: theme.ink }}>
               {activeContext.label}
             </span>

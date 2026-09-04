@@ -94,6 +94,17 @@ import {
   buildInitialIsolatedProgramPortalSettings,
   parseProgramParentPortalOrgConfig,
 } from "@/lib/admissions/program-parent-portal-governance";
+import {
+  deriveProgramPortalSettingsFromEditor,
+  expandProgramPortalSettingsForEditor,
+  programPortalEditorStatesEqual,
+  type ProgramParentPortalEditorState,
+} from "@/lib/admissions/program-parent-portal";
+import ProgramParentPortalSettingsCard from "@/components/school-admin/admissions/ProgramParentPortalSettingsCard";
+import {
+  buildParentThemeTokens,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
 import type {
   ApplyAuthEntryOption,
   OrganizationBranding,
@@ -205,6 +216,18 @@ export default function OrganizationSettingsEditor({
   >({});
   const [orgPrograms, setOrgPrograms] = useState<Program[]>([]);
   const [orgProgramsLoading, setOrgProgramsLoading] = useState(false);
+  const [programPortalEditors, setProgramPortalEditors] = useState<
+    Record<string, ProgramParentPortalEditorState>
+  >({});
+  const [expandedProgramPortalIds, setExpandedProgramPortalIds] = useState<
+    Record<string, boolean>
+  >({});
+
+  const parentTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const parentAdminCompat = useMemo(
+    () => parentThemeToAdminCompat(parentTheme),
+    [parentTheme],
+  );
 
   useEffect(() => {
     if (settingsLoading) return;
@@ -234,16 +257,6 @@ export default function OrganizationSettingsEditor({
       setActiveFeaturePortal("admin");
     });
   }, [organizationId, initialRow, settingsLoading]);
-
-  const isDirty = useMemo(
-    () =>
-      serializeSettings(
-        branding,
-        features as unknown as Record<string, unknown>,
-      ) !== savedSnapshot ||
-      JSON.stringify(admissions) !== savedAdmissionsSnapshot,
-    [admissions, branding, features, savedAdmissionsSnapshot, savedSnapshot],
-  );
 
   const savedShadowDayMode = useMemo(
     () =>
@@ -292,6 +305,83 @@ export default function OrganizationSettingsEditor({
       cancelled = true;
     };
   }, [organizationId, programPortalConfig.enabled, supabase]);
+
+  useEffect(() => {
+    if (!programPortalConfig.enabled || orgPrograms.length === 0) {
+      queueMicrotask(() => setProgramPortalEditors({}));
+      return;
+    }
+
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+    queueMicrotask(() => {
+      setProgramPortalEditors((prev) => {
+        const next: Record<string, ProgramParentPortalEditorState> = {};
+        for (const programId of programPortalConfig.isolated_program_ids) {
+          const program = orgPrograms.find((row) => row.id === programId);
+          if (!program) continue;
+          next[programId] =
+            prev[programId] ??
+            expandProgramPortalSettingsForEditor(
+              program.parent_portal_settings,
+              orgParent,
+            );
+        }
+        return next;
+      });
+    });
+  }, [
+    features.parent,
+    orgPrograms,
+    programPortalConfig.enabled,
+    programPortalConfig.isolated_program_ids,
+  ]);
+
+  const programPortalEditorsDirty = useMemo(() => {
+    if (!programPortalConfig.enabled) return false;
+    const governance = { isolationAllowed: true };
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+
+    for (const programId of programPortalConfig.isolated_program_ids) {
+      const program = orgPrograms.find((row) => row.id === programId);
+      const editor = programPortalEditors[programId];
+      if (!program || !editor) continue;
+
+      const savedEditor = expandProgramPortalSettingsForEditor(
+        program.parent_portal_settings,
+        orgParent,
+      );
+      if (
+        !programPortalEditorStatesEqual(
+          editor,
+          savedEditor,
+          features,
+          governance,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [features, orgPrograms, programPortalConfig, programPortalEditors]);
+
+  const isDirty = useMemo(
+    () =>
+      serializeSettings(
+        branding,
+        features as unknown as Record<string, unknown>,
+      ) !== savedSnapshot ||
+      JSON.stringify(admissions) !== savedAdmissionsSnapshot ||
+      programPortalEditorsDirty,
+    [
+      admissions,
+      branding,
+      features,
+      programPortalEditorsDirty,
+      savedAdmissionsSnapshot,
+      savedSnapshot,
+    ],
+  );
 
   const brandingGroups = useMemo(() => {
     const groups = new Map<string, typeof BRANDING_FIELDS>();
@@ -451,22 +541,68 @@ export default function OrganizationSettingsEditor({
       (id) => !nextIsolatedIds.has(id),
     );
 
-    if (addedProgramIds.length > 0 || removedProgramIds.length > 0) {
-      const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+    const governance = { isolationAllowed: true };
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+    const portalUpdatePromises: Promise<Program>[] = [];
+
+    for (const programId of removedProgramIds) {
+      portalUpdatePromises.push(
+        updateProgram(supabase, programId, organizationId, {
+          parent_portal_settings: { mode: "inherit" },
+        }),
+      );
+    }
+
+    for (const programId of nextIsolatedIds) {
+      const program = orgPrograms.find((row) => row.id === programId);
+      const editor = programPortalEditors[programId];
+      if (!program || !editor) continue;
+
+      const savedEditor = expandProgramPortalSettingsForEditor(
+        program.parent_portal_settings,
+        orgParent,
+      );
+      const shouldUpdate =
+        addedProgramIds.includes(programId) ||
+        !programPortalEditorStatesEqual(
+          editor,
+          savedEditor,
+          features,
+          governance,
+        );
+
+      if (shouldUpdate) {
+        portalUpdatePromises.push(
+          updateProgram(supabase, programId, organizationId, {
+            parent_portal_settings: deriveProgramPortalSettingsFromEditor(
+              editor,
+              features,
+              governance,
+            ),
+          }),
+        );
+      }
+    }
+
+    if (portalUpdatePromises.length > 0) {
       try {
-        await Promise.all([
-          ...addedProgramIds.map((programId) =>
-            updateProgram(supabase, programId, organizationId, {
-              parent_portal_settings:
-                buildInitialIsolatedProgramPortalSettings(orgParent),
-            }),
-          ),
-          ...removedProgramIds.map((programId) =>
-            updateProgram(supabase, programId, organizationId, {
-              parent_portal_settings: { mode: "inherit" },
-            }),
-          ),
-        ]);
+        const updatedPrograms = await Promise.all(portalUpdatePromises);
+        if (programPortalConfig.enabled) {
+          const rows = await listProgramsDetailed(supabase, organizationId);
+          setOrgPrograms(rows);
+          setProgramPortalEditors((prev) => {
+            const next = { ...prev };
+            for (const program of updatedPrograms) {
+              if (nextIsolatedIds.has(program.id)) {
+                next[program.id] = expandProgramPortalSettingsForEditor(
+                  program.parent_portal_settings,
+                  orgParent,
+                );
+              }
+            }
+            return next;
+          });
+        }
       } catch (syncError) {
         setError(
           syncError instanceof Error
@@ -494,6 +630,10 @@ export default function OrganizationSettingsEditor({
     features,
     onSaved,
     organizationId,
+    orgPrograms,
+    programPortalConfig.enabled,
+    programPortalEditors,
+    savedAdmissionsSnapshot,
     savedShadowDayMode,
     supabase,
   ]);
@@ -1328,8 +1468,8 @@ export default function OrganizationSettingsEditor({
                 Allow program-scoped parent portals
               </span>
               <span className="mt-0.5 block text-xs text-admin-muted font-secondary">
-                School admins can choose which features appear in allowlisted
-                program portals. Other programs stay on the main parent portal.
+                Configure allowlisted program portals here. School admins can
+                view portal features but cannot change them.
               </span>
             </span>
           </label>
@@ -1352,6 +1492,8 @@ export default function OrganizationSettingsEditor({
                   const checked = programPortalConfig.isolated_program_ids.includes(
                     program.id,
                   );
+                  const portalEditor = programPortalEditors[program.id];
+                  const portalExpanded = Boolean(expandedProgramPortalIds[program.id]);
                   return (
                     <div key={program.id} className="space-y-1">
                       <label
@@ -1361,13 +1503,35 @@ export default function OrganizationSettingsEditor({
                           type="checkbox"
                           checked={checked}
                           onChange={() => {
+                            const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
                             setAdmissions((current) => {
                               const config = parseProgramParentPortalOrgConfig(current);
                               const ids = new Set(config.isolated_program_ids);
                               if (ids.has(program.id)) {
                                 ids.delete(program.id);
+                                setProgramPortalEditors((prev) => {
+                                  const next = { ...prev };
+                                  delete next[program.id];
+                                  return next;
+                                });
+                                setExpandedProgramPortalIds((prev) => {
+                                  const next = { ...prev };
+                                  delete next[program.id];
+                                  return next;
+                                });
                               } else {
                                 ids.add(program.id);
+                                setProgramPortalEditors((prev) => ({
+                                  ...prev,
+                                  [program.id]: expandProgramPortalSettingsForEditor(
+                                    buildInitialIsolatedProgramPortalSettings(orgParent),
+                                    orgParent,
+                                  ),
+                                }));
+                                setExpandedProgramPortalIds((prev) => ({
+                                  ...prev,
+                                  [program.id]: true,
+                                }));
                               }
                               return {
                                 ...current,
@@ -1385,11 +1549,56 @@ export default function OrganizationSettingsEditor({
                         </span>
                       </label>
                       {checked ? (
-                        <p className="pl-6 text-xs text-admin-muted font-secondary">
-                          <code className="rounded bg-black/5 px-1 py-0.5">
-                            /school/{organizationSlug}/parent/p/{program.portal_slug}/...
-                          </code>
-                        </p>
+                        <div className="space-y-2 pl-6">
+                          <p className="text-xs text-admin-muted font-secondary">
+                            <code className="rounded bg-black/5 px-1 py-0.5">
+                              /school/{organizationSlug}/parent/p/{program.portal_slug}/...
+                            </code>
+                          </p>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-xs font-medium text-admin-text font-secondary hover:underline"
+                            onClick={() =>
+                              setExpandedProgramPortalIds((prev) => ({
+                                ...prev,
+                                [program.id]: !portalExpanded,
+                              }))
+                            }
+                          >
+                            {portalExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                            Portal features
+                          </button>
+                          {portalExpanded && portalEditor ? (
+                            <div className="rounded-admin-md border border-admin-border bg-admin-bg p-3">
+                              <ProgramParentPortalSettingsCard
+                                embedded
+                                canEditPortalConfig
+                                C={parentAdminCompat}
+                                theme={parentTheme}
+                                branding={branding}
+                                organizationId={organizationId}
+                                programName={program.name}
+                                orgFeatures={features}
+                                schoolSlug={organizationSlug}
+                                schoolName={organizationName}
+                                portalSlug={program.portal_slug}
+                                editor={portalEditor}
+                                isolationAllowed
+                                programParentPortalEnabled={programPortalConfig.enabled}
+                                onChange={(next) =>
+                                  setProgramPortalEditors((prev) => ({
+                                    ...prev,
+                                    [program.id]: next,
+                                  }))
+                                }
+                              />
+                            </div>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   );
@@ -1406,8 +1615,9 @@ export default function OrganizationSettingsEditor({
                   </p>
                   <p className="text-xs text-admin-muted font-secondary">
                     Isolated portals get their own URL and feature tabs. Calendar
-                    and messages can be school-wide or scoped to a program portal;
-                    billing and feed stay org-wide for now.
+                    and home show this program&apos;s events only. Messages include
+                    this program&apos;s threads plus the school office. Billing and
+                    feed stay org-wide for now.
                   </p>
                 </div>
               ) : null}

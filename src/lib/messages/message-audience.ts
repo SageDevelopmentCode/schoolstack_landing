@@ -28,6 +28,19 @@ export function applyMessageThreadAudienceScope<
   return query.or(`program_id.is.null,program_id.eq.${scope.programId}`);
 }
 
+export function threadVisibleInProgramPortalInbox(input: {
+  threadProgramId?: string | null;
+  participants: ReadonlyArray<{ kind: string }>;
+  programId: string;
+}): boolean {
+  const threadProgramId = input.threadProgramId ?? null;
+  const programId = input.programId.trim();
+  if (!programId) return false;
+  if (threadProgramId === programId) return true;
+  if (threadProgramId !== null) return false;
+  return input.participants.some((participant) => participant.kind === "school_office");
+}
+
 export function resolveThreadProgramIdForContact(input: {
   contactKind: "guardian" | "staff_member" | "school_office";
   portalProgramId?: string | null;
@@ -57,7 +70,7 @@ export function threadMatchesPortalContext(input: {
 
 export function describeParentPortalMessagesScope(isProgramPortal = false): string {
   if (isProgramPortal) {
-    return "School office and school-wide threads appear here too. Co-op-only threads stay in this portal.";
+    return "Shows threads for this program and the school office. School-wide staff threads appear in the main parent portal.";
   }
   return "Shows school-wide threads only. Program-only threads appear in that program's portal.";
 }

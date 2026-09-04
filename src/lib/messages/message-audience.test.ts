@@ -6,6 +6,7 @@ import {
   programPortalMessageAudienceScope,
   resolveThreadProgramIdForContact,
   threadMatchesPortalContext,
+  threadVisibleInProgramPortalInbox,
 } from "./message-audience";
 
 describe("message audience helpers", () => {
@@ -79,5 +80,41 @@ describe("message audience helpers", () => {
   it("describes messages scope copy", () => {
     assert.match(describeParentPortalMessagesScope(false), /school-wide threads only/i);
     assert.match(describeParentPortalMessagesScope(true), /school office/i);
+    assert.match(describeParentPortalMessagesScope(true), /main parent portal/i);
+  });
+
+  it("filters program portal inbox to program threads and school office", () => {
+    assert.equal(
+      threadVisibleInProgramPortalInbox({
+        threadProgramId: "program-1",
+        participants: [{ kind: "staff_member" }],
+        programId: "program-1",
+      }),
+      true,
+    );
+    assert.equal(
+      threadVisibleInProgramPortalInbox({
+        threadProgramId: null,
+        participants: [{ kind: "school_office" }],
+        programId: "program-1",
+      }),
+      true,
+    );
+    assert.equal(
+      threadVisibleInProgramPortalInbox({
+        threadProgramId: null,
+        participants: [{ kind: "staff_member" }],
+        programId: "program-1",
+      }),
+      false,
+    );
+    assert.equal(
+      threadVisibleInProgramPortalInbox({
+        threadProgramId: "program-2",
+        participants: [{ kind: "staff_member" }],
+        programId: "program-1",
+      }),
+      false,
+    );
   });
 });

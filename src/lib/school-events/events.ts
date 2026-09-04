@@ -56,7 +56,7 @@ export function groupOrganizationEventsByDate(
 function applyOrganizationEventAudienceScope<
   T extends {
     is(column: string, value: null): T;
-    or(filter: string): T;
+    eq(column: string, value: string): T;
   },
 >(query: T, scope?: OrganizationEventAudienceScope): T {
   if (!scope || scope.mode === "all") {
@@ -65,7 +65,7 @@ function applyOrganizationEventAudienceScope<
   if (scope.mode === "main_portal") {
     return query.is("program_id", null);
   }
-  return query.or(`program_id.is.null,program_id.eq.${scope.programId}`);
+  return query.eq("program_id", scope.programId);
 }
 
 export async function listEventsForOrg(

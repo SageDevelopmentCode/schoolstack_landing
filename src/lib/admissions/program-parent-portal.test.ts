@@ -6,6 +6,8 @@ import {
   expandProgramPortalSettingsForEditor,
   getDefaultProgramPortalFeatureToggles,
   getOrgEnabledParentCatalogKeys,
+  getProgramPortalFeatureScopeBadgeLabel,
+  getProgramPortalFeatureScopeTooltip,
   parseProgramParentPortalSettings,
   programPortalEditorStatesEqual,
   programPortalSettingsMatchOrg,
@@ -20,6 +22,8 @@ import {
 } from "./program-parent-portal-governance";
 import { parseAdmissionsOrgSettings } from "./admissions-org-settings";
 import { DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
+import { describeParentPortalCalendarScope } from "@/lib/school-events/event-audience";
+import { describeParentPortalMessagesScope } from "@/lib/messages/message-audience";
 import { resolveProgramParentFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   getProgramParentPortalPreviewBillingInitialData,
@@ -48,6 +52,60 @@ const orgFeaturesNoFeed = {
   ...orgFeatures,
   parent: { ...orgFeatures.parent, feed: false },
 };
+
+describe("getProgramPortalFeatureScopeTooltip", () => {
+  it("returns isolation tooltips for scoped features", () => {
+    const calendar = getProgramPortalFeatureScopeTooltip("calendar");
+    assert.equal(calendar?.variant, "isolation");
+    assert.equal(calendar?.content, describeParentPortalCalendarScope(true));
+
+    const portal = getProgramPortalFeatureScopeTooltip("portal");
+    assert.equal(portal?.variant, "isolation");
+    assert.equal(portal?.content, describeParentPortalCalendarScope(true));
+
+    const messages = getProgramPortalFeatureScopeTooltip("messages");
+    assert.equal(messages?.variant, "isolation");
+    assert.equal(messages?.content, describeParentPortalMessagesScope(true));
+
+    const children = getProgramPortalFeatureScopeTooltip("children");
+    assert.equal(children?.variant, "isolation");
+    assert.match(children?.content ?? "", /enrolled in this program/i);
+  });
+
+  it("returns shared tooltips for org-wide features", () => {
+    const billing = getProgramPortalFeatureScopeTooltip("billing");
+    assert.equal(billing?.variant, "shared");
+    assert.match(billing?.content ?? "", /org-wide/i);
+
+    const feed = getProgramPortalFeatureScopeTooltip("feed");
+    assert.equal(feed?.variant, "shared");
+    assert.match(feed?.content ?? "", /org-wide/i);
+  });
+
+  it("returns null for features without special scope copy", () => {
+    assert.equal(getProgramPortalFeatureScopeTooltip("attendance"), null);
+    assert.equal(getProgramPortalFeatureScopeTooltip("classroom_signups"), null);
+    assert.equal(getProgramPortalFeatureScopeTooltip("committees"), null);
+  });
+});
+
+describe("getProgramPortalFeatureScopeBadgeLabel", () => {
+  it("returns plain per-feature badge labels", () => {
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("portal"), "This program only");
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("calendar"), "This program only");
+    assert.equal(
+      getProgramPortalFeatureScopeBadgeLabel("messages"),
+      "This program + school office",
+    );
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("children"), "This program only");
+  });
+
+  it("returns null for shared and unbadged features", () => {
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("billing"), null);
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("feed"), null);
+    assert.equal(getProgramPortalFeatureScopeBadgeLabel("attendance"), null);
+  });
+});
 
 describe("suggestProgramPortalSlug", () => {
   it("slugifies program names", () => {
