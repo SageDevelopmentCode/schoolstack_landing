@@ -6,7 +6,7 @@ type ParentCardProps = {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-  variant?: "default" | "today" | "primary";
+  variant?: "default" | "today" | "primary" | "announcement";
   "data-testid"?: string;
 };
 
@@ -29,9 +29,16 @@ export default function ParentCard({
             color: theme.white,
             borderColor: "transparent",
           }
-        : {
-            backgroundColor: theme.white,
-          };
+        : variant === "announcement"
+          ? {
+              background: `linear-gradient(135deg, ${theme.infoBg}, ${theme.white})`,
+              borderColor: `${theme.info}33`,
+            }
+          : {
+              backgroundColor: theme.white,
+            };
+
+  const showAnnouncementAccent = variant === "announcement";
 
   return (
     <div
@@ -45,6 +52,13 @@ export default function ParentCard({
         ...style,
       }}
     >
+      {showAnnouncementAccent ? (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 top-0 w-1 rounded-l-[inherit]"
+          style={{ backgroundColor: theme.info }}
+        />
+      ) : null}
       {children}
     </div>
   );

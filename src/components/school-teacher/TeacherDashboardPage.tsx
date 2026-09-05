@@ -9,8 +9,8 @@ import {
   MessageSquare,
   Users,
 } from "lucide-react";
-import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import AdminQuickActionsCard from "@/components/school-admin/ui/story/AdminQuickActionsCard";
+import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -18,7 +18,6 @@ import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHea
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
-import BulletinMiniFeed from "@/components/bulletin/BulletinMiniFeed";
 import TeacherStudentStoryCard from "@/components/school-teacher/TeacherStudentStoryCard";
 import {
   greetingParts,
@@ -31,6 +30,7 @@ import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 
 type TeacherDashboardPageProps = {
   organizationId: string;
@@ -147,11 +147,6 @@ export default function TeacherDashboardPage({
       setSummary((prev) => ({
         ...prev,
         messagesUnreadCount: unreadCount,
-        metrics: prev.metrics.map((metric) =>
-          metric.id === "unread-messages"
-            ? { ...metric, value: String(unreadCount) }
-            : metric,
-        ),
       }));
     } catch {
       // Keep last known count on refresh failure.
@@ -197,6 +192,21 @@ export default function TeacherDashboardPage({
     href: action.href,
   }));
 
+  const showSchoolUpdates = summary.bulletinEnabled || messagesEnabled;
+  const teacherMessagesPromo =
+    !summary.bulletinEnabled && messagesEnabled
+      ? {
+          title:
+            summary.messagesUnreadCount > 0
+              ? `${summary.messagesUnreadCount} unread message${summary.messagesUnreadCount === 1 ? "" : "s"}`
+              : "Messages from families and staff",
+          subtitle:
+            summary.messagesUnreadCount > 0
+              ? "Families are waiting on your response."
+              : "Check your inbox for school communications.",
+        }
+      : undefined;
+
   const startHereTitle =
     summary.focusItems.length > 0
       ? `${summary.focusItems.length} thing${summary.focusItems.length === 1 ? "" : "s"} need your attention`
@@ -204,7 +214,7 @@ export default function TeacherDashboardPage({
 
   return (
     <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-4 py-6 sm:px-8 sm:py-8 lg:px-[68px] lg:py-10">
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>
         <motion.header
           custom={0}
           initial="hidden"
@@ -309,23 +319,15 @@ export default function TeacherDashboardPage({
           </motion.aside>
         </div>
 
-        {summary.metrics.length > 0 ? (
-          <motion.div
-            custom={3}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            className="grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-3"
-          >
-            {summary.metrics.map((metric) => (
-              <AdminMetricCard
-                key={metric.id}
-                theme={theme}
-                value={metric.value}
-                label={metric.label}
-                accent={metric.accent}
-              />
-            ))}
+        {showSchoolUpdates ? (
+          <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+            <PortalHomeSchoolUpdatesCard
+              theme={theme}
+              bulletinEnabled={summary.bulletinEnabled}
+              bulletinPosts={summary.bulletinPosts}
+              messagesHref={messagesEnabled ? messagesHref : undefined}
+              messagesPromo={teacherMessagesPromo}
+            />
           </motion.div>
         ) : null}
 
@@ -346,15 +348,16 @@ export default function TeacherDashboardPage({
               </ParentCard>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {visibleStudents.map((student, index) => (
-                    <TeacherStudentStoryCard
-                      key={student.id}
-                      student={student}
-                      theme={theme}
-                      myStudentsHref={myStudentsHref}
-                      index={index}
-                    />
+                    <div key={student.id} className="h-full">
+                      <TeacherStudentStoryCard
+                        student={student}
+                        theme={theme}
+                        myStudentsHref={myStudentsHref}
+                        index={index}
+                      />
+                    </div>
                   ))}
                 </div>
                 {hasMoreStudents ? (
@@ -369,103 +372,8 @@ export default function TeacherDashboardPage({
           </motion.section>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
-          {summary.bulletinEnabled || messagesEnabled ? (
-            <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-              <ParentCard theme={theme}>
-                <ParentSectionKicker theme={theme}>School updates</ParentSectionKicker>
-                <h3
-                  className="mb-4 text-base font-semibold"
-                  style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                >
-                  {summary.bulletinEnabled ? "From your school" : "Messages"}
-                </h3>
-                {summary.bulletinEnabled ? (
-                  <BulletinMiniFeed theme={theme} posts={summary.bulletinPosts} />
-                ) : null}
-                {messagesEnabled ? (
-                  <div className={summary.bulletinEnabled ? "mt-4 border-t border-[#E7ECE7] pt-4" : ""}>
-                    {!summary.bulletinEnabled ? (
-                      <div className="flex items-center gap-3.5">
-                        <div
-                          className="flex h-9 w-9 items-center justify-center rounded-full"
-                          style={{ backgroundColor: theme.infoBg }}
-                        >
-                          <MessageSquare className="h-4 w-4" style={{ color: theme.info }} />
-                        </div>
-                        <div>
-                          <strong className="block text-sm" style={{ color: theme.ink }}>
-                            {summary.messagesUnreadCount > 0
-                              ? `${summary.messagesUnreadCount} unread message${summary.messagesUnreadCount === 1 ? "" : "s"}`
-                              : "Messages from families and staff"}
-                          </strong>
-                          <p className="m-0 text-xs" style={{ color: "#78858A" }}>
-                            {summary.messagesUnreadCount > 0
-                              ? "Families are waiting on your response."
-                              : "Check your inbox for school communications."}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className={summary.bulletinEnabled ? "" : "mt-4"}>
-                      <ParentTextLink theme={theme} href={messagesHref}>
-                        Open messages
-                      </ParentTextLink>
-                    </div>
-                  </div>
-                ) : null}
-              </ParentCard>
-            </motion.div>
-          ) : null}
-
-          {calendarEnabled ? (
-            <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
-              <ParentCard theme={theme}>
-                <ParentSectionKicker theme={theme}>Coming up</ParentSectionKicker>
-                <h3
-                  className="mb-4 text-base font-semibold"
-                  style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-                >
-                  At a glance
-                </h3>
-                {summary.upcomingEvents.length === 0 ? (
-                  <p
-                    className="mb-0 text-[13px] leading-relaxed"
-                    style={{ color: "#65747A" }}
-                  >
-                    No upcoming events yet. School events will show up here.
-                  </p>
-                ) : (
-                  <p
-                    className="mb-0 text-[13px] leading-relaxed"
-                    style={{ color: "#65747A" }}
-                  >
-                    {summary.upcomingEvents.map((event, index) => {
-                      const dateLabel = parseEventDate(event.date).toLocaleDateString(
-                        "en-US",
-                        { month: "short", day: "numeric" },
-                      );
-                      return (
-                        <span key={event.id}>
-                          {index > 0 ? <br /> : null}
-                          {dateLabel} · {event.title}
-                        </span>
-                      );
-                    })}
-                  </p>
-                )}
-                <div className="mt-4">
-                  <ParentTextLink theme={theme} href={calendarHref}>
-                    View full calendar
-                  </ParentTextLink>
-                </div>
-              </ParentCard>
-            </motion.div>
-          ) : null}
-        </div>
-
         {summary.quickActions.length > 0 ? (
-          <motion.div custom={7} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
             <ParentCard theme={theme} className="!p-0">
               <AdminQuickActionsCard theme={theme} actions={quickActionsForAdminCard} />
             </ParentCard>

@@ -15,6 +15,26 @@ export function threadDetailFromSummary(
   };
 }
 
+export function threadSummaryFromDetail(
+  detail: MessageThreadDetail,
+): MessageThreadSummary {
+  const { messages: _messages, ...summary } = detail;
+  return summary;
+}
+
+export function upsertThreadSummary(
+  threads: MessageThreadSummary[],
+  summary: MessageThreadSummary,
+): MessageThreadSummary[] {
+  const index = threads.findIndex((thread) => thread.id === summary.id);
+  if (index === -1) {
+    return [summary, ...threads];
+  }
+  const next = [...threads];
+  next[index] = { ...next[index], ...summary };
+  return next;
+}
+
 export function threadDetailFromContact(
   contact: MessageContact,
   threadId?: string,

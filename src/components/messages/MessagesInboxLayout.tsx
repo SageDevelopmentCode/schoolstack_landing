@@ -10,6 +10,8 @@ import { contactKeyForThread } from "@/lib/messages/participants-from-contact";
 import {
   threadDetailFromContact,
   threadDetailFromSummary,
+  threadSummaryFromDetail,
+  upsertThreadSummary,
 } from "@/lib/messages/thread-placeholders";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
@@ -198,7 +200,7 @@ export default function MessagesInboxLayout({
     null,
   );
   const [inboxSearch, setInboxSearch] = useState("");
-  const deepLinkHandled = useRef(false);
+  const handledThreadParam = useRef<string | null>(null);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
   const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
 
@@ -227,9 +229,11 @@ export default function MessagesInboxLayout({
     return params.toString();
   }, [api.organizationId, api.programId, api.schoolName]);
 
-  const loadInbox = useCallback(async () => {
+  const loadInbox = useCallback(async (options?: { silent?: boolean }) => {
     if (hasLoadedThreadsRef.current) {
-      setIsRefetchingInbox(true);
+      if (!options?.silent) {
+        setIsRefetchingInbox(true);
+      }
     } else {
       setLoadingInbox(true);
     }
@@ -301,8 +305,11 @@ export default function MessagesInboxLayout({
           };
         });
         setActiveThreadId(threadId);
+        setThreads((prev) =>
+          upsertThreadSummary(prev, threadSummaryFromDetail(data.thread)),
+        );
         setError(null);
-        void loadInbox();
+        void loadInbox({ silent: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load conversation.");
       } finally {
@@ -562,16 +569,17 @@ export default function MessagesInboxLayout({
   }, [threads]);
 
   useEffect(() => {
-    if (initialInbox) return;
+    if (initialInbox?.threadsDeferred) return;
     queueMicrotask(() => {
       void loadInbox();
     });
-  }, [initialInbox, loadInbox]);
+  }, [initialInbox?.threadsDeferred, loadInbox]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");
-    if (!threadParam || deepLinkHandled.current || loadingInbox) return;
-    deepLinkHandled.current = true;
+    if (!threadParam || loadingInbox) return;
+    if (handledThreadParam.current === threadParam) return;
+    handledThreadParam.current = threadParam;
     setMobileView("chat");
     setLoadingMessages(true);
     void loadThread(threadParam).finally(() => setLoadingMessages(false));
@@ -613,15 +621,24 @@ export default function MessagesInboxLayout({
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
+    let base = threads;
+    if (
+      activeThread &&
+      !activeThread.id.startsWith("pending-") &&
+      !base.some((thread) => thread.id === activeThread.id)
+    ) {
+      base = [threadSummaryFromDetail(activeThread), ...base];
+    }
+
     const query = inboxSearch.trim().toLowerCase();
-    if (!storyVariant || !query) return threads;
-    return threads.filter(
+    if (!storyVariant || !query) return base;
+    return base.filter(
       (thread) =>
         thread.title.toLowerCase().includes(query) ||
         thread.subtitle?.toLowerCase().includes(query) ||
         thread.lastMessagePreview?.toLowerCase().includes(query),
     );
-  }, [inboxSearch, storyVariant, threads]);
+  }, [activeThread, inboxSearch, storyVariant, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -773,11 +790,24 @@ export default function MessagesInboxLayout({
     );
   }
 
-  if (!loadingInbox && threads.length === 0 && contacts.length === 0 && !initialInbox?.threadsDeferred) {
+  const emptyInboxDescription =
+    api.viewer === "parent" && api.programId
+      ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
+      : api.viewer === "parent"
+        ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
+        : "No conversations yet. Start a new conversation to reach families and colleagues.";
+
+  if (
+    !loadingInbox &&
+    threads.length === 0 &&
+    contacts.length === 0 &&
+    !initialInbox?.threadsDeferred &&
+    !deferContactsLoad
+  ) {
     return (
       <MessagesEmptyState
         title="No messages yet"
-        description="When your school enables messaging, conversations will appear here."
+        description={emptyInboxDescription}
         C={C}
         theme={theme}
         variant={variant}
@@ -822,7 +852,7 @@ export default function MessagesInboxLayout({
       )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <motion.div
+        <div
           className={`border-r flex flex-col flex-shrink-0 ${
             mobileView === "chat" ? "hidden md:flex" : "flex"
           } w-full ${
@@ -832,13 +862,6 @@ export default function MessagesInboxLayout({
             borderColor: theme?.line ?? C.border,
             backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
-          {...(storyVariant && mobileView === "list"
-            ? {
-                initial: parentMessagesViewTransition.initial,
-                animate: parentMessagesViewTransition.animate,
-                transition: parentMessagesViewTransition.transition,
-              }
-            : {})}
         >
           {variant === "parent-story" && theme ? (
             <ParentMessagesInboxHeader
@@ -912,7 +935,7 @@ export default function MessagesInboxLayout({
               hideStudentSubtitle={api.viewer === "teacher" && (embedded || storyVariant)}
             />
           </div>
-        </motion.div>
+        </div>
 
         <motion.div
           className={`flex w-full flex-col flex-1 min-w-0 min-h-0 ${

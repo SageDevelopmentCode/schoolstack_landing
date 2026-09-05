@@ -91,13 +91,15 @@ export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
 }
 
 export function isParentMessagesPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "messages") return true;
   if (parseSchoolParentPath(pathname)?.feature === "messages") return true;
-  return /\/parent\/messages(?:\/|$)/.test(pathname);
+  return /\/parent\/(?:p\/[^/]+\/)?messages(?:\/|$)/.test(pathname);
 }
 
 export function isParentBillingPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "billing") return true;
   if (parseSchoolParentPath(pathname)?.feature === "billing") return true;
-  return /\/parent\/billing(?:\/|$)/.test(pathname);
+  return /\/parent\/(?:p\/[^/]+\/)?billing(?:\/|$)/.test(pathname);
 }
 
 export function isParentCurriculumPath(pathname: string): boolean {

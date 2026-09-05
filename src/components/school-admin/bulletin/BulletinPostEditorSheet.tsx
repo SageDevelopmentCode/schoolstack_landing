@@ -56,7 +56,7 @@ export default function BulletinPostEditorSheet({
         <BulletinPostEditorFooter theme={theme} editor={editor} onDeleted={onDeleted} />
       }
     >
-      <BulletinPostEditorForm theme={theme} programs={programs} editor={editor} />
+      <BulletinPostEditorForm theme={theme} C={C} programs={programs} editor={editor} />
     </SchoolAdminSlideOverShell>
   );
 }

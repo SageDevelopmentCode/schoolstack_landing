@@ -56,10 +56,7 @@ export async function loadParentMessagesThreads(
     guardianId = contactsResult.guardianId;
   }
 
-  const guardianIds =
-    guardianId !== null
-      ? [guardianId]
-      : await getGuardianIdsForUser(admin, userId, organizationId);
+  const guardianIds = await getGuardianIdsForUser(admin, userId, organizationId);
 
   const threads =
     guardianIds.length > 0
@@ -125,10 +122,7 @@ export async function loadParentMessagesInbox(
 
   const { guardianId, contacts } = contactsResult;
 
-  const guardianIds =
-    guardianId
-      ? [guardianId]
-      : await getGuardianIdsForUser(admin, userId, organizationId);
+  const guardianIds = await getGuardianIdsForUser(admin, userId, organizationId);
 
   const threads =
     guardianIds.length > 0

@@ -54,8 +54,8 @@ export default function TeacherStudentStoryCard({
   const accentBg = childAccentBg(index);
 
   return (
-    <motion.div custom={index} initial="hidden" animate="visible" variants={fadeUp}>
-      <ParentCard theme={theme} className="relative flex flex-col !p-6">
+    <motion.div custom={index} initial="hidden" animate="visible" variants={fadeUp} className="h-full">
+      <ParentCard theme={theme} className="relative flex h-full flex-col !p-6">
         <div className="mb-4 flex items-start gap-3">
           <div
             className="shrink-0 overflow-hidden rounded-[18px]"

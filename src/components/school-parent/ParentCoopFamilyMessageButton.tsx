@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Loader2, MessageSquare } from "lucide-react";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import {
+  formatParentActionError,
+  parentToast,
+} from "@/lib/school-parent/parent-toast";
 
 type ParentCoopFamilyMessageButtonProps = {
   theme: ParentThemeTokens;
@@ -65,7 +69,10 @@ export default function ParentCoopFamilyMessageButton({
 
       const separator = messagesHref.includes("?") ? "&" : "?";
       router.push(`${messagesHref}${separator}thread=${encodeURIComponent(data.threadId)}`);
-    } catch {
+    } catch (err) {
+      parentToast.error(
+        formatParentActionError(err, "Could not start that conversation."),
+      );
       setLoading(false);
     }
   };

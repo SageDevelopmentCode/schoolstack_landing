@@ -6,6 +6,13 @@ export const SCHOOL_BULLETIN_FILES_BUCKET = "school-bulletin-files";
 export const MAX_BULLETIN_ATTACHMENTS = 5;
 export const MAX_BULLETIN_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
+export const BULLETIN_IMAGE_COMPRESS_OPTIONS = {
+  maxWidth: 2048,
+  maxHeight: 2048,
+  quality: 0.85,
+  skipBelowBytes: 300 * 1024,
+} as const;
+
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -41,6 +48,13 @@ export function validateBulletinAttachmentFile(file: File): void {
   }
 }
 
+export async function prepareBulletinAttachmentForUpload(file: File): Promise<File> {
+  if (file.type === "image/jpeg" || file.type === "image/png") {
+    return compressImageForUpload(file, BULLETIN_IMAGE_COMPRESS_OPTIONS);
+  }
+  return file;
+}
+
 export async function uploadBulletinAttachment(
   supabase: SupabaseClient,
   organizationId: string,
@@ -49,28 +63,18 @@ export async function uploadBulletinAttachment(
 ): Promise<BulletinAttachmentMeta> {
   validateBulletinAttachmentFile(file);
 
-  const prepared =
-    file.type === "image/jpeg" || file.type === "image/png"
-      ? await compressImageForUpload(file, {
-          maxWidth: 2048,
-          maxHeight: 2048,
-          quality: 0.85,
-          skipBelowBytes: 300 * 1024,
-        })
-      : file;
-
   const fileId = crypto.randomUUID();
   const storagePath = buildBulletinAttachmentStoragePath(
     organizationId,
     postId,
-    prepared.name,
+    file.name,
     fileId,
   );
 
   const { error: uploadError } = await supabase.storage
     .from(SCHOOL_BULLETIN_FILES_BUCKET)
-    .upload(storagePath, prepared, {
-      contentType: prepared.type || undefined,
+    .upload(storagePath, file, {
+      contentType: file.type || undefined,
       upsert: false,
     });
 
@@ -78,10 +82,10 @@ export async function uploadBulletinAttachment(
 
   return {
     id: fileId,
-    fileName: prepared.name,
+    fileName: file.name,
     storagePath,
-    mimeType: prepared.type || null,
-    sizeBytes: prepared.size,
+    mimeType: file.type || null,
+    sizeBytes: file.size,
   };
 }
 

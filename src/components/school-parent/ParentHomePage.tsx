@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileText,
-  MessageSquare,
   Sprout,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
@@ -34,6 +33,7 @@ import {
 } from "@/components/school-parent/children/parent-children-utils";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
@@ -49,7 +49,7 @@ import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionIt
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
-import BulletinMiniFeed from "@/components/bulletin/BulletinMiniFeed";
+import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 
 type ParentHomePageProps = {
@@ -266,8 +266,14 @@ function ChildStoryCard({
   const isolatedPortalLabel = childIsolatedPortalLabel(child);
 
   return (
-    <motion.div custom={index + 4} initial="hidden" animate="visible" variants={fadeUp}>
-      <ParentCard theme={theme} className="relative flex flex-col !p-6">
+    <motion.div
+      custom={index + 4}
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      className="h-full"
+    >
+      <ParentCard theme={theme} className="relative flex h-full flex-col !p-6">
         <div className="mb-4 flex items-start gap-3">
           <div
             className="shrink-0 overflow-hidden rounded-[18px]"
@@ -423,7 +429,7 @@ export default function ParentHomePage({
 
   return (
     <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-4 py-6 sm:px-8 sm:py-8 lg:px-[68px] lg:py-10">
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>
         <motion.header
           custom={0}
           initial="hidden"
@@ -577,8 +583,25 @@ export default function ParentHomePage({
           </motion.aside>
         </div>
 
+        <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+          <PortalHomeSchoolUpdatesCard
+            theme={theme}
+            bulletinEnabled={bulletinEnabled}
+            bulletinPosts={bulletinPosts}
+            messagesHref={messagesHref}
+            messagesPromo={
+              !bulletinEnabled && messagesHref
+                ? {
+                    title: "Messages from teachers and staff",
+                    subtitle: "Check your inbox for school communications.",
+                  }
+                : undefined
+            }
+          />
+        </motion.div>
+
         <motion.section
-          custom={3}
+          custom={4}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
@@ -611,7 +634,7 @@ export default function ParentHomePage({
               </p>
             </ParentCard>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
               {familyChildren.map((child, index) => (
                 <ChildStoryCard
                   key={child.applicationId}
@@ -640,108 +663,6 @@ export default function ParentHomePage({
           />
         ) : null}
 
-        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
-          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-            <ParentCard theme={theme}>
-              <ParentSectionKicker theme={theme}>School updates</ParentSectionKicker>
-              <h3
-                className="mb-4 text-base font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                From your school
-              </h3>
-              {bulletinEnabled ? (
-                <>
-                  <BulletinMiniFeed theme={theme} posts={bulletinPosts} />
-                  {messagesHref ? (
-                    <div className="mt-4 border-t border-[#E7ECE7] pt-4">
-                      <ParentTextLink theme={theme} href={messagesHref}>
-                        Open messages
-                      </ParentTextLink>
-                    </div>
-                  ) : null}
-                </>
-              ) : messagesHref ? (
-                <>
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-full"
-                      style={{ backgroundColor: theme.infoBg }}
-                    >
-                      <MessageSquare
-                        className="h-4 w-4"
-                        style={{ color: theme.info }}
-                      />
-                    </div>
-                    <div>
-                      <strong
-                        className="block text-sm"
-                        style={{ color: theme.ink }}
-                      >
-                        Messages from teachers and staff
-                      </strong>
-                      <p className="m-0 text-xs" style={{ color: "#78858A" }}>
-                        Check your inbox for school communications.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <ParentTextLink theme={theme} href={messagesHref}>
-                      Open messages
-                    </ParentTextLink>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  School announcements and updates will appear here when available.
-                </p>
-              )}
-            </ParentCard>
-          </motion.div>
-
-          <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
-            <ParentCard theme={theme}>
-              <ParentSectionKicker theme={theme}>Coming up</ParentSectionKicker>
-              <h3
-                className="mb-4 text-base font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                At a glance
-              </h3>
-              {upcomingEvents.length === 0 ? (
-                <p
-                  className="mb-0 text-[13px] leading-relaxed"
-                  style={{ color: "#65747A" }}
-                >
-                  No upcoming events yet. School events will show up here.
-                </p>
-              ) : (
-                <p
-                  className="mb-0 text-[13px] leading-relaxed"
-                  style={{ color: "#65747A" }}
-                >
-                  {upcomingEvents.slice(0, 3).map((event, index) => {
-                    const dateLabel = parseEventDate(event.date).toLocaleDateString(
-                      "en-US",
-                      { month: "short", day: "numeric" },
-                    );
-                    return (
-                      <span key={event.id}>
-                        {index > 0 ? <br /> : null}
-                        {dateLabel} · {event.title}
-                      </span>
-                    );
-                  })}
-                </p>
-              )}
-              <div className="mt-4">
-                <ParentTextLink theme={theme} href={calendarHref}>
-                  View full calendar
-                </ParentTextLink>
-              </div>
-            </ParentCard>
-          </motion.div>
-        </div>
       </div>
 
       <ParentOnboardingSidebar

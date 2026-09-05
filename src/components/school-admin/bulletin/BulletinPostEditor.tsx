@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2, Upload } from "lucide-react";
 import BulletinAttachmentList from "@/components/school-admin/bulletin/BulletinAttachmentList";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import SchoolAdminDateTimePicker from "@/components/school-admin/ui/SchoolAdminDateTimePicker";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   audiencesIncludeProgramTargeting,
   programSelectionRequired,
 } from "@/lib/school-bulletin/bulletin-audience";
+import {
+  MAX_BULLETIN_ATTACHMENTS,
+  prepareBulletinAttachmentForUpload,
+} from "@/lib/school-bulletin/attachment-storage";
 import { normalizeBulletinAudiences } from "@/lib/school-bulletin/mappers";
 import type {
   BulletinAudience,
@@ -81,6 +87,58 @@ function fromDateTimeLocalValue(value: string): string | null {
   return date.toISOString();
 }
 
+type ScheduleToggleRowProps = {
+  C: AdminThemeTokens;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+function ScheduleToggleRow({
+  C,
+  label,
+  description,
+  checked,
+  onChange,
+}: ScheduleToggleRowProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={`${label}. ${description}`}
+      onClick={() => onChange(!checked)}
+      className="flex w-full min-h-[44px] items-center justify-between gap-4 rounded-md border px-3 py-3 text-left transition-colors"
+      style={{
+        borderColor: checked ? C.accent : C.border,
+        backgroundColor: checked ? C.accentLight : C.surface,
+      }}
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-medium" style={{ color: C.textPrimary }}>
+          {label}
+        </span>
+        <span className="mt-0.5 block text-xs" style={{ color: C.textSecondary }}>
+          {description}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors"
+        style={{ backgroundColor: checked ? C.accent : C.border }}
+      >
+        <span
+          className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+          style={{
+            transform: checked ? "translateX(22px)" : "translateX(2px)",
+          }}
+        />
+      </span>
+    </button>
+  );
+}
+
 export type UseBulletinPostEditorOptions = {
   slug: string;
   post: BulletinPost | null;
@@ -104,6 +162,12 @@ export function useBulletinPostEditor({
   const [programIds, setProgramIds] = useState<string[]>(post?.programIds ?? []);
   const [publishedAt, setPublishedAt] = useState(toDateTimeLocalValue(post?.publishedAt));
   const [expiresAt, setExpiresAt] = useState(toDateTimeLocalValue(post?.expiresAt));
+  const [publishScheduleEnabled, setPublishScheduleEnabled] = useState(() =>
+    Boolean(toDateTimeLocalValue(post?.publishedAt)),
+  );
+  const [expiryEnabled, setExpiryEnabled] = useState(() =>
+    Boolean(toDateTimeLocalValue(post?.expiresAt)),
+  );
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removingAttachmentId, setRemovingAttachmentId] = useState<string | null>(null);
@@ -114,8 +178,12 @@ export function useBulletinPostEditor({
     setBody(post?.body ?? "");
     setAudiences(post?.audiences?.length ? post.audiences : ["school_wide"]);
     setProgramIds(post?.programIds ?? []);
-    setPublishedAt(toDateTimeLocalValue(post?.publishedAt));
-    setExpiresAt(toDateTimeLocalValue(post?.expiresAt));
+    const nextPublishedAt = toDateTimeLocalValue(post?.publishedAt);
+    const nextExpiresAt = toDateTimeLocalValue(post?.expiresAt);
+    setPublishedAt(nextPublishedAt);
+    setExpiresAt(nextExpiresAt);
+    setPublishScheduleEnabled(Boolean(nextPublishedAt));
+    setExpiryEnabled(Boolean(nextExpiresAt));
     setDraftPost(post);
   }, [post]);
 
@@ -139,46 +207,73 @@ export function useBulletinPostEditor({
     setProgramIds((current) => toggleProgramSelection(current, programId));
   };
 
-  const savePost = async (status: BulletinPostStatus) => {
+  const togglePublishSchedule = (enabled: boolean) => {
+    setPublishScheduleEnabled(enabled);
+    if (!enabled) setPublishedAt("");
+  };
+
+  const toggleExpiry = (enabled: boolean) => {
+    setExpiryEnabled(enabled);
+    if (!enabled) setExpiresAt("");
+  };
+
+  const validateBeforeSave = (): boolean => {
     if (programRequired && programIds.length === 0) {
       adminToast.error("Choose at least one program for program-targeted bulletins.");
-      return;
+      return false;
+    }
+    return true;
+  };
+
+  const persistPost = async (
+    status: BulletinPostStatus,
+    options?: { silent?: boolean; existingPost?: BulletinPost | null },
+  ): Promise<BulletinPost | null> => {
+    if (!validateBeforeSave()) return null;
+
+    const currentPost = options?.existingPost ?? draftPost ?? post;
+    const payload = {
+      title,
+      body,
+      audiences: normalizedAudiences,
+      programIds: showProgramPicker ? programIds : [],
+      status,
+      publishedAt: fromDateTimeLocalValue(publishedAt),
+      expiresAt: fromDateTimeLocalValue(expiresAt),
+    };
+
+    const creating = !currentPost;
+    const response = await fetch(
+      creating
+        ? `/api/school/${slug}/bulletin`
+        : `/api/school/${slug}/bulletin/${currentPost!.id}`,
+      {
+        method: creating ? "POST" : "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const data = (await response.json()) as { post?: BulletinPost; error?: string };
+    if (!response.ok || !data.post) {
+      throw new Error(data.error ?? "Could not save bulletin post.");
     }
 
-    setSaving(true);
-    try {
-      const payload = {
-        title,
-        body,
-        audiences: normalizedAudiences,
-        programIds: showProgramPicker ? programIds : [],
-        status,
-        publishedAt: fromDateTimeLocalValue(publishedAt),
-        expiresAt: fromDateTimeLocalValue(expiresAt),
-      };
-
-      const creating = !activePost;
-      const response = await fetch(
-        creating
-          ? `/api/school/${slug}/bulletin`
-          : `/api/school/${slug}/bulletin/${activePost!.id}`,
-        {
-          method: creating ? "POST" : "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      const data = (await response.json()) as { post?: BulletinPost; error?: string };
-      if (!response.ok || !data.post) {
-        throw new Error(data.error ?? "Could not save bulletin post.");
-      }
-
+    if (!options?.silent) {
       adminToast.success(
         status === "published" ? "Bulletin published" : "Bulletin saved",
       );
-      setDraftPost(data.post);
-      onSaved(data.post);
+    }
+
+    setDraftPost(data.post);
+    onSaved(data.post);
+    return data.post;
+  };
+
+  const savePost = async (status: BulletinPostStatus) => {
+    setSaving(true);
+    try {
+      await persistPost(status);
     } catch (error) {
       adminToast.error(formatActionError(error, "Could not save bulletin post."));
     } finally {
@@ -231,21 +326,34 @@ export function useBulletinPostEditor({
     }
   };
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!activePost) return;
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  const uploadFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
     if (files.length === 0) return;
+
+    if (!title.trim()) {
+      adminToast.error("Add a title before uploading files.");
+      return;
+    }
 
     setUploading(true);
     try {
+      let postForUpload = activePost;
+      if (!postForUpload) {
+        postForUpload = await persistPost("draft", { silent: true });
+        if (!postForUpload) return;
+      }
+
+      const preparedFiles = await Promise.all(
+        files.map((file) => prepareBulletinAttachmentForUpload(file)),
+      );
+
       const formData = new FormData();
-      for (const file of files) {
+      for (const file of preparedFiles) {
         formData.append("files", file);
       }
 
       const response = await fetch(
-        `/api/school/${slug}/bulletin/${activePost.id}/attachments`,
+        `/api/school/${slug}/bulletin/${postForUpload.id}/attachments`,
         {
           method: "POST",
           body: formData,
@@ -264,6 +372,11 @@ export function useBulletinPostEditor({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    void uploadFiles(event.target.files ?? []);
+    event.target.value = "";
   };
 
   const handleRemoveAttachment = async (attachmentId: string) => {
@@ -302,6 +415,10 @@ export function useBulletinPostEditor({
     setPublishedAt,
     expiresAt,
     setExpiresAt,
+    publishScheduleEnabled,
+    expiryEnabled,
+    togglePublishSchedule,
+    toggleExpiry,
     saving,
     uploading,
     removingAttachmentId,
@@ -309,22 +426,28 @@ export function useBulletinPostEditor({
     showProgramPicker,
     programRequired,
     editingExisting,
+    canUploadAttachments: Boolean(title.trim()),
+    atAttachmentLimit:
+      (activePost?.attachments.length ?? 0) >= MAX_BULLETIN_ATTACHMENTS,
     savePost,
     handleArchive,
     handleDelete,
-    handleUpload,
+    uploadFiles,
+    handleFileInputChange,
     handleRemoveAttachment,
   };
 }
 
 export type BulletinPostEditorFormProps = {
   theme: ParentThemeTokens;
+  C: AdminThemeTokens;
   programs: ProgramOption[];
   editor: ReturnType<typeof useBulletinPostEditor>;
 };
 
 export function BulletinPostEditorForm({
-  theme: _theme,
+  theme,
+  C,
   programs,
   editor,
 }: BulletinPostEditorFormProps) {
@@ -341,15 +464,24 @@ export function BulletinPostEditorForm({
     setPublishedAt,
     expiresAt,
     setExpiresAt,
+    publishScheduleEnabled,
+    expiryEnabled,
+    togglePublishSchedule,
+    toggleExpiry,
     uploading,
     removingAttachmentId,
     activePost,
     showProgramPicker,
     programRequired,
-    editingExisting,
-    handleUpload,
+    canUploadAttachments,
+    atAttachmentLimit,
+    uploadFiles,
+    handleFileInputChange,
     handleRemoveAttachment,
   } = editor;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadDisabled = uploading || !canUploadAttachments || atAttachmentLimit;
 
   const inputStyle: React.CSSProperties = {
     borderColor: "#DCE4DC",
@@ -391,6 +523,80 @@ export function BulletinPostEditorForm({
           placeholder="Share details families and staff should know..."
         />
       </label>
+
+      <div>
+        <span className="mb-1.5 block text-sm font-medium text-[#1E2A24]">Attachments</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handleFileInputChange}
+          disabled={uploadDisabled}
+        />
+        <div
+          className="flex flex-col items-center justify-center rounded-md border-2 border-dashed px-4 py-8 text-center"
+          style={{
+            borderColor: uploadDisabled ? "#DCE4DC" : "#B8C7B8",
+            backgroundColor: "#FFFFFF",
+            cursor: uploadDisabled ? "not-allowed" : "pointer",
+            opacity: uploadDisabled ? 0.7 : 1,
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (uploadDisabled) return;
+            if (event.dataTransfer.files.length) {
+              void uploadFiles(event.dataTransfer.files);
+            }
+          }}
+          onClick={() => {
+            if (!uploadDisabled) fileInputRef.current?.click();
+          }}
+          onKeyDown={(event) => {
+            if (uploadDisabled) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={uploadDisabled ? -1 : 0}
+          aria-disabled={uploadDisabled}
+          aria-label="Upload bulletin attachments"
+        >
+          {uploading ? (
+            <Loader2 className="mb-2 h-7 w-7 animate-spin text-[#4A6741]" />
+          ) : (
+            <Upload className="mb-2 h-7 w-7 text-[#78858A]" />
+          )}
+          <p className="text-sm font-medium text-[#1E2A24]">
+            {uploading ? "Uploading files…" : "Drop files here or click to upload"}
+          </p>
+          <p className="mt-1 text-xs text-[#65747A]">
+            PDFs or images · Up to {MAX_BULLETIN_ATTACHMENTS} files, 10 MB each
+          </p>
+          {!canUploadAttachments ? (
+            <p className="mt-2 text-xs text-[#65747A]">Add a title to upload files.</p>
+          ) : atAttachmentLimit ? (
+            <p className="mt-2 text-xs text-[#65747A]">
+              Maximum {MAX_BULLETIN_ATTACHMENTS} attachments reached.
+            </p>
+          ) : null}
+        </div>
+        {activePost && activePost.attachments.length > 0 ? (
+          <div className="mt-3">
+            <BulletinAttachmentList
+              attachments={activePost.attachments}
+              onRemove={handleRemoveAttachment}
+              removingId={removingAttachmentId}
+            />
+          </div>
+        ) : null}
+      </div>
 
       <div>
         <span className="mb-1 block text-sm font-medium text-[#1E2A24]">Audience</span>
@@ -455,72 +661,51 @@ export function BulletinPostEditorForm({
       ) : null}
 
       <div className="space-y-4">
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-[#1E2A24]">
-            Publish at (optional)
-          </span>
-          <input
-            type="datetime-local"
-            value={publishedAt}
-            onChange={(event) => setPublishedAt(event.target.value)}
-            className={fieldClassName}
-            style={inputStyle}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-[#1E2A24]">
-            Expires at (optional)
-          </span>
-          <input
-            type="datetime-local"
-            value={expiresAt}
-            onChange={(event) => setExpiresAt(event.target.value)}
-            className={fieldClassName}
-            style={inputStyle}
-          />
-        </label>
-      </div>
-
-      {editingExisting && activePost ? (
         <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-[#1E2A24]">Attachments</span>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="file"
-                multiple
-                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleUpload}
-                disabled={uploading}
-              />
-              <AdminButton
-                type="button"
-                theme={_theme}
-                variant="soft"
-                size="compact"
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                Upload files
-              </AdminButton>
-            </label>
-          </div>
-          <BulletinAttachmentList
-            attachments={activePost.attachments}
-            onRemove={handleRemoveAttachment}
-            removingId={removingAttachmentId}
+          <ScheduleToggleRow
+            C={C}
+            label="Schedule publish"
+            description="Publish later instead of right away"
+            checked={publishScheduleEnabled}
+            onChange={togglePublishSchedule}
           />
+          {publishScheduleEnabled ? (
+            <div className="mt-2">
+              <SchoolAdminDateTimePicker
+                id="bulletin-publish-at"
+                value={publishedAt}
+                onChange={setPublishedAt}
+                C={C}
+                theme={theme}
+                placeholder="Select publish date…"
+                timeAriaLabel="Publish time"
+              />
+            </div>
+          ) : null}
         </div>
-      ) : (
-        <p className="text-sm text-[#65747A]">
-          Save a draft first, then upload PDFs or images.
-        </p>
-      )}
+        <div>
+          <ScheduleToggleRow
+            C={C}
+            label="Set expiry"
+            description="Hide from feeds after this date"
+            checked={expiryEnabled}
+            onChange={toggleExpiry}
+          />
+          {expiryEnabled ? (
+            <div className="mt-2">
+              <SchoolAdminDateTimePicker
+                id="bulletin-expires-at"
+                value={expiresAt}
+                onChange={setExpiresAt}
+                C={C}
+                theme={theme}
+                placeholder="Select expiry date…"
+                timeAriaLabel="Expiry time"
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }

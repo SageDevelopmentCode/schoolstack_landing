@@ -13,9 +13,8 @@ import {
 import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
-import { addDays, dateKey } from "@/lib/committees/calendar-utils";
+import { dateKey } from "@/lib/committees/calendar-utils";
 import {
-  listEventsForOrg,
   listUpcomingEventsForOrg,
 } from "@/lib/school-events/events";
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
@@ -46,14 +45,6 @@ export type TeacherDashboardFocusItem = {
   icon: TeacherDashboardFocusIcon;
 };
 
-export type TeacherDashboardMetric = {
-  id: string;
-  label: string;
-  value: string;
-  accent: "forest" | "sky" | "gold" | "berry";
-  enabled: boolean;
-};
-
 export type TeacherDashboardQuickAction = {
   id: string;
   title: string;
@@ -63,12 +54,10 @@ export type TeacherDashboardQuickAction = {
 
 export type TeacherDashboardSummary = {
   focusItems: TeacherDashboardFocusItem[];
-  metrics: TeacherDashboardMetric[];
   quickActions: TeacherDashboardQuickAction[];
   assignedStudents: AdminEnrolledStudentSummary[];
   upcomingEvents: OrganizationEvent[];
   messagesUnreadCount: number;
-  openSignupsCount: number;
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
 };
@@ -118,20 +107,6 @@ export function buildTeacherQuickActions(
     }));
 }
 
-function countEventsInNextDays(
-  events: OrganizationEvent[],
-  days: number,
-): number {
-  const today = new Date();
-  const end = addDays(today, days);
-  const todayKey = dateKey(today);
-  const endKey = dateKey(end);
-
-  return events.filter(
-    (event) => event.date >= todayKey && event.date <= endKey,
-  ).length;
-}
-
 function findEventToday(events: OrganizationEvent[]): OrganizationEvent | null {
   const todayKey = dateKey(new Date());
   return events.find((event) => event.date === todayKey) ?? null;
@@ -170,7 +145,6 @@ export async function fetchTeacherDashboardSummary(
     assignedStudents,
     upcomingEvents,
     messagesUnreadCount,
-    weekEvents,
     bulletinPosts,
   ] = await Promise.all([
     myStudentsEnabled && staffMemberId
@@ -188,12 +162,6 @@ export async function fetchTeacherDashboardSummary(
           options.schoolName,
         ).catch(() => 0)
       : Promise.resolve(0),
-    calendarEnabled
-      ? listEventsForOrg(supabase, organizationId, {
-          startDate: dateKey(new Date()),
-          endDate: dateKey(addDays(new Date(), 7)),
-        })
-      : Promise.resolve([] as OrganizationEvent[]),
     loadHomeBulletinPosts({
       supabase,
       signedUrlClient: admin,
@@ -281,39 +249,6 @@ export async function fetchTeacherDashboardSummary(
     });
   }
 
-  const eventsThisWeek = countEventsInNextDays(weekEvents, 7);
-
-  const metrics: TeacherDashboardMetric[] = [
-    {
-      id: "assigned-students",
-      label: "Assigned students",
-      value: String(assignedStudents.length),
-      accent: "forest",
-      enabled: myStudentsEnabled,
-    },
-    {
-      id: "unread-messages",
-      label: "Unread messages",
-      value: String(messagesUnreadCount),
-      accent: "berry",
-      enabled: messagesEnabled,
-    },
-    {
-      id: "events-this-week",
-      label: "Events this week",
-      value: String(eventsThisWeek),
-      accent: "sky",
-      enabled: calendarEnabled,
-    },
-    {
-      id: "open-signups",
-      label: "Open signups",
-      value: String(signupMetrics.openCount),
-      accent: "gold",
-      enabled: signupsEnabled,
-    },
-  ];
-
   const quickActions = buildTeacherQuickActions(
     slug,
     features,
@@ -322,12 +257,10 @@ export async function fetchTeacherDashboardSummary(
 
   return {
     focusItems: focusItems.slice(0, 3),
-    metrics: metrics.filter((metric) => metric.enabled),
     quickActions,
     assignedStudents,
     upcomingEvents,
     messagesUnreadCount,
-    openSignupsCount: signupMetrics.openCount,
     bulletinEnabled,
     bulletinPosts,
   };
