@@ -9,6 +9,23 @@ export type PlatformTemplateSeed = Omit<CommitteeTemplate, "id" | "organizationI
 
 const ANNUAL_SECTIONS = [...DEFAULT_SECTIONS] as CommitteeTemplateConfig["sections"];
 
+export const CUSTOM_COMMITTEE_SLUG = "custom";
+
+export const CUSTOM_COMMITTEE_TEMPLATE: PlatformTemplateSeed = {
+  slug: CUSTOM_COMMITTEE_SLUG,
+  name: "Custom committee",
+  type: "annual_volunteer",
+  description:
+    "Start from scratch with your own name and description — no preloaded roles or resources.",
+  config: {
+    sections: ANNUAL_SECTIONS,
+    defaultTermLabel: "2025–2026 School Year",
+    taskGroups: [{ id: "general", label: "General" }],
+    defaultDutyRoles: [],
+    defaultResources: [],
+  },
+};
+
 export const PLATFORM_COMMITTEE_TEMPLATES: PlatformTemplateSeed[] = [
   {
     slug: "annual-volunteer",
@@ -118,6 +135,7 @@ export const PLATFORM_COMMITTEE_TEMPLATES: PlatformTemplateSeed[] = [
 ];
 
 export function getPlatformTemplateBySlug(slug: string): PlatformTemplateSeed | undefined {
+  if (slug === CUSTOM_COMMITTEE_SLUG) return CUSTOM_COMMITTEE_TEMPLATE;
   return PLATFORM_COMMITTEE_TEMPLATES.find((t) => t.slug === slug);
 }
 

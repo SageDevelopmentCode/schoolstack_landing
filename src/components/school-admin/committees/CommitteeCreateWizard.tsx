@@ -10,6 +10,7 @@ import {
 import TuitionWizardStepNav from "@/components/school-admin/tuition/TuitionWizardStepNav";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { CUSTOM_COMMITTEE_SLUG } from "@/lib/committees/templates";
 
 export type CommitteeTemplateOption = {
   id: string | null;
@@ -44,6 +45,14 @@ function inputStyle(C: AdminThemeTokens): React.CSSProperties {
     width: "100%",
     boxSizing: "border-box",
     outline: "none",
+  };
+}
+
+function textareaStyle(C: AdminThemeTokens): React.CSSProperties {
+  return {
+    ...inputStyle(C),
+    resize: "vertical",
+    minHeight: "88px",
   };
 }
 
@@ -126,6 +135,7 @@ export type CommitteeCreateWizardProps = {
     templateId: string | null;
     platformSlug: string;
     name: string;
+    description: string;
     termLabel: string;
   }) => Promise<void> | void;
   showPreloadChecklist?: boolean;
@@ -147,7 +157,12 @@ export default function CommitteeCreateWizard({
   const [stepIndex, setStepIndex] = useState(0);
   const [maxReachedStep, setMaxReachedStep] = useState(0);
   const [selectedSlug, setSelectedSlug] = useState(initialSlug);
-  const [name, setName] = useState(initialOption?.name ?? "");
+  const [name, setName] = useState(
+    initialOption?.slug === CUSTOM_COMMITTEE_SLUG ? "" : (initialOption?.name ?? ""),
+  );
+  const [description, setDescription] = useState(
+    initialOption?.slug === CUSTOM_COMMITTEE_SLUG ? "" : (initialOption?.description ?? ""),
+  );
   const [termLabel, setTermLabel] = useState(initialOption?.defaultTermLabel ?? "");
   const [saving, setSaving] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(false);
@@ -182,7 +197,13 @@ export default function CommitteeCreateWizard({
 
   const handleSelect = (option: CommitteeTemplateOption) => {
     setSelectedSlug(option.slug);
-    setName(option.name);
+    if (option.slug === CUSTOM_COMMITTEE_SLUG) {
+      setName("");
+      setDescription("");
+    } else {
+      setName(option.name);
+      setDescription(option.description);
+    }
     setTermLabel(option.defaultTermLabel);
   };
 
@@ -196,6 +217,7 @@ export default function CommitteeCreateWizard({
         templateId: selected.id,
         platformSlug: selected.slug,
         name: name.trim(),
+        description: description.trim(),
         termLabel: termLabel.trim(),
       });
       onClose();
@@ -256,7 +278,7 @@ export default function CommitteeCreateWizard({
         initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.96, opacity: 0 }}
-        className="w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl shadow-xl overflow-hidden"
+        className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl shadow-xl overflow-hidden"
         style={{ backgroundColor: C.surface }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -300,27 +322,40 @@ export default function CommitteeCreateWizard({
                   question="What kind of committee are you setting up?"
                   helper="Pick a starting point — we'll preload roles, tasks, and resources from the template."
                 >
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {options.map((option) => (
-                      <button
-                        key={option.slug}
-                        type="button"
-                        onClick={() => handleSelect(option)}
-                        className="w-full text-left p-3 rounded-lg border transition-colors cursor-pointer"
-                        style={{
-                          borderColor: selectedSlug === option.slug ? C.accent : C.border,
-                          backgroundColor:
-                            selectedSlug === option.slug ? C.accentLight : C.surface,
-                        }}
-                      >
-                        <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                          {option.name}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
-                          {option.description}
-                        </p>
-                      </button>
-                    ))}
+                  <div className="space-y-2 max-h-72 overflow-y-auto">
+                    {options.map((option, index) => {
+                      const isCustom = option.slug === CUSTOM_COMMITTEE_SLUG;
+                      const showDivider =
+                        isCustom && index > 0 && options[index - 1]?.slug !== CUSTOM_COMMITTEE_SLUG;
+
+                      return (
+                        <div key={option.slug}>
+                          {showDivider ? (
+                            <div
+                              className="my-3 border-t"
+                              style={{ borderColor: C.border }}
+                            />
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleSelect(option)}
+                            className="w-full text-left p-3 rounded-lg border transition-colors cursor-pointer"
+                            style={{
+                              borderColor: selectedSlug === option.slug ? C.accent : C.border,
+                              backgroundColor:
+                                selectedSlug === option.slug ? C.accentLight : C.surface,
+                            }}
+                          >
+                            <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                              {option.name}
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+                              {option.description}
+                            </p>
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   {showPreloadChecklist && selected ? (
                     <div className="mt-4">
@@ -337,16 +372,41 @@ export default function CommitteeCreateWizard({
                   C={C}
                   tone="clay"
                   question="What should this committee be called?"
-                  helper="Families and volunteers will see this name in the portal."
+                  helper="Families and volunteers will see this name and short description in the portal."
                 >
-                  <input
-                    ref={nameInputRef}
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={selected?.name ?? "Committee name"}
-                    style={inputStyle(C)}
-                  />
+                  <div className="space-y-3">
+                    <div>
+                      <label
+                        className="block text-xs font-medium mb-1.5"
+                        style={{ color: C.textSecondary }}
+                      >
+                        Committee name
+                      </label>
+                      <input
+                        ref={nameInputRef}
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={selected?.slug === CUSTOM_COMMITTEE_SLUG ? "Committee name" : (selected?.name ?? "Committee name")}
+                        style={inputStyle(C)}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="block text-xs font-medium mb-1.5"
+                        style={{ color: C.textSecondary }}
+                      >
+                        Short description
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="A brief summary for the committees list and workspace header…"
+                        rows={4}
+                        style={textareaStyle(C)}
+                      />
+                    </div>
+                  </div>
                 </BuilderQuestionCard>
               </motion.div>
             ) : null}
@@ -391,6 +451,11 @@ export default function CommitteeCreateWizard({
                 </ReviewBlock>
                 <ReviewBlock C={C} title="Committee name" stepIndex={1} onGoToStep={goToStep}>
                   <p style={{ color: C.textPrimary }}>{name.trim() || "—"}</p>
+                  {description.trim() ? (
+                    <p className="mt-2 text-xs whitespace-pre-wrap" style={{ color: C.textSecondary }}>
+                      {description.trim()}
+                    </p>
+                  ) : null}
                 </ReviewBlock>
                 <ReviewBlock C={C} title="Term" stepIndex={2} onGoToStep={goToStep}>
                   <p style={{ color: C.textPrimary }}>{termLabel.trim() || "—"}</p>

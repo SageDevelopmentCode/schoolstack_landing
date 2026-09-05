@@ -2,7 +2,7 @@
 
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeTemplate } from "@/lib/committees/types";
-import { PLATFORM_COMMITTEE_TEMPLATES } from "@/lib/committees/templates";
+import { PLATFORM_COMMITTEE_TEMPLATES, CUSTOM_COMMITTEE_TEMPLATE } from "@/lib/committees/templates";
 import CommitteeCreateWizard, {
   type CommitteeTemplateOption,
 } from "@/components/school-admin/committees/CommitteeCreateWizard";
@@ -27,7 +27,13 @@ function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTempla
     defaultTermLabel: t.config.defaultTermLabel ?? "",
   }));
 
-  return [...dbOptions, ...platformOptions];
+  return [...dbOptions, ...platformOptions, {
+    id: null,
+    slug: CUSTOM_COMMITTEE_TEMPLATE.slug,
+    name: CUSTOM_COMMITTEE_TEMPLATE.name,
+    description: CUSTOM_COMMITTEE_TEMPLATE.description,
+    defaultTermLabel: CUSTOM_COMMITTEE_TEMPLATE.config.defaultTermLabel ?? "",
+  }];
 }
 
 export default function CreateCommitteeModal({
@@ -43,6 +49,7 @@ export default function CreateCommitteeModal({
     templateId: string | null;
     platformSlug: string;
     name: string;
+    description: string;
     termLabel: string;
   }) => Promise<void>;
 }) {
