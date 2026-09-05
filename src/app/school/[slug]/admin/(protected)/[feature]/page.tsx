@@ -36,6 +36,10 @@ const NotificationsSettingsPage = nextDynamic(
   () => import("@/components/school-admin/notifications/NotificationsSettingsPage"),
   { loading: () => <AdminPageSkeleton label="Loading notifications" /> },
 );
+const BulletinPage = nextDynamic(
+  () => import("@/components/school-admin/bulletin/BulletinPage"),
+  { loading: () => <AdminPageSkeleton label="Loading bulletin" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -175,6 +179,19 @@ export default async function SchoolAdminFeaturePage({ params }: PageProps) {
         branding={org.branding}
         schoolName={org.name}
       />
+    );
+  }
+
+  if (feature === "bulletin") {
+    return (
+      <Suspense>
+        <BulletinPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+          schoolName={org.name}
+        />
+      </Suspense>
     );
   }
 

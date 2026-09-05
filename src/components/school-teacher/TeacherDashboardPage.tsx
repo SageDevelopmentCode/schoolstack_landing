@@ -18,6 +18,7 @@ import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHea
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import BulletinMiniFeed from "@/components/bulletin/BulletinMiniFeed";
 import TeacherStudentStoryCard from "@/components/school-teacher/TeacherStudentStoryCard";
 import {
   greetingParts,
@@ -369,7 +370,7 @@ export default function TeacherDashboardPage({
         ) : null}
 
         <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
-          {messagesEnabled ? (
+          {summary.bulletinEnabled || messagesEnabled ? (
             <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
               <ParentCard theme={theme}>
                 <ParentSectionKicker theme={theme}>School updates</ParentSectionKicker>
@@ -377,33 +378,42 @@ export default function TeacherDashboardPage({
                   className="mb-4 text-base font-semibold"
                   style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
                 >
-                  Messages
+                  {summary.bulletinEnabled ? "From your school" : "Messages"}
                 </h3>
-                <div className="flex items-center gap-3.5">
-                  <div
-                    className="flex h-9 w-9 items-center justify-center rounded-full"
-                    style={{ backgroundColor: theme.infoBg }}
-                  >
-                    <MessageSquare className="h-4 w-4" style={{ color: theme.info }} />
+                {summary.bulletinEnabled ? (
+                  <BulletinMiniFeed theme={theme} posts={summary.bulletinPosts} />
+                ) : null}
+                {messagesEnabled ? (
+                  <div className={summary.bulletinEnabled ? "mt-4 border-t border-[#E7ECE7] pt-4" : ""}>
+                    {!summary.bulletinEnabled ? (
+                      <div className="flex items-center gap-3.5">
+                        <div
+                          className="flex h-9 w-9 items-center justify-center rounded-full"
+                          style={{ backgroundColor: theme.infoBg }}
+                        >
+                          <MessageSquare className="h-4 w-4" style={{ color: theme.info }} />
+                        </div>
+                        <div>
+                          <strong className="block text-sm" style={{ color: theme.ink }}>
+                            {summary.messagesUnreadCount > 0
+                              ? `${summary.messagesUnreadCount} unread message${summary.messagesUnreadCount === 1 ? "" : "s"}`
+                              : "Messages from families and staff"}
+                          </strong>
+                          <p className="m-0 text-xs" style={{ color: "#78858A" }}>
+                            {summary.messagesUnreadCount > 0
+                              ? "Families are waiting on your response."
+                              : "Check your inbox for school communications."}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className={summary.bulletinEnabled ? "" : "mt-4"}>
+                      <ParentTextLink theme={theme} href={messagesHref}>
+                        Open messages
+                      </ParentTextLink>
+                    </div>
                   </div>
-                  <div>
-                    <strong className="block text-sm" style={{ color: theme.ink }}>
-                      {summary.messagesUnreadCount > 0
-                        ? `${summary.messagesUnreadCount} unread message${summary.messagesUnreadCount === 1 ? "" : "s"}`
-                        : "Messages from families and staff"}
-                    </strong>
-                    <p className="m-0 text-xs" style={{ color: "#78858A" }}>
-                      {summary.messagesUnreadCount > 0
-                        ? "Families are waiting on your response."
-                        : "Check your inbox for school communications."}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <ParentTextLink theme={theme} href={messagesHref}>
-                    Open messages
-                  </ParentTextLink>
-                </div>
+                ) : null}
               </ParentCard>
             </motion.div>
           ) : null}

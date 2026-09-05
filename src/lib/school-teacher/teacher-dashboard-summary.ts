@@ -20,6 +20,8 @@ import {
 } from "@/lib/school-events/events";
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import type { BulletinPost } from "@/lib/school-bulletin/types";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import {
   listClassroomSignupResponsesBySignupIds,
@@ -67,6 +69,8 @@ export type TeacherDashboardSummary = {
   upcomingEvents: OrganizationEvent[];
   messagesUnreadCount: number;
   openSignupsCount: number;
+  bulletinEnabled: boolean;
+  bulletinPosts: BulletinPost[];
 };
 
 const TEACHER_CATALOG_DESCRIPTIONS = Object.fromEntries(
@@ -151,6 +155,7 @@ export async function fetchTeacherDashboardSummary(
   const calendarEnabled = teacherFeatureEnabled(features, "calendar");
   const myStudentsEnabled = teacherFeatureEnabled(features, "my_students");
   const signupsEnabled = teacherFeatureEnabled(features, "classroom_signups");
+  const bulletinEnabled = Boolean(features.admin?.bulletin);
 
   let staffMemberId = options.staffMemberId ?? null;
   if (!staffMemberId && options.userId) {
@@ -166,6 +171,7 @@ export async function fetchTeacherDashboardSummary(
     upcomingEvents,
     messagesUnreadCount,
     weekEvents,
+    bulletinPosts,
   ] = await Promise.all([
     myStudentsEnabled && staffMemberId
       ? listAssignedEnrolledStudents(supabase, organizationId, staffMemberId)
@@ -188,6 +194,13 @@ export async function fetchTeacherDashboardSummary(
           endDate: dateKey(addDays(new Date(), 7)),
         })
       : Promise.resolve([] as OrganizationEvent[]),
+    loadHomeBulletinPosts({
+      supabase,
+      signedUrlClient: admin,
+      organizationId,
+      bulletinEnabled,
+      viewer: "teacher",
+    }),
   ]);
 
   const messagesHref = options.teacherBasePath
@@ -315,6 +328,8 @@ export async function fetchTeacherDashboardSummary(
     upcomingEvents,
     messagesUnreadCount,
     openSignupsCount: signupMetrics.openCount,
+    bulletinEnabled,
+    bulletinPosts,
   };
 }
 

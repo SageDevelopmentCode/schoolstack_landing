@@ -13,6 +13,7 @@ type SchoolAdminSlideOverShellProps = {
   children: ReactNode;
   footer?: ReactNode;
   C: AdminThemeTokens;
+  widthClassName?: string;
 };
 
 export default function SchoolAdminSlideOverShell({
@@ -23,6 +24,7 @@ export default function SchoolAdminSlideOverShell({
   children,
   footer,
   C,
+  widthClassName = "w-[min(100%,28rem)]",
 }: SchoolAdminSlideOverShellProps) {
   return (
     <AnimatePresence>
@@ -45,7 +47,7 @@ export default function SchoolAdminSlideOverShell({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
+            className={`absolute inset-y-0 right-0 z-[15] flex ${widthClassName} max-w-full flex-col overflow-hidden`}
             style={{
               backgroundColor: C.surface,
               borderLeft: `1px solid ${C.border}`,

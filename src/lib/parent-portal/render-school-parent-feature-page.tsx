@@ -53,6 +53,7 @@ import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/pr
 import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;
@@ -198,11 +199,21 @@ export async function renderSchoolParentFeaturePage(
     const upcomingAudienceScope = programId
       ? programPortalAudienceScope(programId)
       : mainPortalAudienceScope();
-    const [upcomingEvents, homeMeta] = await Promise.all([
+    const admin = createAdminClient();
+    const bulletinEnabled = Boolean(org.features.admin?.bulletin);
+    const [upcomingEvents, homeMeta, bulletinPosts] = await Promise.all([
       listUpcomingEventsForOrg(supabase, org.id, 3, upcomingAudienceScope),
       familyId
         ? fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId)
         : Promise.resolve(null),
+      loadHomeBulletinPosts({
+        supabase,
+        signedUrlClient: admin,
+        organizationId: org.id,
+        bulletinEnabled,
+        viewer: "parent",
+        programId,
+      }),
     ]);
     const quickActions = buildParentQuickActions(
       context.slug,
@@ -225,6 +236,8 @@ export async function renderSchoolParentFeaturePage(
           programId={programId}
           schoolName={org.name}
           coopModeEnabled={context.feature === "portal" ? coopModeEnabled : false}
+          bulletinEnabled={bulletinEnabled}
+          bulletinPosts={bulletinPosts}
         >
           {familyId ? (
             <Suspense fallback={null}>

@@ -34,6 +34,7 @@ import {
   programPortalAudienceScope,
 } from "@/lib/school-events/event-audience";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
@@ -134,7 +135,8 @@ export default async function FamilyPreviewProgramParentFeaturePage({
   const admin = createAdminClient();
 
   if (feature === "portal") {
-    const [upcomingEvents, homeMeta] = await Promise.all([
+    const bulletinEnabled = Boolean(org.features.admin?.bulletin);
+    const [upcomingEvents, homeMeta, bulletinPosts] = await Promise.all([
       listUpcomingEventsForOrg(
         admin,
         org.id,
@@ -142,6 +144,14 @@ export default async function FamilyPreviewProgramParentFeaturePage({
         programPortalAudienceScope(programContext.programId),
       ),
       fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
+      loadHomeBulletinPosts({
+        supabase: admin,
+        signedUrlClient: admin,
+        organizationId: org.id,
+        bulletinEnabled,
+        viewer: "parent",
+        programId: programContext.programId,
+      }),
     ]);
     const quickActions = buildParentQuickActions(
       slug,
@@ -166,6 +176,8 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           programId={programContext.programId}
           schoolName={org.name}
           coopModeEnabled={programContext.coopMode}
+          bulletinEnabled={bulletinEnabled}
+          bulletinPosts={bulletinPosts}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader
@@ -321,19 +333,6 @@ export default async function FamilyPreviewProgramParentFeaturePage({
   }
 
   return (
-    <SchoolParentPageShell title={pageName}>
-      <SchoolParentComingSoon
-        branding={org.branding}
-        schoolSlug={slug}
-        schoolName={org.name}
-        organizationId={org.id}
-        featureKey={feature}
-        featureLabel={pageName}
-        userProfile={userProfile}
-      />
-    </SchoolParentPageShell>
-  );
-}
     <SchoolParentPageShell title={pageName}>
       <SchoolParentComingSoon
         branding={org.branding}

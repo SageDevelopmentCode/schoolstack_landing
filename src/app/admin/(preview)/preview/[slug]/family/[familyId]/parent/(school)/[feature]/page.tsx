@@ -30,6 +30,7 @@ import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-route
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -95,12 +96,21 @@ export default async function FamilyPreviewParentFeaturePage({
   const admin = createAdminClient();
 
   if (feature === "portal") {
-    const [upcomingEvents, homeMeta, classroomSignupAttentionItems] = await Promise.all([
+    const bulletinEnabled = Boolean(org.features.admin?.bulletin);
+    const [upcomingEvents, homeMeta, classroomSignupAttentionItems, bulletinPosts] =
+      await Promise.all([
       listUpcomingEventsForOrg(admin, org.id, 3),
       fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
       isParentFeatureEnabled(org.features, "classroom_signups")
         ? loadParentSignupAttentionItems(admin, org.id, familyId)
         : Promise.resolve([]),
+      loadHomeBulletinPosts({
+        supabase: admin,
+        signedUrlClient: admin,
+        organizationId: org.id,
+        bulletinEnabled,
+        viewer: "parent",
+      }),
     ]);
     const quickActions = buildParentQuickActions(
       slug,
@@ -122,6 +132,8 @@ export default async function FamilyPreviewParentFeaturePage({
           initialSignupAttentionItems={classroomSignupAttentionItems}
           previewMode
           previewBasePath={previewBasePath}
+          bulletinEnabled={bulletinEnabled}
+          bulletinPosts={bulletinPosts}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader

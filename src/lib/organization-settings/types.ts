@@ -44,6 +44,7 @@ export type AdminFeatures = {
   committees: boolean;
   schedule: boolean;
   messages: boolean;
+  bulletin: boolean;
   finances: boolean;
   marketing: boolean;
   notifications: boolean;

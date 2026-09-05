@@ -49,6 +49,8 @@ import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionIt
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
+import BulletinMiniFeed from "@/components/bulletin/BulletinMiniFeed";
+import type { BulletinPost } from "@/lib/school-bulletin/types";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -73,6 +75,8 @@ type ParentHomePageProps = {
   schoolName?: string;
   coopModeEnabled?: boolean;
   coopFamilies?: ProgramCoopFamily[];
+  bulletinEnabled?: boolean;
+  bulletinPosts?: BulletinPost[];
 };
 
 type AttentionItem = {
@@ -346,6 +350,8 @@ export default function ParentHomePage({
   schoolName,
   coopModeEnabled = false,
   coopFamilies = [],
+  bulletinEnabled = false,
+  bulletinPosts = [],
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
@@ -644,7 +650,18 @@ export default function ParentHomePage({
               >
                 From your school
               </h3>
-              {messagesHref ? (
+              {bulletinEnabled ? (
+                <>
+                  <BulletinMiniFeed theme={theme} posts={bulletinPosts} />
+                  {messagesHref ? (
+                    <div className="mt-4 border-t border-[#E7ECE7] pt-4">
+                      <ParentTextLink theme={theme} href={messagesHref}>
+                        Open messages
+                      </ParentTextLink>
+                    </div>
+                  ) : null}
+                </>
+              ) : messagesHref ? (
                 <>
                   <div className="flex items-center gap-3.5">
                     <div
