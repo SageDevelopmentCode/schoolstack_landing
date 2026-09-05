@@ -25,6 +25,7 @@ function student(
     primaryContactEmail: "parent@example.com",
     programNames: ["School Year 2026–27"],
     classroomNames: ["Meadow Room"],
+    classroomIds: ["classroom-1"],
     enrolledAt: "2026-08-01T00:00:00.000Z",
     assignedTeachers: [],
     assignedTeacherNames: "",
@@ -112,6 +113,26 @@ describe("admin-student-roster-metrics", () => {
         student({ assignedTeachers: [{ id: "staff-1", name: "Teacher One" }] }),
       ),
       false,
+    );
+    assert.equal(
+      isStudentUnassigned(
+        student({
+          classroomNames: ["Meadow Room"],
+          classroomIds: ["classroom-1"],
+          assignedTeachers: [{ id: "staff-1", name: "Teacher One" }],
+        }),
+      ),
+      false,
+    );
+    assert.equal(
+      isStudentUnassigned(
+        student({
+          classroomNames: ["Meadow Room"],
+          classroomIds: ["classroom-1"],
+          assignedTeachers: [],
+        }),
+      ),
+      true,
     );
   });
 });

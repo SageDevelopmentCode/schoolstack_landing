@@ -20,6 +20,7 @@ export type AdminEnrolledStudentSummary = {
   primaryContactEmail: string | null;
   programNames: string[];
   classroomNames: string[];
+  classroomIds: string[];
   enrolledAt: string;
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
@@ -73,10 +74,12 @@ const ENROLLED_ENROLLMENT_SELECT = `
       primary_phone
     )
   ),
+  program_id,
   programs (
     name
   ),
   classrooms (
+    id,
     name
   )
 `;
@@ -244,6 +247,7 @@ type EnrollmentAggregate = {
   summary: AdminEnrolledStudentSummary;
   programNameSet: Set<string>;
   classroomNameSet: Set<string>;
+  classroomIdSet: Set<string>;
 };
 
 type StudentRow = {
@@ -327,6 +331,108 @@ async function fetchTeacherAssignmentsByStudentIds(
   return result;
 }
 
+export async function fetchClassroomLeadTeachersByStudentIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, AssignedTeacher[]>> {
+  const result = new Map<string, AssignedTeacher[]>();
+  if (studentIds.length === 0) return result;
+
+  const { data: enrollmentRows, error: enrollmentError } = await supabase
+    .from("enrollments")
+    .select("student_id, classroom_id")
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("student_id", studentIds)
+    .not("classroom_id", "is", null);
+
+  if (enrollmentError) throw enrollmentError;
+
+  const classroomIds = new Set<string>();
+  const classroomsByStudent = new Map<string, Set<string>>();
+
+  for (const row of enrollmentRows ?? []) {
+    const studentId = String(row.student_id);
+    const classroomId = row.classroom_id ? String(row.classroom_id) : null;
+    if (!classroomId) continue;
+
+    classroomIds.add(classroomId);
+    const set = classroomsByStudent.get(studentId) ?? new Set<string>();
+    set.add(classroomId);
+    classroomsByStudent.set(studentId, set);
+  }
+
+  if (classroomIds.size === 0) return result;
+
+  const { data: assignmentRows, error: assignmentError } = await supabase
+    .from("classroom_staff_assignments")
+    .select(
+      `
+      classroom_id,
+      staff_members!inner (
+        id,
+        first_name,
+        last_name
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .eq("role", "lead")
+    .in("classroom_id", [...classroomIds]);
+
+  if (assignmentError) throw assignmentError;
+
+  const teachersByClassroomId = new Map<string, AssignedTeacher[]>();
+
+  for (const row of assignmentRows ?? []) {
+    const classroomId = String(row.classroom_id);
+    const staffMember = unwrapRelation(
+      row.staff_members as
+        | { id?: string; first_name?: string; last_name?: string }
+        | { id?: string; first_name?: string; last_name?: string }[]
+        | null,
+    );
+    if (!staffMember?.id) continue;
+
+    const teacher: AssignedTeacher = {
+      id: String(staffMember.id),
+      name: formatStaffMemberName({
+        firstName: String(staffMember.first_name ?? ""),
+        lastName: String(staffMember.last_name ?? ""),
+      }),
+    };
+
+    const list = teachersByClassroomId.get(classroomId) ?? [];
+    if (!list.some((entry) => entry.id === teacher.id)) {
+      list.push(teacher);
+    }
+    teachersByClassroomId.set(classroomId, list);
+  }
+
+  for (const studentId of studentIds) {
+    const classroomIdSet = classroomsByStudent.get(studentId);
+    if (!classroomIdSet) {
+      result.set(studentId, []);
+      continue;
+    }
+
+    const teachersById = new Map<string, AssignedTeacher>();
+    for (const classroomId of classroomIdSet) {
+      for (const teacher of teachersByClassroomId.get(classroomId) ?? []) {
+        teachersById.set(teacher.id, teacher);
+      }
+    }
+
+    result.set(
+      studentId,
+      [...teachersById.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+  }
+
+  return result;
+}
+
 function mapEnrollmentRowToAggregate(
   row: Record<string, unknown>,
   primaryContactsByFamilyId: Map<string, { name: string | null; email: string | null }>,
@@ -347,9 +453,13 @@ function mapEnrollmentRowToAggregate(
   );
   const programName = program?.name ? String(program.name) : null;
   const classroom = unwrapRelation(
-    row.classrooms as { name?: string } | { name?: string }[] | null,
+    row.classrooms as
+      | { id?: string; name?: string }
+      | { id?: string; name?: string }[]
+      | null,
   );
   const classroomName = classroom?.name ? String(classroom.name) : null;
+  const classroomId = classroom?.id ? String(classroom.id) : null;
   const enrolledAt = String(row.created_at ?? "");
 
   const primaryContact = primaryContactsByFamilyId.get(familyId);
@@ -377,6 +487,7 @@ function mapEnrollmentRowToAggregate(
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
     classroomNames: classroomName ? [classroomName] : [],
+    classroomIds: classroomId ? [classroomId] : [],
     enrolledAt,
     assignedTeachers,
     assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
@@ -392,6 +503,7 @@ function mapEnrollmentRowToAggregate(
     summary,
     programNameSet: new Set(programName ? [programName] : []),
     classroomNameSet: new Set(classroomName ? [classroomName] : []),
+    classroomIdSet: new Set(classroomId ? [classroomId] : []),
   };
 }
 
@@ -405,6 +517,10 @@ function mergeEnrollmentAggregate(
 
   for (const classroomName of incoming.classroomNameSet) {
     existing.classroomNameSet.add(classroomName);
+  }
+
+  for (const classroomId of incoming.classroomIdSet) {
+    existing.classroomIdSet.add(classroomId);
   }
 
   if (
@@ -421,14 +537,22 @@ function mergeEnrollmentAggregate(
   existing.summary.classroomNames = [...existing.classroomNameSet].sort((a, b) =>
     a.localeCompare(b),
   );
+  existing.summary.classroomIds = [...existing.classroomIdSet].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return existing;
 }
+
+type AggregateEnrolledStudentSummariesOptions = {
+  useClassroomLeadTeachers?: boolean;
+};
 
 async function aggregateEnrolledStudentSummaries(
   supabase: SupabaseClient,
   organizationId: string,
   rows: Record<string, unknown>[],
+  options: AggregateEnrolledStudentSummariesOptions = {},
 ): Promise<AdminEnrolledStudentSummary[]> {
   const familyIds = new Set<string>();
   const studentIds = new Set<string>();
@@ -445,9 +569,21 @@ async function aggregateEnrolledStudentSummaries(
     }
   }
 
+  const fetchTeachers = options.useClassroomLeadTeachers
+    ? fetchClassroomLeadTeachersByStudentIds(
+        supabase,
+        organizationId,
+        [...studentIds],
+      )
+    : fetchTeacherAssignmentsByStudentIds(
+        supabase,
+        organizationId,
+        [...studentIds],
+      );
+
   const [primaryContactsByFamilyId, teachersByStudentId] = await Promise.all([
     fetchPrimaryContactsByFamilyId(supabase, organizationId, [...familyIds]),
-    fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [...studentIds]),
+    fetchTeachers,
   ]);
 
   const aggregates = new Map<string, EnrollmentAggregate>();
@@ -502,6 +638,7 @@ export async function listOrgEnrolledStudents(
     supabase,
     organizationId,
     (data ?? []) as Record<string, unknown>[],
+    { useClassroomLeadTeachers: true },
   );
 }
 
@@ -526,6 +663,7 @@ export async function listFamilyEnrolledStudents(
     supabase,
     organizationId,
     (data ?? []) as Record<string, unknown>[],
+    { useClassroomLeadTeachers: true },
   );
 
   for (const summary of summaries) {

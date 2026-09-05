@@ -2,90 +2,96 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import StudentTeacherAssignSheet from "./StudentTeacherAssignSheet";
-import {
-  formatAssignedTeachersLabel,
-  type AssignedTeacher,
-} from "@/lib/school-admin/enrolled-students";
+import { ChevronDown, Loader2 } from "lucide-react";
+import StudentClassroomAssignSheet from "./StudentClassroomAssignSheet";
+import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 
-type StudentTeacherAssignSelectProps = {
+type StudentClassroomAssignSelectProps = {
   C: AdminThemeTokens;
   studentId: string;
   studentName: string;
-  assignedTeachers: AssignedTeacher[];
-  activeStaff: StaffMemberRecord[];
-  staffPath: string;
-  staffLoading?: boolean;
-  staffLoaded?: boolean;
+  studentProgramNames: string[];
+  classroomIds: string[];
+  classroomNames: string[];
+  classrooms: ClassroomSummary[];
+  classroomsPath: string;
+  classroomsLoading?: boolean;
+  classroomsLoaded?: boolean;
   disabled?: boolean;
-  onAssign: (studentId: string, staffMemberIds: string[]) => Promise<void>;
+  onAssign: (studentId: string, classroomIds: string[]) => Promise<void>;
   onInteract?: () => void;
   className?: string;
 };
 
-export default function StudentTeacherAssignSelect({
+function formatClassroomLabel(classroomNames: string[]): string {
+  if (classroomNames.length === 0) return "Unassigned";
+  return classroomNames.join(", ");
+}
+
+export default function StudentClassroomAssignSelect({
   C,
   studentId,
   studentName,
-  assignedTeachers,
-  activeStaff,
-  staffPath,
-  staffLoading = false,
-  staffLoaded = false,
+  studentProgramNames,
+  classroomIds,
+  classroomNames,
+  classrooms,
+  classroomsPath,
+  classroomsLoading = false,
+  classroomsLoaded = false,
   disabled = false,
   onAssign,
   onInteract,
   className,
-}: StudentTeacherAssignSelectProps) {
+}: StudentClassroomAssignSelectProps) {
   const [open, setOpen] = useState(false);
   const [pendingOpen, setPendingOpen] = useState(false);
 
   useEffect(() => {
-    if (!pendingOpen || !staffLoaded || staffLoading) return;
+    if (!pendingOpen || !classroomsLoaded || classroomsLoading) return;
 
-    if (activeStaff.length > 0) {
+    if (classrooms.length > 0) {
       setOpen(true);
     }
     setPendingOpen(false);
-  }, [pendingOpen, staffLoaded, staffLoading, activeStaff.length]);
+  }, [pendingOpen, classroomsLoaded, classroomsLoading, classrooms.length]);
 
-  if (staffLoading) {
+  if (classroomsLoading) {
     return (
       <div className={className}>
-        <span className="text-xs" style={{ color: C.textTertiary }}>
-          Loading staff...
+        <span className="inline-flex items-center gap-1 text-xs" style={{ color: C.textTertiary }}>
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Loading classrooms…
         </span>
       </div>
     );
   }
 
-  if (staffLoaded && activeStaff.length === 0) {
+  if (classroomsLoaded && classrooms.length === 0) {
     return (
       <div className={className}>
         <p className="text-xs" style={{ color: C.textTertiary }}>
-          No staff yet
+          No classrooms yet
         </p>
         <Link
-          href={staffPath}
+          href={classroomsPath}
           className="mt-0.5 inline-block text-xs font-medium underline-offset-2 hover:underline"
           style={{ color: C.accent }}
           onClick={(event) => event.stopPropagation()}
         >
-          Add staff →
+          Add classroom →
         </Link>
       </div>
     );
   }
 
-  const isUnassigned = assignedTeachers.length === 0;
+  const isUnassigned = classroomNames.length === 0;
   const unassignedBorder = "#E8C58A";
   const unassignedText = "#A26B22";
 
   const handleButtonClick = () => {
-    if (staffLoaded && activeStaff.length > 0) {
+    if (classroomsLoaded && classrooms.length > 0) {
       setOpen(true);
       return;
     }
@@ -110,27 +116,27 @@ export default function StudentTeacherAssignSelect({
           backgroundColor: C.input,
           color: isUnassigned ? unassignedText : C.textPrimary,
         }}
-        aria-label="Assign teachers"
+        aria-label="Assign classrooms"
       >
-        <span className="truncate">
-          {formatAssignedTeachersLabel(assignedTeachers)}
-        </span>
+        <span className="truncate">{formatClassroomLabel(classroomNames)}</span>
         <ChevronDown
           className="h-3.5 w-3.5 shrink-0"
           style={{ color: isUnassigned ? unassignedBorder : C.textTertiary }}
         />
       </button>
 
-      <StudentTeacherAssignSheet
+      <StudentClassroomAssignSheet
         open={open}
         onClose={() => setOpen(false)}
         studentName={studentName}
-        assignedTeachers={assignedTeachers}
-        activeStaff={activeStaff}
+        studentProgramNames={studentProgramNames}
+        classroomIds={classroomIds}
+        classrooms={classrooms}
+        classroomsPath={classroomsPath}
         saving={disabled}
         C={C}
-        onSave={async (staffMemberIds) => {
-          await onAssign(studentId, staffMemberIds);
+        onSave={async (nextClassroomIds) => {
+          await onAssign(studentId, nextClassroomIds);
         }}
       />
     </div>

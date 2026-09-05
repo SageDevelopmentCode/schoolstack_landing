@@ -13,9 +13,14 @@ export type StudentRosterMetrics = {
 const NEW_ENROLLMENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function isStudentUnassigned(
-  student: Pick<AdminEnrolledStudentSummary, "assignedTeachers">,
+  student: Pick<
+    AdminEnrolledStudentSummary,
+    "assignedTeachers" | "classroomNames"
+  >,
 ): boolean {
-  return student.assignedTeachers.length === 0;
+  return (
+    student.classroomNames.length === 0 || student.assignedTeachers.length === 0
+  );
 }
 
 export function isRecentEnrollment(

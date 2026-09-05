@@ -144,6 +144,7 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         slug={slug}
         staffMemberId={initialData.staffMemberId}
         initialStudents={initialData.students}
+        initialClassrooms={initialData.staffClassrooms}
       />
     );
   }

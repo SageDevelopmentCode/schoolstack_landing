@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listStaffClassroomsForTeacher } from "@/lib/school-admin/classrooms";
 import type { TeacherClassroomOption } from "./types";
 
 export async function loadTeacherClassroomOptions(
@@ -6,6 +7,20 @@ export async function loadTeacherClassroomOptions(
   organizationId: string,
   staffMemberId: string,
 ): Promise<TeacherClassroomOption[]> {
+  const staffClassrooms = await listStaffClassroomsForTeacher(
+    admin,
+    organizationId,
+    staffMemberId,
+  );
+
+  if (staffClassrooms.length > 0) {
+    return staffClassrooms.map((classroom) => ({
+      id: classroom.id,
+      name: classroom.name,
+      familyCount: classroom.studentCount,
+    }));
+  }
+
   const { data: assignments, error: assignmentError } = await admin
     .from("student_teacher_assignments")
     .select("student_id")

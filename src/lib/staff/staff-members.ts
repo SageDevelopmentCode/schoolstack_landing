@@ -20,6 +20,7 @@ export type StaffMemberRecord = {
   hasEverSignedIn?: boolean;
   lastSignInAt?: string | null;
   assignedStudentCount?: number;
+  profilePhotoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -67,6 +68,10 @@ function mapStaffRow(
       ? (membership.status as StaffMemberRecord["membershipStatus"])
       : null,
     isLinked: userId != null,
+    profilePhotoUrl:
+      typeof row.profile_photo_url === "string" && row.profile_photo_url.trim() !== ""
+        ? row.profile_photo_url.trim()
+        : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -116,7 +121,7 @@ export async function listStaffMembers(
   const { data, error } = await admin
     .from("staff_members")
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .eq("organization_id", organizationId)
     .order("last_name", { ascending: true })
@@ -270,7 +275,7 @@ export async function addStaffPortalAccess(
   const { data: existingStaffRows, error: existingStaffError } = await admin
     .from("staff_members")
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .eq("organization_id", input.organizationId)
     .ilike("email", normalizedEmail);
@@ -342,7 +347,7 @@ export async function addStaffPortalAccess(
       })
       .eq("id", existingStaff.id)
       .select(
-        "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+        "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
       )
       .single();
 
@@ -368,7 +373,7 @@ export async function addStaffPortalAccess(
         status: "active",
       })
       .select(
-        "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+        "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
       )
       .single();
 
@@ -407,7 +412,7 @@ export async function updateStaffMember(
   const { data: existing, error: existingError } = await admin
     .from("staff_members")
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .eq("id", input.staffMemberId)
     .eq("organization_id", input.organizationId)
@@ -496,7 +501,7 @@ export async function updateStaffMember(
     .eq("id", input.staffMemberId)
     .eq("organization_id", input.organizationId)
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .single();
 
@@ -523,7 +528,7 @@ export async function deactivateStaffPortalAccess(
   const { data: existing, error: existingError } = await admin
     .from("staff_members")
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .eq("id", staffMemberId)
     .eq("organization_id", organizationId)
@@ -571,7 +576,7 @@ export async function deactivateStaffPortalAccess(
     .eq("id", staffMemberId)
     .eq("organization_id", organizationId)
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .single();
 
@@ -598,7 +603,7 @@ export async function reactivateStaffPortalAccess(
   const { data: existing, error: existingError } = await admin
     .from("staff_members")
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .eq("id", staffMemberId)
     .eq("organization_id", organizationId)
@@ -658,7 +663,7 @@ export async function reactivateStaffPortalAccess(
     .eq("id", staffMemberId)
     .eq("organization_id", organizationId)
     .select(
-      "id, organization_id, user_id, first_name, last_name, email, role_title, status, created_at, updated_at",
+      "id, organization_id, user_id, first_name, last_name, email, role_title, profile_photo_url, status, created_at, updated_at",
     )
     .single();
 

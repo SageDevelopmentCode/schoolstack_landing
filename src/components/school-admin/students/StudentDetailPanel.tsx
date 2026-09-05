@@ -16,7 +16,8 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import StudentTeacherAssignSelect from "./StudentTeacherAssignSelect";
+import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
+import StudentClassroomAssignSelect from "./StudentClassroomAssignSelect";
 import {
   formatEnrolledDate,
   formatEnrolledStudentName,
@@ -34,7 +35,7 @@ import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
-import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
 import { createClient } from "@/utils/supabase/client";
 import { studentHasStandingHealthItems, type StudentHealthProfile } from "@/lib/student-health/types";
 
@@ -43,15 +44,16 @@ type StudentDetailPanelProps = {
   organizationId: string;
   branding: OrganizationBranding;
   schoolSlug: string;
-  activeStaff: StaffMemberRecord[];
-  staffPath: string;
-  staffLoading?: boolean;
-  assigningTeacher?: boolean;
-  onAssignTeacher: (
+  classrooms: ClassroomSummary[];
+  classroomsPath: string;
+  classroomsLoading?: boolean;
+  classroomsLoaded?: boolean;
+  assigningClassroom?: boolean;
+  onAssignClassrooms: (
     studentId: string,
-    staffMemberIds: string[],
+    classroomIds: string[],
   ) => Promise<void>;
-  onRequestStaff?: () => void;
+  onRequestClassrooms?: () => void;
   onStudentHealthChange?: (studentId: string, hasStandingHealthItems: boolean) => void;
   onClose: () => void;
 };
@@ -72,12 +74,13 @@ export default function StudentDetailPanel({
   organizationId,
   branding,
   schoolSlug,
-  activeStaff,
-  staffPath,
-  staffLoading = false,
-  assigningTeacher = false,
-  onAssignTeacher,
-  onRequestStaff,
+  classrooms,
+  classroomsPath,
+  classroomsLoading = false,
+  classroomsLoaded = false,
+  assigningClassroom = false,
+  onAssignClassrooms,
+  onRequestClassrooms,
   onStudentHealthChange,
   onClose,
 }: StudentDetailPanelProps) {
@@ -139,16 +142,8 @@ export default function StudentDetailPanel({
   }, [loadDetail]);
 
   useEffect(() => {
-    onRequestStaff?.();
-  }, [onRequestStaff]);
-
-  const handleAssignTeacher = useCallback(
-    async (studentId: string, staffMemberIds: string[]) => {
-      await onAssignTeacher(studentId, staffMemberIds);
-      await loadDetail({ silent: true });
-    },
-    [loadDetail, onAssignTeacher],
-  );
+    onRequestClassrooms?.();
+  }, [onRequestClassrooms]);
 
   const handleHealthProfileChange = useCallback(
     (profile: StudentHealthProfile) => {
@@ -204,17 +199,33 @@ export default function StudentDetailPanel({
                 Teachers
               </dt>
               <dd className="mt-1">
-                <StudentTeacherAssignSelect
+                <StudentClassroomTeachersCell
+                  C={C}
+                  assignedTeachers={student.assignedTeachers}
+                  classroomNames={student.classroomNames}
+                  classroomsPath={classroomsPath}
+                />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium" style={{ color: C.textTertiary }}>
+                Classrooms
+              </dt>
+              <dd className="mt-1">
+                <StudentClassroomAssignSelect
                   C={C}
                   studentId={student.id}
                   studentName={formatEnrolledStudentName(student)}
-                  assignedTeachers={student.assignedTeachers}
-                  activeStaff={activeStaff}
-                  staffPath={staffPath}
-                  staffLoading={staffLoading}
-                  disabled={assigningTeacher}
-                  onAssign={handleAssignTeacher}
-                  onInteract={onRequestStaff}
+                  studentProgramNames={student.programNames}
+                  classroomIds={student.classroomIds ?? []}
+                  classroomNames={student.classroomNames}
+                  classrooms={classrooms}
+                  classroomsPath={classroomsPath}
+                  classroomsLoading={classroomsLoading}
+                  classroomsLoaded={classroomsLoaded}
+                  disabled={assigningClassroom}
+                  onAssign={onAssignClassrooms}
+                  onInteract={onRequestClassrooms}
                 />
               </dd>
             </div>

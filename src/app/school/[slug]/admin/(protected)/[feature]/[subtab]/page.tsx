@@ -47,6 +47,10 @@ const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
   { loading: () => <AdminPageSkeleton label="Loading staff" /> },
 );
+const ClassroomsPage = nextDynamic(
+  () => import("@/components/school-admin/classrooms/ClassroomsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading classrooms" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -233,6 +237,18 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     return (
       <Suspense>
         <StaffPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+        />
+      </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "classrooms") {
+    return (
+      <Suspense>
+        <ClassroomsPage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}
