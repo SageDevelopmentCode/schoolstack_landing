@@ -273,10 +273,12 @@ export default function ProgramParentPortalPreviewFrame({
   const [previewPathname, setPreviewPathname] = useState(
     `${parentNavBasePath}/portal`,
   );
+  const [prevParentNavBasePath, setPrevParentNavBasePath] = useState(parentNavBasePath);
 
-  useEffect(() => {
+  if (parentNavBasePath !== prevParentNavBasePath) {
+    setPrevParentNavBasePath(parentNavBasePath);
     setPreviewPathname(`${parentNavBasePath}/portal`);
-  }, [parentNavBasePath]);
+  }
 
   const navItems = useMemo(
     () =>

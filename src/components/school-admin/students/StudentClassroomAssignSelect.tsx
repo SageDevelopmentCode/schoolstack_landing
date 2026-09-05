@@ -51,10 +51,12 @@ export default function StudentClassroomAssignSelect({
   useEffect(() => {
     if (!pendingOpen || !classroomsLoaded || classroomsLoading) return;
 
-    if (classrooms.length > 0) {
-      setOpen(true);
-    }
-    setPendingOpen(false);
+    queueMicrotask(() => {
+      if (classrooms.length > 0) {
+        setOpen(true);
+      }
+      setPendingOpen(false);
+    });
   }, [pendingOpen, classroomsLoaded, classroomsLoading, classrooms.length]);
 
   if (classroomsLoading) {

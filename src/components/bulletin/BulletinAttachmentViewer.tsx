@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import {
   canPreviewBulletinAttachment,
@@ -108,11 +108,17 @@ export default function BulletinAttachmentViewer({
     [attachments],
   );
 
+  const attachmentsKey = useMemo(
+    () => attachments.map((attachment) => attachment.id).join(","),
+    [attachments],
+  );
   const [activeIndex, setActiveIndex] = useState(0);
+  const [prevAttachmentsKey, setPrevAttachmentsKey] = useState(attachmentsKey);
 
-  useEffect(() => {
+  if (attachmentsKey !== prevAttachmentsKey) {
+    setPrevAttachmentsKey(attachmentsKey);
     setActiveIndex(0);
-  }, [attachments]);
+  }
 
   const safeIndex =
     previewableAttachments.length > 0

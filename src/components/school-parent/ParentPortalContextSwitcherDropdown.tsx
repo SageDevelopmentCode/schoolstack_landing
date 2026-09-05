@@ -71,10 +71,7 @@ export default function ParentPortalContextSwitcherDropdown({
   };
 
   useLayoutEffect(() => {
-    if (!open) {
-      setMenuPosition(null);
-      return;
-    }
+    if (!open) return;
 
     updateMenuPosition();
 

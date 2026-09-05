@@ -119,6 +119,7 @@ export default function StudentsPage({
   const [assigningClassroomStudentId, setAssigningClassroomStudentId] = useState<
     string | null
   >(null);
+  const [prevInitialTableData, setPrevInitialTableData] = useState(initialTableData);
 
   const studentsLengthRef = useRef(students.length);
   useEffect(() => {
@@ -142,10 +143,10 @@ export default function StudentsPage({
     setInitialLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (!initialTableData) return;
+  if (initialTableData && initialTableData !== prevInitialTableData) {
+    setPrevInitialTableData(initialTableData);
     applyTableData(initialTableData);
-  }, [initialTableData, applyTableData]);
+  }
 
   useEffect(() => {
     const handle = window.setTimeout(() => {

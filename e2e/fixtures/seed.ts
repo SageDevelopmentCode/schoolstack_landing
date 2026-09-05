@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import { buildApplySystemSection, emptyApplyCustomSection } from "@/lib/admissions/apply-system-fields";
+import { createProgram } from "@/lib/admissions/programs";
 import { materializeApplicationStudent } from "@/lib/admissions/application-entity-materialization";
 import {
   E2E_ADMIN_EMAIL,
@@ -156,19 +157,12 @@ async function ensureE2eApplicationFormContext(
 
   let programId = existingProgram?.id as string | undefined;
   if (!programId) {
-    const { data: program, error: programInsertError } = await admin
-      .from("programs")
-      .insert({
-        organization_id: organizationId,
-        name: "E2E Program",
-        type: "school_year",
-        status: "open",
-      })
-      .select("id")
-      .single();
-
-    if (programInsertError) throw programInsertError;
-    programId = program.id as string;
+    const program = await createProgram(admin, organizationId, {
+      name: "E2E Program",
+      type: "school_year",
+      status: "open",
+    });
+    programId = program.id;
   }
 
   const { data: existingForms, error: formLookupError } = await admin

@@ -46,10 +46,12 @@ export default function StudentTeacherAssignSelect({
   useEffect(() => {
     if (!pendingOpen || !staffLoaded || staffLoading) return;
 
-    if (activeStaff.length > 0) {
-      setOpen(true);
-    }
-    setPendingOpen(false);
+    queueMicrotask(() => {
+      if (activeStaff.length > 0) {
+        setOpen(true);
+      }
+      setPendingOpen(false);
+    });
   }, [pendingOpen, staffLoaded, staffLoading, activeStaff.length]);
 
   if (staffLoading) {

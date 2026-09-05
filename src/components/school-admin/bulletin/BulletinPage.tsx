@@ -58,7 +58,9 @@ export default function BulletinPage({
   }, [slug]);
 
   useEffect(() => {
-    void loadPosts();
+    queueMicrotask(() => {
+      void loadPosts();
+    });
   }, [loadPosts]);
 
   const editorPost = useMemo(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Loader2, Upload } from "lucide-react";
 import BulletinAttachmentList from "@/components/school-admin/bulletin/BulletinAttachmentList";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -172,8 +172,11 @@ export function useBulletinPostEditor({
   const [uploading, setUploading] = useState(false);
   const [removingAttachmentId, setRemovingAttachmentId] = useState<string | null>(null);
   const [draftPost, setDraftPost] = useState<BulletinPost | null>(post);
+  const postSyncKey = post ? `${post.id}:${post.updated_at ?? ""}` : "new";
+  const [prevPostSyncKey, setPrevPostSyncKey] = useState(postSyncKey);
 
-  useEffect(() => {
+  if (postSyncKey !== prevPostSyncKey) {
+    setPrevPostSyncKey(postSyncKey);
     setTitle(post?.title ?? "");
     setBody(post?.body ?? "");
     setAudiences(post?.audiences?.length ? post.audiences : ["school_wide"]);
@@ -185,7 +188,7 @@ export function useBulletinPostEditor({
     setPublishScheduleEnabled(Boolean(nextPublishedAt));
     setExpiryEnabled(Boolean(nextExpiresAt));
     setDraftPost(post);
-  }, [post]);
+  }
 
   const activePost = draftPost ?? post;
   const normalizedAudiences = normalizeBulletinAudiences(audiences);

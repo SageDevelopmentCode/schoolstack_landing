@@ -86,11 +86,17 @@ export default function CurriculumDiscussionPanel({
 }: CurriculumDiscussionPanelProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const [messages, setMessages] = useState(initialMessages);
+  const [prevInitialMessages, setPrevInitialMessages] = useState(initialMessages);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  if (initialMessages !== prevInitialMessages) {
+    setPrevInitialMessages(initialMessages);
+    setMessages(initialMessages);
+  }
 
   const dayGroups = useMemo(() => groupDiscussionMessagesByDay(messages), [messages]);
 
@@ -112,10 +118,6 @@ export default function CurriculumDiscussionPanel({
       setLoading(false);
     }
   }, [organizationId, programId]);
-
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
 
   useEffect(() => {
     if (!organizationId || !programId || previewMode) return undefined;

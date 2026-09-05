@@ -62,7 +62,9 @@ export default function ProgramCoopCurriculumUploadCard({
   }, [programId, supabase]);
 
   useEffect(() => {
-    void loadCurriculum();
+    queueMicrotask(() => {
+      void loadCurriculum();
+    });
   }, [loadCurriculum]);
 
   const handleFileSelect = async (file: File | null) => {

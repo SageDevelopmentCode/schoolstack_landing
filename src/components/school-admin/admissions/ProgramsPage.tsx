@@ -161,6 +161,8 @@ export default function ProgramsPage({
   const coopModeEnabled = selectedProgram
     ? isProgramParentPortalCoopMode(selectedProgram.parent_portal_settings)
     : false;
+  const visibleEditorTab =
+    activeEditorTab === "curriculum" && !coopModeEnabled ? "portal" : activeEditorTab;
   const programEditorTabs = useMemo(() => {
     if (!selectedProgram || isNew) return BASE_PROGRAM_EDITOR_TABS;
     return coopModeEnabled
@@ -222,12 +224,6 @@ export default function ProgramsPage({
       setActiveEditorTab("details");
     });
   }, [isNew, orgFeatures, selectedProgram?.id, selectedProgram?.updated_at]);
-
-  useEffect(() => {
-    if (activeEditorTab === "curriculum" && !coopModeEnabled) {
-      setActiveEditorTab("portal");
-    }
-  }, [activeEditorTab, coopModeEnabled]);
 
   const isProgramDirty = useMemo(() => {
     if (!editable) return false;
@@ -419,7 +415,7 @@ export default function ProgramsPage({
               <TuitionSubTabBar
                 theme={theme}
                 tabs={programEditorTabs}
-                activeTab={activeEditorTab}
+                activeTab={visibleEditorTab}
                 onTabChange={setActiveEditorTab}
                 ariaLabel="Program editor sections"
                 testIdPrefix="program-editor"
@@ -448,11 +444,11 @@ export default function ProgramsPage({
             <AnimatePresence mode="wait">
               {editable ? (
                 <motion.div
-                  key={`${canvasKey}-${activeEditorTab}`}
+                  key={`${canvasKey}-${visibleEditorTab}`}
                   className="mx-auto max-w-xl space-y-4"
                   {...builderCanvasTransition}
                 >
-                  {activeEditorTab === "details" || isNew ? (
+                  {visibleEditorTab === "details" || isNew ? (
                     <>
                       <BuilderSectionIntro
                         C={C}
@@ -608,7 +604,7 @@ export default function ProgramsPage({
                         .
                       </AdminSaveStateBar>
                     </>
-                  ) : activeEditorTab === "portal" ? (
+                  ) : visibleEditorTab === "portal" ? (
                     <ProgramParentPortalSettingsCard
                       C={C}
                       theme={theme}
