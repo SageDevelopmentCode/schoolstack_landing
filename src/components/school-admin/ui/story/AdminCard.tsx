@@ -8,7 +8,7 @@ type AdminCardProps = {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-  padding?: "none" | "default" | "canvas";
+  padding?: "none" | "default" | "canvas" | "compact";
   "data-testid"?: string;
 };
 
@@ -25,7 +25,9 @@ export default function AdminCard({
       ? ""
       : padding === "canvas"
         ? "p-5 sm:p-6"
-        : "p-4";
+        : padding === "compact"
+          ? "p-3"
+          : "p-4";
 
   return (
     <div

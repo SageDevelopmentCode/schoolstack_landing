@@ -70,6 +70,7 @@ function toEnrolledStudentSummary(
 ): AdminEnrolledStudentSummary {
   return {
     ...summary,
+    classroomIds: [],
     hasStandingHealthItems: false,
   };
 }

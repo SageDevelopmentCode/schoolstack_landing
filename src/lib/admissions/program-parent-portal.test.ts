@@ -355,7 +355,7 @@ describe("deriveProgramPortalSettingsFromEditor", () => {
       orgFeatures.parent,
     );
     editor.feature_nav = {
-      parent: { items: { feed: { label: "Photos" } } },
+      parent: { groups: ["Main"], items: { feed: { group: "Main", label: "Photos" } } },
     };
 
     const derived = deriveProgramPortalSettingsFromEditor(editor, orgFeatures);

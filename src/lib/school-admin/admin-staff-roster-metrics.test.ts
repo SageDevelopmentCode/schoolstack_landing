@@ -27,6 +27,7 @@ function member(
     hasEverSignedIn: true,
     lastSignInAt: "2026-08-30T12:00:00.000Z",
     assignedStudentCount: 3,
+    profilePhotoUrl: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,

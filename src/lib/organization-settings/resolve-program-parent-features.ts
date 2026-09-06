@@ -76,15 +76,11 @@ export function resolveProgramOrganizationFeatures(
   const mergedNav: PortalFeatureNav | undefined =
     programNav || orgNav
       ? {
-          groups: programNav?.groups ?? orgNav?.groups,
+          groups: programNav?.groups ?? orgNav?.groups ?? [],
           order: programNav?.order ?? orgNav?.order,
           items: {
             ...(orgNav?.items ?? {}),
             ...(programNav?.items ?? {}),
-          },
-          children: {
-            ...(orgNav?.children ?? {}),
-            ...(programNav?.children ?? {}),
           },
         }
       : undefined;
@@ -92,12 +88,9 @@ export function resolveProgramOrganizationFeatures(
   return {
     ...orgFeatures,
     parent,
-    feature_nav: mergedNav
-      ? {
-          ...orgFeatures.feature_nav,
-          parent: mergedNav,
-        }
-      : orgFeatures.feature_nav,
+    ...(mergedNav
+      ? { feature_nav: { ...orgFeatures.feature_nav, parent: mergedNav } }
+      : {}),
   };
 }
 

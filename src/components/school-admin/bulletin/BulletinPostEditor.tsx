@@ -172,7 +172,7 @@ export function useBulletinPostEditor({
   const [uploading, setUploading] = useState(false);
   const [removingAttachmentId, setRemovingAttachmentId] = useState<string | null>(null);
   const [draftPost, setDraftPost] = useState<BulletinPost | null>(post);
-  const postSyncKey = post ? `${post.id}:${post.updated_at ?? ""}` : "new";
+  const postSyncKey = post ? `${post.id}:${post.updatedAt ?? ""}` : "new";
   const [prevPostSyncKey, setPrevPostSyncKey] = useState(postSyncKey);
 
   if (postSyncKey !== prevPostSyncKey) {

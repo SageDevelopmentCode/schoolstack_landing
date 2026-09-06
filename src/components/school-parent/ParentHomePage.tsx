@@ -443,12 +443,16 @@ export default function ParentHomePage({
                 {familyKickerLabel(userProfile.displayName)}
               </ParentSectionKicker>
               {coopModeEnabled && programPortalLabel ? (
-                <Sprout
-                  className="h-4 w-4 shrink-0"
-                  style={{ color: theme.primary }}
-                  aria-label={`Co-op mode · ${programPortalLabel}`}
+                <span
                   title={`Co-op mode · ${programPortalLabel}`}
-                />
+                  className="inline-flex shrink-0"
+                >
+                  <Sprout
+                    className="h-4 w-4"
+                    style={{ color: theme.primary }}
+                    aria-label={`Co-op mode · ${programPortalLabel}`}
+                  />
+                </span>
               ) : null}
             </div>
             <ParentDisplayHeading theme={theme} as="h1">

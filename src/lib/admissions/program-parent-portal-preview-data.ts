@@ -40,6 +40,7 @@ export function getProgramParentPortalPreviewChildren(): FamilyChildOverview[] {
       statusLabel: "Enrolled",
       isEnrolled: true,
       checklistProgress: { completed: 8, total: 10 },
+      enrolledPrograms: [],
     },
     {
       applicationId: "preview-app-2",
@@ -51,6 +52,7 @@ export function getProgramParentPortalPreviewChildren(): FamilyChildOverview[] {
       statusLabel: "Enrolled",
       isEnrolled: true,
       checklistProgress: null,
+      enrolledPrograms: [],
     },
   ];
 }

@@ -346,9 +346,11 @@ export default function ProgramParentPortalSettingsCard({
       feature_nav: {
         parent: {
           ...(editor.feature_nav?.parent ?? {}),
+          groups: editor.feature_nav?.parent?.groups ?? ["Main"],
           items: {
             ...(editor.feature_nav?.parent?.items ?? {}),
             feed: {
+              group: editor.feature_nav?.parent?.items?.feed?.group ?? "Main",
               ...(editor.feature_nav?.parent?.items?.feed ?? {}),
               label: label.trim() || undefined,
             },
