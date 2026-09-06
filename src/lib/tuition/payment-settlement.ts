@@ -417,6 +417,15 @@ export async function setAutopayForGuardian(
       ? (existing.metadata as Record<string, unknown>)
       : {};
 
+  const { data: splitRows, error: splitsError } = await supabase
+    .from("tuition_billing_splits")
+    .select("id")
+    .eq("family_id", input.familyId)
+    .limit(1);
+
+  if (splitsError) throw splitsError;
+  const hasBillingSplit = (splitRows?.length ?? 0) > 0;
+
   const parsed = parseBillingMetadata(existingMetadata);
   const autopayByGuardian = { ...(parsed.autopayByGuardian ?? {}) };
 
@@ -431,7 +440,7 @@ export async function setAutopayForGuardian(
 
   if (existing) {
     const patch: Record<string, unknown> = { metadata: nextMetadata };
-    if (!input.guardianId) {
+    if (!input.guardianId || !hasBillingSplit) {
       patch.autopay_enabled = input.enabled;
     }
 
@@ -446,7 +455,8 @@ export async function setAutopayForGuardian(
   const { error } = await supabase.from("tuition_billing_accounts").insert({
     organization_id: input.organizationId,
     family_id: input.familyId,
-    autopay_enabled: input.guardianId ? false : input.enabled,
+    autopay_enabled:
+      input.guardianId && hasBillingSplit ? false : input.enabled,
     metadata: nextMetadata,
   });
   if (error) throw error;

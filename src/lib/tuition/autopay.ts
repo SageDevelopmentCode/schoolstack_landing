@@ -535,6 +535,20 @@ export async function processAutopayForOrganization(
   const familyLabel = (familyId: string) =>
     buildFamilyLabel(familyId, guardiansByFamily.get(familyId) ?? []);
 
+  const familiesWithBillingSplit = new Set<string>();
+  if (familyIds.length > 0) {
+    const { data: splitRows, error: splitsError } = await supabase
+      .from("tuition_billing_splits")
+      .select("family_id")
+      .in("family_id", familyIds);
+
+    if (splitsError) throw splitsError;
+
+    for (const row of splitRows ?? []) {
+      familiesWithBillingSplit.add(String(row.family_id));
+    }
+  }
+
   const stats = {
     processed: 0,
     skipped: 0,
@@ -571,8 +585,11 @@ export async function processAutopayForOrganization(
     }
 
     const accountFamilyLabel = familyLabel(account.familyId);
+    const hasBillingSplit = familiesWithBillingSplit.has(account.familyId);
 
     for (const guardianId of autopayTargets.keys()) {
+      const chargeGuardianId = hasBillingSplit ? guardianId : null;
+
       let dueChargesQuery = supabase
         .from("tuition_charges")
         .select("id, amount_cents, paid_cents, label, currency, guardian_id")
@@ -580,8 +597,8 @@ export async function processAutopayForOrganization(
         .eq("due_date", today)
         .in("status", ["scheduled", "sent"]);
 
-      if (guardianId) {
-        dueChargesQuery = dueChargesQuery.eq("guardian_id", guardianId);
+      if (chargeGuardianId) {
+        dueChargesQuery = dueChargesQuery.eq("guardian_id", chargeGuardianId);
       } else {
         dueChargesQuery = dueChargesQuery.is("guardian_id", null);
       }
