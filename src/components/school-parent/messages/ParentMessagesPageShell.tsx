@@ -15,6 +15,7 @@ type ParentMessagesPageShellProps = {
   familyId?: string;
   previewMode?: boolean;
   readOnly?: boolean;
+  programId?: string;
   children?: React.ReactNode;
 };
 
@@ -25,6 +26,7 @@ export default function ParentMessagesPageShell({
   familyId,
   previewMode = false,
   readOnly = false,
+  programId,
   children,
 }: ParentMessagesPageShellProps) {
   const { theme, adminCompat: C } = useParentTheme();
@@ -63,6 +65,7 @@ export default function ParentMessagesPageShell({
             organizationSlug,
             schoolName,
             familyId,
+            programId,
             guardianId: guardianId ?? undefined,
             viewer: "parent",
           }}

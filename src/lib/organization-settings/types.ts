@@ -44,6 +44,7 @@ export type AdminFeatures = {
   committees: boolean;
   schedule: boolean;
   messages: boolean;
+  bulletin: boolean;
   finances: boolean;
   marketing: boolean;
   notifications: boolean;
@@ -72,6 +73,7 @@ export type ParentFeatures = {
   children: boolean;
   committees: boolean;
   classroom_signups: boolean;
+  curriculum: boolean;
 };
 
 export type AdditionalFeatures = {

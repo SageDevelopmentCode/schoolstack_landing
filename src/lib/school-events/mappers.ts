@@ -3,6 +3,7 @@ import type { OrganizationEvent, SchoolEventColorKey, SchoolEventType } from "./
 export type OrganizationEventRow = {
   id: string;
   organization_id: string;
+  program_id: string | null;
   title: string;
   event_date: string;
   event_time: string | null;
@@ -19,6 +20,7 @@ export function mapOrganizationEventRow(row: OrganizationEventRow): Organization
   return {
     id: row.id,
     organizationId: row.organization_id,
+    programId: row.program_id ?? undefined,
     title: row.title,
     date: row.event_date,
     time: row.event_time ?? undefined,

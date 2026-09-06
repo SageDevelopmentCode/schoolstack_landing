@@ -7,7 +7,8 @@ import {
   getGuardianIdsForUser,
   postPortalMessage,
 } from "@/lib/messages/messages";
-import { participantsFromContact } from "@/lib/messages/participants-from-contact";
+import { participantsFromContact, isParentPeerGuardianContact } from "@/lib/messages/participants-from-contact";
+import { assertCoopPeerMessageAllowed } from "@/lib/messages/coop-peer-messaging";
 import {
   findOrCreateThread,
   getThreadDetail,
@@ -105,12 +106,28 @@ export async function resolveParticipantsForContact(
     guardianId?: string | null;
     familyId?: string | null;
     staffMemberId?: string | null;
+    programId?: string | null;
     viewer: "parent" | "teacher" | "admin";
   },
 ): Promise<MessageParticipantInput[]> {
   if (context.viewer === "parent") {
     if (!context.guardianId) {
       throw new Error("No guardian profile found for this account.");
+    }
+    if (
+      isParentPeerGuardianContact(contact, {
+        guardianId: context.guardianId,
+      })
+    ) {
+      if (!context.programId?.trim() || !context.familyId) {
+        throw new Error("Program context is required to message co-op families.");
+      }
+      await assertCoopPeerMessageAllowed(admin, {
+        organizationId,
+        programId: context.programId,
+        fromFamilyId: context.familyId,
+        toGuardianId: contact.guardianId!,
+      });
     }
     return participantsFromContact(contact, { guardianId: context.guardianId });
   }

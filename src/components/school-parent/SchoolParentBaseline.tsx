@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
+import { ParentPortalContextProvider } from "@/components/school-parent/ParentPortalContextProvider";
 import ParentToaster from "@/components/school-parent/ParentToaster";
 import { ParentThemeProvider, useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
@@ -11,8 +12,10 @@ import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context
 import { fraunces, dmSans } from "@/lib/fonts";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   isParentBillingPath,
+  isParentCurriculumPath,
   isParentMessagesPath,
 } from "@/lib/organization-settings/parent-routes";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
@@ -20,6 +23,11 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+
+export type SchoolParentEmbeddedPreview = {
+  pathname: string;
+  onNavigate: (href: string) => void;
+};
 
 type SchoolParentBaselineProps = {
   slug: string;
@@ -29,14 +37,23 @@ type SchoolParentBaselineProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  parentPortalContexts?: ParentPortalContextOption[];
+  parentNavBasePath?: string;
+  coopModeEnabled?: boolean;
+  coopProgramLabel?: string;
   children: ReactNode;
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
+  embeddedPreview?: SchoolParentEmbeddedPreview;
 };
 
 function isParentHelpPage(pathname: string, slug: string): boolean {
-  return pathname.startsWith(`/school/${slug}/parent/`);
+  return (
+    pathname.startsWith(`/school/${slug}/parent/`) ||
+    (pathname.includes(`/admin/preview/${slug}/`) &&
+      pathname.includes("/parent/"))
+  );
 }
 
 function SchoolParentBaselineInner({
@@ -47,68 +64,90 @@ function SchoolParentBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  parentPortalContexts = [],
+  parentNavBasePath,
+  coopModeEnabled = false,
+  coopProgramLabel,
   children,
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
+  embeddedPreview,
 }: SchoolParentBaselineProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = embeddedPreview?.pathname ?? routerPathname;
   const { theme, adminCompat: C } = useParentTheme();
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
-    isMessagesPage || isParentBillingPath(pathname);
+    isMessagesPage || isParentBillingPath(pathname) || isParentCurriculumPath(pathname);
   const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton = isParentHelpPage(pathname, slug) && !isMessagesPage;
 
   const shell = (
-    <div
-      className={
-        previewMode
-          ? `flex min-h-0 flex-1 w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
-          : `flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
-      }
-      data-parent-portal
-      style={{
-        ...parentThemeCssVars(theme),
-        fontFamily: theme.fontBody,
-        color: theme.ink,
-        backgroundColor: theme.paper,
-      }}
+    <ParentPortalContextProvider
+      slug={slug}
+      contexts={parentPortalContexts}
+      previewParentBasePath={previewParentBasePath}
+      onPreviewNavigate={embeddedPreview?.onNavigate}
+      pathnameOverride={embeddedPreview?.pathname}
     >
-      <SchoolParentHeader
-        slug={slug}
-        organizationId={organizationId}
-        schoolName={schoolName}
-        branding={branding}
-        features={features}
-        userProfile={userProfile}
-        portalOptions={portalOptions}
-        previewMode={previewMode}
-        previewBasePath={previewBasePath}
-        previewParentBasePath={previewParentBasePath}
-      />
-
-      <main
-        className={`flex min-h-0 flex-1 flex-col ${
-          isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
-        }`}
-        style={{ backgroundColor: theme.paper }}
+      <div
+        className={
+          previewMode
+            ? `flex min-h-0 flex-1 w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
+            : `flex h-dvh w-full flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`
+        }
+        data-parent-portal
+        style={{
+          ...parentThemeCssVars(theme),
+          fontFamily: theme.fontBody,
+          color: theme.ink,
+          backgroundColor: theme.paper,
+        }}
       >
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-      </main>
+        <SchoolParentHeader
+          slug={slug}
+          organizationId={organizationId}
+          schoolName={schoolName}
+          branding={branding}
+          features={features}
+          userProfile={userProfile}
+          portalOptions={portalOptions}
+          parentNavBasePath={parentNavBasePath ?? previewParentBasePath}
+          mainParentBasePath={
+            previewParentBasePath ?? `/school/${slug}/parent`
+          }
+          previewMode={previewMode}
+          previewBasePath={previewBasePath}
+          previewParentBasePath={previewParentBasePath}
+          embeddedPreview={embeddedPreview}
+          coopModeEnabled={coopModeEnabled}
+          coopProgramLabel={coopProgramLabel}
+        />
 
-      <PortalHelpFab
-        C={C}
-        organizationId={organizationId}
-        userEmail={userProfile.email}
-        currentPath={pathname}
-        submitEndpoint="/api/parent-portal/support-requests"
-        visible={showHelpButton}
-        readOnly={previewMode}
-      />
+        <main
+          className={`flex min-h-0 flex-1 flex-col ${
+            isFixedLayoutPage ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+          style={{ backgroundColor: theme.paper }}
+        >
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        </main>
 
-      <ParentToaster C={C} helpButtonVisible={showHelpButton} />
-    </div>
+        <PortalHelpFab
+          C={C}
+          organizationId={organizationId}
+          userEmail={userProfile.email}
+          currentPath={pathname}
+          submitEndpoint="/api/parent-portal/support-requests"
+          visible={showHelpButton}
+          readOnly={previewMode}
+          iconOnly={isParentCurriculumPath(pathname)}
+        />
+
+        <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+      </div>
+    </ParentPortalContextProvider>
   );
 
   const wrappedShell = (

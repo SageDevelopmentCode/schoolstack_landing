@@ -19,6 +19,11 @@ import {
 } from "./participant-signature";
 import { loadAttachmentsForMessages, getMessageAttachmentSignedUrl } from "./message-attachment-storage";
 import { mapThreadUnreadCountRows } from "./thread-list-helpers";
+import {
+  applyMessageThreadAudienceScope,
+  threadVisibleInProgramPortalInbox,
+  type MessageThreadAudienceScope,
+} from "./message-audience";
 import type {
   MessageParticipantInput,
   MessageThreadDetail,
@@ -158,6 +163,7 @@ export function formatFamilyEnrolledStudentSubtitle(
 type LoadDisplayContextOptions = {
   viewer?: "parent" | "teacher" | "admin";
   currentStaffMemberId?: string | null;
+  viewerGuardianId?: string | null;
 };
 
 async function loadDisplayContext(
@@ -279,6 +285,7 @@ async function loadDisplayContext(
     familyEnrolledStudents,
     schoolOfficeLabel,
     currentUserId,
+    viewerGuardianId: options.viewerGuardianId ?? null,
   };
 }
 
@@ -455,17 +462,26 @@ export async function findOrCreateThread(
   admin: SupabaseClient,
   organizationId: string,
   participants: MessageParticipantInput[],
-  subject?: string | null,
+  options?: {
+    subject?: string | null;
+    programId?: string | null;
+  },
 ): Promise<string> {
   validateParticipantSet(participants);
   const signature = buildParticipantSignature(participants);
+  const programId = options?.programId ?? null;
 
-  const { data: existing, error: existingError } = await admin
+  let existingQuery = admin
     .from("message_threads")
     .select("id")
     .eq("organization_id", organizationId)
-    .eq("participant_signature", signature)
-    .maybeSingle();
+    .eq("participant_signature", signature);
+
+  existingQuery = programId
+    ? existingQuery.eq("program_id", programId)
+    : existingQuery.is("program_id", null);
+
+  const { data: existing, error: existingError } = await existingQuery.maybeSingle();
 
   if (existingError) throw new Error(existingError.message);
   if (existing?.id) return String(existing.id);
@@ -475,7 +491,8 @@ export async function findOrCreateThread(
     .insert({
       organization_id: organizationId,
       participant_signature: signature,
-      subject: subject?.trim() || null,
+      subject: options?.subject?.trim() || null,
+      program_id: programId,
     })
     .select("id")
     .single();
@@ -533,6 +550,26 @@ export async function findOrCreateThread(
   return threadId;
 }
 
+function filterThreadsForAudienceScope(
+  threads: MessageThreadRow[],
+  participantsByThread: Map<string, MessageThreadParticipantRow[]>,
+  audienceScope?: MessageThreadAudienceScope,
+): MessageThreadRow[] {
+  if (audienceScope?.mode !== "program_portal") {
+    return threads;
+  }
+
+  return threads.filter((thread) =>
+    threadVisibleInProgramPortalInbox({
+      threadProgramId: thread.program_id,
+      participants: (participantsByThread.get(String(thread.id)) ?? []).map(
+        mapParticipantRow,
+      ),
+      programId: audienceScope.programId,
+    }),
+  );
+}
+
 export async function listThreadsForOrganization(
   admin: SupabaseClient,
   organizationId: string,
@@ -543,6 +580,7 @@ export async function listThreadsForOrganization(
     | { type: "guardian"; guardianIds: string[] }
     | { type: "staff"; staffMemberId: string }
     | { type: "admin" },
+  audienceScope?: MessageThreadAudienceScope,
 ): Promise<MessageThreadSummary[]> {
   let threadIds: string[] = [];
 
@@ -602,11 +640,15 @@ export async function listThreadsForOrganization(
 
     threadIds = [...combined];
   } else {
-    const { data, error } = await admin
+    let adminQuery = admin
       .from("message_threads")
       .select("*")
       .eq("organization_id", organizationId)
       .order("last_message_at", { ascending: false, nullsFirst: false });
+
+    adminQuery = applyMessageThreadAudienceScope(adminQuery, audienceScope);
+
+    const { data, error } = await adminQuery;
 
     if (error) throw new Error(error.message);
 
@@ -649,7 +691,13 @@ export async function listThreadsForOrganization(
       getLatestMessagesForThreads(admin, threadIds),
     ]);
 
-    return threads.map((thread) => {
+    const visibleThreads = filterThreadsForAudienceScope(
+      threads,
+      participantsByThread,
+      audienceScope,
+    );
+
+    return visibleThreads.map((thread) => {
       const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
         mapParticipantRow,
       );
@@ -666,11 +714,15 @@ export async function listThreadsForOrganization(
 
   if (threadIds.length === 0) return [];
 
-  const { data: threads, error: threadsError } = await admin
+  let threadsQuery = admin
     .from("message_threads")
     .select("*")
     .in("id", threadIds)
     .order("last_message_at", { ascending: false, nullsFirst: false });
+
+  threadsQuery = applyMessageThreadAudienceScope(threadsQuery, audienceScope);
+
+  const { data: threads, error: threadsError } = await threadsQuery;
 
   if (threadsError) throw new Error(threadsError.message);
 
@@ -704,6 +756,7 @@ export async function listThreadsForOrganization(
     {
       viewer,
       currentStaffMemberId: filter.type === "staff" ? filter.staffMemberId : null,
+      viewerGuardianId: filter.type === "guardian" ? filter.guardianIds[0] ?? null : null,
     },
   );
 
@@ -711,7 +764,13 @@ export async function listThreadsForOrganization(
 
   const lastMessageByThread = await getLatestMessagesForThreads(admin, threadIds);
 
-  return ((threads ?? []) as MessageThreadRow[]).map((thread) => {
+  const visibleThreads = filterThreadsForAudienceScope(
+    (threads ?? []) as MessageThreadRow[],
+    participantsByThread,
+    audienceScope,
+  );
+
+  return visibleThreads.map((thread) => {
     const participants = (participantsByThread.get(String(thread.id)) ?? []).map(
       mapParticipantRow,
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
@@ -15,21 +15,22 @@ import StudentContactCell from "./StudentContactCell";
 import StudentDetailPanel from "./StudentDetailPanel";
 import StudentEnrolledCell from "./StudentEnrolledCell";
 import StudentIdentityCell from "./StudentIdentityCell";
-import StudentTeacherCell from "./StudentTeacherCell";
+import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
+import StudentClassroomCell from "./StudentClassroomCell";
 import type { StudentRosterFilter } from "@/lib/school-admin/admin-student-roster-metrics";
+import { isStudentUnassigned } from "@/lib/school-admin/admin-student-roster-metrics";
 import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
 import type { StudentsTableData } from "@/lib/school-admin/load-students-table-data";
 import type { StudentsPageMeta } from "@/lib/school-admin/students-page-meta";
 import {
   formatEnrolledStudentName,
-  formatStaffMemberName,
   formatStudentGrade,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
-import type { StaffMemberRecord } from "@/lib/staff/staff-members";
+import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
 
 type StudentsPageProps = {
   organizationId: string;
@@ -112,12 +113,13 @@ export default function StudentsPage({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tableReady, setTableReady] = useState(hasInitialTable);
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
-  const [staffLoading, setStaffLoading] = useState(false);
-  const [staffRequested, setStaffRequested] = useState(false);
-  const [assigningStudentId, setAssigningStudentId] = useState<string | null>(
-    null,
-  );
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [classroomsLoading, setClassroomsLoading] = useState(false);
+  const [classroomsRequested, setClassroomsRequested] = useState(false);
+  const [assigningClassroomStudentId, setAssigningClassroomStudentId] = useState<
+    string | null
+  >(null);
+  const [prevInitialTableData, setPrevInitialTableData] = useState(initialTableData);
 
   const studentsLengthRef = useRef(students.length);
   useEffect(() => {
@@ -125,12 +127,9 @@ export default function StudentsPage({
   }, [students.length]);
 
   const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
-  const staffPath = schoolAdminPath(slug, "my_school", "staff");
+  const classroomsPath = schoolAdminPath(slug, "my_school", "classrooms");
 
-  const activeStaff = useMemo(
-    () => staffMembers.filter((member) => member.employmentStatus === "active"),
-    [staffMembers],
-  );
+  const classroomsLoaded = classroomsRequested && !classroomsLoading;
 
   const showProgramMetrics = metrics.programCount > 1;
 
@@ -143,6 +142,11 @@ export default function StudentsPage({
     setTableReady(true);
     setInitialLoading(false);
   }, []);
+
+  if (initialTableData && initialTableData !== prevInitialTableData) {
+    setPrevInitialTableData(initialTableData);
+    applyTableData(initialTableData);
+  }
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -234,26 +238,26 @@ export default function StudentsPage({
     [fetchStudentsPage, tableReady],
   );
 
-  const ensureStaffLoaded = useCallback(async () => {
-    if (staffRequested) return;
-    setStaffRequested(true);
-    setStaffLoading(true);
+  const ensureClassroomsLoaded = useCallback(async () => {
+    if (classroomsRequested) return;
+    setClassroomsRequested(true);
+    setClassroomsLoading(true);
 
     try {
-      const response = await fetch(`/api/school/${slug}/staff`);
+      const response = await fetch(`/api/school/${slug}/classrooms`);
       if (!response.ok) {
-        throw new Error("Failed to load staff.");
+        throw new Error("Failed to load classrooms.");
       }
       const payload = (await response.json()) as {
-        staffMembers?: StaffMemberRecord[];
+        classrooms?: ClassroomSummary[];
       };
-      setStaffMembers(payload.staffMembers ?? []);
+      setClassrooms(payload.classrooms ?? []);
     } catch {
-      setStaffMembers([]);
+      setClassrooms([]);
     } finally {
-      setStaffLoading(false);
+      setClassroomsLoading(false);
     }
-  }, [slug, staffRequested]);
+  }, [classroomsRequested, slug]);
 
   function changeRosterFilter(next: StudentRosterFilter) {
     setRosterFilter(next);
@@ -273,41 +277,25 @@ export default function StudentsPage({
     [],
   );
 
-  const handleSetTeachers = useCallback(
-    async (studentId: string, staffMemberIds: string[]) => {
-      await ensureStaffLoaded();
+  const handleSetClassrooms = useCallback(
+    async (studentId: string, classroomIds: string[]) => {
+      await ensureClassroomsLoaded();
 
       let previousStudents: AdminEnrolledStudentSummary[] = [];
 
-      setAssigningStudentId(studentId);
+      setAssigningClassroomStudentId(studentId);
       setStudents((current) => {
         previousStudents = current;
-        const selectedStaff = activeStaff
-          .filter((member) => staffMemberIds.includes(member.id))
-          .map((member) => ({
-            id: member.id,
-            name: formatStaffMemberName(member),
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-
-        return current.map((row) =>
-          row.id === studentId
-            ? {
-                ...row,
-                assignedTeachers: selectedStaff,
-                assignedTeacherNames: selectedStaff.map((t) => t.name).join(", "),
-              }
-            : row,
-        );
+        return current;
       });
 
       try {
         const response = await fetch(
-          `/api/school/${slug}/students/${studentId}/teacher`,
+          `/api/school/${slug}/students/${studentId}/classroom`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ staffMemberIds }),
+            body: JSON.stringify({ classroomIds }),
           },
         );
 
@@ -315,19 +303,29 @@ export default function StudentsPage({
           const payload = (await response.json().catch(() => null)) as {
             error?: string;
           } | null;
-          throw new Error(payload?.error ?? "Failed to assign teachers.");
+          throw new Error(payload?.error ?? "Failed to assign classrooms.");
         }
 
         const result = (await response.json()) as {
+          classroomIds: string[];
+          classroomNames: string[];
           assignedTeachers: { id: string; name: string }[];
           assignedTeacherNames: string;
         };
+
+        if (classroomIds.length > 0 && result.classroomIds.length === 0) {
+          throw new Error(
+            "Selected classroom doesn't apply to this student's program.",
+          );
+        }
 
         setStudents((current) =>
           current.map((row) =>
             row.id === studentId
               ? {
                   ...row,
+                  classroomIds: result.classroomIds,
+                  classroomNames: result.classroomNames,
                   assignedTeachers: result.assignedTeachers,
                   assignedTeacherNames: result.assignedTeacherNames,
                 }
@@ -337,8 +335,14 @@ export default function StudentsPage({
 
         setMetrics((current) => {
           const wasUnassigned = previousStudents.find((row) => row.id === studentId)
-            ?.assignedTeachers.length === 0;
-          const isUnassigned = result.assignedTeachers.length === 0;
+            ? isStudentUnassigned(
+                previousStudents.find((row) => row.id === studentId)!,
+              )
+            : false;
+          const isUnassigned = isStudentUnassigned({
+            classroomNames: result.classroomNames,
+            assignedTeachers: result.assignedTeachers,
+          });
           if (wasUnassigned === isUnassigned) return current;
           const delta = wasUnassigned && !isUnassigned ? -1 : !wasUnassigned && isUnassigned ? 1 : 0;
           return {
@@ -346,14 +350,16 @@ export default function StudentsPage({
             unassignedCount: Math.max(0, current.unassignedCount + delta),
           };
         });
+
+        adminToast.success("Classrooms updated.");
       } catch (error) {
         setStudents(previousStudents);
-        adminToast.error(formatActionError(error, "Failed to assign teachers."));
+        adminToast.error(formatActionError(error, "Failed to assign classrooms."));
       } finally {
-        setAssigningStudentId(null);
+        setAssigningClassroomStudentId(null);
       }
     },
-    [activeStaff, ensureStaffLoaded, slug],
+    [ensureClassroomsLoaded, slug],
   );
 
   const skipFilterFetchRef = useRef(true);
@@ -425,7 +431,7 @@ export default function StudentsPage({
                 <AdminMetricCard
                   theme={theme}
                   value={String(metrics.unassignedCount)}
-                  label="Unassigned teacher"
+                  label="Needs attention"
                   accent="gold"
                 />
                 {showProgramMetrics ? (
@@ -455,8 +461,8 @@ export default function StudentsPage({
                 >
                   <span className="text-xs">
                     <b>Needs attention:</b> {metrics.unassignedCount} enrolled student
-                    {metrics.unassignedCount === 1 ? "" : "s"} don&apos;t have a teacher
-                    assigned.
+                    {metrics.unassignedCount === 1 ? "" : "s"} aren&apos;t in a classroom or
+                    are missing a lead teacher.
                   </span>
                   <AdminButton theme={theme} variant="soft" onClick={focusUnassignedStudents}>
                     View unassigned →
@@ -614,10 +620,6 @@ export default function StudentsPage({
                           student.programNames.length > 0
                             ? student.programNames.join(", ")
                             : "—";
-                        const classroomLabel =
-                          student.classroomNames.length > 0
-                            ? student.classroomNames.join(", ")
-                            : "—";
 
                         return (
                           <tr
@@ -658,24 +660,29 @@ export default function StudentsPage({
                                 {programLabel}
                               </div>
                             </td>
-                            <td
-                              className="px-[15px] py-3 text-xs"
-                              style={{ color: "#607078" }}
-                            >
-                              <div className="max-w-[12rem] truncate">{classroomLabel}</div>
-                            </td>
                             <td className="px-[15px] py-3">
-                              <StudentTeacherCell
+                              <StudentClassroomCell
                                 C={C}
                                 studentId={student.id}
                                 studentName={studentName}
+                                studentProgramNames={student.programNames}
+                                classroomIds={student.classroomIds ?? []}
+                                classroomNames={student.classroomNames}
+                                classrooms={classrooms}
+                                classroomsPath={classroomsPath}
+                                classroomsLoading={classroomsLoading}
+                                classroomsLoaded={classroomsLoaded}
+                                disabled={assigningClassroomStudentId === student.id}
+                                onAssign={handleSetClassrooms}
+                                onInteract={() => void ensureClassroomsLoaded()}
+                              />
+                            </td>
+                            <td className="px-[15px] py-3">
+                              <StudentClassroomTeachersCell
+                                C={C}
                                 assignedTeachers={student.assignedTeachers}
-                                activeStaff={activeStaff}
-                                staffPath={staffPath}
-                                staffLoading={staffLoading}
-                                disabled={assigningStudentId === student.id}
-                                onAssign={handleSetTeachers}
-                                onInteract={() => void ensureStaffLoaded()}
+                                classroomNames={student.classroomNames}
+                                classroomsPath={classroomsPath}
                               />
                             </td>
                             <td className="px-[15px] py-3">
@@ -726,12 +733,13 @@ export default function StudentsPage({
             organizationId={organizationId}
             branding={branding}
             schoolSlug={slug}
-            activeStaff={activeStaff}
-            staffPath={staffPath}
-            staffLoading={staffLoading}
-            assigningTeacher={assigningStudentId === selectedStudent.id}
-            onAssignTeacher={handleSetTeachers}
-            onRequestStaff={() => void ensureStaffLoaded()}
+            classrooms={classrooms}
+            classroomsPath={classroomsPath}
+            classroomsLoading={classroomsLoading}
+            classroomsLoaded={classroomsLoaded}
+            assigningClassroom={assigningClassroomStudentId === selectedStudent.id}
+            onAssignClassrooms={handleSetClassrooms}
+            onRequestClassrooms={() => void ensureClassroomsLoaded()}
             onStudentHealthChange={handleStudentHealthChange}
             onClose={() => setSelectedId(null)}
           />

@@ -10,6 +10,8 @@ type ParentHomePreviewContentLoaderProps = {
   slug: string;
   features: OrganizationFeatures;
   previewBasePath?: string;
+  programId?: string;
+  coopModeEnabled?: boolean;
 };
 
 export default async function ParentHomePreviewContentLoader({
@@ -18,6 +20,8 @@ export default async function ParentHomePreviewContentLoader({
   slug,
   features,
   previewBasePath,
+  programId,
+  coopModeEnabled,
 }: ParentHomePreviewContentLoaderProps) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -27,6 +31,8 @@ export default async function ParentHomePreviewContentLoader({
     slug,
     features,
     previewBasePath,
+    programId,
+    coopModeEnabled,
     supabase,
   });
 

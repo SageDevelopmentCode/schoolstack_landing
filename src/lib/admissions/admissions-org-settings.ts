@@ -7,6 +7,10 @@ export type ShadowDaySchedulingMode =
 
 export type AdmissionsOrgSettings = {
   shadowDaySchedulingMode?: ShadowDaySchedulingMode;
+  program_parent_portal?: {
+    enabled: boolean;
+    isolated_program_ids: string[];
+  };
 };
 
 export const DEFAULT_SHADOW_DAY_SCHEDULING_MODE: ShadowDaySchedulingMode =
@@ -129,7 +133,25 @@ export function parseAdmissionsOrgSettings(
       record.shadowDaySchedulingMode as ShadowDaySchedulingMode;
   }
 
+  if (isPlainObject(record.program_parent_portal)) {
+    const portalRaw = record.program_parent_portal as Record<string, unknown>;
+    const isolatedIds = Array.isArray(portalRaw.isolated_program_ids)
+      ? portalRaw.isolated_program_ids.filter(
+          (id): id is string => typeof id === "string" && id.trim().length > 0,
+        )
+      : [];
+
+    settings.program_parent_portal = {
+      enabled: Boolean(portalRaw.enabled),
+      isolated_program_ids: [...new Set(isolatedIds)],
+    };
+  }
+
   return settings;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function resolveShadowDaySchedulingMode(

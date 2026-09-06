@@ -179,6 +179,7 @@ export default function CommitteesPage({
     templateId: string | null;
     platformSlug: string;
     name: string;
+    description: string;
     termLabel: string;
   }) => {
     try {
@@ -186,6 +187,7 @@ export default function CommitteesPage({
         templateId: input.templateId,
         platformSlug: input.platformSlug,
         name: input.name,
+        description: input.description,
         termLabel: input.termLabel,
         status: "active",
       });

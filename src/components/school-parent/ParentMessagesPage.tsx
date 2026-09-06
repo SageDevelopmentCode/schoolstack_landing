@@ -14,6 +14,7 @@ type ParentMessagesPageProps = {
   branding: OrganizationBranding;
   familyId?: string;
   guardianId?: string | null;
+  programId?: string;
   previewMode?: boolean;
   initialInbox?: MessagesInboxData;
 };
@@ -36,6 +37,7 @@ function ParentMessagesPageContent({
   schoolName,
   familyId,
   guardianId,
+  programId,
   previewMode = false,
   initialInbox,
 }: Omit<ParentMessagesPageProps, "branding">) {
@@ -51,6 +53,7 @@ function ParentMessagesPageContent({
           schoolName,
           familyId,
           guardianId: guardianId ?? initialInbox?.guardianId ?? undefined,
+          programId,
           viewer: "parent",
         }}
         initialInbox={initialInbox}

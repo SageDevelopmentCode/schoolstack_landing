@@ -15,6 +15,28 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
+function groupStudentsByClassroom(
+  students: AdminEnrolledStudentSummary[],
+): [string, AdminEnrolledStudentSummary[]][] {
+  const buckets = new Map<string, AdminEnrolledStudentSummary[]>();
+
+  for (const student of students) {
+    const label =
+      student.classroomNames.length > 0
+        ? student.classroomNames.join(", ")
+        : "Unassigned to classroom";
+    const list = buckets.get(label) ?? [];
+    list.push(student);
+    buckets.set(label, list);
+  }
+
+  return [...buckets.entries()].sort(([left], [right]) => {
+    if (left === "Unassigned to classroom") return 1;
+    if (right === "Unassigned to classroom") return -1;
+    return left.localeCompare(right);
+  });
+}
+
 type StaffAssignedStudentsSectionProps = {
   slug: string;
   organizationId: string;
@@ -274,48 +296,63 @@ export default function StaffAssignedStudentsSection({
           </Link>
         </p>
       ) : (
-        <ul className="space-y-2">
-          {students.map((student) => {
-            const programLabel =
-              student.programNames.length > 0
-                ? student.programNames.join(", ")
-                : "—";
-            const gradeLabel = formatStudentGrade(student.grade) ?? "—";
-            const isUnassigning = unassigningStudentId === student.id;
-
-            return (
-              <li
-                key={student.id}
-                className="flex items-start justify-between gap-3 rounded-md border px-3 py-2.5"
-                style={{ borderColor: C.border, backgroundColor: C.surface }}
+        <div className="space-y-4">
+          {groupStudentsByClassroom(students).map(([groupLabel, groupStudents]) => (
+            <div key={groupLabel}>
+              <h4
+                className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
+                style={{ color: C.textTertiary }}
               >
-                <div className="min-w-0">
-                  <Link
-                    href={`${studentsPath}?student=${encodeURIComponent(student.id)}`}
-                    className="text-sm font-medium hover:underline"
-                    style={{ color: C.textPrimary }}
-                  >
-                    {formatEnrolledStudentName(student)}
-                  </Link>
-                  <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
-                    {gradeLabel} · {programLabel}
-                  </p>
-                </div>
-                {staffIsActive ? (
-                  <button
-                    type="button"
-                    disabled={isUnassigning}
-                    onClick={() => void handleUnassignStudent(student.id)}
-                    className="shrink-0 text-xs font-medium disabled:opacity-60"
-                    style={{ color: C.textSecondary }}
-                  >
-                    {isUnassigning ? "Removing…" : "Unassign"}
-                  </button>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+                {groupLabel}
+                <span className="ml-2 normal-case tracking-normal">
+                  ({groupStudents.length})
+                </span>
+              </h4>
+              <ul className="space-y-2">
+                {groupStudents.map((student) => {
+                  const programLabel =
+                    student.programNames.length > 0
+                      ? student.programNames.join(", ")
+                      : "—";
+                  const gradeLabel = formatStudentGrade(student.grade) ?? "—";
+                  const isUnassigning = unassigningStudentId === student.id;
+
+                  return (
+                    <li
+                      key={student.id}
+                      className="flex items-start justify-between gap-3 rounded-md border px-3 py-2.5"
+                      style={{ borderColor: C.border, backgroundColor: C.surface }}
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          href={`${studentsPath}?student=${encodeURIComponent(student.id)}`}
+                          className="text-sm font-medium hover:underline"
+                          style={{ color: C.textPrimary }}
+                        >
+                          {formatEnrolledStudentName(student)}
+                        </Link>
+                        <p className="mt-0.5 text-xs" style={{ color: C.textTertiary }}>
+                          {gradeLabel} · {programLabel}
+                        </p>
+                      </div>
+                      {staffIsActive ? (
+                        <button
+                          type="button"
+                          disabled={isUnassigning}
+                          onClick={() => void handleUnassignStudent(student.id)}
+                          className="shrink-0 text-xs font-medium disabled:opacity-60"
+                          style={{ color: C.textSecondary }}
+                        >
+                          {isUnassigning ? "Removing…" : "Unassign"}
+                        </button>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
       {!staffIsActive && students.length > 0 ? (

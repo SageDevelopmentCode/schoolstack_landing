@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { loadParentMessagesInbox } from "@/lib/messages/parent-messages";
+import { resolveThreadProgramIdForContact } from "@/lib/messages/message-audience";
 import {
   findOrCreateThread,
   getFamilyIdsForUser,
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId")?.trim() ?? "";
   const schoolName = searchParams.get("schoolName")?.trim() ?? "School";
+  const programId = searchParams.get("programId")?.trim() || null;
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -59,6 +61,7 @@ export async function GET(request: Request) {
       organizationId,
       user.id,
       schoolName,
+      { programId },
     );
 
     return NextResponse.json(inbox);
@@ -92,6 +95,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       organizationId?: string;
+      programId?: string | null;
       contact?: {
         key: string;
         kind: "guardian" | "staff_member" | "school_office";
@@ -153,9 +157,15 @@ export async function POST(request: Request) {
       admin,
       organizationId,
       body.contact,
-      { guardianId, viewer: "parent" },
+      { guardianId, familyId, viewer: "parent", programId: body.programId },
     );
-    const threadId = await findOrCreateThread(admin, organizationId, participants);
+    const programId = resolveThreadProgramIdForContact({
+      contactKind: body.contact.kind,
+      portalProgramId: body.programId,
+    });
+    const threadId = await findOrCreateThread(admin, organizationId, participants, {
+      programId,
+    });
 
     return NextResponse.json({ threadId });
   } catch (err) {

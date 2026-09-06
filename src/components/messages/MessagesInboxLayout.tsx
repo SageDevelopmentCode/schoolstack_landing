@@ -10,6 +10,8 @@ import { contactKeyForThread } from "@/lib/messages/participants-from-contact";
 import {
   threadDetailFromContact,
   threadDetailFromSummary,
+  threadSummaryFromDetail,
+  upsertThreadSummary,
 } from "@/lib/messages/thread-placeholders";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
@@ -52,6 +54,7 @@ export type MessagesApiConfig = {
   schoolName: string;
   familyId?: string;
   guardianId?: string;
+  programId?: string;
   viewer: "parent" | "teacher" | "admin";
 };
 
@@ -67,6 +70,7 @@ function toEnrolledStudentSummary(
 ): AdminEnrolledStudentSummary {
   return {
     ...summary,
+    classroomIds: [],
     hasStandingHealthItems: false,
   };
 }
@@ -197,7 +201,7 @@ export default function MessagesInboxLayout({
     null,
   );
   const [inboxSearch, setInboxSearch] = useState("");
-  const deepLinkHandled = useRef(false);
+  const handledThreadParam = useRef<string | null>(null);
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
   const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
 
@@ -215,18 +219,22 @@ export default function MessagesInboxLayout({
     }
   }
 
-  const query = useMemo(
-    () =>
-      new URLSearchParams({
-        organizationId: api.organizationId,
-        schoolName: api.schoolName,
-      }).toString(),
-    [api.organizationId, api.schoolName],
-  );
+  const query = useMemo(() => {
+    const params = new URLSearchParams({
+      organizationId: api.organizationId,
+      schoolName: api.schoolName,
+    });
+    if (api.programId) {
+      params.set("programId", api.programId);
+    }
+    return params.toString();
+  }, [api.organizationId, api.programId, api.schoolName]);
 
-  const loadInbox = useCallback(async () => {
+  const loadInbox = useCallback(async (options?: { silent?: boolean }) => {
     if (hasLoadedThreadsRef.current) {
-      setIsRefetchingInbox(true);
+      if (!options?.silent) {
+        setIsRefetchingInbox(true);
+      }
     } else {
       setLoadingInbox(true);
     }
@@ -298,8 +306,11 @@ export default function MessagesInboxLayout({
           };
         });
         setActiveThreadId(threadId);
+        setThreads((prev) =>
+          upsertThreadSummary(prev, threadSummaryFromDetail(data.thread)),
+        );
         setError(null);
-        void loadInbox();
+        void loadInbox({ silent: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load conversation.");
       } finally {
@@ -335,7 +346,14 @@ export default function MessagesInboxLayout({
           staffMemberId:
             teacherPortal?.staffMemberId ?? viewerContext?.staffMemberId ?? null,
         });
-        return key === contact.key;
+        if (key !== contact.key) return false;
+        if (!api.programId) {
+          return !thread.programId;
+        }
+        if (contact.kind === "school_office") {
+          return !thread.programId;
+        }
+        return thread.programId === api.programId;
       });
 
       if (existing) {
@@ -356,6 +374,7 @@ export default function MessagesInboxLayout({
           body: JSON.stringify({
             organizationId: api.organizationId,
             familyId: api.familyId,
+            programId: api.programId ?? null,
             contact,
           }),
         });
@@ -372,8 +391,10 @@ export default function MessagesInboxLayout({
     },
     [
       api.basePath,
+      api.familyId,
       api.guardianId,
       api.organizationId,
+      api.programId,
       api.viewer,
       loadThread,
       readOnly,
@@ -549,16 +570,17 @@ export default function MessagesInboxLayout({
   }, [threads]);
 
   useEffect(() => {
-    if (initialInbox) return;
+    if (initialInbox?.threadsDeferred) return;
     queueMicrotask(() => {
       void loadInbox();
     });
-  }, [initialInbox, loadInbox]);
+  }, [initialInbox?.threadsDeferred, loadInbox]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");
-    if (!threadParam || deepLinkHandled.current || loadingInbox) return;
-    deepLinkHandled.current = true;
+    if (!threadParam || loadingInbox) return;
+    if (handledThreadParam.current === threadParam) return;
+    handledThreadParam.current = threadParam;
     setMobileView("chat");
     setLoadingMessages(true);
     void loadThread(threadParam).finally(() => setLoadingMessages(false));
@@ -600,15 +622,24 @@ export default function MessagesInboxLayout({
   const splitPane = isSplitPaneMessagesVariant(variant);
 
   const threadsForList = useMemo(() => {
+    let base = threads;
+    if (
+      activeThread &&
+      !activeThread.id.startsWith("pending-") &&
+      !base.some((thread) => thread.id === activeThread.id)
+    ) {
+      base = [threadSummaryFromDetail(activeThread), ...base];
+    }
+
     const query = inboxSearch.trim().toLowerCase();
-    if (!storyVariant || !query) return threads;
-    return threads.filter(
+    if (!storyVariant || !query) return base;
+    return base.filter(
       (thread) =>
         thread.title.toLowerCase().includes(query) ||
         thread.subtitle?.toLowerCase().includes(query) ||
         thread.lastMessagePreview?.toLowerCase().includes(query),
     );
-  }, [inboxSearch, storyVariant, threads]);
+  }, [activeThread, inboxSearch, storyVariant, threads]);
 
   useEffect(() => {
     onRegisterActions?.({
@@ -674,10 +705,6 @@ export default function MessagesInboxLayout({
         .map((contact) => ({ type: "contact" as const, contact })),
     ];
   }, [adminStory, api.viewer, contactKeysWithThreads, contacts, splitPane, threadsForList]);
-
-  const newConversationContacts = contacts.filter(
-    (contact) => !contactKeysWithThreads.has(contact.key),
-  );
 
   const activeKey = activeThreadId;
   const reducedMotion = useReducedMotion() ?? false;
@@ -764,11 +791,24 @@ export default function MessagesInboxLayout({
     );
   }
 
-  if (!loadingInbox && threads.length === 0 && contacts.length === 0 && !initialInbox?.threadsDeferred) {
+  const emptyInboxDescription =
+    api.viewer === "parent" && api.programId
+      ? "No conversations yet. Message a co-op family from the home page, or start a new conversation with the school office."
+      : api.viewer === "parent"
+        ? "No conversations yet. Start a new conversation with the school office or your child's teachers."
+        : "No conversations yet. Start a new conversation to reach families and colleagues.";
+
+  if (
+    !loadingInbox &&
+    threads.length === 0 &&
+    contacts.length === 0 &&
+    !initialInbox?.threadsDeferred &&
+    !deferContactsLoad
+  ) {
     return (
       <MessagesEmptyState
         title="No messages yet"
-        description="When your school enables messaging, conversations will appear here."
+        description={emptyInboxDescription}
         C={C}
         theme={theme}
         variant={variant}
@@ -813,7 +853,7 @@ export default function MessagesInboxLayout({
       )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <motion.div
+        <div
           className={`border-r flex flex-col flex-shrink-0 ${
             mobileView === "chat" ? "hidden md:flex" : "flex"
           } w-full ${
@@ -823,13 +863,6 @@ export default function MessagesInboxLayout({
             borderColor: theme?.line ?? C.border,
             backgroundColor: storyVariant ? theme?.white ?? C.bg : C.bg,
           }}
-          {...(storyVariant && mobileView === "list"
-            ? {
-                initial: parentMessagesViewTransition.initial,
-                animate: parentMessagesViewTransition.animate,
-                transition: parentMessagesViewTransition.transition,
-              }
-            : {})}
         >
           {variant === "parent-story" && theme ? (
             <ParentMessagesInboxHeader
@@ -903,7 +936,7 @@ export default function MessagesInboxLayout({
               hideStudentSubtitle={api.viewer === "teacher" && (embedded || storyVariant)}
             />
           </div>
-        </motion.div>
+        </div>
 
         <motion.div
           className={`flex w-full flex-col flex-1 min-w-0 min-h-0 ${
@@ -960,7 +993,7 @@ export default function MessagesInboxLayout({
       {splitPane ? (
         <MessagesNewConversationModal
           open={newConversationOpen}
-          contacts={newConversationContacts}
+          contacts={contacts}
           loadingContacts={loadingContacts}
           onClose={() => setNewConversationOpen(false)}
           onSelect={handleNewConversationSelect}

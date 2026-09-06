@@ -18,6 +18,8 @@ import { fetchSubmissionPageMeta } from "@/lib/school-admin/submissions-page-met
 import StudentsPageShell from "@/components/school-admin/students/StudentsPageShell";
 import StudentsTableLoader from "@/components/school-admin/students/StudentsTableLoader";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-parent-portal-governance";
+import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
 import { createClient } from "@/utils/supabase/server";
 
 const ProgramsPage = nextDynamic(
@@ -44,6 +46,10 @@ import { fetchTuitionSetupStatus } from "@/lib/tuition/setup-status";
 const StaffPage = nextDynamic(
   () => import("@/components/school-admin/staff/StaffPage"),
   { loading: () => <AdminPageSkeleton label="Loading staff" /> },
+);
+const ClassroomsPage = nextDynamic(
+  () => import("@/components/school-admin/classrooms/ClassroomsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading classrooms" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -103,11 +109,22 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     (feature === "admissions" && subtab === "programs") ||
     (feature === "my_school" && subtab === "programs")
   ) {
+    const { data: settingsRow } = await supabase
+      .from("organization_settings")
+      .select("admissions")
+      .eq("organization_id", org.id)
+      .maybeSingle();
+    const programParentPortalConfig = parseProgramParentPortalOrgConfig(
+      parseAdmissionsOrgSettings(settingsRow?.admissions),
+    );
+
     return (
       <ProgramsPage
         organizationId={org.id}
         branding={org.branding}
+        orgFeatures={org.features}
         slug={slug}
+        programParentPortalConfig={programParentPortalConfig}
       />
     );
   }
@@ -220,6 +237,18 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     return (
       <Suspense>
         <StaffPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+        />
+      </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "classrooms") {
+    return (
+      <Suspense>
+        <ClassroomsPage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}

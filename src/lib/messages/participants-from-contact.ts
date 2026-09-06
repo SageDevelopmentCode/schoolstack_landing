@@ -1,5 +1,21 @@
 import type { MessageContactInput, MessageParticipantInput } from "./types";
 
+export function isParentPeerGuardianContact(
+  contact: MessageContactInput,
+  context: {
+    guardianId?: string | null;
+    staffMemberId?: string | null;
+  },
+): boolean {
+  return Boolean(
+    contact.kind === "guardian" &&
+      contact.guardianId &&
+      context.guardianId &&
+      contact.guardianId !== context.guardianId &&
+      !context.staffMemberId,
+  );
+}
+
 export function participantsFromContact(
   contact: MessageContactInput,
   context: {
@@ -23,6 +39,15 @@ export function participantsFromContact(
       return [
         { kind: "guardian", guardianId: contact.guardianId },
         { kind: "staff_member", staffMemberId: context.staffMemberId },
+      ];
+    }
+    if (
+      context.guardianId &&
+      contact.guardianId !== context.guardianId
+    ) {
+      return [
+        { kind: "guardian", guardianId: context.guardianId },
+        { kind: "guardian", guardianId: contact.guardianId },
       ];
     }
     return [
@@ -75,6 +100,22 @@ export function contactKeyForThread(
   const guardianParticipant = threadParticipants.find((p) => p.kind === "guardian");
   const legacyFamilyParticipant = threadParticipants.find((p) => p.kind === "family");
   const staffParticipants = threadParticipants.filter((p) => p.kind === "staff_member");
+
+  const guardianParticipants = threadParticipants.filter((p) => p.kind === "guardian");
+
+  if (
+    guardianParticipants.length === 2 &&
+    !hasOffice &&
+    staffParticipants.length === 0 &&
+    !legacyFamilyParticipant
+  ) {
+    const other = guardianParticipants.find(
+      (participant) =>
+        participant.guardianId &&
+        participant.guardianId !== context.guardianId,
+    );
+    return other?.guardianId ? `guardian:${other.guardianId}` : null;
+  }
 
   if (hasOffice && guardianParticipant?.guardianId) {
     if (viewer === "parent") return "school_office";

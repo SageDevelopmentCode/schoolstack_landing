@@ -16,6 +16,7 @@ import { listEnrollmentProgressForApplications } from "./enrollment-checklist-ma
 import {
   buildFamilyChildOverviews,
   loadApplicationDetail,
+  loadEnrolledProgramsByStudentId,
   type ApplicationDetail,
   type ApplicationPostSubmitTask,
   type FamilyApplication,
@@ -43,6 +44,17 @@ export function familyPreviewParentPath(
   subtab?: string,
 ): string {
   const base = `${familyPreviewParentBasePath(slug, familyId)}/${featureKey}`;
+  return subtab ? `${base}/${subtab}` : base;
+}
+
+export function familyPreviewProgramParentPath(
+  slug: string,
+  familyId: string,
+  programSlug: string,
+  featureKey: string,
+  subtab?: string,
+): string {
+  const base = `${familyPreviewParentBasePath(slug, familyId)}/p/${programSlug}/${featureKey}`;
   return subtab ? `${base}/${subtab}` : base;
 }
 
@@ -416,7 +428,8 @@ export async function listFamilyChildrenForHomeByFamilyId(
     .map((application) => application.studentId)
     .filter((id): id is string => Boolean(id));
 
-  const [progressByApplicationId, photosResult] = await Promise.all([
+  const [progressByApplicationId, photosResult, enrolledProgramsByStudentId] =
+    await Promise.all([
     listEnrollmentProgressForApplications(
       supabase,
       organizationId,
@@ -429,6 +442,7 @@ export async function listFamilyChildrenForHomeByFamilyId(
           .eq("organization_id", organizationId)
           .in("id", studentIds)
       : Promise.resolve({ data: [], error: null }),
+    loadEnrolledProgramsByStudentId(supabase, organizationId, studentIds),
   ]);
 
   if (photosResult.error) throw photosResult.error;
@@ -444,6 +458,7 @@ export async function listFamilyChildrenForHomeByFamilyId(
     applications,
     progressByApplicationId,
     photosByStudentId,
+    enrolledProgramsByStudentId,
   );
 }
 

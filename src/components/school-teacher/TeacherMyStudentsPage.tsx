@@ -29,6 +29,7 @@ import {
   listOrgEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
+import type { StaffClassroomOption } from "@/lib/school-admin/classrooms";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createClient } from "@/utils/supabase/client";
@@ -39,10 +40,12 @@ type TeacherMyStudentsPageProps = {
   slug: string;
   staffMemberId: string | null;
   initialStudents?: AdminEnrolledStudentSummary[];
+  initialClassrooms?: StaffClassroomOption[];
   previewMode?: boolean;
 };
 
 type TeacherRosterScope = "assigned" | "school";
+type TeacherClassroomFilter = "all" | "unassigned" | string;
 
 const STUDENTS_PAGE_SIZE = 50;
 
@@ -86,6 +89,18 @@ function StoryFilterPill({
   );
 }
 
+function studentMatchesClassroomFilter(
+  student: AdminEnrolledStudentSummary,
+  filter: TeacherClassroomFilter,
+  staffClassrooms: StaffClassroomOption[],
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "unassigned") return student.classroomNames.length === 0;
+  const classroom = staffClassrooms.find((entry) => entry.id === filter);
+  if (!classroom) return true;
+  return student.classroomNames.includes(classroom.name);
+}
+
 function updateStudentHealthFlag(
   students: AdminEnrolledStudentSummary[],
   studentId: string,
@@ -102,6 +117,7 @@ export default function TeacherMyStudentsPage({
   slug,
   staffMemberId,
   initialStudents,
+  initialClassrooms,
   previewMode = false,
 }: TeacherMyStudentsPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
@@ -110,6 +126,8 @@ export default function TeacherMyStudentsPage({
   const tableRef = useRef<HTMLDivElement>(null);
 
   const [rosterScope, setRosterScope] = useState<TeacherRosterScope>("assigned");
+  const [classroomFilter, setClassroomFilter] = useState<TeacherClassroomFilter>("all");
+  const [staffClassrooms] = useState<StaffClassroomOption[]>(initialClassrooms ?? []);
   const [assignedStudents, setAssignedStudents] = useState<AdminEnrolledStudentSummary[]>(
     initialStudents ?? [],
   );
@@ -151,6 +169,13 @@ export default function TeacherMyStudentsPage({
   function changeRosterScope(next: TeacherRosterScope) {
     setRosterScope(next);
     setRosterFilter("all");
+    setClassroomFilter("all");
+    setVisibleCount(STUDENTS_PAGE_SIZE);
+    setSelectedId(null);
+  }
+
+  function changeClassroomFilter(next: TeacherClassroomFilter) {
+    setClassroomFilter(next);
     setVisibleCount(STUDENTS_PAGE_SIZE);
     setSelectedId(null);
   }
@@ -246,7 +271,13 @@ export default function TeacherMyStudentsPage({
 
   const filteredStudents = useMemo(() => {
     const byFilter = filterStudentsByRosterFilter(students, rosterFilter);
-    return byFilter.filter((student) =>
+    const byClassroom =
+      rosterScope === "assigned" && classroomFilter !== "all"
+        ? byFilter.filter((student) =>
+            studentMatchesClassroomFilter(student, classroomFilter, staffClassrooms),
+          )
+        : byFilter;
+    return byClassroom.filter((student) =>
       matchesStudentSearch(
         student,
         searchQuery,
@@ -254,7 +285,20 @@ export default function TeacherMyStudentsPage({
         formatEnrolledStudentName,
       ),
     );
-  }, [rosterFilter, searchQuery, students]);
+  }, [
+    classroomFilter,
+    rosterFilter,
+    rosterScope,
+    searchQuery,
+    staffClassrooms,
+    students,
+  ]);
+
+  const unassignedClassroomCount = useMemo(
+    () =>
+      assignedStudents.filter((student) => student.classroomNames.length === 0).length,
+    [assignedStudents],
+  );
 
   const visibleStudents = useMemo(
     () => filteredStudents.slice(0, visibleCount),
@@ -336,6 +380,37 @@ export default function TeacherMyStudentsPage({
               theme={theme}
             />
           </div>
+
+          {rosterScope === "assigned" && staffClassrooms.length > 0 ? (
+            <div className="mb-[15px] flex flex-wrap items-center gap-2">
+              <StoryFilterPill
+                active={classroomFilter === "all"}
+                label="All groups"
+                count={assignedStudents.length}
+                onClick={() => changeClassroomFilter("all")}
+                theme={theme}
+              />
+              {staffClassrooms.map((classroom) => (
+                <StoryFilterPill
+                  key={classroom.id}
+                  active={classroomFilter === classroom.id}
+                  label={classroom.name}
+                  count={classroom.studentCount}
+                  onClick={() => changeClassroomFilter(classroom.id)}
+                  theme={theme}
+                />
+              ))}
+              {unassignedClassroomCount > 0 ? (
+                <StoryFilterPill
+                  active={classroomFilter === "unassigned"}
+                  label="Unassigned"
+                  count={unassignedClassroomCount}
+                  onClick={() => changeClassroomFilter("unassigned")}
+                  theme={theme}
+                />
+              ) : null}
+            </div>
+          ) : null}
 
           {!loading && students.length > 0 ? (
             <>

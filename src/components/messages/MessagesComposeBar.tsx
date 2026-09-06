@@ -28,6 +28,8 @@ export default function MessagesComposeBar({
   C,
   theme,
   variant = "card",
+  hideAttachments = false,
+  placeholder,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -39,6 +41,8 @@ export default function MessagesComposeBar({
   C: AdminThemeTokens;
   theme?: ParentThemeTokens;
   variant?: MessagesLayoutVariant;
+  hideAttachments?: boolean;
+  placeholder?: string;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,7 +59,7 @@ export default function MessagesComposeBar({
     onFilesChange(next);
   };
 
-  const canSend = Boolean(value.trim() || files.length > 0);
+  const canSend = Boolean(value.trim() || (!hideAttachments && files.length > 0));
 
   useEffect(() => {
     if (!splitPane || !textareaRef.current) return;
@@ -109,29 +113,33 @@ export default function MessagesComposeBar({
           className="flex items-end gap-2 rounded-[1.75rem] border px-2 py-1.5 shadow-sm"
           style={{ borderColor, backgroundColor: fieldBg }}
         >
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
-            className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer transition hover:bg-black/[0.04] disabled:opacity-50"
-            style={{ color: C.textSecondary }}
-            aria-label="Attach files"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            multiple
-            accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
-            onChange={(event) => {
-              if (event.target.files?.length) {
-                addFiles(event.target.files);
-                event.target.value = "";
-              }
-            }}
-          />
+          {hideAttachments ? null : (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
+                className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full cursor-pointer transition hover:bg-black/[0.04] disabled:opacity-50"
+                style={{ color: C.textSecondary }}
+                aria-label="Attach files"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                multiple
+                accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+                onChange={(event) => {
+                  if (event.target.files?.length) {
+                    addFiles(event.target.files);
+                    event.target.value = "";
+                  }
+                }}
+              />
+            </>
+          )}
           <textarea
             ref={textareaRef}
             value={value}
@@ -144,11 +152,12 @@ export default function MessagesComposeBar({
               }
             }}
             placeholder={
-              disabled
+              placeholder ??
+              (disabled
                 ? "Preview mode — sending disabled"
                 : parentStory
                   ? "Write a warm reply…"
-                  : "Write a message…"
+                  : "Write a message…")
             }
             disabled={disabled || sending}
             className="max-h-[110px] min-h-[22px] flex-1 resize-none bg-transparent py-2 text-sm leading-[22px] disabled:opacity-60 focus:outline-none"

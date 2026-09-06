@@ -18,6 +18,7 @@ import type {
 export type MessageThreadRow = {
   id: string;
   organization_id: string;
+  program_id: string | null;
   subject: string | null;
   participant_signature: string;
   last_message_at: string | null;
@@ -72,6 +73,7 @@ export type ParticipantDisplayContext = {
   familyEnrolledStudents: Map<string, AdminEnrolledStudentSummary[]>;
   schoolOfficeLabel: string;
   currentUserId: string;
+  viewerGuardianId?: string | null;
 };
 
 export function toMessageStudentRefs(
@@ -245,9 +247,38 @@ export function resolveThreadTitle(
   color: string;
 } {
   const guardianParticipant = participants.find((p) => p.kind === "guardian");
+  const guardianParticipants = participants.filter((p) => p.kind === "guardian");
   const legacyFamilyParticipant = participants.find((p) => p.kind === "family");
   const staffParticipants = participants.filter((p) => p.kind === "staff_member");
   const hasOffice = participants.some((p) => p.kind === "school_office");
+
+  if (
+    guardianParticipants.length === 2 &&
+    !hasOffice &&
+    staffParticipants.length === 0 &&
+    !legacyFamilyParticipant
+  ) {
+    const otherGuardianId =
+      guardianParticipants.find(
+        (participant) =>
+          participant.guardianId &&
+          participant.guardianId !== context.viewerGuardianId,
+      )?.guardianId ??
+      guardianParticipants.find((participant) => participant.guardianId)?.guardianId;
+
+    if (otherGuardianId) {
+      const guardianName = resolveGuardianThreadTitle(otherGuardianId, context);
+      const familyId = guardianFamilyId(otherGuardianId, context);
+      const familyName = familyId ? context.families.get(familyId)?.name : null;
+
+      return {
+        title: guardianName,
+        subtitle: familyName ?? "Co-op family",
+        photoUrl: guardianPhotoUrl(otherGuardianId, context),
+        color: colorForKey(otherGuardianId),
+      };
+    }
+  }
 
   if (hasOffice && guardianParticipant?.guardianId) {
     const guardianId = guardianParticipant.guardianId;
@@ -543,6 +574,7 @@ export function mapThreadSummary(
 
   return {
     id: String(thread.id),
+    programId: thread.program_id ? String(thread.program_id) : undefined,
     subject: thread.subject,
     title: display.title,
     subtitle: display.subtitle,

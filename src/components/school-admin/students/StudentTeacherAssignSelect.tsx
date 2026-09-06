@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import StudentTeacherAssignSheet from "./StudentTeacherAssignSheet";
 import {
@@ -19,6 +19,7 @@ type StudentTeacherAssignSelectProps = {
   activeStaff: StaffMemberRecord[];
   staffPath: string;
   staffLoading?: boolean;
+  staffLoaded?: boolean;
   disabled?: boolean;
   onAssign: (studentId: string, staffMemberIds: string[]) => Promise<void>;
   onInteract?: () => void;
@@ -33,12 +34,25 @@ export default function StudentTeacherAssignSelect({
   activeStaff,
   staffPath,
   staffLoading = false,
+  staffLoaded = false,
   disabled = false,
   onAssign,
   onInteract,
   className,
 }: StudentTeacherAssignSelectProps) {
   const [open, setOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
+
+  useEffect(() => {
+    if (!pendingOpen || !staffLoaded || staffLoading) return;
+
+    queueMicrotask(() => {
+      if (activeStaff.length > 0) {
+        setOpen(true);
+      }
+      setPendingOpen(false);
+    });
+  }, [pendingOpen, staffLoaded, staffLoading, activeStaff.length]);
 
   if (staffLoading) {
     return (
@@ -50,7 +64,7 @@ export default function StudentTeacherAssignSelect({
     );
   }
 
-  if (activeStaff.length === 0) {
+  if (staffLoaded && activeStaff.length === 0) {
     return (
       <div className={className}>
         <p className="text-xs" style={{ color: C.textTertiary }}>
@@ -72,6 +86,16 @@ export default function StudentTeacherAssignSelect({
   const unassignedBorder = "#E8C58A";
   const unassignedText = "#A26B22";
 
+  const handleButtonClick = () => {
+    if (staffLoaded && activeStaff.length > 0) {
+      setOpen(true);
+      return;
+    }
+
+    onInteract?.();
+    setPendingOpen(true);
+  };
+
   return (
     <div
       className={className}
@@ -81,10 +105,7 @@ export default function StudentTeacherAssignSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => {
-          onInteract?.();
-          setOpen(true);
-        }}
+        onClick={handleButtonClick}
         className="inline-flex min-w-[9rem] max-w-[14rem] items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm disabled:opacity-60"
         style={{
           borderColor: isUnassigned ? unassignedBorder : C.inputBorder,

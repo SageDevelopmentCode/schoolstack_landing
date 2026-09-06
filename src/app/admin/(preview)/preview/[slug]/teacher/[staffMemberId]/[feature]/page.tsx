@@ -130,6 +130,7 @@ export default async function StaffTeacherPreviewFeaturePage({
         slug={slug}
         staffMemberId={initialData.staffMemberId}
         initialStudents={initialData.students}
+        initialClassrooms={initialData.staffClassrooms}
         previewMode
       />
     );

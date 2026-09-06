@@ -24,6 +24,7 @@ function formatEventDate(date: string) {
 export default function SchoolEventDetailPanel({
   event,
   C,
+  audienceLabel,
   onClose,
   onDelete,
   onEdit,
@@ -31,6 +32,7 @@ export default function SchoolEventDetailPanel({
 }: {
   event: OrganizationEvent | null;
   C: AdminThemeTokens;
+  audienceLabel?: string;
   onClose: () => void;
   onDelete?: (eventId: string) => void;
   onEdit?: (event: OrganizationEvent) => void;
@@ -96,6 +98,17 @@ export default function SchoolEventDetailPanel({
             >
               {SCHOOL_EVENT_TYPE_LABELS[event.type]}
             </span>
+
+            {audienceLabel ? (
+              <div>
+                <p className="mb-0.5 text-xs" style={{ color: C.textTertiary }}>
+                  Audience
+                </p>
+                <p className="text-sm" style={{ color: C.textPrimary }}>
+                  {audienceLabel}
+                </p>
+              </div>
+            ) : null}
 
             <div>
               <p className="mb-0.5 text-xs" style={{ color: C.textTertiary }}>

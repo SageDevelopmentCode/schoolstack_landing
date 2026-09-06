@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import {
   childFirstName,
-  childGradeLine,
+  childLearnerSubtitleLine,
 } from "@/components/school-parent/children/parent-children-utils";
 import { parentChildrenFadeUp } from "@/components/school-parent/children/parent-children-view-transition";
 import { childAccentBg } from "@/lib/organization-settings/parent-theme";
@@ -78,8 +78,7 @@ export default function ParentChildrenLearnerStrip({
                 {firstName}
               </span>
               <span className="block truncate text-[10px]" style={{ color: theme.muted }}>
-                {childGradeLine(child)}
-                {child.isEnrolled ? " · Enrolled" : ""}
+                {childLearnerSubtitleLine(child)}
               </span>
             </div>
           </motion.button>

@@ -18,6 +18,36 @@ export function schoolParentPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function schoolProgramParentPath(
+  slug: string,
+  programSlug: string,
+  featureKey: string,
+  subtab?: string,
+): string {
+  const base = `/school/${slug}/parent/p/${programSlug}/${featureKey}`;
+  return subtab ? `${base}/${subtab}` : base;
+}
+
+export function schoolParentRootPath(slug: string): string {
+  return `/school/${slug}/parent`;
+}
+
+export function parseProgramParentPath(pathname: string): {
+  programSlug: string;
+  feature: string;
+  subtab?: string;
+} | null {
+  const match = pathname.match(
+    /\/school\/[^/]+\/parent\/p\/([^/]+)\/([^/]+)(?:\/([^/]+))?$/,
+  );
+  if (!match) return null;
+  return {
+    programSlug: match[1],
+    feature: match[2],
+    subtab: match[3],
+  };
+}
+
 export function parentClassroomSignupPath(
   slug: string,
   signupId: string,
@@ -61,13 +91,21 @@ export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
 }
 
 export function isParentMessagesPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "messages") return true;
   if (parseSchoolParentPath(pathname)?.feature === "messages") return true;
-  return /\/parent\/messages(?:\/|$)/.test(pathname);
+  return /\/parent\/(?:p\/[^/]+\/)?messages(?:\/|$)/.test(pathname);
 }
 
 export function isParentBillingPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "billing") return true;
   if (parseSchoolParentPath(pathname)?.feature === "billing") return true;
-  return /\/parent\/billing(?:\/|$)/.test(pathname);
+  return /\/parent\/(?:p\/[^/]+\/)?billing(?:\/|$)/.test(pathname);
+}
+
+export function isParentCurriculumPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "curriculum") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "curriculum") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
 }
 
 export function isParentFeatureEnabled(

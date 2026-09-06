@@ -4,6 +4,7 @@ import {
   buildApplySystemSection,
   emptyApplyCustomSection,
 } from "@/lib/admissions/apply-system-fields";
+import { createProgram } from "@/lib/admissions/programs";
 import { createApplicationPayment } from "@/lib/stripe/application-payments";
 import { upsertOrganizationPaymentAccount } from "@/lib/stripe/organization-payment-account";
 import { TEST_ORG_SLUG } from "../../../e2e/helpers/constants";
@@ -78,19 +79,12 @@ async function ensureProgram(
   if (lookupError) throw lookupError;
   if (existing?.id) return String(existing.id);
 
-  const { data: program, error: insertError } = await admin
-    .from("programs")
-    .insert({
-      organization_id: organizationId,
-      name: "Integration Test Program",
-      type: "school_year",
-      status: "open",
-    })
-    .select("id")
-    .single();
-
-  if (insertError) throw insertError;
-  return String(program.id);
+  const program = await createProgram(admin, organizationId, {
+    name: "Integration Test Program",
+    type: "school_year",
+    status: "open",
+  });
+  return program.id;
 }
 
 export async function seedFeeEnabledForm(

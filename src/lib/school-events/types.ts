@@ -20,6 +20,8 @@ export type SchoolEventColorKey =
 export type OrganizationEvent = {
   id: string;
   organizationId: string;
+  /** Null = visible on the main portal and all program portals. */
+  programId?: string;
   title: string;
   date: string;
   time?: string;

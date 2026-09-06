@@ -29,6 +29,7 @@ type ParentCalendarPageProps = {
   eventsDeferred?: boolean;
   previewMode?: boolean;
   agendaTitle?: string;
+  programId?: string;
 };
 
 function formatEventDate(date: string) {
@@ -234,6 +235,7 @@ export default function ParentCalendarPage({
   eventsDeferred = false,
   previewMode = false,
   agendaTitle,
+  programId,
 }: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
@@ -268,6 +270,9 @@ export default function ParentCalendarPage({
           start: startDate,
           end: endDate,
         });
+        if (programId) {
+          params.set("programId", programId);
+        }
         const res = await fetch(`/api/parent-portal/calendar/events?${params}`);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
@@ -285,7 +290,7 @@ export default function ParentCalendarPage({
         // Keep showing the current window if a refetch fails.
       }
     },
-    [organizationId, previewMode],
+    [organizationId, previewMode, programId],
   );
 
   const handlePeriodChange = useCallback(

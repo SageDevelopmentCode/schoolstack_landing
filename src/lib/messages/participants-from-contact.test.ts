@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contactKeyForThread } from "./participants-from-contact";
+import {
+  contactKeyForThread,
+  isParentPeerGuardianContact,
+  participantsFromContact,
+} from "./participants-from-contact";
+import { validateParticipantSet } from "./participant-signature";
 
 const guardianOfficeThread = [
   {
@@ -58,4 +63,61 @@ test("contactKeyForThread keeps guardian id for teacher guardian+staff threads",
     contactKeyForThread(guardianStaffThread, "teacher", { staffMemberId: "staff-1" }),
     "guardian:guardian-julius",
   );
+});
+
+const guardianPeerThread = [
+  {
+    kind: "guardian" as const,
+    familyId: null,
+    guardianId: "guardian-julius",
+    staffMemberId: null,
+  },
+  {
+    kind: "guardian" as const,
+    familyId: null,
+    guardianId: "guardian-rivera",
+    staffMemberId: null,
+  },
+];
+
+test("participantsFromContact builds peer guardian threads for parents", () => {
+  assert.deepEqual(
+    participantsFromContact(
+      {
+        key: "guardian:guardian-rivera",
+        kind: "guardian",
+        guardianId: "guardian-rivera",
+        name: "The Rivera family",
+      },
+      { guardianId: "guardian-julius" },
+    ),
+    [
+      { kind: "guardian", guardianId: "guardian-julius" },
+      { kind: "guardian", guardianId: "guardian-rivera" },
+    ],
+  );
+});
+
+test("isParentPeerGuardianContact detects parent peer guardian contacts", () => {
+  assert.equal(
+    isParentPeerGuardianContact(
+      { key: "guardian:guardian-rivera", kind: "guardian", guardianId: "guardian-rivera", name: "Rivera" },
+      { guardianId: "guardian-julius" },
+    ),
+    true,
+  );
+});
+
+test("contactKeyForThread returns the other guardian for parent peer threads", () => {
+  assert.equal(
+    contactKeyForThread(guardianPeerThread, "parent", { guardianId: "guardian-julius" }),
+    "guardian:guardian-rivera",
+  );
+});
+
+test("validateParticipantSet allows two-guardian peer threads", () => {
+  validateParticipantSet([
+    { kind: "guardian", guardianId: "guardian-julius" },
+    { kind: "guardian", guardianId: "guardian-rivera" },
+  ]);
 });

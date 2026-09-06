@@ -8,7 +8,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   FileText,
-  MessageSquare,
+  Sprout,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
@@ -25,13 +25,22 @@ import {
   parentThemeToAdminCompat,
 } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  childIsolatedPortalHref,
+  childIsolatedPortalLabel,
+  formatChildProgramLine,
+  programPortalChildrenEmptyMessage,
+} from "@/components/school-parent/children/parent-children-utils";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import ParentCoopFamiliesSection from "@/components/school-parent/ParentCoopFamiliesSection";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
@@ -40,6 +49,8 @@ import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionIt
 import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
+import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
+import type { BulletinPost } from "@/lib/school-bulletin/types";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -59,6 +70,13 @@ type ParentHomePageProps = {
   deferSignupAttentionLoad?: boolean;
   previewMode?: boolean;
   previewBasePath?: string;
+  programPortalLabel?: string;
+  programId?: string;
+  schoolName?: string;
+  coopModeEnabled?: boolean;
+  coopFamilies?: ProgramCoopFamily[];
+  bulletinEnabled?: boolean;
+  bulletinPosts?: BulletinPost[];
 };
 
 type AttentionItem = {
@@ -108,10 +126,14 @@ function greetingParts(): { prefix: string; emoji: string } {
 
 function childSubtitleLine(child: FamilyChildOverview): string {
   const gradePart = child.grade ? `Grade ${child.grade}` : "Grade not listed";
+  const programs = formatChildProgramLine(child);
   if (child.checklistProgress && child.checklistProgress.total > 0) {
-    return `${gradePart} · Enrollment checklist: ${child.checklistProgress.completed} of ${child.checklistProgress.total} complete`;
+    const checklistPart = `Enrollment checklist: ${child.checklistProgress.completed} of ${child.checklistProgress.total} complete`;
+    return programs
+      ? `${gradePart} · ${programs} · ${checklistPart}`
+      : `${gradePart} · ${checklistPart}`;
   }
-  return gradePart;
+  return programs ? `${gradePart} · ${programs}` : gradePart;
 }
 
 function childApplicationHref(
@@ -236,10 +258,22 @@ function ChildStoryCard({
   const statusTone = child.isEnrolled ? "success" : "info";
   const showEnrollmentLink =
     child.isEnrolled || child.status === "enrolling";
+  const isolatedPortalHref = childIsolatedPortalHref(
+    schoolSlug,
+    child,
+    previewBasePath ? `${previewBasePath}/parent` : undefined,
+  );
+  const isolatedPortalLabel = childIsolatedPortalLabel(child);
 
   return (
-    <motion.div custom={index + 4} initial="hidden" animate="visible" variants={fadeUp}>
-      <ParentCard theme={theme} className="relative flex flex-col !p-6">
+    <motion.div
+      custom={index + 4}
+      initial="hidden"
+      animate="visible"
+      variants={fadeUp}
+      className="h-full"
+    >
+      <ParentCard theme={theme} className="relative flex h-full flex-col !p-6">
         <div className="mb-4 flex items-start gap-3">
           <div
             className="shrink-0 overflow-hidden rounded-[18px]"
@@ -288,6 +322,11 @@ function ChildStoryCard({
               Enrollment checklist
             </ParentTextLink>
           ) : null}
+          {isolatedPortalHref && isolatedPortalLabel ? (
+            <ParentTextLink theme={theme} href={isolatedPortalHref}>
+              Open {isolatedPortalLabel} portal
+            </ParentTextLink>
+          ) : null}
         </div>
       </ParentCard>
     </motion.div>
@@ -311,6 +350,14 @@ export default function ParentHomePage({
   contentDeferred = false,
   deferSignupAttentionLoad = false,
   previewBasePath,
+  previewMode = false,
+  programPortalLabel,
+  programId,
+  schoolName,
+  coopModeEnabled = false,
+  coopFamilies = [],
+  bulletinEnabled = false,
+  bulletinPosts = [],
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
@@ -351,6 +398,7 @@ export default function ParentHomePage({
     previewBasePath ?? `/school/${schoolSlug}/apply`;
   const messagesAction = quickActions.find((a) => a.key === "messages");
   const messagesHref = messagesAction?.href;
+  const messagesEnabled = Boolean(messagesHref);
   const attentionItems = buildAttentionItems({
     onboardingItems,
     enrollmentAmendmentBannerItems,
@@ -381,7 +429,7 @@ export default function ParentHomePage({
 
   return (
     <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-4 py-6 sm:px-8 sm:py-8 lg:px-[68px] lg:py-10">
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>
         <motion.header
           custom={0}
           initial="hidden"
@@ -390,9 +438,23 @@ export default function ParentHomePage({
           className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end sm:gap-5"
         >
           <div>
-            <ParentSectionKicker theme={theme}>
-              {familyKickerLabel(userProfile.displayName)}
-            </ParentSectionKicker>
+            <div className="mb-2 flex items-center gap-2">
+              <ParentSectionKicker theme={theme} className="!mb-0">
+                {familyKickerLabel(userProfile.displayName)}
+              </ParentSectionKicker>
+              {coopModeEnabled && programPortalLabel ? (
+                <span
+                  title={`Co-op mode · ${programPortalLabel}`}
+                  className="inline-flex shrink-0"
+                >
+                  <Sprout
+                    className="h-4 w-4"
+                    style={{ color: theme.primary }}
+                    aria-label={`Co-op mode · ${programPortalLabel}`}
+                  />
+                </span>
+              ) : null}
+            </div>
             <ParentDisplayHeading theme={theme} as="h1">
               {greetingPrefix}, {name}.{" "}
               <span aria-hidden="true">{greetingEmoji}</span>
@@ -525,8 +587,25 @@ export default function ParentHomePage({
           </motion.aside>
         </div>
 
+        <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+          <PortalHomeSchoolUpdatesCard
+            theme={theme}
+            bulletinEnabled={bulletinEnabled}
+            bulletinPosts={bulletinPosts}
+            messagesHref={messagesHref}
+            messagesPromo={
+              !bulletinEnabled && messagesHref
+                ? {
+                    title: "Messages from teachers and staff",
+                    subtitle: "Check your inbox for school communications.",
+                  }
+                : undefined
+            }
+          />
+        </motion.div>
+
         <motion.section
-          custom={3}
+          custom={4}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
@@ -540,20 +619,26 @@ export default function ParentHomePage({
           {familyChildren.length === 0 ? (
             <ParentCard theme={theme}>
               <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                We don&apos;t have any student records from your applications yet.
-                Visit your{" "}
-                <Link
-                  href={applyDashboardHref}
-                  className="font-bold"
-                  style={{ color: theme.primary }}
-                >
-                  application dashboard
-                </Link>{" "}
-                to get started.
+                {programPortalLabel
+                  ? programPortalChildrenEmptyMessage(programPortalLabel)
+                  : (
+                    <>
+                      We don&apos;t have any student records from your applications yet.
+                      Visit your{" "}
+                      <Link
+                        href={applyDashboardHref}
+                        className="font-bold"
+                        style={{ color: theme.primary }}
+                      >
+                        application dashboard
+                      </Link>{" "}
+                      to get started.
+                    </>
+                  )}
               </p>
             </ParentCard>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
               {familyChildren.map((child, index) => (
                 <ChildStoryCard
                   key={child.applicationId}
@@ -569,97 +654,19 @@ export default function ParentHomePage({
           )}
         </motion.section>
 
-        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1fr_1.15fr]">
-          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-            <ParentCard theme={theme}>
-              <ParentSectionKicker theme={theme}>School updates</ParentSectionKicker>
-              <h3
-                className="mb-4 text-base font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                From your school
-              </h3>
-              {messagesHref ? (
-                <>
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-full"
-                      style={{ backgroundColor: theme.infoBg }}
-                    >
-                      <MessageSquare
-                        className="h-4 w-4"
-                        style={{ color: theme.info }}
-                      />
-                    </div>
-                    <div>
-                      <strong
-                        className="block text-sm"
-                        style={{ color: theme.ink }}
-                      >
-                        Messages from teachers and staff
-                      </strong>
-                      <p className="m-0 text-xs" style={{ color: "#78858A" }}>
-                        Check your inbox for school communications.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <ParentTextLink theme={theme} href={messagesHref}>
-                      Open messages
-                    </ParentTextLink>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  School announcements and updates will appear here when available.
-                </p>
-              )}
-            </ParentCard>
-          </motion.div>
+        {coopModeEnabled && programPortalLabel ? (
+          <ParentCoopFamiliesSection
+            programLabel={programPortalLabel}
+            families={coopFamilies}
+            organizationId={organizationId}
+            programId={programId}
+            schoolName={schoolName}
+            messagesHref={messagesHref}
+            messagesEnabled={messagesEnabled}
+            previewMode={previewMode}
+          />
+        ) : null}
 
-          <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
-            <ParentCard theme={theme}>
-              <ParentSectionKicker theme={theme}>Coming up</ParentSectionKicker>
-              <h3
-                className="mb-4 text-base font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                At a glance
-              </h3>
-              {upcomingEvents.length === 0 ? (
-                <p
-                  className="mb-0 text-[13px] leading-relaxed"
-                  style={{ color: "#65747A" }}
-                >
-                  No upcoming events yet. School events will show up here.
-                </p>
-              ) : (
-                <p
-                  className="mb-0 text-[13px] leading-relaxed"
-                  style={{ color: "#65747A" }}
-                >
-                  {upcomingEvents.slice(0, 3).map((event, index) => {
-                    const dateLabel = parseEventDate(event.date).toLocaleDateString(
-                      "en-US",
-                      { month: "short", day: "numeric" },
-                    );
-                    return (
-                      <span key={event.id}>
-                        {index > 0 ? <br /> : null}
-                        {dateLabel} · {event.title}
-                      </span>
-                    );
-                  })}
-                </p>
-              )}
-              <div className="mt-4">
-                <ParentTextLink theme={theme} href={calendarHref}>
-                  View full calendar
-                </ParentTextLink>
-              </div>
-            </ParentCard>
-          </motion.div>
-        </div>
       </div>
 
       <ParentOnboardingSidebar

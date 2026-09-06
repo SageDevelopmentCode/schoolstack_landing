@@ -4,6 +4,10 @@ import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getOrganizationTimezone } from "@/lib/admissions/admissions-availability";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { listEventsForOrg } from "@/lib/school-events/events";
+import {
+  mainPortalAudienceScope,
+  programPortalAudienceScope,
+} from "@/lib/school-events/event-audience";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/calendar";
@@ -28,6 +32,7 @@ export async function GET(request: Request) {
   const slug = url.searchParams.get("slug")?.trim() ?? "";
   const startDate = url.searchParams.get("start")?.trim() ?? "";
   const endDate = url.searchParams.get("end")?.trim() ?? "";
+  const programId = url.searchParams.get("programId")?.trim() ?? "";
 
   if (!organizationId || !slug) {
     return apiError(ROUTE, {
@@ -65,7 +70,12 @@ export async function GET(request: Request) {
         : undefined;
 
     const [events, timezone] = await Promise.all([
-      listEventsForOrg(supabase, organizationId, eventWindow),
+      listEventsForOrg(supabase, organizationId, {
+        ...eventWindow,
+        audienceScope: programId
+          ? programPortalAudienceScope(programId)
+          : mainPortalAudienceScope(),
+      }),
       getOrganizationTimezone(supabase, organizationId),
     ]);
 

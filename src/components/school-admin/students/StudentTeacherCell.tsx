@@ -13,6 +13,7 @@ type StudentTeacherCellProps = {
   activeStaff: StaffMemberRecord[];
   staffPath: string;
   staffLoading?: boolean;
+  staffLoaded?: boolean;
   disabled?: boolean;
   onAssign: (studentId: string, staffMemberIds: string[]) => Promise<void>;
   onInteract?: () => void;
@@ -26,6 +27,7 @@ export default function StudentTeacherCell({
   activeStaff,
   staffPath,
   staffLoading = false,
+  staffLoaded = false,
   disabled = false,
   onAssign,
   onInteract,
@@ -39,6 +41,7 @@ export default function StudentTeacherCell({
       activeStaff={activeStaff}
       staffPath={staffPath}
       staffLoading={staffLoading}
+      staffLoaded={staffLoaded}
       disabled={disabled}
       onAssign={onAssign}
       onInteract={onInteract}

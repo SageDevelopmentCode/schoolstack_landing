@@ -1,4 +1,5 @@
 import { loadParentMessagesThreads } from "@/lib/messages/parent-messages";
+import type { MessageThreadAudienceScope } from "@/lib/messages/message-audience";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getRequestUser } from "@/lib/auth/session";
 import { cookies } from "next/headers";
@@ -12,6 +13,10 @@ export type ParentMessagesInboxData = {
 export async function loadParentMessagesInboxData(
   organizationId: string,
   schoolName: string,
+  options?: {
+    programId?: string | null;
+    audienceScope?: MessageThreadAudienceScope;
+  },
 ): Promise<ParentMessagesInboxData> {
   const user = await getRequestUser();
   if (!user) {
@@ -27,6 +32,7 @@ export async function loadParentMessagesInboxData(
     user.id,
     schoolName,
     supabase,
+    options,
   );
 
   return { threads, guardianId };

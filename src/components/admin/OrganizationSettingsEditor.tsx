@@ -50,6 +50,7 @@ import {
 import {
   BRANDING_FIELDS,
   DEFAULT_APPLY_AUTH_ENTRY_OPTIONS,
+  DEFAULT_FEATURES,
   DEFAULT_PARENT_ONBOARDING_ITEMS,
   FEATURE_CATALOG,
   PORTAL_LABELS,
@@ -84,6 +85,27 @@ import {
   type AdmissionsOrgSettings,
   type ShadowDaySchedulingMode,
 } from "@/lib/admissions/admissions-org-settings";
+import {
+  listProgramsDetailed,
+  updateProgram,
+  type Program,
+} from "@/lib/admissions/programs";
+import {
+  buildInitialIsolatedProgramPortalSettings,
+  parseProgramParentPortalOrgConfig,
+} from "@/lib/admissions/program-parent-portal-governance";
+import {
+  deriveProgramPortalSettingsFromEditor,
+  expandProgramPortalSettingsForEditor,
+  isProgramParentPortalCoopMode,
+  programPortalEditorStatesEqual,
+  type ProgramParentPortalEditorState,
+} from "@/lib/admissions/program-parent-portal";
+import ProgramParentPortalSettingsCard from "@/components/school-admin/admissions/ProgramParentPortalSettingsCard";
+import {
+  buildParentThemeTokens,
+  parentThemeToAdminCompat,
+} from "@/lib/organization-settings/parent-theme";
 import type {
   ApplyAuthEntryOption,
   OrganizationBranding,
@@ -193,6 +215,20 @@ export default function OrganizationSettingsEditor({
   const [expandedSubtabParents, setExpandedSubtabParents] = useState<
     Partial<Record<Portal, Record<string, boolean>>>
   >({});
+  const [orgPrograms, setOrgPrograms] = useState<Program[]>([]);
+  const [orgProgramsLoading, setOrgProgramsLoading] = useState(false);
+  const [programPortalEditors, setProgramPortalEditors] = useState<
+    Record<string, ProgramParentPortalEditorState>
+  >({});
+  const [expandedProgramPortalIds, setExpandedProgramPortalIds] = useState<
+    Record<string, boolean>
+  >({});
+
+  const parentTheme = useMemo(() => buildParentThemeTokens(branding), [branding]);
+  const parentAdminCompat = useMemo(
+    () => parentThemeToAdminCompat(parentTheme),
+    [parentTheme],
+  );
 
   useEffect(() => {
     if (settingsLoading) return;
@@ -223,16 +259,6 @@ export default function OrganizationSettingsEditor({
     });
   }, [organizationId, initialRow, settingsLoading]);
 
-  const isDirty = useMemo(
-    () =>
-      serializeSettings(
-        branding,
-        features as unknown as Record<string, unknown>,
-      ) !== savedSnapshot ||
-      JSON.stringify(admissions) !== savedAdmissionsSnapshot,
-    [admissions, branding, features, savedAdmissionsSnapshot, savedSnapshot],
-  );
-
   const savedShadowDayMode = useMemo(
     () =>
       resolveShadowDaySchedulingMode(
@@ -241,6 +267,128 @@ export default function OrganizationSettingsEditor({
     [savedAdmissionsSnapshot],
   );
   const currentShadowDayMode = resolveShadowDaySchedulingMode(admissions);
+  const programPortalConfig = useMemo(
+    () => parseProgramParentPortalOrgConfig(admissions),
+    [admissions],
+  );
+  const portalProgramSummary = useMemo(() => {
+    const isolatedIds = new Set(programPortalConfig.isolated_program_ids);
+    const isolatedPrograms = orgPrograms.filter((program) =>
+      isolatedIds.has(program.id),
+    );
+    const coopModePrograms = isolatedPrograms.filter((program) => {
+      const editor = programPortalEditors[program.id];
+      if (editor?.coop_mode) return true;
+      return isProgramParentPortalCoopMode(program.parent_portal_settings);
+    });
+    return {
+      isolatedPrograms,
+      isolatedCount: isolatedPrograms.length,
+      mainCount: orgPrograms.length - isolatedPrograms.length,
+      coopModePrograms,
+    };
+  }, [orgPrograms, programPortalConfig.isolated_program_ids, programPortalEditors]);
+
+  useEffect(() => {
+    if (!programPortalConfig.enabled) {
+      queueMicrotask(() => setOrgPrograms([]));
+      return;
+    }
+
+    let cancelled = false;
+    queueMicrotask(async () => {
+      setOrgProgramsLoading(true);
+      try {
+        const rows = await listProgramsDetailed(supabase, organizationId);
+        if (!cancelled) setOrgPrograms(rows);
+      } catch {
+        if (!cancelled) setOrgPrograms([]);
+      } finally {
+        if (!cancelled) setOrgProgramsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId, programPortalConfig.enabled, supabase]);
+
+  useEffect(() => {
+    if (!programPortalConfig.enabled || orgPrograms.length === 0) {
+      queueMicrotask(() => setProgramPortalEditors({}));
+      return;
+    }
+
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+    queueMicrotask(() => {
+      setProgramPortalEditors((prev) => {
+        const next: Record<string, ProgramParentPortalEditorState> = {};
+        for (const programId of programPortalConfig.isolated_program_ids) {
+          const program = orgPrograms.find((row) => row.id === programId);
+          if (!program) continue;
+          next[programId] =
+            prev[programId] ??
+            expandProgramPortalSettingsForEditor(
+              program.parent_portal_settings,
+              orgParent,
+            );
+        }
+        return next;
+      });
+    });
+  }, [
+    features.parent,
+    orgPrograms,
+    programPortalConfig.enabled,
+    programPortalConfig.isolated_program_ids,
+  ]);
+
+  const programPortalEditorsDirty = useMemo(() => {
+    if (!programPortalConfig.enabled) return false;
+    const governance = { isolationAllowed: true };
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+
+    for (const programId of programPortalConfig.isolated_program_ids) {
+      const program = orgPrograms.find((row) => row.id === programId);
+      const editor = programPortalEditors[programId];
+      if (!program || !editor) continue;
+
+      const savedEditor = expandProgramPortalSettingsForEditor(
+        program.parent_portal_settings,
+        orgParent,
+      );
+      if (
+        !programPortalEditorStatesEqual(
+          editor,
+          savedEditor,
+          features,
+          governance,
+        )
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [features, orgPrograms, programPortalConfig, programPortalEditors]);
+
+  const isDirty = useMemo(
+    () =>
+      serializeSettings(
+        branding,
+        features as unknown as Record<string, unknown>,
+      ) !== savedSnapshot ||
+      JSON.stringify(admissions) !== savedAdmissionsSnapshot ||
+      programPortalEditorsDirty,
+    [
+      admissions,
+      branding,
+      features,
+      programPortalEditorsDirty,
+      savedAdmissionsSnapshot,
+      savedSnapshot,
+    ],
+  );
 
   const brandingGroups = useMemo(() => {
     const groups = new Map<string, typeof BRANDING_FIELDS>();
@@ -383,6 +531,95 @@ export default function OrganizationSettingsEditor({
       return;
     }
 
+    const prevPortalConfig = parseProgramParentPortalOrgConfig(
+      JSON.parse(savedAdmissionsSnapshot),
+    );
+    const nextPortalConfig = parseProgramParentPortalOrgConfig(admissions);
+    const prevIsolatedIds = new Set(
+      prevPortalConfig.enabled ? prevPortalConfig.isolated_program_ids : [],
+    );
+    const nextIsolatedIds = new Set(
+      nextPortalConfig.enabled ? nextPortalConfig.isolated_program_ids : [],
+    );
+    const addedProgramIds = [...nextIsolatedIds].filter(
+      (id) => !prevIsolatedIds.has(id),
+    );
+    const removedProgramIds = [...prevIsolatedIds].filter(
+      (id) => !nextIsolatedIds.has(id),
+    );
+
+    const governance = { isolationAllowed: true };
+    const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+    const portalUpdatePromises: Promise<Program>[] = [];
+
+    for (const programId of removedProgramIds) {
+      portalUpdatePromises.push(
+        updateProgram(supabase, programId, organizationId, {
+          parent_portal_settings: { mode: "inherit" },
+        }),
+      );
+    }
+
+    for (const programId of nextIsolatedIds) {
+      const program = orgPrograms.find((row) => row.id === programId);
+      const editor = programPortalEditors[programId];
+      if (!program || !editor) continue;
+
+      const savedEditor = expandProgramPortalSettingsForEditor(
+        program.parent_portal_settings,
+        orgParent,
+      );
+      const shouldUpdate =
+        addedProgramIds.includes(programId) ||
+        !programPortalEditorStatesEqual(
+          editor,
+          savedEditor,
+          features,
+          governance,
+        );
+
+      if (shouldUpdate) {
+        portalUpdatePromises.push(
+          updateProgram(supabase, programId, organizationId, {
+            parent_portal_settings: deriveProgramPortalSettingsFromEditor(
+              editor,
+              features,
+              governance,
+            ),
+          }),
+        );
+      }
+    }
+
+    if (portalUpdatePromises.length > 0) {
+      try {
+        const updatedPrograms = await Promise.all(portalUpdatePromises);
+        if (programPortalConfig.enabled) {
+          const rows = await listProgramsDetailed(supabase, organizationId);
+          setOrgPrograms(rows);
+          setProgramPortalEditors((prev) => {
+            const next = { ...prev };
+            for (const program of updatedPrograms) {
+              if (nextIsolatedIds.has(program.id)) {
+                next[program.id] = expandProgramPortalSettingsForEditor(
+                  program.parent_portal_settings,
+                  orgParent,
+                );
+              }
+            }
+            return next;
+          });
+        }
+      } catch (syncError) {
+        setError(
+          syncError instanceof Error
+            ? syncError.message
+            : "Settings saved, but program portal sync failed.",
+        );
+        return;
+      }
+    }
+
     setHasRow(true);
     setSavedSnapshot(
       serializeSettings(
@@ -400,6 +637,10 @@ export default function OrganizationSettingsEditor({
     features,
     onSaved,
     organizationId,
+    orgPrograms,
+    programPortalConfig.enabled,
+    programPortalEditors,
+    savedAdmissionsSnapshot,
     savedShadowDayMode,
     supabase,
   ]);
@@ -1209,6 +1450,193 @@ export default function OrganizationSettingsEditor({
             bookings are kept, but the school may need to review grade slots.
           </p>
         ) : null}
+
+        <div className="space-y-3 border-t border-admin-border pt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={programPortalConfig.enabled}
+              onChange={(event) => {
+                setAdmissions((current) => {
+                  const config = parseProgramParentPortalOrgConfig(current);
+                  return {
+                    ...current,
+                    program_parent_portal: {
+                      enabled: event.target.checked,
+                      isolated_program_ids: config.isolated_program_ids,
+                    },
+                  };
+                });
+              }}
+            />
+            <span>
+              <span className="block text-sm font-medium text-admin-text font-secondary">
+                Allow program-scoped parent portals
+              </span>
+              <span className="mt-0.5 block text-xs text-admin-muted font-secondary">
+                Configure allowlisted program portals here. School admins can
+                view portal features but cannot change them.
+              </span>
+            </span>
+          </label>
+
+          {programPortalConfig.enabled ? (
+            <div className="space-y-2 pl-7">
+              <p className="text-xs text-admin-muted font-secondary">
+                Select programs that get a separate parent portal URL.
+              </p>
+              {orgProgramsLoading ? (
+                <p className="text-xs text-admin-muted font-secondary">
+                  Loading programs…
+                </p>
+              ) : orgPrograms.length === 0 ? (
+                <p className="text-xs text-admin-muted font-secondary">
+                  No programs yet for this school.
+                </p>
+              ) : (
+                orgPrograms.map((program) => {
+                  const checked = programPortalConfig.isolated_program_ids.includes(
+                    program.id,
+                  );
+                  const portalEditor = programPortalEditors[program.id];
+                  const portalExpanded = Boolean(expandedProgramPortalIds[program.id]);
+                  return (
+                    <div key={program.id} className="space-y-1">
+                      <label
+                        className="flex cursor-pointer items-center gap-2 text-sm text-admin-text font-secondary"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const orgParent = features.parent ?? DEFAULT_FEATURES.parent;
+                            setAdmissions((current) => {
+                              const config = parseProgramParentPortalOrgConfig(current);
+                              const ids = new Set(config.isolated_program_ids);
+                              if (ids.has(program.id)) {
+                                ids.delete(program.id);
+                                setProgramPortalEditors((prev) => {
+                                  const next = { ...prev };
+                                  delete next[program.id];
+                                  return next;
+                                });
+                                setExpandedProgramPortalIds((prev) => {
+                                  const next = { ...prev };
+                                  delete next[program.id];
+                                  return next;
+                                });
+                              } else {
+                                ids.add(program.id);
+                                setProgramPortalEditors((prev) => ({
+                                  ...prev,
+                                  [program.id]: expandProgramPortalSettingsForEditor(
+                                    buildInitialIsolatedProgramPortalSettings(orgParent),
+                                    orgParent,
+                                  ),
+                                }));
+                                setExpandedProgramPortalIds((prev) => ({
+                                  ...prev,
+                                  [program.id]: true,
+                                }));
+                              }
+                              return {
+                                ...current,
+                                program_parent_portal: {
+                                  enabled: config.enabled,
+                                  isolated_program_ids: [...ids],
+                                },
+                              };
+                            });
+                          }}
+                        />
+                        <span>{program.name}</span>
+                        <span className="text-xs text-admin-muted">
+                          Separate parent portal
+                        </span>
+                      </label>
+                      {checked ? (
+                        <div className="space-y-2 pl-6">
+                          <p className="text-xs text-admin-muted font-secondary">
+                            <code className="rounded bg-black/5 px-1 py-0.5">
+                              /school/{organizationSlug}/parent/p/{program.portal_slug}/...
+                            </code>
+                          </p>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-xs font-medium text-admin-text font-secondary hover:underline"
+                            onClick={() =>
+                              setExpandedProgramPortalIds((prev) => ({
+                                ...prev,
+                                [program.id]: !portalExpanded,
+                              }))
+                            }
+                          >
+                            {portalExpanded ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                            Portal features
+                          </button>
+                          {portalExpanded && portalEditor ? (
+                            <div className="rounded-admin-md border border-admin-border bg-admin-bg p-3">
+                              <ProgramParentPortalSettingsCard
+                                embedded
+                                canEditPortalConfig
+                                C={parentAdminCompat}
+                                theme={parentTheme}
+                                branding={branding}
+                                organizationId={organizationId}
+                                programName={program.name}
+                                orgFeatures={features}
+                                schoolSlug={organizationSlug}
+                                schoolName={organizationName}
+                                portalSlug={program.portal_slug}
+                                editor={portalEditor}
+                                isolationAllowed
+                                programParentPortalEnabled={programPortalConfig.enabled}
+                                documentationHref={`/school/${organizationSlug}/admin/documentation`}
+                                onChange={(next) =>
+                                  setProgramPortalEditors((prev) => ({
+                                    ...prev,
+                                    [program.id]: next,
+                                  }))
+                                }
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+              {orgPrograms.length > 0 ? (
+                <div className="space-y-1 border-t border-admin-border pt-3">
+                  <p className="text-xs font-medium text-admin-text font-secondary">
+                    {portalProgramSummary.isolatedCount} program
+                    {portalProgramSummary.isolatedCount === 1 ? "" : "s"} isolated
+                    {portalProgramSummary.mainCount > 0
+                      ? ` · ${portalProgramSummary.mainCount} on main portal`
+                      : ""}
+                    {portalProgramSummary.coopModePrograms.length > 0
+                      ? ` · Co-op mode on ${portalProgramSummary.coopModePrograms
+                          .map((program) => program.name)
+                          .join(", ")}`
+                      : ""}
+                  </p>
+                  <p className="text-xs text-admin-muted font-secondary">
+                    Isolated portals get their own URL and feature tabs. Calendar
+                    and home show this program&apos;s events only. Messages include
+                    this program&apos;s threads plus the school office. Billing and
+                    feed stay org-wide for now.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <div className="flex flex-wrap items-center gap-3">

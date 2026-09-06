@@ -21,6 +21,7 @@ function buildSummary(
     primaryContactEmail: null,
     programNames: [],
     classroomNames: [],
+    classroomIds: [],
     enrolledAt: "2026-01-01",
     assignedTeachers: [],
     assignedTeacherNames: "",

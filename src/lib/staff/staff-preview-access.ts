@@ -3,6 +3,10 @@ import {
   listAssignedEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
+import {
+  listStaffClassroomsForTeacher,
+  type StaffClassroomOption,
+} from "@/lib/school-admin/classrooms";
 import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
 import { loadTeacherMessagesInbox } from "@/lib/messages/teacher-messages";
 import type { MessagesInboxData } from "@/lib/messages/types";
@@ -189,6 +193,7 @@ export async function getStaffPreviewContext(
 export type TeacherMyStudentsPreviewData = {
   students: AdminEnrolledStudentSummary[];
   staffMemberId: string;
+  staffClassrooms: StaffClassroomOption[];
 };
 
 export async function loadTeacherMyStudentsPreviewData(
@@ -198,11 +203,10 @@ export async function loadTeacherMyStudentsPreviewData(
 ): Promise<TeacherMyStudentsPreviewData> {
   await assertStaffMemberBelongsToOrg(admin, organizationId, staffMemberId);
 
-  const students = await listAssignedEnrolledStudents(
-    admin,
-    organizationId,
-    staffMemberId,
-  );
+  const [students, staffClassrooms] = await Promise.all([
+    listAssignedEnrolledStudents(admin, organizationId, staffMemberId),
+    listStaffClassroomsForTeacher(admin, organizationId, staffMemberId),
+  ]);
 
   const withFlags = await mergeStudentStandingHealthFlags(
     admin,
@@ -210,7 +214,7 @@ export async function loadTeacherMyStudentsPreviewData(
     students,
   );
 
-  return { students: withFlags, staffMemberId };
+  return { students: withFlags, staffMemberId, staffClassrooms };
 }
 
 export async function loadTeacherMessagesPreviewInbox(

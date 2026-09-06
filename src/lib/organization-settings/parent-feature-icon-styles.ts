@@ -5,15 +5,19 @@ export type ParentFeatureIconStyle = {
 
 const PARENT_FEATURE_ICON_STYLES: Record<string, ParentFeatureIconStyle> = {
   home: { iconBg: "bg-indigo-100", iconColor: "text-indigo-600" },
+  "layout-dashboard": { iconBg: "bg-indigo-100", iconColor: "text-indigo-600" },
   "credit-card": { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
   "dollar-sign": { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
+  wallet: { iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
   "message-square": { iconBg: "bg-blue-100", iconColor: "text-blue-600" },
   "calendar-days": { iconBg: "bg-violet-100", iconColor: "text-violet-600" },
   "clipboard-list": { iconBg: "bg-amber-100", iconColor: "text-amber-600" },
+  clock: { iconBg: "bg-orange-100", iconColor: "text-orange-600" },
   megaphone: { iconBg: "bg-sky-100", iconColor: "text-sky-600" },
   users: { iconBg: "bg-rose-100", iconColor: "text-rose-600" },
   heart: { iconBg: "bg-pink-100", iconColor: "text-pink-600" },
   "heart-pulse": { iconBg: "bg-red-100", iconColor: "text-red-600" },
+  "file-text": { iconBg: "bg-slate-100", iconColor: "text-slate-600" },
   puzzle: { iconBg: "bg-gray-100", iconColor: "text-gray-500" },
 };
 

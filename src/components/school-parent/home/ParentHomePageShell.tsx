@@ -8,6 +8,7 @@ import type { ParentQuickAction } from "@/lib/organization-settings/parent-home"
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import type { BulletinPost } from "@/lib/school-bulletin/types";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import { ParentHomePageContext } from "./parent-home-page-context";
 
@@ -23,6 +24,12 @@ type ParentHomePageShellProps = {
   initialSignupAttentionItems?: ParentSignupAttentionItem[];
   previewMode?: boolean;
   previewBasePath?: string;
+  programPortalLabel?: string;
+  programId?: string;
+  schoolName?: string;
+  coopModeEnabled?: boolean;
+  bulletinEnabled?: boolean;
+  bulletinPosts?: BulletinPost[];
   children?: React.ReactNode;
 };
 
@@ -38,6 +45,12 @@ export default function ParentHomePageShell({
   initialSignupAttentionItems = [],
   previewMode = false,
   previewBasePath,
+  programPortalLabel,
+  programId,
+  schoolName,
+  coopModeEnabled = false,
+  bulletinEnabled = false,
+  bulletinPosts = [],
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
@@ -70,6 +83,13 @@ export default function ParentHomePageShell({
         classroomSignupAttentionItems={initialSignupAttentionItems}
         previewMode={previewMode}
         previewBasePath={previewBasePath}
+        programPortalLabel={programPortalLabel}
+        programId={programId}
+        schoolName={schoolName}
+        coopModeEnabled={coopModeEnabled}
+        coopFamilies={homeContent?.coopFamilies ?? []}
+        bulletinEnabled={bulletinEnabled}
+        bulletinPosts={bulletinPosts}
       />
       {children}
     </ParentHomePageContext.Provider>

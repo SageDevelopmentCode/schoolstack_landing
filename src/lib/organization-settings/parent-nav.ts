@@ -38,7 +38,11 @@ const CATALOG_PAGE_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 const PRIMARY_NAV_COUNT = 7;
-const PARENT_MORE_NAV_KEYS = new Set(["attendance", "enrollment_checklist"]);
+const PARENT_MORE_NAV_KEYS = new Set([
+  "attendance",
+  "enrollment_checklist",
+  "classroom_signups",
+]);
 
 function toParentFeatureRecord(
   parentFeatures: ParentFeatures,
@@ -160,8 +164,14 @@ export function getFirstParentNavPath(
   slug: string,
   parentFeatures: ParentFeatures,
   portalNav?: PortalFeatureNav,
+  parentBasePath?: string,
 ): ParentNavPath | null {
-  const items = buildParentNavItems(slug, parentFeatures, portalNav);
+  const items = buildParentNavItems(
+    slug,
+    parentFeatures,
+    portalNav,
+    parentBasePath,
+  );
   if (items.length === 0) return null;
 
   const item = items[0];
