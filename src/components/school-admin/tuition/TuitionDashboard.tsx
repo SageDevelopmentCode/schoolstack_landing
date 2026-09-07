@@ -15,6 +15,7 @@ import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAss
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
 import TuitionKpiBreakdownPanel from "@/components/school-admin/tuition/TuitionKpiBreakdownPanel";
 import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/TuitionOutstandingPeriodSelect";
+import TuitionPaymentHistoryPanel from "@/components/school-admin/tuition/TuitionPaymentHistoryPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
@@ -99,11 +100,8 @@ function TuitionOutstandingMetricCard({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="View outstanding breakdown"
-      className="relative cursor-pointer overflow-hidden rounded-[15px] border bg-white p-[15px] text-left transition-transform hover:-translate-y-px"
+    <div
+      className="relative overflow-hidden rounded-[15px] border bg-white p-[15px] text-left transition-transform hover:-translate-y-px"
       style={{ borderColor: "#E0E7E0" }}
     >
       <span
@@ -111,20 +109,23 @@ function TuitionOutstandingMetricCard({
         style={{ backgroundColor: "#8ABAC6" }}
         aria-hidden
       />
-      <b
-        className="mb-0.5 block font-heading text-2xl font-semibold"
-        style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label="View outstanding breakdown"
+        className="block w-full cursor-pointer text-left"
       >
-        {value}
-      </b>
-      <span className="text-[11px]" style={{ color: theme.muted }}>
-        Outstanding
-      </span>
-      <div
-        className="mt-2"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
-      >
+        <b
+          className="mb-0.5 block font-heading text-2xl font-semibold"
+          style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+        >
+          {value}
+        </b>
+        <span className="text-[11px]" style={{ color: theme.muted }}>
+          Outstanding
+        </span>
+      </button>
+      <div className="mt-2">
         <TuitionOutstandingPeriodSelect
           value={outstandingPeriod}
           onChange={onOutstandingPeriodChange}
@@ -132,7 +133,7 @@ function TuitionOutstandingMetricCard({
           C={C}
         />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -452,6 +453,17 @@ export default function TuitionDashboard({
                   organizationId={organizationId}
                   branding={branding}
                   onRefresh={() => void loadData()}
+                />
+              ) : null}
+
+              {tab === "payment_history" ? (
+                <TuitionPaymentHistoryPanel
+                  organizationId={organizationId}
+                  onOpenFamily={(familyId) => {
+                    setFocusFamilyId(familyId);
+                    setTab("families");
+                    setFamiliesReloadToken((value) => value + 1);
+                  }}
                 />
               ) : null}
             </motion.div>

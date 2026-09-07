@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AdminActivityFeed from "@/components/school-admin/ui/story/AdminActivityFeed";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminFeatureAnnouncementsCard from "@/components/school-admin/ui/story/AdminFeatureAnnouncementsCard";
 import AdminFocusQueue from "@/components/school-admin/ui/story/AdminFocusQueue";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import AdminQuickActionsCard from "@/components/school-admin/ui/story/AdminQuickActionsCard";
@@ -11,6 +12,7 @@ import AdminSignalCard from "@/components/school-admin/ui/story/AdminSignalCard"
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import type { AdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import { schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
 import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 
@@ -124,6 +126,16 @@ export default function AdminDashboardContent({
               accent={metric.accent}
             />
           ))}
+        </div>
+      ) : null}
+
+      {summary.featureAnnouncements.length > 0 ? (
+        <div className="mb-[19px]">
+          <AdminFeatureAnnouncementsCard
+            theme={theme}
+            announcements={summary.featureAnnouncements}
+            buildLogHref={schoolMudKitchenPortalPath(slug, "build-log")}
+          />
         </div>
       ) : null}
 

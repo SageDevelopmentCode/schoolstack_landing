@@ -3,7 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Save, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  CalendarDays,
+  ClipboardList,
+  Globe,
+  Loader2,
+  Package,
+  Save,
+  Trash2,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import SchoolAdminDatePicker, {
@@ -46,6 +57,7 @@ import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
+import ProgramCoopPlaceholderCard from "./ProgramCoopPlaceholderCard";
 import { createClient } from "@/utils/supabase/client";
 import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
@@ -66,7 +78,21 @@ type ProgramsPageProps = {
   programParentPortalConfig: ProgramParentPortalOrgConfig;
 };
 
-type ProgramEditorTab = "details" | "portal" | "curriculum";
+type ProgramEditorTab =
+  | "details"
+  | "portal"
+  | "curriculum"
+  | "supply_list"
+  | "teaching_schedule"
+  | "families";
+
+type CoopProgramEditorTab = Exclude<ProgramEditorTab, "details" | "portal">;
+
+type ProgramEditorTabConfig = {
+  id: ProgramEditorTab;
+  label: string;
+  icon: LucideIcon;
+};
 
 type EditableProgramState = {
   name: string;
@@ -79,15 +105,25 @@ type EditableProgramState = {
   parentPortalEditor: ProgramParentPortalEditorState;
 };
 
-const BASE_PROGRAM_EDITOR_TABS = [
-  { id: "details" as const, label: "Program details" },
-  { id: "portal" as const, label: "Portal configuration" },
+const BASE_PROGRAM_EDITOR_TABS: ReadonlyArray<ProgramEditorTabConfig> = [
+  { id: "details", label: "Program details", icon: ClipboardList },
+  { id: "portal", label: "Portal configuration", icon: Globe },
 ];
 
-const COOP_CURRICULUM_TAB = {
-  id: "curriculum" as const,
-  label: "Co-op curriculum",
-};
+const COOP_MODE_EDITOR_TABS: ReadonlyArray<ProgramEditorTabConfig & { id: CoopProgramEditorTab }> = [
+  { id: "curriculum", label: "Co-op curriculum", icon: BookOpen },
+  { id: "supply_list", label: "Supply list", icon: Package },
+  { id: "teaching_schedule", label: "Teaching schedule", icon: CalendarDays },
+  { id: "families", label: "Families", icon: Users },
+];
+
+const COOP_ONLY_TAB_IDS = new Set<CoopProgramEditorTab>(
+  COOP_MODE_EDITOR_TABS.map((tab) => tab.id),
+);
+
+function isCoopOnlyTab(tab: ProgramEditorTab): tab is CoopProgramEditorTab {
+  return COOP_ONLY_TAB_IDS.has(tab as CoopProgramEditorTab);
+}
 
 function toEditableState(
   program: Program,
@@ -162,11 +198,11 @@ export default function ProgramsPage({
     ? isProgramParentPortalCoopMode(selectedProgram.parent_portal_settings)
     : false;
   const visibleEditorTab =
-    activeEditorTab === "curriculum" && !coopModeEnabled ? "portal" : activeEditorTab;
+    isCoopOnlyTab(activeEditorTab) && !coopModeEnabled ? "portal" : activeEditorTab;
   const programEditorTabs = useMemo(() => {
     if (!selectedProgram || isNew) return BASE_PROGRAM_EDITOR_TABS;
     return coopModeEnabled
-      ? [...BASE_PROGRAM_EDITOR_TABS, COOP_CURRICULUM_TAB]
+      ? [...BASE_PROGRAM_EDITOR_TABS, ...COOP_MODE_EDITOR_TABS]
       : BASE_PROGRAM_EDITOR_TABS;
   }, [selectedProgram, isNew, coopModeEnabled]);
   const portalGovernance = useMemo(
@@ -628,7 +664,7 @@ export default function ProgramsPage({
                         )
                       }
                     />
-                  ) : selectedProgram ? (
+                  ) : visibleEditorTab === "curriculum" && selectedProgram ? (
                     <>
                       <BuilderSectionIntro
                         C={C}
@@ -644,6 +680,54 @@ export default function ProgramsPage({
                         organizationId={organizationId}
                         programId={selectedProgram.id}
                         coopModeEnabled={coopModeEnabled}
+                      />
+                    </>
+                  ) : visibleEditorTab === "supply_list" && selectedProgram ? (
+                    <>
+                      <BuilderSectionIntro
+                        C={C}
+                        theme={theme}
+                        eyebrow="Co-op supply list"
+                        title="Supply list"
+                        subtitle="Manage the supply list families need for this co-op program."
+                      />
+                      <ProgramCoopPlaceholderCard
+                        C={C}
+                        question="Supply list"
+                        helper="Coming soon."
+                        message="Supply list management is coming soon."
+                      />
+                    </>
+                  ) : visibleEditorTab === "teaching_schedule" && selectedProgram ? (
+                    <>
+                      <BuilderSectionIntro
+                        C={C}
+                        theme={theme}
+                        eyebrow="Co-op teaching schedule"
+                        title="Teaching schedule"
+                        subtitle="Manage the teaching schedule for this co-op program."
+                      />
+                      <ProgramCoopPlaceholderCard
+                        C={C}
+                        question="Teaching schedule"
+                        helper="Coming soon."
+                        message="Teaching schedule management is coming soon."
+                      />
+                    </>
+                  ) : visibleEditorTab === "families" && selectedProgram ? (
+                    <>
+                      <BuilderSectionIntro
+                        C={C}
+                        theme={theme}
+                        eyebrow="Co-op families"
+                        title="Families"
+                        subtitle="Manage enrolled families in this co-op program."
+                      />
+                      <ProgramCoopPlaceholderCard
+                        C={C}
+                        question="Families"
+                        helper="Coming soon."
+                        message="Co-op family management is coming soon."
                       />
                     </>
                   ) : null}

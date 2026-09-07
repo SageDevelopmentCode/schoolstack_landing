@@ -1,10 +1,12 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type TuitionSubTab<T extends string> = {
   id: T;
   label: string;
+  icon?: LucideIcon;
 };
 
 type TuitionSubTabBarProps<T extends string> = {
@@ -35,6 +37,7 @@ export default function TuitionSubTabBar<T extends string>({
           const isActive = activeTab === tab.id;
           const tabId = `${testIdPrefix}-tab-${tab.id}`;
           const panelId = `${testIdPrefix}-panel-${tab.id}`;
+          const Icon = tab.icon;
 
           return (
             <button
@@ -45,13 +48,14 @@ export default function TuitionSubTabBar<T extends string>({
               aria-selected={isActive}
               aria-controls={panelId}
               onClick={() => onTabChange(tab.id)}
-              className="shrink-0 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-[9px] py-[11px] text-[11px] font-bold transition-colors"
               style={{
                 borderBottomColor: isActive ? theme.primary : "transparent",
                 color: isActive ? theme.primary : "#77858A",
               }}
               data-testid={tabId}
             >
+              {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
               {tab.label}
             </button>
           );

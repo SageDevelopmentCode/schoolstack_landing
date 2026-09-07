@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { SchoolAdminActivityNotification } from "@/lib/school-admin/activity-notifications";
@@ -12,6 +13,61 @@ type AdminActivityFeedProps = {
   items: SchoolAdminActivityNotification[];
   onViewAll?: () => void;
 };
+
+const DOLLAR_AMOUNT_PATTERN = /(\$[\d,]+(?:\.\d{2})?)/g;
+
+function renderEmphasizedText(text: string) {
+  const parts = text.split(DOLLAR_AMOUNT_PATTERN);
+  return parts.map((part, index) =>
+    part.startsWith("$") ? (
+      <span key={index} className="font-semibold">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+function ActivityFeedDetailText({
+  detail,
+  subjectLabel,
+  guardianLabel,
+  className,
+  style,
+}: {
+  detail: string;
+  subjectLabel: string | null;
+  guardianLabel: string | null;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  if (guardianLabel && detail.startsWith(guardianLabel)) {
+    const remainder = detail.slice(guardianLabel.length);
+    return (
+      <span className={className} style={style}>
+        <span className="font-semibold">{guardianLabel}</span>
+        {renderEmphasizedText(remainder)}
+      </span>
+    );
+  }
+
+  if (subjectLabel && detail.startsWith(subjectLabel)) {
+    const remainder = detail.slice(subjectLabel.length);
+    return (
+      <span className={className} style={style}>
+        <span className="font-semibold">{subjectLabel}</span>
+        {renderEmphasizedText(remainder)}
+      </span>
+    );
+  }
+
+  return (
+    <span className={className} style={style}>
+      {renderEmphasizedText(detail)}
+    </span>
+  );
+}
 
 export default function AdminActivityFeed({
   theme,
@@ -56,12 +112,28 @@ export default function AdminActivityFeed({
                 {activityCategoryLabel(item.category)}
               </AdminChip>
               <div className="min-w-0">
-                <b className="block text-xs" style={{ color: theme.ink }}>
-                  {item.title}
-                </b>
-                <span className="text-[11px]" style={{ color: theme.muted }}>
-                  {item.summary}
-                </span>
+                {item.category === "payments" ? (
+                  <ActivityFeedDetailText
+                    detail={item.detail}
+                    subjectLabel={item.subjectLabel}
+                    guardianLabel={item.guardianLabel}
+                    className="block truncate text-xs font-normal leading-snug"
+                    style={{ color: theme.ink }}
+                  />
+                ) : (
+                  <>
+                    <b className="block text-xs" style={{ color: theme.ink }}>
+                      {item.title}
+                    </b>
+                    <ActivityFeedDetailText
+                      detail={item.detail}
+                      subjectLabel={item.subjectLabel}
+                      guardianLabel={item.guardianLabel}
+                      className="block truncate text-[11px] leading-snug"
+                      style={{ color: theme.muted }}
+                    />
+                  </>
+                )}
               </div>
               <Link
                 href={item.href}

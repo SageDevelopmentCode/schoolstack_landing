@@ -33,6 +33,21 @@ export default function AdminDashboardContentSkeleton() {
         <SchoolAdminSummaryCardsSkeleton C={C} count={4} />
       </AdminCard>
 
+      <AdminCard theme={theme} padding="canvas" className="mb-[19px]">
+        <SkeletonBlock C={C} className="mb-3 h-3 w-24" />
+        <SkeletonBlock C={C} className="mb-4 h-6 w-40" />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="rounded-[14px] border border-[#E9EFEA] p-4">
+              <SkeletonBlock C={C} className="mb-2 h-2.5 w-24" />
+              <SkeletonBlock C={C} className="mb-2 h-4 w-3/4" />
+              <SkeletonBlock C={C} className="mb-4 h-10 w-full" />
+              <SkeletonBlock C={C} className="h-9 w-24 rounded-[10px]" />
+            </div>
+          ))}
+        </div>
+      </AdminCard>
+
       <div className="grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
         <AdminCard theme={theme} padding="canvas">
           <SkeletonBlock C={C} className="mb-3 h-3 w-28" />

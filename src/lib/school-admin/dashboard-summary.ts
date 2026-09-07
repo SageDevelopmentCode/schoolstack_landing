@@ -23,6 +23,10 @@ import {
   fetchLatestSubmittedApplication,
 } from "@/lib/school-admin/dashboard-metrics";
 import { getCachedAdminMessagesUnreadCount } from "@/lib/school-admin/cached-admin-unread-counts";
+import {
+  getAdminFeatureAnnouncements,
+  type ResolvedAdminFeatureAnnouncement,
+} from "@/lib/school-admin/admin-feature-announcements";
 import { formatCents } from "@/lib/tuition/pricing";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
 
@@ -62,6 +66,7 @@ export type AdminDashboardSummary = {
   metrics: DashboardMetric[];
   recentActivity: SchoolAdminActivityNotification[];
   quickActions: DashboardQuickAction[];
+  featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
 };
@@ -278,6 +283,7 @@ export async function fetchAdminDashboardSummary(
     metrics: metrics.filter((metric) => metric.enabled),
     recentActivity: activityPage.notifications,
     quickActions,
+    featureAnnouncements: getAdminFeatureAnnouncements(slug, features),
     messagesUnreadCount: resolvedMessagesUnreadCount,
     setupComplete,
   };
