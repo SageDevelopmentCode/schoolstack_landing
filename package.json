@@ -59,6 +59,7 @@
     "lucide-react": "^1.8.0",
     "next": "16.2.4",
     "nodemailer": "^8.0.11",
+    "pdfjs-dist": "^6.3.289",
     "plyr": "^3.8.4",
     "plyr-react": "^6.0.0",
     "react": "19.2.4",

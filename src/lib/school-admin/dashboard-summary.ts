@@ -47,12 +47,21 @@ export type DashboardMetric = {
   enabled: boolean;
 };
 
-export type DashboardQuickAction = {
-  id: string;
-  title: string;
-  subtitle: string;
-  href: string;
-};
+export type DashboardQuickAction =
+  | {
+      id: string;
+      title: string;
+      subtitle: string;
+      kind: "link";
+      href: string;
+    }
+  | {
+      id: string;
+      title: string;
+      subtitle: string;
+      kind: "copy-apply-link";
+      applyFormPublicPath: string;
+    };
 
 export type AdminDashboardSummary = {
   setupStatus: AdmissionsSetupStatus;
@@ -256,22 +265,33 @@ export async function fetchAdminDashboardSummary(
       id: "submissions",
       title: "Review submissions",
       subtitle: "See every family application in one place.",
+      kind: "link",
       href: schoolAdminPath(slug, "admissions", "submissions"),
     });
     if (setupStatus.applyFormPublicPath) {
       quickActions.push({
-        id: "share-apply",
-        title: "Share public application",
-        subtitle: "Copy the family-facing application link.",
-        href: schoolAdminPath(slug, "admissions", "flows"),
+        id: "copy-apply-link",
+        title: "Copy application link",
+        subtitle:
+          "Same link for every family — parents choose their program inside the application.",
+        kind: "copy-apply-link",
+        applyFormPublicPath: setupStatus.applyFormPublicPath,
       });
     }
+    quickActions.push({
+      id: "edit-apply-form",
+      title: "Edit application form",
+      subtitle: "Update questions, fees, and publish settings.",
+      kind: "link",
+      href: `${schoolAdminPath(slug, "admissions", "flows")}?flow=apply`,
+    });
   }
   if (features.messages) {
     quickActions.push({
       id: "messages",
       title: "Send school update",
       subtitle: "Write to one family or a group.",
+      kind: "link",
       href: schoolAdminPath(slug, "messages"),
     });
   }

@@ -33,6 +33,20 @@ export default function AdminDashboardContentSkeleton() {
         <SchoolAdminSummaryCardsSkeleton C={C} count={4} />
       </AdminCard>
 
+      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
+        <AdminCard theme={theme} padding="canvas">
+          <SkeletonBlock C={C} className="mb-3 h-3 w-28" />
+          <SkeletonBlock C={C} className="mb-2 h-10 w-full" />
+          <SkeletonBlock C={C} className="mb-2 h-10 w-full" />
+          <SkeletonBlock C={C} className="h-10 w-full" />
+        </AdminCard>
+        <AdminCard theme={theme} padding="canvas">
+          <SkeletonBlock C={C} className="mb-3 h-3 w-28" />
+          <SkeletonBlock C={C} className="mb-2 h-12 w-full" />
+          <SkeletonBlock C={C} className="h-12 w-full" />
+        </AdminCard>
+      </div>
+
       <AdminCard theme={theme} padding="canvas" className="mb-[19px]">
         <SkeletonBlock C={C} className="mb-3 h-3 w-24" />
         <SkeletonBlock C={C} className="mb-4 h-6 w-40" />
@@ -48,19 +62,15 @@ export default function AdminDashboardContentSkeleton() {
         </div>
       </AdminCard>
 
-      <div className="grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
-        <AdminCard theme={theme} padding="canvas">
-          <SkeletonBlock C={C} className="mb-3 h-3 w-28" />
-          <SkeletonBlock C={C} className="mb-2 h-10 w-full" />
-          <SkeletonBlock C={C} className="mb-2 h-10 w-full" />
-          <SkeletonBlock C={C} className="h-10 w-full" />
-        </AdminCard>
-        <AdminCard theme={theme} padding="canvas">
-          <SkeletonBlock C={C} className="mb-3 h-3 w-28" />
-          <SkeletonBlock C={C} className="mb-2 h-12 w-full" />
-          <SkeletonBlock C={C} className="h-12 w-full" />
-        </AdminCard>
-      </div>
+      <AdminCard theme={theme} padding="canvas">
+        <SkeletonBlock C={C} className="mb-3 h-3 w-24" />
+        <SkeletonBlock C={C} className="mb-4 h-6 w-40" />
+        <SkeletonBlock C={C} className="mb-2 h-2.5 w-20" />
+        <SkeletonBlock C={C} className="mb-2 h-9 w-full" />
+        <SkeletonBlock C={C} className="mb-2 h-9 w-full" />
+        <SkeletonBlock C={C} className="mb-2 h-9 w-4/5" />
+        <SkeletonBlock C={C} className="mt-4 h-3 w-36" />
+      </AdminCard>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AdminDocumentationGuidePanel from "@/components/school-admin/AdminDocumentationGuidePanel";
 import AdminActivityFeed from "@/components/school-admin/ui/story/AdminActivityFeed";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminDashboardHowToGuidesCard from "@/components/school-admin/ui/story/AdminDashboardHowToGuidesCard";
 import AdminFeatureAnnouncementsCard from "@/components/school-admin/ui/story/AdminFeatureAnnouncementsCard";
 import AdminFocusQueue from "@/components/school-admin/ui/story/AdminFocusQueue";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
@@ -12,25 +14,51 @@ import AdminSignalCard from "@/components/school-admin/ui/story/AdminSignalCard"
 import DetailPanelProgressBar from "@/components/school-admin/admissions/DetailPanelProgressBar";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import type { AdminDashboardSummary } from "@/lib/school-admin/dashboard-summary";
+import {
+  buildAdminDocumentationGuides,
+  groupAdminDocumentationByCategory,
+  type AdminDocGuide,
+} from "@/lib/school-admin/admin-documentation";
 import { schoolMudKitchenPortalPath } from "@/lib/organization-settings/admin-routes";
+import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { useAdminNotificationsPanel } from "@/lib/school-admin/admin-notifications-panel-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
 
 type AdminDashboardContentProps = {
   organizationId: string;
   slug: string;
+  features: OrganizationFeatures;
   initialSummary: AdminDashboardSummary;
 };
 
 export default function AdminDashboardContent({
   organizationId,
   slug,
+  features,
   initialSummary,
 }: AdminDashboardContentProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const { openNotifications } = useAdminNotificationsPanel();
   const [summary, setSummary] = useState(initialSummary);
   const [prevInitialSummary, setPrevInitialSummary] = useState(initialSummary);
+  const [activeGuide, setActiveGuide] = useState<AdminDocGuide | null>(null);
+
+  const howToGuides = useMemo(
+    () => buildAdminDocumentationGuides(slug, features),
+    [slug, features],
+  );
+  const groupedHowToGuides = useMemo(
+    () => groupAdminDocumentationByCategory(howToGuides),
+    [howToGuides],
+  );
+
+  const openGuide = useCallback((guide: AdminDocGuide) => {
+    setActiveGuide(guide);
+  }, []);
+
+  const closeGuide = useCallback(() => {
+    setActiveGuide(null);
+  }, []);
 
   if (initialSummary !== prevInitialSummary) {
     setPrevInitialSummary(initialSummary);
@@ -74,6 +102,19 @@ export default function AdminDashboardContent({
     60_000,
     stripeStep?.status === "in_progress",
   );
+
+  useEffect(() => {
+    if (!activeGuide) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeGuide();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeGuide, closeGuide]);
 
   return (
     <>
@@ -129,17 +170,7 @@ export default function AdminDashboardContent({
         </div>
       ) : null}
 
-      {summary.featureAnnouncements.length > 0 ? (
-        <div className="mb-[19px]">
-          <AdminFeatureAnnouncementsCard
-            theme={theme}
-            announcements={summary.featureAnnouncements}
-            buildLogHref={schoolMudKitchenPortalPath(slug, "build-log")}
-          />
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
+      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
         <AdminCard theme={theme} padding="none">
           <AdminActivityFeed
             theme={theme}
@@ -151,6 +182,32 @@ export default function AdminDashboardContent({
           <AdminQuickActionsCard theme={theme} actions={summary.quickActions} />
         </AdminCard>
       </div>
+
+      {summary.featureAnnouncements.length > 0 ? (
+        <div className="mb-[19px]">
+          <AdminFeatureAnnouncementsCard
+            theme={theme}
+            announcements={summary.featureAnnouncements}
+            buildLogHref={schoolMudKitchenPortalPath(slug, "build-log")}
+          />
+        </div>
+      ) : null}
+
+      {howToGuides.length > 0 ? (
+        <AdminDashboardHowToGuidesCard
+          theme={theme}
+          slug={slug}
+          groupedGuides={groupedHowToGuides}
+          onOpenGuide={openGuide}
+        />
+      ) : null}
+
+      <AdminDocumentationGuidePanel
+        C={C}
+        guide={activeGuide}
+        open={activeGuide != null}
+        onClose={closeGuide}
+      />
     </>
   );
 }
