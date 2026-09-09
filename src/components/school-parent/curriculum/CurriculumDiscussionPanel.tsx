@@ -14,9 +14,11 @@ import { createClient } from "@/utils/supabase/client";
 type CurriculumDiscussionPanelProps = {
   organizationId: string;
   programId: string;
+  curriculumId?: string | null;
   initialMessages: ProgramCoopCurriculumDiscussionMessage[];
   currentGuardianId?: string | null;
   previewMode?: boolean;
+  embedded?: boolean;
 };
 
 type DiscussionDayGroup = {
@@ -80,9 +82,11 @@ function familySubtitleForMessage(
 export default function CurriculumDiscussionPanel({
   organizationId,
   programId,
+  curriculumId = null,
   initialMessages,
   currentGuardianId = null,
   previewMode = false,
+  embedded = false,
 }: CurriculumDiscussionPanelProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const [messages, setMessages] = useState(initialMessages);
@@ -105,6 +109,11 @@ export default function CurriculumDiscussionPanel({
     setLoading(true);
     try {
       const params = new URLSearchParams({ organizationId, programId });
+      if (curriculumId) {
+        params.set("curriculumId", curriculumId);
+      } else {
+        params.set("curriculumId", "general");
+      }
       const response = await fetch(`/api/parent-portal/curriculum-discussion?${params}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -117,7 +126,12 @@ export default function CurriculumDiscussionPanel({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, programId]);
+  }, [curriculumId, organizationId, programId]);
+
+  useEffect(() => {
+    if (initialMessages.length > 0) return;
+    void refreshMessages();
+  }, [initialMessages.length, refreshMessages]);
 
   useEffect(() => {
     if (!organizationId || !programId || previewMode) return undefined;
@@ -142,7 +156,7 @@ export default function CurriculumDiscussionPanel({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [organizationId, previewMode, programId, refreshMessages]);
+  }, [curriculumId, organizationId, previewMode, programId, refreshMessages]);
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -163,6 +177,7 @@ export default function CurriculumDiscussionPanel({
         body: JSON.stringify({
           organizationId,
           programId,
+          curriculumId,
           body: trimmed,
         }),
       });
@@ -171,7 +186,12 @@ export default function CurriculumDiscussionPanel({
         throw new Error(data.error ?? "Failed to send message.");
       }
       if (data.message) {
-        setMessages((current) => mergeDiscussionMessages(current, [data.message]));
+        const posted = data.message as ProgramCoopCurriculumDiscussionMessage;
+        const matchesThread =
+          (curriculumId ?? null) === (posted.curriculumId ?? null);
+        if (matchesThread) {
+          setMessages((current) => mergeDiscussionMessages(current, [posted]));
+        }
       }
       setText("");
     } catch (err) {
@@ -183,27 +203,31 @@ export default function CurriculumDiscussionPanel({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[14px] border"
-      style={{ borderColor: theme.line }}
+      className={`flex h-full min-h-0 flex-col overflow-hidden ${
+        embedded ? "" : "rounded-[14px] border"
+      }`}
+      style={embedded ? undefined : { borderColor: theme.line }}
       data-testid="curriculum-discussion-panel"
     >
-      <div
-        className="shrink-0 border-b px-3 py-2"
-        style={{
-          borderColor: theme.line,
-          backgroundColor: theme.paper,
-        }}
-      >
-        <p
-          className="text-sm font-semibold"
-          style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+      {embedded ? null : (
+        <div
+          className="shrink-0 border-b px-3 py-2"
+          style={{
+            borderColor: theme.line,
+            backgroundColor: theme.paper,
+          }}
         >
-          Co-op discussion
-        </p>
-        <p className="truncate text-xs" style={{ color: theme.muted }}>
-          Chat with other families in your co-op
-        </p>
-      </div>
+          <p
+            className="text-sm font-semibold"
+            style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+          >
+            Co-op discussion
+          </p>
+          <p className="truncate text-xs" style={{ color: theme.muted }}>
+            Chat with other families in your co-op
+          </p>
+        </div>
+      )}
 
       <div
         ref={scrollRef}

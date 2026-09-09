@@ -65,6 +65,18 @@ export function resolveProgramParentFeatures(
   return result as ParentFeatures;
 }
 
+export function resolveMainParentOrganizationFeatures(
+  orgFeatures: OrganizationFeatures,
+): OrganizationFeatures {
+  return {
+    ...orgFeatures,
+    parent: {
+      ...(orgFeatures.parent ?? DEFAULT_FEATURES.parent),
+      curriculum: false,
+    },
+  };
+}
+
 export function resolveProgramOrganizationFeatures(
   orgFeatures: OrganizationFeatures,
   programSettings: ProgramParentPortalSettings,

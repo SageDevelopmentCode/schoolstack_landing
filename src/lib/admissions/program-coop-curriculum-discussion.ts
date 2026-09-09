@@ -6,6 +6,7 @@ export type ProgramCoopCurriculumDiscussionMessageRecord = {
   id: string;
   organizationId: string;
   programId: string;
+  curriculumId: string | null;
   senderGuardianId: string;
   body: string;
   pageNumber: number | null;
@@ -27,11 +28,15 @@ type DiscussionMessageRow = {
   id: string;
   organization_id: string;
   program_id: string;
+  curriculum_id: string | null;
   sender_guardian_id: string;
   body: string;
   page_number: number | null;
   created_at: string;
 };
+
+const DISCUSSION_MESSAGE_SELECT =
+  "id, organization_id, program_id, curriculum_id, sender_guardian_id, body, page_number, created_at";
 
 type GuardianRow = {
   id: string;
@@ -143,6 +148,7 @@ function mapDiscussionMessageRecord(
     id: row.id,
     organizationId: row.organization_id,
     programId: row.program_id,
+    curriculumId: row.curriculum_id,
     senderGuardianId: row.sender_guardian_id,
     body: row.body,
     pageNumber: row.page_number,
@@ -262,24 +268,57 @@ async function enrichDiscussionMessagesWithSenderDisplay(
   });
 }
 
+function normalizeDiscussionCurriculumId(
+  curriculumId?: string | null,
+): string | null {
+  const trimmed = curriculumId?.trim() ?? "";
+  if (!trimmed || trimmed.toLowerCase() === "general") return null;
+  return trimmed;
+}
+
+async function curriculumBelongsToProgram(
+  admin: SupabaseClient,
+  input: { curriculumId: string; programId: string },
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("program_coop_curriculum")
+    .select("id")
+    .eq("id", input.curriculumId)
+    .eq("program_id", input.programId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Boolean(data?.id);
+}
+
 export async function listProgramCoopCurriculumDiscussionMessages(
   admin: SupabaseClient,
-  input: { organizationId: string; programId: string },
+  input: {
+    organizationId: string;
+    programId: string;
+    curriculumId?: string | null;
+  },
 ): Promise<ProgramCoopCurriculumDiscussionMessage[]> {
   const organizationId = input.organizationId.trim();
   const programId = input.programId.trim();
+  const curriculumId = normalizeDiscussionCurriculumId(input.curriculumId);
   if (!organizationId || !programId) {
     throw new Error("organizationId and programId are required.");
   }
 
-  const { data, error } = await admin
+  let query = admin
     .from("program_coop_curriculum_discussion_messages")
-    .select(
-      "id, organization_id, program_id, sender_guardian_id, body, page_number, created_at",
-    )
+    .select(DISCUSSION_MESSAGE_SELECT)
     .eq("organization_id", organizationId)
-    .eq("program_id", programId)
-    .order("created_at", { ascending: true });
+    .eq("program_id", programId);
+
+  if (curriculumId) {
+    query = query.eq("curriculum_id", curriculumId);
+  } else {
+    query = query.is("curriculum_id", null);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
 
@@ -329,12 +368,14 @@ export async function postProgramCoopCurriculumDiscussionMessage(
     programId: string;
     senderGuardianId: string;
     body: string;
+    curriculumId?: string | null;
     pageNumber?: number | null;
   },
 ): Promise<ProgramCoopCurriculumDiscussionMessage> {
   const organizationId = input.organizationId.trim();
   const programId = input.programId.trim();
   const senderGuardianId = input.senderGuardianId.trim();
+  const curriculumId = normalizeDiscussionCurriculumId(input.curriculumId);
   const bodyError = validateProgramCoopCurriculumDiscussionBody(input.body);
   if (bodyError) {
     throw new Error(bodyError);
@@ -353,6 +394,16 @@ export async function postProgramCoopCurriculumDiscussionMessage(
     throw new Error("You must be enrolled in this co-op to post.");
   }
 
+  if (curriculumId) {
+    const belongs = await curriculumBelongsToProgram(admin, {
+      curriculumId,
+      programId,
+    });
+    if (!belongs) {
+      throw new Error("Curriculum guide not found for this program.");
+    }
+  }
+
   const pageNumber =
     typeof input.pageNumber === "number" && input.pageNumber > 0
       ? Math.floor(input.pageNumber)
@@ -363,13 +414,12 @@ export async function postProgramCoopCurriculumDiscussionMessage(
     .insert({
       organization_id: organizationId,
       program_id: programId,
+      curriculum_id: curriculumId,
       sender_guardian_id: senderGuardianId,
       body: input.body.trim(),
       page_number: pageNumber,
     })
-    .select(
-      "id, organization_id, program_id, sender_guardian_id, body, page_number, created_at",
-    )
+    .select(DISCUSSION_MESSAGE_SELECT)
     .single();
 
   if (error) throw new Error(error.message);

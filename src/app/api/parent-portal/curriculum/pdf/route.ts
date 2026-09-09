@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  getProgramCoopCurriculum,
+  getProgramCoopCurriculumById,
   PROGRAM_COOP_CURRICULUM_BUCKET,
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -18,12 +18,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId")?.trim() ?? "";
   const programId = searchParams.get("programId")?.trim() ?? "";
+  const curriculumId = searchParams.get("curriculumId")?.trim() ?? "";
 
-  if (!organizationId || !programId) {
+  if (!organizationId || !programId || !curriculumId) {
     return apiError(ROUTE, {
       request,
       status: 400,
-      error: "organizationId and programId are required.",
+      error: "organizationId, programId, and curriculumId are required.",
       code: "missing_fields",
     });
   }
@@ -42,9 +43,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    const curriculum = await getProgramCoopCurriculum(supabase, programId);
+    const curriculum = await getProgramCoopCurriculumById(supabase, curriculumId);
 
-    if (!curriculum || curriculum.organizationId !== organizationId) {
+    if (
+      !curriculum ||
+      curriculum.organizationId !== organizationId ||
+      curriculum.programId !== programId
+    ) {
       return apiError(ROUTE, {
         request,
         status: 404,

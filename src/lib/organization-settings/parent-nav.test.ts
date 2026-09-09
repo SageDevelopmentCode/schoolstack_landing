@@ -5,6 +5,7 @@ import {
   buildParentNavItems,
   splitParentNavForHeader,
 } from "./parent-nav";
+import { resolveMainParentOrganizationFeatures } from "./resolve-program-parent-features";
 
 describe("splitParentNavForHeader", () => {
   it("routes classroom_signups to More instead of primary nav", () => {
@@ -30,5 +31,28 @@ describe("splitParentNavForHeader", () => {
       more.some((item) => item.key === "classroom_signups"),
       true,
     );
+  });
+
+  it("omits curriculum from main portal nav when org flag is enabled", () => {
+    const orgWithCurriculum = resolveMainParentOrganizationFeatures({
+      ...DEFAULT_FEATURES,
+      parent: {
+        ...DEFAULT_FEATURES.parent,
+        portal: true,
+        billing: true,
+        messages: true,
+        calendar: true,
+        children: true,
+        committees: true,
+        curriculum: true,
+      },
+    });
+
+    const items = buildParentNavItems(
+      "rooted-meadows-demo",
+      orgWithCurriculum.parent,
+    );
+
+    assert.equal(items.some((item) => item.key === "curriculum"), false);
   });
 });

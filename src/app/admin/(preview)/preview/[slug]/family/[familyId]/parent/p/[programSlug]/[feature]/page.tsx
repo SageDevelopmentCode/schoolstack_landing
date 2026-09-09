@@ -38,7 +38,7 @@ import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -310,11 +310,12 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       .limit(1)
       .maybeSingle();
 
-    const [curriculum, discussionMessages] = await Promise.all([
-      getProgramCoopCurriculum(admin, programContext.programId),
+    const [curricula, discussionMessages] = await Promise.all([
+      listProgramCoopCurriculum(admin, programContext.programId),
       listProgramCoopCurriculumDiscussionMessages(admin, {
         organizationId: org.id,
         programId: programContext.programId,
+        curriculumId: null,
       }),
     ]);
 
@@ -323,7 +324,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
         <ParentCurriculumPage
           organizationId={org.id}
           programId={programContext.programId}
-          curriculum={curriculum}
+          curricula={curricula}
           initialDiscussionMessages={discussionMessages}
           currentGuardianId={previewGuardian?.id ? String(previewGuardian.id) : null}
           previewMode

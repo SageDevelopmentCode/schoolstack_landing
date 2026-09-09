@@ -25,7 +25,10 @@ import { parseAdmissionsOrgSettings } from "./admissions-org-settings";
 import { DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import { describeParentPortalCalendarScope } from "@/lib/school-events/event-audience";
 import { describeParentPortalMessagesScope } from "@/lib/messages/message-audience";
-import { resolveProgramParentFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
+import {
+  resolveMainParentOrganizationFeatures,
+  resolveProgramParentFeatures,
+} from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   getProgramParentPortalPreviewBillingInitialData,
   getProgramParentPortalPreviewBillingPageMeta,
@@ -196,6 +199,19 @@ describe("coop_mode editor round-trip", () => {
 
     assert.equal(derived.mode, "isolated");
     assert.equal(derived.coop_mode, true);
+  });
+});
+
+describe("resolveMainParentOrganizationFeatures", () => {
+  it("forces curriculum off on the main portal even when org flag is true", () => {
+    const orgWithCurriculum = {
+      ...orgFeatures,
+      parent: { ...orgFeatures.parent, curriculum: true },
+    };
+
+    const resolved = resolveMainParentOrganizationFeatures(orgWithCurriculum);
+    assert.equal(resolved.parent.curriculum, false);
+    assert.equal(resolved.parent.messages, true);
   });
 });
 

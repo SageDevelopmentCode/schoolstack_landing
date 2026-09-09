@@ -24,6 +24,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 type ProgramCoopCurriculumPdfViewerProps = {
   organizationId: string;
   programId: string;
+  curriculumId: string;
   fileName: string;
 };
 
@@ -31,7 +32,6 @@ const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
 const SCALE_STEP = 0.1;
 const DEFAULT_SCALE = 1;
-const CANVAS_PADDING_PX = 24;
 
 type RenderTask = {
   cancel: () => void;
@@ -47,15 +47,13 @@ type PanState = {
   scrollTop: number;
 };
 
-function buildCurriculumPdfUrl(organizationId: string, programId: string): string {
-  const params = new URLSearchParams({ organizationId, programId });
+function buildCurriculumPdfUrl(
+  organizationId: string,
+  programId: string,
+  curriculumId: string,
+): string {
+  const params = new URLSearchParams({ organizationId, programId, curriculumId });
   return `/api/parent-portal/curriculum/pdf?${params.toString()}`;
-}
-
-function computeFitToWidthScale(pageWidth: number, containerWidth: number): number {
-  const availableWidth = Math.max(containerWidth - CANVAS_PADDING_PX, 100);
-  const fitScale = availableWidth / pageWidth;
-  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.round(fitScale * 100) / 100));
 }
 
 function containerOverflows(container: HTMLElement): boolean {
@@ -68,6 +66,7 @@ function containerOverflows(container: HTMLElement): boolean {
 export default function ProgramCoopCurriculumPdfViewer({
   organizationId,
   programId,
+  curriculumId,
   fileName,
 }: ProgramCoopCurriculumPdfViewerProps) {
   const { theme } = useParentTheme();
@@ -82,7 +81,6 @@ export default function ProgramCoopCurriculumPdfViewer({
     scrollLeft: 0,
     scrollTop: 0,
   });
-  const initialScaleSetRef = useRef(false);
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [pageNum, setPageNum] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -97,7 +95,6 @@ export default function ProgramCoopCurriculumPdfViewer({
 
   useEffect(() => {
     let cancelled = false;
-    initialScaleSetRef.current = false;
 
     async function loadPdf() {
       setLoading(true);
@@ -112,9 +109,12 @@ export default function ProgramCoopCurriculumPdfViewer({
       setIsPanning(false);
 
       try {
-        const response = await fetch(buildCurriculumPdfUrl(organizationId, programId), {
-          credentials: "include",
-        });
+        const response = await fetch(
+          buildCurriculumPdfUrl(organizationId, programId, curriculumId),
+          {
+            credentials: "include",
+          },
+        );
 
         if (!response.ok) {
           throw new Error("Failed to load curriculum PDF.");
@@ -149,36 +149,12 @@ export default function ProgramCoopCurriculumPdfViewer({
     return () => {
       cancelled = true;
     };
-  }, [organizationId, programId]);
+  }, [curriculumId, organizationId, programId]);
 
   useEffect(() => {
     return () => {
       renderTaskRef.current?.cancel();
       void pdfDoc?.cleanup();
-    };
-  }, [pdfDoc]);
-
-  useEffect(() => {
-    if (!pdfDoc || initialScaleSetRef.current) return;
-
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    let cancelled = false;
-
-    void (async () => {
-      const page = await pdfDoc.getPage(1);
-      if (cancelled) return;
-
-      const baseViewport = page.getViewport({ scale: 1 });
-      const nextFitScale = computeFitToWidthScale(baseViewport.width, container.clientWidth);
-      initialScaleSetRef.current = true;
-      setFitScale(nextFitScale);
-      setScale(nextFitScale);
-    })();
-
-    return () => {
-      cancelled = true;
     };
   }, [pdfDoc]);
 

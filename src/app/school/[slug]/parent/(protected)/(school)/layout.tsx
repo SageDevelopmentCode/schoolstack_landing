@@ -10,6 +10,7 @@ import {
 import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,7 @@ export default async function SchoolParentMainLayout({
       organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
-      features={org.features}
+      features={resolveMainParentOrganizationFeatures(org.features)}
       userProfile={userProfile}
       portalOptions={portalOptions}
       parentPortalContexts={parentPortalContexts}

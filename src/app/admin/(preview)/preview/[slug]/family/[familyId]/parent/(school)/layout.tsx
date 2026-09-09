@@ -11,6 +11,7 @@ import {
 } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 
@@ -60,7 +61,7 @@ export default async function FamilyPreviewMainParentLayout({
       organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
-      features={org.features}
+      features={resolveMainParentOrganizationFeatures(org.features)}
       userProfile={userProfile}
       parentPortalContexts={parentPortalContexts}
       previewMode

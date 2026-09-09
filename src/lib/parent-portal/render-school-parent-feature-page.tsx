@@ -31,6 +31,7 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import {
   getParentPortalPrimaryFamilyId,
@@ -50,7 +51,7 @@ import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
@@ -86,7 +87,9 @@ export async function generateSchoolParentFeatureMetadata(
     return { title: "School Not Found" };
   }
 
-  let features: OrganizationFeatures = org.features;
+  let features: OrganizationFeatures = resolveMainParentOrganizationFeatures(
+    org.features,
+  );
   if (context.programSlug) {
     const { loadProgramParentPortalContext } = await import(
       "@/lib/admissions/program-parent-portal-access"
@@ -129,7 +132,9 @@ export async function renderSchoolParentFeaturePage(
     notFound();
   }
 
-  let features: OrganizationFeatures = org.features;
+  let features: OrganizationFeatures = resolveMainParentOrganizationFeatures(
+    org.features,
+  );
   let parentNavBasePath = context.parentNavBasePath;
   let programId: string | undefined;
   let programPortalLabel: string | undefined;
@@ -420,11 +425,12 @@ export async function renderSchoolParentFeaturePage(
       ? await getGuardianIdForUser(admin, user.id, org.id, familyId)
       : null;
 
-    const [curriculum, discussionMessages] = await Promise.all([
-      getProgramCoopCurriculum(supabase, programId),
+    const [curricula, discussionMessages] = await Promise.all([
+      listProgramCoopCurriculum(supabase, programId),
       listProgramCoopCurriculumDiscussionMessages(admin, {
         organizationId: org.id,
         programId,
+        curriculumId: null,
       }),
     ]);
 
@@ -433,7 +439,7 @@ export async function renderSchoolParentFeaturePage(
         <ParentCurriculumPage
           organizationId={org.id}
           programId={programId}
-          curriculum={curriculum}
+          curricula={curricula}
           initialDiscussionMessages={discussionMessages}
           currentGuardianId={currentGuardianId}
         />
