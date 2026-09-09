@@ -686,20 +686,14 @@ export default function ProgramsPage({
                       />
                     </>
                   ) : visibleEditorTab === "supply_list" && selectedProgram ? (
-                    <>
-                      <BuilderSectionIntro
-                        C={C}
-                        theme={theme}
-                        eyebrow="Co-op supply list"
-                        title="Supply list"
-                        subtitle="Manage the supply list families need for this co-op program."
-                      />
-                      <ProgramCoopSupplyListCard
-                        C={C}
-                        theme={theme}
-                        coopModeEnabled={coopModeEnabled}
-                      />
-                    </>
+                    <ProgramCoopSupplyListCard
+                      C={C}
+                      theme={theme}
+                      supabase={supabase}
+                      organizationId={organizationId}
+                      programId={selectedProgram.id}
+                      coopModeEnabled={coopModeEnabled}
+                    />
                   ) : visibleEditorTab === "teaching_schedule" && selectedProgram ? (
                     <>
                       <BuilderSectionIntro

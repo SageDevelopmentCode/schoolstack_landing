@@ -2,15 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Plus, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   areCoopSupplyItemsEqual,
   buildSupplyRangePrice,
   buildSupplySinglePrice,
+  canAddSupplyAssignedFamily,
+  COOP_SUPPLY_MAX_ASSIGNED_FAMILIES,
   COOP_SUPPLY_MONTH_OPTIONS,
-  MOCK_COOP_PARENTS,
   formatSupplyEstimatedPrice,
+  normalizeSupplyFamilyName,
   formatSupplyQuantity,
   SUPPLY_ITEM_TYPE_OPTIONS,
   SUPPLY_USAGE_TIMING_OPTIONS,
@@ -38,7 +41,7 @@ type CoopSupplyListItemDetailPanelProps = {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   onClose: () => void;
-  onSave: (item: CoopSupplyListItem) => void;
+  onSave: (item: CoopSupplyListItem) => void | Promise<void>;
   onRemove: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   canRemove: boolean;
@@ -73,10 +76,13 @@ export default function CoopSupplyListItemDetailPanel({
   const [savedItem, setSavedItem] = useState<CoopSupplyListItem>(() => ({ ...item }));
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [familyNameDraft, setFamilyNameDraft] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setDraftItem({ ...item });
     setSavedItem({ ...item });
+    setFamilyNameDraft("");
   }, [item]);
 
   const isDirty = useMemo(
@@ -87,17 +93,6 @@ export default function CoopSupplyListItemDetailPanel({
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
-
-  const parentOptions = useMemo(
-    () => [
-      { value: "", label: "Unassigned" },
-      ...MOCK_COOP_PARENTS.map((parent) => ({
-        value: parent.id,
-        label: parent.name,
-      })),
-    ],
-    [],
-  );
 
   const itemTypeOptions = useMemo(
     () =>
@@ -132,6 +127,25 @@ export default function CoopSupplyListItemDetailPanel({
     setDraftItem((current) => ({ ...current, ...patch }));
   };
 
+  const atFamilyLimit = draftItem.assignedFamilies.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
+
+  const addAssignedFamily = () => {
+    if (!canAddSupplyAssignedFamily(draftItem.assignedFamilies, familyNameDraft)) {
+      return;
+    }
+    const normalized = normalizeSupplyFamilyName(familyNameDraft);
+    updateDraft({
+      assignedFamilies: [...draftItem.assignedFamilies, normalized],
+    });
+    setFamilyNameDraft("");
+  };
+
+  const removeAssignedFamily = (familyName: string) => {
+    updateDraft({
+      assignedFamilies: draftItem.assignedFamilies.filter((family) => family !== familyName),
+    });
+  };
+
   const toggleMonth = (month: string) => {
     const nextMonths = draftItem.months.includes(month)
       ? draftItem.months.filter((value) => value !== month)
@@ -147,10 +161,17 @@ export default function CoopSupplyListItemDetailPanel({
     setDiscardDialogOpen(true);
   };
 
-  const handleSave = () => {
-    onSave(draftItem);
-    setSavedItem({ ...draftItem });
-    adminToast.success("Supply item saved");
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(draftItem);
+      setSavedItem({ ...draftItem });
+      adminToast.success("Supply item saved");
+    } catch {
+      // Parent surfaces persistence errors.
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleConfirmDiscard = () => {
@@ -515,16 +536,82 @@ export default function CoopSupplyListItemDetailPanel({
               <BuilderQuestionCard
                 C={C}
                 tone="accent"
-                question="Which family is signed up to provide this?"
-                helper="Leave unassigned until a parent claims it."
+                question="Which families are signed up to provide this?"
+                helper="Add up to 5 family names. Leave empty until a parent claims it."
               >
-                <SchoolAdminSelect
-                  C={C}
-                  value={draftItem.assignedParent ?? ""}
-                  onChange={(value) => updateDraft({ assignedParent: value || null })}
-                  options={parentOptions}
-                  ariaLabel="Parent sign-up"
-                />
+                <div className="space-y-3">
+                  {draftItem.assignedFamilies.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {draftItem.assignedFamilies.map((familyName) => (
+                        <span
+                          key={familyName}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                          style={{
+                            borderColor: C.border,
+                            backgroundColor: C.bg,
+                            color: C.textPrimary,
+                          }}
+                        >
+                          {familyName}
+                          <button
+                            type="button"
+                            onClick={() => removeAssignedFamily(familyName)}
+                            className="inline-flex rounded p-0.5 transition-colors hover:opacity-70"
+                            style={{ color: C.textTertiary }}
+                            aria-label={`Remove ${familyName}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      type="text"
+                      value={familyNameDraft}
+                      onChange={(event) => setFamilyNameDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addAssignedFamily();
+                        }
+                      }}
+                      placeholder="Family name"
+                      disabled={atFamilyLimit}
+                      className="sm:flex-1"
+                      style={controlStyle(C)}
+                    />
+                    <button
+                      type="button"
+                      onClick={addAssignedFamily}
+                      disabled={
+                        atFamilyLimit ||
+                        !canAddSupplyAssignedFamily(
+                          draftItem.assignedFamilies,
+                          familyNameDraft,
+                        )
+                      }
+                      className="inline-flex shrink-0 items-center justify-center gap-1 px-3 py-2 text-xs font-medium disabled:opacity-50"
+                      style={{
+                        backgroundColor: C.accentLight,
+                        color: C.accent,
+                        border: `1px solid ${C.secondaryBtnBorder}`,
+                        borderRadius: C.r.md,
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add
+                    </button>
+                  </div>
+
+                  {atFamilyLimit ? (
+                    <p className="text-[11px]" style={{ color: C.textTertiary }}>
+                      Maximum of 5 families reached.
+                    </p>
+                  ) : null}
+                </div>
               </BuilderQuestionCard>
 
               <BuilderQuestionCard
@@ -565,7 +652,7 @@ export default function CoopSupplyListItemDetailPanel({
               variant="primary"
               size="compact"
               onClick={handleSave}
-              disabled={!isDirty}
+              disabled={!isDirty || saving}
             >
               Save changes
             </AdminButton>

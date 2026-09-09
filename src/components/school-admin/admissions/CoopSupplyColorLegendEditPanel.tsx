@@ -20,7 +20,7 @@ type CoopSupplyColorLegendEditPanelProps = {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   onClose: () => void;
-  onSave: (legend: CoopSupplyColorLegendEntry[]) => void;
+  onSave: (legend: CoopSupplyColorLegendEntry[]) => void | Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
 };
 
@@ -57,6 +57,7 @@ export default function CoopSupplyColorLegendEditPanel({
     legend.map((entry) => ({ ...entry })),
   );
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setDraftLegend(legend.map((entry) => ({ ...entry })));
@@ -86,10 +87,18 @@ export default function CoopSupplyColorLegendEditPanel({
     setDiscardDialogOpen(true);
   };
 
-  const handleSave = () => {
-    onSave(draftLegend.map((entry) => ({ ...entry })));
-    setSavedLegend(draftLegend.map((entry) => ({ ...entry })));
-    adminToast.success("Color categories saved");
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const nextLegend = draftLegend.map((entry) => ({ ...entry }));
+      await onSave(nextLegend);
+      setSavedLegend(nextLegend);
+      adminToast.success("Color categories saved");
+    } catch {
+      // Parent surfaces persistence errors.
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleConfirmDiscard = () => {
@@ -191,7 +200,7 @@ export default function CoopSupplyColorLegendEditPanel({
               variant="primary"
               size="compact"
               onClick={handleSave}
-              disabled={!isDirty}
+              disabled={!isDirty || saving}
             >
               Save changes
             </AdminButton>

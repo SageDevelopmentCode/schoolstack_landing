@@ -1,29 +1,36 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   computeSupplyListSummary,
+  defaultCoopSupplyColorLegend,
+  formatSupplyAssignedFamilies,
   formatSupplyEstimatedPrice,
   formatSupplyPriceCents,
   formatSupplyQuantity,
   getSupplyColorLegendEntry,
-  MOCK_COOP_SUPPLY_COLOR_LEGEND,
-  MOCK_COOP_SUPPLY_ITEMS,
-  newCoopSupplyListItem,
   supplyColorLegendDisplayLabel,
   supplyItemDisplayName,
   supplyItemTypeChipTone,
   supplyItemTypeLabel,
   supplyListRowStyle,
-  supplyParentLabel,
   supplyUsageTimingLabel,
   type CoopSupplyColorLegendEntry,
   type CoopSupplyListItem,
 } from "@/lib/admissions/program-coop-supply-list-mock";
+import {
+  deleteProgramCoopSupplyItem,
+  insertProgramCoopSupplyItem,
+  listProgramCoopSupplyList,
+  replaceProgramCoopSupplyColorLegend,
+  upsertProgramCoopSupplyItem,
+} from "@/lib/admissions/program-coop-supply-list-storage";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -31,11 +38,14 @@ import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import CoopSupplyColorLegendEditPanel from "./CoopSupplyColorLegendEditPanel";
 import CoopSupplyListItemDetailPanel from "./CoopSupplyListItemDetailPanel";
-import { BuilderQuestionCard } from "./builder-question-card";
+import { BuilderQuestionCard, BuilderSectionIntro } from "./builder-question-card";
 
 type ProgramCoopSupplyListCardProps = {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  supabase: SupabaseClient;
+  organizationId: string;
+  programId: string;
   coopModeEnabled: boolean;
 };
 
@@ -68,37 +78,37 @@ function CoopSupplyColorLegendCard({
 }: CoopSupplyColorLegendCardProps) {
   return (
     <AdminCard theme={theme} className="p-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <p
-          className="text-[10px] font-extrabold uppercase tracking-[0.08em]"
-          style={{ color: C.textTertiary }}
+      <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+          {legend.map((entry) => (
+            <div
+              key={entry.id}
+              className="flex items-center gap-2 rounded-md border px-2.5 py-1.5"
+              style={{
+                borderColor: C.border,
+                backgroundColor: C.bg,
+              }}
+            >
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: entry.hex }}
+                aria-hidden="true"
+              />
+              <span className="text-xs font-medium" style={{ color: theme.ink }}>
+                {supplyColorLegendDisplayLabel(entry)}
+              </span>
+            </div>
+          ))}
+        </div>
+        <AdminButton
+          theme={theme}
+          variant="soft"
+          size="compact"
+          className="shrink-0"
+          onClick={onEditClick}
         >
-          Color categories
-        </p>
-        <AdminButton theme={theme} variant="soft" size="compact" onClick={onEditClick}>
           Edit
         </AdminButton>
-      </div>
-      <div className="mt-2.5 flex flex-wrap gap-2">
-        {legend.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-center gap-2 rounded-md border px-2.5 py-1.5"
-            style={{
-              borderColor: C.border,
-              backgroundColor: C.bg,
-            }}
-          >
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: entry.hex }}
-              aria-hidden="true"
-            />
-            <span className="text-xs font-medium" style={{ color: theme.ink }}>
-              {supplyColorLegendDisplayLabel(entry)}
-            </span>
-          </div>
-        ))}
       </div>
     </AdminCard>
   );
@@ -107,14 +117,17 @@ function CoopSupplyColorLegendCard({
 export default function ProgramCoopSupplyListCard({
   C,
   theme,
+  supabase,
+  organizationId,
+  programId,
   coopModeEnabled,
 }: ProgramCoopSupplyListCardProps) {
-  const [items, setItems] = useState<CoopSupplyListItem[]>(() =>
-    MOCK_COOP_SUPPLY_ITEMS.map((item) => ({ ...item })),
-  );
+  const [items, setItems] = useState<CoopSupplyListItem[]>([]);
   const [colorLegend, setColorLegend] = useState<CoopSupplyColorLegendEntry[]>(() =>
-    MOCK_COOP_SUPPLY_COLOR_LEGEND.map((entry) => ({ ...entry })),
+    defaultCoopSupplyColorLegend(),
   );
+  const [loading, setLoading] = useState(true);
+  const [addingItem, setAddingItem] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
@@ -124,28 +137,101 @@ export default function ProgramCoopSupplyListCard({
     useState<PendingSidebarAction | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
+  const supplyListContext = useMemo(
+    () => ({ organizationId, programId }),
+    [organizationId, programId],
+  );
+
+  const loadSupplyList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await listProgramCoopSupplyList(supabase, programId);
+      setItems(result.items);
+      setColorLegend(result.colorLegend);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to load supply list."));
+    } finally {
+      setLoading(false);
+    }
+  }, [programId, supabase]);
+
+  useEffect(() => {
+    setSelectedId(null);
+    setLegendPanelOpen(false);
+    setPanelDirty(false);
+    setLegendPanelDirty(false);
+  }, [programId]);
+
+  useEffect(() => {
+    if (!coopModeEnabled) {
+      setLoading(false);
+      return;
+    }
+    queueMicrotask(() => {
+      void loadSupplyList();
+    });
+  }, [coopModeEnabled, loadSupplyList]);
+
   const summary = useMemo(() => computeSupplyListSummary(items), [items]);
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
 
-  const saveItem = (saved: CoopSupplyListItem) => {
-    setItems((current) =>
-      current.map((item) => (item.id === saved.id ? saved : item)),
-    );
+  const saveItem = async (saved: CoopSupplyListItem) => {
+    try {
+      const persisted = await upsertProgramCoopSupplyItem(
+        supabase,
+        supplyListContext,
+        saved,
+      );
+      setItems((current) =>
+        current.map((item) => (item.id === persisted.id ? persisted : item)),
+      );
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save supply item."));
+      throw err;
+    }
   };
 
-  const removeItem = (id: string) => {
-    setItems((current) => current.filter((item) => item.id !== id));
-    setSelectedId((current) => (current === id ? null : current));
-    setPanelDirty(false);
+  const removeItem = async (id: string) => {
+    try {
+      await deleteProgramCoopSupplyItem(supabase, id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      setSelectedId((current) => (current === id ? null : current));
+      setPanelDirty(false);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to remove supply item."));
+      throw err;
+    }
   };
 
-  const addItem = () => {
-    const nextItem = newCoopSupplyListItem();
-    setItems((current) => [...current, nextItem]);
-    setSelectedId(nextItem.id);
+  const addItem = async () => {
+    if (addingItem) return;
+    setAddingItem(true);
+    try {
+      const nextItem = await insertProgramCoopSupplyItem(supabase, supplyListContext);
+      setItems((current) => [...current, nextItem]);
+      setSelectedId(nextItem.id);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add supply item."));
+    } finally {
+      setAddingItem(false);
+    }
+  };
+
+  const saveLegend = async (legend: CoopSupplyColorLegendEntry[]) => {
+    try {
+      const persisted = await replaceProgramCoopSupplyColorLegend(
+        supabase,
+        supplyListContext,
+        legend,
+      );
+      setColorLegend(persisted);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save color categories."));
+      throw err;
+    }
   };
 
   const openLegendPanel = () => {
@@ -219,24 +305,72 @@ export default function ProgramCoopSupplyListCard({
     setDiscardDialogOpen(false);
   };
 
+  const sectionHeader = (
+    <div className="flex items-start justify-between gap-4">
+      <BuilderSectionIntro
+        C={C}
+        theme={theme}
+        eyebrow="Co-op supply list"
+        title="Supply list"
+        subtitle="Manage the supply list families need for this co-op program."
+      />
+      {coopModeEnabled ? (
+        <AdminButton
+          theme={theme}
+          variant="soft"
+          size="compact"
+          className="shrink-0"
+          onClick={() => void addItem()}
+          disabled={addingItem || loading}
+        >
+          {addingItem ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+          Add supply item
+        </AdminButton>
+      ) : null}
+    </div>
+  );
+
   if (!coopModeEnabled) {
     return (
-      <BuilderQuestionCard
-        C={C}
-        tone="accent"
-        question="Co-op supply list"
-        helper="Enable co-op mode in portal settings (configured by MudKitchen) to manage the supply list for families."
-      >
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Co-op mode is not enabled for this program.
-        </p>
-      </BuilderQuestionCard>
+      <div className="space-y-4">
+        {sectionHeader}
+        <BuilderQuestionCard
+          C={C}
+          tone="accent"
+          question="Co-op supply list"
+          helper="Enable co-op mode in portal settings (configured by MudKitchen) to manage the supply list for families."
+        >
+          <p className="text-sm" style={{ color: C.textSecondary }}>
+            Co-op mode is not enabled for this program.
+          </p>
+        </BuilderQuestionCard>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {sectionHeader}
+        <div
+          className="flex items-center justify-center gap-2 rounded-md border px-4 py-12 text-sm"
+          style={{ borderColor: C.border, color: C.textSecondary }}
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading supply list…
+        </div>
+      </div>
     );
   }
 
   return (
     <>
       <div className="space-y-4">
+        {sectionHeader}
         <div className="grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-3">
           <AdminMetricCard
             theme={theme}
@@ -339,11 +473,18 @@ export default function ProgramCoopSupplyListCard({
                       >
                         {formatSupplyEstimatedPrice(item.estimatedPrice)}
                       </td>
-                      <td
-                        className="px-[15px] py-3 text-xs"
-                        style={{ color: "#607078" }}
-                      >
-                        {supplyParentLabel(item.assignedParent)}
+                      <td className="max-w-[180px] px-[15px] py-3">
+                        <div
+                          className="truncate text-xs"
+                          style={{ color: "#607078" }}
+                          title={
+                            item.assignedFamilies.length > 0
+                              ? formatSupplyAssignedFamilies(item.assignedFamilies)
+                              : undefined
+                          }
+                        >
+                          {formatSupplyAssignedFamilies(item.assignedFamilies)}
+                        </div>
                       </td>
                       <td className="max-w-[180px] px-[15px] py-3">
                         <div
@@ -364,15 +505,20 @@ export default function ProgramCoopSupplyListCard({
 
         <button
           type="button"
-          onClick={addItem}
-          className="flex w-full items-center justify-center gap-2 rounded-md px-4 py-4 text-sm font-medium transition-colors"
+          onClick={() => void addItem()}
+          disabled={addingItem}
+          className="flex w-full items-center justify-center gap-2 rounded-md px-4 py-4 text-sm font-medium transition-colors disabled:opacity-50"
           style={{
             border: `2px dashed ${C.borderStrong}`,
             backgroundColor: C.bg,
             color: C.accent,
           }}
         >
-          <Plus className="h-4 w-4" />
+          {addingItem ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           Add supply item
         </button>
       </div>
@@ -390,7 +536,7 @@ export default function ProgramCoopSupplyListCard({
             }}
             onSave={saveItem}
             onDirtyChange={setPanelDirty}
-            onRemove={() => removeItem(selectedItem.id)}
+            onRemove={() => void removeItem(selectedItem.id)}
             canRemove={items.length > 1}
           />
         ) : null}
@@ -406,7 +552,7 @@ export default function ProgramCoopSupplyListCard({
               setLegendPanelOpen(false);
               setLegendPanelDirty(false);
             }}
-            onSave={setColorLegend}
+            onSave={saveLegend}
             onDirtyChange={setLegendPanelDirty}
           />
         ) : null}
