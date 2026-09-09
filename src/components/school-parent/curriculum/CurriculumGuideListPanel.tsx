@@ -32,7 +32,7 @@ function DiscussionIconButton({
       aria-label={ariaLabel}
       data-testid={testId}
       onClick={onClick}
-      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-0 transition-colors"
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border-0 transition-colors"
       style={{
         backgroundColor: theme.primarySoft,
         color: theme.primary,
@@ -101,7 +101,7 @@ export default function CurriculumGuideListPanel({
                   title={fullLabel}
                   data-testid={`curriculum-guide-tab-${record.id}`}
                   onClick={() => onSelect(record.id)}
-                  className="min-w-0 flex-1 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors"
+                  className="min-w-0 flex-1 rounded-md border px-3 py-2.5 text-left text-xs font-semibold transition-colors"
                   style={{
                     borderColor: active ? theme.primary : theme.line,
                     backgroundColor: active ? theme.white : theme.paper,

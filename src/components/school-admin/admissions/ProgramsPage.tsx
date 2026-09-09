@@ -58,6 +58,7 @@ import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organizat
 import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
 import ProgramCoopPlaceholderCard from "./ProgramCoopPlaceholderCard";
+import ProgramCoopSupplyListCard from "./ProgramCoopSupplyListCard";
 import { createClient } from "@/utils/supabase/client";
 import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
@@ -481,7 +482,9 @@ export default function ProgramsPage({
               {editable ? (
                 <motion.div
                   key={`${canvasKey}-${visibleEditorTab}`}
-                  className="mx-auto max-w-xl space-y-4"
+                  className={`mx-auto space-y-4 ${
+                    visibleEditorTab === "supply_list" ? "max-w-4xl" : "max-w-xl"
+                  }`}
                   {...builderCanvasTransition}
                 >
                   {visibleEditorTab === "details" || isNew ? (
@@ -691,11 +694,10 @@ export default function ProgramsPage({
                         title="Supply list"
                         subtitle="Manage the supply list families need for this co-op program."
                       />
-                      <ProgramCoopPlaceholderCard
+                      <ProgramCoopSupplyListCard
                         C={C}
-                        question="Supply list"
-                        helper="Coming soon."
-                        message="Supply list management is coming soon."
+                        theme={theme}
+                        coopModeEnabled={coopModeEnabled}
                       />
                     </>
                   ) : visibleEditorTab === "teaching_schedule" && selectedProgram ? (
