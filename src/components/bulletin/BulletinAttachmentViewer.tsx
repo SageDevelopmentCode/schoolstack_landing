@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import {
   canPreviewBulletinAttachment,
   isBulletinImageAttachment,
@@ -13,205 +12,119 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 type BulletinAttachmentViewerProps = {
   theme: ParentThemeTokens;
   attachments: BulletinAttachment[];
+  onOpenAttachment: (attachment: BulletinAttachment, index: number) => void;
 };
 
-function AttachmentOpenLink({
+function AttachmentChip({
   attachment,
+  index,
   theme,
+  onOpenAttachment,
 }: {
   attachment: BulletinAttachment;
+  index: number;
   theme: ParentThemeTokens;
+  onOpenAttachment: (attachment: BulletinAttachment, index: number) => void;
 }) {
-  if (!attachment.downloadUrl) return null;
+  const isPreviewable =
+    Boolean(attachment.downloadUrl) && canPreviewBulletinAttachment(attachment.mimeType);
+  const isImage = isBulletinImageAttachment(attachment.mimeType);
+  const isPdf = isBulletinPdfAttachment(attachment.mimeType);
+
+  if (!attachment.downloadUrl) {
+    return (
+      <div
+        className="flex items-center gap-2 rounded-lg border px-3 py-2 opacity-60"
+        style={{ borderColor: theme.line, backgroundColor: theme.white }}
+      >
+        <FileText className="h-4 w-4 shrink-0" style={{ color: theme.muted }} />
+        <span className="truncate text-xs font-medium" style={{ color: theme.muted }}>
+          {attachment.fileName}
+        </span>
+      </div>
+    );
+  }
+
+  if (isPreviewable) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenAttachment(attachment, index)}
+        className="flex w-full items-center gap-2.5 overflow-hidden rounded-lg border px-3 py-2 text-left transition-opacity hover:opacity-90"
+        style={{ borderColor: theme.line, backgroundColor: theme.white }}
+        aria-label={`View ${attachment.fileName}`}
+      >
+        {isImage ? (
+          <div
+            className="h-10 w-10 shrink-0 overflow-hidden rounded-md border"
+            style={{ borderColor: theme.line }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={attachment.downloadUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border"
+            style={{ borderColor: theme.line, backgroundColor: theme.infoBg }}
+          >
+            <FileText className="h-4 w-4" style={{ color: theme.info }} />
+          </div>
+        )}
+        <span className="min-w-0 flex-1 truncate text-xs font-semibold" style={{ color: theme.ink }}>
+          {attachment.fileName}
+        </span>
+        {isPdf ? (
+          <span
+            className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase"
+            style={{ backgroundColor: theme.infoBg, color: theme.info }}
+          >
+            PDF
+          </span>
+        ) : null}
+      </button>
+    );
+  }
 
   return (
     <a
       href={attachment.downloadUrl}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+      className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-opacity hover:opacity-90"
       style={{
+        borderColor: theme.line,
         backgroundColor: theme.infoBg,
         color: theme.info,
       }}
     >
-      <FileText className="h-3.5 w-3.5" />
-      {attachment.fileName}
+      <FileText className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{attachment.fileName}</span>
     </a>
   );
-}
-
-function AttachmentPreview({
-  attachment,
-  theme,
-}: {
-  attachment: BulletinAttachment;
-  theme: ParentThemeTokens;
-}) {
-  if (!attachment.downloadUrl) return null;
-
-  const frameClassName =
-    "flex min-h-[240px] max-h-[420px] w-full items-center justify-center overflow-hidden rounded-xl border bg-white";
-
-  if (isBulletinImageAttachment(attachment.mimeType)) {
-    return (
-      <div className={frameClassName} style={{ borderColor: theme.line }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={attachment.downloadUrl}
-          alt={attachment.fileName}
-          className="max-h-[360px] w-full object-contain"
-        />
-      </div>
-    );
-  }
-
-  if (isBulletinPdfAttachment(attachment.mimeType)) {
-    return (
-      <div className="space-y-2">
-        <div
-          className="overflow-hidden rounded-xl border bg-white"
-          style={{ borderColor: theme.line }}
-        >
-          <iframe
-            src={attachment.downloadUrl}
-            title={attachment.fileName}
-            className="h-[420px] w-full"
-          />
-        </div>
-        <a
-          href={attachment.downloadUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-semibold underline-offset-2 hover:underline"
-          style={{ color: theme.info }}
-        >
-          Open PDF in new tab
-        </a>
-      </div>
-    );
-  }
-
-  return null;
 }
 
 export default function BulletinAttachmentViewer({
   theme,
   attachments,
+  onOpenAttachment,
 }: BulletinAttachmentViewerProps) {
-  const previewableAttachments = useMemo(
-    () =>
-      attachments.filter(
-        (attachment) =>
-          attachment.downloadUrl && canPreviewBulletinAttachment(attachment.mimeType),
-      ),
-    [attachments],
-  );
-
-  const attachmentsKey = useMemo(
-    () => attachments.map((attachment) => attachment.id).join(","),
-    [attachments],
-  );
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [prevAttachmentsKey, setPrevAttachmentsKey] = useState(attachmentsKey);
-
-  if (attachmentsKey !== prevAttachmentsKey) {
-    setPrevAttachmentsKey(attachmentsKey);
-    setActiveIndex(0);
-  }
-
-  const safeIndex =
-    previewableAttachments.length > 0
-      ? Math.min(activeIndex, previewableAttachments.length - 1)
-      : 0;
-  const activeAttachment = previewableAttachments[safeIndex] ?? null;
-
-  if (previewableAttachments.length === 0) {
-    if (attachments.length === 0) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {attachments.map((attachment) => (
-          <AttachmentOpenLink key={attachment.id} attachment={attachment} theme={theme} />
-        ))}
-      </div>
-    );
-  }
-
-  const showCarousel = previewableAttachments.length > 1;
+  if (attachments.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      {showCarousel ? (
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              setActiveIndex(
-                (current) =>
-                  (current - 1 + previewableAttachments.length) %
-                  previewableAttachments.length,
-              )
-            }
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors hover:bg-black/[0.03]"
-            style={{ borderColor: theme.line, color: theme.ink }}
-            aria-label="Previous attachment"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-xs font-semibold" style={{ color: theme.muted }}>
-            {safeIndex + 1} / {previewableAttachments.length}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              setActiveIndex((current) => (current + 1) % previewableAttachments.length)
-            }
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors hover:bg-black/[0.03]"
-            style={{ borderColor: theme.line, color: theme.ink }}
-            aria-label="Next attachment"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
-
-      {activeAttachment ? (
-        <AttachmentPreview attachment={activeAttachment} theme={theme} />
-      ) : null}
-
-      {activeAttachment ? (
-        <p className="text-center text-xs font-medium" style={{ color: theme.muted }}>
-          {activeAttachment.fileName}
-        </p>
-      ) : null}
-
-      {showCarousel ? (
-        <div className="flex justify-center gap-1.5">
-          {previewableAttachments.map((attachment, index) => (
-            <button
-              key={attachment.id}
-              type="button"
-              onClick={() => setActiveIndex(index)}
-              className="h-2 w-2 rounded-full transition-transform"
-              style={{
-                backgroundColor: index === safeIndex ? theme.info : theme.line,
-                transform: index === safeIndex ? "scale(1.15)" : undefined,
-              }}
-              aria-label={`View attachment ${index + 1}`}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      {attachments.length > 1 ||
-      (attachments.length === 1 && previewableAttachments.length === 0) ? (
-        <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: theme.line }}>
-          {attachments.map((attachment) => (
-            <AttachmentOpenLink key={attachment.id} attachment={attachment} theme={theme} />
-          ))}
-        </div>
-      ) : null}
+    <div className="space-y-2">
+      {attachments.map((attachment, index) => (
+        <AttachmentChip
+          key={attachment.id}
+          attachment={attachment}
+          index={index}
+          theme={theme}
+          onOpenAttachment={onOpenAttachment}
+        />
+      ))}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdminChipTone } from "@/components/school-admin/ui/story/AdminChip";
 import { newAdmissionsId } from "./application-form-schema";
@@ -243,6 +244,65 @@ export function teachingScheduleStatusChipTone(
   referenceDate?: Date,
 ): AdminChipTone {
   return isTeachingWeekPast(week, referenceDate) ? "purple" : "success";
+}
+
+export function teachingScheduleMonthLabel(startDate: string): string {
+  const date = parseScheduleDate(startDate);
+  return date.toLocaleDateString("en-US", { month: "short" });
+}
+
+export function teachingScheduleRowSurfaceStyle({
+  variant,
+  parentTheme,
+  C,
+  isPast,
+  isSelected = false,
+  isHovered = false,
+}: {
+  variant: "parent" | "admin";
+  parentTheme?: ParentThemeTokens;
+  C?: AdminThemeTokens;
+  isPast: boolean;
+  isSelected?: boolean;
+  isHovered?: boolean;
+}): CSSProperties {
+  if (variant === "parent" && parentTheme) {
+    let backgroundColor = parentTheme.white;
+    if (isHovered) {
+      backgroundColor = isPast ? "#F3F5F3" : "#F7F9F7";
+    } else if (isPast) {
+      backgroundColor = "#FAFBFA";
+    }
+
+    return {
+      backgroundColor,
+      border: "1px solid rgba(74, 97, 82, 0.1)",
+      borderRadius: parentTheme.radiusCard,
+      boxShadow: parentTheme.shadowCard,
+    };
+  }
+
+  let backgroundColor = "#FFFFFF";
+  if (isSelected && C) {
+    backgroundColor = C.accentLight;
+  } else if (isPast) {
+    backgroundColor = isHovered ? "#F3F5F3" : "#FAFBFA";
+  } else if (isHovered) {
+    backgroundColor = "#F7F9F7";
+  }
+
+  const borderColor = C?.border ?? "#EDF1ED";
+  const defaultBorder = `1px solid ${borderColor}`;
+
+  return {
+    backgroundColor,
+    borderTop: defaultBorder,
+    borderRight: defaultBorder,
+    borderBottom: defaultBorder,
+    borderLeft: isSelected && C ? `3px solid ${C.accent}` : defaultBorder,
+    borderRadius: C?.r?.md ?? "8px",
+    boxShadow: "0 1px 3px rgba(26, 47, 37, 0.06)",
+  };
 }
 
 export function teachingScheduleRowStyle(

@@ -35,6 +35,7 @@ import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
+import ParentOnboardingItemIcon from "@/components/school-parent/ParentOnboardingItemIcon";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
@@ -46,11 +47,10 @@ import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKick
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
 import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
-import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
-import PortalHomeSchoolUpdatesPanel from "@/components/portal-home/PortalHomeSchoolUpdatesPanel";
+import PortalHomeSchoolBulletinLauncher from "@/components/portal-home/PortalHomeSchoolBulletinLauncher";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 
 type ParentHomePageProps = {
@@ -83,10 +83,11 @@ type ParentHomePageProps = {
 type AttentionItem = {
   key: string;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   href?: string;
   icon: React.ReactNode;
   iconBg?: string;
+  iconIncludesWrapper?: boolean;
 };
 
 const fadeUp = {
@@ -219,10 +220,9 @@ function buildAttentionItems(input: {
     items.push({
       key: `onboarding-${item.id}`,
       title: item.label,
-      subtitle: "Complete your account setup",
       href: item.href,
-      icon: <ClipboardCheck className="h-4 w-4" style={{ color: "#986F14" }} />,
-      iconBg: "#FFF4D9",
+      icon: <ParentOnboardingItemIcon item={item} variant="attention" />,
+      iconIncludesWrapper: true,
     });
   }
 
@@ -408,25 +408,8 @@ export default function ParentHomePage({
     schoolSlug,
     previewBasePath,
   });
-  const enrolledCount =
-    homeMeta?.enrolledChildrenCount ??
-    familyChildren.filter((c) => c.isEnrolled).length;
   const nextEvent = upcomingEvents[0] ?? null;
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
-
-  const familySnapshotTitle =
-    enrolledCount === familyChildren.length && familyChildren.length > 0
-      ? "Everyone is set for today"
-      : familyChildren.length > 0
-        ? "Your family at a glance"
-        : "Welcome to your family portal";
-
-  const familySnapshotBody =
-    familyChildren.length > 0
-      ? enrolledCount > 0
-        ? `${enrolledCount} of ${familyChildren.length} learner${familyChildren.length === 1 ? "" : "s"} enrolled.`
-        : `${familyChildren.length} learner${familyChildren.length === 1 ? "" : "s"} on file.`
-      : "Student records will appear here once applications are linked to your account.";
 
   const schoolUpdatesMessagesPromo =
     !bulletinEnabled && messagesHref
@@ -472,7 +455,11 @@ export default function ParentHomePage({
             </p>
           </div>
           <div className="w-full sm:w-auto">
-            <ParentDatePill theme={theme} />
+            <PortalHomeSchoolBulletinLauncher
+              theme={theme}
+              bulletinEnabled={bulletinEnabled}
+              bulletinPosts={bulletinPosts}
+            />
           </div>
         </motion.header>
 
@@ -510,6 +497,7 @@ export default function ParentHomePage({
                           title={item.title}
                           subtitle={item.subtitle}
                           iconBg={item.iconBg}
+                          iconIncludesWrapper={item.iconIncludesWrapper}
                         />
                       </Link>
                     ) : (
@@ -519,6 +507,7 @@ export default function ParentHomePage({
                         title={item.title}
                         subtitle={item.subtitle}
                         iconBg={item.iconBg}
+                        iconIncludesWrapper={item.iconIncludesWrapper}
                       />
                     )}
                   </div>
@@ -557,20 +546,11 @@ export default function ParentHomePage({
           <motion.aside custom={2} initial="hidden" animate="visible" variants={fadeUp}>
             <ParentCard theme={theme} variant="primary" className="h-full">
               <ParentSectionKicker theme={theme} light>
-                Family snapshot
+                Upcoming events
               </ParentSectionKicker>
-              <h3
-                className="mb-3 text-base font-semibold text-white"
-                style={{ fontFamily: theme.fontDisplay }}
-              >
-                {familySnapshotTitle}
-              </h3>
-              <p className="text-[13px] leading-relaxed" style={{ color: "#D5E3D9" }}>
-                {familySnapshotBody}
-              </p>
               {nextEvent ? (
                 <div
-                  className="mt-3 rounded-[14px] p-3"
+                  className="rounded-[14px] p-3"
                   style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                 >
                   <b className="block text-[13px] text-white">{nextEvent.title}</b>
@@ -585,7 +565,11 @@ export default function ParentHomePage({
                       : ""}
                   </span>
                 </div>
-              ) : null}
+              ) : (
+                <p className="text-[13px] leading-relaxed" style={{ color: "#D5E3D9" }}>
+                  No upcoming events right now.
+                </p>
+              )}
               <div className="mt-4">
                 <ParentTextLink theme={theme} href={calendarHref} light>
                   View family calendar
@@ -595,11 +579,11 @@ export default function ParentHomePage({
           </motion.aside>
         </div>
 
-        {coopModeEnabled ? (
+        {coopModeEnabled && !bulletinEnabled && messagesHref ? (
           <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
             <PortalHomeSchoolUpdatesCard
               theme={theme}
-              bulletinEnabled={bulletinEnabled}
+              bulletinEnabled={false}
               bulletinPosts={bulletinPosts}
               messagesHref={messagesHref}
               messagesPromo={schoolUpdatesMessagesPromo}
@@ -674,29 +658,7 @@ export default function ParentHomePage({
 
   return (
     <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      {coopModeEnabled ? (
-        <div className={PORTAL_HOME_CONTAINER_CLASS}>{homeMainContent}</div>
-      ) : (
-        <div className="grid min-h-full w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
-          <div className="min-w-0">
-            <div className={PORTAL_HOME_CONTAINER_CLASS}>{homeMainContent}</div>
-          </div>
-          <motion.aside
-            custom={3}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            className="w-full lg:sticky lg:top-0 lg:self-start lg:h-[calc(100dvh-64px)] sm:lg:h-[calc(100dvh-78px)] lg:border-l"
-            style={{ borderColor: theme.line }}
-          >
-            <PortalHomeSchoolUpdatesPanel
-              theme={theme}
-              bulletinEnabled={bulletinEnabled}
-              bulletinPosts={bulletinPosts}
-            />
-          </motion.aside>
-        </div>
-      )}
+      <div className={PORTAL_HOME_CONTAINER_CLASS}>{homeMainContent}</div>
 
       <ParentOnboardingSidebar
         C={adminCompat}

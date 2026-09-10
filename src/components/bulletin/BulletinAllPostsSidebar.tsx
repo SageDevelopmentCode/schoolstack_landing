@@ -1,43 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import BulletinEmptyState from "@/components/bulletin/BulletinEmptyState";
 import BulletinFeedItem from "@/components/bulletin/BulletinFeedItem";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
-type BulletinAllPostsDialogProps = {
+type BulletinAllPostsSidebarProps = {
   theme: ParentThemeTokens;
   posts: BulletinPost[];
+  bulletinEnabled?: boolean;
   open: boolean;
   onClose: () => void;
   onOpenPost: (post: BulletinPost) => void;
 };
 
-export default function BulletinAllPostsDialog({
+export default function BulletinAllPostsSidebar({
   theme,
   posts,
+  bulletinEnabled = true,
   open,
   onClose,
   onOpenPost,
-}: BulletinAllPostsDialogProps) {
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
+}: BulletinAllPostsSidebarProps) {
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -49,15 +40,15 @@ export default function BulletinAllPostsDialog({
             onClick={onClose}
             aria-hidden="true"
           />
-          <motion.div
+          <motion.aside
             role="dialog"
             aria-modal="true"
             aria-labelledby="bulletin-all-posts-title"
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="relative z-[15] flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-2xl border"
+            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
             style={{
               backgroundColor: theme.white,
               borderColor: theme.line,
@@ -90,21 +81,32 @@ export default function BulletinAllPostsDialog({
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              <div className="space-y-2.5">
-                {posts.map((post) => (
-                  <BulletinFeedItem
-                    key={post.id}
-                    theme={theme}
-                    post={post}
-                    onOpenDetail={() => {
-                      onClose();
-                      onOpenPost(post);
-                    }}
-                  />
-                ))}
-              </div>
+              {posts.length > 0 ? (
+                <div className="space-y-2.5">
+                  {posts.map((post) => (
+                    <BulletinFeedItem
+                      key={post.id}
+                      theme={theme}
+                      post={post}
+                      onOpenDetail={() => onOpenPost(post)}
+                    />
+                  ))}
+                </div>
+              ) : bulletinEnabled ? (
+                <BulletinEmptyState
+                  theme={theme}
+                  title="No announcements right now"
+                  subtitle="New updates from your school will show up here when they're posted."
+                />
+              ) : (
+                <BulletinEmptyState
+                  theme={theme}
+                  title="No bulletin yet"
+                  subtitle="Your school hasn't turned on announcements here. Check back later."
+                />
+              )}
             </div>
-          </motion.div>
+          </motion.aside>
         </motion.div>
       ) : null}
     </AnimatePresence>

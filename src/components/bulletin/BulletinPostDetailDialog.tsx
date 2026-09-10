@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Megaphone, X } from "lucide-react";
 import BulletinAttachmentViewer from "@/components/bulletin/BulletinAttachmentViewer";
-import type { BulletinPost } from "@/lib/school-bulletin/types";
+import type { BulletinAttachment, BulletinPost } from "@/lib/school-bulletin/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
-type BulletinPostDetailSidebarProps = {
+type BulletinPostDetailDialogProps = {
   theme: ParentThemeTokens;
   post: BulletinPost | null;
   open: boolean;
   onClose: () => void;
+  onOpenAttachment: (attachment: BulletinAttachment, index: number) => void;
 };
 
 function formatBulletinDetailDate(value?: string): string {
@@ -24,30 +24,20 @@ function formatBulletinDetailDate(value?: string): string {
   });
 }
 
-export default function BulletinPostDetailSidebar({
+export default function BulletinPostDetailDialog({
   theme,
   post,
   open,
   onClose,
-}: BulletinPostDetailSidebarProps) {
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
+  onOpenAttachment,
+}: BulletinPostDetailDialogProps) {
   const dateLabel = formatBulletinDetailDate(post?.publishedAt ?? post?.createdAt);
 
   return (
     <AnimatePresence>
       {open && post ? (
         <motion.div
-          className="fixed inset-0 z-[100]"
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -59,15 +49,15 @@ export default function BulletinPostDetailSidebar({
             onClick={onClose}
             aria-hidden="true"
           />
-          <motion.aside
+          <motion.div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="bulletin-detail-sidebar-title"
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
+            aria-labelledby="bulletin-detail-dialog-title"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden border-l"
+            className="relative z-[15] flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-2xl border"
             style={{
               backgroundColor: theme.white,
               borderColor: theme.line,
@@ -92,7 +82,7 @@ export default function BulletinPostDetailSidebar({
                   </div>
                   <div className="min-w-0">
                     <h2
-                      id="bulletin-detail-sidebar-title"
+                      id="bulletin-detail-dialog-title"
                       className="text-base font-semibold leading-snug"
                       style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
                     >
@@ -134,11 +124,15 @@ export default function BulletinPostDetailSidebar({
                   >
                     Attachments
                   </p>
-                  <BulletinAttachmentViewer theme={theme} attachments={post.attachments} />
+                  <BulletinAttachmentViewer
+                    theme={theme}
+                    attachments={post.attachments}
+                    onOpenAttachment={onOpenAttachment}
+                  />
                 </div>
               ) : null}
             </div>
-          </motion.aside>
+          </motion.div>
         </motion.div>
       ) : null}
     </AnimatePresence>

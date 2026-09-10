@@ -1,11 +1,9 @@
 "use client";
 
-import { createElement } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ClipboardCheck, X } from "lucide-react";
-import { getFeatureIcon } from "@/lib/organization-settings/icon-registry";
-import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-feature-icon-styles";
+import { ClipboardCheck, X } from "lucide-react";
+import ParentOnboardingItemIcon from "@/components/school-parent/ParentOnboardingItemIcon";
 import type { ResolvedParentOnboardingItem } from "@/lib/organization-settings/parent-onboarding";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
@@ -39,27 +37,6 @@ function OnboardingProgressBar({
           backgroundColor: C.accent,
         }}
       />
-    </div>
-  );
-}
-
-function OnboardingItemIcon({ item }: { item: ResolvedParentOnboardingItem }) {
-  const { iconBg, iconColor } = getParentFeatureIconStyle(item.icon ?? "puzzle");
-  const icon = getFeatureIcon(item.icon ?? "puzzle");
-
-  if (item.completed) {
-    return (
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100">
-        <Check className="h-4 w-4 text-emerald-600" />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${iconBg}`}
-    >
-      {createElement(icon, { className: `h-4 w-4 ${iconColor}` })}
     </div>
   );
 }
@@ -155,7 +132,7 @@ export default function ParentOnboardingSidebar({
                 {items.map((item) => {
                   const rowContent = (
                     <>
-                      <OnboardingItemIcon item={item} />
+                      <ParentOnboardingItemIcon item={item} variant="sidebar" />
                       <div className="min-w-0 flex-1">
                         <p
                           className={`truncate text-sm font-medium ${

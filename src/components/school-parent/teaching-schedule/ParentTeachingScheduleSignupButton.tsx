@@ -98,11 +98,7 @@ export default function ParentTeachingScheduleSignupButton({
   }
 
   if (!canSignUp) {
-    return (
-      <span className={`text-xs ${className}`} style={{ color: theme.muted }}>
-        Filled
-      </span>
-    );
+    return null;
   }
 
   return (

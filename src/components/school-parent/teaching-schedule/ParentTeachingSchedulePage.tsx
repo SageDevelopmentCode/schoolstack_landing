@@ -2,7 +2,9 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { CalendarDays } from "lucide-react";
-import ParentTeachingScheduleSignupButton, {
+import CoopTeachingScheduleFilterBar from "@/components/admissions/CoopTeachingScheduleFilterBar";
+import ParentTeachingScheduleVolunteerActions from "@/components/school-parent/teaching-schedule/ParentTeachingScheduleVolunteerActions";
+import {
   type ParentTeachingSchedulePendingAction,
 } from "@/components/school-parent/teaching-schedule/ParentTeachingScheduleSignupButton";
 import {
@@ -11,10 +13,15 @@ import {
   formatTeachingScheduleDateRange,
   isTeachingWeekPast,
   sortTeachingScheduleWeeks,
-  teachingScheduleRowStyle,
+  teachingScheduleRowSurfaceStyle,
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
+import {
+  DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
+  filterCoopTeachingScheduleWeeks,
+  type CoopTeachingScheduleFilters,
+} from "@/lib/admissions/program-coop-teaching-schedule-filters";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
@@ -36,8 +43,11 @@ export default function ParentTeachingSchedulePage({
   currentParentName,
   previewMode = false,
 }: ParentTeachingSchedulePageProps) {
-  const { theme, adminCompat: C } = useParentTheme();
+  const { theme } = useParentTheme();
   const [weeks, setWeeks] = useState(() => sortTeachingScheduleWeeks(initialWeeks));
+  const [filters, setFilters] = useState<CoopTeachingScheduleFilters>(
+    DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
+  );
   const [hoveredWeekId, setHoveredWeekId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<ParentTeachingSchedulePendingAction | null>(
     null,
@@ -45,6 +55,15 @@ export default function ParentTeachingSchedulePage({
   const [actionError, setActionError] = useState<string | null>(null);
 
   const summary = useMemo(() => computeTeachingScheduleSummary(weeks), [weeks]);
+
+  const filteredWeeks = useMemo(
+    () =>
+      filterCoopTeachingScheduleWeeks(weeks, filters, {
+        variant: "parent",
+        currentParentName,
+      }),
+    [currentParentName, filters, weeks],
+  );
 
   const updateWeek = useCallback((updated: CoopTeachingScheduleWeek) => {
     setWeeks((current) =>
@@ -183,183 +202,175 @@ export default function ParentTeachingSchedulePage({
         </p>
       ) : (
         <>
-          <div className="space-y-2 md:hidden">
-            {weeks.map((week) => {
-              const isPast = isTeachingWeekPast(week);
-              const rowStyle = teachingScheduleRowStyle(C, {
-                isPast,
-                isSelected: false,
-                isHovered: false,
-              });
+          <CoopTeachingScheduleFilterBar
+            variant="parent"
+            filters={filters}
+            onChange={setFilters}
+            theme={theme}
+            resultCount={filteredWeeks.length}
+            totalCount={weeks.length}
+          />
 
-              return (
-                <ParentCard
-                  key={week.id}
-                  theme={theme}
-                  className="p-3.5"
-                  style={{
-                    ...rowStyle,
-                    borderLeft: rowStyle.borderLeft,
-                  }}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <ParentChip theme={theme} tone="info">
-                        {week.weekName.trim() || "Teaching week"}
-                      </ParentChip>
-                      <div className="mt-1 text-xs font-semibold" style={{ color: theme.ink }}>
-                        {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-2 text-xs" style={{ color: theme.muted }}>
-                    <div>
-                      <span className="font-semibold" style={{ color: theme.ink }}>
-                        Instructor:
-                      </span>{" "}
-                      {formatTeachingAssignedParents(week.parentInstructors)}
-                    </div>
-                    <div>
-                      <span className="font-semibold" style={{ color: theme.ink }}>
-                        Assistant:
-                      </span>{" "}
-                      {formatTeachingAssignedParents(week.parentAssistants)}
-                    </div>
-                    <div>{week.seasonalTheme}</div>
-                    <div>{week.characterLesson}</div>
-                    {week.celebrationEvent?.trim() ? (
-                      <div style={{ color: theme.ink }}>{week.celebrationEvent}</div>
-                    ) : null}
-                  </div>
-                  <div className="mt-3 flex flex-col gap-2">
-                    <ParentTeachingScheduleSignupButton
-                      theme={theme}
-                      week={week}
-                      role="instructor"
-                      currentParentName={currentParentName}
-                      previewMode={previewMode}
-                      pendingAction={pendingAction}
-                      onSignUp={() => void runAction(week.id, "instructor", "signup")}
-                      onWithdraw={() => void runAction(week.id, "instructor", "withdraw")}
-                    />
-                    <ParentTeachingScheduleSignupButton
-                      theme={theme}
-                      week={week}
-                      role="assistant"
-                      currentParentName={currentParentName}
-                      previewMode={previewMode}
-                      pendingAction={pendingAction}
-                      onSignUp={() => void runAction(week.id, "assistant", "signup")}
-                      onWithdraw={() => void runAction(week.id, "assistant", "withdraw")}
-                    />
-                  </div>
-                </ParentCard>
-              );
-            })}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-[1080px] w-full border-collapse text-left">
-              <thead style={{ backgroundColor: "#FBFCFB" }}>
-                <tr>
-                  {[
-                    "Week",
-                    "Parent instructor",
-                    "Parent assistant",
-                    "Seasonal theme",
-                    "Character lesson",
-                    "Celebration / event",
-                    "Volunteer",
-                  ].map((heading) => (
-                    <th
-                      key={heading}
-                      className="px-[12px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
-                      style={{ color: "#8B9699" }}
-                    >
-                      {heading}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {weeks.map((week) => {
+          {filteredWeeks.length === 0 ? (
+            <p className="py-8 text-sm" style={{ color: theme.muted }}>
+              No teaching weeks match the current filters.
+            </p>
+          ) : (
+            <>
+              <div className="space-y-2 md:hidden">
+                {filteredWeeks.map((week) => {
                   const isPast = isTeachingWeekPast(week);
-                  const isHovered = week.id === hoveredWeekId;
-                  const rowStyle = teachingScheduleRowStyle(C, {
+                  const surfaceStyle = teachingScheduleRowSurfaceStyle({
+                    variant: "parent",
+                    parentTheme: theme,
                     isPast,
-                    isSelected: false,
-                    isHovered,
                   });
-                  const textOpacity = isPast ? 0.82 : 1;
-                  const hasEvent = Boolean(week.celebrationEvent?.trim());
 
                   return (
-                    <tr
+                    <ParentCard
                       key={week.id}
-                      onMouseEnter={() => setHoveredWeekId(week.id)}
-                      onMouseLeave={() => setHoveredWeekId(null)}
-                      className="transition-colors"
-                      style={{
-                        ...rowStyle,
-                        borderTop: `1px solid ${theme.line}`,
-                      }}
+                      theme={theme}
+                      className="p-3.5"
+                      style={surfaceStyle}
                     >
-                      <td className="min-w-[160px] px-[12px] py-2.5" style={{ opacity: textOpacity }}>
-                        <ParentChip theme={theme} tone="info">
-                          {week.weekName.trim() || "Teaching week"}
-                        </ParentChip>
-                        <div
-                          className="mt-1 text-xs font-semibold"
-                          style={{ color: isPast ? theme.muted : theme.ink }}
-                        >
-                          {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <ParentChip theme={theme} tone="info">
+                            {week.weekName.trim() || "Teaching week"}
+                          </ParentChip>
+                          <div className="mt-1 text-xs font-semibold" style={{ color: theme.ink }}>
+                            {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                        {formatTeachingAssignedParents(week.parentInstructors)}
-                      </td>
-                      <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                        {formatTeachingAssignedParents(week.parentAssistants)}
-                      </td>
-                      <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                        {week.seasonalTheme}
-                      </td>
-                      <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                        {week.characterLesson}
-                      </td>
-                      <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                        {hasEvent ? week.celebrationEvent : "—"}
-                      </td>
-                      <td className="px-[12px] py-2.5">
-                        <div className="flex flex-col gap-1.5">
-                          <ParentTeachingScheduleSignupButton
-                            theme={theme}
-                            week={week}
-                            role="instructor"
-                            currentParentName={currentParentName}
-                            previewMode={previewMode}
-                            pendingAction={pendingAction}
-                            onSignUp={() => void runAction(week.id, "instructor", "signup")}
-                            onWithdraw={() => void runAction(week.id, "instructor", "withdraw")}
-                          />
-                          <ParentTeachingScheduleSignupButton
-                            theme={theme}
-                            week={week}
-                            role="assistant"
-                            currentParentName={currentParentName}
-                            previewMode={previewMode}
-                            pendingAction={pendingAction}
-                            onSignUp={() => void runAction(week.id, "assistant", "signup")}
-                            onWithdraw={() => void runAction(week.id, "assistant", "withdraw")}
-                          />
+                      </div>
+                      <div className="mt-3 space-y-2 text-xs" style={{ color: theme.muted }}>
+                        <div>
+                          <span className="font-semibold" style={{ color: theme.ink }}>
+                            Instructor:
+                          </span>{" "}
+                          {formatTeachingAssignedParents(week.parentInstructors)}
                         </div>
-                      </td>
-                    </tr>
+                        <div>
+                          <span className="font-semibold" style={{ color: theme.ink }}>
+                            Assistant:
+                          </span>{" "}
+                          {formatTeachingAssignedParents(week.parentAssistants)}
+                        </div>
+                        <div>{week.seasonalTheme}</div>
+                        <div>{week.characterLesson}</div>
+                        {week.celebrationEvent?.trim() ? (
+                          <div style={{ color: theme.ink }}>{week.celebrationEvent}</div>
+                        ) : null}
+                      </div>
+                      <div className="mt-3">
+                        <ParentTeachingScheduleVolunteerActions
+                          theme={theme}
+                          week={week}
+                          currentParentName={currentParentName}
+                          previewMode={previewMode}
+                          pendingAction={pendingAction}
+                          onSignUp={(role) => void runAction(week.id, role, "signup")}
+                          onWithdraw={(role) => void runAction(week.id, role, "withdraw")}
+                          emptyFallback=""
+                        />
+                      </div>
+                    </ParentCard>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table
+                  className="min-w-[1080px] w-full border-separate text-left"
+                  style={{ borderSpacing: "0 8px" }}
+                >
+                  <thead>
+                    <tr>
+                      {[
+                        "Week",
+                        "Parent instructor",
+                        "Parent assistant",
+                        "Seasonal theme",
+                        "Character lesson",
+                        "Celebration / event",
+                        "Volunteer",
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className="px-[12px] py-2 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                          style={{ color: "#8B9699" }}
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWeeks.map((week) => {
+                      const isPast = isTeachingWeekPast(week);
+                      const isHovered = week.id === hoveredWeekId;
+                      const surfaceStyle = teachingScheduleRowSurfaceStyle({
+                        variant: "parent",
+                        parentTheme: theme,
+                        isPast,
+                        isHovered,
+                      });
+                      const textOpacity = isPast ? 0.82 : 1;
+                      const hasEvent = Boolean(week.celebrationEvent?.trim());
+
+                      return (
+                        <tr
+                          key={week.id}
+                          onMouseEnter={() => setHoveredWeekId(week.id)}
+                          onMouseLeave={() => setHoveredWeekId(null)}
+                          className="transition-colors"
+                          style={surfaceStyle}
+                        >
+                          <td className="min-w-[160px] px-[12px] py-2.5" style={{ opacity: textOpacity }}>
+                            <ParentChip theme={theme} tone="info">
+                              {week.weekName.trim() || "Teaching week"}
+                            </ParentChip>
+                            <div
+                              className="mt-1 text-xs font-semibold"
+                              style={{ color: isPast ? theme.muted : theme.ink }}
+                            >
+                              {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
+                            </div>
+                          </td>
+                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                            {formatTeachingAssignedParents(week.parentInstructors)}
+                          </td>
+                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                            {formatTeachingAssignedParents(week.parentAssistants)}
+                          </td>
+                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                            {week.seasonalTheme}
+                          </td>
+                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                            {week.characterLesson}
+                          </td>
+                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                            {hasEvent ? week.celebrationEvent : "—"}
+                          </td>
+                          <td className="px-[12px] py-2.5">
+                            <ParentTeachingScheduleVolunteerActions
+                              theme={theme}
+                              week={week}
+                              currentParentName={currentParentName}
+                              previewMode={previewMode}
+                              pendingAction={pendingAction}
+                              onSignUp={(role) => void runAction(week.id, role, "signup")}
+                              onWithdraw={(role) => void runAction(week.id, role, "withdraw")}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

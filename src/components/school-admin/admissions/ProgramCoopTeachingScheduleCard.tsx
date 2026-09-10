@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import CoopTeachingScheduleFilterBar from "@/components/admissions/CoopTeachingScheduleFilterBar";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, Loader2, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -12,7 +13,7 @@ import {
   formatTeachingScheduleDateRange,
   isTeachingWeekPast,
   sortTeachingScheduleWeeks,
-  teachingScheduleRowStyle,
+  teachingScheduleRowSurfaceStyle,
   teachingScheduleWeekChipTone,
   type CoopTeachingScheduleWeek,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
@@ -22,10 +23,14 @@ import {
   listProgramCoopTeachingSchedule,
   upsertProgramCoopTeachingScheduleWeek,
 } from "@/lib/admissions/program-coop-teaching-schedule-storage";
+import {
+  DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
+  filterCoopTeachingScheduleWeeks,
+  type CoopTeachingScheduleFilters,
+} from "@/lib/admissions/program-coop-teaching-schedule-filters";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import CoopTeachingScheduleWeekDetailPanel from "./CoopTeachingScheduleWeekDetailPanel";
@@ -65,6 +70,9 @@ export default function ProgramCoopTeachingScheduleCard({
   const [panelDirty, setPanelDirty] = useState(false);
   const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<CoopTeachingScheduleFilters>(
+    DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
+  );
 
   const scheduleContext = useMemo(
     () => ({ organizationId, programId }),
@@ -99,6 +107,10 @@ export default function ProgramCoopTeachingScheduleCard({
   }, [coopModeEnabled, loadSchedule]);
 
   const summary = useMemo(() => computeTeachingScheduleSummary(weeks), [weeks]);
+  const filteredWeeks = useMemo(
+    () => filterCoopTeachingScheduleWeeks(weeks, filters, { variant: "admin" }),
+    [filters, weeks],
+  );
   const selectedWeek = useMemo(
     () => weeks.find((week) => week.id === selectedId) ?? null,
     [weeks, selectedId],
@@ -274,15 +286,32 @@ export default function ProgramCoopTeachingScheduleCard({
           />
         </div>
 
-        <AdminCard theme={theme} padding="none" className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-[860px] w-full border-collapse text-left">
-              <thead style={{ backgroundColor: "#FBFCFB" }}>
+        <CoopTeachingScheduleFilterBar
+          variant="admin"
+          filters={filters}
+          onChange={setFilters}
+          theme={theme}
+          C={C}
+          resultCount={filteredWeeks.length}
+          totalCount={weeks.length}
+        />
+
+        <div className="overflow-x-auto">
+          {filteredWeeks.length === 0 ? (
+            <p className="px-1 py-8 text-sm" style={{ color: C.textSecondary }}>
+              No teaching weeks match the current filters.
+            </p>
+          ) : (
+            <table
+              className="min-w-[860px] w-full border-separate text-left"
+              style={{ borderSpacing: "0 8px" }}
+            >
+              <thead>
                 <tr>
                   {TABLE_HEADINGS.map((heading) => (
                     <th
                       key={heading}
-                      className="px-[10px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                      className="px-[10px] py-2 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
                       style={{ color: "#8B9699" }}
                     >
                       {heading}
@@ -295,12 +324,14 @@ export default function ProgramCoopTeachingScheduleCard({
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {weeks.map((week) => {
+                {filteredWeeks.map((week) => {
                   const isHovered = week.id === hoveredId;
                   const isSelected = week.id === selectedId;
                   const isPast = isTeachingWeekPast(week);
                   const hasEvent = Boolean(week.celebrationEvent?.trim());
-                  const rowStyle = teachingScheduleRowStyle(C, {
+                  const surfaceStyle = teachingScheduleRowSurfaceStyle({
+                    variant: "admin",
+                    C,
                     isPast,
                     isSelected,
                     isHovered,
@@ -314,10 +345,7 @@ export default function ProgramCoopTeachingScheduleCard({
                       onMouseEnter={() => setHoveredId(week.id)}
                       onMouseLeave={() => setHoveredId(null)}
                       className="cursor-pointer transition-colors"
-                      style={{
-                        ...rowStyle,
-                        borderTop: "1px solid #EDF1ED",
-                      }}
+                      style={surfaceStyle}
                     >
                       <td className="min-w-[160px] px-[10px] py-2.5" style={{ opacity: textOpacity }}>
                         <AdminChip theme={theme} tone={teachingScheduleWeekChipTone(week)}>
@@ -376,8 +404,8 @@ export default function ProgramCoopTeachingScheduleCard({
                 })}
               </motion.tbody>
             </table>
-          </div>
-        </AdminCard>
+          )}
+        </div>
 
         <button
           type="button"
