@@ -1280,6 +1280,13 @@ export async function fetchSchoolAdminActivityNotifications(
   const notifications: SchoolAdminActivityNotification[] = [];
 
   for (const event of events) {
+    if (
+      event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED &&
+      metadataString(event.metadata, "recipientPortal") === "parent"
+    ) {
+      continue;
+    }
+
     const applicationId = applicationIdCache.get(`event:${event.id}`) ?? null;
     const link = await resolveActivityNotificationLink(
       supabase,

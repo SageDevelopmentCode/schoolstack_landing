@@ -2,12 +2,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolParentBaseline from "@/components/school-parent/SchoolParentBaseline";
+import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { getRequestUser } from "@/lib/auth/session";
 import {
   loadParentPortalNavContextsForUser,
   shouldRedirectAwayFromMainParentPortal,
 } from "@/lib/admissions/program-parent-portal-access";
 import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
+import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
@@ -58,6 +61,19 @@ export default async function SchoolParentMainLayout({
     }
   }
 
+  const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
+  const familyId = familyIds[0];
+  const notificationContext = buildMainParentNotificationContext(slug);
+  const initialActivityUnreadCount = familyId
+    ? await getParentPortalActivityUnreadCount(supabase, {
+        organizationId: org.id,
+        slug,
+        familyId,
+        userId: user.id,
+        notificationContext,
+      })
+    : 0;
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -68,6 +84,8 @@ export default async function SchoolParentMainLayout({
       userProfile={userProfile}
       portalOptions={portalOptions}
       parentPortalContexts={parentPortalContexts}
+      initialActivityUnreadCount={initialActivityUnreadCount}
+      notificationContext={notificationContext}
     >
       {children}
     </SchoolParentBaseline>

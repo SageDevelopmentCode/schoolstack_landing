@@ -12,6 +12,8 @@ import {
   loadProgramParentPortalContext,
 } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
+import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -75,6 +77,27 @@ export default async function FamilyPreviewProgramParentLayout({
     previewParentBasePath,
   });
 
+  const previewBasePath = familyPreviewBasePath(slug, familyId);
+  const notificationContext = buildProgramParentNotificationContext(
+    slug,
+    programContext.programId,
+    programSlug,
+    programContext.coopMode,
+    {
+      parentNavBasePath: programContext.parentNavBasePath,
+      applyBasePath: previewBasePath,
+    },
+  );
+  const initialActivityUnreadCount = await getParentPortalActivityUnreadCount(
+    supabase,
+    {
+      organizationId: org.id,
+      slug,
+      familyId,
+      notificationContext,
+    },
+  );
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -85,11 +108,14 @@ export default async function FamilyPreviewProgramParentLayout({
       userProfile={userProfile}
       parentPortalContexts={parentPortalContexts}
       previewMode
-      previewBasePath={familyPreviewBasePath(slug, familyId)}
+      previewBasePath={previewBasePath}
       previewParentBasePath={previewParentBasePath}
+      previewFamilyId={familyId}
       parentNavBasePath={programContext.parentNavBasePath}
       coopModeEnabled={programContext.coopMode}
       coopProgramLabel={programContext.displayLabel}
+      initialActivityUnreadCount={initialActivityUnreadCount}
+      notificationContext={notificationContext}
     >
       {children}
     </SchoolParentBaseline>

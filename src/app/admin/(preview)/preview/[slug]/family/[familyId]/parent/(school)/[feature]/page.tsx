@@ -142,6 +142,8 @@ export default async function FamilyPreviewParentFeaturePage({
           previewBasePath={previewBasePath}
           bulletinEnabled={bulletinEnabled}
           bulletinPosts={bulletinPosts}
+          features={features}
+          parentNavBasePath={previewParentBasePath}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader

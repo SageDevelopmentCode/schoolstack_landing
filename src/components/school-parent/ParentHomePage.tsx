@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import StudentPhoto from "@/components/students/StudentPhoto";
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
+  CircleAlert,
   ClipboardCheck,
   ClipboardList,
-  FileText,
   Sprout,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
@@ -24,22 +24,35 @@ import {
   childAccentBg,
   parentThemeToAdminCompat,
 } from "@/lib/organization-settings/parent-theme";
-import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type {
+  OrganizationBranding,
+  OrganizationFeatures,
+} from "@/lib/organization-settings/types";
 import {
   childIsolatedPortalHref,
   childIsolatedPortalLabel,
   formatChildProgramLine,
   programPortalChildrenEmptyMessage,
 } from "@/components/school-parent/children/parent-children-utils";
-import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
+import {
+  parentDocumentationPath,
+  schoolParentPath,
+} from "@/lib/organization-settings/parent-routes";
+import {
+  buildParentDocumentationGuides,
+  groupParentDocumentationByCategory,
+  type ParentDocGuide,
+} from "@/lib/parent-portal/parent-documentation";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 import ParentOnboardingItemIcon from "@/components/school-parent/ParentOnboardingItemIcon";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
-import EnrollmentAgreementAmendmentBanner from "@/components/admissions/EnrollmentAgreementAmendmentBanner";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
-import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+import {
+  ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE,
+  type EnrollmentAgreementIncompleteBannerItem,
+} from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 import ParentCoopFamiliesSection from "@/components/school-parent/ParentCoopFamiliesSection";
 import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
@@ -52,6 +65,8 @@ import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
 import PortalHomeSchoolBulletinLauncher from "@/components/portal-home/PortalHomeSchoolBulletinLauncher";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
+import ParentDocumentationGuidePanel from "@/components/school-parent/ParentDocumentationGuidePanel";
+import ParentHomeHowToGuidesSection from "@/components/school-parent/home/ParentHomeHowToGuidesSection";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -78,6 +93,9 @@ type ParentHomePageProps = {
   coopFamilies?: ProgramCoopFamily[];
   bulletinEnabled?: boolean;
   bulletinPosts?: BulletinPost[];
+  features?: OrganizationFeatures;
+  programSlug?: string;
+  parentNavBasePath?: string;
 };
 
 type AttentionItem = {
@@ -88,6 +106,7 @@ type AttentionItem = {
   icon: React.ReactNode;
   iconBg?: string;
   iconIncludesWrapper?: boolean;
+  urgent?: boolean;
 };
 
 const fadeUp = {
@@ -197,10 +216,10 @@ function buildAttentionItems(input: {
     items.push({
       key: `incomplete-${item.applicationId}`,
       title: `Sign ${item.studentName.split(" ")[0]}'s enrollment agreement`,
-      subtitle: item.checklistItemLabel,
+      subtitle: ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE,
       href: item.enrollmentHref,
-      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
-      iconBg: "#F7E5DE",
+      icon: <CircleAlert className="h-4 w-4" style={{ color: "#B5594A" }} />,
+      urgent: true,
     });
   }
 
@@ -208,10 +227,10 @@ function buildAttentionItems(input: {
     items.push({
       key: `amendment-${item.applicationId}`,
       title: `Review ${item.studentName.split(" ")[0]}'s agreement update`,
-      subtitle: item.checklistItemLabel,
+      subtitle: item.amendmentNotice,
       href: item.enrollmentHref,
-      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
-      iconBg: "#F7E5DE",
+      icon: <CircleAlert className="h-4 w-4" style={{ color: "#B5594A" }} />,
+      urgent: true,
     });
   }
 
@@ -359,8 +378,12 @@ export default function ParentHomePage({
   coopFamilies = [],
   bulletinEnabled = false,
   bulletinPosts = [],
+  features,
+  programSlug,
+  parentNavBasePath,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [activeGuide, setActiveGuide] = useState<ParentDocGuide | null>(null);
   const [classroomSignupAttentionItems, setClassroomSignupAttentionItems] = useState(
     initialSignupAttentionItems,
   );
@@ -390,6 +413,47 @@ export default function ParentHomePage({
     () => parentThemeToAdminCompat(theme),
     [theme],
   );
+
+  const howToGuides = useMemo(() => {
+    if (!features) return [];
+    return buildParentDocumentationGuides({
+      slug: schoolSlug,
+      features,
+      coopModeEnabled,
+      programSlug,
+      parentNavBasePath,
+      previewBasePath,
+    });
+  }, [
+    features,
+    schoolSlug,
+    coopModeEnabled,
+    programSlug,
+    parentNavBasePath,
+    previewBasePath,
+  ]);
+  const groupedHowToGuides = useMemo(
+    () => groupParentDocumentationByCategory(howToGuides),
+    [howToGuides],
+  );
+  const documentationHref = useMemo(
+    () =>
+      parentDocumentationPath(schoolSlug, {
+        programSlug,
+        previewBasePath,
+        parentNavBasePath,
+      }),
+    [schoolSlug, programSlug, previewBasePath, parentNavBasePath],
+  );
+
+  const openGuide = useCallback((guide: ParentDocGuide) => {
+    setActiveGuide(guide);
+  }, []);
+
+  const closeGuide = useCallback(() => {
+    setActiveGuide(null);
+  }, []);
+
   const name = firstName(userProfile.displayName);
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
   const calendarHref = previewBasePath
@@ -409,7 +473,12 @@ export default function ParentHomePage({
     previewBasePath,
   });
   const nextEvent = upcomingEvents[0] ?? null;
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   const schoolUpdatesMessagesPromo =
     !bulletinEnabled && messagesHref
@@ -451,7 +520,7 @@ export default function ParentHomePage({
               <span aria-hidden="true">{greetingEmoji}</span>
             </ParentDisplayHeading>
             <p className="mt-2 text-[15px]" style={{ color: theme.muted }}>
-              Here&apos;s what your family needs for {dayName}.
+              Here&apos;s what your family needs for {todayLabel}.
             </p>
           </div>
           <div className="w-full sm:w-auto">
@@ -462,15 +531,6 @@ export default function ParentHomePage({
             />
           </div>
         </motion.header>
-
-        {enrollmentAmendmentBannerItems.length > 0 ||
-        enrollmentIncompleteBannerItems.length > 0 ? (
-          <EnrollmentAgreementAmendmentBanner
-            C={adminCompat}
-            items={enrollmentAmendmentBannerItems}
-            incompleteItems={enrollmentIncompleteBannerItems}
-          />
-        ) : null}
 
         <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-[1.45fr_0.85fr]">
           <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUp}>
@@ -498,6 +558,7 @@ export default function ParentHomePage({
                           subtitle={item.subtitle}
                           iconBg={item.iconBg}
                           iconIncludesWrapper={item.iconIncludesWrapper}
+                          urgent={item.urgent}
                         />
                       </Link>
                     ) : (
@@ -508,6 +569,7 @@ export default function ParentHomePage({
                         subtitle={item.subtitle}
                         iconBg={item.iconBg}
                         iconIncludesWrapper={item.iconIncludesWrapper}
+                        urgent={item.urgent}
                       />
                     )}
                   </div>
@@ -653,6 +715,22 @@ export default function ParentHomePage({
             previewMode={previewMode}
           />
         ) : null}
+
+        {howToGuides.length > 0 ? (
+          <motion.section
+            custom={5}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+          >
+            <ParentHomeHowToGuidesSection
+              theme={theme}
+              documentationHref={documentationHref}
+              groupedGuides={groupedHowToGuides}
+              onOpenGuide={openGuide}
+            />
+          </motion.section>
+        ) : null}
     </>
   );
 
@@ -665,6 +743,13 @@ export default function ParentHomePage({
         open={onboardingOpen}
         items={onboardingItems}
         onClose={() => setOnboardingOpen(false)}
+      />
+
+      <ParentDocumentationGuidePanel
+        theme={theme}
+        guide={activeGuide}
+        open={activeGuide != null}
+        onClose={closeGuide}
       />
     </div>
   );

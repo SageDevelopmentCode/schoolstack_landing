@@ -14,6 +14,35 @@ export type ChargeStatusBadgeTone =
   | "warning"
   | "danger";
 
+export type AdminChargeChipTone =
+  | "success"
+  | "warning"
+  | "alert"
+  | "info"
+  | "purple";
+
+export function adminChipToneFromChargeBadge(
+  tone: ChargeStatusBadgeTone,
+): AdminChargeChipTone {
+  switch (tone) {
+    case "success":
+      return "success";
+    case "warning":
+      return "warning";
+    case "danger":
+      return "alert";
+    case "accent":
+      return "purple";
+    case "info":
+    case "neutral":
+      return "info";
+    default: {
+      tone satisfies never;
+      return "info";
+    }
+  }
+}
+
 export type ChargeStatusBadge = {
   label: string;
   tone: ChargeStatusBadgeTone;

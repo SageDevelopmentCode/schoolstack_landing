@@ -248,6 +248,9 @@ export async function renderSchoolParentFeaturePage(
           coopModeEnabled={context.feature === "portal" ? coopModeEnabled : false}
           bulletinEnabled={bulletinEnabled}
           bulletinPosts={bulletinPosts}
+          features={features}
+          programSlug={context.programSlug}
+          parentNavBasePath={parentNavBasePath}
         >
           {familyId ? (
             <Suspense fallback={null}>

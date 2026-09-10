@@ -183,6 +183,9 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           coopModeEnabled={programContext.coopMode}
           bulletinEnabled={bulletinEnabled}
           bulletinPosts={bulletinPosts}
+          features={features}
+          programSlug={programSlug}
+          parentNavBasePath={programContext.parentNavBasePath}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader

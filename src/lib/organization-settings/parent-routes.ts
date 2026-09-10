@@ -32,6 +32,32 @@ export function schoolParentRootPath(slug: string): string {
   return `/school/${slug}/parent`;
 }
 
+export function parentDocumentationPath(
+  slug: string,
+  options?: {
+    programSlug?: string;
+    previewBasePath?: string;
+    parentNavBasePath?: string;
+  },
+): string {
+  if (options?.previewBasePath) {
+    if (options.programSlug) {
+      return `${options.previewBasePath}/parent/p/${options.programSlug}/documentation`;
+    }
+    return `${options.previewBasePath}/parent/documentation`;
+  }
+
+  if (options?.parentNavBasePath) {
+    return `${options.parentNavBasePath}/documentation`;
+  }
+
+  if (options?.programSlug) {
+    return schoolProgramParentPath(slug, options.programSlug, "documentation");
+  }
+
+  return `${schoolParentRootPath(slug)}/documentation`;
+}
+
 export function parseProgramParentPath(pathname: string): {
   programSlug: string;
   feature: string;

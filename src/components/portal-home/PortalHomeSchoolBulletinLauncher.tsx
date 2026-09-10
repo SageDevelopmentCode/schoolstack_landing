@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Megaphone } from "lucide-react";
+import { ArrowRight, Megaphone } from "lucide-react";
 import BulletinAllPostsSidebar from "@/components/bulletin/BulletinAllPostsSidebar";
 import BulletinAttachmentFullscreenViewer, {
   type BulletinAttachmentViewerState,
@@ -80,6 +80,7 @@ export default function PortalHomeSchoolBulletinLauncher({
       >
         <Megaphone className="h-4 w-4" aria-hidden="true" />
         School Bulletin
+        <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       </button>
 
       <BulletinAllPostsSidebar

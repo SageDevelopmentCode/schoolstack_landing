@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Eye, Loader2 } from "lucide-react";
+import { Bell, Eye, Loader2 } from "lucide-react";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
+import OrganizationFamilyNotificationsPanel from "@/components/admin/OrganizationFamilyNotificationsPanel";
 import OrganizationGuardianAccessTable from "@/components/admin/OrganizationGuardianAccessTable";
 import {
   applicationStatusLabel,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/admissions/application-submissions";
 import {
   findOwnerLinkedFamilyId,
+  familyHasEnrolledAccess,
 } from "@/lib/admissions/family-preview-access";
 import {
   familyPreviewBasePath,
@@ -23,6 +25,8 @@ import type {
   ParentPortalLoginStatus,
   ParentPortalLoginSummary,
 } from "@/lib/admissions/parent-portal-login-status";
+import { mergeFeatures } from "@/lib/organization-settings/merge";
+import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { createClient } from "@/utils/supabase/client";
 
 type OrganizationSubmissionsPanelProps = {
@@ -59,19 +63,40 @@ export default function OrganizationSubmissionsPanel({
   const [ownerLinkedFamilyId, setOwnerLinkedFamilyId] = useState<string | null>(
     null,
   );
+  const [parentPortalEnabled, setParentPortalEnabled] = useState(false);
+  const [enrolledFamilyIds, setEnrolledFamilyIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [notificationsPreview, setNotificationsPreview] = useState<{
+    familyId: string;
+    familyLabel: string;
+  } | null>(null);
 
   const loadSubmissions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const [rows, loginResponse, ownerFamilyId] = await Promise.all([
+      const [rows, loginResponse, ownerFamilyId, settingsResult] =
+        await Promise.all([
         listOrgApplicationSubmissions(supabase, organizationId),
         fetch(`/api/admin/organizations/${organizationId}/parent-login-status`),
         findOwnerLinkedFamilyId(supabase, organizationId),
+        supabase
+          .from("organization_settings")
+          .select("features")
+          .eq("organization_id", organizationId)
+          .maybeSingle(),
       ]);
       setSubmissions(rows);
       setOwnerLinkedFamilyId(ownerFamilyId);
+      setParentPortalEnabled(
+        isParentPortalEnabled(
+          mergeFeatures(
+            settingsResult.data?.features as Record<string, unknown> | null,
+          ),
+        ),
+      );
 
       if (loginResponse.ok) {
         const loginBody = (await loginResponse.json()) as {
@@ -104,6 +129,31 @@ export default function OrganizationSubmissionsPanel({
       );
 
       setFamilyIdByApplicationId(Object.fromEntries(familyEntries));
+
+      const uniqueFamilyIds = [
+        ...new Set(
+          familyEntries
+            .map(([, familyId]) => familyId)
+            .filter((familyId): familyId is string => Boolean(familyId)),
+        ),
+      ];
+      const enrolledEntries = await Promise.all(
+        uniqueFamilyIds.map(async (familyId) => {
+          const enrolled = await familyHasEnrolledAccess(
+            supabase,
+            organizationId,
+            familyId,
+          );
+          return [familyId, enrolled] as const;
+        }),
+      );
+      setEnrolledFamilyIds(
+        new Set(
+          enrolledEntries
+            .filter(([, enrolled]) => enrolled)
+            .map(([familyId]) => familyId),
+        ),
+      );
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : "Failed to load submissions",
@@ -114,6 +164,8 @@ export default function OrganizationSubmissionsPanel({
       setGuardianSummary(null);
       setLoginStatusByGuardianId({});
       setOwnerLinkedFamilyId(null);
+      setEnrolledFamilyIds(new Set());
+      setParentPortalEnabled(false);
     } finally {
       setLoading(false);
     }
@@ -172,6 +224,10 @@ export default function OrganizationSubmissionsPanel({
 
                   const showAdminPreview =
                     familyId != null && familyId === ownerLinkedFamilyId;
+                  const showNotificationsPreview =
+                    familyId != null &&
+                    parentPortalEnabled &&
+                    enrolledFamilyIds.has(familyId);
 
                   return (
                     <tr
@@ -240,6 +296,25 @@ export default function OrganizationSubmissionsPanel({
                                 Admin
                               </a>
                             ) : null}
+                            {showNotificationsPreview ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setNotificationsPreview({
+                                    familyId,
+                                    familyLabel:
+                                      submission.guardianName ??
+                                      submission.contactEmail ??
+                                      "Family",
+                                  })
+                                }
+                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                title="Preview this family's parent notifications without marking them read"
+                              >
+                                <Bell className="h-3.5 w-3.5" />
+                                Notifications
+                              </button>
+                            ) : null}
                           </div>
                         ) : (
                           <span
@@ -264,6 +339,17 @@ export default function OrganizationSubmissionsPanel({
         <OrganizationGuardianAccessTable
           statuses={guardianStatuses}
           summary={guardianSummary}
+        />
+      ) : null}
+
+      {notificationsPreview ? (
+        <OrganizationFamilyNotificationsPanel
+          organizationId={organizationId}
+          organizationSlug={organizationSlug}
+          familyId={notificationsPreview.familyId}
+          familyLabel={notificationsPreview.familyLabel}
+          open
+          onClose={() => setNotificationsPreview(null)}
         />
       ) : null}
     </div>

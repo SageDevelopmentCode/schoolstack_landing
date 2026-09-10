@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import { ParentPortalContextProvider } from "@/components/school-parent/ParentPortalContextProvider";
@@ -18,12 +19,19 @@ import {
   isParentCurriculumPath,
   isParentHomePath,
   isParentMessagesPath,
+  parentDocumentationPath,
 } from "@/lib/organization-settings/parent-routes";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
 import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+
+const ParentActivityNotificationsPanel = dynamic(
+  () => import("@/components/school-parent/ParentActivityNotificationsPanel"),
+  { ssr: false },
+);
 
 export type SchoolParentEmbeddedPreview = {
   pathname: string;
@@ -46,6 +54,9 @@ type SchoolParentBaselineProps = {
   previewMode?: boolean;
   previewBasePath?: string;
   previewParentBasePath?: string;
+  previewFamilyId?: string;
+  initialActivityUnreadCount?: number;
+  notificationContext?: ParentNotificationContext;
   embeddedPreview?: SchoolParentEmbeddedPreview;
 };
 
@@ -73,11 +84,36 @@ function SchoolParentBaselineInner({
   previewMode = false,
   previewBasePath,
   previewParentBasePath,
+  previewFamilyId,
+  initialActivityUnreadCount,
+  notificationContext,
   embeddedPreview,
 }: SchoolParentBaselineProps) {
   const routerPathname = usePathname();
   const pathname = embeddedPreview?.pathname ?? routerPathname;
   const { theme, adminCompat: C } = useParentTheme();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [activityUnreadCount, setActivityUnreadCount] = useState(
+    initialActivityUnreadCount ?? 0,
+  );
+  const lastUnreadFetchRef = useRef(0);
+  const FOCUS_REFETCH_MS = 60_000;
+  const resolvedNavBasePath =
+    parentNavBasePath ??
+    previewParentBasePath ??
+    `/school/${slug}/parent`;
+  const resolvedApplyBasePath =
+    previewBasePath ?? `/school/${slug}/apply`;
+  const resolvedNotificationContext =
+    notificationContext ??
+    ({
+      mode: "main",
+      slug,
+      parentNavBasePath: resolvedNavBasePath,
+      applyBasePath: resolvedApplyBasePath,
+    } satisfies ParentNotificationContext);
+  const skipInitialUnreadFetch =
+    !previewMode && initialActivityUnreadCount != null;
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
     isMessagesPage ||
@@ -88,6 +124,67 @@ function SchoolParentBaselineInner({
     isParentHelpPage(pathname, slug) &&
     !isMessagesPage &&
     !isParentHomePath(pathname);
+  const documentationHref = parentDocumentationPath(slug, {
+    previewBasePath,
+    parentNavBasePath,
+  });
+
+  const fetchActivityUnreadCount = useCallback(async () => {
+    if (previewMode) return;
+    try {
+      const params = new URLSearchParams({
+        organizationId,
+        slug,
+        mode: resolvedNotificationContext.mode,
+        parentNavBasePath: resolvedNotificationContext.parentNavBasePath,
+        applyBasePath: resolvedNotificationContext.applyBasePath,
+      });
+      if (resolvedNotificationContext.mode === "program") {
+        params.set("programId", resolvedNotificationContext.programId);
+        params.set("programSlug", resolvedNotificationContext.programSlug);
+        params.set(
+          "coopModeEnabled",
+          resolvedNotificationContext.coopModeEnabled ? "true" : "false",
+        );
+      }
+      const response = await fetch(
+        `/api/parent-portal/activity-notifications/unread-count?${params.toString()}`,
+      );
+      if (!response.ok) return;
+      const payload = (await response.json()) as { unreadCount?: number };
+      setActivityUnreadCount(payload.unreadCount ?? 0);
+      lastUnreadFetchRef.current = Date.now();
+    } catch {
+      // ignore transient fetch errors
+    }
+  }, [
+    organizationId,
+    previewMode,
+    resolvedNotificationContext,
+    slug,
+  ]);
+
+  useEffect(() => {
+    if (previewMode || skipInitialUnreadFetch) return;
+    queueMicrotask(() => {
+      void fetchActivityUnreadCount();
+    });
+  }, [fetchActivityUnreadCount, previewMode, skipInitialUnreadFetch]);
+
+  useEffect(() => {
+    if (previewMode) return;
+    const handleFocus = () => {
+      if (Date.now() - lastUnreadFetchRef.current < FOCUS_REFETCH_MS) return;
+      void fetchActivityUnreadCount();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchActivityUnreadCount, previewMode]);
+
+  const openNotifications = useCallback(() => {
+    setNotificationsOpen(true);
+  }, []);
 
   const shell = (
     <ParentPortalContextProvider
@@ -129,6 +226,8 @@ function SchoolParentBaselineInner({
           embeddedPreview={embeddedPreview}
           coopModeEnabled={coopModeEnabled}
           coopProgramLabel={coopProgramLabel}
+          activityUnreadCount={activityUnreadCount}
+          onOpenNotifications={openNotifications}
         />
 
         <main
@@ -148,10 +247,25 @@ function SchoolParentBaselineInner({
           submitEndpoint="/api/parent-portal/support-requests"
           visible={showHelpButton}
           readOnly={previewMode}
+          documentationHref={documentationHref}
           iconOnly={isParentCurriculumPath(pathname)}
         />
 
         <ParentToaster C={C} helpButtonVisible={showHelpButton} />
+
+        <ParentActivityNotificationsPanel
+          open={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+          organizationId={organizationId}
+          slug={slug}
+          notificationContext={resolvedNotificationContext}
+          parentNavBasePath={resolvedNavBasePath}
+          applyBasePath={resolvedApplyBasePath}
+          previewMode={previewMode}
+          previewFamilyId={previewFamilyId}
+          onMarkedRead={() => setActivityUnreadCount(0)}
+          onNavigate={embeddedPreview?.onNavigate}
+        />
       </div>
     </ParentPortalContextProvider>
   );

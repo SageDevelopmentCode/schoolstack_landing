@@ -10,6 +10,9 @@ import {
 } from "@/lib/admissions/program-parent-portal-access";
 import { programParentPortalHasEnabledFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
+import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
@@ -84,6 +87,25 @@ export default async function SchoolProgramParentLayout({
     }),
   ]);
 
+  const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
+  const familyId = familyIds[0];
+  const notificationContext = buildProgramParentNotificationContext(
+    slug,
+    programContext.programId,
+    programSlug,
+    programContext.coopMode,
+    { parentNavBasePath: programContext.parentNavBasePath },
+  );
+  const initialActivityUnreadCount = familyId
+    ? await getParentPortalActivityUnreadCount(supabase, {
+        organizationId: org.id,
+        slug,
+        familyId,
+        userId: user.id,
+        notificationContext,
+      })
+    : 0;
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -97,6 +119,8 @@ export default async function SchoolProgramParentLayout({
       parentNavBasePath={programContext.parentNavBasePath}
       coopModeEnabled={programContext.coopMode}
       coopProgramLabel={programContext.displayLabel}
+      initialActivityUnreadCount={initialActivityUnreadCount}
+      notificationContext={notificationContext}
     >
       {children}
     </SchoolParentBaseline>
