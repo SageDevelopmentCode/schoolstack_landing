@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Plus, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import {
   areCoopSupplyItemsEqual,
   buildSupplyRangePrice,
@@ -13,7 +14,6 @@ import {
   COOP_SUPPLY_MAX_ASSIGNED_FAMILIES,
   COOP_SUPPLY_MONTH_OPTIONS,
   formatSupplyEstimatedPrice,
-  normalizeSupplyFamilyName,
   formatSupplyQuantity,
   SUPPLY_ITEM_TYPE_OPTIONS,
   SUPPLY_USAGE_TIMING_OPTIONS,
@@ -38,10 +38,14 @@ import { BuilderQuestionCard } from "./builder-question-card";
 type CoopSupplyListItemDetailPanelProps = {
   item: CoopSupplyListItem;
   colorLegend: ReadonlyArray<CoopSupplyColorLegendEntry>;
+  enrolledFamilies: ReadonlyArray<ProgramCoopFamily>;
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   onClose: () => void;
-  onSave: (item: CoopSupplyListItem) => void | Promise<void>;
+  onSave: (
+    item: CoopSupplyListItem,
+    meta: { savedBaseline: CoopSupplyListItem },
+  ) => CoopSupplyListItem | void | Promise<CoopSupplyListItem | void>;
   onRemove: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   canRemove: boolean;
@@ -64,6 +68,7 @@ function controlStyle(C: AdminThemeTokens): React.CSSProperties {
 export default function CoopSupplyListItemDetailPanel({
   item,
   colorLegend,
+  enrolledFamilies,
   C,
   theme,
   onClose,
@@ -77,14 +82,14 @@ export default function CoopSupplyListItemDetailPanel({
   const [prevItem, setPrevItem] = useState(item);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
-  const [familyNameDraft, setFamilyNameDraft] = useState("");
+  const [familyIdDraft, setFamilyIdDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
   if (item !== prevItem) {
     setPrevItem(item);
     setDraftItem({ ...item });
     setSavedItem({ ...item });
-    setFamilyNameDraft("");
+    setFamilyIdDraft("");
   }
 
   const isDirty = useMemo(
@@ -129,22 +134,35 @@ export default function CoopSupplyListItemDetailPanel({
     setDraftItem((current) => ({ ...current, ...patch }));
   };
 
-  const atFamilyLimit = draftItem.assignedFamilies.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
+  const familyNameById = useMemo(
+    () => new Map(enrolledFamilies.map((family) => [family.familyId, family.familyName])),
+    [enrolledFamilies],
+  );
+
+  const familyPickerOptions = useMemo(
+    () =>
+      enrolledFamilies.map((family) => ({
+        value: family.familyId,
+        label: family.familyName,
+      })),
+    [enrolledFamilies],
+  );
+
+  const atFamilyLimit = draftItem.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
 
   const addAssignedFamily = () => {
-    if (!canAddSupplyAssignedFamily(draftItem.assignedFamilies, familyNameDraft)) {
+    if (!canAddSupplyAssignedFamily(draftItem.assignedFamilyIds, familyIdDraft)) {
       return;
     }
-    const normalized = normalizeSupplyFamilyName(familyNameDraft);
     updateDraft({
-      assignedFamilies: [...draftItem.assignedFamilies, normalized],
+      assignedFamilyIds: [...draftItem.assignedFamilyIds, familyIdDraft],
     });
-    setFamilyNameDraft("");
+    setFamilyIdDraft("");
   };
 
-  const removeAssignedFamily = (familyName: string) => {
+  const removeAssignedFamily = (familyId: string) => {
     updateDraft({
-      assignedFamilies: draftItem.assignedFamilies.filter((family) => family !== familyName),
+      assignedFamilyIds: draftItem.assignedFamilyIds.filter((id) => id !== familyId),
     });
   };
 
@@ -166,8 +184,10 @@ export default function CoopSupplyListItemDetailPanel({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(draftItem);
-      setSavedItem({ ...draftItem });
+      const persisted = await onSave(draftItem, { savedBaseline: savedItem });
+      const nextItem = persisted ?? draftItem;
+      setDraftItem({ ...nextItem });
+      setSavedItem({ ...nextItem });
       adminToast.success("Supply item saved");
     } catch {
       // Parent surfaces persistence errors.
@@ -539,14 +559,16 @@ export default function CoopSupplyListItemDetailPanel({
                 C={C}
                 tone="accent"
                 question="Which families are signed up to provide this?"
-                helper="Add up to 5 family names. Leave empty until a parent claims it."
+                helper="Add up to 5 enrolled families. Leave empty until a parent claims it."
               >
                 <div className="space-y-3">
-                  {draftItem.assignedFamilies.length > 0 ? (
+                  {draftItem.assignedFamilyIds.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {draftItem.assignedFamilies.map((familyName) => (
+                      {draftItem.assignedFamilyIds.map((familyId) => {
+                        const familyName = familyNameById.get(familyId) ?? "Unknown family";
+                        return (
                         <span
-                          key={familyName}
+                          key={familyId}
                           className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium"
                           style={{
                             borderColor: C.border,
@@ -557,7 +579,7 @@ export default function CoopSupplyListItemDetailPanel({
                           {familyName}
                           <button
                             type="button"
-                            onClick={() => removeAssignedFamily(familyName)}
+                            onClick={() => removeAssignedFamily(familyId)}
                             className="inline-flex rounded p-0.5 transition-colors hover:opacity-70"
                             style={{ color: C.textTertiary }}
                             aria-label={`Remove ${familyName}`}
@@ -565,25 +587,25 @@ export default function CoopSupplyListItemDetailPanel({
                             <X className="h-3.5 w-3.5" />
                           </button>
                         </span>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : null}
 
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                    <input
-                      type="text"
-                      value={familyNameDraft}
-                      onChange={(event) => setFamilyNameDraft(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addAssignedFamily();
-                        }
-                      }}
-                      placeholder="Family name"
-                      disabled={atFamilyLimit}
+                    <SchoolAdminSelect
+                      value={familyIdDraft}
+                      onChange={setFamilyIdDraft}
+                      options={[
+                        { value: "", label: "Select a family" },
+                        ...familyPickerOptions.filter(
+                          (option) => !draftItem.assignedFamilyIds.includes(option.value),
+                        ),
+                      ]}
+                      disabled={atFamilyLimit || familyPickerOptions.length === 0}
+                      ariaLabel="Select enrolled family"
+                      C={C}
                       className="sm:flex-1"
-                      style={controlStyle(C)}
                     />
                     <button
                       type="button"
@@ -591,8 +613,8 @@ export default function CoopSupplyListItemDetailPanel({
                       disabled={
                         atFamilyLimit ||
                         !canAddSupplyAssignedFamily(
-                          draftItem.assignedFamilies,
-                          familyNameDraft,
+                          draftItem.assignedFamilyIds,
+                          familyIdDraft,
                         )
                       }
                       className="inline-flex shrink-0 items-center justify-center gap-1 px-3 py-2 text-xs font-medium disabled:opacity-50"

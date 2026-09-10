@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyHomepageQuestion } from "@/lib/discord";
 import { sendHomepageQuestionConfirmation } from "@/lib/emails";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/homepage-questions";
@@ -63,16 +65,26 @@ export async function POST(request: Request) {
     });
   }
 
+  const admin = createAdminClient();
+
   try {
     await notifyHomepageQuestion({ name, email, message });
   } catch (err) {
-    console.error("Discord notification error:", err);
+    void logNotificationFailure(admin, {
+      operation: "homepage_question_discord",
+      error: err,
+      metadata: { email },
+    });
   }
 
   try {
     await sendHomepageQuestionConfirmation({ name, email });
   } catch (err) {
-    console.error("Confirmation email error:", err);
+    void logNotificationFailure(admin, {
+      operation: "homepage_question_confirmation_email",
+      error: err,
+      metadata: { email },
+    });
   }
 
   return NextResponse.json({ ok: true });

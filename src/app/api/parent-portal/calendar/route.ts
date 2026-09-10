@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { userHasAccessForOptionalProgramScope } from "@/lib/admissions/program-parent-portal-access";
 import { getOrganizationTimezone } from "@/lib/admissions/admissions-availability";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { listEventsForOrg } from "@/lib/school-events/events";
@@ -54,7 +54,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    const hasAccess = await userHasAccessForOptionalProgramScope(
+      supabase,
+      user.id,
+      organizationId,
+      programId,
+    );
     if (!hasAccess) {
       return apiError(ROUTE, {
         request,

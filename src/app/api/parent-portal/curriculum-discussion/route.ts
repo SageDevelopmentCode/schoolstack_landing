@@ -5,7 +5,7 @@ import {
   postProgramCoopCurriculumDiscussionMessage,
   validateProgramCoopCurriculumDiscussionBody,
 } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { userHasAccessForProgramPortal } from "@/lib/admissions/program-parent-portal-access";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { getFamilyIdsForUser } from "@/lib/messages/api-helpers";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -43,7 +43,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    const hasAccess = await userHasAccessForProgramPortal(
+      supabase,
+      user.id,
+      organizationId,
+      programId,
+    );
     if (!hasAccess) {
       return apiError(ROUTE, {
         request,
@@ -120,7 +125,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    const hasAccess = await userHasAccessForProgramPortal(
+      supabase,
+      user.id,
+      organizationId,
+      programId,
+    );
     if (!hasAccess) {
       return apiError(ROUTE, {
         request,

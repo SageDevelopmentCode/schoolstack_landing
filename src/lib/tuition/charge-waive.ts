@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
-import { getChargeById, updateChargeStatus } from "./charges";
+import {
+  ChargeStatusConflictError,
+  getChargeById,
+  updateChargeStatusIf,
+} from "./charges";
 import {
   ChargeWaiveError,
   filterLateFeesLinkedToSourceCharge,
@@ -59,11 +63,43 @@ export async function waiveCharge(
     );
 
     for (const lateFeeId of cascadedLateFeeIds) {
-      await updateChargeStatus(supabase, lateFeeId, "waived");
+      try {
+        await updateChargeStatusIf(supabase, lateFeeId, {
+          fromStatuses: ["scheduled", "sent", "overdue"],
+          toStatus: "waived",
+        });
+      } catch (error) {
+        if (error instanceof ChargeStatusConflictError) {
+          throw new ChargeWaiveError(
+            "A linked late fee was updated before it could be waived. Refresh and try again.",
+            409,
+            "status_conflict",
+          );
+        }
+        throw error;
+      }
     }
   }
 
-  const waived = await updateChargeStatus(supabase, chargeId, "waived");
+  let waived: TuitionCharge;
+  try {
+    waived = await updateChargeStatusIf(supabase, chargeId, {
+      fromStatuses:
+        charge.chargeType === "tuition"
+          ? ["overdue"]
+          : ["scheduled", "sent", "overdue"],
+      toStatus: "waived",
+    });
+  } catch (error) {
+    if (error instanceof ChargeStatusConflictError) {
+      throw new ChargeWaiveError(
+        "This charge was updated before it could be waived. Refresh and try again.",
+        409,
+        "status_conflict",
+      );
+    }
+    throw error;
+  }
 
   if (!options?.skip) {
     const cascadeNote =

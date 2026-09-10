@@ -182,7 +182,6 @@ export async function POST(request: Request) {
           lastName: lastName ?? body.lastName,
         });
       } catch (discordError) {
-        console.error("applicant-bootstrap Discord notify failed:", discordError);
         await logNotificationFailure(admin, {
           organizationId,
           operation: "parent_application_started_discord",

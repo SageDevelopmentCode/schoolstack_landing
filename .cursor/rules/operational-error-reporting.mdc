@@ -1,0 +1,51 @@
+---
+description: Report 5xx and unexpected server failures to activity_events and Discord via reportOperationalError
+alwaysApply: true
+---
+
+# Operational error reporting
+
+When server code handles an **unexpected failure** (5xx, thrown errors, notification pipeline failures), route it through the shared reporting pipeline so it is recorded in `activity_events` and the team is notified in Discord.
+
+## Use the right entry point
+
+| Context | Use |
+|---------|-----|
+| API route handler | `apiError(ROUTE, { request, status: 500, error, code, cause })` from `@/lib/api/route-errors` |
+| Cron, webhook handler, lib helper | `reportOperationalError(...)` from `@/lib/operational-errors` |
+| Client-side (apply flow) | `reportPublicApplyOperationalError(...)` from `@/lib/operational-errors-client` |
+| Client-side (school admin) | `reportClientOperationalError(...)` from `@/lib/operational-errors-client` |
+| Enrollment checklist API failures | `reportEnrollmentChecklistItemApiFailure(...)` |
+| Email/Discord notification failures | `logNotificationFailure(...)` from `@/lib/admissions/notification-logging` |
+
+## Rules
+
+1. **Never** return raw `NextResponse.json(..., { status: 500 })` for server failures — use `apiError`.
+2. **Never** call `notifyWebsiteApiError` or `notifySchoolAdminOperationError` directly — go through `reportOperationalError` so `activity_events` stays consistent.
+3. **Do not** Discord-notify expected **4xx** (auth, validation, not-found). `apiError` only reports 5xx by default; pass `notify: true` only for exceptional 4xx (e.g. Stripe webhook signature failures).
+4. **Do not** use bare `console.error` for operational failures in API routes or server libs — use `reportOperationalError` or a domain wrapper above.
+5. Secondary failures (Discord/email failed after the main action succeeded) still warrant `reportOperationalError` or `logNotificationFailure` — they are ops-visible but non-fatal to the user response.
+
+## `reportOperationalError` shape (server)
+
+```ts
+await reportOperationalError({
+  supabase: createAdminClient(), // or request-scoped client when org context exists
+  surface: "api" | "school_admin" | "parent_portal" | "system" | ...,
+  operation: "descriptive_operation_name",
+  error: "Human-readable message",
+  code: "optional_code",
+  organizationId, organizationName, organizationSlug, // when known
+  entityType, entityId, // when relevant
+  notify: true, // default; set false only when intentionally silent
+  actor: { type: "system" | "parent" | "school_admin", userId, email },
+  cause: err,
+  api: { route, method, status, stack, digest }, // API routes only → Discord uses notifyWebsiteApiError
+});
+```
+
+## What gets recorded
+
+- **activity_events**: `api.error` (API surface) or `admin.operation_failed` / domain action (e.g. `notification.failed`)
+- **Discord**: `notifyWebsiteApiError` for `api` context; `notifySchoolAdminOperationError` otherwise
+- **Sentry**: automatic via `reportOperationalError`

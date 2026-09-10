@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { notifyParentPortalFeedback } from "@/lib/discord";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/feedback";
@@ -160,7 +162,12 @@ export async function POST(request: Request) {
       pagePath,
     });
   } catch (err) {
-    console.error("Discord notification error:", err);
+    void logNotificationFailure(createAdminClient(), {
+      organizationId,
+      operation: "parent_portal_feedback_discord",
+      error: err,
+      metadata: { schoolSlug, featureKey },
+    });
   }
 
   return NextResponse.json({ ok: true });

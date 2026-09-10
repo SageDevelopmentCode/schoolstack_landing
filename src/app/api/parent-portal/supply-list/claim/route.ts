@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { claimProgramCoopSupplyItemForParent } from "@/lib/admissions/program-coop-supply-list-claim";
+import { ProgramCoopSignupConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -51,6 +52,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ item });
   } catch (err) {
+    if (err instanceof ProgramCoopSignupConflictError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
     const message = err instanceof Error ? err.message : "Failed to sign up for item.";
     const status =
       message.includes("access") || message.includes("not signed up")

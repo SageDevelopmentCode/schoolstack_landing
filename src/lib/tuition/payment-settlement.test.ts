@@ -259,36 +259,60 @@ describe("settleTuitionPayment", () => {
             return builder;
           },
           update(patch: Record<string, unknown>) {
-            return {
+            const updateFilters: Record<string, unknown> = {};
+            const updateBuilder = {
               eq(column: string, value: unknown) {
-                if (table === "tuition_charges" && column === "id") {
-                  const charge = charges.find((row) => row.id === value);
-                  if (charge) Object.assign(charge, patch);
-                }
-                return {
-                  select() {
-                    return {
-                      async single() {
-                        const charge = charges.find((row) => row.id === value);
-                        return { data: charge, error: null };
-                      },
-                    };
-                  },
-                };
+                updateFilters[column] = value;
+                return updateBuilder;
               },
-              in(column: string, ids: unknown[]) {
-                if (table === "tuition_charges" && column === "id") {
-                  for (const id of ids) {
+              in(column: string, values: unknown[]) {
+                updateFilters[`${column}__in`] = values;
+                return updateBuilder;
+              },
+              select() {
+                return updateBuilder;
+              },
+              async maybeSingle() {
+                if (table !== "tuition_charges" || !updateFilters.id) {
+                  return { data: null, error: null };
+                }
+                const charge = charges.find((row) => row.id === updateFilters.id);
+                if (!charge) {
+                  return { data: null, error: null };
+                }
+                const statusIn = updateFilters.status__in;
+                if (
+                  Array.isArray(statusIn) &&
+                  !statusIn.includes(charge.status)
+                ) {
+                  return { data: null, error: null };
+                }
+                Object.assign(charge, patch);
+                return { data: charge, error: null };
+              },
+              async single() {
+                const result = await updateBuilder.maybeSingle();
+                return result;
+              },
+              then(
+                resolve: (value: { error: null }) => void,
+                reject?: (reason?: unknown) => void,
+              ) {
+                if (table === "tuition_charges" && Array.isArray(updateFilters.id__in)) {
+                  for (const id of updateFilters.id__in as unknown[]) {
                     const charge = charges.find((row) => row.id === id);
                     if (charge) {
                       Object.assign(charge, patch);
                       voidedLateFeeIds.push(String(id));
                     }
                   }
+                  resolve({ error: null });
+                  return;
                 }
-                return Promise.resolve({ error: null });
+                void updateBuilder.maybeSingle().then(resolve, reject);
               },
             };
+            return updateBuilder;
           },
           maybeSingle: async () => {
             if (table === "tuition_charges" && filters.id) {

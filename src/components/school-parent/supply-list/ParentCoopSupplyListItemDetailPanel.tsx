@@ -29,7 +29,8 @@ type ParentCoopSupplyListItemDetailPanelProps = {
   item: CoopSupplyListItem;
   colorLegend: ReadonlyArray<CoopSupplyColorLegendEntry>;
   theme: ParentThemeTokens;
-  currentParentName: string;
+  currentFamilyId: string;
+  familyNameMap: ReadonlyMap<string, string>;
   previewMode?: boolean;
   pendingAction: { itemId: string; type: "claim" | "unclaim" } | null;
   onClose: () => void;
@@ -70,7 +71,8 @@ export default function ParentCoopSupplyListItemDetailPanel({
   item,
   colorLegend,
   theme,
-  currentParentName,
+  currentFamilyId,
+  familyNameMap,
   previewMode = false,
   pendingAction,
   onClose,
@@ -79,8 +81,8 @@ export default function ParentCoopSupplyListItemDetailPanel({
 }: ParentCoopSupplyListItemDetailPanelProps) {
   const titleId = "parent-supply-item-detail-title";
   const colorEntry = getSupplyColorLegendEntry(colorLegend, item.colorId);
-  const isSignedUp = isSupplyFamilyAssigned(item.assignedFamilies, currentParentName);
-  const isFull = item.assignedFamilies.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
+  const isSignedUp = isSupplyFamilyAssigned(item.assignedFamilyIds, currentFamilyId);
+  const isFull = item.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
   const isPending = pendingAction?.itemId === item.id;
   const pendingType = pendingAction?.type;
 
@@ -188,8 +190,8 @@ export default function ParentCoopSupplyListItemDetailPanel({
                 )}
               </DetailRow>
               <DetailRow label="Signed up families" theme={theme}>
-                {item.assignedFamilies.length > 0
-                  ? formatSupplyAssignedFamilies(item.assignedFamilies)
+                {item.assignedFamilyIds.length > 0
+                  ? formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNameMap)
                   : "No sign-ups yet"}
               </DetailRow>
             </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { ProgramCoopSignupConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import { signupProgramCoopTeachingScheduleForParent } from "@/lib/admissions/program-coop-teaching-schedule-signup";
 import type { TeachingScheduleParentRole } from "@/lib/admissions/program-coop-teaching-schedule-mock";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -60,6 +61,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ week });
   } catch (err) {
+    if (err instanceof ProgramCoopSignupConflictError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
     const message = err instanceof Error ? err.message : "Failed to sign up for teaching week.";
     const status =
       message.includes("access") || message.includes("not signed up")

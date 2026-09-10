@@ -55,6 +55,10 @@ import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import {
+  buildProgramCoopFamilyNameMap,
+  resolveEnrolledFamilyForProgram,
+} from "@/lib/admissions/program-coop-family-assignments";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
@@ -471,7 +475,11 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
-    const { items, colorLegend } = await listProgramCoopSupplyList(supabase, programId);
+    const [{ items, colorLegend }, enrolledFamily, familyNameMap] = await Promise.all([
+      listProgramCoopSupplyList(supabase, programId),
+      resolveEnrolledFamilyForProgram(supabase, user.id, org.id, programId),
+      buildProgramCoopFamilyNameMap(supabase, org.id, programId),
+    ]);
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">
@@ -480,7 +488,9 @@ export async function renderSchoolParentFeaturePage(
           programId={programId}
           initialItems={items}
           initialLegend={colorLegend}
-          currentParentName={userProfile.displayName}
+          currentFamilyId={enrolledFamily.familyId}
+          currentFamilyLabel={enrolledFamily.familyName}
+          familyNameMap={Object.fromEntries(familyNameMap)}
         />
       </SchoolParentPageShell>
     );
@@ -491,7 +501,11 @@ export async function renderSchoolParentFeaturePage(
       notFound();
     }
 
-    const weeks = await listProgramCoopTeachingSchedule(supabase, programId);
+    const [weeks, enrolledFamily, familyNameMap] = await Promise.all([
+      listProgramCoopTeachingSchedule(supabase, programId),
+      resolveEnrolledFamilyForProgram(supabase, user.id, org.id, programId),
+      buildProgramCoopFamilyNameMap(supabase, org.id, programId),
+    ]);
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">
@@ -499,7 +513,9 @@ export async function renderSchoolParentFeaturePage(
           organizationId={org.id}
           programId={programId}
           initialWeeks={weeks}
-          currentParentName={userProfile.displayName}
+          currentFamilyId={enrolledFamily.familyId}
+          currentFamilyLabel={enrolledFamily.familyName}
+          familyNameMap={Object.fromEntries(familyNameMap)}
         />
       </SchoolParentPageShell>
     );

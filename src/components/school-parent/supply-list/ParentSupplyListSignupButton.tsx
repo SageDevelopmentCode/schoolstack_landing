@@ -17,7 +17,7 @@ export type ParentSupplyListPendingAction = {
 type ParentSupplyListSignupButtonProps = {
   theme: ParentThemeTokens;
   item: CoopSupplyListItem;
-  currentParentName: string;
+  currentFamilyId: string;
   previewMode?: boolean;
   pendingAction: ParentSupplyListPendingAction | null;
   onSignUp: () => void;
@@ -29,14 +29,14 @@ const compactButtonClass = "px-3 py-1.5 text-xs whitespace-nowrap";
 export default function ParentSupplyListSignupButton({
   theme,
   item,
-  currentParentName,
+  currentFamilyId,
   previewMode = false,
   pendingAction,
   onSignUp,
   className = "",
 }: ParentSupplyListSignupButtonProps) {
-  const isSignedUp = isSupplyFamilyAssigned(item.assignedFamilies, currentParentName);
-  const isFull = item.assignedFamilies.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
+  const isSignedUp = isSupplyFamilyAssigned(item.assignedFamilyIds, currentFamilyId);
+  const isFull = item.assignedFamilyIds.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
   const isPendingClaim =
     pendingAction?.itemId === item.id && pendingAction.type === "claim";
 

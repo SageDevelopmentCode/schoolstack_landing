@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate } from "@/lib/demo-scheduler";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/demo-requests";
@@ -198,7 +200,11 @@ export async function POST(request: Request) {
       scheduledTime,
     });
   } catch (err) {
-    console.error("Discord notification error:", err);
+    void logNotificationFailure(createAdminClient(), {
+      operation: "demo_booking_discord",
+      error: err,
+      metadata: { email, schoolName },
+    });
   }
 
   try {
@@ -210,7 +216,11 @@ export async function POST(request: Request) {
       scheduledTime,
     });
   } catch (err) {
-    console.error("Confirmation email error:", err);
+    void logNotificationFailure(createAdminClient(), {
+      operation: "demo_booking_confirmation_email",
+      error: err,
+      metadata: { email, schoolName },
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -1,10 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargeRemainingCents } from "./billing-splits";
-import { getChargeById } from "./charges";
+import { ChargeStatusConflictError, getChargeById } from "./charges";
 import { rowToCharge } from "./row-mappers";
 import type { TuitionBillingAccountMetadata, TuitionCharge } from "./types";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
+const SETTLEABLE_CHARGE_STATUSES = ["scheduled", "sent", "overdue"] as const;
 const OPEN_LATE_FEE_STATUSES = ["scheduled", "sent", "overdue"] as const;
 
 export function billingPeriodFromDueDate(dueDate: string): {
@@ -325,6 +326,12 @@ export async function settleTuitionPayment(
     };
   }
 
+  if (!OPEN_CHARGE_STATUSES.has(charge.status)) {
+    throw new ChargeStatusConflictError(
+      `Charge cannot be settled while status is ${charge.status}.`,
+    );
+  }
+
   const appliedCents = Math.min(input.amountCents, remainingCents);
   const surplusCents = Math.max(0, input.amountCents - remainingCents);
   const nextPaidCents = charge.paidCents + appliedCents;
@@ -343,10 +350,29 @@ export async function settleTuitionPayment(
     .from("tuition_charges")
     .update(patch)
     .eq("id", charge.id)
+    .in("status", [...SETTLEABLE_CHARGE_STATUSES])
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw updateError;
+
+  if (!updatedRow) {
+    const current = await getChargeById(supabase, charge.id);
+    if (!current) {
+      throw new Error("Charge not found.");
+    }
+    if (chargeRemainingCents(current) <= 0) {
+      return {
+        charge: current,
+        appliedCents: 0,
+        surplusCents: input.amountCents,
+        redistributed: false,
+      };
+    }
+    throw new ChargeStatusConflictError(
+      `Charge status changed to ${current.status} before settlement.`,
+    );
+  }
 
   const settledCharge = rowToCharge(updatedRow);
 

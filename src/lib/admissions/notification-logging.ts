@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 export async function logNotificationFailure(
   supabase: SupabaseClient,
@@ -15,20 +16,20 @@ export async function logNotificationFailure(
   const errorMessage =
     input.error instanceof Error ? input.error.message : String(input.error);
 
-  void logActivityEvent(supabase, {
-    organizationId: input.organizationId,
-    actorType: "system",
+  await reportOperationalError({
+    supabase,
     surface: "system",
     action: ACTIVITY_ACTIONS.NOTIFICATION_FAILED,
+    organizationId: input.organizationId,
+    operation: input.operation,
+    error: errorMessage,
     entityType: input.entityType,
     entityId: input.entityId,
-    summary: `${input.operation} failed: ${errorMessage}`,
+    metadata: input.metadata,
+    notify: true,
     severity: "warning",
-    metadata: {
-      operation: input.operation,
-      error: errorMessage,
-      ...(input.metadata ?? {}),
-    },
+    actor: { type: "system" },
+    cause: input.error,
   });
 }
 

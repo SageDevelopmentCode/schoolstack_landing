@@ -29,7 +29,6 @@ import {
   COOP_TEACHING_WEEK_SCHEDULED_ACTION,
   COOP_TEACHING_WEEK_UPDATED_ACTION,
   fetchCoopProgramNotifications,
-  fetchFamilyParentDisplayNames,
 } from "@/lib/parent-portal/parent-coop-notifications";
 import {
   buildMainParentNotificationContext,
@@ -1240,12 +1239,6 @@ async function buildParentActivityNotificationsPageForContext(
     applyBasePath: context.applyBasePath,
   };
 
-  const parentNames = await fetchFamilyParentDisplayNames(
-    supabase,
-    familyId,
-    organizationId,
-  );
-
   const activityPromise = fetchActivityNotificationsForPage(
     supabase,
     organizationId,
@@ -1282,7 +1275,6 @@ async function buildParentActivityNotificationsPageForContext(
           supabase,
           context,
           familyId,
-          parentNames,
           rangeStart,
           pageFetch,
         ),
@@ -1339,7 +1331,6 @@ async function buildParentActivityNotificationsPageForContext(
         supabase,
         programContext,
         familyId,
-        parentNames,
         rangeStart,
         pageFetch,
       ),
@@ -1524,12 +1515,6 @@ async function buildParentActivityNotificationsForContext(
     ),
   );
 
-  const parentNames = await fetchFamilyParentDisplayNames(
-    supabase,
-    familyId,
-    organizationId,
-  );
-
   if (context.mode === "program") {
     const bulletinScope = parentProgramPortalBulletinScope(context.programId);
     const [bulletinNotifications, calendarNotifications, coopNotifications] =
@@ -1554,7 +1539,6 @@ async function buildParentActivityNotificationsForContext(
           supabase,
           context,
           familyId,
-          parentNames,
           rangeStart,
         ),
       ]);
@@ -1584,7 +1568,6 @@ async function buildParentActivityNotificationsForContext(
         supabase,
         programContext,
         familyId,
-        parentNames,
         rangeStart,
       ),
     ),

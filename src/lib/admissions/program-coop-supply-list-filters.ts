@@ -43,7 +43,7 @@ export const DEFAULT_COOP_SUPPLY_LIST_FILTERS: CoopSupplyListFilters = {
 };
 
 export type CoopSupplyListFilterContext =
-  | { variant: "parent"; currentParentName: string }
+  | { variant: "parent"; currentFamilyId: string }
   | { variant: "admin" };
 
 function matchesSearch(item: CoopSupplyListItem, search: string): boolean {
@@ -66,14 +66,14 @@ function matchesAssignment(
   assignment: CoopSupplyListFilters["assignment"],
   context: CoopSupplyListFilterContext,
 ): boolean {
-  const assignedCount = item.assignedFamilies.length;
+  const assignedCount = item.assignedFamilyIds.length;
   const isFull = assignedCount >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES;
   const hasSignups = assignedCount > 0;
 
   if (context.variant === "parent") {
     const isMine = isSupplyFamilyAssigned(
-      item.assignedFamilies,
-      context.currentParentName,
+      item.assignedFamilyIds,
+      context.currentFamilyId,
     );
     switch (assignment as CoopSupplyListAssignmentFilterParent) {
       case "all":

@@ -4,6 +4,7 @@ import {
   getProgramCoopCurriculumById,
   PROGRAM_COOP_CURRICULUM_BUCKET,
 } from "@/lib/admissions/program-coop-curriculum-storage";
+import { userHasAccessForProgramPortal } from "@/lib/admissions/program-parent-portal-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/curriculum/pdf";
@@ -43,6 +44,21 @@ export async function GET(request: Request) {
   }
 
   try {
+    const hasAccess = await userHasAccessForProgramPortal(
+      supabase,
+      user.id,
+      organizationId,
+      programId,
+    );
+    if (!hasAccess) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have access to this curriculum.",
+        code: "forbidden",
+      });
+    }
+
     const curriculum = await getProgramCoopCurriculumById(supabase, curriculumId);
 
     if (

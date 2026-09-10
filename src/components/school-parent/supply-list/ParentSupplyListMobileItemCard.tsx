@@ -21,7 +21,7 @@ type ParentSupplyListMobileItemCardProps = {
   item: CoopSupplyListItem;
   theme: ParentThemeTokens;
   rowStyle: Pick<CSSProperties, "backgroundColor" | "borderLeft">;
-  currentParentName: string;
+  currentFamilyId: string;
   previewMode?: boolean;
   pendingAction: ParentSupplyListPendingAction | null;
   isSelected: boolean;
@@ -38,7 +38,7 @@ export default function ParentSupplyListMobileItemCard({
   item,
   theme,
   rowStyle,
-  currentParentName,
+  currentFamilyId,
   previewMode = false,
   pendingAction,
   isSelected,
@@ -84,7 +84,7 @@ export default function ParentSupplyListMobileItemCard({
         <ParentSupplyListSignupButton
           theme={theme}
           item={item}
-          currentParentName={currentParentName}
+          currentFamilyId={currentFamilyId}
           previewMode={previewMode}
           pendingAction={pendingAction}
           onSignUp={onSignUp}

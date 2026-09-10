@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { getSiteUrl, getStripeClient } from "@/lib/stripe/client";
 import {
   getOrganizationPaymentAccount,
@@ -42,7 +43,19 @@ export async function GET(request: Request) {
     const redirectUrl = `${getSiteUrl()}${schoolAdminPath(orgSlug, "admissions", "payments")}?connected=1`;
     return NextResponse.redirect(redirectUrl);
   } catch (error) {
-    console.error("stripe connect return failed:", error);
+    const admin = createAdminClient();
+    void reportOperationalError({
+      supabase: admin,
+      surface: "school_admin",
+      organizationId,
+      operation: "stripe_connect_return",
+      error:
+        error instanceof Error ? error.message : "Stripe Connect return failed.",
+      notify: true,
+      actor: { type: "system" },
+      cause: error,
+      metadata: { orgSlug },
+    });
     const fallbackUrl = `${getSiteUrl()}${schoolAdminPath(orgSlug, "admissions", "payments")}?connected=0`;
     return NextResponse.redirect(fallbackUrl);
   }

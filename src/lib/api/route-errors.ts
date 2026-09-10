@@ -8,7 +8,10 @@ import {
 } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 
-function shouldNotify(status: number, notify?: boolean): boolean {
+export function shouldNotifyOperationalError(
+  status: number,
+  notify?: boolean,
+): boolean {
   if (notify !== undefined) {
     return notify;
   }
@@ -39,7 +42,7 @@ export function apiError(
       ? `${opts.error} — ${causeMessage}`
       : causeMessage || opts.error;
 
-  if (shouldNotify(opts.status, opts.notify)) {
+  if (shouldNotifyOperationalError(opts.status, opts.notify)) {
     void reportOperationalError({
       supabase: createAdminClient(),
       surface: "api",
@@ -61,6 +64,8 @@ export function apiError(
             ? opts.cause.digest
             : undefined,
       },
+    }).catch((reportError) => {
+      console.error(`[${route}] operational error reporting failed:`, reportError);
     });
   }
 

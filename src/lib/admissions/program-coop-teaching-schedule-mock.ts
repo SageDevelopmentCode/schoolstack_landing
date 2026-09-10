@@ -2,18 +2,27 @@ import type { CSSProperties } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { AdminChipTone } from "@/components/school-admin/ui/story/AdminChip";
+import {
+  canAddCoopAssignedFamily,
+  formatCoopAssignedFamilyLabels,
+  isCoopFamilyAssigned,
+  type CoopFamilyNameMap,
+} from "./program-coop-family-assignment-helpers";
 import { newAdmissionsId } from "./application-form-schema";
+
+export const COOP_TEACHING_SCHEDULE_MAX_ASSIGNED_FAMILIES_PER_ROLE = 5;
 
 export type CoopTeachingScheduleWeek = {
   id: string;
   startDate: string;
   endDate: string;
-  parentInstructors: string[];
-  parentAssistants: string[];
+  instructorFamilyIds: string[];
+  assistantFamilyIds: string[];
   weekName: string;
   seasonalTheme: string;
   characterLesson: string;
   celebrationEvent: string | null;
+  updatedAt?: string;
 };
 
 export type TeachingScheduleParentRole = "instructor" | "assistant";
@@ -23,8 +32,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-late-summer",
     startDate: "2026-08-17",
     endDate: "2026-08-21",
-    parentInstructors: ["Michelle"],
-    parentAssistants: ["Tom"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Late Summer Week",
     seasonalTheme: "Garden exploration and end-of-summer rhythms",
     characterLesson: "Curiosity & Care: Observing living things with gentle hands",
@@ -34,8 +43,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-orientation",
     startDate: "2026-08-24",
     endDate: "2026-08-28",
-    parentInstructors: ["Karen"],
-    parentAssistants: ["Steve"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Orientation Week",
     seasonalTheme: "Welcome routines, co-op expectations, and community building",
     characterLesson: "Respect & Courtesy: Greeting others and learning together",
@@ -45,8 +54,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-sunflower",
     startDate: "2026-08-31",
     endDate: "2026-09-04",
-    parentInstructors: ["Laura"],
-    parentAssistants: ["Mark"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Sunflower Week",
     seasonalTheme: "Following the sun: seeds, growth, and late-summer blooms",
     characterLesson: "Joy & Sharing: Celebrating new friendships",
@@ -56,8 +65,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-apple",
     startDate: "2026-09-14",
     endDate: "2026-09-18",
-    parentInstructors: ["Jessica and Jared"],
-    parentAssistants: [],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Apple Week",
     seasonalTheme: "Apple Picking & Grain Grinding",
     characterLesson:
@@ -69,8 +78,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-corn",
     startDate: "2026-09-21",
     endDate: "2026-09-25",
-    parentInstructors: ["Emily"],
-    parentAssistants: ["Bailey"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Corn Week",
     seasonalTheme: "Respecting growth cycles and farm stewardship",
     characterLesson: "Diligence & Order: Helping Others, Expressing Gratitude",
@@ -80,8 +89,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-pumpkin",
     startDate: "2026-09-28",
     endDate: "2026-10-02",
-    parentInstructors: ["Sarah"],
-    parentAssistants: ["Michael"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Pumpkin Week",
     seasonalTheme: "Seed to harvest: observing change over time",
     characterLesson: "Patience & Wonder: Waiting for things to grow",
@@ -91,8 +100,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-harvest",
     startDate: "2026-10-05",
     endDate: "2026-10-09",
-    parentInstructors: ["Rachel"],
-    parentAssistants: ["David"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Harvest Week",
     seasonalTheme: "Gathering the garden and preparing for winter",
     characterLesson: "Gratitude & Stewardship: Caring for what we have",
@@ -102,8 +111,8 @@ export const DEMO_COOP_TEACHING_SCHEDULE: CoopTeachingScheduleWeek[] = [
     id: "week-leaves",
     startDate: "2026-10-12",
     endDate: "2026-10-16",
-    parentInstructors: ["Amanda"],
-    parentAssistants: ["Chris"],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "Leaves Week",
     seasonalTheme: "Autumn colors, leaf pressing, and seasonal rhythms",
     characterLesson: "Observation & Beauty: Noticing small details in nature",
@@ -131,44 +140,41 @@ function teachingParentArraysEqual(a: ReadonlyArray<string>, b: ReadonlyArray<st
   return a.every((value, index) => value === b[index]);
 }
 
-export function normalizeTeachingParentName(name: string): string {
-  return name.trim().replace(/\s+/g, " ");
-}
-
-export function formatTeachingAssignedParents(people: ReadonlyArray<string>): string {
-  if (people.length === 0) return "—";
-  return people.join(", ");
+export function formatTeachingAssignedParents(
+  familyIds: ReadonlyArray<string>,
+  nameMap?: CoopFamilyNameMap,
+): string {
+  if (familyIds.length === 0) return "—";
+  return formatCoopAssignedFamilyLabels(familyIds, nameMap ?? new Map(), "—");
 }
 
 export function isTeachingParentAssigned(
-  people: ReadonlyArray<string>,
-  name: string,
+  familyIds: ReadonlyArray<string>,
+  familyId: string,
 ): boolean {
-  const normalized = normalizeTeachingParentName(name);
-  if (!normalized) return false;
-  const lower = normalized.toLowerCase();
-  return people.some((person) => person.toLowerCase() === lower);
+  return isCoopFamilyAssigned(familyIds, familyId);
 }
 
-export function canParentSignUpForTeachingRole(people: ReadonlyArray<string>): boolean {
-  return people.length === 0;
+export function canParentSignUpForTeachingRole(familyIds: ReadonlyArray<string>): boolean {
+  return familyIds.length === 0;
 }
 
 export function canAddTeachingAssignedParent(
-  people: ReadonlyArray<string>,
-  name: string,
+  familyIds: ReadonlyArray<string>,
+  familyId: string,
 ): boolean {
-  const normalized = normalizeTeachingParentName(name);
-  if (!normalized) return false;
-  const lower = normalized.toLowerCase();
-  return !people.some((person) => person.toLowerCase() === lower);
+  return canAddCoopAssignedFamily(
+    familyIds,
+    familyId,
+    COOP_TEACHING_SCHEDULE_MAX_ASSIGNED_FAMILIES_PER_ROLE,
+  );
 }
 
-export function getTeachingScheduleParentsForRole(
+export function getTeachingScheduleFamilyIdsForRole(
   week: CoopTeachingScheduleWeek,
   role: TeachingScheduleParentRole,
 ): string[] {
-  return role === "instructor" ? week.parentInstructors : week.parentAssistants;
+  return role === "instructor" ? week.instructorFamilyIds : week.assistantFamilyIds;
 }
 
 export function newCoopTeachingScheduleWeek(): CoopTeachingScheduleWeek {
@@ -181,8 +187,8 @@ export function newCoopTeachingScheduleWeek(): CoopTeachingScheduleWeek {
     id: newAdmissionsId(),
     startDate: formatIsoDate(start),
     endDate: formatIsoDate(end),
-    parentInstructors: [],
-    parentAssistants: [],
+    instructorFamilyIds: [],
+    assistantFamilyIds: [],
     weekName: "",
     seasonalTheme: "",
     characterLesson: "",
@@ -198,8 +204,8 @@ export function areCoopTeachingScheduleWeeksEqual(
     a.id === b.id &&
     a.startDate === b.startDate &&
     a.endDate === b.endDate &&
-    teachingParentArraysEqual(a.parentInstructors, b.parentInstructors) &&
-    teachingParentArraysEqual(a.parentAssistants, b.parentAssistants) &&
+    teachingParentArraysEqual(a.instructorFamilyIds, b.instructorFamilyIds) &&
+    teachingParentArraysEqual(a.assistantFamilyIds, b.assistantFamilyIds) &&
     a.weekName === b.weekName &&
     a.seasonalTheme === b.seasonalTheme &&
     a.characterLesson === b.characterLesson &&

@@ -23,13 +23,16 @@ import {
   type CoopSupplyColorLegendEntry,
   type CoopSupplyListItem,
 } from "@/lib/admissions/program-coop-supply-list-mock";
+import { listProgramCoopEnrolledFamilies } from "@/lib/admissions/program-coop-family-assignments";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import {
   deleteProgramCoopSupplyItem,
   insertProgramCoopSupplyItem,
   listProgramCoopSupplyList,
   replaceProgramCoopSupplyColorLegend,
-  upsertProgramCoopSupplyItem,
+  saveProgramCoopSupplyItemAdmin,
 } from "@/lib/admissions/program-coop-supply-list-storage";
+import { ProgramCoopStorageConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -129,6 +132,7 @@ export default function ProgramCoopSupplyListCard({
   coopModeEnabled,
 }: ProgramCoopSupplyListCardProps) {
   const [items, setItems] = useState<CoopSupplyListItem[]>([]);
+  const [enrolledFamilies, setEnrolledFamilies] = useState<ProgramCoopFamily[]>([]);
   const [colorLegend, setColorLegend] = useState<CoopSupplyColorLegendEntry[]>(() =>
     defaultCoopSupplyColorLegend(),
   );
@@ -163,15 +167,19 @@ export default function ProgramCoopSupplyListCard({
   const loadSupplyList = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await listProgramCoopSupplyList(supabase, programId);
+      const [result, families] = await Promise.all([
+        listProgramCoopSupplyList(supabase, programId),
+        listProgramCoopEnrolledFamilies(supabase, organizationId, programId),
+      ]);
       setItems(result.items);
       setColorLegend(result.colorLegend);
+      setEnrolledFamilies(families);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load supply list."));
     } finally {
       setLoading(false);
     }
-  }, [programId, supabase]);
+  }, [organizationId, programId, supabase]);
 
   useEffect(() => {
     if (!coopModeEnabled) {
@@ -184,6 +192,10 @@ export default function ProgramCoopSupplyListCard({
   }, [coopModeEnabled, loadSupplyList]);
 
   const summary = useMemo(() => computeSupplyListSummary(items), [items]);
+  const familyNameMap = useMemo(
+    () => new Map(enrolledFamilies.map((family) => [family.familyId, family.familyName])),
+    [enrolledFamilies],
+  );
   const filteredItems = useMemo(
     () => filterCoopSupplyListItems(items, filters, { variant: "admin" }),
     [filters, items],
@@ -193,18 +205,30 @@ export default function ProgramCoopSupplyListCard({
     [items, selectedId],
   );
 
-  const saveItem = async (saved: CoopSupplyListItem) => {
+  const saveItem = async (
+    saved: CoopSupplyListItem,
+    meta: { savedBaseline: CoopSupplyListItem },
+  ) => {
     try {
-      const persisted = await upsertProgramCoopSupplyItem(
+      const persisted = await saveProgramCoopSupplyItemAdmin(
         supabase,
         supplyListContext,
-        saved,
+        {
+          draft: saved,
+          savedBaseline: meta.savedBaseline,
+        },
       );
       setItems((current) =>
         current.map((item) => (item.id === persisted.id ? persisted : item)),
       );
+      return persisted;
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to save supply item."));
+      if (err instanceof ProgramCoopStorageConflictError) {
+        adminToast.error(err.message);
+        await loadSupplyList();
+      } else {
+        adminToast.error(formatActionError(err, "Failed to save supply item."));
+      }
       throw err;
     }
   };
@@ -509,12 +533,12 @@ export default function ProgramCoopSupplyListCard({
                           className="truncate text-xs"
                           style={{ color: "#607078" }}
                           title={
-                            item.assignedFamilies.length > 0
-                              ? formatSupplyAssignedFamilies(item.assignedFamilies)
+                            item.assignedFamilyIds.length > 0
+                              ? formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNameMap)
                               : undefined
                           }
                         >
-                          {formatSupplyAssignedFamilies(item.assignedFamilies)}
+                          {formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNameMap)}
                         </div>
                       </td>
                       <td className="max-w-[180px] px-[15px] py-3">
@@ -560,6 +584,7 @@ export default function ProgramCoopSupplyListCard({
           <CoopSupplyListItemDetailPanel
             item={selectedItem}
             colorLegend={colorLegend}
+            enrolledFamilies={enrolledFamilies}
             C={C}
             theme={theme}
             onClose={() => {

@@ -1,45 +1,40 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFamilyUserProfile, userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import type { User } from "@supabase/supabase-js";
+import {
+  assertCoopProgramPortalAccess,
+  resolveEnrolledFamilyIdForProgram,
+} from "@/lib/admissions/program-coop-family-assignments";
 import {
   appendProgramCoopSupplyAssignedFamily,
   removeProgramCoopSupplyAssignedFamily,
   type ProgramCoopSupplyListContext,
 } from "@/lib/admissions/program-coop-supply-list-storage";
-import { normalizeSupplyFamilyName } from "@/lib/admissions/program-coop-supply-list-mock";
-import { getFamilyIdsForUser } from "@/lib/messages/api-helpers";
-import type { User } from "@supabase/supabase-js";
 
 export type SupplyListClaimContext = ProgramCoopSupplyListContext & {
   itemId: string;
 };
 
-export async function resolveSupplyListClaimParentName(
+export async function resolveSupplyListClaimFamilyId(
   supabase: SupabaseClient,
   user: User,
   organizationId: string,
+  programId: string,
 ): Promise<string> {
-  const profile = await getFamilyUserProfile(supabase, user.id, organizationId, user);
-  const parentName = normalizeSupplyFamilyName(profile.displayName);
-  if (!parentName) {
-    throw new Error("No parent name found for this account.");
-  }
-  return parentName;
+  return resolveEnrolledFamilyIdForProgram(
+    supabase,
+    user.id,
+    organizationId,
+    programId,
+  );
 }
 
 export async function assertSupplyListClaimAccess(
   supabase: SupabaseClient,
   user: User,
   organizationId: string,
+  programId: string,
 ): Promise<void> {
-  const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-  if (!hasAccess) {
-    throw new Error("You do not have access to the supply list.");
-  }
-
-  const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-  if (familyIds.length === 0) {
-    throw new Error("No family found for this account.");
-  }
+  await assertCoopProgramPortalAccess(supabase, user.id, organizationId, programId);
 }
 
 export async function claimProgramCoopSupplyItemForParent(
@@ -47,20 +42,26 @@ export async function claimProgramCoopSupplyItemForParent(
   writeSupabase: SupabaseClient,
   user: User,
   ctx: SupplyListClaimContext,
-): Promise<{ item: Awaited<ReturnType<typeof appendProgramCoopSupplyAssignedFamily>>; parentName: string }> {
-  await assertSupplyListClaimAccess(authSupabase, user, ctx.organizationId);
-  const parentName = await resolveSupplyListClaimParentName(
+): Promise<{ item: Awaited<ReturnType<typeof appendProgramCoopSupplyAssignedFamily>>; familyId: string }> {
+  await assertSupplyListClaimAccess(
     authSupabase,
     user,
     ctx.organizationId,
+    ctx.programId,
+  );
+  const familyId = await resolveSupplyListClaimFamilyId(
+    authSupabase,
+    user,
+    ctx.organizationId,
+    ctx.programId,
   );
   const item = await appendProgramCoopSupplyAssignedFamily(
     writeSupabase,
     ctx,
     ctx.itemId,
-    parentName,
+    familyId,
   );
-  return { item, parentName };
+  return { item, familyId };
 }
 
 export async function unclaimProgramCoopSupplyItemForParent(
@@ -68,18 +69,24 @@ export async function unclaimProgramCoopSupplyItemForParent(
   writeSupabase: SupabaseClient,
   user: User,
   ctx: SupplyListClaimContext,
-): Promise<{ item: Awaited<ReturnType<typeof removeProgramCoopSupplyAssignedFamily>>; parentName: string }> {
-  await assertSupplyListClaimAccess(authSupabase, user, ctx.organizationId);
-  const parentName = await resolveSupplyListClaimParentName(
+): Promise<{ item: Awaited<ReturnType<typeof removeProgramCoopSupplyAssignedFamily>>; familyId: string }> {
+  await assertSupplyListClaimAccess(
     authSupabase,
     user,
     ctx.organizationId,
+    ctx.programId,
+  );
+  const familyId = await resolveSupplyListClaimFamilyId(
+    authSupabase,
+    user,
+    ctx.organizationId,
+    ctx.programId,
   );
   const item = await removeProgramCoopSupplyAssignedFamily(
     writeSupabase,
     ctx,
     ctx.itemId,
-    parentName,
+    familyId,
   );
-  return { item, parentName };
+  return { item, familyId };
 }

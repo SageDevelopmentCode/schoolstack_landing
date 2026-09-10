@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
+import { reportOperationalError } from "@/lib/operational-errors";
 import {
   getFamilyIdsForUser,
   userHasApplyPortalAccess,
@@ -237,7 +239,21 @@ export async function POST(request: Request) {
     }
   } catch (uploadError) {
     await deleteSupportRequestFiles(admin, uploadedPaths).catch((cleanupError) => {
-      console.error("Support request attachment cleanup failed:", cleanupError);
+      void reportOperationalError({
+        supabase: admin,
+        surface: "public_apply",
+        organizationId: organization.id,
+        operation: "apply_support_request_attachment_cleanup",
+        error:
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : "Support request attachment cleanup failed.",
+        entityType: "admin_support_request",
+        entityId: requestId,
+        notify: true,
+        actor: { type: "parent", userId: user.id, email: submitterEmail },
+        cause: cleanupError,
+      });
     });
 
     await admin.from("admin_support_requests").delete().eq("id", requestId);
@@ -264,7 +280,13 @@ export async function POST(request: Request) {
       attachments: uploadedAttachments,
     });
   } catch (err) {
-    console.error("Discord notification error:", err);
+    void logNotificationFailure(admin, {
+      organizationId: organization.id,
+      operation: "apply_support_request_discord",
+      error: err,
+      entityType: "admin_support_request",
+      entityId: requestId,
+    });
   }
 
   try {
@@ -290,7 +312,13 @@ export async function POST(request: Request) {
       ),
     );
   } catch (err) {
-    console.error("Confirmation email error:", err);
+    void logNotificationFailure(admin, {
+      organizationId: organization.id,
+      operation: "apply_support_request_confirmation_email",
+      error: err,
+      entityType: "admin_support_request",
+      entityId: requestId,
+    });
   }
 
   return NextResponse.json({ ok: true, requestId });
