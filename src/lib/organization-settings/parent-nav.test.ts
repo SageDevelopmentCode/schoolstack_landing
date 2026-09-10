@@ -31,6 +31,7 @@ describe("splitParentNavForHeader", () => {
       more.some((item) => item.key === "classroom_signups"),
       true,
     );
+    assert.equal(primary.some((item) => item.key === "children"), true);
   });
 
   it("omits curriculum from main portal nav when org flag is enabled", () => {
@@ -78,5 +79,7 @@ describe("splitParentNavForHeader", () => {
     assert.equal(primary.some((item) => item.key === "teaching_schedule"), true);
     assert.equal(primary.some((item) => item.key === "committees"), false);
     assert.equal(more.some((item) => item.key === "committees"), true);
+    assert.equal(primary.some((item) => item.key === "children"), false);
+    assert.equal(more.some((item) => item.key === "children"), true);
   });
 });

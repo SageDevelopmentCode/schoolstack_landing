@@ -54,6 +54,39 @@ type CurriculumRow = {
   updated_at: string;
 };
 
+export type CoopPageFetchOptions = {
+  limit: number;
+  cursor: { createdAt: string; id: string } | null;
+};
+
+function capCoopNotificationsForPage(
+  notifications: CoopParentActivityNotification[],
+  pageFetch?: CoopPageFetchOptions,
+): CoopParentActivityNotification[] {
+  if (!pageFetch) return notifications;
+
+  const filtered = pageFetch.cursor
+    ? notifications.filter((notification) => {
+        const created = new Date(notification.createdAt).getTime();
+        const cursorCreated = new Date(pageFetch.cursor!.createdAt).getTime();
+        if (created < cursorCreated) return true;
+        if (created > cursorCreated) return false;
+        return notification.id < pageFetch.cursor!.id;
+      })
+    : notifications;
+
+  return [...filtered]
+    .sort((left, right) => {
+      const leftCreated = new Date(left.createdAt).getTime();
+      const rightCreated = new Date(right.createdAt).getTime();
+      if (leftCreated !== rightCreated) {
+        return rightCreated - leftCreated;
+      }
+      return right.id.localeCompare(left.id);
+    })
+    .slice(0, pageFetch.limit + 1);
+}
+
 function familyNameMatches(
   parentNames: ReadonlyArray<string>,
   candidate: string,
@@ -136,6 +169,7 @@ export async function fetchCoopProgramNotifications(
   familyId: string,
   parentNames: ReadonlyArray<string>,
   rangeStart: Date,
+  pageFetch?: CoopPageFetchOptions,
 ): Promise<CoopParentActivityNotification[]> {
   if (!ctx.coopModeEnabled) return [];
 
@@ -283,7 +317,8 @@ export async function fetchCoopProgramNotifications(
     );
   }
 
-  return notifications;
+  void familyId;
+  return capCoopNotificationsForPage(notifications, pageFetch);
 }
 
 async function resolveOrganizationIdForProgram(

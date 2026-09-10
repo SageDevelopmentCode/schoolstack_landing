@@ -124,6 +124,90 @@ export type ParentNotificationFetchOptions = {
 const DEFAULT_NOTIFICATION_DAYS = 30;
 const DEFAULT_NOTIFICATION_PAGE_SIZE = 15;
 const MAX_NOTIFICATION_PAGE_SIZE = 30;
+const ACTIVITY_NOTIFICATION_BATCH_SIZE = 50;
+const MAX_ACTIVITY_NOTIFICATION_BATCHES = 5;
+
+type NotificationPageCursor = {
+  createdAt: string;
+  id: string;
+};
+
+type PageFetchOptions = {
+  limit: number;
+  cursor: NotificationPageCursor | null;
+};
+
+function parseNotificationPageCursor(
+  cursor: string | null | undefined,
+): NotificationPageCursor | null {
+  if (!cursor) return null;
+  return decodeActivityNotificationCursor(cursor);
+}
+
+function compareNotificationsDesc(
+  left: ParentActivityNotification,
+  right: ParentActivityNotification,
+): number {
+  const leftCreated = new Date(left.createdAt).getTime();
+  const rightCreated = new Date(right.createdAt).getTime();
+  if (leftCreated !== rightCreated) {
+    return rightCreated - leftCreated;
+  }
+  return right.id.localeCompare(left.id);
+}
+
+function notificationBeforePageCursor(
+  notification: ParentActivityNotification,
+  cursor: NotificationPageCursor,
+): boolean {
+  const created = new Date(notification.createdAt).getTime();
+  const cursorCreated = new Date(cursor.createdAt).getTime();
+  if (created < cursorCreated) return true;
+  if (created > cursorCreated) return false;
+  return notification.id < cursor.id;
+}
+
+function applyNotificationTimestampCursorToQuery<
+  T extends {
+    lte: (column: string, value: string) => T;
+  },
+>(query: T, timestampColumn: string, cursor: NotificationPageCursor): T {
+  return query.lte(timestampColumn, cursor.createdAt);
+}
+
+function finalizeNotificationPage(
+  notifications: ParentActivityNotification[],
+  limit: number,
+): ParentActivityNotificationsPage {
+  const sorted = mergeNotificationsById(notifications);
+  const pageItems = sorted.slice(0, limit);
+  const hasMore = sorted.length > limit;
+  const lastItem = pageItems.at(-1);
+
+  return {
+    notifications: pageItems,
+    nextCursor:
+      hasMore && lastItem
+        ? encodeActivityNotificationCursor(lastItem.createdAt, lastItem.id)
+        : null,
+    hasMore,
+  };
+}
+
+function capNotificationsForPage(
+  notifications: ParentActivityNotification[],
+  pageFetch: PageFetchOptions,
+): ParentActivityNotification[] {
+  const filtered = pageFetch.cursor
+    ? notifications.filter((notification) =>
+        notificationBeforePageCursor(notification, pageFetch.cursor!),
+      )
+    : notifications;
+
+  return [...filtered]
+    .sort(compareNotificationsDesc)
+    .slice(0, pageFetch.limit + 1);
+}
 
 export const PARENT_ACTIVITY_NOTIFICATION_DAYS = DEFAULT_NOTIFICATION_DAYS;
 
@@ -843,8 +927,9 @@ async function fetchBulletinNotifications(
   rangeStart: Date,
   bulletinScope: BulletinViewerScope,
   parentNavBasePath?: string,
+  pageFetch?: PageFetchOptions,
 ): Promise<ParentActivityNotification[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("school_bulletin_posts")
     .select("*")
     .eq("organization_id", organizationId)
@@ -852,6 +937,19 @@ async function fetchBulletinNotifications(
     .gte("published_at", rangeStart.toISOString())
     .order("published_at", { ascending: false });
 
+  if (pageFetch?.cursor) {
+    query = applyNotificationTimestampCursorToQuery(
+      query,
+      "published_at",
+      pageFetch.cursor,
+    );
+  }
+
+  if (pageFetch) {
+    query = query.limit(pageFetch.limit * 3);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const posts = filterBulletinPostsForViewer(
@@ -859,7 +957,7 @@ async function fetchBulletinNotifications(
     bulletinScope,
   );
 
-  return posts.map((post: BulletinPost) => ({
+  const notifications = posts.map((post: BulletinPost) => ({
     id: `bulletin:${post.id}`,
     action: SYNTHETIC_BULLETIN_ACTION,
     title: formatNotificationTitle(SYNTHETIC_BULLETIN_ACTION),
@@ -879,6 +977,8 @@ async function fetchBulletinNotifications(
     }, { parentNavBasePath, bulletinPostId: post.id }),
     category: "announcements" as const,
   }));
+
+  return pageFetch ? capNotificationsForPage(notifications, pageFetch) : notifications;
 }
 
 async function fetchCalendarNotifications(
@@ -888,6 +988,7 @@ async function fetchCalendarNotifications(
   rangeStart: Date,
   audienceScope?: OrganizationEventAudienceScope,
   parentNavBasePath?: string,
+  pageFetch?: PageFetchOptions,
 ): Promise<ParentActivityNotification[]> {
   let query = supabase
     .from("organization_events")
@@ -902,10 +1003,22 @@ async function fetchCalendarNotifications(
     query = query.eq("program_id", audienceScope.programId);
   }
 
+  if (pageFetch?.cursor) {
+    query = applyNotificationTimestampCursorToQuery(
+      query,
+      "created_at",
+      pageFetch.cursor,
+    );
+  }
+
+  if (pageFetch) {
+    query = query.limit(pageFetch.limit + 1);
+  }
+
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data as OrganizationEventRow[]).map((row) => {
+  const notifications = (data as OrganizationEventRow[]).map((row) => {
     const event = mapOrganizationEventRow(row);
     const createdAt = row.created_at ?? row.event_date;
     return {
@@ -934,6 +1047,8 @@ async function fetchCalendarNotifications(
       category: "events" as const,
     };
   });
+
+  return pageFetch ? capNotificationsForPage(notifications, pageFetch) : notifications;
 }
 
 function mapActivityEventToParentNotification(
@@ -980,6 +1095,282 @@ function mapActivityEventToParentNotification(
     ctaLabel: link.ctaLabel,
     category: getParentActivityNotificationCategory(event.action),
   };
+}
+
+async function fetchActivityNotificationsForPage(
+  supabase: SupabaseClient,
+  organizationId: string,
+  slug: string,
+  familyId: string,
+  rangeStart: Date,
+  fetchOptions: Pick<
+    ParentNotificationFetchOptions,
+    "parentNavBasePath" | "applyBasePath"
+  >,
+  pageFetch: PageFetchOptions,
+): Promise<ParentActivityNotification[]> {
+  const targetCount = pageFetch.limit + 1;
+  const collected: ParentActivityNotification[] = [];
+  let batchCursor = pageFetch.cursor;
+  let batches = 0;
+
+  while (collected.length < targetCount && batches < MAX_ACTIVITY_NOTIFICATION_BATCHES) {
+    batches += 1;
+
+    let query = supabase
+      .from("activity_events")
+      .select(
+        "id, action, entity_type, entity_id, summary, metadata, created_at, actor_type, actor_user_id, surface",
+      )
+      .eq("organization_id", organizationId)
+      .in("action", [...PARENT_NOTIFICATION_ACTIONS])
+      .gte("created_at", rangeStart.toISOString())
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(ACTIVITY_NOTIFICATION_BATCH_SIZE);
+
+    if (batchCursor) {
+      if (batches === 1 && pageFetch.cursor) {
+        query = applyNotificationTimestampCursorToQuery(
+          query,
+          "created_at",
+          batchCursor,
+        );
+      } else {
+        query = query.or(
+          `created_at.lt.${batchCursor.createdAt},and(created_at.eq.${batchCursor.createdAt},id.lt.${batchCursor.id})`,
+        );
+      }
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data?.length) break;
+
+    const rawEvents = data.map((row) =>
+      mapActivityEventRow(row as Record<string, unknown>),
+    );
+
+    const familyByEventId = await resolveFamilyIdsForEvents(
+      supabase,
+      organizationId,
+      rawEvents,
+    );
+    const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
+
+    const filteredEvents = rawEvents.filter((event) => {
+      if (shouldExcludeParentActorEvent(event)) return false;
+
+      const eventFamilyId = familyByEventId.get(event.id);
+      if (isOrgWideParentNotificationAction(event.action)) {
+        return true;
+      }
+      if (eventFamilyId !== familyId) return false;
+
+      if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+        const senderUserId = metadataString(event.metadata, "senderUserId");
+        if (senderUserId && guardianUserIds.has(senderUserId)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const applicationIdByEventId = await resolveApplicationIdsForEvents(
+      supabase,
+      filteredEvents,
+    );
+    const applicationIds = [
+      ...new Set(
+        [...applicationIdByEventId.values()].filter(
+          (value): value is string => Boolean(value),
+        ),
+      ),
+    ];
+    const studentLabels = await fetchApplicationStudentLabels(
+      supabase,
+      applicationIds,
+    );
+
+    collected.push(
+      ...filteredEvents.map((event) =>
+        mapActivityEventToParentNotification(
+          event,
+          slug,
+          applicationIdByEventId.get(event.id) ?? null,
+          applicationIdByEventId.get(event.id)
+            ? studentLabels.get(applicationIdByEventId.get(event.id)!) ?? null
+            : null,
+          fetchOptions,
+        ),
+      ),
+    );
+
+    const lastRow = data.at(-1);
+    if (!lastRow) break;
+
+    batchCursor = {
+      createdAt: String(lastRow.created_at),
+      id: String(lastRow.id),
+    };
+
+    if (data.length < ACTIVITY_NOTIFICATION_BATCH_SIZE) break;
+  }
+
+  return capNotificationsForPage(collected, pageFetch);
+}
+
+async function buildParentActivityNotificationsPageForContext(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  context: ParentNotificationContext,
+  pageFetch: PageFetchOptions,
+  options?: ParentNotificationFetchOptions,
+): Promise<ParentActivityNotificationsPage> {
+  const days = options?.days ?? DEFAULT_NOTIFICATION_DAYS;
+  const rangeStart = getActivityNotificationRangeStart(days);
+  const slug = context.slug;
+  const fetchOptions: Pick<
+    ParentNotificationFetchOptions,
+    "parentNavBasePath" | "applyBasePath"
+  > = {
+    parentNavBasePath: context.parentNavBasePath,
+    applyBasePath: context.applyBasePath,
+  };
+
+  const parentNames = await fetchFamilyParentDisplayNames(
+    supabase,
+    familyId,
+    organizationId,
+  );
+
+  const activityPromise = fetchActivityNotificationsForPage(
+    supabase,
+    organizationId,
+    slug,
+    familyId,
+    rangeStart,
+    fetchOptions,
+    pageFetch,
+  );
+
+  if (context.mode === "program") {
+    const [activityNotifications, bulletinNotifications, calendarNotifications, coopNotifications] =
+      await Promise.all([
+        activityPromise,
+        fetchBulletinNotifications(
+          supabase,
+          organizationId,
+          slug,
+          rangeStart,
+          parentProgramPortalBulletinScope(context.programId),
+          context.parentNavBasePath,
+          pageFetch,
+        ),
+        fetchCalendarNotifications(
+          supabase,
+          organizationId,
+          slug,
+          rangeStart,
+          programPortalAudienceScope(context.programId),
+          context.parentNavBasePath,
+          pageFetch,
+        ),
+        fetchCoopProgramNotifications(
+          supabase,
+          context,
+          familyId,
+          parentNames,
+          rangeStart,
+          pageFetch,
+        ),
+      ]);
+
+    return finalizeNotificationPage(
+      [
+        ...activityNotifications,
+        ...bulletinNotifications,
+        ...calendarNotifications,
+        ...coopNotifications,
+      ],
+      pageFetch.limit,
+    );
+  }
+
+  const coopProgramContexts = await listCoopProgramContextsForMainPortal(
+    supabase,
+    organizationId,
+    slug,
+    familyId,
+    context.applyBasePath,
+    context.parentNavBasePath === schoolParentRootPath(slug)
+      ? undefined
+      : context.parentNavBasePath,
+  );
+
+  const calendarPromises = [
+    fetchCalendarNotifications(
+      supabase,
+      organizationId,
+      slug,
+      rangeStart,
+      mainPortalAudienceScope(),
+      context.parentNavBasePath,
+      pageFetch,
+    ),
+    ...coopProgramContexts.map((programContext) =>
+      fetchCalendarNotifications(
+        supabase,
+        organizationId,
+        slug,
+        rangeStart,
+        programPortalAudienceScope(programContext.programId),
+        programContext.parentNavBasePath,
+        pageFetch,
+      ),
+    ),
+  ];
+
+  const coopNotificationsPromise = Promise.all(
+    coopProgramContexts.map((programContext) =>
+      fetchCoopProgramNotifications(
+        supabase,
+        programContext,
+        familyId,
+        parentNames,
+        rangeStart,
+        pageFetch,
+      ),
+    ),
+  );
+
+  const [activityNotifications, bulletinNotifications, coopNotifications, ...calendarResults] =
+    await Promise.all([
+      activityPromise,
+      fetchBulletinNotifications(
+        supabase,
+        organizationId,
+        slug,
+        rangeStart,
+        options?.bulletinScope ?? parentMainPortalBulletinScope(),
+        context.parentNavBasePath,
+        pageFetch,
+      ),
+      coopNotificationsPromise,
+      ...calendarPromises,
+    ]);
+
+  return finalizeNotificationPage(
+    [
+      ...activityNotifications,
+      ...bulletinNotifications,
+      ...calendarResults.flat(),
+      ...coopNotifications.flat(),
+    ],
+    pageFetch.limit,
+  );
 }
 
 async function listCoopProgramContextsForMainPortal(
@@ -1345,16 +1736,32 @@ export async function fetchParentActivityNotifications(
     Math.max(requestedLimit, 1),
     MAX_NOTIFICATION_PAGE_SIZE,
   );
+  const pageFetch: PageFetchOptions = {
+    limit,
+    cursor: parseNotificationPageCursor(options?.cursor),
+  };
 
-  const notifications = await buildParentActivityNotifications(
+  if (options?.aggregateAllContexts) {
+    const notifications = await buildParentActivityNotifications(
+      supabase,
+      organizationId,
+      slug,
+      familyId,
+      options,
+    );
+
+    return paginateNotifications(notifications, limit, options?.cursor);
+  }
+
+  const context = resolveNotificationContext(slug, options);
+  return buildParentActivityNotificationsPageForContext(
     supabase,
     organizationId,
-    slug,
     familyId,
+    context,
+    pageFetch,
     options,
   );
-
-  return paginateNotifications(notifications, limit, options?.cursor);
 }
 
 export async function getParentActivityNotificationReadWatermark(

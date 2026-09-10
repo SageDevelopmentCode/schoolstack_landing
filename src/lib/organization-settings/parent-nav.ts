@@ -138,6 +138,7 @@ export function splitParentNavForHeader(
   const moreKeys = new Set(PARENT_MORE_NAV_KEYS);
   if (options?.coopMode) {
     moreKeys.add("committees");
+    moreKeys.add("children");
   }
 
   const primaryKeys = new Set(
