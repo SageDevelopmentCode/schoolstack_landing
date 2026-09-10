@@ -1,6 +1,6 @@
 # Migrations
 
-Agent workflow for new SQL: [`.agents/skills/supabase-migrations/SKILL.md`](../../.agents/skills/supabase-migrations/SKILL.md)
+Agent workflow for new SQL: [`.agents/skills/supabase-migrations/SKILL.md`](../../.agents/skills/supabase-migrations/SKILL.md). Branch code review: [`.agents/skills/branch-code-review/SKILL.md`](../../.agents/skills/branch-code-review/SKILL.md).
 
 ## Local development / E2E
 

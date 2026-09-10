@@ -3,22 +3,17 @@ import { describe, it } from "node:test";
 import {
   canAddSupplyAssignedFamily,
   isSupplyFamilyAssigned,
-  normalizeSupplyFamilyName,
 } from "./program-coop-supply-list-mock";
 
 describe("program coop supply list claim helpers", () => {
-  it("normalizes parent names for sign-up", () => {
-    assert.equal(normalizeSupplyFamilyName("  Rachael  Smith  "), "Rachael Smith");
-  });
-
-  it("prevents duplicate sign-ups case-insensitively", () => {
-    const families = ["Rachael"];
-    assert.equal(canAddSupplyAssignedFamily(families, "rachael"), false);
-    assert.equal(isSupplyFamilyAssigned(families, "Rachael"), true);
+  it("prevents duplicate sign-ups by family id", () => {
+    const familyIds = ["family-a"];
+    assert.equal(canAddSupplyAssignedFamily(familyIds, "family-a"), false);
+    assert.equal(isSupplyFamilyAssigned(familyIds, "family-a"), true);
   });
 
   it("respects the five-family limit", () => {
-    const families = ["A", "B", "C", "D", "E"];
-    assert.equal(canAddSupplyAssignedFamily(families, "F"), false);
+    const familyIds = ["a", "b", "c", "d", "e"];
+    assert.equal(canAddSupplyAssignedFamily(familyIds, "f"), false);
   });
 });

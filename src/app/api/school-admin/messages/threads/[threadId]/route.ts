@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { reportOperationalError } from "@/lib/operational-errors";
 import {
   getThreadDetail,
   markThreadRead,
@@ -52,7 +53,19 @@ export async function GET(request: Request, context: RouteContext) {
     }
 
     void markThreadRead(admin, threadId, user.id).catch((readErr) => {
-      console.error("[school-admin/messages] markThreadRead failed:", readErr);
+      void reportOperationalError({
+        supabase: admin,
+        surface: "school_admin",
+        organizationId,
+        operation: "school_admin_messages_mark_thread_read",
+        error:
+          readErr instanceof Error ? readErr.message : "Failed to mark thread read.",
+        entityType: "message_thread",
+        entityId: threadId,
+        notify: true,
+        actor: { type: "school_admin", userId: user.id, email: user.email },
+        cause: readErr,
+      });
     });
     return NextResponse.json({ thread });
   } catch (err) {

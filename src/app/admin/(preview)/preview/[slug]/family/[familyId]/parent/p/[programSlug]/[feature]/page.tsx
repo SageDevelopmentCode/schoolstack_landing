@@ -41,6 +41,7 @@ import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { buildProgramCoopFamilyNameMap } from "@/lib/admissions/program-coop-family-assignments";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
@@ -358,10 +359,11 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       notFound();
     }
 
-    const { items, colorLegend } = await listProgramCoopSupplyList(
-      admin,
-      programContext.programId,
-    );
+    const [{ items, colorLegend }, familyNameMap] = await Promise.all([
+      listProgramCoopSupplyList(admin, programContext.programId),
+      buildProgramCoopFamilyNameMap(admin, org.id, programContext.programId),
+    ]);
+    const currentFamilyLabel = familyNameMap.get(familyId) ?? "Family";
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">
@@ -370,7 +372,9 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           programId={programContext.programId}
           initialItems={items}
           initialLegend={colorLegend}
-          currentParentName={userProfile.displayName}
+          currentFamilyId={familyId}
+          currentFamilyLabel={currentFamilyLabel}
+          familyNameMap={Object.fromEntries(familyNameMap)}
           previewMode
         />
       </SchoolParentPageShell>
@@ -382,7 +386,11 @@ export default async function FamilyPreviewProgramParentFeaturePage({
       notFound();
     }
 
-    const weeks = await listProgramCoopTeachingSchedule(admin, programContext.programId);
+    const [weeks, familyNameMap] = await Promise.all([
+      listProgramCoopTeachingSchedule(admin, programContext.programId),
+      buildProgramCoopFamilyNameMap(admin, org.id, programContext.programId),
+    ]);
+    const currentFamilyLabel = familyNameMap.get(familyId) ?? "Family";
 
     return (
       <SchoolParentPageShell title={pageName} layout="default">
@@ -390,7 +398,9 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           organizationId={org.id}
           programId={programContext.programId}
           initialWeeks={weeks}
-          currentParentName={userProfile.displayName}
+          currentFamilyId={familyId}
+          currentFamilyLabel={currentFamilyLabel}
+          familyNameMap={Object.fromEntries(familyNameMap)}
           previewMode
         />
       </SchoolParentPageShell>

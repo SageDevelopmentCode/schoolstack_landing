@@ -1,10 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
-import {
-  assertSupplyListClaimAccess,
-  resolveSupplyListClaimParentName,
-} from "@/lib/admissions/program-coop-supply-list-claim";
+import { resolveSupplyListClaimFamilyId } from "@/lib/admissions/program-coop-supply-list-claim";
+import { assertSupplyListClaimAccess } from "@/lib/admissions/program-coop-supply-list-claim";
 import {
   appendProgramCoopTeachingScheduleParent,
   removeProgramCoopTeachingScheduleParent,
@@ -22,22 +19,28 @@ export async function signupProgramCoopTeachingScheduleForParent(
   writeSupabase: SupabaseClient,
   user: User,
   ctx: TeachingScheduleSignupContext,
-): Promise<{ week: Awaited<ReturnType<typeof appendProgramCoopTeachingScheduleParent>>; parentName: string }> {
-  await assertSupplyListClaimAccess(authSupabase, user, ctx.organizationId);
-  const parentName = await resolveSupplyListClaimParentName(
+): Promise<{ week: Awaited<ReturnType<typeof appendProgramCoopTeachingScheduleParent>>; familyId: string }> {
+  await assertSupplyListClaimAccess(
     authSupabase,
     user,
     ctx.organizationId,
+    ctx.programId,
+  );
+  const familyId = await resolveSupplyListClaimFamilyId(
+    authSupabase,
+    user,
+    ctx.organizationId,
+    ctx.programId,
   );
   const week = await appendProgramCoopTeachingScheduleParent(
     writeSupabase,
     ctx,
     ctx.weekId,
     ctx.role,
-    parentName,
+    familyId,
     { parentSignup: true },
   );
-  return { week, parentName };
+  return { week, familyId };
 }
 
 export async function withdrawProgramCoopTeachingScheduleForParent(
@@ -45,23 +48,26 @@ export async function withdrawProgramCoopTeachingScheduleForParent(
   writeSupabase: SupabaseClient,
   user: User,
   ctx: TeachingScheduleSignupContext,
-): Promise<{ week: Awaited<ReturnType<typeof removeProgramCoopTeachingScheduleParent>>; parentName: string }> {
-  const hasAccess = await userHasEnrolledAccess(authSupabase, user.id, ctx.organizationId);
-  if (!hasAccess) {
-    throw new Error("You do not have access to the teaching schedule.");
-  }
-
-  const parentName = await resolveSupplyListClaimParentName(
+): Promise<{ week: Awaited<ReturnType<typeof removeProgramCoopTeachingScheduleParent>>; familyId: string }> {
+  await assertSupplyListClaimAccess(
     authSupabase,
     user,
     ctx.organizationId,
+    ctx.programId,
+  );
+
+  const familyId = await resolveSupplyListClaimFamilyId(
+    authSupabase,
+    user,
+    ctx.organizationId,
+    ctx.programId,
   );
   const week = await removeProgramCoopTeachingScheduleParent(
     writeSupabase,
     ctx,
     ctx.weekId,
     ctx.role,
-    parentName,
+    familyId,
   );
-  return { week, parentName };
+  return { week, familyId };
 }

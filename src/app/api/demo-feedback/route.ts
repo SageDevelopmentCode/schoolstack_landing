@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoFeedback } from "@/lib/discord";
 import { sendDemoFeedbackConfirmation } from "@/lib/emails";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/demo-feedback";
@@ -75,6 +77,8 @@ export async function POST(request: Request) {
     });
   }
 
+  const admin = createAdminClient();
+
   try {
     await notifyDemoFeedback({
       schoolSlug,
@@ -85,14 +89,22 @@ export async function POST(request: Request) {
       source,
     });
   } catch (err) {
-    console.error("Discord notification error:", err);
+    void logNotificationFailure(admin, {
+      operation: "demo_feedback_discord",
+      error: err,
+      metadata: { schoolSlug },
+    });
   }
 
   if (name && email) {
     try {
       await sendDemoFeedbackConfirmation({ name, email, schoolName });
     } catch (err) {
-      console.error("Confirmation email error:", err);
+      void logNotificationFailure(admin, {
+        operation: "demo_feedback_confirmation_email",
+        error: err,
+        metadata: { schoolSlug, email },
+      });
     }
   }
 

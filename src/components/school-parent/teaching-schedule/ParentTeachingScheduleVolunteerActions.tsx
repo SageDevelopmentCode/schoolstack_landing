@@ -5,7 +5,7 @@ import ParentTeachingScheduleSignupButton, {
 } from "@/components/school-parent/teaching-schedule/ParentTeachingScheduleSignupButton";
 import {
   canParentSignUpForTeachingRole,
-  getTeachingScheduleParentsForRole,
+  getTeachingScheduleFamilyIdsForRole,
   isTeachingParentAssigned,
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
@@ -15,7 +15,7 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 type ParentTeachingScheduleVolunteerActionsProps = {
   theme: ParentThemeTokens;
   week: CoopTeachingScheduleWeek;
-  currentParentName: string;
+  currentFamilyId: string;
   previewMode?: boolean;
   pendingAction: ParentTeachingSchedulePendingAction | null;
   onSignUp: (role: TeachingScheduleParentRole) => void;
@@ -27,19 +27,19 @@ type ParentTeachingScheduleVolunteerActionsProps = {
 function roleHasVolunteerAction(
   week: CoopTeachingScheduleWeek,
   role: TeachingScheduleParentRole,
-  currentParentName: string,
+  currentFamilyId: string,
 ): boolean {
-  const people = getTeachingScheduleParentsForRole(week, role);
+  const familyIds = getTeachingScheduleFamilyIdsForRole(week, role);
   return (
-    isTeachingParentAssigned(people, currentParentName) ||
-    canParentSignUpForTeachingRole(people)
+    isTeachingParentAssigned(familyIds, currentFamilyId) ||
+    canParentSignUpForTeachingRole(familyIds)
   );
 }
 
 export default function ParentTeachingScheduleVolunteerActions({
   theme,
   week,
-  currentParentName,
+  currentFamilyId,
   previewMode = false,
   pendingAction,
   onSignUp,
@@ -49,7 +49,7 @@ export default function ParentTeachingScheduleVolunteerActions({
 }: ParentTeachingScheduleVolunteerActionsProps) {
   const roles: TeachingScheduleParentRole[] = ["instructor", "assistant"];
   const actionableRoles = roles.filter((role) =>
-    roleHasVolunteerAction(week, role, currentParentName),
+    roleHasVolunteerAction(week, role, currentFamilyId),
   );
 
   if (actionableRoles.length === 0) {
@@ -68,7 +68,7 @@ export default function ParentTeachingScheduleVolunteerActions({
           theme={theme}
           week={week}
           role={role}
-          currentParentName={currentParentName}
+          currentFamilyId={currentFamilyId}
           previewMode={previewMode}
           pendingAction={pendingAction}
           onSignUp={() => onSignUp(role)}

@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import type { Instrumentation } from "next";
-import { notifyWebsiteApiError } from "@/lib/discord";
+import { reportOperationalError } from "@/lib/operational-errors";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
@@ -24,13 +25,23 @@ export const onRequestError: Instrumentation.onRequestError = async (
   }
 
   const err = error instanceof Error ? error : new Error(String(error));
+  const route = context.routePath || request.path;
 
-  await notifyWebsiteApiError({
-    route: context.routePath || request.path,
-    method: request.method,
-    status: 500,
+  await reportOperationalError({
+    supabase: createAdminClient(),
+    surface: "api",
+    operation: route,
     error: err.message,
-    stack: err.stack,
-    digest: "digest" in err && typeof err.digest === "string" ? err.digest : undefined,
+    notify: true,
+    actor: { type: "system" },
+    cause: err,
+    api: {
+      route,
+      method: request.method,
+      status: 500,
+      stack: err.stack,
+      digest:
+        "digest" in err && typeof err.digest === "string" ? err.digest : undefined,
+    },
   });
 };

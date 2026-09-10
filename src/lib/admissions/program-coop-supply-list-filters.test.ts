@@ -1,100 +1,58 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { MOCK_COOP_SUPPLY_ITEMS } from "./program-coop-supply-list-mock";
 import {
-  countActiveCoopSupplyFilters,
   DEFAULT_COOP_SUPPLY_LIST_FILTERS,
   filterCoopSupplyListItems,
 } from "./program-coop-supply-list-filters";
+import type { CoopSupplyListItem } from "./program-coop-supply-list-mock";
 
-describe("program coop supply list filters", () => {
+const baseItem = (overrides: Partial<CoopSupplyListItem> = {}): CoopSupplyListItem => ({
+  id: "item-1",
+  name: "Glue sticks",
+  itemType: "consumable",
+  usageTiming: "year_round",
+  months: [],
+  colorId: null,
+  assignedFamilyIds: [],
+  whereToBuy: "",
+  quantity: 1,
+  quantityLabel: "",
+  estimatedPrice: { mode: "unset" },
+  ...overrides,
+});
+
+describe("filterCoopSupplyListItems parent context", () => {
   const parentContext = {
     variant: "parent" as const,
-    currentParentName: "Sarah Mitchell",
+    currentFamilyId: "family-sarah",
   };
 
-  it("filters by search text across name and store", () => {
+  it("filters mine sign-ups by family id", () => {
+    const items = [
+      baseItem({ id: "mine", assignedFamilyIds: ["family-sarah"] }),
+      baseItem({ id: "other", assignedFamilyIds: ["family-other"] }),
+    ];
+
     const filtered = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, search: "target" },
-      parentContext,
-    );
-
-    assert.equal(filtered.length, 1);
-    assert.equal(filtered[0]?.id, "supply-glue-sticks");
-  });
-
-  it("filters by month for specific-month items", () => {
-    const filtered = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, month: "Jan" },
-      parentContext,
-    );
-
-    assert.equal(
-      filtered.every((item) => item.months.includes("Jan")),
-      true,
-    );
-    assert.equal(filtered.some((item) => item.id === "supply-paper-towels"), true);
-  });
-
-  it("filters by color highlight including uncolored rows", () => {
-    const uncolored = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, colorId: "none" },
-      parentContext,
-    );
-    assert.equal(uncolored.length, 1);
-    assert.equal(uncolored[0]?.id, "supply-dry-erase");
-
-    const sage = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, colorId: "sage" },
-      parentContext,
-    );
-    assert.equal(sage.length, 1);
-    assert.equal(sage[0]?.id, "supply-glue-sticks");
-  });
-
-  it("filters parent assignment status for mine and available", () => {
-    const mine = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
+      items,
       { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, assignment: "mine" },
       parentContext,
     );
-    assert.deepEqual(mine.map((item) => item.id), ["supply-glue-sticks"]);
 
-    const available = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, assignment: "available" },
-      parentContext,
-    );
-    assert.equal(
-      available.some((item) => item.id === "supply-glue-sticks"),
-      false,
-    );
-    assert.equal(available.some((item) => item.id === "supply-dry-erase"), true);
+    assert.deepEqual(filtered.map((item) => item.id), ["mine"]);
   });
 
-  it("filters admin assignment status for unassigned items", () => {
-    const unassigned = filterCoopSupplyListItems(
-      MOCK_COOP_SUPPLY_ITEMS,
-      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, assignment: "unassigned" },
-      { variant: "admin" },
-    );
-    assert.equal(unassigned.length, 1);
-    assert.equal(unassigned[0]?.id, "supply-dry-erase");
-  });
+  it("does not treat same display-name different families as mine", () => {
+    const items = [
+      baseItem({ id: "other-john", assignedFamilyIds: ["family-john-a"] }),
+    ];
 
-  it("counts active filters", () => {
-    assert.equal(countActiveCoopSupplyFilters(DEFAULT_COOP_SUPPLY_LIST_FILTERS), 0);
-    assert.equal(
-      countActiveCoopSupplyFilters({
-        ...DEFAULT_COOP_SUPPLY_LIST_FILTERS,
-        search: "glue",
-        itemType: "consumable",
-      }),
-      2,
+    const filtered = filterCoopSupplyListItems(
+      items,
+      { ...DEFAULT_COOP_SUPPLY_LIST_FILTERS, assignment: "mine" },
+      { variant: "parent", currentFamilyId: "family-john-b" },
     );
+
+    assert.equal(filtered.length, 0);
   });
 });

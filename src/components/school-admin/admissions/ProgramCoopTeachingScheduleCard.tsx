@@ -17,12 +17,15 @@ import {
   teachingScheduleWeekChipTone,
   type CoopTeachingScheduleWeek,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
+import { listProgramCoopEnrolledFamilies } from "@/lib/admissions/program-coop-family-assignments";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import {
   deleteProgramCoopTeachingScheduleWeek,
   insertProgramCoopTeachingScheduleWeek,
   listProgramCoopTeachingSchedule,
-  upsertProgramCoopTeachingScheduleWeek,
+  saveProgramCoopTeachingScheduleWeekAdmin,
 } from "@/lib/admissions/program-coop-teaching-schedule-storage";
+import { ProgramCoopStorageConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import {
   DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
   filterCoopTeachingScheduleWeeks,
@@ -63,6 +66,7 @@ export default function ProgramCoopTeachingScheduleCard({
   coopModeEnabled,
 }: ProgramCoopTeachingScheduleCardProps) {
   const [weeks, setWeeks] = useState<CoopTeachingScheduleWeek[]>([]);
+  const [enrolledFamilies, setEnrolledFamilies] = useState<ProgramCoopFamily[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingWeek, setAddingWeek] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -89,14 +93,18 @@ export default function ProgramCoopTeachingScheduleCard({
   const loadSchedule = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await listProgramCoopTeachingSchedule(supabase, programId);
+      const [result, families] = await Promise.all([
+        listProgramCoopTeachingSchedule(supabase, programId),
+        listProgramCoopEnrolledFamilies(supabase, organizationId, programId),
+      ]);
       setWeeks(sortTeachingScheduleWeeks(result));
+      setEnrolledFamilies(families);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load teaching schedule."));
     } finally {
       setLoading(false);
     }
-  }, [programId, supabase]);
+  }, [organizationId, programId, supabase]);
 
   useEffect(() => {
     if (!coopModeEnabled) {
@@ -109,6 +117,10 @@ export default function ProgramCoopTeachingScheduleCard({
   }, [coopModeEnabled, loadSchedule]);
 
   const summary = useMemo(() => computeTeachingScheduleSummary(weeks), [weeks]);
+  const familyNameMap = useMemo(
+    () => new Map(enrolledFamilies.map((family) => [family.familyId, family.familyName])),
+    [enrolledFamilies],
+  );
   const filteredWeeks = useMemo(
     () => filterCoopTeachingScheduleWeeks(weeks, filters, { variant: "admin" }),
     [filters, weeks],
@@ -118,20 +130,32 @@ export default function ProgramCoopTeachingScheduleCard({
     [weeks, selectedId],
   );
 
-  const saveWeek = async (saved: CoopTeachingScheduleWeek) => {
+  const saveWeek = async (
+    saved: CoopTeachingScheduleWeek,
+    meta: { savedBaseline: CoopTeachingScheduleWeek },
+  ) => {
     try {
-      const persisted = await upsertProgramCoopTeachingScheduleWeek(
+      const persisted = await saveProgramCoopTeachingScheduleWeekAdmin(
         supabase,
         scheduleContext,
-        saved,
+        {
+          draft: saved,
+          savedBaseline: meta.savedBaseline,
+        },
       );
       setWeeks((current) =>
         sortTeachingScheduleWeeks(
           current.map((week) => (week.id === persisted.id ? persisted : week)),
         ),
       );
+      return persisted;
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to save teaching week."));
+      if (err instanceof ProgramCoopStorageConflictError) {
+        adminToast.error(err.message);
+        await loadSchedule();
+      } else {
+        adminToast.error(formatActionError(err, "Failed to save teaching week."));
+      }
       throw err;
     }
   };
@@ -364,13 +388,13 @@ export default function ProgramCoopTeachingScheduleCard({
                         className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
-                        {formatTeachingAssignedParents(week.parentInstructors)}
+                        {formatTeachingAssignedParents(week.instructorFamilyIds, familyNameMap)}
                       </td>
                       <td
                         className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
-                        {formatTeachingAssignedParents(week.parentAssistants)}
+                        {formatTeachingAssignedParents(week.assistantFamilyIds, familyNameMap)}
                       </td>
                       <td
                         className="px-[10px] py-2.5 text-xs"
@@ -433,6 +457,7 @@ export default function ProgramCoopTeachingScheduleCard({
         {selectedWeek ? (
           <CoopTeachingScheduleWeekDetailPanel
             week={selectedWeek}
+            enrolledFamilies={enrolledFamilies}
             C={C}
             theme={theme}
             onClose={() => {

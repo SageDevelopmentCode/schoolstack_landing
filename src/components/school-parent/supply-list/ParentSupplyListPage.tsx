@@ -39,7 +39,9 @@ type ParentSupplyListPageProps = {
   programId: string;
   initialItems: CoopSupplyListItem[];
   initialLegend: CoopSupplyColorLegendEntry[];
-  currentParentName: string;
+  currentFamilyId: string;
+  currentFamilyLabel: string;
+  familyNameMap: Record<string, string>;
   previewMode?: boolean;
 };
 
@@ -58,10 +60,16 @@ export default function ParentSupplyListPage({
   programId,
   initialItems,
   initialLegend,
-  currentParentName,
+  currentFamilyId,
+  currentFamilyLabel,
+  familyNameMap,
   previewMode = false,
 }: ParentSupplyListPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
+  const familyNames = useMemo(
+    () => new Map(Object.entries(familyNameMap)),
+    [familyNameMap],
+  );
   const [items, setItems] = useState(initialItems);
   const [filters, setFilters] = useState<CoopSupplyListFilters>(
     DEFAULT_COOP_SUPPLY_LIST_FILTERS,
@@ -77,9 +85,9 @@ export default function ParentSupplyListPage({
     () =>
       filterCoopSupplyListItems(items, filters, {
         variant: "parent",
-        currentParentName,
+        currentFamilyId,
       }),
-    [currentParentName, filters, items],
+    [currentFamilyId, filters, items],
   );
 
   const selectedItem = useMemo(
@@ -200,7 +208,7 @@ export default function ParentSupplyListPage({
             Signed up as
           </div>
           <div className="mt-1 text-xs font-semibold sm:text-sm" style={{ color: theme.ink }}>
-            {currentParentName}
+            {currentFamilyLabel}
           </div>
         </ParentCard>
       </div>
@@ -252,7 +260,7 @@ export default function ParentSupplyListPage({
                   item={item}
                   theme={theme}
                   rowStyle={rowStyle}
-                  currentParentName={currentParentName}
+                  currentFamilyId={currentFamilyId}
                   previewMode={previewMode}
                   pendingAction={pendingAction}
                   isSelected={isSelected}
@@ -335,12 +343,12 @@ export default function ParentSupplyListPage({
                           className="truncate text-xs"
                           style={{ color: theme.muted }}
                           title={
-                            item.assignedFamilies.length > 0
-                              ? formatSupplyAssignedFamilies(item.assignedFamilies)
+                            item.assignedFamilyIds.length > 0
+                              ? formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNames)
                               : undefined
                           }
                         >
-                          {formatSupplyAssignedFamilies(item.assignedFamilies)}
+                          {formatSupplyAssignedFamilies(item.assignedFamilyIds, familyNames)}
                         </div>
                       </td>
                       <td className="max-w-[180px] px-[15px] py-3">
@@ -356,7 +364,7 @@ export default function ParentSupplyListPage({
                         <ParentSupplyListSignupButton
                           theme={theme}
                           item={item}
-                          currentParentName={currentParentName}
+                          currentFamilyId={currentFamilyId}
                           previewMode={previewMode}
                           pendingAction={pendingAction}
                           onSignUp={() => void runAction(item.id, "claim")}
@@ -377,7 +385,8 @@ export default function ParentSupplyListPage({
             item={selectedItem}
             colorLegend={initialLegend}
             theme={theme}
-            currentParentName={currentParentName}
+            currentFamilyId={currentFamilyId}
+            familyNameMap={familyNames}
             previewMode={previewMode}
             pendingAction={pendingAction}
             onClose={() => setSelectedItemId(null)}

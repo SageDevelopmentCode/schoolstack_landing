@@ -56,7 +56,7 @@ export const DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS: CoopTeachingScheduleFilters
 };
 
 export type CoopTeachingScheduleFilterContext =
-  | { variant: "parent"; currentParentName: string }
+  | { variant: "parent"; currentFamilyId: string }
   | { variant: "admin" };
 
 function matchesSearch(week: CoopTeachingScheduleWeek, search: string): boolean {
@@ -68,8 +68,8 @@ function matchesSearch(week: CoopTeachingScheduleWeek, search: string): boolean 
     week.seasonalTheme,
     week.characterLesson,
     week.celebrationEvent ?? "",
-    formatTeachingAssignedParents(week.parentInstructors),
-    formatTeachingAssignedParents(week.parentAssistants),
+    formatTeachingAssignedParents(week.instructorFamilyIds),
+    formatTeachingAssignedParents(week.assistantFamilyIds),
   ]
     .join(" ")
     .toLowerCase();
@@ -92,11 +92,11 @@ function matchesMonth(
 }
 
 function weekHasOpenVolunteerSpot(week: CoopTeachingScheduleWeek): boolean {
-  return week.parentInstructors.length === 0 || week.parentAssistants.length === 0;
+  return week.instructorFamilyIds.length === 0 || week.assistantFamilyIds.length === 0;
 }
 
 function weekIsFullyStaffed(week: CoopTeachingScheduleWeek): boolean {
-  return week.parentInstructors.length > 0 && week.parentAssistants.length > 0;
+  return week.instructorFamilyIds.length > 0 && week.assistantFamilyIds.length > 0;
 }
 
 function matchesVolunteer(
@@ -106,8 +106,8 @@ function matchesVolunteer(
 ): boolean {
   if (context.variant === "parent") {
     const isMine =
-      isTeachingParentAssigned(week.parentInstructors, context.currentParentName) ||
-      isTeachingParentAssigned(week.parentAssistants, context.currentParentName);
+      isTeachingParentAssigned(week.instructorFamilyIds, context.currentFamilyId) ||
+      isTeachingParentAssigned(week.assistantFamilyIds, context.currentFamilyId);
 
     switch (volunteer as CoopTeachingScheduleVolunteerFilterParent) {
       case "all":
@@ -117,9 +117,9 @@ function matchesVolunteer(
       case "mine":
         return isMine;
       case "needs_instructor":
-        return week.parentInstructors.length === 0;
+        return week.instructorFamilyIds.length === 0;
       case "needs_assistant":
-        return week.parentAssistants.length === 0;
+        return week.assistantFamilyIds.length === 0;
       default:
         return true;
     }
@@ -129,9 +129,9 @@ function matchesVolunteer(
     case "all":
       return true;
     case "needs_instructor":
-      return week.parentInstructors.length === 0;
+      return week.instructorFamilyIds.length === 0;
     case "needs_assistant":
-      return week.parentAssistants.length === 0;
+      return week.assistantFamilyIds.length === 0;
     case "fully_staffed":
       return weekIsFullyStaffed(week);
     case "has_event":

@@ -1,6 +1,12 @@
 import type { CSSProperties } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import {
+  canAddCoopAssignedFamily,
+  formatCoopAssignedFamilyLabels,
+  isCoopFamilyAssigned,
+  type CoopFamilyNameMap,
+} from "./program-coop-family-assignment-helpers";
 import { newAdmissionsId } from "./application-form-schema";
 
 export type SupplyItemType = "consumable" | "reusable" | "both";
@@ -19,11 +25,12 @@ export type CoopSupplyListItem = {
   usageTiming: SupplyUsageTiming;
   months: string[];
   colorId: string | null;
-  assignedFamilies: string[];
+  assignedFamilyIds: string[];
   whereToBuy: string;
   quantity: number;
   quantityLabel: string;
   estimatedPrice: CoopSupplyEstimatedPrice;
+  updatedAt?: string;
 };
 
 export type CoopSupplyColorLegendEntry = {
@@ -113,7 +120,7 @@ export function newCoopSupplyListItem(): CoopSupplyListItem {
     usageTiming: "year_round",
     months: [],
     colorId: null,
-    assignedFamilies: [],
+    assignedFamilyIds: [],
     whereToBuy: "",
     quantity: 1,
     quantityLabel: "",
@@ -129,7 +136,7 @@ export const MOCK_COOP_SUPPLY_ITEMS: CoopSupplyListItem[] = [
     usageTiming: "year_round",
     months: [],
     colorId: "sage",
-    assignedFamilies: ["Sarah Mitchell"],
+    assignedFamilyIds: ["parent-sarah"],
     whereToBuy: "Target or Amazon",
     quantity: 2,
     quantityLabel: "packs",
@@ -142,7 +149,7 @@ export const MOCK_COOP_SUPPLY_ITEMS: CoopSupplyListItem[] = [
     usageTiming: "specific_months",
     months: ["Sep", "Jan"],
     colorId: "clay",
-    assignedFamilies: ["James & Lisa Chen"],
+    assignedFamilyIds: ["parent-chen"],
     whereToBuy: "Costco",
     quantity: 1,
     quantityLabel: "rolls",
@@ -155,7 +162,7 @@ export const MOCK_COOP_SUPPLY_ITEMS: CoopSupplyListItem[] = [
     usageTiming: "year_round",
     months: [],
     colorId: null,
-    assignedFamilies: [],
+    assignedFamilyIds: [],
     whereToBuy: "Staples",
     quantity: 3,
     quantityLabel: "sets",
@@ -168,7 +175,7 @@ export const MOCK_COOP_SUPPLY_ITEMS: CoopSupplyListItem[] = [
     usageTiming: "year_round",
     months: [],
     colorId: "lavender",
-    assignedFamilies: ["Maria Rivera", "David Thompson"],
+    assignedFamilyIds: ["parent-rivera", "parent-thompson"],
     whereToBuy: "Amazon",
     quantity: 1,
     quantityLabel: "set",
@@ -181,7 +188,7 @@ export const MOCK_COOP_SUPPLY_ITEMS: CoopSupplyListItem[] = [
     usageTiming: "specific_months",
     months: ["Oct", "Nov", "Feb", "Mar"],
     colorId: "rose",
-    assignedFamilies: ["David Thompson"],
+    assignedFamilyIds: ["parent-thompson"],
     whereToBuy: "Walmart",
     quantity: 1,
     quantityLabel: "boxes",
@@ -311,7 +318,7 @@ function areCoopSupplyEstimatedPricesEqual(
 }
 
 export function computeSupplyListSummary(items: CoopSupplyListItem[]) {
-  const assignedCount = items.filter((item) => item.assignedFamilies.length > 0).length;
+  const assignedCount = items.filter((item) => item.assignedFamilyIds.length > 0).length;
   const totalCents = items.reduce(
     (sum, item) =>
       sum + supplyEstimatedPriceCentsForSummary(item.estimatedPrice) * item.quantity,
@@ -336,8 +343,8 @@ export function areCoopSupplyItemsEqual(
     a.months.length === b.months.length &&
     a.months.every((month, index) => month === b.months[index]) &&
     a.colorId === b.colorId &&
-    a.assignedFamilies.length === b.assignedFamilies.length &&
-    a.assignedFamilies.every((family, index) => family === b.assignedFamilies[index]) &&
+    a.assignedFamilyIds.length === b.assignedFamilyIds.length &&
+    a.assignedFamilyIds.every((familyId, index) => familyId === b.assignedFamilyIds[index]) &&
     a.whereToBuy === b.whereToBuy &&
     a.quantity === b.quantity &&
     a.quantityLabel === b.quantityLabel &&
@@ -377,34 +384,29 @@ export function supplyUsageTimingLabel(item: CoopSupplyListItem): string {
   return item.months.join(", ");
 }
 
-export function normalizeSupplyFamilyName(name: string): string {
-  return name.trim().replace(/\s+/g, " ");
-}
-
 export function canAddSupplyAssignedFamily(
-  families: ReadonlyArray<string>,
-  name: string,
+  assignedFamilyIds: ReadonlyArray<string>,
+  familyId: string,
 ): boolean {
-  const normalized = normalizeSupplyFamilyName(name);
-  if (!normalized) return false;
-  if (families.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES) return false;
-  const lower = normalized.toLowerCase();
-  return !families.some((family) => family.toLowerCase() === lower);
+  return canAddCoopAssignedFamily(
+    assignedFamilyIds,
+    familyId,
+    COOP_SUPPLY_MAX_ASSIGNED_FAMILIES,
+  );
 }
 
 export function isSupplyFamilyAssigned(
-  families: ReadonlyArray<string>,
-  name: string,
+  assignedFamilyIds: ReadonlyArray<string>,
+  familyId: string,
 ): boolean {
-  const normalized = normalizeSupplyFamilyName(name);
-  if (!normalized) return false;
-  const lower = normalized.toLowerCase();
-  return families.some((family) => family.toLowerCase() === lower);
+  return isCoopFamilyAssigned(assignedFamilyIds, familyId);
 }
 
-export function formatSupplyAssignedFamilies(families: ReadonlyArray<string>): string {
-  if (families.length === 0) return "Unassigned";
-  return families.join(", ");
+export function formatSupplyAssignedFamilies(
+  assignedFamilyIds: ReadonlyArray<string>,
+  nameMap?: CoopFamilyNameMap,
+): string {
+  return formatCoopAssignedFamilyLabels(assignedFamilyIds, nameMap ?? new Map());
 }
 
 export function getSupplyColorLegendEntry(

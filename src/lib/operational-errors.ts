@@ -4,6 +4,7 @@ import { stackFromCause } from "@/lib/api/error-serialization";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
+  type ActivitySeverity,
   type ActivitySurface,
   type ActorType,
 } from "@/lib/activity-log";
@@ -33,6 +34,7 @@ export type ReportOperationalErrorInput = {
   entityId?: string | null;
   metadata?: Record<string, unknown>;
   notify?: boolean;
+  severity?: ActivitySeverity;
   actor: OperationalErrorActor;
   cause?: unknown;
   /** API route context — when set, uses notifyWebsiteApiError instead of school-admin Discord */
@@ -62,6 +64,7 @@ export async function reportOperationalError(
     entityId,
     metadata,
     notify = true,
+    severity = "error",
     actor,
     cause,
     api,
@@ -93,7 +96,7 @@ export async function reportOperationalError(
     entityType,
     entityId,
     summary,
-    severity: "error",
+    severity,
     metadata: {
       operation,
       error,

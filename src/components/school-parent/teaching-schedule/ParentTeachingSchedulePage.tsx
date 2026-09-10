@@ -33,7 +33,9 @@ type ParentTeachingSchedulePageProps = {
   organizationId: string;
   programId: string;
   initialWeeks: CoopTeachingScheduleWeek[];
-  currentParentName: string;
+  currentFamilyId: string;
+  currentFamilyLabel: string;
+  familyNameMap: Record<string, string>;
   previewMode?: boolean;
 };
 
@@ -41,10 +43,16 @@ export default function ParentTeachingSchedulePage({
   organizationId,
   programId,
   initialWeeks,
-  currentParentName,
+  currentFamilyId,
+  currentFamilyLabel,
+  familyNameMap,
   previewMode = false,
 }: ParentTeachingSchedulePageProps) {
   const { theme } = useParentTheme();
+  const familyNames = useMemo(
+    () => new Map(Object.entries(familyNameMap)),
+    [familyNameMap],
+  );
   const [weeks, setWeeks] = useState(() => sortTeachingScheduleWeeks(initialWeeks));
   const [filters, setFilters] = useState<CoopTeachingScheduleFilters>(
     DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
@@ -61,9 +69,9 @@ export default function ParentTeachingSchedulePage({
     () =>
       filterCoopTeachingScheduleWeeks(weeks, filters, {
         variant: "parent",
-        currentParentName,
+        currentFamilyId,
       }),
-    [currentParentName, filters, weeks],
+    [currentFamilyId, filters, weeks],
   );
 
   const updateWeek = useCallback((updated: CoopTeachingScheduleWeek) => {
@@ -249,13 +257,13 @@ export default function ParentTeachingSchedulePage({
                           <span className="font-semibold" style={{ color: theme.ink }}>
                             Instructor:
                           </span>{" "}
-                          {formatTeachingAssignedParents(week.parentInstructors)}
+                          {formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}
                         </div>
                         <div>
                           <span className="font-semibold" style={{ color: theme.ink }}>
                             Assistant:
                           </span>{" "}
-                          {formatTeachingAssignedParents(week.parentAssistants)}
+                          {formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}
                         </div>
                         <div>{week.seasonalTheme}</div>
                         <div>{week.characterLesson}</div>
@@ -267,7 +275,7 @@ export default function ParentTeachingSchedulePage({
                         <ParentTeachingScheduleVolunteerActions
                           theme={theme}
                           week={week}
-                          currentParentName={currentParentName}
+                          currentFamilyId={currentFamilyId}
                           previewMode={previewMode}
                           pendingAction={pendingAction}
                           onSignUp={(role) => void runAction(week.id, role, "signup")}
@@ -337,10 +345,10 @@ export default function ParentTeachingSchedulePage({
                             </div>
                           </td>
                           <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {formatTeachingAssignedParents(week.parentInstructors)}
+                            {formatTeachingAssignedParents(week.instructorFamilyIds, familyNames)}
                           </td>
                           <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
-                            {formatTeachingAssignedParents(week.parentAssistants)}
+                            {formatTeachingAssignedParents(week.assistantFamilyIds, familyNames)}
                           </td>
                           <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {week.seasonalTheme}
@@ -355,7 +363,7 @@ export default function ParentTeachingSchedulePage({
                             <ParentTeachingScheduleVolunteerActions
                               theme={theme}
                               week={week}
-                              currentParentName={currentParentName}
+                              currentFamilyId={currentFamilyId}
                               previewMode={previewMode}
                               pendingAction={pendingAction}
                               onSignUp={(role) => void runAction(week.id, role, "signup")}

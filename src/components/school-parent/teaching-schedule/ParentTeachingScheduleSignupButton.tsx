@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react";
 import {
   canParentSignUpForTeachingRole,
-  getTeachingScheduleParentsForRole,
+  getTeachingScheduleFamilyIdsForRole,
   isTeachingParentAssigned,
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
@@ -21,7 +21,7 @@ type ParentTeachingScheduleSignupButtonProps = {
   theme: ParentThemeTokens;
   week: CoopTeachingScheduleWeek;
   role: TeachingScheduleParentRole;
-  currentParentName: string;
+  currentFamilyId: string;
   previewMode?: boolean;
   pendingAction: ParentTeachingSchedulePendingAction | null;
   onSignUp: () => void;
@@ -40,16 +40,16 @@ export default function ParentTeachingScheduleSignupButton({
   theme,
   week,
   role,
-  currentParentName,
+  currentFamilyId,
   previewMode = false,
   pendingAction,
   onSignUp,
   onWithdraw,
   className = "",
 }: ParentTeachingScheduleSignupButtonProps) {
-  const people = getTeachingScheduleParentsForRole(week, role);
-  const isSignedUp = isTeachingParentAssigned(people, currentParentName);
-  const canSignUp = canParentSignUpForTeachingRole(people);
+  const familyIds = getTeachingScheduleFamilyIdsForRole(week, role);
+  const isSignedUp = isTeachingParentAssigned(familyIds, currentFamilyId);
+  const canSignUp = canParentSignUpForTeachingRole(familyIds);
   const isPendingSignup =
     pendingAction?.weekId === week.id &&
     pendingAction.role === role &&

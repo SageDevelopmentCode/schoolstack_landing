@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { getFamilyIdsForUser } from "./application-auth";
 import {
   getProgramByPortalSlug,
@@ -184,6 +185,55 @@ export async function userHasMainPortalEnrollment(
     organizationId,
   );
   return familyHasMainPortalEnrollment(enrolledPrograms);
+}
+
+export async function userHasAccessForProgramPortal(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  programId: string,
+): Promise<boolean> {
+  return userHasEnrolledAccessInProgram(
+    supabase,
+    userId,
+    organizationId,
+    programId,
+  );
+}
+
+export async function userHasAccessForOptionalProgramScope(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  programId?: string | null,
+): Promise<boolean> {
+  const trimmed = programId?.trim();
+  if (trimmed) {
+    return userHasAccessForProgramPortal(
+      supabase,
+      userId,
+      organizationId,
+      trimmed,
+    );
+  }
+  return userHasMainPortalEnrollment(supabase, userId, organizationId);
+}
+
+export async function userHasAccessForNotificationContext(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+  context: ParentNotificationContext,
+): Promise<boolean> {
+  if (context.mode === "program") {
+    return userHasAccessForProgramPortal(
+      supabase,
+      userId,
+      organizationId,
+      context.programId,
+    );
+  }
+  return userHasMainPortalEnrollment(supabase, userId, organizationId);
 }
 
 export async function familyHasMainPortalEnrollmentForFamily(

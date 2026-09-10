@@ -8,13 +8,17 @@ import {
   canAddSupplyAssignedFamily,
   defaultCoopSupplyColorLegend,
   newCoopSupplyListItem,
-  normalizeSupplyFamilyName,
   type CoopSupplyColorLegendEntry,
   type CoopSupplyEstimatedPrice,
   type CoopSupplyListItem,
   type SupplyItemType,
   type SupplyUsageTiming,
 } from "./program-coop-supply-list-mock";
+import {
+  mergeAssignedFamiliesOnAdminSave,
+  ProgramCoopSignupConflictError,
+  ProgramCoopStorageConflictError,
+} from "./program-coop-storage-errors";
 
 export type ProgramCoopSupplyListContext = {
   organizationId: string;
@@ -42,7 +46,7 @@ type ProgramCoopSupplyItemRow = {
   usage_timing: SupplyUsageTiming;
   months: string[];
   color_id: string | null;
-  assigned_families: string[];
+  assigned_family_ids: string[];
   where_to_buy: string;
   quantity: number;
   quantity_label: string;
@@ -56,7 +60,7 @@ const COLOR_LEGEND_SELECT =
   "id, program_id, organization_id, color_id, hex, label, sort_order, created_at, updated_at";
 
 const ITEM_SELECT =
-  "id, program_id, organization_id, name, item_type, usage_timing, months, color_id, assigned_families, where_to_buy, quantity, quantity_label, estimated_price, sort_order, created_at, updated_at";
+  "id, program_id, organization_id, name, item_type, usage_timing, months, color_id, assigned_family_ids, where_to_buy, quantity, quantity_label, estimated_price, sort_order, created_at, updated_at";
 
 function mapColorLegendRow(row: ProgramCoopSupplyColorLegendRow): CoopSupplyColorLegendEntry {
   return {
@@ -74,11 +78,12 @@ function mapItemRow(row: ProgramCoopSupplyItemRow): CoopSupplyListItem {
     usageTiming: row.usage_timing,
     months: row.months ?? [],
     colorId: row.color_id,
-    assignedFamilies: row.assigned_families ?? [],
+    assignedFamilyIds: row.assigned_family_ids ?? [],
     whereToBuy: row.where_to_buy,
     quantity: row.quantity,
     quantityLabel: row.quantity_label,
     estimatedPrice: row.estimated_price ?? { mode: "unset" },
+    updatedAt: row.updated_at,
   };
 }
 
@@ -96,7 +101,7 @@ function itemToInsertRow(
     usage_timing: item.usageTiming,
     months: item.months,
     color_id: item.colorId,
-    assigned_families: item.assignedFamilies,
+    assigned_family_ids: item.assignedFamilyIds,
     where_to_buy: item.whereToBuy,
     quantity: item.quantity,
     quantity_label: item.quantityLabel,
@@ -156,6 +161,11 @@ export async function listProgramCoopSupplyList(
 
 export type ProgramCoopSupplyListWriteOptions = {
   skipActivityLog?: boolean;
+};
+
+export type ProgramCoopSupplyItemAdminSaveInput = {
+  draft: CoopSupplyListItem;
+  savedBaseline: CoopSupplyListItem;
 };
 
 export async function insertProgramCoopSupplyItem(
@@ -236,6 +246,70 @@ export async function upsertProgramCoopSupplyItem(
   return mapped;
 }
 
+export async function saveProgramCoopSupplyItemAdmin(
+  supabase: SupabaseClient,
+  ctx: ProgramCoopSupplyListContext,
+  input: ProgramCoopSupplyItemAdminSaveInput,
+): Promise<CoopSupplyListItem> {
+  const { draft, savedBaseline } = input;
+
+  if (!savedBaseline.updatedAt) {
+    throw new ProgramCoopStorageConflictError();
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("program_coop_supply_items")
+    .select("sort_order, assigned_family_ids, updated_at")
+    .eq("id", draft.id)
+    .eq("program_id", ctx.programId)
+    .eq("organization_id", ctx.organizationId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (!existing) {
+    throw new Error("Supply item not found.");
+  }
+
+  const mergedFamilyIds = mergeAssignedFamiliesOnAdminSave(
+    (existing as { assigned_family_ids: string[] }).assigned_family_ids ?? [],
+    savedBaseline.assignedFamilyIds,
+    draft.assignedFamilyIds,
+  );
+
+  const sortOrder = (existing as { sort_order: number }).sort_order;
+  const patch = itemToInsertRow(
+    { ...draft, assignedFamilyIds: mergedFamilyIds },
+    ctx,
+    sortOrder,
+  );
+
+  const { data, error } = await supabase
+    .from("program_coop_supply_items")
+    .update(patch)
+    .eq("id", draft.id)
+    .eq("program_id", ctx.programId)
+    .eq("organization_id", ctx.organizationId)
+    .eq("updated_at", savedBaseline.updatedAt)
+    .select(ITEM_SELECT)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw new ProgramCoopStorageConflictError();
+  }
+
+  const mapped = mapItemRow(data as ProgramCoopSupplyItemRow);
+
+  void logProgramCoopSupplyItemUpdated(supabase, {
+    organizationId: ctx.organizationId,
+    programId: ctx.programId,
+    itemId: mapped.id,
+    itemName: mapped.name,
+  });
+
+  return mapped;
+}
+
 export async function getProgramCoopSupplyItem(
   supabase: SupabaseClient,
   ctx: ProgramCoopSupplyListContext,
@@ -258,47 +332,64 @@ export async function appendProgramCoopSupplyAssignedFamily(
   supabase: SupabaseClient,
   ctx: ProgramCoopSupplyListContext,
   itemId: string,
-  familyName: string,
+  familyId: string,
 ): Promise<CoopSupplyListItem> {
+  const trimmedFamilyId = familyId.trim();
+  if (!trimmedFamilyId) {
+    throw new Error("This item cannot accept another sign-up.");
+  }
+
+  const { data, error } = await supabase.rpc("append_program_coop_supply_assigned_family", {
+    p_item_id: itemId,
+    p_program_id: ctx.programId,
+    p_organization_id: ctx.organizationId,
+    p_family_id: trimmedFamilyId,
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as ProgramCoopSupplyItemRow[];
+  if (rows.length > 0) {
+    return mapItemRow(rows[0]);
+  }
+
   const item = await getProgramCoopSupplyItem(supabase, ctx, itemId);
   if (!item) {
     throw new Error("Supply item not found.");
   }
-  if (!canAddSupplyAssignedFamily(item.assignedFamilies, familyName)) {
-    throw new Error("This item cannot accept another sign-up.");
+  if (!canAddSupplyAssignedFamily(item.assignedFamilyIds, familyId)) {
+    throw new ProgramCoopSignupConflictError("This item cannot accept another sign-up.");
   }
 
-  const normalized = normalizeSupplyFamilyName(familyName);
-  return upsertProgramCoopSupplyItem(supabase, ctx, {
-    ...item,
-    assignedFamilies: [...item.assignedFamilies, normalized],
-  }, { skipActivityLog: true });
+  throw new ProgramCoopSignupConflictError("This item cannot accept another sign-up.");
 }
 
 export async function removeProgramCoopSupplyAssignedFamily(
   supabase: SupabaseClient,
   ctx: ProgramCoopSupplyListContext,
   itemId: string,
-  familyName: string,
+  familyId: string,
 ): Promise<CoopSupplyListItem> {
-  const item = await getProgramCoopSupplyItem(supabase, ctx, itemId);
-  if (!item) {
-    throw new Error("Supply item not found.");
-  }
-
-  const normalized = normalizeSupplyFamilyName(familyName).toLowerCase();
-  const assignedFamilies = item.assignedFamilies.filter(
-    (family) => family.toLowerCase() !== normalized,
-  );
-
-  if (assignedFamilies.length === item.assignedFamilies.length) {
+  const trimmedFamilyId = familyId.trim();
+  if (!trimmedFamilyId) {
     throw new Error("You are not signed up for this item.");
   }
 
-  return upsertProgramCoopSupplyItem(supabase, ctx, {
-    ...item,
-    assignedFamilies,
-  }, { skipActivityLog: true });
+  const { data, error } = await supabase.rpc("remove_program_coop_supply_assigned_family", {
+    p_item_id: itemId,
+    p_program_id: ctx.programId,
+    p_organization_id: ctx.organizationId,
+    p_family_id: trimmedFamilyId,
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as ProgramCoopSupplyItemRow[];
+  if (rows.length > 0) {
+    return mapItemRow(rows[0]);
+  }
+
+  throw new Error("You are not signed up for this item.");
 }
 
 export async function deleteProgramCoopSupplyItem(

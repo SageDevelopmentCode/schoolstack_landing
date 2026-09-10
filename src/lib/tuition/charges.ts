@@ -130,6 +130,16 @@ export async function getChargeById(
   return data ? rowToCharge(data) : null;
 }
 
+export class ChargeStatusConflictError extends Error {
+  status = 409;
+  code = "status_conflict";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ChargeStatusConflictError";
+  }
+}
+
 export async function updateChargeStatus(
   supabase: SupabaseClient,
   chargeId: string,
@@ -148,6 +158,40 @@ export async function updateChargeStatus(
     .single();
 
   if (error) throw error;
+  return rowToCharge(data);
+}
+
+export async function updateChargeStatusIf(
+  supabase: SupabaseClient,
+  chargeId: string,
+  input: {
+    fromStatuses: ChargeStatus[];
+    toStatus: ChargeStatus;
+    extra?: { sentAt?: string; paidAt?: string };
+  },
+): Promise<TuitionCharge> {
+  const patch: Record<string, unknown> = { status: input.toStatus };
+  if (input.extra?.sentAt) patch.sent_at = input.extra.sentAt;
+  if (input.extra?.paidAt) patch.paid_at = input.extra.paidAt;
+
+  const { data, error } = await supabase
+    .from("tuition_charges")
+    .update(patch)
+    .eq("id", chargeId)
+    .in("status", input.fromStatuses)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    const current = await getChargeById(supabase, chargeId);
+    throw new ChargeStatusConflictError(
+      current
+        ? `Charge status changed to ${current.status} before update.`
+        : "Charge not found.",
+    );
+  }
+
   return rowToCharge(data);
 }
 

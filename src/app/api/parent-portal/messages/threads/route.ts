@@ -7,8 +7,8 @@ import {
   findOrCreateThread,
   getFamilyIdsForUser,
   resolveParticipantsForContact,
-  userHasEnrolledAccess,
 } from "@/lib/messages/api-helpers";
+import { userHasAccessForOptionalProgramScope } from "@/lib/admissions/program-parent-portal-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -44,7 +44,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    const hasAccess = await userHasAccessForOptionalProgramScope(
+      supabase,
+      user.id,
+      organizationId,
+      programId,
+    );
     if (!hasAccess) {
       return apiError(ROUTE, {
         request,
@@ -116,7 +121,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    const hasAccess = await userHasAccessForOptionalProgramScope(
+      supabase,
+      user.id,
+      organizationId,
+      body.programId,
+    );
     if (!hasAccess) {
       return apiError(ROUTE, {
         request,

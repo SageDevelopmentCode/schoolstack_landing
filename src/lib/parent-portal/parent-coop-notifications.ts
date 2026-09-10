@@ -1,10 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  isSupplyFamilyAssigned,
-  normalizeSupplyFamilyName,
-} from "@/lib/admissions/program-coop-supply-list-mock";
+import { isCoopFamilyAssigned } from "@/lib/admissions/program-coop-family-assignment-helpers";
 import { getProgramCoopCurriculumTabLabel } from "@/lib/admissions/program-coop-curriculum-storage";
-import { normalizeTeachingParentName } from "@/lib/admissions/program-coop-teaching-schedule-mock";
 import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 
 export type CoopParentActivityNotification = {
@@ -32,7 +28,7 @@ const COOP_UPDATE_THRESHOLD_MS = 1_000;
 type SupplyItemRow = {
   id: string;
   name: string;
-  assigned_families: string[] | null;
+  assigned_family_ids: string[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -41,8 +37,8 @@ type TeachingWeekRow = {
   id: string;
   week_name: string;
   start_date: string;
-  parent_instructors: string[] | null;
-  parent_assistants: string[] | null;
+  instructor_family_ids: string[] | null;
+  assistant_family_ids: string[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -87,26 +83,17 @@ function capCoopNotificationsForPage(
     .slice(0, pageFetch.limit + 1);
 }
 
-function familyNameMatches(
-  parentNames: ReadonlyArray<string>,
-  candidate: string,
-): boolean {
-  return parentNames.some((name) =>
-    isSupplyFamilyAssigned([name], candidate),
-  );
-}
-
 function isLikelySupplySelfClaim(
   row: SupplyItemRow,
-  parentNames: ReadonlyArray<string>,
+  familyId: string,
 ): boolean {
   const created = new Date(row.created_at).getTime();
   const updated = new Date(row.updated_at).getTime();
   if (updated - created > COOP_ASSIGNMENT_GRACE_MS) return false;
 
-  const assigned = row.assigned_families ?? [];
+  const assigned = row.assigned_family_ids ?? [];
   if (assigned.length !== 1) return false;
-  return familyNameMatches(parentNames, assigned[0]!);
+  return isCoopFamilyAssigned(assigned, familyId);
 }
 
 function formatTeachingWeekLabel(row: TeachingWeekRow): string {
@@ -138,36 +125,10 @@ function coopFeatureHref(
   return `${parentNavBasePath}/${feature}`;
 }
 
-export async function fetchFamilyParentDisplayNames(
-  supabase: SupabaseClient,
-  familyId: string,
-  organizationId: string,
-): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("guardians")
-    .select("first_name, last_name")
-    .eq("family_id", familyId)
-    .eq("organization_id", organizationId);
-
-  if (error) throw error;
-
-  const names = new Set<string>();
-  for (const row of data ?? []) {
-    const firstName = String(row.first_name ?? "").trim();
-    const lastName = String(row.last_name ?? "").trim();
-    const fullName = normalizeSupplyFamilyName(`${firstName} ${lastName}`.trim());
-    if (fullName) names.add(fullName);
-    if (firstName) names.add(normalizeSupplyFamilyName(firstName));
-  }
-
-  return [...names];
-}
-
 export async function fetchCoopProgramNotifications(
   supabase: SupabaseClient,
   ctx: Extract<ParentNotificationContext, { mode: "program" }>,
   familyId: string,
-  parentNames: ReadonlyArray<string>,
   rangeStart: Date,
   pageFetch?: CoopPageFetchOptions,
 ): Promise<CoopParentActivityNotification[]> {
@@ -204,10 +165,8 @@ export async function fetchCoopProgramNotifications(
       );
     }
 
-    const assignedFamilies = row.assigned_families ?? [];
-    const familyAssigned = assignedFamilies.some((name) =>
-      familyNameMatches(parentNames, name),
-    );
+    const assignedFamilyIds = row.assigned_family_ids ?? [];
+    const familyAssigned = isCoopFamilyAssigned(assignedFamilyIds, familyId);
     const updatedAt = row.updated_at;
     const wasUpdatedAfterCreate =
       new Date(updatedAt).getTime() - new Date(row.created_at).getTime() >
@@ -217,7 +176,7 @@ export async function fetchCoopProgramNotifications(
       familyAssigned &&
       wasUpdatedAfterCreate &&
       new Date(updatedAt) >= rangeStart &&
-      !isLikelySupplySelfClaim(row, parentNames)
+      !isLikelySupplySelfClaim(row, familyId)
     ) {
       notifications.push(
         buildCoopNotification({
@@ -274,11 +233,13 @@ export async function fetchCoopProgramNotifications(
       continue;
     }
 
-    const instructorMatch = (row.parent_instructors ?? []).some((name) =>
-      familyNameMatches(parentNames, normalizeTeachingParentName(name)),
+    const instructorMatch = isCoopFamilyAssigned(
+      row.instructor_family_ids ?? [],
+      familyId,
     );
-    const assistantMatch = (row.parent_assistants ?? []).some((name) =>
-      familyNameMatches(parentNames, normalizeTeachingParentName(name)),
+    const assistantMatch = isCoopFamilyAssigned(
+      row.assistant_family_ids ?? [],
+      familyId,
     );
 
     if (instructorMatch || assistantMatch) {
@@ -317,7 +278,6 @@ export async function fetchCoopProgramNotifications(
     );
   }
 
-  void familyId;
   return capCoopNotificationsForPage(notifications, pageFetch);
 }
 
@@ -342,7 +302,7 @@ async function fetchSupplyItems(
 ): Promise<SupplyItemRow[]> {
   const { data, error } = await supabase
     .from("program_coop_supply_items")
-    .select("id, name, assigned_families, created_at, updated_at")
+    .select("id, name, assigned_family_ids, created_at, updated_at")
     .eq("program_id", programId)
     .or(
       `created_at.gte.${rangeStart.toISOString()},updated_at.gte.${rangeStart.toISOString()}`,
@@ -361,7 +321,7 @@ async function fetchTeachingWeeks(
   const { data, error } = await supabase
     .from("program_coop_teaching_schedule_weeks")
     .select(
-      "id, week_name, start_date, parent_instructors, parent_assistants, created_at, updated_at",
+      "id, week_name, start_date, instructor_family_ids, assistant_family_ids, created_at, updated_at",
     )
     .eq("program_id", programId)
     .or(

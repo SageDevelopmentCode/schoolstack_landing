@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { userHasAccessForNotificationContext } from "@/lib/admissions/program-parent-portal-access";
 import { apiError } from "@/lib/api/route-errors";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import {
@@ -69,10 +69,11 @@ export async function GET(request: Request) {
       });
     }
 
-    const hasAccess = await userHasEnrolledAccess(
+    const hasAccess = await userHasAccessForNotificationContext(
       supabase,
       user.id,
       organizationId,
+      notificationContext,
     );
     if (!hasAccess) {
       return apiError(ROUTE, {

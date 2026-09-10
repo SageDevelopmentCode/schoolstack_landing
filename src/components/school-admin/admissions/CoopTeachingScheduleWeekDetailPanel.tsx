@@ -5,17 +5,18 @@ import { motion } from "framer-motion";
 import { Loader2, Plus, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import {
   areCoopTeachingScheduleWeeksEqual,
   canAddTeachingAssignedParent,
   formatTeachingScheduleDateRange,
   isCoopTeachingScheduleWeekComplete,
-  normalizeTeachingParentName,
   teachingScheduleStatusChipTone,
   teachingScheduleStatusLabel,
   teachingScheduleWeekDisplayName,
   type CoopTeachingScheduleWeek,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
+import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import SchoolAdminDatePicker, {
@@ -29,10 +30,14 @@ import { BuilderQuestionCard } from "./builder-question-card";
 
 type CoopTeachingScheduleWeekDetailPanelProps = {
   week: CoopTeachingScheduleWeek;
+  enrolledFamilies: ReadonlyArray<ProgramCoopFamily>;
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
   onClose: () => void;
-  onSave: (week: CoopTeachingScheduleWeek) => void | Promise<void>;
+  onSave: (
+    week: CoopTeachingScheduleWeek,
+    meta: { savedBaseline: CoopTeachingScheduleWeek },
+  ) => CoopTeachingScheduleWeek | void | Promise<CoopTeachingScheduleWeek | void>;
   onRemove: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   canRemove: boolean;
@@ -54,6 +59,7 @@ function controlStyle(C: AdminThemeTokens): React.CSSProperties {
 
 export default function CoopTeachingScheduleWeekDetailPanel({
   week,
+  enrolledFamilies,
   C,
   theme,
   onClose,
@@ -68,15 +74,15 @@ export default function CoopTeachingScheduleWeekDetailPanel({
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [instructorNameDraft, setInstructorNameDraft] = useState("");
-  const [assistantNameDraft, setAssistantNameDraft] = useState("");
+  const [instructorFamilyIdDraft, setInstructorFamilyIdDraft] = useState("");
+  const [assistantFamilyIdDraft, setAssistantFamilyIdDraft] = useState("");
 
   if (week !== prevWeek) {
     setPrevWeek(week);
     setDraftWeek({ ...week });
     setSavedWeek({ ...week });
-    setInstructorNameDraft("");
-    setAssistantNameDraft("");
+    setInstructorFamilyIdDraft("");
+    setAssistantFamilyIdDraft("");
   }
 
   const isDirty = useMemo(
@@ -97,33 +103,46 @@ export default function CoopTeachingScheduleWeekDetailPanel({
     setDraftWeek((current) => ({ ...current, ...patch }));
   };
 
+  const familyNameById = useMemo(
+    () => new Map(enrolledFamilies.map((family) => [family.familyId, family.familyName])),
+    [enrolledFamilies],
+  );
+
+  const familyPickerOptions = useMemo(
+    () =>
+      enrolledFamilies.map((family) => ({
+        value: family.familyId,
+        label: family.familyName,
+      })),
+    [enrolledFamilies],
+  );
+
   const addAssignedParent = (role: "instructor" | "assistant") => {
-    const draft = role === "instructor" ? instructorNameDraft : assistantNameDraft;
+    const draft = role === "instructor" ? instructorFamilyIdDraft : assistantFamilyIdDraft;
     const current =
-      role === "instructor" ? draftWeek.parentInstructors : draftWeek.parentAssistants;
+      role === "instructor" ? draftWeek.instructorFamilyIds : draftWeek.assistantFamilyIds;
     if (!canAddTeachingAssignedParent(current, draft)) return;
 
-    const normalized = normalizeTeachingParentName(draft);
     updateDraft(
       role === "instructor"
-        ? { parentInstructors: [...draftWeek.parentInstructors, normalized] }
-        : { parentAssistants: [...draftWeek.parentAssistants, normalized] },
+        ? { instructorFamilyIds: [...draftWeek.instructorFamilyIds, draft] }
+        : { assistantFamilyIds: [...draftWeek.assistantFamilyIds, draft] },
     );
     if (role === "instructor") {
-      setInstructorNameDraft("");
+      setInstructorFamilyIdDraft("");
     } else {
-      setAssistantNameDraft("");
+      setAssistantFamilyIdDraft("");
     }
   };
 
-  const removeAssignedParent = (role: "instructor" | "assistant", name: string) => {
+  const removeAssignedParent = (role: "instructor" | "assistant", familyId: string) => {
     updateDraft(
       role === "instructor"
         ? {
-            parentInstructors: draftWeek.parentInstructors.filter((person) => person !== name),
+            instructorFamilyIds: draftWeek.instructorFamilyIds.filter((id) => id !== familyId),
           }
         : {
-            parentAssistants: draftWeek.parentAssistants.filter((person) => person !== name),
+            assistantFamilyIds: draftWeek.assistantFamilyIds.filter((id) => id !== familyId),
           },
     );
   };
@@ -133,18 +152,19 @@ export default function CoopTeachingScheduleWeekDetailPanel({
     question: string,
     helper: string,
     tone: "clay" | "accent",
-    placeholder: string,
-    people: string[],
+    familyIds: string[],
     draft: string,
     setDraft: (value: string) => void,
   ) => (
     <BuilderQuestionCard C={C} tone={tone} question={question} helper={helper}>
       <div className="space-y-3">
-        {people.length > 0 ? (
+        {familyIds.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {people.map((personName) => (
+            {familyIds.map((familyId) => {
+              const familyName = familyNameById.get(familyId) ?? "Unknown family";
+              return (
               <span
-                key={personName}
+                key={familyId}
                 className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium"
                 style={{
                   borderColor: C.border,
@@ -152,40 +172,39 @@ export default function CoopTeachingScheduleWeekDetailPanel({
                   color: C.textPrimary,
                 }}
               >
-                {personName}
+                {familyName}
                 <button
                   type="button"
-                  onClick={() => removeAssignedParent(role, personName)}
+                  onClick={() => removeAssignedParent(role, familyId)}
                   className="inline-flex rounded p-0.5 transition-colors hover:opacity-70"
                   style={{ color: C.textTertiary }}
-                  aria-label={`Remove ${personName}`}
+                  aria-label={`Remove ${familyName}`}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               </span>
-            ))}
+              );
+            })}
           </div>
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-          <input
-            type="text"
+          <SchoolAdminSelect
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addAssignedParent(role);
-              }
-            }}
-            placeholder={placeholder}
+            onChange={setDraft}
+            options={[
+              { value: "", label: "Select a family" },
+              ...familyPickerOptions.filter((option) => !familyIds.includes(option.value)),
+            ]}
+            disabled={familyPickerOptions.length === 0}
+            ariaLabel={`Select enrolled family for ${role}`}
+            C={C}
             className="sm:flex-1"
-            style={controlStyle(C)}
           />
           <button
             type="button"
             onClick={() => addAssignedParent(role)}
-            disabled={!canAddTeachingAssignedParent(people, draft)}
+            disabled={!canAddTeachingAssignedParent(familyIds, draft)}
             className="inline-flex shrink-0 items-center justify-center gap-1 px-3 py-2 text-xs font-medium disabled:opacity-50"
             style={{
               backgroundColor: C.accentLight,
@@ -213,8 +232,10 @@ export default function CoopTeachingScheduleWeekDetailPanel({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(draftWeek);
-      setSavedWeek({ ...draftWeek });
+      const persisted = await onSave(draftWeek, { savedBaseline: savedWeek });
+      const nextWeek = persisted ?? draftWeek;
+      setDraftWeek({ ...nextWeek });
+      setSavedWeek({ ...nextWeek });
       adminToast.success("Teaching week saved");
     } catch {
       // Parent surfaces persistence errors.
@@ -338,24 +359,22 @@ export default function CoopTeachingScheduleWeekDetailPanel({
                   {renderAssignedParentsEditor(
                     "instructor",
                     "Parent instructor",
-                    "Who is leading this week? Add one or more names.",
+                    "Who is leading this week? Add one or more enrolled families.",
                     "clay",
-                    "e.g. Jessica",
-                    draftWeek.parentInstructors,
-                    instructorNameDraft,
-                    setInstructorNameDraft,
+                    draftWeek.instructorFamilyIds,
+                    instructorFamilyIdDraft,
+                    setInstructorFamilyIdDraft,
                   )}
                 </div>
                 <div className="min-w-0">
                   {renderAssignedParentsEditor(
                     "assistant",
                     "Parent assistant",
-                    "Optional. Add one or more names.",
+                    "Optional. Add one or more enrolled families.",
                     "clay",
-                    "e.g. Bailey",
-                    draftWeek.parentAssistants,
-                    assistantNameDraft,
-                    setAssistantNameDraft,
+                    draftWeek.assistantFamilyIds,
+                    assistantFamilyIdDraft,
+                    setAssistantFamilyIdDraft,
                   )}
                 </div>
               </div>
