@@ -40,15 +40,20 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
-export default withSentryConfig(withBundleAnalyzer(nextConfig), {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  widenClientFileUpload: false,
-  tunnelRoute: "/monitoring",
-  silent: !process.env.CI,
-  sourcemaps: {
-    disable: !process.env.SENTRY_AUTH_TOKEN,
-  },
-  disableLogger: true,
-});
+const sentryEnabled = Boolean(process.env.SENTRY_AUTH_TOKEN);
+const config = withBundleAnalyzer(nextConfig);
+
+export default sentryEnabled
+  ? withSentryConfig(config, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      widenClientFileUpload: false,
+      tunnelRoute: "/monitoring",
+      silent: !process.env.CI,
+      sourcemaps: {
+        disable: false,
+      },
+      disableLogger: true,
+    })
+  : config;
