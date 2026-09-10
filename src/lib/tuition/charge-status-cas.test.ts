@@ -176,6 +176,84 @@ describe("updateChargeStatusIf", () => {
 });
 
 describe("settleTuitionPayment status guards", () => {
+  it("rejects settlement when paid_cents changed before update", async () => {
+    const charge = tuitionCharge({ id: "charge-1", status: "overdue", paidCents: 0 });
+    const row = rowFromCharge(charge);
+    let fetchCount = 0;
+
+    const supabase = {
+      from(table: string) {
+        const filters: Record<string, unknown> = {};
+        const builder = {
+          update(patch: Record<string, unknown>) {
+            const updateFilters: Record<string, unknown> = {};
+            const updateBuilder = {
+              eq(column: string, value: unknown) {
+                updateFilters[column] = value;
+                return updateBuilder;
+              },
+              in(column: string, values: unknown[]) {
+                updateFilters[`${column}__in`] = values;
+                return updateBuilder;
+              },
+              select() {
+                return updateBuilder;
+              },
+              async maybeSingle() {
+                if (table !== "tuition_charges" || updateFilters.id !== charge.id) {
+                  return { data: null, error: null };
+                }
+                row.paid_cents = 5000;
+                const statusIn = updateFilters.status__in as string[] | undefined;
+                if (!statusIn?.includes(String(row.status))) {
+                  return { data: null, error: null };
+                }
+                if (updateFilters.paid_cents !== row.paid_cents) {
+                  return { data: null, error: null };
+                }
+                Object.assign(row, patch);
+                return { data: row, error: null };
+              },
+            };
+            return updateBuilder;
+          },
+          select() {
+            return builder;
+          },
+          eq(column: string, value: unknown) {
+            filters[column] = value;
+            return builder;
+          },
+          async maybeSingle() {
+            if (table === "tuition_charges" && filters.id === charge.id) {
+              fetchCount += 1;
+              if (fetchCount === 1) {
+                return { data: { ...row, paid_cents: 0 }, error: null };
+              }
+              return { data: { ...row, paid_cents: 5000 }, error: null };
+            }
+            return { data: null, error: null };
+          },
+        };
+        return builder;
+      },
+    };
+
+    await assert.rejects(
+      () =>
+        settleTuitionPayment(supabase as never, {
+          chargeId: charge.id,
+          amountCents: 10000,
+        }),
+      (error: unknown) => {
+        return (
+          error instanceof ChargeStatusConflictError &&
+          error.message === "Charge balance changed before settlement."
+        );
+      },
+    );
+  });
+
   it("rejects settlement when the charge was waived", async () => {
     const charge = tuitionCharge({ id: "charge-1", status: "waived" });
     const row = rowFromCharge(charge);

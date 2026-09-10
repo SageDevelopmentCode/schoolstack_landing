@@ -86,11 +86,10 @@ begin
         where lower(existing_parent.parent_name) = lower(v_normalized)
       )
     returning *;
-  end if;
-
-  return query
-  update public.program_coop_teaching_schedule_weeks
-  set parent_assistants = array_append(parent_assistants, v_normalized)
+  elsif p_role = 'assistant' then
+    return query
+    update public.program_coop_teaching_schedule_weeks
+    set parent_assistants = array_append(parent_assistants, v_normalized)
   where id = p_week_id
     and program_id = p_program_id
     and organization_id = p_organization_id
@@ -100,7 +99,8 @@ begin
       from unnest(parent_assistants) as existing_parent(parent_name)
       where lower(existing_parent.parent_name) = lower(v_normalized)
     )
-  returning *;
+    returning *;
+  end if;
 end;
 $$;
 

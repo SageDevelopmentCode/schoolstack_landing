@@ -253,6 +253,10 @@ export async function saveProgramCoopSupplyItemAdmin(
 ): Promise<CoopSupplyListItem> {
   const { draft, savedBaseline } = input;
 
+  if (!savedBaseline.updatedAt) {
+    throw new ProgramCoopStorageConflictError();
+  }
+
   const { data: existing, error: existingError } = await supabase
     .from("program_coop_supply_items")
     .select("sort_order, assigned_family_ids, updated_at")
@@ -279,18 +283,15 @@ export async function saveProgramCoopSupplyItemAdmin(
     sortOrder,
   );
 
-  let query = supabase
+  const { data, error } = await supabase
     .from("program_coop_supply_items")
     .update(patch)
     .eq("id", draft.id)
     .eq("program_id", ctx.programId)
-    .eq("organization_id", ctx.organizationId);
-
-  if (savedBaseline.updatedAt) {
-    query = query.eq("updated_at", savedBaseline.updatedAt);
-  }
-
-  const { data, error } = await query.select(ITEM_SELECT).maybeSingle();
+    .eq("organization_id", ctx.organizationId)
+    .eq("updated_at", savedBaseline.updatedAt)
+    .select(ITEM_SELECT)
+    .maybeSingle();
 
   if (error) throw error;
   if (!data) {
@@ -369,22 +370,26 @@ export async function removeProgramCoopSupplyAssignedFamily(
   itemId: string,
   familyId: string,
 ): Promise<CoopSupplyListItem> {
-  const item = await getProgramCoopSupplyItem(supabase, ctx, itemId);
-  if (!item) {
-    throw new Error("Supply item not found.");
-  }
-
   const trimmedFamilyId = familyId.trim();
-  const assignedFamilyIds = item.assignedFamilyIds.filter((id) => id !== trimmedFamilyId);
-
-  if (assignedFamilyIds.length === item.assignedFamilyIds.length) {
+  if (!trimmedFamilyId) {
     throw new Error("You are not signed up for this item.");
   }
 
-  return upsertProgramCoopSupplyItem(supabase, ctx, {
-    ...item,
-    assignedFamilyIds,
-  }, { skipActivityLog: true });
+  const { data, error } = await supabase.rpc("remove_program_coop_supply_assigned_family", {
+    p_item_id: itemId,
+    p_program_id: ctx.programId,
+    p_organization_id: ctx.organizationId,
+    p_family_id: trimmedFamilyId,
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as ProgramCoopSupplyItemRow[];
+  if (rows.length > 0) {
+    return mapItemRow(rows[0]);
+  }
+
+  throw new Error("You are not signed up for this item.");
 }
 
 export async function deleteProgramCoopSupplyItem(

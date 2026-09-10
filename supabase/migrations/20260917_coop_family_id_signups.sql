@@ -82,17 +82,17 @@ begin
       and (not p_enforce_single_slot or cardinality(instructor_family_ids) = 0)
       and not (p_family_id = any (instructor_family_ids))
     returning *;
+  elsif p_role = 'assistant' then
+    return query
+    update public.program_coop_teaching_schedule_weeks
+    set assistant_family_ids = array_append(assistant_family_ids, p_family_id)
+    where id = p_week_id
+      and program_id = p_program_id
+      and organization_id = p_organization_id
+      and (not p_enforce_single_slot or cardinality(assistant_family_ids) = 0)
+      and not (p_family_id = any (assistant_family_ids))
+    returning *;
   end if;
-
-  return query
-  update public.program_coop_teaching_schedule_weeks
-  set assistant_family_ids = array_append(assistant_family_ids, p_family_id)
-  where id = p_week_id
-    and program_id = p_program_id
-    and organization_id = p_organization_id
-    and (not p_enforce_single_slot or cardinality(assistant_family_ids) = 0)
-    and not (p_family_id = any (assistant_family_ids))
-  returning *;
 end;
 $$;
 

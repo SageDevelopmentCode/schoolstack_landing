@@ -350,6 +350,7 @@ export async function settleTuitionPayment(
     .from("tuition_charges")
     .update(patch)
     .eq("id", charge.id)
+    .eq("paid_cents", charge.paidCents)
     .in("status", [...SETTLEABLE_CHARGE_STATUSES])
     .select("*")
     .maybeSingle();
@@ -369,8 +370,13 @@ export async function settleTuitionPayment(
         redistributed: false,
       };
     }
+    if (!OPEN_CHARGE_STATUSES.has(current.status)) {
+      throw new ChargeStatusConflictError(
+        `Charge status changed to ${current.status} before settlement.`,
+      );
+    }
     throw new ChargeStatusConflictError(
-      `Charge status changed to ${current.status} before settlement.`,
+      "Charge balance changed before settlement.",
     );
   }
 

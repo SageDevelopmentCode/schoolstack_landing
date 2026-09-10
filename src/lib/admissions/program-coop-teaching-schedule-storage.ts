@@ -223,6 +223,10 @@ export async function saveProgramCoopTeachingScheduleWeekAdmin(
 ): Promise<CoopTeachingScheduleWeek> {
   const { draft, savedBaseline } = input;
 
+  if (!savedBaseline.updatedAt) {
+    throw new ProgramCoopStorageConflictError();
+  }
+
   const { data: existing, error: existingError } = await supabase
     .from("program_coop_teaching_schedule_weeks")
     .select("sort_order, instructor_family_ids, assistant_family_ids, updated_at")
@@ -258,18 +262,15 @@ export async function saveProgramCoopTeachingScheduleWeekAdmin(
 
   const patch = weekToInsertRow(mergedWeek, ctx, existingRow.sort_order);
 
-  let query = supabase
+  const { data, error } = await supabase
     .from("program_coop_teaching_schedule_weeks")
     .update(patch)
     .eq("id", draft.id)
     .eq("program_id", ctx.programId)
-    .eq("organization_id", ctx.organizationId);
-
-  if (savedBaseline.updatedAt) {
-    query = query.eq("updated_at", savedBaseline.updatedAt);
-  }
-
-  const { data, error } = await query.select(WEEK_SELECT).maybeSingle();
+    .eq("organization_id", ctx.organizationId)
+    .eq("updated_at", savedBaseline.updatedAt)
+    .select(WEEK_SELECT)
+    .maybeSingle();
 
   if (error) throw error;
   if (!data) {
@@ -305,16 +306,6 @@ function familyIdsForRole(
   role: TeachingScheduleParentRole,
 ): string[] {
   return role === "instructor" ? week.instructorFamilyIds : week.assistantFamilyIds;
-}
-
-function weekWithFamilyIdsForRole(
-  week: CoopTeachingScheduleWeek,
-  role: TeachingScheduleParentRole,
-  familyIds: string[],
-): CoopTeachingScheduleWeek {
-  return role === "instructor"
-    ? { ...week, instructorFamilyIds: familyIds }
-    : { ...week, assistantFamilyIds: familyIds };
 }
 
 export async function appendProgramCoopTeachingScheduleParent(
@@ -376,21 +367,25 @@ export async function removeProgramCoopTeachingScheduleParent(
   role: TeachingScheduleParentRole,
   familyId: string,
 ): Promise<CoopTeachingScheduleWeek> {
-  const week = await getProgramCoopTeachingScheduleWeek(supabase, ctx, weekId);
-  if (!week) {
-    throw new Error("Teaching week not found.");
-  }
-
   const trimmedFamilyId = familyId.trim();
-  const currentFamilyIds = familyIdsForRole(week, role);
-  const nextFamilyIds = currentFamilyIds.filter((id) => id !== trimmedFamilyId);
-
-  if (nextFamilyIds.length === currentFamilyIds.length) {
+  if (!trimmedFamilyId) {
     throw new Error("You are not signed up for this role.");
   }
 
-  return upsertProgramCoopTeachingScheduleWeek(supabase, ctx, {
-    ...week,
-    ...weekWithFamilyIdsForRole(week, role, nextFamilyIds),
-  }, { skipActivityLog: true });
+  const { data, error } = await supabase.rpc("remove_program_coop_teaching_schedule_parent", {
+    p_week_id: weekId,
+    p_program_id: ctx.programId,
+    p_organization_id: ctx.organizationId,
+    p_role: role,
+    p_family_id: trimmedFamilyId,
+  });
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as ProgramCoopTeachingScheduleWeekRow[];
+  if (rows.length > 0) {
+    return mapWeekRow(rows[0]);
+  }
+
+  throw new Error("You are not signed up for this role.");
 }
