@@ -15,6 +15,7 @@ import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageS
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
+import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -54,6 +55,7 @@ import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
+import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
@@ -220,6 +222,7 @@ export async function renderSchoolParentFeaturePage(
         bulletinEnabled,
         viewer: "parent",
         programId,
+        limit: coopModeEnabled ? 3 : 25,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -463,6 +466,25 @@ export async function renderSchoolParentFeaturePage(
           programId={programId}
           initialItems={items}
           initialLegend={colorLegend}
+          currentParentName={userProfile.displayName}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "teaching_schedule") {
+    if (!programId || !coopModeEnabled) {
+      notFound();
+    }
+
+    const weeks = await listProgramCoopTeachingSchedule(supabase, programId);
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentTeachingSchedulePage
+          organizationId={org.id}
+          programId={programId}
+          initialWeeks={weeks}
           currentParentName={userProfile.displayName}
         />
       </SchoolParentPageShell>

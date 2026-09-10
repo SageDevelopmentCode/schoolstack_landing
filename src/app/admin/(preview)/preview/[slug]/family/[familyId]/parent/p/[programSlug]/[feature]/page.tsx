@@ -41,6 +41,8 @@ import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
+import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
+import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -153,6 +155,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
         bulletinEnabled,
         viewer: "parent",
         programId: programContext.programId,
+        limit: programContext.coopMode ? 3 : 25,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -352,6 +355,26 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           programId={programContext.programId}
           initialItems={items}
           initialLegend={colorLegend}
+          currentParentName={userProfile.displayName}
+          previewMode
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "teaching_schedule") {
+    if (!programContext.coopMode) {
+      notFound();
+    }
+
+    const weeks = await listProgramCoopTeachingSchedule(admin, programContext.programId);
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentTeachingSchedulePage
+          organizationId={org.id}
+          programId={programContext.programId}
+          initialWeeks={weeks}
           currentParentName={userProfile.displayName}
           previewMode
         />

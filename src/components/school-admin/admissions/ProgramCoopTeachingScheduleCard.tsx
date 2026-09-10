@@ -1,24 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, Loader2, Plus } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   computeTeachingScheduleSummary,
-  DEMO_COOP_TEACHING_SCHEDULE,
+  formatTeachingAssignedParents,
   formatTeachingScheduleDateRange,
   isTeachingWeekPast,
-  newCoopTeachingScheduleWeek,
   sortTeachingScheduleWeeks,
-  teachingScheduleEmptyCell,
   teachingScheduleRowStyle,
-  teachingScheduleStatusChipTone,
-  teachingScheduleStatusLabel,
   teachingScheduleWeekChipTone,
   type CoopTeachingScheduleWeek,
 } from "@/lib/admissions/program-coop-teaching-schedule-mock";
+import {
+  deleteProgramCoopTeachingScheduleWeek,
+  insertProgramCoopTeachingScheduleWeek,
+  listProgramCoopTeachingSchedule,
+  upsertProgramCoopTeachingScheduleWeek,
+} from "@/lib/admissions/program-coop-teaching-schedule-storage";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -30,33 +34,69 @@ import { BuilderQuestionCard, BuilderSectionIntro } from "./builder-question-car
 type ProgramCoopTeachingScheduleCardProps = {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  supabase: SupabaseClient;
+  organizationId: string;
+  programId: string;
   coopModeEnabled: boolean;
 };
 
 const TABLE_HEADINGS = [
-  "Date range",
+  "Week",
   "Parent instructor",
   "Parent assistant",
-  "Week name",
   "Seasonal theme",
   "Character lesson",
   "Celebration / event",
-  "Status",
 ] as const;
 
 export default function ProgramCoopTeachingScheduleCard({
   C,
   theme,
+  supabase,
+  organizationId,
+  programId,
   coopModeEnabled,
 }: ProgramCoopTeachingScheduleCardProps) {
-  const [weeks, setWeeks] = useState<CoopTeachingScheduleWeek[]>(() =>
-    sortTeachingScheduleWeeks(DEMO_COOP_TEACHING_SCHEDULE),
-  );
+  const [weeks, setWeeks] = useState<CoopTeachingScheduleWeek[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingWeek, setAddingWeek] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
   const [pendingSelectId, setPendingSelectId] = useState<string | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+
+  const scheduleContext = useMemo(
+    () => ({ organizationId, programId }),
+    [organizationId, programId],
+  );
+
+  const loadSchedule = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await listProgramCoopTeachingSchedule(supabase, programId);
+      setWeeks(sortTeachingScheduleWeeks(result));
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to load teaching schedule."));
+    } finally {
+      setLoading(false);
+    }
+  }, [programId, supabase]);
+
+  useEffect(() => {
+    setSelectedId(null);
+    setPanelDirty(false);
+  }, [programId]);
+
+  useEffect(() => {
+    if (!coopModeEnabled) {
+      setLoading(false);
+      return;
+    }
+    queueMicrotask(() => {
+      void loadSchedule();
+    });
+  }, [coopModeEnabled, loadSchedule]);
 
   const summary = useMemo(() => computeTeachingScheduleSummary(weeks), [weeks]);
   const selectedWeek = useMemo(
@@ -65,24 +105,48 @@ export default function ProgramCoopTeachingScheduleCard({
   );
 
   const saveWeek = async (saved: CoopTeachingScheduleWeek) => {
-    setWeeks((current) =>
-      sortTeachingScheduleWeeks(
-        current.map((week) => (week.id === saved.id ? saved : week)),
-      ),
-    );
+    try {
+      const persisted = await upsertProgramCoopTeachingScheduleWeek(
+        supabase,
+        scheduleContext,
+        saved,
+      );
+      setWeeks((current) =>
+        sortTeachingScheduleWeeks(
+          current.map((week) => (week.id === persisted.id ? persisted : week)),
+        ),
+      );
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save teaching week."));
+      throw err;
+    }
   };
 
-  const removeWeek = (id: string) => {
-    setWeeks((current) => current.filter((week) => week.id !== id));
-    setSelectedId((current) => (current === id ? null : current));
-    setPanelDirty(false);
+  const removeWeek = async (id: string) => {
+    try {
+      await deleteProgramCoopTeachingScheduleWeek(supabase, id);
+      setWeeks((current) => current.filter((week) => week.id !== id));
+      setSelectedId((current) => (current === id ? null : current));
+      setPanelDirty(false);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to remove teaching week."));
+      throw err;
+    }
   };
 
-  const addWeek = () => {
-    const next = newCoopTeachingScheduleWeek();
-    setWeeks((current) => sortTeachingScheduleWeeks([...current, next]));
-    setSelectedId(next.id);
-    setPanelDirty(false);
+  const addWeek = async () => {
+    if (addingWeek) return;
+    setAddingWeek(true);
+    try {
+      const nextWeek = await insertProgramCoopTeachingScheduleWeek(supabase, scheduleContext);
+      setWeeks((current) => sortTeachingScheduleWeeks([...current, nextWeek]));
+      setSelectedId(nextWeek.id);
+      setPanelDirty(false);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to add teaching week."));
+    } finally {
+      setAddingWeek(false);
+    }
   };
 
   const requestSelectWeek = (id: string) => {
@@ -137,9 +201,14 @@ export default function ProgramCoopTeachingScheduleCard({
           variant="soft"
           size="compact"
           className="shrink-0"
-          onClick={addWeek}
+          onClick={() => void addWeek()}
+          disabled={addingWeek || loading}
         >
-          <Plus className="h-4 w-4" />
+          {addingWeek ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           Add teaching week
         </AdminButton>
       ) : null}
@@ -160,6 +229,21 @@ export default function ProgramCoopTeachingScheduleCard({
             Co-op mode is not enabled for this program.
           </p>
         </BuilderQuestionCard>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {sectionHeader}
+        <div
+          className="flex items-center justify-center gap-2 rounded-md border px-4 py-12 text-sm"
+          style={{ borderColor: C.border, color: C.textSecondary }}
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading teaching schedule…
+        </div>
       </div>
     );
   }
@@ -192,13 +276,13 @@ export default function ProgramCoopTeachingScheduleCard({
 
         <AdminCard theme={theme} padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-[1160px] w-full border-collapse text-left">
+            <table className="min-w-[860px] w-full border-collapse text-left">
               <thead style={{ backgroundColor: "#FBFCFB" }}>
                 <tr>
                   {TABLE_HEADINGS.map((heading) => (
                     <th
                       key={heading}
-                      className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                      className="px-[10px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
                       style={{ color: "#8B9699" }}
                     >
                       {heading}
@@ -235,45 +319,43 @@ export default function ProgramCoopTeachingScheduleCard({
                         borderTop: "1px solid #EDF1ED",
                       }}
                     >
-                      <td className="whitespace-nowrap px-[15px] py-3" style={{ opacity: textOpacity }}>
+                      <td className="min-w-[160px] px-[10px] py-2.5" style={{ opacity: textOpacity }}>
+                        <AdminChip theme={theme} tone={teachingScheduleWeekChipTone(week)}>
+                          {week.weekName.trim() || "New teaching week"}
+                        </AdminChip>
                         <div
-                          className="text-xs font-semibold"
+                          className="mt-1 text-xs font-semibold"
                           style={{ color: isPast ? theme.muted : theme.ink }}
                         >
                           {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
                         </div>
                       </td>
                       <td
-                        className="px-[15px] py-3 text-xs"
+                        className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
-                        {week.parentInstructor}
+                        {formatTeachingAssignedParents(week.parentInstructors)}
                       </td>
                       <td
-                        className="px-[15px] py-3 text-xs"
+                        className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
-                        {teachingScheduleEmptyCell(week.parentAssistant)}
-                      </td>
-                      <td className="px-[15px] py-3" style={{ opacity: textOpacity }}>
-                        <AdminChip theme={theme} tone={teachingScheduleWeekChipTone(week)}>
-                          {week.weekName}
-                        </AdminChip>
+                        {formatTeachingAssignedParents(week.parentAssistants)}
                       </td>
                       <td
-                        className="max-w-[200px] px-[15px] py-3 text-xs"
+                        className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
                         {week.seasonalTheme}
                       </td>
                       <td
-                        className="max-w-[220px] px-[15px] py-3 text-xs"
+                        className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
                         {week.characterLesson}
                       </td>
                       <td
-                        className="max-w-[220px] px-[15px] py-3 text-xs"
+                        className="px-[10px] py-2.5 text-xs"
                         style={{ color: "#607078", opacity: textOpacity }}
                       >
                         {hasEvent ? (
@@ -289,11 +371,6 @@ export default function ProgramCoopTeachingScheduleCard({
                           <span style={{ color: C.textTertiary }}>—</span>
                         )}
                       </td>
-                      <td className="px-[15px] py-3" style={{ opacity: textOpacity }}>
-                        <AdminChip theme={theme} tone={teachingScheduleStatusChipTone(week)}>
-                          {teachingScheduleStatusLabel(week)}
-                        </AdminChip>
-                      </td>
                     </tr>
                   );
                 })}
@@ -304,15 +381,20 @@ export default function ProgramCoopTeachingScheduleCard({
 
         <button
           type="button"
-          onClick={addWeek}
-          className="flex w-full items-center justify-center gap-2 rounded-md px-4 py-4 text-sm font-medium transition-colors"
+          onClick={() => void addWeek()}
+          disabled={addingWeek}
+          className="flex w-full items-center justify-center gap-2 rounded-md px-4 py-4 text-sm font-medium transition-colors disabled:opacity-50"
           style={{
             border: `2px dashed ${C.borderStrong}`,
             backgroundColor: C.bg,
             color: C.accent,
           }}
         >
-          <Plus className="h-4 w-4" />
+          {addingWeek ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
           Add teaching week
         </button>
       </div>
@@ -334,7 +416,7 @@ export default function ProgramCoopTeachingScheduleCard({
             }}
             onSave={saveWeek}
             onDirtyChange={setPanelDirty}
-            onRemove={() => removeWeek(selectedWeek.id)}
+            onRemove={() => void removeWeek(selectedWeek.id)}
             canRemove={weeks.length > 1}
           />
         ) : null}

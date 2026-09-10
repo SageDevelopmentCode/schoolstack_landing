@@ -203,8 +203,8 @@ export default function SchoolParentHeader({
     messagesEnabled && !previewMode,
   );
   const { primary, more } = useMemo(
-    () => splitParentNavForHeader(navItems),
-    [navItems],
+    () => splitParentNavForHeader(navItems, { coopMode: coopModeEnabled }),
+    [navItems, coopModeEnabled],
   );
   const homeHref =
     navItems[0]?.href ?? `${resolvedNavBasePath}/portal`;

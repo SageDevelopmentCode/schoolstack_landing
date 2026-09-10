@@ -55,5 +55,28 @@ describe("splitParentNavForHeader", () => {
 
     assert.equal(items.some((item) => item.key === "curriculum"), false);
     assert.equal(items.some((item) => item.key === "supply_list"), false);
+    assert.equal(items.some((item) => item.key === "teaching_schedule"), false);
+  });
+
+  it("routes committees to More and teaching_schedule to primary in co-op mode", () => {
+    const items = buildParentNavItems("rooted-meadows-demo", {
+      ...DEFAULT_FEATURES.parent,
+      portal: true,
+      billing: true,
+      messages: true,
+      calendar: true,
+      children: true,
+      committees: true,
+      curriculum: true,
+      supply_list: true,
+      teaching_schedule: true,
+      attendance: true,
+    });
+
+    const { primary, more } = splitParentNavForHeader(items, { coopMode: true });
+
+    assert.equal(primary.some((item) => item.key === "teaching_schedule"), true);
+    assert.equal(primary.some((item) => item.key === "committees"), false);
+    assert.equal(more.some((item) => item.key === "committees"), true);
   });
 });

@@ -16,6 +16,7 @@ import type { ParentPortalContextOption } from "@/lib/organization-settings/reso
 import {
   isParentBillingPath,
   isParentCurriculumPath,
+  isParentHomePath,
   isParentMessagesPath,
 } from "@/lib/organization-settings/parent-routes";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
@@ -83,7 +84,10 @@ function SchoolParentBaselineInner({
     isParentBillingPath(pathname) ||
     isParentCurriculumPath(pathname);
   const messagesEnabled = Boolean(features.parent?.messages);
-  const showHelpButton = isParentHelpPage(pathname, slug) && !isMessagesPage;
+  const showHelpButton =
+    isParentHelpPage(pathname, slug) &&
+    !isMessagesPage &&
+    !isParentHomePath(pathname);
 
   const shell = (
     <ParentPortalContextProvider

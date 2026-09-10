@@ -483,10 +483,11 @@ export default function ProgramsPage({
                 <motion.div
                   key={`${canvasKey}-${visibleEditorTab}`}
                   className={`mx-auto space-y-4 ${
-                    visibleEditorTab === "supply_list" ||
                     visibleEditorTab === "teaching_schedule"
-                      ? "max-w-4xl"
-                      : "max-w-xl"
+                      ? "max-w-5xl"
+                      : visibleEditorTab === "supply_list"
+                        ? "max-w-4xl"
+                        : "max-w-xl"
                   }`}
                   {...builderCanvasTransition}
                 >
@@ -701,6 +702,9 @@ export default function ProgramsPage({
                     <ProgramCoopTeachingScheduleCard
                       C={C}
                       theme={theme}
+                      supabase={supabase}
+                      organizationId={organizationId}
+                      programId={selectedProgram.id}
                       coopModeEnabled={coopModeEnabled}
                     />
                   ) : visibleEditorTab === "families" && selectedProgram ? (

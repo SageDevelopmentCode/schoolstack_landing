@@ -6,14 +6,13 @@ import { ClipboardList } from "lucide-react";
 import CoopSupplyListFilterBar from "@/components/admissions/CoopSupplyListFilterBar";
 import ParentCoopSupplyListItemDetailPanel from "@/components/school-parent/supply-list/ParentCoopSupplyListItemDetailPanel";
 import ParentSupplyListMobileItemCard from "@/components/school-parent/supply-list/ParentSupplyListMobileItemCard";
+import ParentSupplyListSignupButton from "@/components/school-parent/supply-list/ParentSupplyListSignupButton";
 import {
-  COOP_SUPPLY_MAX_ASSIGNED_FAMILIES,
   computeSupplyListSummary,
   formatSupplyAssignedFamilies,
   formatSupplyEstimatedPrice,
   formatSupplyQuantity,
   getSupplyColorLegendEntry,
-  isSupplyFamilyAssigned,
   supplyColorLegendDisplayLabel,
   supplyItemDisplayName,
   supplyItemTypeChipTone,
@@ -52,19 +51,6 @@ type PendingAction = {
 function parentSupplyChipTone(type: SupplyItemType): ParentChipTone {
   const tone = supplyItemTypeChipTone(type);
   return tone === "purple" ? "info" : tone;
-}
-
-function signupStatusLabel(
-  item: CoopSupplyListItem,
-  currentParentName: string,
-): string {
-  if (isSupplyFamilyAssigned(item.assignedFamilies, currentParentName)) {
-    return "You";
-  }
-  if (item.assignedFamilies.length >= COOP_SUPPLY_MAX_ASSIGNED_FAMILIES) {
-    return "Full";
-  }
-  return "Open";
 }
 
 export default function ParentSupplyListPage({
@@ -266,9 +252,12 @@ export default function ParentSupplyListPage({
                   item={item}
                   theme={theme}
                   rowStyle={rowStyle}
-                  statusLabel={signupStatusLabel(item, currentParentName)}
+                  currentParentName={currentParentName}
+                  previewMode={previewMode}
+                  pendingAction={pendingAction}
                   isSelected={isSelected}
                   onSelect={() => setSelectedItemId(item.id)}
+                  onSignUp={() => void runAction(item.id, "claim")}
                 />
               );
             })}
@@ -310,8 +299,6 @@ export default function ParentSupplyListPage({
                     variant: "parent",
                     parentTheme: theme,
                   });
-                  const statusLabel = signupStatusLabel(item, currentParentName);
-
                   return (
                     <tr
                       key={item.id}
@@ -366,19 +353,14 @@ export default function ParentSupplyListPage({
                         </div>
                       </td>
                       <td className="px-[15px] py-3">
-                        <span
-                          className="text-xs font-medium"
-                          style={{
-                            color:
-                              statusLabel === "You"
-                                ? theme.success
-                                : statusLabel === "Full"
-                                  ? theme.muted
-                                  : theme.primary,
-                          }}
-                        >
-                          {statusLabel}
-                        </span>
+                        <ParentSupplyListSignupButton
+                          theme={theme}
+                          item={item}
+                          currentParentName={currentParentName}
+                          previewMode={previewMode}
+                          pendingAction={pendingAction}
+                          onSignUp={() => void runAction(item.id, "claim")}
+                        />
                       </td>
                     </tr>
                   );

@@ -117,6 +117,7 @@ export default async function FamilyPreviewParentFeaturePage({
         organizationId: org.id,
         bulletinEnabled,
         viewer: "parent",
+        limit: 25,
       }),
     ]);
     const quickActions = buildParentQuickActions(

@@ -50,6 +50,7 @@ import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
 import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
+import PortalHomeSchoolUpdatesPanel from "@/components/portal-home/PortalHomeSchoolUpdatesPanel";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 
 type ParentHomePageProps = {
@@ -427,9 +428,16 @@ export default function ParentHomePage({
         : `${familyChildren.length} learner${familyChildren.length === 1 ? "" : "s"} on file.`
       : "Student records will appear here once applications are linked to your account.";
 
-  return (
-    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
-      <div className={PORTAL_HOME_CONTAINER_CLASS}>
+  const schoolUpdatesMessagesPromo =
+    !bulletinEnabled && messagesHref
+      ? {
+          title: "Messages from teachers and staff",
+          subtitle: "Check your inbox for school communications.",
+        }
+      : undefined;
+
+  const homeMainContent = (
+    <>
         <motion.header
           custom={0}
           initial="hidden"
@@ -587,22 +595,17 @@ export default function ParentHomePage({
           </motion.aside>
         </div>
 
-        <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
-          <PortalHomeSchoolUpdatesCard
-            theme={theme}
-            bulletinEnabled={bulletinEnabled}
-            bulletinPosts={bulletinPosts}
-            messagesHref={messagesHref}
-            messagesPromo={
-              !bulletinEnabled && messagesHref
-                ? {
-                    title: "Messages from teachers and staff",
-                    subtitle: "Check your inbox for school communications.",
-                  }
-                : undefined
-            }
-          />
-        </motion.div>
+        {coopModeEnabled ? (
+          <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+            <PortalHomeSchoolUpdatesCard
+              theme={theme}
+              bulletinEnabled={bulletinEnabled}
+              bulletinPosts={bulletinPosts}
+              messagesHref={messagesHref}
+              messagesPromo={schoolUpdatesMessagesPromo}
+            />
+          </motion.div>
+        ) : null}
 
         <motion.section
           custom={4}
@@ -666,8 +669,34 @@ export default function ParentHomePage({
             previewMode={previewMode}
           />
         ) : null}
+    </>
+  );
 
-      </div>
+  return (
+    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
+      {coopModeEnabled ? (
+        <div className={PORTAL_HOME_CONTAINER_CLASS}>{homeMainContent}</div>
+      ) : (
+        <div className="grid min-h-full w-full grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]">
+          <div className="min-w-0">
+            <div className={PORTAL_HOME_CONTAINER_CLASS}>{homeMainContent}</div>
+          </div>
+          <motion.aside
+            custom={3}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            className="w-full lg:sticky lg:top-0 lg:self-start lg:h-[calc(100dvh-64px)] sm:lg:h-[calc(100dvh-78px)] lg:border-l"
+            style={{ borderColor: theme.line }}
+          >
+            <PortalHomeSchoolUpdatesPanel
+              theme={theme}
+              bulletinEnabled={bulletinEnabled}
+              bulletinPosts={bulletinPosts}
+            />
+          </motion.aside>
+        </div>
+      )}
 
       <ParentOnboardingSidebar
         C={adminCompat}

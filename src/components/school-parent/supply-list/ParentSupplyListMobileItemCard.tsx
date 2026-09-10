@@ -11,6 +11,9 @@ import {
   type CoopSupplyListItem,
   type SupplyItemType,
 } from "@/lib/admissions/program-coop-supply-list-mock";
+import ParentSupplyListSignupButton, {
+  type ParentSupplyListPendingAction,
+} from "@/components/school-parent/supply-list/ParentSupplyListSignupButton";
 import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -18,9 +21,12 @@ type ParentSupplyListMobileItemCardProps = {
   item: CoopSupplyListItem;
   theme: ParentThemeTokens;
   rowStyle: Pick<CSSProperties, "backgroundColor" | "borderLeft">;
-  statusLabel: string;
+  currentParentName: string;
+  previewMode?: boolean;
+  pendingAction: ParentSupplyListPendingAction | null;
   isSelected: boolean;
   onSelect: () => void;
+  onSignUp: () => void;
 };
 
 function parentSupplyChipTone(type: SupplyItemType): ParentChipTone {
@@ -32,22 +38,25 @@ export default function ParentSupplyListMobileItemCard({
   item,
   theme,
   rowStyle,
-  statusLabel,
+  currentParentName,
+  previewMode = false,
+  pendingAction,
   isSelected,
   onSelect,
+  onSignUp,
 }: ParentSupplyListMobileItemCardProps) {
-  const statusColor =
-    statusLabel === "You"
-      ? theme.success
-      : statusLabel === "Full"
-        ? theme.muted
-        : theme.primary;
-
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="w-full rounded-lg border p-3.5 text-left transition-colors"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      className="w-full cursor-pointer rounded-lg border p-3.5 text-left transition-colors"
       style={{
         ...rowStyle,
         borderColor: isSelected ? theme.primary : theme.line,
@@ -72,10 +81,16 @@ export default function ParentSupplyListMobileItemCard({
             {formatSupplyEstimatedPrice(item.estimatedPrice)}
           </p>
         </div>
-        <span className="shrink-0 text-xs font-medium" style={{ color: statusColor }}>
-          {statusLabel}
-        </span>
+        <ParentSupplyListSignupButton
+          theme={theme}
+          item={item}
+          currentParentName={currentParentName}
+          previewMode={previewMode}
+          pendingAction={pendingAction}
+          onSignUp={onSignUp}
+          className="shrink-0"
+        />
       </div>
-    </button>
+    </div>
   );
 }

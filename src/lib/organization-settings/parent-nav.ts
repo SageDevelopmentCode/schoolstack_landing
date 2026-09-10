@@ -128,16 +128,31 @@ export function buildParentNavItems(
   return items;
 }
 
-export function splitParentNavForHeader(items: ParentNavItem[]): {
+export function splitParentNavForHeader(
+  items: ParentNavItem[],
+  options?: { coopMode?: boolean },
+): {
   primary: ParentNavItem[];
   more: ParentNavItem[];
 } {
+  const moreKeys = new Set(PARENT_MORE_NAV_KEYS);
+  if (options?.coopMode) {
+    moreKeys.add("committees");
+  }
+
   const primaryKeys = new Set(
     items
-      .filter((item) => !PARENT_MORE_NAV_KEYS.has(item.key))
+      .filter((item) => !moreKeys.has(item.key))
       .slice(0, PRIMARY_NAV_COUNT)
       .map((item) => item.key),
   );
+
+  if (options?.coopMode) {
+    const teachingSchedule = items.find((item) => item.key === "teaching_schedule");
+    if (teachingSchedule) {
+      primaryKeys.add("teaching_schedule");
+    }
+  }
 
   return {
     primary: items.filter((item) => primaryKeys.has(item.key)),

@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Loader2, Plus, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   areCoopTeachingScheduleWeeksEqual,
+  canAddTeachingAssignedParent,
   formatTeachingScheduleDateRange,
+  isCoopTeachingScheduleWeekComplete,
+  normalizeTeachingParentName,
   teachingScheduleStatusChipTone,
   teachingScheduleStatusLabel,
   teachingScheduleWeekDisplayName,
@@ -63,6 +67,8 @@ export default function CoopTeachingScheduleWeekDetailPanel({
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [instructorNameDraft, setInstructorNameDraft] = useState("");
+  const [assistantNameDraft, setAssistantNameDraft] = useState("");
 
   useEffect(() => {
     setDraftWeek({ ...week });
@@ -74,6 +80,11 @@ export default function CoopTeachingScheduleWeekDetailPanel({
     [draftWeek, savedWeek],
   );
 
+  const isComplete = useMemo(
+    () => isCoopTeachingScheduleWeekComplete(draftWeek),
+    [draftWeek],
+  );
+
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
@@ -81,6 +92,111 @@ export default function CoopTeachingScheduleWeekDetailPanel({
   const updateDraft = (patch: Partial<CoopTeachingScheduleWeek>) => {
     setDraftWeek((current) => ({ ...current, ...patch }));
   };
+
+  const addAssignedParent = (role: "instructor" | "assistant") => {
+    const draft = role === "instructor" ? instructorNameDraft : assistantNameDraft;
+    const current =
+      role === "instructor" ? draftWeek.parentInstructors : draftWeek.parentAssistants;
+    if (!canAddTeachingAssignedParent(current, draft)) return;
+
+    const normalized = normalizeTeachingParentName(draft);
+    updateDraft(
+      role === "instructor"
+        ? { parentInstructors: [...draftWeek.parentInstructors, normalized] }
+        : { parentAssistants: [...draftWeek.parentAssistants, normalized] },
+    );
+    if (role === "instructor") {
+      setInstructorNameDraft("");
+    } else {
+      setAssistantNameDraft("");
+    }
+  };
+
+  const removeAssignedParent = (role: "instructor" | "assistant", name: string) => {
+    updateDraft(
+      role === "instructor"
+        ? {
+            parentInstructors: draftWeek.parentInstructors.filter((person) => person !== name),
+          }
+        : {
+            parentAssistants: draftWeek.parentAssistants.filter((person) => person !== name),
+          },
+    );
+  };
+
+  const renderAssignedParentsEditor = (
+    role: "instructor" | "assistant",
+    question: string,
+    helper: string,
+    tone: "clay" | "accent",
+    placeholder: string,
+    people: string[],
+    draft: string,
+    setDraft: (value: string) => void,
+  ) => (
+    <BuilderQuestionCard C={C} tone={tone} question={question} helper={helper}>
+      <div className="space-y-3">
+        {people.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {people.map((personName) => (
+              <span
+                key={personName}
+                className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                style={{
+                  borderColor: C.border,
+                  backgroundColor: C.bg,
+                  color: C.textPrimary,
+                }}
+              >
+                {personName}
+                <button
+                  type="button"
+                  onClick={() => removeAssignedParent(role, personName)}
+                  className="inline-flex rounded p-0.5 transition-colors hover:opacity-70"
+                  style={{ color: C.textTertiary }}
+                  aria-label={`Remove ${personName}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <input
+            type="text"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                addAssignedParent(role);
+              }
+            }}
+            placeholder={placeholder}
+            className="sm:flex-1"
+            style={controlStyle(C)}
+          />
+          <button
+            type="button"
+            onClick={() => addAssignedParent(role)}
+            disabled={!canAddTeachingAssignedParent(people, draft)}
+            className="inline-flex shrink-0 items-center justify-center gap-1 px-3 py-2 text-xs font-medium disabled:opacity-50"
+            style={{
+              backgroundColor: C.accentLight,
+              color: C.accent,
+              border: `1px solid ${C.secondaryBtnBorder}`,
+              borderRadius: C.r.md,
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add
+          </button>
+        </div>
+      </div>
+    </BuilderQuestionCard>
+  );
 
   const requestClose = () => {
     if (!isDirty) {
@@ -215,42 +331,28 @@ export default function CoopTeachingScheduleWeekDetailPanel({
 
               <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                 <div className="min-w-0">
-                  <BuilderQuestionCard
-                    C={C}
-                    tone="clay"
-                    question="Parent instructor"
-                    helper="Who is leading this week?"
-                  >
-                    <input
-                      type="text"
-                      value={draftWeek.parentInstructor}
-                      onChange={(event) =>
-                        updateDraft({ parentInstructor: event.target.value })
-                      }
-                      placeholder="e.g. Jessica and Jared"
-                      style={controlStyle(C)}
-                    />
-                  </BuilderQuestionCard>
+                  {renderAssignedParentsEditor(
+                    "instructor",
+                    "Parent instructor",
+                    "Who is leading this week? Add one or more names.",
+                    "clay",
+                    "e.g. Jessica",
+                    draftWeek.parentInstructors,
+                    instructorNameDraft,
+                    setInstructorNameDraft,
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <BuilderQuestionCard
-                    C={C}
-                    tone="clay"
-                    question="Parent assistant"
-                    helper="Optional."
-                  >
-                    <input
-                      type="text"
-                      value={draftWeek.parentAssistant ?? ""}
-                      onChange={(event) =>
-                        updateDraft({
-                          parentAssistant: event.target.value.trim() ? event.target.value : null,
-                        })
-                      }
-                      placeholder="e.g. Bailey"
-                      style={controlStyle(C)}
-                    />
-                  </BuilderQuestionCard>
+                  {renderAssignedParentsEditor(
+                    "assistant",
+                    "Parent assistant",
+                    "Optional. Add one or more names.",
+                    "clay",
+                    "e.g. Bailey",
+                    draftWeek.parentAssistants,
+                    assistantNameDraft,
+                    setAssistantNameDraft,
+                  )}
                 </div>
               </div>
 
@@ -328,9 +430,11 @@ export default function CoopTeachingScheduleWeekDetailPanel({
               theme={theme}
               variant="primary"
               size="compact"
+              className="inline-flex items-center gap-1.5"
               onClick={() => void handleSave()}
-              disabled={!isDirty || saving}
+              disabled={!isDirty || !isComplete || saving}
             >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               Save changes
             </AdminButton>
           </div>

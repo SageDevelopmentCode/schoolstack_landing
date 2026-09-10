@@ -90,6 +90,12 @@ export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
   };
 }
 
+export function isParentHomePath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "portal") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "portal") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?portal(?:\/|$)/.test(pathname);
+}
+
 export function isParentMessagesPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "messages") return true;
   if (parseSchoolParentPath(pathname)?.feature === "messages") return true;
@@ -112,6 +118,12 @@ export function isParentSupplyListPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "supply_list") return true;
   if (parseSchoolParentPath(pathname)?.feature === "supply_list") return true;
   return /\/parent\/(?:p\/[^/]+\/)?supply_list(?:\/|$)/.test(pathname);
+}
+
+export function isParentTeachingSchedulePath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "teaching_schedule") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "teaching_schedule") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?teaching_schedule(?:\/|$)/.test(pathname);
 }
 
 export function isParentFeatureEnabled(
