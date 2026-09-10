@@ -39,6 +39,7 @@ description: >-
 | `AdminSignalCard` | Dark forest enrollment signal panel |
 | `AdminActivityFeed` | Recent activity feed |
 | `AdminQuickActionsCard` | Dashboard quick-action rail |
+| `AdminFeatureAnnouncementsCard` | Dashboard what's-new feature cards |
 | `AdminHoverTip` | Hover/focus popup for inline icon explanations |
 
 ### Shell components
@@ -58,6 +59,7 @@ SchoolAdminStoryShell (from SchoolAdminBaseline)
   Greeting + setup progress chip (when incomplete)
   Focus queue | School signal
   Metrics row (4 cards)
+  Feature announcements (what's new, with published date)
   Recent activity | Quick actions
 ```
 

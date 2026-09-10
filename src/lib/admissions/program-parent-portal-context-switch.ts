@@ -8,7 +8,10 @@ import {
   schoolParentPath,
   type ParentNavPath,
 } from "@/lib/organization-settings/parent-routes";
-import { resolveProgramOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
+import {
+  resolveMainParentOrganizationFeatures,
+  resolveProgramOrganizationFeatures,
+} from "@/lib/organization-settings/resolve-program-parent-features";
 import type { ProgramParentPortalSettings } from "./program-parent-portal";
 
 const MAIN_ONLY_PARENT_FEATURES = new Set([
@@ -18,6 +21,8 @@ const MAIN_ONLY_PARENT_FEATURES = new Set([
   "classroom_signups",
   "committees",
 ]);
+
+const PROGRAM_ONLY_PARENT_FEATURES = new Set(["curriculum"]);
 
 export type DetectedParentPortalContext =
   | { mode: "main" }
@@ -75,11 +80,12 @@ export function buildParentPortalContextEntryHref(input: {
     input.previewParentBasePath ?? `/school/${input.slug}/parent`;
 
   if (input.context.id === "main") {
+    const mainFeatures = resolveMainParentOrganizationFeatures(input.orgFeatures);
     return (
       getParentPortalHomeHref(
         input.slug,
-        input.orgFeatures.parent,
-        input.orgFeatures.feature_nav?.parent,
+        mainFeatures.parent,
+        mainFeatures.feature_nav?.parent,
         mainBasePath,
       ) ?? `${mainBasePath}/portal`
     );
@@ -119,7 +125,9 @@ export function resolveParentPortalContextSwitchHref(input: {
   if (
     !parsed?.feature ||
     parsed.feature === "portal" ||
-    MAIN_ONLY_PARENT_FEATURES.has(parsed.feature)
+    MAIN_ONLY_PARENT_FEATURES.has(parsed.feature) ||
+    (input.targetContext.id === "main" &&
+      PROGRAM_ONLY_PARENT_FEATURES.has(parsed.feature))
   ) {
     return input.targetEntryHref;
   }

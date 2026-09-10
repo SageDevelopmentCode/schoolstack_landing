@@ -306,6 +306,7 @@ export default function ProgramParentPortalSettingsCard({
       PARENT_FEATURE_CATALOG.filter(
         (entry) =>
           entry.key !== "portal" &&
+          entry.key !== "supply_list" &&
           Boolean((orgParent as Record<string, boolean>)[entry.key]) &&
           (entry.key !== "curriculum" || Boolean(editor.coop_mode)),
       ),
@@ -373,20 +374,7 @@ export default function ProgramParentPortalSettingsCard({
       ? SECTION_INTRO_TOOLTIP
       : SECTION_INTRO_MAIN_PORTAL_TOOLTIP;
 
-  const statusLine = showIsolatedPortal ? (
-    usesSeparatePortal ? (
-      portalSlug ? (
-        <>
-          Separate portal:{" "}
-          <code className="rounded bg-black/5 px-1 py-0.5">
-            /school/{schoolSlug}/parent/p/{portalSlug}/...
-          </code>
-        </>
-      ) : (
-        "Separate portal URL is assigned when you save."
-      )
-    ) : null
-  ) : (
+  const statusLine = showIsolatedPortal ? null : (
     <>
       Uses the main parent portal:{" "}
       <code className="rounded bg-black/5 px-1 py-0.5">
@@ -440,40 +428,35 @@ export default function ProgramParentPortalSettingsCard({
           tone="accent"
           question="Co-op mode"
           action={
-            <BuilderInfoTooltip
-              C={C}
-              content={COOP_MODE_TOOLTIP}
-              ariaLabel="About co-op mode"
-            />
+            <div className="flex shrink-0 items-center gap-2">
+              <BuilderInfoTooltip
+                C={C}
+                content={COOP_MODE_TOOLTIP}
+                ariaLabel="About co-op mode"
+              />
+              {canEdit ? (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(editor.coop_mode)}
+                  aria-label={`${editor.coop_mode ? "Disable" : "Enable"} co-op mode`}
+                  onClick={() => setCoopMode(!editor.coop_mode)}
+                  className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} />
+                </button>
+              ) : (
+                <span
+                  role="switch"
+                  aria-checked={Boolean(editor.coop_mode)}
+                  aria-disabled="true"
+                >
+                  <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} disabled />
+                </span>
+              )}
+            </div>
           }
-        >
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm" style={{ color: C.textSecondary }}>
-              Show co-op banner on parent home
-            </span>
-            {canEdit ? (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={Boolean(editor.coop_mode)}
-                aria-label={`${editor.coop_mode ? "Disable" : "Enable"} co-op mode`}
-                onClick={() => setCoopMode(!editor.coop_mode)}
-                className="shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} />
-              </button>
-            ) : (
-              <span
-                role="switch"
-                aria-checked={Boolean(editor.coop_mode)}
-                aria-disabled="true"
-                className="shrink-0"
-              >
-                <ToggleSwitch C={C} checked={Boolean(editor.coop_mode)} disabled />
-              </span>
-            )}
-          </div>
-        </BuilderQuestionCard>
+        />
       ) : null}
 
       <BuilderQuestionCard

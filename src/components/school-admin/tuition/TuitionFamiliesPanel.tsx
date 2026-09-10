@@ -22,6 +22,11 @@ import {
   DEFAULT_TUITION_FAMILY_TAB,
   type TuitionFamilyTabId,
 } from "@/components/school-admin/tuition/tuition-family-tabs";
+import {
+  adminChipToneFromChargeBadge,
+  formatParentChargeDueLine,
+  formatParentChargeStatusBadge,
+} from "@/lib/tuition/charge-status-display";
 import { listChargesForFamily } from "@/lib/tuition/charges";
 import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { childFirstNameFromFullName } from "@/lib/tuition/parent-billing-summary";
@@ -328,6 +333,48 @@ export default function TuitionFamiliesPanel({
     }
   };
 
+  const handleWaiveCharge = async (charge: {
+    id: string;
+    label: string;
+    amountCents: number;
+    chargeType: "tuition" | "fee" | "adjustment_credit" | "late_fee";
+    status: string;
+  }) => {
+    const isLateFee = charge.chargeType === "late_fee";
+    const confirmMessage = isLateFee
+      ? `Waive this ${formatCents(charge.amountCents)} late fee? It will be removed from the family's balance.`
+      : `Waive ${charge.label}? This forgives the overdue installment and any linked late fees.`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setActionLoading(charge.id);
+    setPanelError(null);
+    try {
+      const response = await fetch(`/api/tuition/charges/${charge.id}/waive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Failed to waive charge.");
+      }
+      adminToast.success(isLateFee ? "Late fee waived" : "Charge waived");
+      await refreshFamilySummaries();
+      if (selectedFamilyId) {
+        await refreshSelectedFamilyDetails(selectedFamilyId);
+      }
+    } catch (err) {
+      const message = formatActionError(err, "Failed to waive charge.");
+      setPanelError(message);
+      adminToast.error(message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleSendInvoice = async (chargeId: string) => {
     setActionLoading(chargeId);
     setInvoiceNotice(null);
@@ -585,6 +632,37 @@ export default function TuitionFamiliesPanel({
         <p className="text-sm" style={{ color: "#AD574C" }}>
           {panelError}
         </p>
+      ) : null}
+
+      {selectedFamily.hasOverdueTuition || selectedFamily.hasOpenLateFee ? (
+        <div
+          className="rounded-lg px-3 py-2.5 text-sm"
+          style={{
+            backgroundColor: "#FFF3DF",
+            border: "1px solid #E8D4B0",
+            color: theme.ink,
+          }}
+          data-testid="tuition-family-billing-alert"
+        >
+          <p>
+            {selectedFamily.hasOverdueTuition && selectedFamily.hasOpenLateFee
+              ? `This family has overdue tuition and a ${formatCents(selectedFamily.openLateFeeCents)} late fee.`
+              : selectedFamily.hasOverdueTuition
+                ? "This family has overdue tuition."
+                : `This family has a ${formatCents(selectedFamily.openLateFeeCents)} late fee.`}{" "}
+            Review the Schedule tab to waive charges.
+          </p>
+          {activeFamilyTab !== "schedule" ? (
+            <button
+              type="button"
+              className="mt-1 text-xs font-semibold underline"
+              style={{ color: "#A26B22" }}
+              onClick={() => setActiveFamilyTab("schedule")}
+            >
+              Open Schedule
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <TuitionFamilyTabBar
@@ -920,6 +998,10 @@ export default function TuitionFamiliesPanel({
                     const studentBadge = resolveStudentBadgeForAssignment(
                       charge.assignmentId,
                     );
+                    const statusBadge = formatParentChargeStatusBadge(charge);
+                    const canWaiveLateFee = charge.chargeType === "late_fee";
+                    const canWaiveTuition =
+                      charge.chargeType === "tuition" && charge.status === "overdue";
                     return (
                     <div
                       key={charge.id}
@@ -935,12 +1017,18 @@ export default function TuitionFamiliesPanel({
                             />
                           ) : null}
                           <p style={{ color: theme.ink }}>{charge.label}</p>
+                          <AdminChip
+                            theme={theme}
+                            tone={adminChipToneFromChargeBadge(statusBadge.tone)}
+                          >
+                            {statusBadge.label}
+                          </AdminChip>
                         </div>
                         <p className="text-xs" style={{ color: theme.muted }}>
-                          Due {charge.dueDate} · {charge.status}
+                          {formatParentChargeDueLine(charge)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         <span className="font-medium" style={{ color: theme.ink }}>
                           {formatCents(charge.amountCents)}
                         </span>
@@ -955,6 +1043,28 @@ export default function TuitionFamiliesPanel({
                                 onClick={() => void handleSendInvoice(charge.id)}
                               >
                                 Send invoice
+                              </AdminButton>
+                            ) : null}
+                            {canWaiveLateFee ? (
+                              <AdminButton
+                                theme={theme}
+                                variant="outline"
+                                size="compact"
+                                disabled={actionLoading === charge.id}
+                                onClick={() => void handleWaiveCharge(charge)}
+                              >
+                                Waive late fee
+                              </AdminButton>
+                            ) : null}
+                            {canWaiveTuition ? (
+                              <AdminButton
+                                theme={theme}
+                                variant="outline"
+                                size="compact"
+                                disabled={actionLoading === charge.id}
+                                onClick={() => void handleWaiveCharge(charge)}
+                              >
+                                Waive charge
                               </AdminButton>
                             ) : null}
                             <AdminButton

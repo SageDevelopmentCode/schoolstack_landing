@@ -23,6 +23,10 @@ import {
   fetchLatestSubmittedApplication,
 } from "@/lib/school-admin/dashboard-metrics";
 import { getCachedAdminMessagesUnreadCount } from "@/lib/school-admin/cached-admin-unread-counts";
+import {
+  fetchAdminFeatureAnnouncements,
+  type ResolvedAdminFeatureAnnouncement,
+} from "@/lib/school-admin/admin-feature-announcements";
 import { formatCents } from "@/lib/tuition/pricing";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
 
@@ -43,12 +47,21 @@ export type DashboardMetric = {
   enabled: boolean;
 };
 
-export type DashboardQuickAction = {
-  id: string;
-  title: string;
-  subtitle: string;
-  href: string;
-};
+export type DashboardQuickAction =
+  | {
+      id: string;
+      title: string;
+      subtitle: string;
+      kind: "link";
+      href: string;
+    }
+  | {
+      id: string;
+      title: string;
+      subtitle: string;
+      kind: "copy-apply-link";
+      applyFormPublicPath: string;
+    };
 
 export type AdminDashboardSummary = {
   setupStatus: AdmissionsSetupStatus;
@@ -62,6 +75,7 @@ export type AdminDashboardSummary = {
   metrics: DashboardMetric[];
   recentActivity: SchoolAdminActivityNotification[];
   quickActions: DashboardQuickAction[];
+  featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
 };
@@ -251,22 +265,33 @@ export async function fetchAdminDashboardSummary(
       id: "submissions",
       title: "Review submissions",
       subtitle: "See every family application in one place.",
+      kind: "link",
       href: schoolAdminPath(slug, "admissions", "submissions"),
     });
     if (setupStatus.applyFormPublicPath) {
       quickActions.push({
-        id: "share-apply",
-        title: "Share public application",
-        subtitle: "Copy the family-facing application link.",
-        href: schoolAdminPath(slug, "admissions", "flows"),
+        id: "copy-apply-link",
+        title: "Copy application link",
+        subtitle:
+          "Same link for every family — parents choose their program inside the application.",
+        kind: "copy-apply-link",
+        applyFormPublicPath: setupStatus.applyFormPublicPath,
       });
     }
+    quickActions.push({
+      id: "edit-apply-form",
+      title: "Edit application form",
+      subtitle: "Update questions, fees, and publish settings.",
+      kind: "link",
+      href: `${schoolAdminPath(slug, "admissions", "flows")}?flow=apply`,
+    });
   }
   if (features.messages) {
     quickActions.push({
       id: "messages",
       title: "Send school update",
       subtitle: "Write to one family or a group.",
+      kind: "link",
       href: schoolAdminPath(slug, "messages"),
     });
   }
@@ -278,6 +303,12 @@ export async function fetchAdminDashboardSummary(
     metrics: metrics.filter((metric) => metric.enabled),
     recentActivity: activityPage.notifications,
     quickActions,
+    featureAnnouncements: await fetchAdminFeatureAnnouncements(
+      admin,
+      organizationId,
+      slug,
+      features,
+    ),
     messagesUnreadCount: resolvedMessagesUnreadCount,
     setupComplete,
   };

@@ -10,7 +10,10 @@ import {
   shouldRedirectAwayFromMainParentPortal,
 } from "@/lib/admissions/program-parent-portal-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
+import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 
@@ -54,18 +57,35 @@ export default async function FamilyPreviewMainParentLayout({
     }
   }
 
+  const notificationContext = buildMainParentNotificationContext(slug, {
+    parentNavBasePath: previewParentBasePath,
+    applyBasePath: previewBasePath,
+  });
+  const initialActivityUnreadCount = await getParentPortalActivityUnreadCount(
+    supabase,
+    {
+      organizationId: org.id,
+      slug,
+      familyId,
+      notificationContext,
+    },
+  );
+
   return (
     <SchoolParentBaseline
       slug={slug}
       organizationId={org.id}
       schoolName={org.name}
       branding={org.branding}
-      features={org.features}
+      features={resolveMainParentOrganizationFeatures(org.features)}
       userProfile={userProfile}
       parentPortalContexts={parentPortalContexts}
       previewMode
       previewBasePath={previewBasePath}
       previewParentBasePath={previewParentBasePath}
+      previewFamilyId={familyId}
+      initialActivityUnreadCount={initialActivityUnreadCount}
+      notificationContext={notificationContext}
     >
       {children}
     </SchoolParentBaseline>

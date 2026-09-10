@@ -5,7 +5,10 @@ import {
 } from "@/lib/activity-log";
 import { extractStudentLabel } from "@/lib/admissions/application-submissions";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { getPaymentById } from "@/lib/stripe/application-payments";
+import {
+  getPaymentById,
+  type PaymentRecord,
+} from "@/lib/stripe/application-payments";
 import { formatCents } from "@/lib/tuition/pricing";
 
 export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
@@ -82,6 +85,7 @@ export type TuitionNotificationContext = {
   chargeLabel: string | null;
   familyName: string | null;
   studentName: string | null;
+  payerLabel: string | null;
 };
 
 const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
@@ -526,6 +530,35 @@ function resolveTuitionChargeIdForEvent(
   return null;
 }
 
+type GuardianPayerRow = {
+  userId: string | null;
+  firstName: string;
+  lastName: string;
+};
+
+function resolvePayerLabelForPayment(
+  payment: PaymentRecord,
+  guardiansByFamilyId: Map<string, GuardianPayerRow[]>,
+  familyNameById: Map<string, string>,
+): string | null {
+  if (payment.payerUserId && payment.familyId) {
+    const guardians = guardiansByFamilyId.get(payment.familyId) ?? [];
+    const payer = guardians.find(
+      (guardian) => guardian.userId === payment.payerUserId,
+    );
+    if (payer) {
+      return formatSubjectShortLabel(payer.firstName, payer.lastName);
+    }
+  }
+
+  if (payment.familyId) {
+    const familyName = familyNameById.get(payment.familyId);
+    if (familyName) return familyName;
+  }
+
+  return null;
+}
+
 export async function fetchTuitionNotificationContexts(
   supabase: SupabaseClient,
   events: ActivityEventForNotification[],
@@ -640,14 +673,117 @@ export async function fetchTuitionNotificationContexts(
     }
   }
 
-  const contexts = new Map<string, TuitionNotificationContext>();
-
+  const familyNameById = new Map<string, string>();
   for (const charge of charges ?? []) {
-    const chargeId = String(charge.id);
     const family = charge.families as { name?: string } | { name?: string }[] | null;
     const familyRow = Array.isArray(family) ? family[0] : family;
     const familyName =
       typeof familyRow?.name === "string" ? familyRow.name.trim() : null;
+    if (charge.family_id && familyName) {
+      familyNameById.set(String(charge.family_id), familyName);
+    }
+  }
+
+  const paymentIdsByChargeId = new Map<string, string>();
+  for (const event of events) {
+    if (event.action !== ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED) {
+      continue;
+    }
+    const chargeId = resolveTuitionChargeIdForEvent(event);
+    const paymentId = metadataString(event.metadata, "paymentId");
+    if (chargeId && paymentId) {
+      paymentIdsByChargeId.set(chargeId, paymentId);
+    }
+  }
+
+  const paymentsById = new Map<string, PaymentRecord>();
+  await Promise.all(
+    [...new Set(paymentIdsByChargeId.values())].map(async (paymentId) => {
+      const payment = await getPaymentById(supabase, paymentId);
+      if (payment) {
+        paymentsById.set(paymentId, payment);
+      }
+    }),
+  );
+
+  const paymentFamilyIds = [
+    ...new Set(
+      [...paymentsById.values()]
+        .map((payment) => payment.familyId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ].filter((familyId) => !familyNameById.has(familyId));
+
+  if (paymentFamilyIds.length > 0) {
+    const { data: families, error: familiesError } = await supabase
+      .from("families")
+      .select("id, name")
+      .in("id", paymentFamilyIds);
+
+    if (familiesError) throw familiesError;
+
+    for (const family of families ?? []) {
+      const name =
+        typeof family.name === "string" ? family.name.trim() : "";
+      if (name) {
+        familyNameById.set(String(family.id), name);
+      }
+    }
+  }
+
+  const guardianFamilyIds = [
+    ...new Set([
+      ...familyNameById.keys(),
+      ...[...paymentsById.values()]
+        .map((payment) => payment.familyId)
+        .filter((id): id is string => Boolean(id)),
+    ]),
+  ];
+
+  const guardiansByFamilyId = new Map<string, GuardianPayerRow[]>();
+  if (guardianFamilyIds.length > 0) {
+    const { data: guardians, error: guardiansError } = await supabase
+      .from("guardians")
+      .select("family_id, user_id, first_name, last_name")
+      .in("family_id", guardianFamilyIds);
+
+    if (guardiansError) throw guardiansError;
+
+    for (const guardian of guardians ?? []) {
+      const familyId = String(guardian.family_id);
+      const rows = guardiansByFamilyId.get(familyId) ?? [];
+      rows.push({
+        userId:
+          guardian.user_id != null && String(guardian.user_id).trim() !== ""
+            ? String(guardian.user_id)
+            : null,
+        firstName: String(guardian.first_name ?? ""),
+        lastName: String(guardian.last_name ?? ""),
+      });
+      guardiansByFamilyId.set(familyId, rows);
+    }
+  }
+
+  const payerLabelByChargeId = new Map<string, string | null>();
+  for (const [chargeId, paymentId] of paymentIdsByChargeId) {
+    const payment = paymentsById.get(paymentId);
+    payerLabelByChargeId.set(
+      chargeId,
+      payment
+        ? resolvePayerLabelForPayment(
+            payment,
+            guardiansByFamilyId,
+            familyNameById,
+          )
+        : null,
+    );
+  }
+
+  const contexts = new Map<string, TuitionNotificationContext>();
+
+  for (const charge of charges ?? []) {
+    const chargeId = String(charge.id);
+    const familyName = familyNameById.get(String(charge.family_id ?? "")) ?? null;
     const assignmentId = charge.assignment_id
       ? String(charge.assignment_id)
       : null;
@@ -661,6 +797,7 @@ export async function fetchTuitionNotificationContexts(
       chargeLabel: String(charge.label ?? ""),
       familyName,
       studentName,
+      payerLabel: payerLabelByChargeId.get(chargeId) ?? null,
     });
   }
 
@@ -684,12 +821,23 @@ export function formatActivityNotificationDetail(
     tuitionContext != null;
 
   if (isTuitionPayment) {
-    const who = subjectLabel ?? tuitionContext.familyName ?? "A family";
+    const payer =
+      tuitionContext.payerLabel ?? tuitionContext.familyName ?? "A family";
+    const student = tuitionContext.studentName
+      ? shortenSubjectLabel(tuitionContext.studentName)
+      : null;
     const amountPart = paymentAmountLabel ? ` ${paymentAmountLabel}` : "";
-    const chargePart = tuitionContext.chargeLabel
-      ? ` for ${tuitionContext.chargeLabel}`
-      : "";
-    return `${who} paid${amountPart}${chargePart}`;
+
+    if (student) {
+      return formatGuardianActionForStudent(
+        payer !== student ? payer : null,
+        student,
+        `paid${amountPart}`,
+        `${payer} paid${amountPart} for ${student}`,
+      );
+    }
+
+    return `${payer} paid${amountPart}`;
   }
 
   if (action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED) {
@@ -989,11 +1137,20 @@ export function mapActivityEventToNotification(
   paymentLabel?: string | null,
 ): SchoolAdminActivityNotification {
   const metadataSubject = metadataString(event.metadata, "guardianName");
-  const guardianLabel = context?.guardianLabel ?? metadataSubject ?? null;
-  const subjectLabel =
+  let guardianLabel = context?.guardianLabel ?? metadataSubject ?? null;
+  let subjectLabel =
     tuitionContext?.subjectLabel ??
     context?.subjectLabel ??
     metadataSubject;
+
+  if (tuitionContext) {
+    guardianLabel =
+      tuitionContext.payerLabel ?? tuitionContext.familyName ?? guardianLabel;
+    subjectLabel = tuitionContext.studentName
+      ? shortenSubjectLabel(tuitionContext.studentName)
+      : subjectLabel;
+  }
+
   const programName = context?.programName ?? null;
 
   return {
@@ -1123,6 +1280,13 @@ export async function fetchSchoolAdminActivityNotifications(
   const notifications: SchoolAdminActivityNotification[] = [];
 
   for (const event of events) {
+    if (
+      event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED &&
+      metadataString(event.metadata, "recipientPortal") === "parent"
+    ) {
+      continue;
+    }
+
     const applicationId = applicationIdCache.get(`event:${event.id}`) ?? null;
     const link = await resolveActivityNotificationLink(
       supabase,

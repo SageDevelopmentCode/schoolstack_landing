@@ -259,7 +259,7 @@ export async function listFamilyBillingSummaries(
     supabase
       .from("tuition_charges")
       .select(
-        "id, family_id, amount_cents, paid_cents, status, due_date, label, paid_at",
+        "id, family_id, amount_cents, paid_cents, status, due_date, label, paid_at, charge_type",
       )
       .eq("organization_id", organizationId)
       .in("family_id", familyIds)
@@ -487,6 +487,20 @@ export async function listFamilyBillingSummaries(
     const hasOverdue = familyCharges.some((c) => c.status === "overdue");
     const hasSent = familyCharges.some((c) => c.status === "sent");
 
+    const openLateFeeCharges = openCharges.filter(
+      (c) => String(c.charge_type) === "late_fee",
+    );
+    const openLateFeeCents = openLateFeeCharges.reduce((sum, c) => {
+      const amountCents = Number(c.amount_cents);
+      const paidCents = Number(c.paid_cents ?? 0);
+      return sum + Math.max(0, amountCents - paidCents);
+    }, 0);
+    const hasOpenLateFee = openLateFeeCents > 0;
+    const hasOverdueTuition = openCharges.some(
+      (c) =>
+        String(c.charge_type) === "tuition" && String(c.status) === "overdue",
+    );
+
     const children = new Set<string>();
     const programNames = new Set<string>();
     const assignmentSummaries: FamilyAssignmentSummary[] = [];
@@ -685,6 +699,9 @@ export async function listFamilyBillingSummaries(
         : hasSent
           ? "invoice_sent"
           : "current",
+      hasOpenLateFee,
+      openLateFeeCents,
+      hasOverdueTuition,
       assignmentIds: familyAssignments.map((a) => String(a.id)),
       assignments: assignmentSummaries,
       enrollments: familyEnrollmentSummaries,
@@ -702,6 +719,9 @@ export async function listFamilyBillingSummaries(
     .sort((a, b) => {
       if (b.balanceDueCents !== a.balanceDueCents) {
         return b.balanceDueCents - a.balanceDueCents;
+      }
+      if (a.hasOpenLateFee !== b.hasOpenLateFee) {
+        return a.hasOpenLateFee ? -1 : 1;
       }
       return a.familyName.localeCompare(b.familyName);
     });

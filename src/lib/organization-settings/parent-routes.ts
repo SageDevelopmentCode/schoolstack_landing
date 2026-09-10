@@ -32,6 +32,32 @@ export function schoolParentRootPath(slug: string): string {
   return `/school/${slug}/parent`;
 }
 
+export function parentDocumentationPath(
+  slug: string,
+  options?: {
+    programSlug?: string;
+    previewBasePath?: string;
+    parentNavBasePath?: string;
+  },
+): string {
+  if (options?.previewBasePath) {
+    if (options.programSlug) {
+      return `${options.previewBasePath}/parent/p/${options.programSlug}/documentation`;
+    }
+    return `${options.previewBasePath}/parent/documentation`;
+  }
+
+  if (options?.parentNavBasePath) {
+    return `${options.parentNavBasePath}/documentation`;
+  }
+
+  if (options?.programSlug) {
+    return schoolProgramParentPath(slug, options.programSlug, "documentation");
+  }
+
+  return `${schoolParentRootPath(slug)}/documentation`;
+}
+
 export function parseProgramParentPath(pathname: string): {
   programSlug: string;
   feature: string;
@@ -90,6 +116,12 @@ export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
   };
 }
 
+export function isParentHomePath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "portal") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "portal") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?portal(?:\/|$)/.test(pathname);
+}
+
 export function isParentMessagesPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "messages") return true;
   if (parseSchoolParentPath(pathname)?.feature === "messages") return true;
@@ -106,6 +138,18 @@ export function isParentCurriculumPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "curriculum") return true;
   if (parseSchoolParentPath(pathname)?.feature === "curriculum") return true;
   return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
+}
+
+export function isParentSupplyListPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "supply_list") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "supply_list") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?supply_list(?:\/|$)/.test(pathname);
+}
+
+export function isParentTeachingSchedulePath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "teaching_schedule") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "teaching_schedule") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?teaching_schedule(?:\/|$)/.test(pathname);
 }
 
 export function isParentFeatureEnabled(

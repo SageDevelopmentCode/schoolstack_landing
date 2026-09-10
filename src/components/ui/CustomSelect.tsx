@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, X } from "lucide-react";
@@ -37,6 +38,37 @@ export const SUPER_ADMIN_SELECT_THEME: CustomSelectTheme = {
   errorBorder: "#FECACA",
   inputBackground: "#FFFFFF",
 };
+
+const MENU_MAX_HEIGHT = 240;
+const MENU_GAP_PX = 4;
+
+type MenuPosition = {
+  left: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+};
+
+function computeMenuPosition(trigger: HTMLElement): MenuPosition {
+  const rect = trigger.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  const opensUpward = spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
+
+  if (opensUpward) {
+    return {
+      left: rect.left,
+      width: rect.width,
+      bottom: window.innerHeight - rect.top + MENU_GAP_PX,
+    };
+  }
+
+  return {
+    left: rect.left,
+    width: rect.width,
+    top: rect.bottom + MENU_GAP_PX,
+  };
+}
 
 type CustomSelectProps = {
   id?: string;
@@ -108,8 +140,9 @@ export default function CustomSelect({
   optionClassName = "",
 }: CustomSelectProps) {
   const [open, setOpen] = useState(false);
-  const [opensUpward, setOpensUpward] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const hydrated = useHydrated();
   const isDesktopQuery = useMediaQuery("(min-width: 640px)");
   const isDesktop = hydrated && isDesktopQuery;
@@ -127,17 +160,21 @@ export default function CustomSelect({
     backgroundColor: theme.inputBackground ?? theme.surface,
   } as const;
 
-  const close = () => setOpen(false);
+  const close = useCallback(() => {
+    setOpen(false);
+    setMenuPosition(null);
+  }, []);
+
+  const syncMenuPosition = useCallback(() => {
+    if (!rootRef.current) return;
+    setMenuPosition(computeMenuPosition(rootRef.current));
+  }, []);
 
   const openPicker = () => {
     if (disabled) return;
 
     if (isDesktop && rootRef.current) {
-      const rect = rootRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const menuHeight = 240;
-      const spaceAbove = rect.top;
-      setOpensUpward(spaceBelow < menuHeight && spaceAbove > spaceBelow);
+      setMenuPosition(computeMenuPosition(rootRef.current));
     }
 
     setOpen(true);
@@ -159,20 +196,34 @@ export default function CustomSelect({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [close, open]);
 
   useEffect(() => {
     if (!open || !isDesktop) return;
 
     const handleClick = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        close();
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+      close();
     };
 
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [open, isDesktop]);
+  }, [close, isDesktop, open]);
+
+  useEffect(() => {
+    if (!open || !isDesktop) return;
+
+    syncMenuPosition();
+    window.addEventListener("scroll", syncMenuPosition, true);
+    window.addEventListener("resize", syncMenuPosition);
+    return () => {
+      window.removeEventListener("scroll", syncMenuPosition, true);
+      window.removeEventListener("resize", syncMenuPosition);
+    };
+  }, [isDesktop, open, syncMenuPosition]);
 
   useEffect(() => {
     if (!open || isDesktop) return;
@@ -183,6 +234,37 @@ export default function CustomSelect({
       document.body.style.overflow = previousOverflow;
     };
   }, [open, isDesktop]);
+
+  const desktopMenu =
+    open && isDesktop && menuPosition
+      ? (
+          <div
+            ref={menuRef}
+            role="listbox"
+            aria-label={ariaLabel}
+            className="fixed z-[100] max-h-60 overflow-y-auto rounded-md border py-1 shadow-lg"
+            style={{
+              left: menuPosition.left,
+              width: menuPosition.width,
+              top: menuPosition.top,
+              bottom: menuPosition.bottom,
+              borderColor: theme.border,
+              backgroundColor: theme.surface,
+            }}
+          >
+            {options.map((option) => (
+              <OptionButton
+                key={option.value}
+                option={option}
+                isSelected={option.value === value}
+                onSelect={() => handleSelect(option.value)}
+                theme={theme}
+                className={optionClassName || "px-3 py-2"}
+              />
+            ))}
+          </div>
+        )
+      : null;
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -235,27 +317,9 @@ export default function CustomSelect({
         />
       </button>
 
-      {open && isDesktop ? (
-        <div
-          role="listbox"
-          aria-label={ariaLabel}
-          className={`absolute left-0 right-0 z-50 max-h-60 overflow-y-auto rounded-md border py-1 shadow-lg ${
-            opensUpward ? "bottom-full mb-1" : "top-full mt-1"
-          }`}
-          style={{ borderColor: theme.border, backgroundColor: theme.surface }}
-        >
-          {options.map((option) => (
-            <OptionButton
-              key={option.value}
-              option={option}
-              isSelected={option.value === value}
-              onSelect={() => handleSelect(option.value)}
-              theme={theme}
-              className={optionClassName || "px-3 py-2"}
-            />
-          ))}
-        </div>
-      ) : null}
+      {typeof document !== "undefined" && desktopMenu
+        ? createPortal(desktopMenu, document.body)
+        : null}
 
       <AnimatePresence>
         {open && !isDesktop ? (

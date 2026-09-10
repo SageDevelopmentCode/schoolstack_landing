@@ -1,0 +1,5 @@
+apps/mobile
+e2e
+supabase/migrations_manual
+supabase/migrations/rooted-meadows
+.git

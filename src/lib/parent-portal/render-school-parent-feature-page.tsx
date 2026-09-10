@@ -12,8 +12,11 @@ import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentC
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
+import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
+import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -31,6 +34,7 @@ import {
 } from "@/lib/organization-settings/feature-nav";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import {
   getParentPortalPrimaryFamilyId,
@@ -50,7 +54,9 @@ import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
-import { getProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
+import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
@@ -86,7 +92,9 @@ export async function generateSchoolParentFeatureMetadata(
     return { title: "School Not Found" };
   }
 
-  let features: OrganizationFeatures = org.features;
+  let features: OrganizationFeatures = resolveMainParentOrganizationFeatures(
+    org.features,
+  );
   if (context.programSlug) {
     const { loadProgramParentPortalContext } = await import(
       "@/lib/admissions/program-parent-portal-access"
@@ -129,7 +137,9 @@ export async function renderSchoolParentFeaturePage(
     notFound();
   }
 
-  let features: OrganizationFeatures = org.features;
+  let features: OrganizationFeatures = resolveMainParentOrganizationFeatures(
+    org.features,
+  );
   let parentNavBasePath = context.parentNavBasePath;
   let programId: string | undefined;
   let programPortalLabel: string | undefined;
@@ -201,7 +211,8 @@ export async function renderSchoolParentFeaturePage(
       : mainPortalAudienceScope();
     const admin = createAdminClient();
     const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const [upcomingEvents, homeMeta, bulletinPosts] = await Promise.all([
+    const [upcomingEvents, homeMeta, bulletinPosts, featureAnnouncements] =
+      await Promise.all([
       listUpcomingEventsForOrg(supabase, org.id, 3, upcomingAudienceScope),
       familyId
         ? fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId)
@@ -213,6 +224,15 @@ export async function renderSchoolParentFeaturePage(
         bulletinEnabled,
         viewer: "parent",
         programId,
+        limit: coopModeEnabled ? 3 : 25,
+      }),
+      fetchParentFeatureAnnouncements(admin, org.id, {
+        slug: context.slug,
+        features,
+        coopModeEnabled,
+        bulletinEnabled,
+        programSlug: context.programSlug,
+        parentNavBasePath,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -238,6 +258,10 @@ export async function renderSchoolParentFeaturePage(
           coopModeEnabled={context.feature === "portal" ? coopModeEnabled : false}
           bulletinEnabled={bulletinEnabled}
           bulletinPosts={bulletinPosts}
+          features={features}
+          programSlug={context.programSlug}
+          parentNavBasePath={parentNavBasePath}
+          featureAnnouncements={featureAnnouncements}
         >
           {familyId ? (
             <Suspense fallback={null}>
@@ -420,11 +444,12 @@ export async function renderSchoolParentFeaturePage(
       ? await getGuardianIdForUser(admin, user.id, org.id, familyId)
       : null;
 
-    const [curriculum, discussionMessages] = await Promise.all([
-      getProgramCoopCurriculum(supabase, programId),
+    const [curricula, discussionMessages] = await Promise.all([
+      listProgramCoopCurriculum(supabase, programId),
       listProgramCoopCurriculumDiscussionMessages(admin, {
         organizationId: org.id,
         programId,
+        curriculumId: null,
       }),
     ]);
 
@@ -433,9 +458,48 @@ export async function renderSchoolParentFeaturePage(
         <ParentCurriculumPage
           organizationId={org.id}
           programId={programId}
-          curriculum={curriculum}
+          curricula={curricula}
           initialDiscussionMessages={discussionMessages}
           currentGuardianId={currentGuardianId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "supply_list") {
+    if (!programId || !coopModeEnabled) {
+      notFound();
+    }
+
+    const { items, colorLegend } = await listProgramCoopSupplyList(supabase, programId);
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentSupplyListPage
+          organizationId={org.id}
+          programId={programId}
+          initialItems={items}
+          initialLegend={colorLegend}
+          currentParentName={userProfile.displayName}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "teaching_schedule") {
+    if (!programId || !coopModeEnabled) {
+      notFound();
+    }
+
+    const weeks = await listProgramCoopTeachingSchedule(supabase, programId);
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentTeachingSchedulePage
+          organizationId={org.id}
+          programId={programId}
+          initialWeeks={weeks}
+          currentParentName={userProfile.displayName}
         />
       </SchoolParentPageShell>
     );

@@ -5,8 +5,10 @@ type ParentAttentionItemProps = {
   theme: ParentThemeTokens;
   icon: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   iconBg?: string;
+  iconIncludesWrapper?: boolean;
+  urgent?: boolean;
 };
 
 export default function ParentAttentionItem({
@@ -15,18 +17,24 @@ export default function ParentAttentionItem({
   title,
   subtitle,
   iconBg = "#F7E5DE",
+  iconIncludesWrapper = false,
+  urgent = false,
 }: ParentAttentionItemProps) {
-  return (
-    <div
-      className="flex items-start gap-3.5 border-t py-3 first:border-t-0 first:pt-0"
-      style={{ borderColor: "#E7EBE2" }}
-    >
-      <div
-        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px]"
-        style={{ backgroundColor: iconBg }}
-      >
-        {icon}
-      </div>
+  const showSubtitle = Boolean(subtitle?.trim());
+  const resolvedIconBg = urgent ? `${theme.alert}22` : iconBg;
+
+  const row = (
+    <>
+      {iconIncludesWrapper ? (
+        icon
+      ) : (
+        <div
+          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px]"
+          style={{ backgroundColor: resolvedIconBg }}
+        >
+          {icon}
+        </div>
+      )}
       <div className="min-w-0">
         <strong
           className="block text-sm font-semibold"
@@ -34,10 +42,42 @@ export default function ParentAttentionItem({
         >
           {title}
         </strong>
-        <span className="block text-xs" style={{ color: "#76828A" }}>
-          {subtitle}
-        </span>
+        {showSubtitle ? (
+          <span
+            className="mt-0.5 block text-xs leading-relaxed"
+            style={{ color: urgent ? theme.muted : "#76828A" }}
+          >
+            {subtitle}
+          </span>
+        ) : null}
       </div>
+    </>
+  );
+
+  if (urgent) {
+    return (
+      <div
+        className="mb-2 rounded-[14px] border px-3 py-2.5"
+        style={{
+          backgroundColor: theme.alertBg,
+          borderColor: `${theme.alert}40`,
+        }}
+      >
+        <div
+          className={`flex gap-3.5 ${showSubtitle ? "items-start" : "items-center"}`}
+        >
+          {row}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex gap-3.5 border-t py-3 first:border-t-0 first:pt-0 ${showSubtitle ? "items-start" : "items-center"}`}
+      style={{ borderColor: "#E7EBE2" }}
+    >
+      {row}
     </div>
   );
 }

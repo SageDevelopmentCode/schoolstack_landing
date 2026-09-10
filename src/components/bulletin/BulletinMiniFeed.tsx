@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Megaphone, Paperclip } from "lucide-react";
-import BulletinPostDetailSidebar from "@/components/bulletin/BulletinPostDetailSidebar";
+import BulletinAttachmentFullscreenViewer, {
+  type BulletinAttachmentViewerState,
+} from "@/components/bulletin/BulletinAttachmentFullscreenViewer";
+import BulletinPostDetailDialog from "@/components/bulletin/BulletinPostDetailDialog";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
-import type { BulletinPost } from "@/lib/school-bulletin/types";
+import { canPreviewBulletinAttachment } from "@/lib/school-bulletin/attachment-preview";
+import type { BulletinAttachment, BulletinPost } from "@/lib/school-bulletin/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type BulletinMiniFeedProps = {
@@ -28,14 +32,47 @@ function excerpt(body: string, maxLength = 120): string {
   return `${trimmed.slice(0, maxLength).trim()}…`;
 }
 
+function buildViewerState(
+  attachments: BulletinAttachment[],
+  attachment: BulletinAttachment,
+): BulletinAttachmentViewerState {
+  const previewable = attachments.filter(
+    (item) => item.downloadUrl && canPreviewBulletinAttachment(item.mimeType),
+  );
+  const index = previewable.findIndex((item) => item.id === attachment.id);
+  return {
+    attachments: previewable,
+    index: index >= 0 ? index : 0,
+  };
+}
+
 export default function BulletinMiniFeed({
   theme,
   posts,
   emptyMessage = "School announcements and updates will appear here when available.",
 }: BulletinMiniFeedProps) {
   const [selectedPost, setSelectedPost] = useState<BulletinPost | null>(null);
+  const [viewerState, setViewerState] = useState<BulletinAttachmentViewerState | null>(
+    null,
+  );
 
   const visiblePosts = useMemo(() => posts.slice(0, 3), [posts]);
+
+  useEffect(() => {
+    if (!selectedPost && !viewerState) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (viewerState) {
+        setViewerState(null);
+      } else if (selectedPost) {
+        setSelectedPost(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPost, viewerState]);
 
   if (visiblePosts.length === 0) {
     return (
@@ -110,11 +147,26 @@ export default function BulletinMiniFeed({
         })}
       </div>
 
-      <BulletinPostDetailSidebar
+      <BulletinPostDetailDialog
         theme={theme}
         post={selectedPost}
         open={Boolean(selectedPost)}
         onClose={() => setSelectedPost(null)}
+        onOpenAttachment={(attachment) => {
+          if (!selectedPost) return;
+          setViewerState(buildViewerState(selectedPost.attachments, attachment));
+        }}
+      />
+
+      <BulletinAttachmentFullscreenViewer
+        theme={theme}
+        viewerState={viewerState}
+        open={Boolean(viewerState)}
+        onClose={() => setViewerState(null)}
+        onChangeIndex={(index) => {
+          if (!viewerState) return;
+          setViewerState({ ...viewerState, index });
+        }}
       />
     </>
   );

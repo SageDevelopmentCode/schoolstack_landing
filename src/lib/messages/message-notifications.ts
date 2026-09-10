@@ -304,5 +304,19 @@ export async function dispatchMessageNotifications(
         preview,
       },
     });
+  } else {
+    await logActivityEvent(admin, {
+      organizationId: context.organizationId,
+      actorType: "system",
+      surface: "api",
+      action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+      summary: `${context.senderName}: ${preview}`,
+      metadata: {
+        threadId: context.threadId,
+        senderUserId: context.senderUserId,
+        preview,
+        recipientPortal: "parent",
+      },
+    });
   }
 }

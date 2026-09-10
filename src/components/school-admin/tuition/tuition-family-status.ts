@@ -2,6 +2,21 @@ import { formatCents } from "@/lib/tuition/pricing";
 import { partitionUnassignedEnrollments } from "@/lib/tuition/tuition-readiness";
 import type { FamilyBillingSummary } from "@/lib/tuition/types";
 
+function formatBillingStatusLabel(
+  status: FamilyBillingSummary["status"],
+): string {
+  switch (status) {
+    case "overdue":
+      return "Overdue";
+    case "invoice_sent":
+      return "Invoice sent";
+    case "current":
+      return "Current";
+    default:
+      return status;
+  }
+}
+
 export function familyStatusLabel(family: FamilyBillingSummary): string {
   const autopayLabel =
     family.autopayStatus === "on"
@@ -17,7 +32,11 @@ export function familyStatusLabel(family: FamilyBillingSummary): string {
     : null;
 
   if (family.readiness === "ready" && enrolling.length === 0) {
-    return `${formatCents(family.balanceDueCents)} · ${family.status} · ${autopayLabel}`;
+    const lateFeeSuffix =
+      family.hasOpenLateFee && family.openLateFeeCents > 0
+        ? ` · ${formatCents(family.openLateFeeCents)} late fee`
+        : "";
+    return `${formatCents(family.balanceDueCents)} · ${formatBillingStatusLabel(family.status)}${lateFeeSuffix} · ${autopayLabel}`;
   }
   if (enrolledUnassigned.length > 0) {
     return catalogAmountLabel ? `${catalogAmountLabel} · Setup needed` : "Setup needed";

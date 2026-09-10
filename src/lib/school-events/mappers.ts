@@ -14,6 +14,7 @@ export type OrganizationEventRow = {
   location: string | null;
   description: string | null;
   sort_order: number;
+  created_at?: string;
 };
 
 export function mapOrganizationEventRow(row: OrganizationEventRow): OrganizationEvent {

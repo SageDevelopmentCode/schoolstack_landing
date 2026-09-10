@@ -56,26 +56,37 @@ async function classroomFamilyStudents(
   organizationId: string,
   classroomId: string,
 ): Promise<FamilyStudentRow[]> {
-  const { data: enrollments, error } = await admin
-    .from("enrollments")
-    .select("student_id, students ( family_id )")
+  const { data: junctionRows, error } = await admin
+    .from("enrollment_classrooms")
+    .select("enrollments!inner ( student_id, status, students ( family_id ) )")
     .eq("organization_id", organizationId)
     .eq("classroom_id", classroomId)
-    .eq("status", "enrolled");
+    .eq("enrollments.status", "enrolled");
 
   if (error) throw error;
 
   const rows: FamilyStudentRow[] = [];
-  for (const enrollment of enrollments ?? []) {
-    const student = enrollment.students as
-      | { family_id?: string }
-      | { family_id?: string }[]
+  for (const junctionRow of junctionRows ?? []) {
+    const enrollment = junctionRow.enrollments as
+      | {
+          student_id?: string;
+          students?: { family_id?: string } | { family_id?: string }[] | null;
+        }
+      | {
+          student_id?: string;
+          students?: { family_id?: string } | { family_id?: string }[] | null;
+        }[]
       | null;
+    const enrollmentRow = Array.isArray(enrollment) ? enrollment[0] : enrollment;
+    if (!enrollmentRow?.student_id) continue;
+
+    const student = enrollmentRow.students;
     const studentRow = Array.isArray(student) ? student[0] : student;
     if (!studentRow?.family_id) continue;
+
     rows.push({
       family_id: String(studentRow.family_id),
-      student_id: String(enrollment.student_id),
+      student_id: String(enrollmentRow.student_id),
     });
   }
   return rows;

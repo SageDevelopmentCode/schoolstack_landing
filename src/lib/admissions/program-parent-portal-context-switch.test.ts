@@ -86,6 +86,22 @@ describe("program parent portal context switch", () => {
     assert.equal(href, entryHref);
   });
 
+  it("falls back to entry href when switching from program curriculum to main", () => {
+    const mainEntryHref = "/school/rooted-meadows-demo/parent/portal";
+    const href = resolveParentPortalContextSwitchHref({
+      pathname:
+        "/school/rooted-meadows-demo/parent/p/kindergarten-co-op/curriculum",
+      slug: "rooted-meadows-demo",
+      targetContext: {
+        id: "main",
+        label: "Rooted Meadows",
+      },
+      targetEntryHref: mainEntryHref,
+    });
+
+    assert.equal(href, mainEntryHref);
+  });
+
   it("shows switcher when multiple contexts exist", () => {
     assert.equal(
       needsParentPortalContextSwitcher([

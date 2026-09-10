@@ -96,6 +96,7 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.TUITION_ADJUSTMENT_REVOKED]: "revoked a tuition adjustment",
   [ACTIVITY_ACTIONS.TUITION_BILLING_SPLITS_UPDATED]: "updated billing splits",
   [ACTIVITY_ACTIONS.TUITION_CHARGE_INVOICE_SENT]: "sent a tuition invoice",
+  [ACTIVITY_ACTIONS.TUITION_CHARGE_WAIVED]: "waived a tuition charge",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_MANUAL]: "recorded a manual tuition payment",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED]: "completed a tuition payment",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED]: "refunded a tuition payment",
@@ -105,6 +106,13 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "approved a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "declined a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "withdrew a committee join request",
+  [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "published a bulletin post",
+  [ACTIVITY_ACTIONS.CALENDAR_EVENT_POSTED]: "posted a calendar event",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_ADDED]: "added a co-op supply item",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_UPDATED]: "updated a co-op supply item",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_ADDED]: "added a co-op teaching week",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_UPDATED]: "updated a co-op teaching week",
+  [ACTIVITY_ACTIONS.COOP_CURRICULUM_UPDATED]: "updated co-op curriculum",
 };
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {

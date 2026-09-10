@@ -36,6 +36,7 @@ export default async function AdminDashboardSummaryLoader({
     <AdminDashboardContent
       organizationId={org.id}
       slug={slug}
+      features={org.features}
       initialSummary={initialSummary}
     />
   );

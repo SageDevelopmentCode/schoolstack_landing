@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logOrganizationEventPosted } from "./event-activity";
 import { mapOrganizationEventRow, type OrganizationEventRow } from "./mappers";
 import type { OrganizationEvent, SchoolEventColorKey, SchoolEventType } from "./types";
 
@@ -145,7 +146,16 @@ export async function createOrganizationEvent(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapOrganizationEventRow(data as OrganizationEventRow);
+  const event = mapOrganizationEventRow(data as OrganizationEventRow);
+
+  void logOrganizationEventPosted(supabase, {
+    organizationId,
+    eventId: event.id,
+    title: event.title,
+    programId: event.programId ?? null,
+  });
+
+  return event;
 }
 
 export async function updateOrganizationEvent(

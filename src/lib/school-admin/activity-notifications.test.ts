@@ -167,21 +167,41 @@ describe("formatActivityNotificationDetail", () => {
     );
   });
 
-  it("formats tuition payment completed with family, amount, and charge label", () => {
+  it("formats tuition payment completed with payer, amount, and student", () => {
     assert.equal(
       formatActivityNotificationDetail(
         ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
-        "Test Child",
+        "Maggie T.",
         "Tuition payment completed",
         "$360.00",
         {
-          subjectLabel: "Test Child",
+          subjectLabel: "Maggie T.",
           chargeLabel: "Aug Tuition (Julius)",
           familyName: "Cecilia Family",
-          studentName: "Test Child",
+          studentName: "Maggie Thompson",
+          payerLabel: "Julius",
         },
       ),
-      "Test Child paid $360.00 for Aug Tuition (Julius)",
+      "Julius paid $360.00 for Maggie T.",
+    );
+  });
+
+  it("falls back to family name for tuition payment when payer is unknown", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED,
+        "Maggie T.",
+        "Tuition payment completed",
+        "$360.00",
+        {
+          subjectLabel: "Maggie T.",
+          chargeLabel: "Aug Tuition",
+          familyName: "Cecilia Family",
+          studentName: "Maggie Thompson",
+          payerLabel: null,
+        },
+      ),
+      "Cecilia Family paid $360.00 for Maggie T.",
     );
   });
 

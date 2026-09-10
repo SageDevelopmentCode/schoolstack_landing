@@ -1,4 +1,4 @@
-export type TuitionDashboardTabId = "families" | "catalog" | "rules";
+export type TuitionDashboardTabId = "families" | "catalog" | "rules" | "payment_history";
 
 export const TUITION_DASHBOARD_TABS: ReadonlyArray<{
   id: TuitionDashboardTabId;
@@ -7,4 +7,5 @@ export const TUITION_DASHBOARD_TABS: ReadonlyArray<{
   { id: "families", label: "Families" },
   { id: "catalog", label: "Rate catalog" },
   { id: "rules", label: "Rules" },
+  { id: "payment_history", label: "Payment history" },
 ];

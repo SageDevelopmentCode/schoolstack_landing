@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  familyEnrollmentBadgeAriaLabel,
   familyEnrollmentBadgeLabel,
   familyEnrollmentStatusBadges,
   formatEnrollmentStatusLabel,
@@ -46,5 +47,18 @@ describe("familyEnrollmentBadgeLabel", () => {
   it("returns display labels for family badge kinds", () => {
     assert.equal(familyEnrollmentBadgeLabel("enrolling"), "Enrolling");
     assert.equal(familyEnrollmentBadgeLabel("enrolled"), "Enrolled");
+  });
+});
+
+describe("familyEnrollmentBadgeAriaLabel", () => {
+  it("matches display labels for accessibility text", () => {
+    assert.equal(
+      familyEnrollmentBadgeAriaLabel("enrolling"),
+      familyEnrollmentBadgeLabel("enrolling"),
+    );
+    assert.equal(
+      familyEnrollmentBadgeAriaLabel("enrolled"),
+      familyEnrollmentBadgeLabel("enrolled"),
+    );
   });
 });

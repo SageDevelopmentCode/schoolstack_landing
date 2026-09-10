@@ -16,6 +16,10 @@ export type ParentTuitionPaymentRecord = PaymentRecord & {
   enrollmentId: string | null;
 };
 
+export type AdminTuitionPaymentRecord = ParentTuitionPaymentRecord & {
+  familyName: string;
+};
+
 export type ParentLastPaymentDaySummary = {
   paidAt: string;
   amountCents: number;
@@ -208,6 +212,90 @@ export async function listParentTuitionPaymentHistoryPaginated(
     }),
     totalCount: count ?? 0,
   };
+}
+
+export async function listOrganizationTuitionPaymentsPaginated(
+  supabase: SupabaseClient,
+  organizationId: string,
+  options: { limit?: number; offset?: number } = {},
+): Promise<{ payments: AdminTuitionPaymentRecord[]; totalCount: number }> {
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+  const offset = Math.max(options.offset ?? 0, 0);
+
+  const { count, error: countError } = await supabase
+    .from("application_payments")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded");
+
+  if (countError) throw countError;
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+
+  const payments = mapTuitionPaymentRows(data ?? [], "");
+  const [studentContextByChargeId, familyNameById] = await Promise.all([
+    fetchStudentContextByChargeId(
+      supabase,
+      payments
+        .map((payment) => payment.tuitionChargeId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+    fetchFamilyNamesById(
+      supabase,
+      payments
+        .map((payment) => payment.familyId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ]);
+
+  return {
+    payments: payments.map((payment) => {
+      const context = payment.tuitionChargeId
+        ? studentContextByChargeId.get(payment.tuitionChargeId)
+        : undefined;
+      return {
+        ...payment,
+        studentFirstName: context?.firstName ?? null,
+        enrollmentId: context?.enrollmentId ?? null,
+        familyName: payment.familyId
+          ? (familyNameById.get(payment.familyId) ?? "Family")
+          : "Family",
+      };
+    }),
+    totalCount: count ?? 0,
+  };
+}
+
+async function fetchFamilyNamesById(
+  supabase: SupabaseClient,
+  familyIds: string[],
+): Promise<Map<string, string>> {
+  const uniqueFamilyIds = [...new Set(familyIds)];
+  if (uniqueFamilyIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("families")
+    .select("id, name")
+    .in("id", uniqueFamilyIds);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((family) => [
+      String(family.id),
+      typeof family.name === "string" ? family.name : "Family",
+    ]),
+  );
 }
 
 async function fetchStudentContextByChargeId(

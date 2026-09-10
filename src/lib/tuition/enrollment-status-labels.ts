@@ -33,3 +33,9 @@ export function familyEnrollmentStatusBadges(
 export function familyEnrollmentBadgeLabel(kind: FamilyEnrollmentBadgeKind): string {
   return kind === "enrolling" ? "Enrolling" : "Enrolled";
 }
+
+export function familyEnrollmentBadgeAriaLabel(
+  kind: FamilyEnrollmentBadgeKind,
+): string {
+  return familyEnrollmentBadgeLabel(kind);
+}

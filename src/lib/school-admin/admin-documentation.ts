@@ -145,7 +145,7 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
         {
           title: "Copy the apply link",
           description:
-            "In the form editor, open Share and choose Copy apply link.",
+            "From the dashboard Quick actions card, choose Copy application link — or in the form editor, open Share and choose Copy apply link.",
           action: {
             label: "Open apply form",
             path: { feature: "admissions", subtab: "flows", query: "flow=apply" },
@@ -604,6 +604,95 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
           title: "Edit or sync assignments",
           description:
             "Adjust tiers, discounts, or sync assignments for newly enrolled students.",
+        },
+      ],
+    },
+    {
+      id: "apply-family-tuition-discount",
+      title: "Apply a tuition discount for a family",
+      category: "Tuition",
+      summary:
+        "Reduce a family's tuition with a percentage or dollar discount on an enrollment assignment.",
+      keywords: ["discount", "adjustment", "tuition", "family", "scholarship"],
+      requiredFeatures: {
+        admin: { my_school: true },
+        adminPath: { feature: "my_school", subtab: "tuition" },
+      },
+      steps: [
+        {
+          title: "Open Tuition",
+          description: "Go to the Families tab to view enrolled families and assignments.",
+          action: {
+            label: "Open Tuition",
+            path: { feature: "my_school", subtab: "tuition" },
+          },
+        },
+        {
+          title: "Select a family",
+          description:
+            "Open a family from the list to view their enrollment assignments.",
+        },
+        {
+          title: "Click Adjust tuition",
+          description:
+            "On the assignment you want to discount, click Adjust tuition.",
+        },
+        {
+          title: "Choose the discount type",
+          description:
+            "Select % Discount or $ Discount, then enter the amount.",
+        },
+        {
+          title: "Select a reason",
+          description:
+            "Pick why you're applying the adjustment from the Why are you applying this adjustment? dropdown.",
+        },
+        {
+          title: "Apply the adjustment",
+          description:
+            "Review the preview and click Apply adjustment. Discounts stack with any existing adjustments.",
+        },
+      ],
+    },
+    {
+      id: "create-tuition-discount-reason",
+      title: "Create a discount reason option",
+      category: "Tuition",
+      summary:
+        "Add custom labels like Scholarship or Staff discount for the adjustment reason dropdown.",
+      keywords: ["discount reason", "adjustment reason", "custom", "tuition"],
+      requiredFeatures: {
+        admin: { my_school: true },
+        adminPath: { feature: "my_school", subtab: "tuition" },
+      },
+      steps: [
+        {
+          title: "Open Tuition",
+          description: "Go to the Families tab.",
+          action: {
+            label: "Open Tuition",
+            path: { feature: "my_school", subtab: "tuition" },
+          },
+        },
+        {
+          title: "Open Adjust tuition",
+          description:
+            "Select any family and click Adjust tuition on an enrollment assignment.",
+        },
+        {
+          title: "Open the reason dropdown",
+          description:
+            "Under Why are you applying this adjustment?, click the reason field.",
+        },
+        {
+          title: "Edit your own reasons",
+          description:
+            "Click Edit your own reasons at the bottom of the reason list.",
+        },
+        {
+          title: "Add and save",
+          description:
+            "Click Add reason, enter the label, and click Save reasons. The new option appears in the dropdown for future adjustments.",
         },
       ],
     },

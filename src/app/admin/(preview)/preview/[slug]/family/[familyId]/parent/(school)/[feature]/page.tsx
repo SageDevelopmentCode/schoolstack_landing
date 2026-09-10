@@ -9,6 +9,7 @@ import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentC
 import ParentCalendarPreviewEventsLoader from "@/components/school-parent/calendar/ParentCalendarPreviewEventsLoader";
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import {
@@ -32,6 +33,7 @@ import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -47,14 +49,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
+  const features = org
+    ? resolveMainParentOrganizationFeatures(org.features)
+    : null;
 
-  if (!org || !isParentFeatureEnabled(org.features, feature)) {
+  if (!org || !features || !isParentFeatureEnabled(features, feature)) {
     return { title: "Preview Not Found" };
   }
 
   const pageName = getParentPageLabel(
     feature,
-    org.features.feature_nav?.parent,
+    features.feature_nav?.parent,
   );
 
   return {
@@ -71,14 +76,17 @@ export default async function FamilyPreviewParentFeaturePage({
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
+  const features = org
+    ? resolveMainParentOrganizationFeatures(org.features)
+    : null;
 
-  if (!org || !isParentFeatureEnabled(org.features, feature)) {
+  if (!org || !features || !isParentFeatureEnabled(features, feature)) {
     notFound();
   }
 
   const portalNav = mergePortalFeatureNav(
     "parent",
-    org.features.feature_nav?.parent,
+    features.feature_nav?.parent,
   );
   const children = getEnabledFeatureNavChildren("parent", feature, portalNav);
 
@@ -88,7 +96,7 @@ export default async function FamilyPreviewParentFeaturePage({
 
   const pageName = getParentPageLabel(
     feature,
-    org.features.feature_nav?.parent,
+    features.feature_nav?.parent,
   );
   const previewBasePath = familyPreviewBasePath(slug, familyId);
   const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
@@ -97,11 +105,16 @@ export default async function FamilyPreviewParentFeaturePage({
 
   if (feature === "portal") {
     const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const [upcomingEvents, homeMeta, classroomSignupAttentionItems, bulletinPosts] =
-      await Promise.all([
+    const [
+      upcomingEvents,
+      homeMeta,
+      classroomSignupAttentionItems,
+      bulletinPosts,
+      featureAnnouncements,
+    ] = await Promise.all([
       listUpcomingEventsForOrg(admin, org.id, 3),
       fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
-      isParentFeatureEnabled(org.features, "classroom_signups")
+      isParentFeatureEnabled(features, "classroom_signups")
         ? loadParentSignupAttentionItems(admin, org.id, familyId)
         : Promise.resolve([]),
       loadHomeBulletinPosts({
@@ -110,11 +123,20 @@ export default async function FamilyPreviewParentFeaturePage({
         organizationId: org.id,
         bulletinEnabled,
         viewer: "parent",
+        limit: 25,
+      }),
+      fetchParentFeatureAnnouncements(admin, org.id, {
+        slug,
+        features,
+        coopModeEnabled: false,
+        bulletinEnabled,
+        parentNavBasePath: previewParentBasePath,
+        previewBasePath,
       }),
     ]);
     const quickActions = buildParentQuickActions(
       slug,
-      org.features,
+      features,
       previewParentBasePath,
     );
 
@@ -134,13 +156,16 @@ export default async function FamilyPreviewParentFeaturePage({
           previewBasePath={previewBasePath}
           bulletinEnabled={bulletinEnabled}
           bulletinPosts={bulletinPosts}
+          features={features}
+          parentNavBasePath={previewParentBasePath}
+          featureAnnouncements={featureAnnouncements}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader
               organizationId={org.id}
               familyId={familyId}
               slug={slug}
-              features={org.features}
+              features={features}
               previewBasePath={previewParentBasePath}
             />
           </Suspense>

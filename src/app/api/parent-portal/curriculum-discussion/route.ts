@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const organizationId = searchParams.get("organizationId")?.trim() ?? "";
   const programId = searchParams.get("programId")?.trim() ?? "";
+  const curriculumId = searchParams.get("curriculumId");
 
   if (!organizationId || !programId) {
     return apiError(ROUTE, {
@@ -56,6 +57,7 @@ export async function GET(request: Request) {
     const messages = await listProgramCoopCurriculumDiscussionMessages(admin, {
       organizationId,
       programId,
+      curriculumId,
     });
 
     return NextResponse.json({ messages });
@@ -90,6 +92,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       organizationId?: string;
       programId?: string;
+      curriculumId?: string | null;
       body?: string;
       pageNumber?: number | null;
     };
@@ -159,6 +162,7 @@ export async function POST(request: Request) {
       programId,
       senderGuardianId: guardianId,
       body: messageBody,
+      curriculumId: body.curriculumId,
       pageNumber: body.pageNumber,
     });
 

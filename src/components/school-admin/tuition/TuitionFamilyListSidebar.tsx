@@ -1,12 +1,12 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Clock, Search, UserCheck } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import { familyStatusLabel } from "@/components/school-admin/tuition/tuition-family-status";
 import {
-  familyEnrollmentBadgeLabel,
+  familyEnrollmentBadgeAriaLabel,
   familyEnrollmentStatusBadges,
   formatEnrollmentStatusLabel,
   type FamilyEnrollmentBadgeKind,
@@ -29,6 +29,29 @@ type TuitionFamilyListSidebarProps = {
 
 function familyEnrollmentChipTone(kind: FamilyEnrollmentBadgeKind): "info" | "success" {
   return kind === "enrolling" ? "info" : "success";
+}
+
+function FamilyEnrollmentIconBadge({
+  kind,
+  theme,
+}: {
+  kind: FamilyEnrollmentBadgeKind;
+  theme: ParentThemeTokens;
+}) {
+  const label = familyEnrollmentBadgeAriaLabel(kind);
+  const Icon = kind === "enrolling" ? Clock : UserCheck;
+
+  return (
+    <span aria-label={label} title={label}>
+      <AdminChip
+        theme={theme}
+        tone={familyEnrollmentChipTone(kind)}
+        className="px-1 py-0.5"
+      >
+        <Icon className="h-3 w-3" aria-hidden />
+      </AdminChip>
+    </span>
+  );
 }
 
 function FamilySidebarRow({
@@ -73,10 +96,18 @@ function FamilySidebarRow({
           {family.familyName}
         </span>
         {enrollmentBadges.map((kind) => (
-          <AdminChip key={kind} theme={theme} tone={familyEnrollmentChipTone(kind)}>
-            {familyEnrollmentBadgeLabel(kind)}
-          </AdminChip>
+          <FamilyEnrollmentIconBadge key={kind} kind={kind} theme={theme} />
         ))}
+        {family.status === "overdue" || family.hasOverdueTuition ? (
+          <AdminChip theme={theme} tone="alert">
+            Overdue
+          </AdminChip>
+        ) : null}
+        {family.hasOpenLateFee ? (
+          <AdminChip theme={theme} tone="warning">
+            Late fee
+          </AdminChip>
+        ) : null}
       </div>
       <span className="text-[10px]" style={{ color: theme.muted }}>
         {familyStatusLabel(family)}

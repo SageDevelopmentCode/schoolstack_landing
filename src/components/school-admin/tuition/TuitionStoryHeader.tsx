@@ -53,6 +53,8 @@ function subtitleForTab(tab: TuitionDashboardTabId, kpis: TuitionKpis): string {
       return "Rate plans, payment options, and fees for each program";
     case "rules":
       return "Late fees and tuition adjustment rules";
+    case "payment_history":
+      return "All tuition payments across families";
   }
 }
 

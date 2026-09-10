@@ -301,6 +301,9 @@ export type FamilyBillingSummary = {
   hasPaymentMethod: boolean;
   lastAutopayFailedAt: string | null;
   status: "current" | "overdue" | "invoice_sent";
+  hasOpenLateFee: boolean;
+  openLateFeeCents: number;
+  hasOverdueTuition: boolean;
   assignmentIds: string[];
   assignments: FamilyAssignmentSummary[];
   enrollments: FamilyEnrollmentSummary[];

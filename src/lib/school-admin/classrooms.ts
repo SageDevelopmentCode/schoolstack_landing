@@ -121,10 +121,10 @@ async function fetchStudentCountsByClassroomIds(
   if (classroomIds.length === 0) return counts;
 
   const { data, error } = await supabase
-    .from("enrollments")
-    .select("classroom_id, student_id")
+    .from("enrollment_classrooms")
+    .select("classroom_id, enrollments!inner ( student_id, status )")
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
+    .eq("enrollments.status", "enrolled")
     .in("classroom_id", classroomIds);
 
   if (error) throw error;
@@ -133,7 +133,11 @@ async function fetchStudentCountsByClassroomIds(
   for (const row of data ?? []) {
     const classroomId = row.classroom_id ? String(row.classroom_id) : null;
     if (!classroomId) continue;
-    const studentId = String(row.student_id);
+    const enrollment = unwrapRelation(
+      row.enrollments as { student_id?: string } | { student_id?: string }[] | null,
+    );
+    if (!enrollment?.student_id) continue;
+    const studentId = String(enrollment.student_id);
     const set = uniqueStudentsByClassroom.get(classroomId) ?? new Set<string>();
     set.add(studentId);
     uniqueStudentsByClassroom.set(classroomId, set);
@@ -248,12 +252,11 @@ async function getClassroomIdsForStudent(
   studentId: string,
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from("enrollments")
-    .select("classroom_id")
+    .from("enrollment_classrooms")
+    .select("classroom_id, enrollments!inner ( student_id, status )")
     .eq("organization_id", organizationId)
-    .eq("student_id", studentId)
-    .eq("status", "enrolled")
-    .not("classroom_id", "is", null);
+    .eq("enrollments.student_id", studentId)
+    .eq("enrollments.status", "enrolled");
 
   if (error) throw error;
 
@@ -307,17 +310,25 @@ async function getClassroomStudentIds(
   classroomId: string,
 ): Promise<string[]> {
   const { data, error } = await supabase
-    .from("enrollments")
-    .select("student_id")
+    .from("enrollment_classrooms")
+    .select("enrollments!inner ( student_id, status )")
     .eq("organization_id", organizationId)
     .eq("classroom_id", classroomId)
-    .eq("status", "enrolled");
+    .eq("enrollments.status", "enrolled");
 
   if (error) throw error;
 
-  return [
-    ...new Set((data ?? []).map((row) => String(row.student_id))),
-  ];
+  const studentIds = new Set<string>();
+  for (const row of data ?? []) {
+    const enrollment = unwrapRelation(
+      row.enrollments as { student_id?: string } | { student_id?: string }[] | null,
+    );
+    if (enrollment?.student_id) {
+      studentIds.add(String(enrollment.student_id));
+    }
+  }
+
+  return [...studentIds];
 }
 
 async function syncAssignStudentsToLeadTeachers(
@@ -407,17 +418,17 @@ async function syncUnassignRosterFromRemovedLeadStaff(
   }
 }
 
-async function updateStudentClassroomOnEnrollments(
+async function addClassroomToStudentEnrollments(
   supabase: SupabaseClient,
   organizationId: string,
-  classroomId: string | null,
+  classroomId: string,
   programId: string | null,
   studentIds: string[],
 ): Promise<void> {
   for (const studentId of studentIds) {
     let query = supabase
       .from("enrollments")
-      .update({ classroom_id: classroomId })
+      .select("id")
       .eq("organization_id", organizationId)
       .eq("student_id", studentId)
       .eq("status", "enrolled");
@@ -426,7 +437,51 @@ async function updateStudentClassroomOnEnrollments(
       query = query.eq("program_id", programId);
     }
 
-    const { error } = await query;
+    const { data: enrollmentRows, error } = await query;
+    if (error) throw error;
+
+    const rows = (enrollmentRows ?? []).map((row) => ({
+      organization_id: organizationId,
+      enrollment_id: String(row.id),
+      classroom_id: classroomId,
+    }));
+
+    if (rows.length === 0) continue;
+
+    const { error: insertError } = await supabase
+      .from("enrollment_classrooms")
+      .upsert(rows, { onConflict: "enrollment_id,classroom_id" });
+
+    if (insertError) throw insertError;
+  }
+}
+
+async function removeClassroomFromStudentEnrollments(
+  supabase: SupabaseClient,
+  organizationId: string,
+  classroomId: string,
+  studentIds: string[],
+): Promise<void> {
+  for (const studentId of studentIds) {
+    const { data: enrollmentRows, error: enrollmentError } = await supabase
+      .from("enrollments")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("student_id", studentId)
+      .eq("status", "enrolled");
+
+    if (enrollmentError) throw enrollmentError;
+
+    const enrollmentIds = (enrollmentRows ?? []).map((row) => String(row.id));
+    if (enrollmentIds.length === 0) continue;
+
+    const { error } = await supabase
+      .from("enrollment_classrooms")
+      .delete()
+      .eq("organization_id", organizationId)
+      .eq("classroom_id", classroomId)
+      .in("enrollment_id", enrollmentIds);
+
     if (error) throw error;
   }
 }
@@ -455,16 +510,27 @@ function mapClassroomRow(
   };
 }
 
-export function resolveClassroomIdForEnrollment(
+export function classroomAppliesToEnrollment(
+  classroomProgramId: string | null,
   enrollmentProgramId: string | null,
-  programToClassroomId: Map<string, string>,
-): string | null {
-  const programKey = enrollmentProgramId ?? "__none__";
-  return (
-    programToClassroomId.get(programKey) ??
-    programToClassroomId.get("__none__") ??
-    null
-  );
+): boolean {
+  if (classroomProgramId === null) return true;
+  return classroomProgramId === enrollmentProgramId;
+}
+
+export function resolveClassroomIdsForEnrollment(
+  enrollmentProgramId: string | null,
+  classroomsById: Map<string, { id: string; programId: string | null }>,
+  selectedClassroomIds: string[],
+): string[] {
+  return selectedClassroomIds.filter((classroomId) => {
+    const classroom = classroomsById.get(classroomId);
+    if (!classroom) return false;
+    return classroomAppliesToEnrollment(
+      classroom.programId,
+      enrollmentProgramId,
+    );
+  });
 }
 
 export async function listClassrooms(
@@ -736,14 +802,6 @@ export async function deleteClassroom(
     classroomId,
   );
 
-  await updateStudentClassroomOnEnrollments(
-    supabase,
-    organizationId,
-    null,
-    null,
-    studentIds,
-  );
-
   await syncUnassignStudentFromLeadTeachers(
     supabase,
     organizationId,
@@ -918,7 +976,7 @@ export async function assignStudentsToClassroom(
     throw new ClassroomError("Student not found.", "not_found", 404);
   }
 
-  await updateStudentClassroomOnEnrollments(
+  await addClassroomToStudentEnrollments(
     supabase,
     input.organizationId,
     classroom.id,
@@ -948,15 +1006,12 @@ export async function removeStudentFromClassroom(
     input.classroomId,
   );
 
-  const { error } = await supabase
-    .from("enrollments")
-    .update({ classroom_id: null })
-    .eq("organization_id", input.organizationId)
-    .eq("classroom_id", input.classroomId)
-    .eq("student_id", input.studentId)
-    .eq("status", "enrolled");
-
-  if (error) throw error;
+  await removeClassroomFromStudentEnrollments(
+    supabase,
+    input.organizationId,
+    input.classroomId,
+    [input.studentId],
+  );
 
   await syncUnassignStudentFromLeadTeachers(
     supabase,
@@ -1015,68 +1070,105 @@ export async function setStudentClassrooms(
     }
   }
 
-  const programToClassroomId = new Map<string, string>();
-  for (const classroomId of uniqueClassroomIds) {
-    const classroom = classroomsById.get(classroomId);
-    if (!classroom) continue;
-
-    const programKey = classroom.programId ?? "__none__";
-    if (programToClassroomId.has(programKey)) {
-      throw new ClassroomError(
-        "Only one classroom can be selected per program.",
-        "duplicate_program",
-        400,
-      );
-    }
-    programToClassroomId.set(programKey, classroomId);
-  }
-
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from("enrollments")
-    .select("id, program_id, classroom_id")
+    .select("id, program_id")
     .eq("organization_id", input.organizationId)
     .eq("student_id", input.studentId)
     .eq("status", "enrolled");
 
   if (enrollmentError) throw enrollmentError;
 
-  for (const enrollment of enrollmentRows ?? []) {
-    const programKey = enrollment.program_id
-      ? String(enrollment.program_id)
-      : null;
-    const nextClassroomId = resolveClassroomIdForEnrollment(
-      programKey,
-      programToClassroomId,
-    );
-    const previousClassroomId = enrollment.classroom_id
-      ? String(enrollment.classroom_id)
-      : null;
+  if (uniqueClassroomIds.length > 0) {
+    const hasMatchingEnrollment = uniqueClassroomIds.every((classroomId) => {
+      const classroom = classroomsById.get(classroomId);
+      if (!classroom) return false;
+      return (enrollmentRows ?? []).some((enrollment) =>
+        classroomAppliesToEnrollment(
+          classroom.programId,
+          enrollment.program_id ? String(enrollment.program_id) : null,
+        ),
+      );
+    });
 
-    if (previousClassroomId === nextClassroomId) continue;
-
-    const { error: updateError } = await supabase
-      .from("enrollments")
-      .update({ classroom_id: nextClassroomId })
-      .eq("id", enrollment.id);
-
-    if (updateError) throw updateError;
-
-    if (previousClassroomId) {
-      await syncUnassignStudentFromLeadTeachers(
-        supabase,
-        input.organizationId,
-        previousClassroomId,
-        [input.studentId],
+    if (!hasMatchingEnrollment) {
+      throw new ClassroomError(
+        "Selected classroom doesn't apply to this student's program.",
+        "no_matching_enrollment",
+        400,
       );
     }
+  }
 
-    if (nextClassroomId) {
-      await syncAssignStudentsToLeadTeachers(
-        supabase,
-        input.organizationId,
-        nextClassroomId,
-        [input.studentId],
-      );
+  for (const enrollment of enrollmentRows ?? []) {
+    const enrollmentProgramId = enrollment.program_id
+      ? String(enrollment.program_id)
+      : null;
+    const nextClassroomIds = resolveClassroomIdsForEnrollment(
+      enrollmentProgramId,
+      classroomsById,
+      uniqueClassroomIds,
+    );
+
+    const { data: currentJunctionRows, error: junctionError } = await supabase
+      .from("enrollment_classrooms")
+      .select("classroom_id")
+      .eq("enrollment_id", enrollment.id);
+
+    if (junctionError) throw junctionError;
+
+    const previousClassroomIds = new Set(
+      (currentJunctionRows ?? []).map((row) => String(row.classroom_id)),
+    );
+    const nextClassroomIdSet = new Set(nextClassroomIds);
+
+    const toRemove = [...previousClassroomIds].filter(
+      (classroomId) => !nextClassroomIdSet.has(classroomId),
+    );
+    const toAdd = nextClassroomIds.filter(
+      (classroomId) => !previousClassroomIds.has(classroomId),
+    );
+
+    if (toRemove.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("enrollment_classrooms")
+        .delete()
+        .eq("enrollment_id", enrollment.id)
+        .in("classroom_id", toRemove);
+
+      if (deleteError) throw deleteError;
+
+      for (const classroomId of toRemove) {
+        await syncUnassignStudentFromLeadTeachers(
+          supabase,
+          input.organizationId,
+          classroomId,
+          [input.studentId],
+        );
+      }
+    }
+
+    if (toAdd.length > 0) {
+      const { error: insertError } = await supabase
+        .from("enrollment_classrooms")
+        .insert(
+          toAdd.map((classroomId) => ({
+            organization_id: input.organizationId,
+            enrollment_id: enrollment.id,
+            classroom_id: classroomId,
+          })),
+        );
+
+      if (insertError) throw insertError;
+
+      for (const classroomId of toAdd) {
+        await syncAssignStudentsToLeadTeachers(
+          supabase,
+          input.organizationId,
+          classroomId,
+          [input.studentId],
+        );
+      }
     }
   }
 
