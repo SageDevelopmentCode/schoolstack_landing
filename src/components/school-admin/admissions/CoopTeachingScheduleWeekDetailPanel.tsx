@@ -64,16 +64,20 @@ export default function CoopTeachingScheduleWeekDetailPanel({
 }: CoopTeachingScheduleWeekDetailPanelProps) {
   const [draftWeek, setDraftWeek] = useState<CoopTeachingScheduleWeek>(() => ({ ...week }));
   const [savedWeek, setSavedWeek] = useState<CoopTeachingScheduleWeek>(() => ({ ...week }));
+  const [prevWeek, setPrevWeek] = useState(week);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [instructorNameDraft, setInstructorNameDraft] = useState("");
   const [assistantNameDraft, setAssistantNameDraft] = useState("");
 
-  useEffect(() => {
+  if (week !== prevWeek) {
+    setPrevWeek(week);
     setDraftWeek({ ...week });
     setSavedWeek({ ...week });
-  }, [week]);
+    setInstructorNameDraft("");
+    setAssistantNameDraft("");
+  }
 
   const isDirty = useMemo(
     () => !areCoopTeachingScheduleWeeksEqual(draftWeek, savedWeek),

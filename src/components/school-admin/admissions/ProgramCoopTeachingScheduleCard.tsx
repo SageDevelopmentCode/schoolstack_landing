@@ -73,6 +73,13 @@ export default function ProgramCoopTeachingScheduleCard({
   const [filters, setFilters] = useState<CoopTeachingScheduleFilters>(
     DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
   );
+  const [prevProgramId, setPrevProgramId] = useState(programId);
+
+  if (programId !== prevProgramId) {
+    setPrevProgramId(programId);
+    setSelectedId(null);
+    setPanelDirty(false);
+  }
 
   const scheduleContext = useMemo(
     () => ({ organizationId, programId }),
@@ -92,13 +99,8 @@ export default function ProgramCoopTeachingScheduleCard({
   }, [programId, supabase]);
 
   useEffect(() => {
-    setSelectedId(null);
-    setPanelDirty(false);
-  }, [programId]);
-
-  useEffect(() => {
     if (!coopModeEnabled) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
     queueMicrotask(() => {

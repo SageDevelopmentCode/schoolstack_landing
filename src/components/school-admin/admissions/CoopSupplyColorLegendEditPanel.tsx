@@ -56,13 +56,15 @@ export default function CoopSupplyColorLegendEditPanel({
   const [savedLegend, setSavedLegend] = useState<CoopSupplyColorLegendEntry[]>(() =>
     legend.map((entry) => ({ ...entry })),
   );
+  const [prevLegend, setPrevLegend] = useState(legend);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  if (legend !== prevLegend) {
+    setPrevLegend(legend);
     setDraftLegend(legend.map((entry) => ({ ...entry })));
     setSavedLegend(legend.map((entry) => ({ ...entry })));
-  }, [legend]);
+  }
 
   const isDirty = useMemo(
     () => !areCoopSupplyColorLegendsEqual(draftLegend, savedLegend),

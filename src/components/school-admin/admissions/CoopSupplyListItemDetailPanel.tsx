@@ -74,16 +74,18 @@ export default function CoopSupplyListItemDetailPanel({
 }: CoopSupplyListItemDetailPanelProps) {
   const [draftItem, setDraftItem] = useState<CoopSupplyListItem>(() => ({ ...item }));
   const [savedItem, setSavedItem] = useState<CoopSupplyListItem>(() => ({ ...item }));
+  const [prevItem, setPrevItem] = useState(item);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [familyNameDraft, setFamilyNameDraft] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  if (item !== prevItem) {
+    setPrevItem(item);
     setDraftItem({ ...item });
     setSavedItem({ ...item });
     setFamilyNameDraft("");
-  }, [item]);
+  }
 
   const isDirty = useMemo(
     () => !areCoopSupplyItemsEqual(draftItem, savedItem),

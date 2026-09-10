@@ -145,6 +145,15 @@ export default function ProgramCoopSupplyListCard({
   const [filters, setFilters] = useState<CoopSupplyListFilters>(
     DEFAULT_COOP_SUPPLY_LIST_FILTERS,
   );
+  const [prevProgramId, setPrevProgramId] = useState(programId);
+
+  if (programId !== prevProgramId) {
+    setPrevProgramId(programId);
+    setSelectedId(null);
+    setLegendPanelOpen(false);
+    setPanelDirty(false);
+    setLegendPanelDirty(false);
+  }
 
   const supplyListContext = useMemo(
     () => ({ organizationId, programId }),
@@ -165,15 +174,8 @@ export default function ProgramCoopSupplyListCard({
   }, [programId, supabase]);
 
   useEffect(() => {
-    setSelectedId(null);
-    setLegendPanelOpen(false);
-    setPanelDirty(false);
-    setLegendPanelDirty(false);
-  }, [programId]);
-
-  useEffect(() => {
     if (!coopModeEnabled) {
-      setLoading(false);
+      queueMicrotask(() => setLoading(false));
       return;
     }
     queueMicrotask(() => {

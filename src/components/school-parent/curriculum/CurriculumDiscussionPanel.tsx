@@ -130,7 +130,9 @@ export default function CurriculumDiscussionPanel({
 
   useEffect(() => {
     if (initialMessages.length > 0) return;
-    void refreshMessages();
+    queueMicrotask(() => {
+      void refreshMessages();
+    });
   }, [initialMessages.length, refreshMessages]);
 
   useEffect(() => {

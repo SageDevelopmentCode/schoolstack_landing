@@ -89,7 +89,9 @@ export default function CurriculumPdfContentsPanel({
     if (!open) return;
 
     let cancelled = false;
-    setOutlineLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setOutlineLoading(true);
+    });
 
     void loadPdfOutline(pdfDoc)
       .then((items) => {

@@ -105,7 +105,9 @@ export default function TuitionPaymentHistoryPanel({
   );
 
   useEffect(() => {
-    void loadPayments();
+    queueMicrotask(() => {
+      void loadPayments();
+    });
   }, [loadPayments]);
 
   const handleRefund = async (paymentId: string) => {

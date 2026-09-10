@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ProgramCoopCurriculumDiscussionMessage } from "@/lib/admissions/program-coop-curriculum-discussion";
 import type { ProgramCoopCurriculumRecord } from "@/lib/admissions/program-coop-curriculum-storage";
 import CurriculumDiscussionSidebar from "@/components/school-parent/curriculum/CurriculumDiscussionSidebar";
@@ -34,21 +34,21 @@ export default function ParentCurriculumPage({
   const [discussionCurriculumId, setDiscussionCurriculumId] = useState<string | null>(
     null,
   );
+  const [prevCurricula, setPrevCurricula] = useState(curricula);
+
+  if (curricula !== prevCurricula) {
+    setPrevCurricula(curricula);
+    if (curricula.length === 0) {
+      setActiveCurriculumId("");
+    } else if (!curricula.some((record) => record.id === activeCurriculumId)) {
+      setActiveCurriculumId(curricula[0].id);
+    }
+  }
 
   const activeCurriculum = useMemo(
     () => curricula.find((record) => record.id === activeCurriculumId) ?? curricula[0] ?? null,
     [activeCurriculumId, curricula],
   );
-
-  useEffect(() => {
-    if (curricula.length === 0) {
-      setActiveCurriculumId("");
-      return;
-    }
-    if (!curricula.some((record) => record.id === activeCurriculumId)) {
-      setActiveCurriculumId(curricula[0].id);
-    }
-  }, [activeCurriculumId, curricula]);
 
   const handleGuideSelect = (curriculumId: string) => {
     setActiveCurriculumId(curriculumId);
