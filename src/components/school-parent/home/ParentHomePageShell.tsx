@@ -12,6 +12,7 @@ import type {
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
+import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentHomePage from "@/components/school-parent/ParentHomePage";
 import { ParentHomePageContext } from "./parent-home-page-context";
 
@@ -36,6 +37,7 @@ type ParentHomePageShellProps = {
   features?: OrganizationFeatures;
   programSlug?: string;
   parentNavBasePath?: string;
+  featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   children?: React.ReactNode;
 };
 
@@ -60,6 +62,7 @@ export default function ParentHomePageShell({
   features,
   programSlug,
   parentNavBasePath,
+  featureAnnouncements = [],
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
@@ -102,6 +105,7 @@ export default function ParentHomePageShell({
         features={features}
         programSlug={programSlug}
         parentNavBasePath={parentNavBasePath}
+        featureAnnouncements={featureAnnouncements}
       />
       {children}
     </ParentHomePageContext.Provider>

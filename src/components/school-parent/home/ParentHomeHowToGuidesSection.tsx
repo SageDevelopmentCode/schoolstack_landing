@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import ParentDocCategoryHeading from "@/components/school-parent/home/ParentDocCategoryHeading";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -36,12 +37,10 @@ export default function ParentHomeHowToGuidesSection({
       <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
         {groupedGuides.map((group) => (
           <section key={group.category}>
-            <h4
-              className="mb-2 text-[10px] font-semibold uppercase tracking-[0.04em]"
-              style={{ color: theme.muted }}
-            >
-              {group.category}
-            </h4>
+            <ParentDocCategoryHeading
+              category={group.category}
+              theme={theme}
+            />
             <ul className="flex flex-col">
               {group.guides.map((guide, index) => (
                 <li

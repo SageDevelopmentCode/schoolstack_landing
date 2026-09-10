@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logProgramCoopCurriculumUpdated } from "./program-coop-activity";
 
 export const PROGRAM_COOP_CURRICULUM_BUCKET = "program-coop-curriculum-files";
 
@@ -247,7 +248,17 @@ export async function insertProgramCoopCurriculumRecord(
     .single();
 
   if (error) throw error;
-  return mapProgramCoopCurriculumRow(data as ProgramCoopCurriculumRow);
+  const record = mapProgramCoopCurriculumRow(data as ProgramCoopCurriculumRow);
+
+  void logProgramCoopCurriculumUpdated(supabase, {
+    organizationId: input.organizationId,
+    programId: input.programId,
+    curriculumId: record.id,
+    fileName: getProgramCoopCurriculumTabLabel(record),
+    actorUserId: input.uploadedBy ?? null,
+  });
+
+  return record;
 }
 
 export async function updateProgramCoopCurriculumDisplayName(
@@ -265,7 +276,16 @@ export async function updateProgramCoopCurriculumDisplayName(
     .single();
 
   if (error) throw error;
-  return mapProgramCoopCurriculumRow(data as ProgramCoopCurriculumRow);
+  const record = mapProgramCoopCurriculumRow(data as ProgramCoopCurriculumRow);
+
+  void logProgramCoopCurriculumUpdated(supabase, {
+    organizationId: record.organizationId,
+    programId: record.programId,
+    curriculumId: record.id,
+    fileName: getProgramCoopCurriculumTabLabel(record),
+  });
+
+  return record;
 }
 
 export async function removeProgramCoopCurriculumById(

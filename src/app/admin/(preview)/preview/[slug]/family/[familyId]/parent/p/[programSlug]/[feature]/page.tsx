@@ -7,6 +7,7 @@ import SchoolParentPageShell from "@/components/school-parent/SchoolParentPageSh
 import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentCalendarPageShell";
 import ParentCalendarPreviewEventsLoader from "@/components/school-parent/calendar/ParentCalendarPreviewEventsLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
@@ -140,7 +141,8 @@ export default async function FamilyPreviewProgramParentFeaturePage({
 
   if (feature === "portal") {
     const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const [upcomingEvents, homeMeta, bulletinPosts] = await Promise.all([
+    const [upcomingEvents, homeMeta, bulletinPosts, featureAnnouncements] =
+      await Promise.all([
       listUpcomingEventsForOrg(
         admin,
         org.id,
@@ -156,6 +158,15 @@ export default async function FamilyPreviewProgramParentFeaturePage({
         viewer: "parent",
         programId: programContext.programId,
         limit: programContext.coopMode ? 3 : 25,
+      }),
+      fetchParentFeatureAnnouncements(admin, org.id, {
+        slug,
+        features,
+        coopModeEnabled: programContext.coopMode,
+        bulletinEnabled,
+        programSlug,
+        parentNavBasePath: programContext.parentNavBasePath,
+        previewBasePath,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -186,6 +197,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           features={features}
           programSlug={programSlug}
           parentNavBasePath={programContext.parentNavBasePath}
+          featureAnnouncements={featureAnnouncements}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader

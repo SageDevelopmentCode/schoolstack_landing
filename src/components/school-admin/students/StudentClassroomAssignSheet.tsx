@@ -132,20 +132,11 @@ export default function StudentClassroomAssignSheet({
   }, [groupedClassrooms, searchQuery]);
 
   const toggleClassroom = (classroom: ClassroomSummary) => {
-    const programKey = classroom.programId ?? "__none__";
-
     setSelectedIds((current) => {
       if (current.includes(classroom.id)) {
         return current.filter((id) => id !== classroom.id);
       }
-
-      const sameProgramIds = new Set(
-        classrooms
-          .filter((entry) => (entry.programId ?? "__none__") === programKey)
-          .map((entry) => entry.id),
-      );
-
-      return [...current.filter((id) => !sameProgramIds.has(id)), classroom.id];
+      return [...current, classroom.id];
     });
   };
 
@@ -200,8 +191,8 @@ export default function StudentClassroomAssignSheet({
       ) : (
         <>
           <p className="mb-3 text-xs" style={{ color: C.textTertiary }}>
-            Select one classroom per program enrollment. Org-wide classrooms can
-            be used for any program.
+            Select all classrooms for this student. Org-wide classrooms can be
+            used for any program.
           </p>
 
           <div className="relative mb-3">

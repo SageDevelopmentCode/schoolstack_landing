@@ -4,6 +4,7 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { AdminDocGuide } from "@/lib/school-admin/admin-documentation";
 import AdminCard from "./AdminCard";
 import AdminDisplayHeading from "./AdminDisplayHeading";
+import AdminDocCategoryHeading from "./AdminDocCategoryHeading";
 import AdminSectionKicker from "./AdminSectionKicker";
 
 type AdminDashboardHowToGuidesCardProps = {
@@ -34,12 +35,10 @@ export default function AdminDashboardHowToGuidesCard({
       <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
         {groupedGuides.map((group) => (
           <section key={group.category}>
-            <h4
-              className="mb-2 text-[10px] font-semibold uppercase tracking-[0.04em]"
-              style={{ color: theme.muted }}
-            >
-              {group.category}
-            </h4>
+            <AdminDocCategoryHeading
+              category={group.category}
+              theme={theme}
+            />
             <ul className="flex flex-col">
               {group.guides.map((guide, index) => (
                 <li

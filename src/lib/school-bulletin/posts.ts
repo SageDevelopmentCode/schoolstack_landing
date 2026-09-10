@@ -6,6 +6,10 @@ import {
   MAX_BULLETIN_ATTACHMENTS,
 } from "./attachment-storage";
 import {
+  logBulletinPostPublished,
+  shouldLogBulletinPostPublished,
+} from "./bulletin-activity";
+import {
   filterBulletinPostsForViewer,
   parentMainPortalBulletinScope,
   parentProgramPortalBulletinScope,
@@ -388,6 +392,18 @@ export async function createBulletinPost(
     [data as BulletinPostRow],
     programNameById,
   );
+
+  if (shouldLogBulletinPostPublished(undefined, post.status)) {
+    void logBulletinPostPublished(supabase, {
+      organizationId: input.organizationId,
+      postId: post.id,
+      title: post.title,
+      audiences: post.audiences,
+      programIds: post.programIds,
+      actorUserId: input.createdBy ?? null,
+    });
+  }
+
   return post;
 }
 
@@ -453,6 +469,17 @@ export async function updateBulletinPost(
     [data as BulletinPostRow],
     programNameById,
   );
+
+  if (shouldLogBulletinPostPublished(existing.status, post.status)) {
+    void logBulletinPostPublished(supabase, {
+      organizationId: input.organizationId,
+      postId: post.id,
+      title: post.title,
+      audiences: post.audiences,
+      programIds: post.programIds,
+    });
+  }
+
   return post;
 }
 

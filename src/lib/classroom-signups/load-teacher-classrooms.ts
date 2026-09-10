@@ -32,19 +32,20 @@ export async function loadTeacherClassroomOptions(
   const studentIds = (assignments ?? []).map((row) => String(row.student_id));
   if (studentIds.length === 0) return [];
 
-  const { data: enrollments, error } = await admin
-    .from("enrollments")
-    .select("classroom_id, student_id, students ( family_id ), classrooms ( id, name )")
+  const { data: junctionRows, error } = await admin
+    .from("enrollment_classrooms")
+    .select(
+      "classroom_id, classrooms ( id, name ), enrollments!inner ( student_id, status, students ( family_id ) )",
+    )
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
-    .in("student_id", studentIds)
-    .not("classroom_id", "is", null);
+    .eq("enrollments.status", "enrolled")
+    .in("enrollments.student_id", studentIds);
 
   if (error) throw error;
 
   const byClassroom = new Map<string, { id: string; name: string; familyIds: Set<string> }>();
 
-  for (const row of enrollments ?? []) {
+  for (const row of junctionRows ?? []) {
     const classroomId = row.classroom_id ? String(row.classroom_id) : null;
     if (!classroomId) continue;
     const classroom = row.classrooms as
@@ -52,7 +53,12 @@ export async function loadTeacherClassroomOptions(
       | { id?: string; name?: string }[]
       | null;
     const classroomRow = Array.isArray(classroom) ? classroom[0] : classroom;
-    const student = row.students as { family_id?: string } | { family_id?: string }[] | null;
+    const enrollment = row.enrollments as
+      | { students?: { family_id?: string } | { family_id?: string }[] | null }
+      | { students?: { family_id?: string } | { family_id?: string }[] | null }[]
+      | null;
+    const enrollmentRow = Array.isArray(enrollment) ? enrollment[0] : enrollment;
+    const student = enrollmentRow?.students;
     const studentRow = Array.isArray(student) ? student[0] : student;
     const familyId = studentRow?.family_id ? String(studentRow.family_id) : null;
     if (!familyId) continue;

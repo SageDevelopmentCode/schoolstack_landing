@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  logProgramCoopTeachingWeekAdded,
+  logProgramCoopTeachingWeekUpdated,
+  shouldLogCoopTeachingWeekActivity,
+} from "./program-coop-activity";
+import {
   canAddTeachingAssignedParent,
   canParentSignUpForTeachingRole,
   newCoopTeachingScheduleWeek,
@@ -118,6 +123,11 @@ export async function getProgramCoopTeachingScheduleWeek(
   return mapWeekRow(data as ProgramCoopTeachingScheduleWeekRow);
 }
 
+export type ProgramCoopTeachingScheduleWriteOptions = {
+  skipActivityLog?: boolean;
+  parentSignup?: boolean;
+};
+
 export async function insertProgramCoopTeachingScheduleWeek(
   supabase: SupabaseClient,
   ctx: ProgramCoopTeachingScheduleContext,
@@ -138,13 +148,23 @@ export async function insertProgramCoopTeachingScheduleWeek(
     .single();
 
   if (error) throw error;
-  return mapWeekRow(data as ProgramCoopTeachingScheduleWeekRow);
+  const mapped = mapWeekRow(data as ProgramCoopTeachingScheduleWeekRow);
+
+  void logProgramCoopTeachingWeekAdded(supabase, {
+    organizationId: ctx.organizationId,
+    programId: ctx.programId,
+    weekId: mapped.id,
+    weekName: mapped.weekName,
+  });
+
+  return mapped;
 }
 
 export async function upsertProgramCoopTeachingScheduleWeek(
   supabase: SupabaseClient,
   ctx: ProgramCoopTeachingScheduleContext,
   week: CoopTeachingScheduleWeek,
+  options?: ProgramCoopTeachingScheduleWriteOptions,
 ): Promise<CoopTeachingScheduleWeek> {
   const { data: existing, error: existingError } = await supabase
     .from("program_coop_teaching_schedule_weeks")
@@ -166,7 +186,24 @@ export async function upsertProgramCoopTeachingScheduleWeek(
     .single();
 
   if (error) throw error;
-  return mapWeekRow(data as ProgramCoopTeachingScheduleWeekRow);
+  const mapped = mapWeekRow(data as ProgramCoopTeachingScheduleWeekRow);
+
+  if (shouldLogCoopTeachingWeekActivity(options)) {
+    const logInput = {
+      organizationId: ctx.organizationId,
+      programId: ctx.programId,
+      weekId: mapped.id,
+      weekName: mapped.weekName,
+    };
+
+    if (existing) {
+      void logProgramCoopTeachingWeekUpdated(supabase, logInput);
+    } else {
+      void logProgramCoopTeachingWeekAdded(supabase, logInput);
+    }
+  }
+
+  return mapped;
 }
 
 export async function deleteProgramCoopTeachingScheduleWeek(
@@ -223,7 +260,7 @@ export async function appendProgramCoopTeachingScheduleParent(
   return upsertProgramCoopTeachingScheduleWeek(supabase, ctx, {
     ...week,
     ...weekWithParentsForRole(week, role, [...currentParents, normalized]),
-  });
+  }, { skipActivityLog: options?.parentSignup === true, parentSignup: options?.parentSignup });
 }
 
 export async function removeProgramCoopTeachingScheduleParent(
@@ -251,5 +288,5 @@ export async function removeProgramCoopTeachingScheduleParent(
   return upsertProgramCoopTeachingScheduleWeek(supabase, ctx, {
     ...week,
     ...weekWithParentsForRole(week, role, nextParents),
-  });
+  }, { skipActivityLog: true });
 }

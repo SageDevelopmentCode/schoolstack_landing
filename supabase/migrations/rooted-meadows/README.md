@@ -65,6 +65,17 @@ Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If
 | `add_organization_progress_log_2026_08_04.sql` | August 4 — tuition admin redesign, portal loading, and billing schedule warnings |
 | `add_organization_progress_log_2026_08_05.sql` | August 5 — teacher portal opens, staff editing, and portal switcher |
 | `add_organization_progress_log_2026_08_08.sql` | August 8 — student roster, teacher assignments, and teacher My Students |
+| `add_organization_progress_log_2026_09_02.sql` | September 2 — per-program apply forms and faster admissions workspace |
+| `add_organization_progress_log_2026_09_03.sql` | September 3 — program-specific parent portals and clearer apply starting point |
+| `add_organization_progress_log_2026_09_04.sql` | September 4 — classrooms, school bulletin, and co-op portal features |
+| `add_organization_progress_log_2026_09_05.sql` | September 5 — bulletin attachments, messages polish, and committee descriptions |
+| `add_organization_progress_log_2026_09_06.sql` | September 6 — more reliable tuition autopay |
+| `add_organization_progress_log_2026_09_07.sql` | September 7 — admin dashboard refresh and in-portal curriculum PDF viewer |
+| `add_organization_progress_log_2026_09_08.sql` | September 8 — multiple curriculum documents and a clearer reading experience |
+| `add_organization_progress_log_2026_09_09.sql` | September 9 — co-op supply list and parent teaching schedule |
+| `add_organization_progress_log_2026_09_10.sql` | September 10 — activity notifications, how-to guides, and tuition charge waiving |
+
+Batch paste for Sep 5–10: [`migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql)
 
 ## Enrollment checklist seeds
 

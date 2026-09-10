@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getAdminFeatureAnnouncements } from "./admin-feature-announcements";
+import type { AdminFeatureAnnouncementRecord } from "@/lib/admin/admin-feature-announcements-storage";
+import {
+  filterAnnouncements,
+  getAdminFeatureAnnouncements,
+  isWithinSinceDays,
+  mergeAnnouncementRows,
+  resolveAdminFeatureAnnouncementHref,
+} from "./admin-feature-announcements";
 import type { AdminFeatures } from "@/lib/organization-settings/types";
 
 const ALL_FEATURES_ENABLED: AdminFeatures = {
@@ -16,6 +23,30 @@ const ALL_FEATURES_ENABLED: AdminFeatures = {
   notifications: true,
 };
 
+const SEP_10 = new Date(2026, 8, 10);
+const SEP_7 = new Date(2026, 8, 7);
+
+function makeRecord(
+  overrides: Partial<AdminFeatureAnnouncementRecord> &
+    Pick<AdminFeatureAnnouncementRecord, "announcementId" | "title">,
+): AdminFeatureAnnouncementRecord {
+  return {
+    id: overrides.id ?? overrides.announcementId,
+    organizationId: overrides.organizationId ?? null,
+    announcementId: overrides.announcementId,
+    title: overrides.title,
+    description: overrides.description ?? "Description",
+    ctaLabel: overrides.ctaLabel ?? "View",
+    featureKey: overrides.featureKey ?? "admissions",
+    hrefPath: overrides.hrefPath ?? "admissions/programs",
+    publishedAt: overrides.publishedAt ?? "2026-09-10",
+    published: overrides.published ?? true,
+    sortOrder: overrides.sortOrder ?? 0,
+    createdAt: overrides.createdAt ?? "2026-09-10T00:00:00.000Z",
+    updatedAt: overrides.updatedAt ?? "2026-09-10T00:00:00.000Z",
+  };
+}
+
 describe("admin-feature-announcements", () => {
   it("returns all in-window announcements by default", () => {
     const announcements = getAdminFeatureAnnouncements(
@@ -23,13 +54,13 @@ describe("admin-feature-announcements", () => {
       ALL_FEATURES_ENABLED,
       {
         sinceDays: 14,
-        now: new Date(2026, 8, 7),
+        now: SEP_10,
       },
     );
 
-    assert.equal(announcements.length, 7);
-    assert.equal(announcements[0]?.publishedAt, "2026-09-04");
-    assert.equal(announcements[0]?.id, "school-bulletin");
+    assert.equal(announcements.length, 11);
+    assert.equal(announcements[0]?.publishedAt, "2026-09-10");
+    assert.equal(announcements[0]?.id, "waive-tuition-charges");
   });
 
   it("returns recent announcements sorted by publishedAt descending", () => {
@@ -39,14 +70,16 @@ describe("admin-feature-announcements", () => {
       {
         limit: 5,
         sinceDays: 14,
-        now: new Date(2026, 8, 7),
+        now: SEP_10,
       },
     );
 
     assert.equal(announcements.length, 5);
-    assert.equal(announcements[0]?.id, "school-bulletin");
-    assert.equal(announcements[1]?.id, "classroom-management");
-    assert.equal(announcements[2]?.id, "program-parent-portals");
+    assert.equal(announcements[0]?.id, "waive-tuition-charges");
+    assert.equal(announcements[1]?.id, "coop-supply-list");
+    assert.equal(announcements[2]?.id, "coop-teaching-schedule");
+    assert.equal(announcements[3]?.id, "coop-curriculum-guides");
+    assert.equal(announcements[4]?.id, "tuition-payment-history");
   });
 
   it("filters announcements outside the sinceDays window", () => {
@@ -54,22 +87,37 @@ describe("admin-feature-announcements", () => {
       "rooted-meadows-school",
       ALL_FEATURES_ENABLED,
       {
-        limit: 10,
+        limit: 20,
         sinceDays: 7,
-        now: new Date(2026, 8, 7),
+        now: SEP_10,
       },
     );
 
-    assert.deepEqual(
-      announcements.map((announcement) => announcement.id),
-      [
-        "school-bulletin",
-        "classroom-management",
-        "program-parent-portals",
-        "tuition-workspace",
-        "schedule-hub",
-      ],
+    const ids = announcements.map((announcement) => announcement.id);
+
+    assert.equal(ids.length, 10);
+    assert.equal(ids.includes("admissions-submissions"), false);
+    assert.equal(ids[0], "waive-tuition-charges");
+    assert.equal(ids.at(-1), "tuition-workspace");
+  });
+
+  it("drops older announcements when sinceDays window is narrow on Sep 7", () => {
+    const announcements = getAdminFeatureAnnouncements(
+      "rooted-meadows-school",
+      ALL_FEATURES_ENABLED,
+      {
+        limit: 20,
+        sinceDays: 7,
+        now: SEP_7,
+      },
     );
+
+    const ids = announcements.map((announcement) => announcement.id);
+
+    assert.equal(ids.length, 10);
+    assert.equal(ids.includes("admissions-submissions"), false);
+    assert.equal(ids.includes("program-parent-portals"), true);
+    assert.equal(ids.includes("coop-curriculum-guides"), true);
   });
 
   it("gates announcements by enabled admin features", () => {
@@ -78,12 +126,13 @@ describe("admin-feature-announcements", () => {
       {
         ...ALL_FEATURES_ENABLED,
         bulletin: false,
-        messages: false,
+        committees: false,
+        admissions: false,
       },
       {
-        limit: 10,
+        limit: 20,
         sinceDays: 14,
-        now: new Date(2026, 8, 7),
+        now: SEP_10,
       },
     );
 
@@ -92,8 +141,16 @@ describe("admin-feature-announcements", () => {
       false,
     );
     assert.equal(
-      announcements.some((announcement) => announcement.id === "messages-inbox"),
+      announcements.some((announcement) => announcement.id === "committee-descriptions"),
       false,
+    );
+    assert.equal(
+      announcements.some((announcement) => announcement.id === "coop-supply-list"),
+      false,
+    );
+    assert.equal(
+      announcements.some((announcement) => announcement.id === "waive-tuition-charges"),
+      true,
     );
     assert.equal(
       announcements.some((announcement) => announcement.id === "classroom-management"),
@@ -108,13 +165,86 @@ describe("admin-feature-announcements", () => {
       {
         limit: 1,
         sinceDays: 14,
-        now: new Date(2026, 8, 7),
+        now: SEP_10,
       },
     );
 
     assert.equal(
       announcement?.href,
+      "/school/demo-school/admin/my_school/tuition",
+    );
+  });
+
+  it("resolves admin href paths with and without subtabs", () => {
+    assert.equal(
+      resolveAdminFeatureAnnouncementHref("demo-school", "bulletin"),
       "/school/demo-school/admin/bulletin",
     );
+    assert.equal(
+      resolveAdminFeatureAnnouncementHref(
+        "demo-school",
+        "my_school/tuition",
+      ),
+      "/school/demo-school/admin/my_school/tuition",
+    );
+  });
+
+  it("merges org overrides on top of globals by announcement id", () => {
+    const globals = [
+      makeRecord({
+        announcementId: "school-bulletin",
+        title: "Global bulletin",
+        organizationId: null,
+      }),
+      makeRecord({
+        announcementId: "coop-supply-list",
+        title: "Global supply list",
+        organizationId: null,
+      }),
+    ];
+    const overrides = [
+      makeRecord({
+        id: "override-1",
+        organizationId: "org-1",
+        announcementId: "school-bulletin",
+        title: "Rooted Meadows bulletin",
+      }),
+      makeRecord({
+        id: "override-2",
+        organizationId: "org-1",
+        announcementId: "custom-card",
+        title: "School-only card",
+      }),
+    ];
+
+    const merged = mergeAnnouncementRows(globals, overrides);
+    const bulletin = merged.find((row) => row.announcementId === "school-bulletin");
+    const custom = merged.find((row) => row.announcementId === "custom-card");
+
+    assert.equal(merged.length, 3);
+    assert.equal(bulletin?.title, "Rooted Meadows bulletin");
+    assert.equal(custom?.title, "School-only card");
+  });
+
+  it("filters unpublished merged rows out of dashboard output", () => {
+    const announcements = filterAnnouncements(
+      [
+        makeRecord({
+          announcementId: "school-bulletin",
+          title: "Hidden bulletin",
+          published: false,
+        }),
+      ],
+      "demo-school",
+      ALL_FEATURES_ENABLED,
+      { sinceDays: 14, now: SEP_10 },
+    );
+
+    assert.equal(announcements.length, 0);
+  });
+
+  it("uses isWithinSinceDays for date windows", () => {
+    assert.equal(isWithinSinceDays("2026-09-04", 7, SEP_10), true);
+    assert.equal(isWithinSinceDays("2026-08-20", 7, SEP_10), false);
   });
 });

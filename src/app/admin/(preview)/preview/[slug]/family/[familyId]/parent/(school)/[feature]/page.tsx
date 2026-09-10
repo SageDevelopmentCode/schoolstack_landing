@@ -9,6 +9,7 @@ import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentC
 import ParentCalendarPreviewEventsLoader from "@/components/school-parent/calendar/ParentCalendarPreviewEventsLoader";
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import {
@@ -104,8 +105,13 @@ export default async function FamilyPreviewParentFeaturePage({
 
   if (feature === "portal") {
     const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const [upcomingEvents, homeMeta, classroomSignupAttentionItems, bulletinPosts] =
-      await Promise.all([
+    const [
+      upcomingEvents,
+      homeMeta,
+      classroomSignupAttentionItems,
+      bulletinPosts,
+      featureAnnouncements,
+    ] = await Promise.all([
       listUpcomingEventsForOrg(admin, org.id, 3),
       fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId),
       isParentFeatureEnabled(features, "classroom_signups")
@@ -118,6 +124,14 @@ export default async function FamilyPreviewParentFeaturePage({
         bulletinEnabled,
         viewer: "parent",
         limit: 25,
+      }),
+      fetchParentFeatureAnnouncements(admin, org.id, {
+        slug,
+        features,
+        coopModeEnabled: false,
+        bulletinEnabled,
+        parentNavBasePath: previewParentBasePath,
+        previewBasePath,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -144,6 +158,7 @@ export default async function FamilyPreviewParentFeaturePage({
           bulletinPosts={bulletinPosts}
           features={features}
           parentNavBasePath={previewParentBasePath}
+          featureAnnouncements={featureAnnouncements}
         >
           <Suspense fallback={null}>
             <ParentHomePreviewContentLoader

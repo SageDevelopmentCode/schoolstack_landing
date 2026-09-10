@@ -67,6 +67,8 @@ import PortalHomeSchoolBulletinLauncher from "@/components/portal-home/PortalHom
 import type { BulletinPost } from "@/lib/school-bulletin/types";
 import ParentDocumentationGuidePanel from "@/components/school-parent/ParentDocumentationGuidePanel";
 import ParentHomeHowToGuidesSection from "@/components/school-parent/home/ParentHomeHowToGuidesSection";
+import ParentHomeFeatureAnnouncementsSection from "@/components/school-parent/home/ParentHomeFeatureAnnouncementsSection";
+import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -96,6 +98,7 @@ type ParentHomePageProps = {
   features?: OrganizationFeatures;
   programSlug?: string;
   parentNavBasePath?: string;
+  featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
 };
 
 type AttentionItem = {
@@ -381,6 +384,7 @@ export default function ParentHomePage({
   features,
   programSlug,
   parentNavBasePath,
+  featureAnnouncements = [],
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeGuide, setActiveGuide] = useState<ParentDocGuide | null>(null);
@@ -445,7 +449,6 @@ export default function ParentHomePage({
       }),
     [schoolSlug, programSlug, previewBasePath, parentNavBasePath],
   );
-
   const openGuide = useCallback((guide: ParentDocGuide) => {
     setActiveGuide(guide);
   }, []);
@@ -716,9 +719,23 @@ export default function ParentHomePage({
           />
         ) : null}
 
-        {howToGuides.length > 0 ? (
+        {featureAnnouncements.length > 0 ? (
           <motion.section
             custom={5}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+          >
+            <ParentHomeFeatureAnnouncementsSection
+              theme={theme}
+              announcements={featureAnnouncements}
+            />
+          </motion.section>
+        ) : null}
+
+        {howToGuides.length > 0 ? (
+          <motion.section
+            custom={6}
             initial="hidden"
             animate="visible"
             variants={fadeUp}

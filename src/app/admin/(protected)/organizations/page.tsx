@@ -8,6 +8,7 @@ import OrganizationCustomerBillingPanel from "@/components/admin/OrganizationCus
 import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
+import OrganizationDashboardCardsPanel from "@/components/admin/OrganizationDashboardCardsPanel";
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
@@ -20,7 +21,8 @@ type OrganizationDetailTab =
   | "overview"
   | "notifications"
   | "submissions"
-  | "teacher-portal";
+  | "teacher-portal"
+  | "dashboard-cards";
 
 const ORGANIZATION_DETAIL_TABS: {
   id: OrganizationDetailTab;
@@ -30,6 +32,7 @@ const ORGANIZATION_DETAIL_TABS: {
   { id: "notifications", label: "Notifications" },
   { id: "submissions", label: "Submissions" },
   { id: "teacher-portal", label: "Teacher portal" },
+  { id: "dashboard-cards", label: "Dashboard cards" },
 ];
 
 type Organization = {
@@ -570,6 +573,18 @@ export default function AdminOrganizationsPage() {
                 <OrganizationTeacherPortalPanel
                   organizationId={selected.id}
                   organizationSlug={selected.slug}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("dashboard-cards") ? (
+              <div
+                hidden={activeDetailTab !== "dashboard-cards"}
+                aria-hidden={activeDetailTab !== "dashboard-cards"}
+              >
+                <OrganizationDashboardCardsPanel
+                  organizationId={selected.id}
+                  organizationName={selected.name}
                 />
               </div>
             ) : null}

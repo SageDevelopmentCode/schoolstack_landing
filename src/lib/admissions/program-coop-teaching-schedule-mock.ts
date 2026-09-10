@@ -305,6 +305,36 @@ export function teachingScheduleRowSurfaceStyle({
   };
 }
 
+export function teachingScheduleParentRowStyle(
+  parentTheme: ParentThemeTokens,
+  {
+    isPast,
+    isHovered,
+  }: {
+    isPast: boolean;
+    isHovered: boolean;
+  },
+): Pick<CSSProperties, "backgroundColor" | "borderLeft"> {
+  if (isHovered) {
+    return {
+      backgroundColor: isPast ? "#F3F5F3" : parentTheme.cream,
+      borderLeft: "2px solid transparent",
+    };
+  }
+
+  if (isPast) {
+    return {
+      backgroundColor: "#FAFBFA",
+      borderLeft: "2px solid transparent",
+    };
+  }
+
+  return {
+    backgroundColor: parentTheme.white,
+    borderLeft: "2px solid transparent",
+  };
+}
+
 export function teachingScheduleRowStyle(
   C: AdminThemeTokens,
   {

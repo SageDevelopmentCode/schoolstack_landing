@@ -24,7 +24,7 @@ import {
 } from "@/lib/school-admin/dashboard-metrics";
 import { getCachedAdminMessagesUnreadCount } from "@/lib/school-admin/cached-admin-unread-counts";
 import {
-  getAdminFeatureAnnouncements,
+  fetchAdminFeatureAnnouncements,
   type ResolvedAdminFeatureAnnouncement,
 } from "@/lib/school-admin/admin-feature-announcements";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -303,7 +303,12 @@ export async function fetchAdminDashboardSummary(
     metrics: metrics.filter((metric) => metric.enabled),
     recentActivity: activityPage.notifications,
     quickActions,
-    featureAnnouncements: getAdminFeatureAnnouncements(slug, features),
+    featureAnnouncements: await fetchAdminFeatureAnnouncements(
+      admin,
+      organizationId,
+      slug,
+      features,
+    ),
     messagesUnreadCount: resolvedMessagesUnreadCount,
     setupComplete,
   };

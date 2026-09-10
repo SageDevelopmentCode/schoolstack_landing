@@ -74,8 +74,10 @@ const ENROLLED_ENROLLMENT_SELECT = `
   programs (
     name
   ),
-  classrooms (
-    name
+  enrollment_classrooms (
+    classrooms (
+      name
+    )
   )
 `;
 
@@ -705,7 +707,9 @@ export async function loadEnrolledStudentDetail(
         created_at,
         status,
         programs ( name ),
-        classrooms ( name )
+        enrollment_classrooms (
+          classrooms ( name )
+        )
       `,
       )
       .eq("organization_id", organizationId)
@@ -730,14 +734,28 @@ export async function loadEnrolledStudentDetail(
       const program = unwrapRelation(
         row.programs as { name?: string } | { name?: string }[] | null,
       );
-      const classroom = unwrapRelation(
-        row.classrooms as { name?: string } | { name?: string }[] | null,
-      );
+      const enrollmentClassroomRows = row.enrollment_classrooms;
+      const classroomEntries = Array.isArray(enrollmentClassroomRows)
+        ? enrollmentClassroomRows
+        : enrollmentClassroomRows
+          ? [enrollmentClassroomRows]
+          : [];
+      const classroomNameList: string[] = [];
+      for (const entry of classroomEntries) {
+        const record = entry as Record<string, unknown>;
+        const classroom = unwrapRelation(
+          record.classrooms as { name?: string } | { name?: string }[] | null,
+        );
+        if (classroom?.name) classroomNameList.push(String(classroom.name));
+      }
 
       return {
         id: String(row.id),
         programName: program?.name ? String(program.name) : "Program",
-        classroomName: classroom?.name ? String(classroom.name) : null,
+        classroomName:
+          classroomNameList.length > 0
+            ? [...classroomNameList].sort((a, b) => a.localeCompare(b)).join(", ")
+            : null,
         enrolledAt: String(row.created_at ?? ""),
       };
     },

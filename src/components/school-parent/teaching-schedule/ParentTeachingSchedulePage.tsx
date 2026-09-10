@@ -13,6 +13,7 @@ import {
   formatTeachingScheduleDateRange,
   isTeachingWeekPast,
   sortTeachingScheduleWeeks,
+  teachingScheduleParentRowStyle,
   teachingScheduleRowSurfaceStyle,
   type CoopTeachingScheduleWeek,
   type TeachingScheduleParentRole,
@@ -280,11 +281,8 @@ export default function ParentTeachingSchedulePage({
               </div>
 
               <div className="hidden overflow-x-auto md:block">
-                <table
-                  className="min-w-[1080px] w-full border-separate text-left"
-                  style={{ borderSpacing: "0 8px" }}
-                >
-                  <thead>
+                <table className="min-w-[1080px] w-full border-collapse text-left">
+                  <thead style={{ backgroundColor: "#FBFCFB" }}>
                     <tr>
                       {[
                         "Week",
@@ -297,7 +295,7 @@ export default function ParentTeachingSchedulePage({
                       ].map((heading) => (
                         <th
                           key={heading}
-                          className="px-[12px] py-2 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                          className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
                           style={{ color: "#8B9699" }}
                         >
                           {heading}
@@ -309,9 +307,7 @@ export default function ParentTeachingSchedulePage({
                     {filteredWeeks.map((week) => {
                       const isPast = isTeachingWeekPast(week);
                       const isHovered = week.id === hoveredWeekId;
-                      const surfaceStyle = teachingScheduleRowSurfaceStyle({
-                        variant: "parent",
-                        parentTheme: theme,
+                      const rowStyle = teachingScheduleParentRowStyle(theme, {
                         isPast,
                         isHovered,
                       });
@@ -324,9 +320,12 @@ export default function ParentTeachingSchedulePage({
                           onMouseEnter={() => setHoveredWeekId(week.id)}
                           onMouseLeave={() => setHoveredWeekId(null)}
                           className="transition-colors"
-                          style={surfaceStyle}
+                          style={{
+                            ...rowStyle,
+                            borderTop: `1px solid ${theme.line}`,
+                          }}
                         >
-                          <td className="min-w-[160px] px-[12px] py-2.5" style={{ opacity: textOpacity }}>
+                          <td className="min-w-[160px] px-[15px] py-3" style={{ opacity: textOpacity }}>
                             <ParentChip theme={theme} tone="info">
                               {week.weekName.trim() || "Teaching week"}
                             </ParentChip>
@@ -337,22 +336,22 @@ export default function ParentTeachingSchedulePage({
                               {formatTeachingScheduleDateRange(week.startDate, week.endDate)}
                             </div>
                           </td>
-                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {formatTeachingAssignedParents(week.parentInstructors)}
                           </td>
-                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {formatTeachingAssignedParents(week.parentAssistants)}
                           </td>
-                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {week.seasonalTheme}
                           </td>
-                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {week.characterLesson}
                           </td>
-                          <td className="px-[12px] py-2.5 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
+                          <td className="px-[15px] py-3 text-xs" style={{ color: theme.muted, opacity: textOpacity }}>
                             {hasEvent ? week.celebrationEvent : "—"}
                           </td>
-                          <td className="px-[12px] py-2.5">
+                          <td className="px-[15px] py-3">
                             <ParentTeachingScheduleVolunteerActions
                               theme={theme}
                               week={week}

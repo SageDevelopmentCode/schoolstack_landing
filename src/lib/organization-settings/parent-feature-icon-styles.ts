@@ -18,6 +18,7 @@ const PARENT_FEATURE_ICON_STYLES: Record<string, ParentFeatureIconStyle> = {
   heart: { iconBg: "bg-pink-100", iconColor: "text-pink-600" },
   "heart-pulse": { iconBg: "bg-red-100", iconColor: "text-red-600" },
   "file-text": { iconBg: "bg-slate-100", iconColor: "text-slate-600" },
+  "git-branch": { iconBg: "bg-violet-100", iconColor: "text-violet-600" },
   puzzle: { iconBg: "bg-gray-100", iconColor: "text-gray-500" },
 };
 

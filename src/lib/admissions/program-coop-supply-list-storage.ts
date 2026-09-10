@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  logProgramCoopSupplyItemAdded,
+  logProgramCoopSupplyItemUpdated,
+  shouldLogCoopSupplyActivity,
+} from "./program-coop-activity";
+import {
   canAddSupplyAssignedFamily,
   defaultCoopSupplyColorLegend,
   newCoopSupplyListItem,
@@ -149,6 +154,10 @@ export async function listProgramCoopSupplyList(
   return { items, colorLegend };
 }
 
+export type ProgramCoopSupplyListWriteOptions = {
+  skipActivityLog?: boolean;
+};
+
 export async function insertProgramCoopSupplyItem(
   supabase: SupabaseClient,
   ctx: ProgramCoopSupplyListContext,
@@ -169,13 +178,23 @@ export async function insertProgramCoopSupplyItem(
     .single();
 
   if (error) throw error;
-  return mapItemRow(data as ProgramCoopSupplyItemRow);
+  const mapped = mapItemRow(data as ProgramCoopSupplyItemRow);
+
+  void logProgramCoopSupplyItemAdded(supabase, {
+    organizationId: ctx.organizationId,
+    programId: ctx.programId,
+    itemId: mapped.id,
+    itemName: mapped.name,
+  });
+
+  return mapped;
 }
 
 export async function upsertProgramCoopSupplyItem(
   supabase: SupabaseClient,
   ctx: ProgramCoopSupplyListContext,
   item: CoopSupplyListItem,
+  options?: ProgramCoopSupplyListWriteOptions,
 ): Promise<CoopSupplyListItem> {
   const { data: existing, error: existingError } = await supabase
     .from("program_coop_supply_items")
@@ -197,7 +216,24 @@ export async function upsertProgramCoopSupplyItem(
     .single();
 
   if (error) throw error;
-  return mapItemRow(data as ProgramCoopSupplyItemRow);
+  const mapped = mapItemRow(data as ProgramCoopSupplyItemRow);
+
+  if (shouldLogCoopSupplyActivity(options?.skipActivityLog)) {
+    const logInput = {
+      organizationId: ctx.organizationId,
+      programId: ctx.programId,
+      itemId: mapped.id,
+      itemName: mapped.name,
+    };
+
+    if (existing) {
+      void logProgramCoopSupplyItemUpdated(supabase, logInput);
+    } else {
+      void logProgramCoopSupplyItemAdded(supabase, logInput);
+    }
+  }
+
+  return mapped;
 }
 
 export async function getProgramCoopSupplyItem(
@@ -236,7 +272,7 @@ export async function appendProgramCoopSupplyAssignedFamily(
   return upsertProgramCoopSupplyItem(supabase, ctx, {
     ...item,
     assignedFamilies: [...item.assignedFamilies, normalized],
-  });
+  }, { skipActivityLog: true });
 }
 
 export async function removeProgramCoopSupplyAssignedFamily(
@@ -262,7 +298,7 @@ export async function removeProgramCoopSupplyAssignedFamily(
   return upsertProgramCoopSupplyItem(supabase, ctx, {
     ...item,
     assignedFamilies,
-  });
+  }, { skipActivityLog: true });
 }
 
 export async function deleteProgramCoopSupplyItem(

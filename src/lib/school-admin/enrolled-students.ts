@@ -78,9 +78,11 @@ const ENROLLED_ENROLLMENT_SELECT = `
   programs (
     name
   ),
-  classrooms (
-    id,
-    name
+  enrollment_classrooms (
+    classrooms (
+      id,
+      name
+    )
   )
 `;
 
@@ -339,23 +341,25 @@ export async function fetchClassroomLeadTeachersByStudentIds(
   const result = new Map<string, AssignedTeacher[]>();
   if (studentIds.length === 0) return result;
 
-  const { data: enrollmentRows, error: enrollmentError } = await supabase
-    .from("enrollments")
-    .select("student_id, classroom_id")
+  const { data: junctionRows, error: enrollmentError } = await supabase
+    .from("enrollment_classrooms")
+    .select("classroom_id, enrollments!inner ( student_id, status )")
     .eq("organization_id", organizationId)
-    .eq("status", "enrolled")
-    .in("student_id", studentIds)
-    .not("classroom_id", "is", null);
+    .eq("enrollments.status", "enrolled")
+    .in("enrollments.student_id", studentIds);
 
   if (enrollmentError) throw enrollmentError;
 
   const classroomIds = new Set<string>();
   const classroomsByStudent = new Map<string, Set<string>>();
 
-  for (const row of enrollmentRows ?? []) {
-    const studentId = String(row.student_id);
+  for (const row of junctionRows ?? []) {
+    const enrollment = unwrapRelation(
+      row.enrollments as { student_id?: string } | { student_id?: string }[] | null,
+    );
+    const studentId = enrollment?.student_id ? String(enrollment.student_id) : null;
     const classroomId = row.classroom_id ? String(row.classroom_id) : null;
-    if (!classroomId) continue;
+    if (!studentId || !classroomId) continue;
 
     classroomIds.add(classroomId);
     const set = classroomsByStudent.get(studentId) ?? new Set<string>();
@@ -452,14 +456,26 @@ function mapEnrollmentRowToAggregate(
     row.programs as { name?: string } | { name?: string }[] | null,
   );
   const programName = program?.name ? String(program.name) : null;
-  const classroom = unwrapRelation(
-    row.classrooms as
-      | { id?: string; name?: string }
-      | { id?: string; name?: string }[]
-      | null,
-  );
-  const classroomName = classroom?.name ? String(classroom.name) : null;
-  const classroomId = classroom?.id ? String(classroom.id) : null;
+  const enrollmentClassroomRows = row.enrollment_classrooms;
+  const classroomEntries = Array.isArray(enrollmentClassroomRows)
+    ? enrollmentClassroomRows
+    : enrollmentClassroomRows
+      ? [enrollmentClassroomRows]
+      : [];
+
+  const classroomNames: string[] = [];
+  const classroomIds: string[] = [];
+  for (const entry of classroomEntries) {
+    const record = entry as Record<string, unknown>;
+    const classroom = unwrapRelation(
+      record.classrooms as
+        | { id?: string; name?: string }
+        | { id?: string; name?: string }[]
+        | null,
+    );
+    if (classroom?.id) classroomIds.push(String(classroom.id));
+    if (classroom?.name) classroomNames.push(String(classroom.name));
+  }
   const enrolledAt = String(row.created_at ?? "");
 
   const primaryContact = primaryContactsByFamilyId.get(familyId);
@@ -486,8 +502,8 @@ function mapEnrollmentRowToAggregate(
     primaryContactName: primaryContact?.name ?? null,
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
-    classroomNames: classroomName ? [classroomName] : [],
-    classroomIds: classroomId ? [classroomId] : [],
+    classroomNames,
+    classroomIds,
     enrolledAt,
     assignedTeachers,
     assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
@@ -502,8 +518,8 @@ function mapEnrollmentRowToAggregate(
   return {
     summary,
     programNameSet: new Set(programName ? [programName] : []),
-    classroomNameSet: new Set(classroomName ? [classroomName] : []),
-    classroomIdSet: new Set(classroomId ? [classroomId] : []),
+    classroomNameSet: new Set(classroomNames),
+    classroomIdSet: new Set(classroomIds),
   };
 }
 
@@ -785,7 +801,9 @@ export async function loadEnrolledStudentDetail(
         created_at,
         status,
         programs ( name ),
-        classrooms ( name )
+        enrollment_classrooms (
+          classrooms ( name )
+        )
       `,
       )
       .eq("organization_id", organizationId)
@@ -810,14 +828,28 @@ export async function loadEnrolledStudentDetail(
       const program = unwrapRelation(
         row.programs as { name?: string } | { name?: string }[] | null,
       );
-      const classroom = unwrapRelation(
-        row.classrooms as { name?: string } | { name?: string }[] | null,
-      );
+      const enrollmentClassroomRows = row.enrollment_classrooms;
+      const classroomEntries = Array.isArray(enrollmentClassroomRows)
+        ? enrollmentClassroomRows
+        : enrollmentClassroomRows
+          ? [enrollmentClassroomRows]
+          : [];
+      const classroomNameList: string[] = [];
+      for (const entry of classroomEntries) {
+        const record = entry as Record<string, unknown>;
+        const classroom = unwrapRelation(
+          record.classrooms as { name?: string } | { name?: string }[] | null,
+        );
+        if (classroom?.name) classroomNameList.push(String(classroom.name));
+      }
 
       return {
         id: String(row.id),
         programName: program?.name ? String(program.name) : "Program",
-        classroomName: classroom?.name ? String(classroom.name) : null,
+        classroomName:
+          classroomNameList.length > 0
+            ? [...classroomNameList].sort((a, b) => a.localeCompare(b)).join(", ")
+            : null,
         enrolledAt: String(row.created_at ?? ""),
       };
     },

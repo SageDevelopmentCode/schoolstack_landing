@@ -81,6 +81,13 @@ export const ACTIVITY_ACTIONS = {
   CLASSROOM_SIGNUP_PUBLISHED: "classroom_signup.published",
   CLASSROOM_SIGNUP_RESPONSE_SUBMITTED: "classroom_signup.response_submitted",
   CLASSROOM_SIGNUP_CLOSED: "classroom_signup.closed",
+  BULLETIN_POST_PUBLISHED: "bulletin.post_published",
+  CALENDAR_EVENT_POSTED: "calendar.event_posted",
+  COOP_SUPPLY_ITEM_ADDED: "coop.supply_item.added",
+  COOP_SUPPLY_ITEM_UPDATED: "coop.supply_item.updated",
+  COOP_TEACHING_WEEK_ADDED: "coop.teaching_week.added",
+  COOP_TEACHING_WEEK_UPDATED: "coop.teaching_week.updated",
+  COOP_CURRICULUM_UPDATED: "coop.curriculum.updated",
 } as const;
 
 export type ActivityAction =
@@ -232,6 +239,13 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup published",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
+  [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "Bulletin published",
+  [ACTIVITY_ACTIONS.CALENDAR_EVENT_POSTED]: "Calendar event posted",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_ADDED]: "Co-op supply item added",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_UPDATED]: "Co-op supply item updated",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_ADDED]: "Co-op teaching week added",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_UPDATED]: "Co-op teaching week updated",
+  [ACTIVITY_ACTIONS.COOP_CURRICULUM_UPDATED]: "Co-op curriculum updated",
 };
 
 const PARENT_SURFACES: ActivitySurface[] = [

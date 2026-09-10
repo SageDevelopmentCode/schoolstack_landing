@@ -12,6 +12,7 @@ import ParentCalendarPageShell from "@/components/school-parent/calendar/ParentC
 import ParentCommitteesPageShell from "@/components/school-parent/committees/ParentCommitteesPageShell";
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
+import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
@@ -210,7 +211,8 @@ export async function renderSchoolParentFeaturePage(
       : mainPortalAudienceScope();
     const admin = createAdminClient();
     const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const [upcomingEvents, homeMeta, bulletinPosts] = await Promise.all([
+    const [upcomingEvents, homeMeta, bulletinPosts, featureAnnouncements] =
+      await Promise.all([
       listUpcomingEventsForOrg(supabase, org.id, 3, upcomingAudienceScope),
       familyId
         ? fetchParentPortalHomeMetaFromRpc(supabase, org.id, familyId)
@@ -223,6 +225,14 @@ export async function renderSchoolParentFeaturePage(
         viewer: "parent",
         programId,
         limit: coopModeEnabled ? 3 : 25,
+      }),
+      fetchParentFeatureAnnouncements(admin, org.id, {
+        slug: context.slug,
+        features,
+        coopModeEnabled,
+        bulletinEnabled,
+        programSlug: context.programSlug,
+        parentNavBasePath,
       }),
     ]);
     const quickActions = buildParentQuickActions(
@@ -251,6 +261,7 @@ export async function renderSchoolParentFeaturePage(
           features={features}
           programSlug={context.programSlug}
           parentNavBasePath={parentNavBasePath}
+          featureAnnouncements={featureAnnouncements}
         >
           {familyId ? (
             <Suspense fallback={null}>

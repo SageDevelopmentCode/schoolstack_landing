@@ -106,6 +106,13 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "approved a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "declined a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "withdrew a committee join request",
+  [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "published a bulletin post",
+  [ACTIVITY_ACTIONS.CALENDAR_EVENT_POSTED]: "posted a calendar event",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_ADDED]: "added a co-op supply item",
+  [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_UPDATED]: "updated a co-op supply item",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_ADDED]: "added a co-op teaching week",
+  [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_UPDATED]: "updated a co-op teaching week",
+  [ACTIVITY_ACTIONS.COOP_CURRICULUM_UPDATED]: "updated co-op curriculum",
 };
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {
