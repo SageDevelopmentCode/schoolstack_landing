@@ -189,6 +189,7 @@ export default function TeacherDashboardPage({
     id: action.id,
     title: action.title,
     subtitle: action.subtitle,
+    kind: "link" as const,
     href: action.href,
   }));
 
