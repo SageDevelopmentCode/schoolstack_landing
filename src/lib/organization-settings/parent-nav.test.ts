@@ -54,5 +54,6 @@ describe("splitParentNavForHeader", () => {
     );
 
     assert.equal(items.some((item) => item.key === "curriculum"), false);
+    assert.equal(items.some((item) => item.key === "supply_list"), false);
   });
 });

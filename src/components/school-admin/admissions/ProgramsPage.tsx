@@ -9,7 +9,6 @@ import {
   ClipboardList,
   Globe,
   Loader2,
-  Package,
   Save,
   Trash2,
   Users,
@@ -59,6 +58,7 @@ import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
 import ProgramCoopPlaceholderCard from "./ProgramCoopPlaceholderCard";
 import ProgramCoopSupplyListCard from "./ProgramCoopSupplyListCard";
+import ProgramCoopTeachingScheduleCard from "./ProgramCoopTeachingScheduleCard";
 import { createClient } from "@/utils/supabase/client";
 import EnrollmentFlowsStoryShell from "./EnrollmentFlowsStoryShell";
 import EnrollmentFlowsStoryHeader from "./EnrollmentFlowsStoryHeader";
@@ -113,7 +113,7 @@ const BASE_PROGRAM_EDITOR_TABS: ReadonlyArray<ProgramEditorTabConfig> = [
 
 const COOP_MODE_EDITOR_TABS: ReadonlyArray<ProgramEditorTabConfig & { id: CoopProgramEditorTab }> = [
   { id: "curriculum", label: "Co-op curriculum", icon: BookOpen },
-  { id: "supply_list", label: "Supply list", icon: Package },
+  { id: "supply_list", label: "Supply list", icon: ClipboardList },
   { id: "teaching_schedule", label: "Teaching schedule", icon: CalendarDays },
   { id: "families", label: "Families", icon: Users },
 ];
@@ -483,7 +483,10 @@ export default function ProgramsPage({
                 <motion.div
                   key={`${canvasKey}-${visibleEditorTab}`}
                   className={`mx-auto space-y-4 ${
-                    visibleEditorTab === "supply_list" ? "max-w-4xl" : "max-w-xl"
+                    visibleEditorTab === "supply_list" ||
+                    visibleEditorTab === "teaching_schedule"
+                      ? "max-w-4xl"
+                      : "max-w-xl"
                   }`}
                   {...builderCanvasTransition}
                 >
@@ -695,21 +698,11 @@ export default function ProgramsPage({
                       coopModeEnabled={coopModeEnabled}
                     />
                   ) : visibleEditorTab === "teaching_schedule" && selectedProgram ? (
-                    <>
-                      <BuilderSectionIntro
-                        C={C}
-                        theme={theme}
-                        eyebrow="Co-op teaching schedule"
-                        title="Teaching schedule"
-                        subtitle="Manage the teaching schedule for this co-op program."
-                      />
-                      <ProgramCoopPlaceholderCard
-                        C={C}
-                        question="Teaching schedule"
-                        helper="Coming soon."
-                        message="Teaching schedule management is coming soon."
-                      />
-                    </>
+                    <ProgramCoopTeachingScheduleCard
+                      C={C}
+                      theme={theme}
+                      coopModeEnabled={coopModeEnabled}
+                    />
                   ) : visibleEditorTab === "families" && selectedProgram ? (
                     <>
                       <BuilderSectionIntro

@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  canAddSupplyAssignedFamily,
   defaultCoopSupplyColorLegend,
   newCoopSupplyListItem,
+  normalizeSupplyFamilyName,
   type CoopSupplyColorLegendEntry,
   type CoopSupplyEstimatedPrice,
   type CoopSupplyListItem,
@@ -196,6 +198,71 @@ export async function upsertProgramCoopSupplyItem(
 
   if (error) throw error;
   return mapItemRow(data as ProgramCoopSupplyItemRow);
+}
+
+export async function getProgramCoopSupplyItem(
+  supabase: SupabaseClient,
+  ctx: ProgramCoopSupplyListContext,
+  itemId: string,
+): Promise<CoopSupplyListItem | null> {
+  const { data, error } = await supabase
+    .from("program_coop_supply_items")
+    .select(ITEM_SELECT)
+    .eq("id", itemId)
+    .eq("program_id", ctx.programId)
+    .eq("organization_id", ctx.organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return mapItemRow(data as ProgramCoopSupplyItemRow);
+}
+
+export async function appendProgramCoopSupplyAssignedFamily(
+  supabase: SupabaseClient,
+  ctx: ProgramCoopSupplyListContext,
+  itemId: string,
+  familyName: string,
+): Promise<CoopSupplyListItem> {
+  const item = await getProgramCoopSupplyItem(supabase, ctx, itemId);
+  if (!item) {
+    throw new Error("Supply item not found.");
+  }
+  if (!canAddSupplyAssignedFamily(item.assignedFamilies, familyName)) {
+    throw new Error("This item cannot accept another sign-up.");
+  }
+
+  const normalized = normalizeSupplyFamilyName(familyName);
+  return upsertProgramCoopSupplyItem(supabase, ctx, {
+    ...item,
+    assignedFamilies: [...item.assignedFamilies, normalized],
+  });
+}
+
+export async function removeProgramCoopSupplyAssignedFamily(
+  supabase: SupabaseClient,
+  ctx: ProgramCoopSupplyListContext,
+  itemId: string,
+  familyName: string,
+): Promise<CoopSupplyListItem> {
+  const item = await getProgramCoopSupplyItem(supabase, ctx, itemId);
+  if (!item) {
+    throw new Error("Supply item not found.");
+  }
+
+  const normalized = normalizeSupplyFamilyName(familyName).toLowerCase();
+  const assignedFamilies = item.assignedFamilies.filter(
+    (family) => family.toLowerCase() !== normalized,
+  );
+
+  if (assignedFamilies.length === item.assignedFamilies.length) {
+    throw new Error("You are not signed up for this item.");
+  }
+
+  return upsertProgramCoopSupplyItem(supabase, ctx, {
+    ...item,
+    assignedFamilies,
+  });
 }
 
 export async function deleteProgramCoopSupplyItem(

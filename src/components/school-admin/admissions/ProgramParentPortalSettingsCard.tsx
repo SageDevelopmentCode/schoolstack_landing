@@ -306,6 +306,7 @@ export default function ProgramParentPortalSettingsCard({
       PARENT_FEATURE_CATALOG.filter(
         (entry) =>
           entry.key !== "portal" &&
+          entry.key !== "supply_list" &&
           Boolean((orgParent as Record<string, boolean>)[entry.key]) &&
           (entry.key !== "curriculum" || Boolean(editor.coop_mode)),
       ),

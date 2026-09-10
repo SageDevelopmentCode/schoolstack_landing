@@ -11,6 +11,7 @@ import ParentHomePreviewContentLoader from "@/components/school-parent/home/Pare
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
+import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
 import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
@@ -39,6 +40,7 @@ import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -327,6 +329,30 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           curricula={curricula}
           initialDiscussionMessages={discussionMessages}
           currentGuardianId={previewGuardian?.id ? String(previewGuardian.id) : null}
+          previewMode
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "supply_list") {
+    if (!programContext.coopMode) {
+      notFound();
+    }
+
+    const { items, colorLegend } = await listProgramCoopSupplyList(
+      admin,
+      programContext.programId,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentSupplyListPage
+          organizationId={org.id}
+          programId={programContext.programId}
+          initialItems={items}
+          initialLegend={colorLegend}
+          currentParentName={userProfile.displayName}
           previewMode
         />
       </SchoolParentPageShell>

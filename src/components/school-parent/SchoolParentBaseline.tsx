@@ -79,7 +79,9 @@ function SchoolParentBaselineInner({
   const { theme, adminCompat: C } = useParentTheme();
   const isMessagesPage = isParentMessagesPath(pathname);
   const isFixedLayoutPage =
-    isMessagesPage || isParentBillingPath(pathname) || isParentCurriculumPath(pathname);
+    isMessagesPage ||
+    isParentBillingPath(pathname) ||
+    isParentCurriculumPath(pathname);
   const messagesEnabled = Boolean(features.parent?.messages);
   const showHelpButton = isParentHelpPage(pathname, slug) && !isMessagesPage;
 

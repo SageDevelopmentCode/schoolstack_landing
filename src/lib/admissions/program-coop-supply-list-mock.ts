@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { newAdmissionsId } from "./application-form-schema";
 
@@ -391,6 +392,16 @@ export function canAddSupplyAssignedFamily(
   return !families.some((family) => family.toLowerCase() === lower);
 }
 
+export function isSupplyFamilyAssigned(
+  families: ReadonlyArray<string>,
+  name: string,
+): boolean {
+  const normalized = normalizeSupplyFamilyName(name);
+  if (!normalized) return false;
+  const lower = normalized.toLowerCase();
+  return families.some((family) => family.toLowerCase() === lower);
+}
+
 export function formatSupplyAssignedFamilies(families: ReadonlyArray<string>): string {
   if (families.length === 0) return "Unassigned";
   return families.join(", ");
@@ -456,12 +467,39 @@ export function supplyListRowStyle(
     colorHex,
     isSelected,
     isHovered,
+    variant = "admin",
+    parentTheme,
   }: {
     colorHex: string | null;
     isSelected: boolean;
     isHovered: boolean;
+    variant?: "parent" | "admin";
+    parentTheme?: ParentThemeTokens;
   },
 ): Pick<CSSProperties, "backgroundColor" | "borderLeft"> {
+  if (variant === "parent" && parentTheme) {
+    const accentBar = colorHex ? `2px solid ${colorHex}` : "2px solid transparent";
+
+    if (isSelected) {
+      return {
+        backgroundColor: parentTheme.primarySoft,
+        borderLeft: `3px solid ${parentTheme.primary}`,
+      };
+    }
+
+    if (isHovered) {
+      return {
+        backgroundColor: parentTheme.cream,
+        borderLeft: accentBar,
+      };
+    }
+
+    return {
+      backgroundColor: parentTheme.white,
+      borderLeft: accentBar,
+    };
+  }
+
   const tintedBackground = colorHex
     ? mixColorWithSurface(colorHex, C.surface, 0.12)
     : C.surface;

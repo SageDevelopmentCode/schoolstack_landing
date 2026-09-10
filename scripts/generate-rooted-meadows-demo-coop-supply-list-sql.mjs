@@ -8,10 +8,17 @@ const CSV_PATH = resolve(
   __dirname,
   "data/rooted-meadows-demo-kindergarten-coop-supply-list.csv",
 );
+const COLOR_MAP_PATH = resolve(
+  __dirname,
+  "data/rooted-meadows-demo-kindergarten-coop-supply-item-colors.json",
+);
 const OUTPUT_PATH = resolve(
   __dirname,
   "../supabase/migrations_manual/seed_rooted_meadows_demo_kindergarten_coop_supply_list_2026_09_09.sql",
 );
+
+const ITEM_COLOR_MAP = JSON.parse(readFileSync(COLOR_MAP_PATH, "utf8"));
+const VALID_COLOR_IDS = new Set(["lavender", "clay", "forest"]);
 
 const MONTH_ORDER = [
   "Sep",
@@ -364,6 +371,17 @@ function sqlJson(value) {
   return `'${JSON.stringify(value).replace(/'/g, "''")}'::jsonb`;
 }
 
+function resolveItemColorId(name) {
+  if (!(name in ITEM_COLOR_MAP)) {
+    throw new Error(`Missing color mapping for supply item: ${name}`);
+  }
+  const colorId = ITEM_COLOR_MAP[name];
+  if (colorId !== null && !VALID_COLOR_IDS.has(colorId)) {
+    throw new Error(`Invalid color "${colorId}" for supply item: ${name}`);
+  }
+  return colorId;
+}
+
 function parseRows(csvRows) {
   const [header, ...dataRows] = csvRows;
   const items = [];
@@ -392,6 +410,7 @@ function parseRows(csvRows) {
       id: stableUuid("rooted-meadows-demo-coop-supply-item", `${index}:${name}`),
       sortOrder: items.length,
       name,
+      colorId: resolveItemColorId(name),
       itemType: parseItemType(itemType),
       usageTiming,
       months,
@@ -431,7 +450,7 @@ function buildSql(items) {
       ${sqlString(item.itemType)},
       ${sqlString(item.usageTiming)},
       ${sqlTextArray(item.months)},
-      null,
+      ${item.colorId === null ? "null" : sqlString(item.colorId)},
       ${sqlTextArray(item.assignedFamilies)},
       ${sqlString(item.whereToBuy)},
       ${item.quantity},

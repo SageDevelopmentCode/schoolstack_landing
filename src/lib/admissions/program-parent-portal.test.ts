@@ -211,6 +211,7 @@ describe("resolveMainParentOrganizationFeatures", () => {
 
     const resolved = resolveMainParentOrganizationFeatures(orgWithCurriculum);
     assert.equal(resolved.parent.curriculum, false);
+    assert.equal(resolved.parent.supply_list, false);
     assert.equal(resolved.parent.messages, true);
   });
 });
@@ -248,6 +249,27 @@ describe("resolveProgramParentFeatures", () => {
       features: { portal: true, curriculum: true },
     });
     assert.equal(orgOff.curriculum, false);
+  });
+
+  it("enables supply_list automatically for co-op isolated programs", () => {
+    const enabled = resolveProgramParentFeatures(orgFeatures, {
+      mode: "isolated",
+      coop_mode: true,
+      features: { portal: true },
+    });
+    assert.equal(enabled.supply_list, true);
+
+    const coopOff = resolveProgramParentFeatures(orgFeatures, {
+      mode: "isolated",
+      features: { portal: true },
+    });
+    assert.equal(coopOff.supply_list, false);
+
+    const inheritMode = resolveProgramParentFeatures(orgFeatures, {
+      mode: "inherit",
+      coop_mode: true,
+    });
+    assert.equal(inheritMode.supply_list, false);
   });
 
   it("applies org ceiling AND program subset for isolated mode", () => {

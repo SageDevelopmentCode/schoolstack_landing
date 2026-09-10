@@ -108,6 +108,12 @@ export function isParentCurriculumPath(pathname: string): boolean {
   return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
 }
 
+export function isParentSupplyListPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "supply_list") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "supply_list") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?supply_list(?:\/|$)/.test(pathname);
+}
+
 export function isParentFeatureEnabled(
   features: OrganizationFeatures,
   featureKey: string,

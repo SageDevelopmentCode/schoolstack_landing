@@ -74,6 +74,7 @@ export type ParentFeatures = {
   committees: boolean;
   classroom_signups: boolean;
   curriculum: boolean;
+  supply_list: boolean;
 };
 
 export type AdditionalFeatures = {

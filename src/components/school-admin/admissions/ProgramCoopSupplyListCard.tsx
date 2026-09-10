@@ -36,6 +36,12 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import CoopSupplyListFilterBar from "@/components/admissions/CoopSupplyListFilterBar";
+import {
+  DEFAULT_COOP_SUPPLY_LIST_FILTERS,
+  filterCoopSupplyListItems,
+  type CoopSupplyListFilters,
+} from "@/lib/admissions/program-coop-supply-list-filters";
 import CoopSupplyColorLegendEditPanel from "./CoopSupplyColorLegendEditPanel";
 import CoopSupplyListItemDetailPanel from "./CoopSupplyListItemDetailPanel";
 import { BuilderQuestionCard, BuilderSectionIntro } from "./builder-question-card";
@@ -136,6 +142,9 @@ export default function ProgramCoopSupplyListCard({
   const [pendingSidebarAction, setPendingSidebarAction] =
     useState<PendingSidebarAction | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<CoopSupplyListFilters>(
+    DEFAULT_COOP_SUPPLY_LIST_FILTERS,
+  );
 
   const supplyListContext = useMemo(
     () => ({ organizationId, programId }),
@@ -173,6 +182,10 @@ export default function ProgramCoopSupplyListCard({
   }, [coopModeEnabled, loadSupplyList]);
 
   const summary = useMemo(() => computeSupplyListSummary(items), [items]);
+  const filteredItems = useMemo(
+    () => filterCoopSupplyListItems(items, filters, { variant: "admin" }),
+    [filters, items],
+  );
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
@@ -399,8 +412,24 @@ export default function ProgramCoopSupplyListCard({
           onEditClick={handleEditLegend}
         />
 
+        <CoopSupplyListFilterBar
+          variant="admin"
+          filters={filters}
+          onChange={setFilters}
+          colorLegend={colorLegend}
+          theme={theme}
+          C={C}
+          resultCount={filteredItems.length}
+          totalCount={items.length}
+        />
+
         <AdminCard theme={theme} padding="none" className="overflow-hidden">
           <div className="overflow-x-auto">
+            {filteredItems.length === 0 ? (
+              <p className="px-4 py-8 text-sm" style={{ color: C.textSecondary }}>
+                No supply items match the current filters.
+              </p>
+            ) : (
             <table className="min-w-[860px] w-full border-collapse text-left">
               <thead style={{ backgroundColor: "#FBFCFB" }}>
                 <tr>
@@ -420,7 +449,7 @@ export default function ProgramCoopSupplyListCard({
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const isSelected = item.id === selectedId;
                   const isHovered = item.id === hoveredId;
                   const colorEntry = getSupplyColorLegendEntry(colorLegend, item.colorId);
@@ -500,6 +529,7 @@ export default function ProgramCoopSupplyListCard({
                 })}
               </motion.tbody>
             </table>
+            )}
           </div>
         </AdminCard>
 

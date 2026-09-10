@@ -14,6 +14,7 @@ import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeC
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
+import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
@@ -52,6 +53,7 @@ import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
+import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
@@ -442,6 +444,26 @@ export async function renderSchoolParentFeaturePage(
           curricula={curricula}
           initialDiscussionMessages={discussionMessages}
           currentGuardianId={currentGuardianId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "supply_list") {
+    if (!programId || !coopModeEnabled) {
+      notFound();
+    }
+
+    const { items, colorLegend } = await listProgramCoopSupplyList(supabase, programId);
+
+    return (
+      <SchoolParentPageShell title={pageName} layout="default">
+        <ParentSupplyListPage
+          organizationId={org.id}
+          programId={programId}
+          initialItems={items}
+          initialLegend={colorLegend}
+          currentParentName={userProfile.displayName}
         />
       </SchoolParentPageShell>
     );

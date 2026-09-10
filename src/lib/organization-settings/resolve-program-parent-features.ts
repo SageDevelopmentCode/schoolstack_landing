@@ -44,7 +44,7 @@ export function resolveProgramParentFeatures(
 ): ParentFeatures {
   const orgParent = orgFeatures.parent ?? DEFAULT_FEATURES.parent;
   if (programSettings.mode !== "isolated") {
-    return { ...orgParent, curriculum: false };
+    return { ...orgParent, curriculum: false, supply_list: false };
   }
 
   const programParent = programSettings.features ?? {};
@@ -61,6 +61,7 @@ export function resolveProgramParentFeatures(
     Boolean((orgParent as Record<string, boolean>).curriculum) &&
     Boolean((programParent as Record<string, boolean>).curriculum) &&
     programSettings.coop_mode === true;
+  result.supply_list = programSettings.coop_mode === true;
 
   return result as ParentFeatures;
 }
@@ -73,6 +74,7 @@ export function resolveMainParentOrganizationFeatures(
     parent: {
       ...(orgFeatures.parent ?? DEFAULT_FEATURES.parent),
       curriculum: false,
+      supply_list: false,
     },
   };
 }
