@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { ClipboardList, Loader2 } from "lucide-react";
@@ -125,10 +125,15 @@ function ParentClassroomSignupsPageContent({
     initialBundle.responsesBySignupId,
   );
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [selectedSignupId, setSelectedSignupId] = useState<string | null>(null);
 
   const signupParam =
     searchParams.get("signup") ?? initialSignupId ?? null;
+
+  const selectedSignupId = useMemo(() => {
+    if (!signupParam) return null;
+    const visible = items.some((item) => item.signup.id === signupParam);
+    return visible ? signupParam : null;
+  }, [signupParam, items]);
 
   const setSignupParam = useCallback(
     (signupId: string | null) => {
@@ -143,27 +148,14 @@ function ParentClassroomSignupsPageContent({
 
   const openSidebar = useCallback(
     (signupId: string) => {
-      setSelectedSignupId(signupId);
       setSignupParam(signupId);
     },
     [setSignupParam],
   );
 
   const closeSidebar = useCallback(() => {
-    setSelectedSignupId(null);
     setSignupParam(null);
   }, [setSignupParam]);
-
-  useEffect(() => {
-    if (!signupParam) {
-      setSelectedSignupId(null);
-      return;
-    }
-    const visible = items.some((item) => item.signup.id === signupParam);
-    if (visible) {
-      setSelectedSignupId(signupParam);
-    }
-  }, [signupParam, items]);
 
   const selectedItem = useMemo(
     () => items.find((item) => item.signup.id === selectedSignupId) ?? null,
@@ -356,6 +348,7 @@ function ParentClassroomSignupsPageContent({
       )}
 
       <ParentClassroomSignupSidebar
+        key={selectedSignupId ?? "closed"}
         theme={theme}
         open={selectedSignupId != null && selectedItem != null}
         organizationId={organizationId}

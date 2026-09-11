@@ -56,11 +56,6 @@ export default function ParentClassroomSignupSidebar({
   );
 
   useEffect(() => {
-    setResponses(initialResponses);
-    setResponse(initialFamilyResponse);
-  }, [initialResponses, initialFamilyResponse, signup?.id]);
-
-  useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();

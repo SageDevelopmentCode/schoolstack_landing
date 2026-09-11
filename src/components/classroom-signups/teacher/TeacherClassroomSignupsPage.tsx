@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Variants } from "framer-motion";
@@ -162,10 +162,15 @@ function TeacherClassroomSignupsPageContent({
   );
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [creating, setCreating] = useState(false);
-  const [selectedSignupId, setSelectedSignupId] = useState<string | null>(null);
 
   const signupParam =
     searchParams.get("signup") ?? initialSignupId ?? null;
+
+  const selectedSignupId = useMemo(() => {
+    if (!signupParam) return null;
+    const visible = signups.some((signup) => signup.id === signupParam);
+    return visible ? signupParam : null;
+  }, [signupParam, signups]);
 
   const setSignupParam = useCallback(
     (signupId: string | null) => {
@@ -180,27 +185,14 @@ function TeacherClassroomSignupsPageContent({
 
   const openSidebar = useCallback(
     (signupId: string) => {
-      setSelectedSignupId(signupId);
       setSignupParam(signupId);
     },
     [setSignupParam],
   );
 
   const closeSidebar = useCallback(() => {
-    setSelectedSignupId(null);
     setSignupParam(null);
   }, [setSignupParam]);
-
-  useEffect(() => {
-    if (!signupParam) {
-      setSelectedSignupId(null);
-      return;
-    }
-    const visible = signups.some((signup) => signup.id === signupParam);
-    if (visible) {
-      setSelectedSignupId(signupParam);
-    }
-  }, [signupParam, signups]);
 
   const selectedSignup = useMemo(
     () => signups.find((signup) => signup.id === selectedSignupId) ?? null,
@@ -468,6 +460,7 @@ function TeacherClassroomSignupsPageContent({
       </AnimatePresence>
 
       <TeacherClassroomSignupSidebar
+        key={selectedSignupId ?? "closed"}
         theme={theme}
         open={selectedSignupId != null && selectedSignup != null}
         organizationId={organizationId}

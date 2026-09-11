@@ -71,7 +71,9 @@ export default function TeacherClassroomSignupSidebar({
   onSignupUpdated,
 }: TeacherClassroomSignupSidebarProps) {
   const [editMode, setEditMode] = useState(false);
-  const [draft, setDraft] = useState<ClassroomSignupDraft | null>(null);
+  const [draft, setDraft] = useState<ClassroomSignupDraft | null>(() =>
+    signup ? signupToDraft(signup) : null,
+  );
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,12 +83,6 @@ export default function TeacherClassroomSignupSidebar({
     () => responses.filter((response) => response.status === "confirmed"),
     [responses],
   );
-
-  useEffect(() => {
-    setEditMode(false);
-    setDraft(signup ? signupToDraft(signup) : null);
-    setSaveError(null);
-  }, [signup?.id, open]);
 
   useEffect(() => {
     if (!open) return;
