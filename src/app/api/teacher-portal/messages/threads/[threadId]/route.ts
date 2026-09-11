@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
 import {
   assertTeacherCanAccessThread,
@@ -105,13 +106,12 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
-    const message = err instanceof Error ? err.message : "Failed to load thread.";
-    const status = message.includes("access") ? 403 : 500;
+    const resolved = portalRouteErrorStatus(err, "Failed to load thread.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 403 ? "forbidden" : "internal_error",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
     });
   }

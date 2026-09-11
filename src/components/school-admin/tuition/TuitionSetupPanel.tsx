@@ -12,6 +12,7 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
   assignTuitionLabel,
   tuitionReadinessPrimaryAction,
@@ -158,6 +159,11 @@ export default function TuitionSetupPanel({
       onSwitchToFamilies();
     } catch (error) {
       const message = formatActionError(error, "Failed to sync tuition assignments.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.setup.sync",
+        error: "",
+      }, error);
       setActionError(message);
       adminToast.error(message);
     } finally {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { ProgramCoopSignupConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import { signupProgramCoopTeachingScheduleForParent } from "@/lib/admissions/program-coop-teaching-schedule-signup";
 import type { TeachingScheduleParentRole } from "@/lib/admissions/program-coop-teaching-schedule-mock";
@@ -71,19 +72,12 @@ export async function POST(request: Request) {
       });
     }
 
-    const message = err instanceof Error ? err.message : "Failed to sign up for teaching week.";
-    const status =
-      message.includes("access") || message.includes("not signed up")
-        ? 403
-        : message.includes("already filled") || message.includes("cannot accept") || message.includes("not found")
-          ? 400
-          : 500;
-
+    const resolved = portalRouteErrorStatus(err, "Failed to sign up for teaching week.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 500 ? "internal_error" : "signup_failed",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.status === 500 ? "internal_error" : "signup_failed",
       cause: err,
     });
   }

@@ -2,7 +2,9 @@ export type ClassroomSignupType = "time_slots" | "roles" | "open";
 
 export type ClassroomSignupStatus = "draft" | "open" | "closed";
 
-export type ClassroomSignupAudience = "assigned" | "classroom";
+export type ClassroomSignupAudience = "assigned" | "classroom" | "classrooms";
+
+export type ClassroomStaffRole = "lead" | "assistant";
 
 export type ClassroomSignupResponseStatus = "confirmed" | "withdrawn";
 
@@ -28,6 +30,7 @@ export type ClassroomSignupConfig = {
   allowMultipleSelections?: boolean;
   maxFamilies?: number;
   parentPrompt?: string;
+  audienceClassroomNames?: string[];
 };
 
 export type ClassroomSignup = {
@@ -40,6 +43,7 @@ export type ClassroomSignup = {
   signupType: ClassroomSignupType;
   audience: ClassroomSignupAudience;
   classroomId: string | null;
+  classroomIds: string[];
   classroomName: string | null;
   familyCount: number;
   status: ClassroomSignupStatus;
@@ -86,6 +90,7 @@ export type TeacherClassroomOption = {
   id: string;
   name: string;
   familyCount: number;
+  role?: ClassroomStaffRole | null;
 };
 
 export type ClassroomSignupMetrics = {
@@ -101,10 +106,37 @@ export type ParentSignupAttentionItem = {
   classroomName: string | null;
 };
 
+export type ParentClassroomSignupListStatus =
+  | "needs_response"
+  | "signed_up"
+  | "closed";
+
+export type ParentClassroomSignupListItem = {
+  signup: ClassroomSignup;
+  familyResponse: ClassroomSignupResponse | null;
+  listStatus: ParentClassroomSignupListStatus;
+};
+
+export type ParentClassroomSignupStudentOption = {
+  id: string;
+  name: string;
+};
+
+export type ParentClassroomSignupsPageBundle = {
+  items: ParentClassroomSignupListItem[];
+  responsesBySignupId: Record<string, ClassroomSignupResponse[]>;
+  studentOptions: ParentClassroomSignupStudentOption[];
+};
+
 export const SIGNUP_TYPE_LABELS: Record<ClassroomSignupType, string> = {
   time_slots: "Time slots",
   roles: "Roles & tasks",
   open: "Open signup",
+};
+
+export const CLASSROOM_STAFF_ROLE_LABELS: Record<ClassroomStaffRole, string> = {
+  lead: "Lead",
+  assistant: "Assistant",
 };
 
 export const SIGNUP_STATUS_LABELS: Record<ClassroomSignupStatus, string> = {

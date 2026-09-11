@@ -45,6 +45,7 @@ import type { ApplicationSubmissionsPageMeta } from "@/lib/school-admin/load-sub
 import type { ApplicationSubmissionsTableData } from "@/lib/school-admin/load-submissions-table-data";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ApplicationSubmissionsPageShellProps = {
   organizationId: string;
@@ -206,7 +207,12 @@ export default function ApplicationSubmissionsPageShell({
           enrichedIdsRef.current.add(id);
         }
         setSubmissions((prev) => mergeEnrichment(prev, enrichment));
-      } catch {
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.submissions.enrich",
+          error: "",
+        }, err);
         // Keep lean rows when enrichment fails.
       } finally {
         setEnrichmentLoading(false);
@@ -244,7 +250,12 @@ export default function ApplicationSubmissionsPageShell({
             (loginBody.statuses ?? []).map((status) => [status.guardianId, status]),
           ),
         }));
-      } catch {
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.submissions.login_status",
+          error: "",
+        }, err);
         setLoginStatusByGuardianId({});
       } finally {
         setLoginStatusLoading(false);
@@ -356,6 +367,11 @@ export default function ApplicationSubmissionsPageShell({
           includeMeta: !append,
         });
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.submissions.load",
+          error: "",
+        }, err);
         const message = err instanceof Error ? err.message : "Failed to load submissions.";
         if (!append && !tableReady) {
           setError(message);

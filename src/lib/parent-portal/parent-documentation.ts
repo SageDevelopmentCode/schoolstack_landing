@@ -3,6 +3,7 @@ import {
   isParentFeatureEnabled,
   isParentNavPathEnabled,
   schoolParentPath,
+  schoolParentRootPath,
   schoolProgramParentPath,
 } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationFeatures, ParentFeatures } from "@/lib/organization-settings/types";
@@ -36,19 +37,26 @@ export type ParentDocumentationContext = {
   slug: string;
   features: OrganizationFeatures;
   coopModeEnabled: boolean;
+  bulletinEnabled?: boolean;
   programSlug?: string;
   parentNavBasePath?: string;
   previewBasePath?: string;
 };
 
+type ParentDocActionPath =
+  | { feature: string; subtab?: string; query?: string }
+  | { route: "notifications" }
+  | { route: "apply" };
+
 type ParentDocGuideTemplate = Omit<ParentDocGuide, "steps"> & {
   requiresOnboarding?: boolean;
+  requiresBulletin?: boolean;
   steps: Array<{
     title: string;
     description: string;
     action?: {
       label: string;
-      path: { feature: string; subtab?: string; query?: string };
+      path: ParentDocActionPath;
     };
   }>;
 };
@@ -119,6 +127,162 @@ function buildGuideTemplates(): ParentDocGuideTemplate[] {
       ],
     },
     {
+      id: "sign-enrollment-agreement",
+      title: "Sign your enrollment agreement",
+      category: "Getting started",
+      summary:
+        "Review and sign enrollment agreements when your school sends them for your child.",
+      keywords: ["enrollment", "agreement", "sign", "contract", "e-sign"],
+      portalScope: "any",
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open your apply dashboard",
+          description:
+            "Click your name in the header, then choose Your applications to open your apply dashboard.",
+          action: {
+            label: "Open apply dashboard",
+            path: { route: "apply" },
+          },
+        },
+        {
+          title: "Open the enrollment page",
+          description:
+            "Find your child's application and open the enrollment page. Urgent agreement alerts on your home page Start here card link here too.",
+        },
+        {
+          title: "Review, sign, and submit",
+          description:
+            "Read the agreement terms, complete any required fields, and submit the signed agreement so enrollment can continue.",
+        },
+      ],
+    },
+    {
+      id: "read-school-bulletin",
+      title: "Read school bulletin updates",
+      category: "Getting started",
+      summary:
+        "Catch up on school announcements, flyers, and attachments posted by your school.",
+      keywords: ["bulletin", "announcements", "updates", "school news", "flyer"],
+      portalScope: "any",
+      requiresBulletin: true,
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open school updates on home",
+          description:
+            "Recent bulletin posts appear at the top of your home page when your school publishes them.",
+          action: {
+            label: "Go to home",
+            path: { feature: "portal" },
+          },
+        },
+        {
+          title: "Browse posts and attachments",
+          description:
+            "Tap a post to read the full message and open any linked images or files.",
+        },
+        {
+          title: "Check your notification center",
+          description:
+            "New bulletin posts also appear in the bell icon so you can catch up later.",
+        },
+      ],
+    },
+    {
+      id: "check-notification-center",
+      title: "Check your notification center",
+      category: "Notifications",
+      summary:
+        "See recent messages, bulletin posts, calendar reminders, and enrollment updates in one place.",
+      keywords: ["notifications", "bell", "alerts", "updates", "activity"],
+      portalScope: "any",
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open the bell icon",
+          description:
+            "Tap the bell in the header to open your notification center from any page.",
+          action: {
+            label: "Go to home",
+            path: { feature: "portal" },
+          },
+        },
+        {
+          title: "Review recent activity",
+          description:
+            "Scroll through updates from the last 30 days, grouped by type.",
+        },
+        {
+          title: "Jump to the source",
+          description:
+            "Tap a notification to open the related message, event, bulletin post, or enrollment task.",
+        },
+      ],
+    },
+    {
+      id: "manage-notification-settings",
+      title: "Manage email notification preferences",
+      category: "Account",
+      summary:
+        "Choose which email addresses receive portal notifications for your family.",
+      keywords: ["email", "notifications", "settings", "preferences", "account"],
+      portalScope: "any",
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open your profile menu",
+          description:
+            "Click your name in the header to open account options.",
+        },
+        {
+          title: "Go to Notification settings",
+          description:
+            "Choose Notification settings to manage where your family receives email alerts.",
+          action: {
+            label: "Open notification settings",
+            path: { route: "notifications" },
+          },
+        },
+        {
+          title: "Save your changes",
+          description:
+            "Add or remove notification emails, then save. Your login email is included by default.",
+        },
+      ],
+    },
+    {
+      id: "open-apply-dashboard",
+      title: "Open your apply dashboard",
+      category: "Applications",
+      summary:
+        "View application status, continue drafts, and access enrollment checklists for your family.",
+      keywords: ["apply", "application", "dashboard", "enrollment", "checklist", "admissions"],
+      portalScope: "any",
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open your profile menu",
+          description:
+            "Click your name or avatar in the header to open account options.",
+        },
+        {
+          title: "Choose Your applications",
+          description:
+            "Select Your applications to open your family's apply dashboard.",
+          action: {
+            label: "Open apply dashboard",
+            path: { route: "apply" },
+          },
+        },
+        {
+          title: "Open an application card",
+          description:
+            "View application status, continue a draft, or start or continue enrollment for checklist items and agreements.",
+        },
+      ],
+    },
+    {
       id: "view-pay-invoices",
       title: "View and pay invoices",
       category: "Billing",
@@ -143,6 +307,37 @@ function buildGuideTemplates(): ParentDocGuideTemplate[] {
           title: "Pay online",
           description:
             "If your school has online payments enabled, you can pay directly from the invoice.",
+        },
+      ],
+    },
+    {
+      id: "setup-tuition-payment-schedule",
+      title: "Set up your tuition payment schedule",
+      category: "Billing",
+      summary:
+        "Confirm how and when your family will pay tuition when a payment schedule is required.",
+      keywords: ["billing", "tuition", "schedule", "payment plan", "setup"],
+      portalScope: "any",
+      requiredFeatures: { parent: { billing: true } },
+      steps: [
+        {
+          title: "Open Billing",
+          description:
+            "If your school requires a schedule, Billing shows Schedule needed on the summary tab.",
+          action: {
+            label: "Open Billing",
+            path: { feature: "billing" },
+          },
+        },
+        {
+          title: "Review each child's plan",
+          description:
+            "Select a child to see tuition details and confirm the payment schedule your school offers.",
+        },
+        {
+          title: "Confirm your schedule",
+          description:
+            "Follow the prompts to choose due dates and payment methods so future invoices can be generated.",
         },
       ],
     },
@@ -227,6 +422,37 @@ function buildGuideTemplates(): ParentDocGuideTemplate[] {
           title: "Save your changes",
           description:
             "Make sure to save after updating allergies, medications, or emergency contacts.",
+        },
+      ],
+    },
+    {
+      id: "complete-enrollment-checklist",
+      title: "Complete your enrollment checklist",
+      category: "Applications",
+      summary:
+        "Work through required enrollment forms and documents for each child after acceptance.",
+      keywords: ["enrollment", "checklist", "forms", "documents", "tasks"],
+      portalScope: "any",
+      requiredFeatures: { parent: { portal: true } },
+      steps: [
+        {
+          title: "Open your apply dashboard",
+          description:
+            "Click your name in the header, then choose Your applications to open your apply dashboard.",
+          action: {
+            label: "Open apply dashboard",
+            path: { route: "apply" },
+          },
+        },
+        {
+          title: "Start or continue enrollment",
+          description:
+            "Find your child's application and tap Start enrollment or Continue enrollment.",
+        },
+        {
+          title: "Complete each checklist item",
+          description:
+            "Work through forms, uploads, and any required agreement on the enrollment page.",
         },
       ],
     },
@@ -425,9 +651,24 @@ function buildGuideTemplates(): ParentDocGuideTemplate[] {
 
 export function resolveParentActionHref(
   context: ParentDocumentationContext,
-  path: { feature: string; subtab?: string; query?: string },
+  path: ParentDocActionPath,
 ): string {
   const { slug, programSlug, parentNavBasePath, previewBasePath } = context;
+
+  if ("route" in path) {
+    if (path.route === "notifications") {
+      if (previewBasePath) {
+        return `${previewBasePath}/parent/notifications`;
+      }
+      return `${schoolParentRootPath(slug)}/notifications`;
+    }
+    if (path.route === "apply") {
+      if (previewBasePath) {
+        return `${previewBasePath}/apply`;
+      }
+      return `/school/${slug}/apply`;
+    }
+  }
 
   let base: string;
   if (previewBasePath) {
@@ -480,6 +721,10 @@ function isGuideEnabled(
     if (items.length === 0) {
       return false;
     }
+  }
+
+  if (guide.requiresBulletin && !context.bulletinEnabled) {
+    return false;
   }
 
   const required = guide.requiredFeatures;

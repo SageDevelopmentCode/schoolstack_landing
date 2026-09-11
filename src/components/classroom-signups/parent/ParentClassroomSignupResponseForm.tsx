@@ -17,6 +17,7 @@ import {
   isRoleFull,
   isSlotFull,
 } from "@/lib/classroom-signups/utils";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentClassroomSignupResponseFormProps = {
   organizationId: string;
@@ -107,8 +108,9 @@ export default function ParentClassroomSignupResponseForm({
     setSubmitting(true);
     setFeedback(null);
 
+    let response: Response | undefined;
     try {
-      const response = await fetch(
+      response = await fetch(
         `/api/parent-portal/classroom-signups/${signup.id}`,
         {
           method: "POST",
@@ -139,6 +141,16 @@ export default function ParentClassroomSignupResponseForm({
         message:
           error instanceof Error ? error.message : "Failed to submit response.",
       });
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "classroom_signups.submit",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -149,8 +161,9 @@ export default function ParentClassroomSignupResponseForm({
     setWithdrawing(true);
     setFeedback(null);
 
+    let response: Response | undefined;
     try {
-      const response = await fetch(
+      response = await fetch(
         `/api/parent-portal/classroom-signups/${signup.id}?organizationId=${encodeURIComponent(organizationId)}`,
         { method: "DELETE" },
       );
@@ -166,6 +179,16 @@ export default function ParentClassroomSignupResponseForm({
         message:
           error instanceof Error ? error.message : "Failed to withdraw response.",
       });
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "classroom_signups.withdraw",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     } finally {
       setWithdrawing(false);
     }

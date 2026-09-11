@@ -28,6 +28,7 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentTeachingSchedulePageProps = {
   organizationId: string;
@@ -89,8 +90,9 @@ export default function ParentTeachingSchedulePage({
       setPendingAction({ weekId, role, type });
       setActionError(null);
 
+      let response: Response | undefined;
       try {
-        const response = await fetch(
+        response = await fetch(
           `/api/parent-portal/teaching-schedule/${type === "signup" ? "signup" : "withdraw"}`,
           {
             method: "POST",
@@ -117,6 +119,16 @@ export default function ParentTeachingSchedulePage({
       } catch (error) {
         setActionError(
           error instanceof Error ? error.message : "Unable to update sign-up.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "teaching_schedule.update_signup",
+            error: "",
+          },
+          error,
+          response?.status,
         );
       } finally {
         setPendingAction(null);

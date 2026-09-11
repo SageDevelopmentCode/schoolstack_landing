@@ -24,6 +24,7 @@ import type {
 import { isInlineAgreementItem } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type EnrollmentStatusCardProps = {
   C: AdminThemeTokens;
@@ -132,6 +133,11 @@ export default function EnrollmentStatusCard({
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load enrollment status.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.enrollment_status.load",
+        error: "",
+      }, err);
       setLoaded(null);
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import {
   assertTeacherCanAccessThread,
   getStaffMemberIdForUser,
@@ -99,13 +100,12 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const message = err instanceof Error ? err.message : "Failed to send message.";
-    const status = message.includes("access") ? 403 : 500;
+    const resolved = portalRouteErrorStatus(err, "Failed to send message.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 403 ? "forbidden" : "internal_error",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
     });
   }

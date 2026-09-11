@@ -42,6 +42,7 @@ export type StaffClassroomOption = {
   id: string;
   name: string;
   studentCount: number;
+  role?: ClassroomStaffRole;
 };
 
 export type SetStudentClassroomsResult = {
@@ -1259,6 +1260,7 @@ export async function listStaffClassroomsForTeacher(
     .select(
       `
       classroom_id,
+      role,
       classrooms!inner (
         id,
         name
@@ -1276,14 +1278,22 @@ export async function listStaffClassroomsForTeacher(
         row.classrooms as { id?: string; name?: string } | { id?: string; name?: string }[] | null,
       );
       if (!classroom?.id) return null;
+      const role = row.role === "assistant" ? "assistant" : "lead";
       return {
         id: String(classroom.id),
         name: String(classroom.name ?? "Classroom"),
+        role,
       };
     })
-    .filter((entry): entry is { id: string; name: string } => entry != null);
+    .filter(
+      (entry): entry is { id: string; name: string; role: ClassroomStaffRole } =>
+        entry != null,
+    );
 
-  const uniqueById = new Map<string, { id: string; name: string }>();
+  const uniqueById = new Map<
+    string,
+    { id: string; name: string; role: ClassroomStaffRole }
+  >();
   for (const classroom of classrooms) {
     uniqueById.set(classroom.id, classroom);
   }
@@ -1300,6 +1310,7 @@ export async function listStaffClassroomsForTeacher(
       id: classroom.id,
       name: classroom.name,
       studentCount: studentCounts.get(classroom.id) ?? 0,
+      role: classroom.role,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -15,6 +15,7 @@ import CurriculumPdfContentsPanel from "@/components/school-parent/curriculum/Cu
 import ProgramCoopCurriculumPdfViewerSkeleton from "@/components/school-parent/curriculum/ProgramCoopCurriculumPdfViewerSkeleton";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -108,8 +109,9 @@ export default function ProgramCoopCurriculumPdfViewer({
       setIsPannable(false);
       setIsPanning(false);
 
+      let response: Response | undefined;
       try {
-        const response = await fetch(
+        response = await fetch(
           buildCurriculumPdfUrl(organizationId, programId, curriculumId),
           {
             credentials: "include",
@@ -133,9 +135,19 @@ export default function ProgramCoopCurriculumPdfViewer({
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setPageNum(1);
-      } catch {
+      } catch (loadError) {
         if (!cancelled) {
           setError("We couldn't load the curriculum PDF. Please try again later.");
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "curriculum.pdf_load",
+              error: "",
+            },
+            loadError,
+            response?.status,
+          );
         }
       } finally {
         if (!cancelled) {
@@ -199,6 +211,15 @@ export default function ProgramCoopCurriculumPdfViewer({
           renderError.name !== "RenderingCancelledException"
         ) {
           setError("We couldn't render this page. Please try again.");
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "curriculum.pdf_render",
+              error: "",
+            },
+            renderError,
+          );
         }
       } finally {
         if (!cancelled) {

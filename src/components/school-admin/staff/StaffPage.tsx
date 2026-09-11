@@ -14,6 +14,7 @@ import type { StaffMemberRecord, StaffPortalRole } from "@/lib/staff/staff-membe
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { schoolTeacherLoginPath } from "@/lib/organization-settings/teacher-routes";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { SITE_URL } from "@/lib/site";
 
 type StaffPageProps = {
@@ -25,11 +26,12 @@ type StaffPageProps = {
 type AddStaffModalProps = {
   open: boolean;
   slug: string;
+  organizationId: string;
   onClose: () => void;
   onAdded: () => void;
 };
 
-function AddStaffModal({ open, slug, onClose, onAdded }: AddStaffModalProps) {
+function AddStaffModal({ open, slug, organizationId, onClose, onAdded }: AddStaffModalProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -88,6 +90,11 @@ function AddStaffModal({ open, slug, onClose, onAdded }: AddStaffModalProps) {
       onClose();
     } catch (err) {
       const message = formatActionError(err, "Failed to add staff access.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.add",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {
@@ -285,6 +292,11 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
       });
     } catch (err) {
       setError(formatActionError(err, "Failed to load staff."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.load",
+        error: "",
+      }, err);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -381,6 +393,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
       <AddStaffModal
         open={addOpen}
         slug={slug}
+        organizationId={organizationId}
         onClose={() => setAddOpen(false)}
         onAdded={() => void loadStaff()}
       />

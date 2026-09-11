@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import {
   assertParentCanAccessThread,
   sendMessageForViewer,
@@ -93,13 +94,12 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ message });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to send message.";
-    const status = message.includes("access") ? 403 : 500;
+    const resolved = portalRouteErrorStatus(err, "Failed to send message.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 403 ? "forbidden" : "internal_error",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
     });
   }

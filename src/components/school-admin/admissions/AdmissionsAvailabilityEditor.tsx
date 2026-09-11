@@ -20,6 +20,7 @@ import {
 } from "@/lib/admissions/admin-scheduled-visits";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { createClient } from "@/utils/supabase/client";
 
@@ -109,6 +110,11 @@ export default function AdmissionsAvailabilityEditor({
       try {
         await loadMonthData();
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.availability.load",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(
             err instanceof Error ? err.message : "Failed to load availability.",
@@ -181,6 +187,11 @@ export default function AdmissionsAvailabilityEditor({
       onMonthSlotCountChangeRef.current?.(count);
       adminToast.success(isOpen ? "Slot closed" : "Slot opened");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.availability.toggle_slot",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to update slot.");
       setError(message);
       adminToast.error(message);

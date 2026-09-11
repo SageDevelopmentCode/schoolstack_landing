@@ -13,6 +13,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type NotificationsSettingsPageProps = {
   organizationId: string;
@@ -25,6 +26,7 @@ const NOTIFICATION_CHANNELS = [
   "applications",
   "payments",
   "visits",
+  "committees",
 ] as const satisfies readonly NotificationChannel[];
 
 const CHANNEL_COPY: Record<
@@ -46,6 +48,11 @@ const CHANNEL_COPY: Record<
     description: "Email when a family books a tour, interview, or shadow day.",
     toggleLabel: "Email admins when visits are scheduled",
   },
+  committees: {
+    title: "Committee join requests",
+    description: "Email when a parent requests to join a committee.",
+    toggleLabel: "Email admins when committee join requests are submitted",
+  },
 };
 
 function emptyRecipients(): OrganizationNotificationRecipients {
@@ -59,6 +66,7 @@ function emptyRecipients(): OrganizationNotificationRecipients {
     applications: { ...empty },
     payments: { ...empty },
     visits: { ...empty },
+    committees: { ...empty },
   };
 }
 
@@ -100,6 +108,11 @@ export default function NotificationsSettingsPage({
       setSettings(payload.settings ?? getDefaultNotificationSettings());
       setRecipients(payload.recipients ?? emptyRecipients());
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "notifications.settings.load",
+        error: "",
+      }, error);
       setLoadError(
         error instanceof Error ? error.message : "Failed to load notification settings.",
       );
@@ -142,6 +155,11 @@ export default function NotificationsSettingsPage({
         setRecipients(payload.recipients ?? emptyRecipients());
         adminToast.success("Notification settings saved");
       } catch (error) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "notifications.settings.save",
+          error: "",
+        }, error);
         adminToast.error(
           formatActionError(error, "Failed to save notification settings."),
         );

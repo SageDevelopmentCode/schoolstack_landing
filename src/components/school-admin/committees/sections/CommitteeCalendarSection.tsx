@@ -23,6 +23,7 @@ import {
 import CommitteeEventDetailPanel from "./CommitteeEventDetailPanel";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 import { committeeTransition, viewSwap } from "@/components/school-admin/committees/committee-motion";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type CalendarView = "month" | "week";
@@ -167,6 +168,11 @@ export default function CommitteeCalendarSection({
       await refresh();
       adminToast.success("Event added");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.calendar.add_event",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to add event."));
     } finally {
       setSaving(false);
@@ -180,6 +186,11 @@ export default function CommitteeCalendarSection({
       await refresh();
       adminToast.success("Event deleted");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.calendar.delete_event",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to delete event."));
     }
   };

@@ -62,31 +62,44 @@ export async function GET(request: Request) {
     });
   }
 
-  const familyId = await resolveAuthorizedFamily(
-    supabase,
-    user.id,
-    organizationId,
-  );
+  try {
+    const familyId = await resolveAuthorizedFamily(
+      supabase,
+      user.id,
+      organizationId,
+    );
 
-  if (!familyId) {
+    if (!familyId) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have access to notification settings for this school.",
+        code: "forbidden",
+      });
+    }
+
+    const admin = createAdminClient();
+    const settings = await getFamilyNotificationEmailSettings(admin, {
+      familyId,
+      loginEmail: user.email?.trim() ?? null,
+    });
+
+    return NextResponse.json({
+      familyId,
+      ...settings,
+    });
+  } catch (error) {
     return apiError(ROUTE, {
       request,
-      status: 403,
-      error: "You do not have access to notification settings for this school.",
-      code: "forbidden",
+      status: 500,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load notification settings.",
+      code: "internal_error",
+      cause: error,
     });
   }
-
-  const admin = createAdminClient();
-  const settings = await getFamilyNotificationEmailSettings(admin, {
-    familyId,
-    loginEmail: user.email?.trim() ?? null,
-  });
-
-  return NextResponse.json({
-    familyId,
-    ...settings,
-  });
 }
 
 export async function PATCH(request: Request) {
@@ -166,14 +179,19 @@ export async function PATCH(request: Request) {
   try {
     await updateFamilyNotificationEmails(admin, familyId, normalized.emails);
   } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to update notification settings.";
+    const isValidationError =
+      message.includes("valid email") ||
+      message.includes("Family not found") ||
+      message.includes("required");
     return apiError(ROUTE, {
       request,
-      status: 400,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update notification settings.",
-      code: "update_failed",
+      status: isValidationError ? 400 : 500,
+      error: message,
+      code: isValidationError ? "update_failed" : "internal_error",
       cause: error,
     });
   }

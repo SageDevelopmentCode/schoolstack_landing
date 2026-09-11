@@ -14,6 +14,7 @@ import {
 } from "@/lib/committees/duty-roles";
 import { getCommittee, updateCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import EditDutyRoleModal, {
   type DutyRoleFormValue,
@@ -147,6 +148,11 @@ export default function CommitteeAboutSection({
       adminToast.success("Overview saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save overview."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.about.save",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -175,6 +181,11 @@ export default function CommitteeAboutSection({
       await refresh();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save duty role."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.about.save_role",
+        error: "",
+      }, err);
     } finally {
       setRoleSaving(false);
     }
@@ -191,6 +202,11 @@ export default function CommitteeAboutSection({
       adminToast.success("Duty role deleted");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to delete duty role."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.about.delete_role",
+        error: "",
+      }, err);
     } finally {
       setDeleting(false);
     }

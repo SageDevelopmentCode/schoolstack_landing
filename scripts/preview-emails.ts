@@ -4,6 +4,7 @@ import {
   buildApplicationAcceptedEnrollmentHtml,
   buildApplicationSubmittedConfirmationHtml,
   buildApplicationSubmittedOwnerNotificationHtml,
+  buildCommitteeJoinRequestAdminNotificationHtml,
   buildDraftApplicationReminderHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
@@ -440,6 +441,29 @@ const previews = [
       "parent@example.com",
       "Student Evensen",
       "View submission",
+    ],
+  },
+  {
+    filename: "admin-committee-join-request.html",
+    html: buildCommitteeJoinRequestAdminNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      committeeName: "Farm Connection & Development Committee",
+      guardianName: "Holly Evensen",
+      guardianEmail: "holly@example.com",
+      preferredDutyRoleTitle: "Community Outreach Lead",
+      grade: "3rd",
+      note: "Farm to table nutritionist and owner of regenerative farm",
+      submittedAtLabel: "September 10, 2026 at 3:15 PM",
+      committeesAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/committees",
+    }),
+    checks: [
+      "Committee Join Request",
+      "Holly Evensen",
+      "Farm Connection",
+      "Community Outreach Lead",
+      "Review request",
+      "Rooted Meadows Waldorf School",
     ],
   },
   {

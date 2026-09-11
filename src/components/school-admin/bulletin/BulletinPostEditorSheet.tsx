@@ -15,6 +15,7 @@ import type { BulletinPost, ProgramOption } from "@/lib/school-bulletin/types";
 type BulletinPostEditorSheetProps = {
   open: boolean;
   onClose: () => void;
+  organizationId: string;
   slug: string;
   post: BulletinPost | null;
   programs: ProgramOption[];
@@ -27,6 +28,7 @@ type BulletinPostEditorSheetProps = {
 export default function BulletinPostEditorSheet({
   open,
   onClose,
+  organizationId,
   slug,
   post,
   programs,
@@ -37,6 +39,7 @@ export default function BulletinPostEditorSheet({
 }: BulletinPostEditorSheetProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const editor = useBulletinPostEditor({
+    organizationId,
     slug,
     post,
     programs,

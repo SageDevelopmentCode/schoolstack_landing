@@ -418,9 +418,26 @@ export async function notifyWebsiteApiError(payload: {
   );
 }
 
+function portalOperationErrorTitle(surface: string | undefined, operation: string): string {
+  switch (surface) {
+    case "parent_portal":
+      return `👪 Parent portal error · ${operation}`;
+    case "teacher_portal":
+      return `🍎 Teacher portal error · ${operation}`;
+    case "public_apply":
+      return `📝 Apply flow error · ${operation}`;
+    case "system":
+      return `⚙️ System error · ${operation}`;
+    case "school_admin":
+    default:
+      return `🔧 School admin error · ${operation}`;
+  }
+}
+
 export async function notifySchoolAdminOperationError(payload: {
   operation: string;
   error: string;
+  surface?: string;
   organizationId?: string;
   organizationName?: string;
   organizationSlug?: string;
@@ -466,7 +483,7 @@ export async function notifySchoolAdminOperationError(payload: {
 
   await sendWebsiteNotificationDiscordEmbed(
     {
-      title: `🔧 School admin error · ${payload.operation}`,
+      title: portalOperationErrorTitle(payload.surface, payload.operation),
       description: truncate(payload.error, 200),
       color: DISCORD_EMBED_COLORS.error,
       fields,

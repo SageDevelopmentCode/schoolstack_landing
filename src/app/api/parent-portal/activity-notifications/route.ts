@@ -3,10 +3,8 @@ import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasAccessForNotificationContext } from "@/lib/admissions/program-parent-portal-access";
 import { apiError } from "@/lib/api/route-errors";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import {
-  fetchParentActivityNotifications,
-  parseParentNotificationContextFromSearchParams,
-} from "@/lib/parent-portal/parent-activity-notifications";
+import { fetchParentActivityNotifications } from "@/lib/parent-portal/parent-activity-notifications";
+import { resolveParentNotificationContextForApi } from "@/lib/parent-portal/parent-notification-context";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
@@ -41,14 +39,6 @@ export async function GET(request: Request) {
   const slug = searchParams.get("slug")?.trim() ?? "";
   const cursor = searchParams.get("cursor")?.trim() || null;
   const limit = parseLimit(searchParams.get("limit"));
-  const parentNavBasePath = searchParams.get("parentNavBasePath")?.trim() || undefined;
-  const applyBasePath = searchParams.get("applyBasePath")?.trim() || undefined;
-  const notificationContext = parseParentNotificationContextFromSearchParams(
-    slug,
-    searchParams,
-    { parentNavBasePath, applyBasePath },
-  );
-
   if (!organizationId || !slug) {
     return apiError(ROUTE, {
       request,
@@ -65,6 +55,19 @@ export async function GET(request: Request) {
         request,
         status: 404,
         error: "School not found.",
+        code: "not_found",
+      });
+    }
+
+    const notificationContext = await resolveParentNotificationContextForApi(
+      supabase,
+      { organizationId, slug, searchParams },
+    );
+    if (!notificationContext) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Program not found.",
         code: "not_found",
       });
     }

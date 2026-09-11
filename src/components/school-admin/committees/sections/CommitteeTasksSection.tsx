@@ -10,6 +10,7 @@ import { createTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
@@ -54,6 +55,11 @@ export default function CommitteeTasksSection({
       adminToast.success("Task added");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add task."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.tasks.add",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -66,6 +72,11 @@ export default function CommitteeTasksSection({
       adminToast.success("Task updated");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to update task."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.tasks.update",
+        error: "",
+      }, err);
     }
   };
 

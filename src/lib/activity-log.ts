@@ -152,7 +152,7 @@ export type ActivityDatePreset = "today" | "7d" | "30d" | "all";
 
 export type FetchActivityEventsFilters = {
   organizationId?: string;
-  surface?: ActivitySurface | "parent" | "school_admin" | "system";
+  surface?: ActivitySurface | "parent" | "teacher" | "school_admin" | "system";
   action?: string;
   datePreset?: ActivityDatePreset;
   limit?: number;
@@ -309,6 +309,7 @@ function surfacesForFilter(
 ): ActivitySurface[] | null {
   if (!surface) return null;
   if (surface === "parent") return PARENT_SURFACES;
+  if (surface === "teacher") return ["teacher_portal"];
   if (surface === "school_admin") return ["school_admin"];
   if (surface === "system") return ["api", "system"];
   return [surface];
@@ -483,15 +484,39 @@ export async function logActivityEvent(
       .single();
 
     if (error) {
-      console.error("[activity-log] insert failed:", error.message);
+      await reportActivityLogInsertFailure(supabase, error, event);
       return null;
     }
 
     return data?.id ? String(data.id) : null;
   } catch (error) {
-    console.error("[activity-log] unexpected error:", error);
+    await reportActivityLogInsertFailure(supabase, error, event);
     return null;
   }
+}
+
+async function reportActivityLogInsertFailure(
+  supabase: SupabaseClient,
+  error: unknown,
+  event: ActivityEventInput,
+): Promise<void> {
+  const { reportOperationalError } = await import("@/lib/operational-errors");
+  await reportOperationalError({
+    supabase,
+    surface: "system",
+    skipActivityLog: true,
+    operation: "activity_log_insert",
+    error: error instanceof Error ? error.message : String(error),
+    organizationId: event.organizationId,
+    entityType: event.entityType,
+    entityId: event.entityId,
+    metadata: {
+      action: event.action,
+      eventSurface: event.surface,
+    },
+    actor: { type: "system" },
+    cause: error,
+  });
 }
 
 export async function fetchActivityEvents(

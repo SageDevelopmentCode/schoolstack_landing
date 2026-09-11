@@ -19,8 +19,10 @@ import {
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type SubmissionPaymentsPanelProps = {
+  organizationId: string;
   applicationId: string;
   branding: OrganizationBranding;
 };
@@ -261,6 +263,7 @@ function PaymentTimelineEntry({
 }
 
 export default function SubmissionPaymentsPanel({
+  organizationId,
   applicationId,
   branding,
 }: SubmissionPaymentsPanelProps) {
@@ -277,6 +280,11 @@ export default function SubmissionPaymentsPanel({
       const data = await listApplicationPayments(supabase, applicationId);
       setRows(data);
     } catch (loadError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.submission.load_payments",
+        error: "",
+      }, loadError);
       setError(
         loadError instanceof Error
           ? loadError.message
@@ -286,7 +294,7 @@ export default function SubmissionPaymentsPanel({
     } finally {
       setLoading(false);
     }
-  }, [applicationId, supabase]);
+  }, [applicationId, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {

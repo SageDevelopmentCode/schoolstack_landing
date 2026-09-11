@@ -46,6 +46,10 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
 import type { MessageStudentSummary } from "@/lib/messages/types";
 import { initialInboxLoadingState } from "@/lib/messages/thread-list-helpers";
+import {
+  reportPortalOperationalError,
+  type PortalOperationalSurface,
+} from "@/lib/portal-operational-errors";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -64,6 +68,14 @@ export type MessagesTeacherPortalConfig = {
   staffMemberId: string;
   branding: OrganizationBranding;
 };
+
+function messagesOperationalSurface(
+  viewer: MessagesApiConfig["viewer"],
+): PortalOperationalSurface {
+  if (viewer === "parent") return "parent_portal";
+  if (viewer === "teacher") return "teacher_portal";
+  return "school_admin";
+}
 
 function toEnrolledStudentSummary(
   summary: MessageStudentSummary,
@@ -178,6 +190,21 @@ export default function MessagesInboxLayout({
   onRegisterActions?: (actions: MessagesInboxActions) => void;
 }) {
   const searchParams = useSearchParams();
+  const reportMessagesError = useCallback(
+    (operation: string, err: unknown, responseStatus?: number) => {
+      void reportPortalOperationalError(
+        messagesOperationalSurface(api.viewer),
+        {
+          organizationId: api.organizationId,
+          operation,
+          error: "",
+        },
+        err,
+        responseStatus,
+      );
+    },
+    [api.organizationId, api.viewer],
+  );
   const [threads, setThreads] = useState<MessageThreadSummary[]>(initialInbox?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
   const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
@@ -252,11 +279,12 @@ export default function MessagesInboxLayout({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load messages.");
+      reportMessagesError("messages.load_inbox", err);
     } finally {
       setLoadingInbox(false);
       setIsRefetchingInbox(false);
     }
-  }, [api.basePath, deferContactsLoad, query]);
+  }, [api.basePath, deferContactsLoad, query, reportMessagesError]);
 
   const loadContacts = useCallback(async () => {
     if (!deferContactsLoad || contacts.length > 0 || loadingContacts) return;
@@ -270,10 +298,11 @@ export default function MessagesInboxLayout({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load contacts.");
+      reportMessagesError("messages.load_contacts", err);
     } finally {
       setLoadingContacts(false);
     }
-  }, [api.basePath, contacts.length, deferContactsLoad, loadingContacts, query]);
+  }, [api.basePath, contacts.length, deferContactsLoad, loadingContacts, query, reportMessagesError]);
 
   const handleOpenNewConversation = useCallback(async () => {
     if (deferContactsLoad) {
@@ -313,11 +342,12 @@ export default function MessagesInboxLayout({
         void loadInbox({ silent: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load conversation.");
+        reportMessagesError("messages.load_thread", err);
       } finally {
         if (!options?.silent) setLoadingMessages(false);
       }
     },
-    [api.basePath, loadInbox, query],
+    [api.basePath, loadInbox, query, reportMessagesError],
   );
 
   const selectThread = useCallback(
@@ -382,6 +412,7 @@ export default function MessagesInboxLayout({
         await loadThread(data.threadId, { silent: true });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to start conversation.");
+        reportMessagesError("messages.start_conversation", err);
         setActiveThread(null);
         setActiveThreadId(null);
         setMobileView("list");
@@ -398,6 +429,7 @@ export default function MessagesInboxLayout({
       api.viewer,
       loadThread,
       readOnly,
+      reportMessagesError,
       selectThread,
       teacherPortal?.staffMemberId,
       threads,
@@ -521,6 +553,7 @@ export default function MessagesInboxLayout({
           : prev,
       );
       setError(err instanceof Error ? err.message : "Failed to send message.");
+      reportMessagesError("messages.send", err);
     } finally {
       setSending(false);
     }
@@ -534,6 +567,7 @@ export default function MessagesInboxLayout({
     input,
     loadThread,
     readOnly,
+    reportMessagesError,
     stagedFiles,
   ]);
 

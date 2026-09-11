@@ -5,7 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import type { TuitionCharge } from '@/lib/parent/parent-portal-api';
-import { chargeRemainingCents } from '@/lib/tuition/billing-helpers';
+import { chargeRemainingCents, OPEN_CHARGE_STATUSES } from '@/lib/tuition/billing-helpers';
 import { formatBillingDueDate, formatCents, formatDueCountdown } from '@/lib/tuition/format-cents';
 
 type ParentBillingChargeRowProps = {
@@ -58,7 +58,7 @@ export function ParentBillingChargeRow({
           <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
             {formatCents(remaining)}
           </ThemedText>
-          {onPay && remaining > 0 ? (
+          {onPay && OPEN_CHARGE_STATUSES.has(charge.status) && remaining > 0 ? (
             <Pressable
               onPress={onPay}
               disabled={paying}

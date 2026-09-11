@@ -6,6 +6,7 @@ import {
 } from "@/lib/admissions/application-auth";
 import { getChargeById, listChargesForAssignment, markChargeSent } from "@/lib/tuition/charges";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
+import { isChargePayable } from "@/lib/tuition/charge-payability";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
 import { maxTuitionPayCents } from "@/lib/tuition/tuition-pay-amount";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
@@ -70,6 +71,15 @@ export async function POST(request: Request, context: RouteContext) {
         status: 404,
         error: "Charge not found.",
         code: "not_found",
+      });
+    }
+
+    if (!isChargePayable(charge)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "This charge is no longer payable.",
+        code: "invalid_status",
       });
     }
 

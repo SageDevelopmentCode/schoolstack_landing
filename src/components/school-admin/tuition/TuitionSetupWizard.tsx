@@ -37,6 +37,7 @@ import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -368,6 +369,11 @@ export default function TuitionSetupWizard({
       return true;
     } catch (err) {
       const message = formatActionError(err, "Failed to save progress.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.setup_wizard.save_progress",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
       return false;
@@ -465,6 +471,11 @@ export default function TuitionSetupWizard({
       }, 1200);
     } catch (err) {
       const message = formatActionError(err, "Failed to save rate plan.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.setup_wizard.save_rate_plan",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

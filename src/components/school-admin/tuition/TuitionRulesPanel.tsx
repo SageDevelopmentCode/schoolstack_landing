@@ -27,6 +27,7 @@ import {
 import type { TuitionAdjustmentRule } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionRulesPanelProps = {
@@ -91,6 +92,11 @@ export default function TuitionRulesPanel({
       await loadRules();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add sibling rule."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.rules.add",
+        error: "",
+      }, err);
     }
   };
 
@@ -101,6 +107,11 @@ export default function TuitionRulesPanel({
       await loadRules();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to update rule."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.rules.update",
+        error: "",
+      }, err);
     }
   };
 
@@ -132,6 +143,11 @@ export default function TuitionRulesPanel({
       setPreviewMatches(payload.matches ?? []);
     } catch (error) {
       setPreviewMatches([]);
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.rules.preview",
+        error: "",
+      }, error);
       setPreviewError(
         error instanceof Error ? error.message : "Failed to load preview.",
       );

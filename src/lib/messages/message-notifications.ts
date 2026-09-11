@@ -1,7 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
+import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
+import {
+  ACTIVITY_ACTIONS,
+  logActivityEvent,
+  type ActorType,
+} from "@/lib/activity-log";
 import { sendNewMessageEmail } from "@/lib/emails";
 import { shouldSendMessageEmail } from "@/lib/messages/message-email-debounce";
+import {
+  resolveSenderDisplayName,
+  resolveThreadRecipientLabels,
+} from "@/lib/messages/message-notification-labels";
 import { sendWebPushToUsers } from "@/lib/messages/web-push";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import type { PortalMessage } from "./types";
@@ -30,6 +39,14 @@ function portalPath(
   threadId: string,
 ): string {
   return `/school/${slug}/${portal}/messages?thread=${threadId}`;
+}
+
+function viewerToActorType(
+  viewer: MessageNotificationContext["viewer"],
+): ActorType {
+  if (viewer === "parent") return "parent";
+  if (viewer === "teacher") return "teacher";
+  return "school_admin";
 }
 
 export async function resolveThreadRecipients(
@@ -206,7 +223,7 @@ export async function dispatchMessageNotifications(
   const familyEmailCache = new Map<string, string[]>();
   const emailedFamilies = new Set<string>();
 
-  await Promise.allSettled(
+  const notificationResults = await Promise.allSettled(
     recipients.map(async (recipient) => {
       const threadUrl = portalPath(
         context.organizationSlug,
@@ -291,30 +308,69 @@ export async function dispatchMessageNotifications(
     }),
   );
 
+  await logSettledNotificationFailures(
+    admin,
+    {
+      organizationId: context.organizationId,
+      operation: "messages.dispatch_notification",
+      entityType: "message_thread",
+      entityId: context.threadId,
+      metadata: {
+        senderUserId: context.senderUserId,
+        recipientCount: recipients.length,
+      },
+    },
+    notificationResults,
+  );
+
+  const schoolOfficeLabel = `${context.schoolName} Office`;
+  const [senderName, recipientLabels] = await Promise.all([
+    resolveSenderDisplayName(
+      admin,
+      context.organizationId,
+      context.senderUserId,
+      context.viewer,
+      schoolOfficeLabel,
+    ),
+    resolveThreadRecipientLabels(
+      admin,
+      context.organizationId,
+      context.threadId,
+      context.senderUserId,
+      schoolOfficeLabel,
+      context.viewer,
+    ),
+  ]);
+
+  const messageMetadata = {
+    threadId: context.threadId,
+    senderUserId: context.senderUserId,
+    senderName,
+    senderPortal: context.viewer,
+    recipientLabels,
+    preview,
+  };
+
   if (context.viewer !== "admin") {
     await logActivityEvent(admin, {
       organizationId: context.organizationId,
-      actorType: "system",
+      actorType: viewerToActorType(context.viewer),
+      actorUserId: context.senderUserId,
       surface: "api",
       action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
-      summary: `${context.senderName}: ${preview}`,
-      metadata: {
-        threadId: context.threadId,
-        senderUserId: context.senderUserId,
-        preview,
-      },
+      summary: preview,
+      metadata: messageMetadata,
     });
   } else {
     await logActivityEvent(admin, {
       organizationId: context.organizationId,
-      actorType: "system",
+      actorType: viewerToActorType(context.viewer),
+      actorUserId: context.senderUserId,
       surface: "api",
       action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
-      summary: `${context.senderName}: ${preview}`,
+      summary: preview,
       metadata: {
-        threadId: context.threadId,
-        senderUserId: context.senderUserId,
-        preview,
+        ...messageMetadata,
         recipientPortal: "parent",
       },
     });

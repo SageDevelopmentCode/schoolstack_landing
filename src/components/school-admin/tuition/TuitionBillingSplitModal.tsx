@@ -9,6 +9,7 @@ import { TuitionChoiceCard } from "@/components/school-admin/tuition/TuitionPaym
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type SplitRow = {
@@ -19,6 +20,7 @@ type SplitRow = {
 
 type TuitionBillingSplitModalProps = {
   open: boolean;
+  organizationId: string;
   familyId: string;
   familyName: string;
   branding: OrganizationBranding;
@@ -32,6 +34,7 @@ function guardianName(guardian: FamilyGuardianRecord): string {
 
 export default function TuitionBillingSplitModal({
   open,
+  organizationId,
   familyId,
   familyName,
   branding,
@@ -92,6 +95,11 @@ export default function TuitionBillingSplitModal({
         }
       } catch (err) {
         setError(formatActionError(err, "Failed to load billing split."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.billing_split.load",
+        error: "",
+      }, err);
       } finally {
         setLoading(false);
       }
@@ -133,6 +141,11 @@ export default function TuitionBillingSplitModal({
       onClose();
     } catch (err) {
       setError(formatActionError(err, "Failed to save billing split."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.billing_split.save",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }

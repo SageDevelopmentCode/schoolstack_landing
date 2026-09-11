@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
 import { SchoolAdminTableSkeleton } from "@/components/school-admin/skeletons";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/school-admin/admin-student-roster-metrics";
 import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
 import { mergeStudentStandingHealthFlags } from "@/lib/school-admin/merge-student-standing-health-flags";
+import { formatStudentClassroomLabel } from "@/lib/school-admin/format-student-classroom-label";
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
@@ -30,8 +32,13 @@ import {
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
 import type { StaffClassroomOption } from "@/lib/school-admin/classrooms";
+import {
+  studentMatchesClassroomFilter,
+  type TeacherClassroomFilter,
+} from "@/lib/school-teacher/filter-students-by-classroom";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type TeacherMyStudentsPageProps = {
@@ -45,7 +52,6 @@ type TeacherMyStudentsPageProps = {
 };
 
 type TeacherRosterScope = "assigned" | "school";
-type TeacherClassroomFilter = "all" | "unassigned" | string;
 
 const STUDENTS_PAGE_SIZE = 50;
 
@@ -89,18 +95,6 @@ function StoryFilterPill({
   );
 }
 
-function studentMatchesClassroomFilter(
-  student: AdminEnrolledStudentSummary,
-  filter: TeacherClassroomFilter,
-  staffClassrooms: StaffClassroomOption[],
-): boolean {
-  if (filter === "all") return true;
-  if (filter === "unassigned") return student.classroomNames.length === 0;
-  const classroom = staffClassrooms.find((entry) => entry.id === filter);
-  if (!classroom) return true;
-  return student.classroomNames.includes(classroom.name);
-}
-
 function updateStudentHealthFlag(
   students: AdminEnrolledStudentSummary[],
   studentId: string,
@@ -121,13 +115,28 @@ export default function TeacherMyStudentsPage({
   previewMode = false,
 }: TeacherMyStudentsPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
+  const searchParams = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
   const hasInitialData = initialStudents !== undefined;
   const tableRef = useRef<HTMLDivElement>(null);
+  const staffClassrooms = useMemo(
+    () => initialClassrooms ?? [],
+    [initialClassrooms],
+  );
+
+  const initialClassroomParam = searchParams.get("classroom");
+  const initialClassroomFilter = useMemo((): TeacherClassroomFilter => {
+    if (!initialClassroomParam) return "all";
+    if (initialClassroomParam === "unassigned") return "unassigned";
+    if (staffClassrooms.some((classroom) => classroom.id === initialClassroomParam)) {
+      return initialClassroomParam;
+    }
+    return "all";
+  }, [initialClassroomParam, staffClassrooms]);
 
   const [rosterScope, setRosterScope] = useState<TeacherRosterScope>("assigned");
-  const [classroomFilter, setClassroomFilter] = useState<TeacherClassroomFilter>("all");
-  const [staffClassrooms] = useState<StaffClassroomOption[]>(initialClassrooms ?? []);
+  const [classroomFilter, setClassroomFilter] =
+    useState<TeacherClassroomFilter>(initialClassroomFilter);
   const [assignedStudents, setAssignedStudents] = useState<AdminEnrolledStudentSummary[]>(
     initialStudents ?? [],
   );
@@ -209,6 +218,11 @@ export default function TeacherMyStudentsPage({
       );
       setAssignedStudents(withFlags);
     } catch (err) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "students.load_assigned",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
       setLoadingAssigned(false);
@@ -230,6 +244,11 @@ export default function TeacherMyStudentsPage({
       );
       setSchoolStudents(withFlags);
     } catch (err) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "students.load_school",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
       setLoadingSchool(false);
@@ -312,11 +331,11 @@ export default function TeacherMyStudentsPage({
     students.find((row) => row.id === selectedId) ??
     null;
 
-  const tableColumnCount = isSchoolScope ? 6 : 5;
-  const tableMinWidth = isSchoolScope ? "min-w-[960px]" : "min-w-[820px]";
+  const tableColumnCount = isSchoolScope ? 7 : 6;
+  const tableMinWidth = isSchoolScope ? "min-w-[1080px]" : "min-w-[940px]";
   const tableHeadings = isSchoolScope
-    ? ["Student", "Grade", "Program", "Teacher", "Parent", "Enrolled"]
-    : ["Student", "Grade", "Program", "Parent", "Enrolled"];
+    ? ["Student", "Grade", "Program", "Classroom", "Teacher", "Parent", "Enrolled"]
+    : ["Student", "Grade", "Program", "Classroom", "Parent", "Enrolled"];
 
   const inputStyle = {
     borderColor: "#DCE4DC",
@@ -630,6 +649,14 @@ export default function TeacherMyStudentsPage({
                               style={{ color: "#5D6D73" }}
                             >
                               <div className="max-w-[14rem] truncate">{programLabel}</div>
+                            </td>
+                            <td
+                              className="px-[15px] py-3 text-xs"
+                              style={{ color: "#5D6D73" }}
+                            >
+                              <div className="max-w-[12rem] truncate">
+                                {formatStudentClassroomLabel(student.classroomNames)}
+                              </div>
                             </td>
                             {isSchoolScope ? (
                               <td

@@ -4,6 +4,9 @@ import { getParentFeatureIconStyle } from "@/lib/organization-settings/parent-fe
 
 const CATEGORY_ICON_SLUGS: Record<string, string> = {
   "getting started": "home",
+  notifications: "bell",
+  account: "user-check",
+  applications: "file-text",
   billing: "credit-card",
   messages: "message-square",
   calendar: "calendar-days",

@@ -4,6 +4,7 @@ type AdminMasterDetailProps = {
   list: ReactNode;
   detail: ReactNode;
   listWidth?: "sm" | "md";
+  className?: string;
 };
 
 const LIST_WIDTH = {
@@ -15,9 +16,12 @@ export function AdminMasterDetail({
   list,
   detail,
   listWidth = "md",
+  className,
 }: AdminMasterDetailProps) {
   return (
-    <div className="h-[calc(100vh-3rem)] flex overflow-hidden">
+    <div
+      className={`flex overflow-hidden ${className ?? "h-[calc(100vh-3rem)]"}`}
+    >
       <div
         className={`${LIST_WIDTH[listWidth]} shrink-0 border-r border-admin-border flex flex-col bg-admin-surface`}
       >

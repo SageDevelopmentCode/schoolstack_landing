@@ -5,6 +5,7 @@ import {
   type EnrolledProgramPortalSummary,
 } from "@/lib/admissions/program-parent-portal-access";
 import {
+  getProgramByPortalSlug,
   isProgramParentPortalCoopMode,
   isProgramParentPortalIsolated,
 } from "@/lib/admissions/program-parent-portal";
@@ -101,6 +102,42 @@ export function parseParentNotificationContextFromSearchParams(
     parentNavBasePath,
     applyBasePath,
   });
+}
+
+export async function resolveParentNotificationContextForApi(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    slug: string;
+    searchParams: URLSearchParams;
+  },
+): Promise<ParentNotificationContext | null> {
+  const mode = input.searchParams.get("mode")?.trim();
+
+  if (mode === "program") {
+    const programSlug = input.searchParams.get("programSlug")?.trim() ?? "";
+    if (!programSlug) {
+      return buildMainParentNotificationContext(input.slug);
+    }
+
+    const program = await getProgramByPortalSlug(
+      supabase,
+      input.organizationId,
+      programSlug,
+    );
+    if (!program) {
+      return null;
+    }
+
+    return buildProgramParentNotificationContext(
+      input.slug,
+      program.id,
+      program.portal_slug,
+      isProgramParentPortalCoopMode(program.parent_portal_settings),
+    );
+  }
+
+  return buildMainParentNotificationContext(input.slug);
 }
 
 export function buildNotificationContextsFromEnrolledPrograms(

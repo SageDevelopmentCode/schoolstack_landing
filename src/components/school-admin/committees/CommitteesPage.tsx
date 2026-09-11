@@ -14,6 +14,7 @@ import {
 } from "@/lib/committees/committees";
 import type { Committee, CommitteeListItem, CommitteeTemplate } from "@/lib/committees/types";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import CommitteeListView from "./CommitteeListView";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
@@ -71,6 +72,11 @@ export default function CommitteesPage({
       try {
         await loadList();
       } catch (e) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "committees.load",
+          error: "",
+        }, e);
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load committees");
         }
@@ -95,7 +101,12 @@ export default function CommitteesPage({
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return;
         if (!cancelled) setPendingRequestCount((data.requests ?? []).length);
-      } catch {
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "committees.join_requests.count",
+          error: "",
+        }, err);
         if (!cancelled) setPendingRequestCount(0);
       }
     })();
@@ -114,7 +125,12 @@ export default function CommitteesPage({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return;
       setPendingRequestCount((data.requests ?? []).length);
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.join_requests.count",
+        error: "",
+      }, err);
       setPendingRequestCount(0);
     }
   }, [organizationId]);
@@ -130,6 +146,11 @@ export default function CommitteesPage({
         const committee = await getCommittee(supabase, organizationId, committeeId);
         if (!cancelled) setActiveCommittee(committee);
       } catch (e) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "committees.load_detail",
+          error: "",
+        }, e);
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load committee");
         }
@@ -196,6 +217,11 @@ export default function CommitteesPage({
       setActiveCommittee(created);
       adminToast.success("Committee created");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.create",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to create committee."));
       throw err;
     }
@@ -214,6 +240,11 @@ export default function CommitteesPage({
       setShowArchive(false);
       adminToast.success("Committee archived");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.archive",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to archive committee."));
       throw err;
     }

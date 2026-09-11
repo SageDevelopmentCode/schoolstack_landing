@@ -7,6 +7,7 @@ import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/type
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { updateCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 export default function CommitteeSettingsSection({
   committee,
@@ -53,6 +54,11 @@ export default function CommitteeSettingsSection({
       adminToast.success("Committee details saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save committee details."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.settings.save_details",
+        error: "",
+      }, err);
     } finally {
       setSavingDetails(false);
     }
@@ -71,6 +77,11 @@ export default function CommitteeSettingsSection({
       adminToast.success("Term saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save term."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.settings.save_term",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }

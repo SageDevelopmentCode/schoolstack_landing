@@ -18,6 +18,7 @@ import { parseEventDate } from "@/lib/committees/calendar-utils";
 import { calendarEventWindowForMonth } from "@/lib/school-events/calendar-window";
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
@@ -286,8 +287,17 @@ export default function ParentCalendarPage({
           }
           return Array.from(byId.values());
         });
-      } catch {
+      } catch (err) {
         // Keep showing the current window if a refetch fails.
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "calendar.load_events",
+            error: "",
+          },
+          err,
+        );
       }
     },
     [organizationId, previewMode, programId],

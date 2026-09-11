@@ -2,7 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { notifyCommitteeJoinRequested } from "@/lib/discord";
+import { sendCommitteeJoinRequestAdminNotification } from "@/lib/emails";
+import { resolveCommitteeNotificationEmails } from "@/lib/notifications/org-notification-settings";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import { SITE_URL } from "@/lib/site";
 
 export async function sendCommitteeJoinRequestedNotifications(
   supabase: SupabaseClient,
@@ -15,6 +18,7 @@ export async function sendCommitteeJoinRequestedNotifications(
     schoolSlug: string;
     guardianName: string;
     guardianEmail: string;
+    preferredDutyRoleTitle?: string | null;
     grade: string | null;
     note: string | null;
     actorUserId: string;
@@ -41,6 +45,16 @@ export async function sendCommitteeJoinRequestedNotifications(
     },
   });
 
+  const adminEmails = await resolveCommitteeNotificationEmails(
+    supabase,
+    input.organizationId,
+  );
+  const committeesAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "committees")}`;
+  const submittedAtLabel = new Date().toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
   const results = await Promise.allSettled([
     notifyCommitteeJoinRequested({
       schoolName: input.schoolName,
@@ -52,6 +66,20 @@ export async function sendCommitteeJoinRequestedNotifications(
       note: input.note,
       requestId: input.requestId,
     }),
+    ...adminEmails.map((email) =>
+      sendCommitteeJoinRequestAdminNotification({
+        email,
+        schoolName: input.schoolName,
+        committeeName: input.committeeName,
+        guardianName: input.guardianName,
+        guardianEmail: input.guardianEmail,
+        preferredDutyRoleTitle: input.preferredDutyRoleTitle,
+        grade: input.grade,
+        note: input.note,
+        submittedAtLabel,
+        committeesAdminUrl,
+      }),
+    ),
   ]);
 
   await logSettledNotificationFailures(

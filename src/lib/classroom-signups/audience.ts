@@ -103,8 +103,23 @@ export async function countAssignedFamiliesForTeacher(
 
 export async function resolveAudienceFamilyIds(
   admin: SupabaseClient,
-  signup: Pick<ClassroomSignup, "organizationId" | "audience" | "classroomId" | "createdByStaffMemberId">,
+  signup: Pick<
+    ClassroomSignup,
+    | "organizationId"
+    | "audience"
+    | "classroomId"
+    | "classroomIds"
+    | "createdByStaffMemberId"
+  >,
 ): Promise<string[]> {
+  if (signup.audience === "classrooms") {
+    return countFamiliesForClassroomIds(
+      admin,
+      signup.organizationId,
+      signup.classroomIds,
+    ).then((result) => result.familyIds);
+  }
+
   if (signup.audience === "classroom") {
     if (!signup.classroomId) return [];
     const rows = await classroomFamilyStudents(
@@ -123,11 +138,33 @@ export async function resolveAudienceFamilyIds(
   return [...new Set(rows.map((row) => row.family_id))];
 }
 
+export async function countFamiliesForClassroomIds(
+  admin: SupabaseClient,
+  organizationId: string,
+  classroomIds: string[],
+): Promise<{ familyIds: string[]; count: number }> {
+  const uniqueFamilyIds = new Set<string>();
+
+  for (const classroomId of classroomIds) {
+    const rows = await classroomFamilyStudents(admin, organizationId, classroomId);
+    for (const row of rows) {
+      uniqueFamilyIds.add(row.family_id);
+    }
+  }
+
+  const familyIds = [...uniqueFamilyIds];
+  return { familyIds, count: familyIds.length };
+}
+
 export async function isFamilyInSignupAudience(
   admin: SupabaseClient,
   signup: Pick<
     ClassroomSignup,
-    "organizationId" | "audience" | "classroomId" | "createdByStaffMemberId"
+    | "organizationId"
+    | "audience"
+    | "classroomId"
+    | "classroomIds"
+    | "createdByStaffMemberId"
   >,
   familyId: string,
 ): Promise<boolean> {

@@ -1,5 +1,6 @@
 import type {
   ClassroomSignup,
+  ClassroomSignupDraft,
   ClassroomSignupMetrics,
   ClassroomSignupResponse,
   ClassroomSignupStatus,
@@ -127,8 +128,40 @@ export function formatAudienceLabel(signup: ClassroomSignup): string {
   if (signup.audience === "assigned") {
     return `${signup.familyCount} assigned ${signup.familyCount === 1 ? "family" : "families"}`;
   }
+
+  if (signup.audience === "classrooms") {
+    const classroomLabel =
+      signup.classroomName ??
+      (signup.classroomIds.length > 1
+        ? `${signup.classroomIds.length} classrooms`
+        : signup.classroomIds.length === 1
+          ? "1 classroom"
+          : "Classrooms");
+    return `${classroomLabel} · ${signup.familyCount} ${signup.familyCount === 1 ? "family" : "families"}`;
+  }
+
   const classroom = signup.classroomName ?? "Classroom";
   return `${classroom} · ${signup.familyCount} families`;
+}
+
+export function estimateFamilyCountForClassrooms(
+  classroomOptions: { id: string; familyCount: number }[],
+  selectedClassroomIds: string[],
+): number {
+  return selectedClassroomIds.reduce((total, classroomId) => {
+    const classroom = classroomOptions.find((option) => option.id === classroomId);
+    return total + (classroom?.familyCount ?? 0);
+  }, 0);
+}
+
+export function classroomNamesForSelection(
+  classroomOptions: { id: string; name: string }[],
+  selectedClassroomIds: string[],
+): string {
+  return selectedClassroomIds
+    .map((id) => classroomOptions.find((option) => option.id === id)?.name)
+    .filter((name): name is string => Boolean(name))
+    .join(", ");
 }
 
 export function filterSignupsByStatus(
@@ -197,4 +230,21 @@ export function countUnrespondedFamilies(
       .map((r) => r.familyId),
   );
   return Math.max(0, signup.familyCount - respondedFamilyIds.size);
+}
+
+export function signupToDraft(signup: ClassroomSignup): ClassroomSignupDraft {
+  return {
+    id: signup.id,
+    title: signup.title,
+    description: signup.description,
+    signupType: signup.signupType,
+    audience: signup.audience,
+    classroomId: signup.classroomId,
+    classroomIds: signup.classroomIds,
+    classroomName: signup.classroomName,
+    familyCount: signup.familyCount,
+    status: signup.status,
+    responseDeadline: signup.responseDeadline,
+    config: signup.config,
+  };
 }

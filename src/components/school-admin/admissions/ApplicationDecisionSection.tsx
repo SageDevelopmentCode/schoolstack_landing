@@ -10,10 +10,12 @@ import {
 } from "@/lib/admissions/application-status-transitions";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type ApplicationDecisionSectionProps = {
   C: AdminThemeTokens;
+  organizationId: string;
   applicationId: string;
   currentStatus: string;
   onStatusChanged: (status: string) => void;
@@ -36,6 +38,7 @@ function buttonStyle(
 
 export default function ApplicationDecisionSection({
   C,
+  organizationId,
   applicationId,
   currentStatus,
   onStatusChanged,
@@ -87,6 +90,11 @@ export default function ApplicationDecisionSection({
         }
       })
       .catch((err) => {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.submission.load_status_actions",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(
             err instanceof Error ? err.message : "Failed to load status actions.",
@@ -103,7 +111,7 @@ export default function ApplicationDecisionSection({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, currentStatus]);
+  }, [applicationId, currentStatus, organizationId]);
 
   if (!loadingActions && actions.length === 0) {
     return null;
@@ -139,6 +147,11 @@ export default function ApplicationDecisionSection({
       onStatusChanged(String(body.status));
       adminToast.success("Application status updated");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.submission.update_status",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to update status.");
       setError(message);
       adminToast.error(message);

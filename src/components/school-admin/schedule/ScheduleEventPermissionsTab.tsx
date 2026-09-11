@@ -15,6 +15,7 @@ import {
 import { portalRoleLabel, staffDisplayName } from "@/lib/staff/staff-display";
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ScheduleEventPermissionsTabProps = {
@@ -139,6 +140,11 @@ export default function ScheduleEventPermissionsTab({
       setStaffMembers(staffJson.staffMembers ?? []);
     } catch (err) {
       setLoadError(formatActionError(err, "Failed to load permissions."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "schedule.permissions.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -241,6 +247,11 @@ export default function ScheduleEventPermissionsTab({
       adminToast.success("Calendar permissions saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save permissions."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "schedule.permissions.save",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }

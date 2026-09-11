@@ -5,6 +5,7 @@ import { Loader2, Upload } from "lucide-react";
 import BulletinAttachmentList from "@/components/school-admin/bulletin/BulletinAttachmentList";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import SchoolAdminDateTimePicker from "@/components/school-admin/ui/SchoolAdminDateTimePicker";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -140,6 +141,7 @@ function ScheduleToggleRow({
 }
 
 export type UseBulletinPostEditorOptions = {
+  organizationId: string;
   slug: string;
   post: BulletinPost | null;
   programs: ProgramOption[];
@@ -148,6 +150,7 @@ export type UseBulletinPostEditorOptions = {
 };
 
 export function useBulletinPostEditor({
+  organizationId,
   slug,
   post,
   programs: _programs,
@@ -278,6 +281,11 @@ export function useBulletinPostEditor({
     try {
       await persistPost(status);
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.save",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not save bulletin post."));
     } finally {
       setSaving(false);
@@ -301,6 +309,11 @@ export function useBulletinPostEditor({
       setDraftPost(data.post);
       onSaved(data.post);
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.archive",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not archive bulletin post."));
     } finally {
       setSaving(false);
@@ -323,6 +336,11 @@ export function useBulletinPostEditor({
       adminToast.success("Bulletin deleted");
       onDeleted();
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.delete",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not delete bulletin post."));
     } finally {
       setSaving(false);
@@ -371,6 +389,11 @@ export function useBulletinPostEditor({
       setDraftPost(data.post);
       onSaved(data.post);
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.upload_attachments",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not upload attachments."));
     } finally {
       setUploading(false);
@@ -397,6 +420,11 @@ export function useBulletinPostEditor({
       setDraftPost(data.post);
       onSaved(data.post);
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.remove_attachment",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not remove attachment."));
     } finally {
       setRemovingAttachmentId(null);

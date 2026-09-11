@@ -18,6 +18,7 @@ import {
   formatProgramCoopCurriculumUploadError,
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -67,6 +68,11 @@ export default function ProgramCoopCurriculumUploadCard({
       );
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load curriculum guides."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_curriculum.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -119,6 +125,11 @@ export default function ProgramCoopCurriculumUploadCard({
       adminToast.success("Curriculum guide uploaded");
     } catch (err) {
       const message = formatProgramCoopCurriculumUploadError(err);
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_curriculum.upload",
+        error: "",
+      }, err);
       setUploadError(message);
       adminToast.error(message);
     } finally {
@@ -139,6 +150,11 @@ export default function ProgramCoopCurriculumUploadCard({
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to open curriculum."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_curriculum.open",
+        error: "",
+      }, err);
     } finally {
       setOpeningId(null);
     }
@@ -166,6 +182,11 @@ export default function ProgramCoopCurriculumUploadCard({
       adminToast.success("Display name saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save display name."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_curriculum.save_name",
+        error: "",
+      }, err);
     } finally {
       setSavingNameId(null);
     }
@@ -186,6 +207,11 @@ export default function ProgramCoopCurriculumUploadCard({
       adminToast.success("Curriculum guide removed");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to remove curriculum guide."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_curriculum.remove",
+        error: "",
+      }, err);
     } finally {
       setRemoving(false);
     }

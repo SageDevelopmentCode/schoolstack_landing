@@ -41,6 +41,7 @@ import {
   uploadStudentProfilePhotoFromParent,
 } from "@/lib/students/upload-student-profile-photo-client";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -217,6 +218,15 @@ export default function ParentChildRecordWorkspace({
             : error instanceof Error
               ? error.message
               : "Failed to upload photo.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "children.upload_photo",
+            error: "",
+          },
+          error,
         );
       } finally {
         setPhotoUploading(false);

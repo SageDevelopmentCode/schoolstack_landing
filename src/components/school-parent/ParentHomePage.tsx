@@ -68,6 +68,10 @@ import type { BulletinPost } from "@/lib/school-bulletin/types";
 import ParentDocumentationGuidePanel from "@/components/school-parent/ParentDocumentationGuidePanel";
 import ParentHomeHowToGuidesSection from "@/components/school-parent/home/ParentHomeHowToGuidesSection";
 import ParentHomeFeatureAnnouncementsSection from "@/components/school-parent/home/ParentHomeFeatureAnnouncementsSection";
+import {
+  ParentHomeChildCardsSkeleton,
+  ParentHomeStartHereSkeleton,
+} from "@/components/school-parent/home/ParentHomeDeferredSkeleton";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 
 type ParentHomePageProps = {
@@ -424,6 +428,7 @@ export default function ParentHomePage({
       slug: schoolSlug,
       features,
       coopModeEnabled,
+      bulletinEnabled,
       programSlug,
       parentNavBasePath,
       previewBasePath,
@@ -432,6 +437,7 @@ export default function ParentHomePage({
     features,
     schoolSlug,
     coopModeEnabled,
+    bulletinEnabled,
     programSlug,
     parentNavBasePath,
     previewBasePath,
@@ -539,72 +545,78 @@ export default function ParentHomePage({
           <motion.div custom={1} initial="hidden" animate="visible" variants={fadeUp}>
             <ParentCard theme={theme} variant="today" className="relative">
               <ParentSectionKicker theme={theme}>Start here</ParentSectionKicker>
-              <h3
-                className="mb-4 text-base font-semibold"
-                style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-              >
-                {attentionItems.length > 0
-                  ? `${attentionItems.length} thing${attentionItems.length === 1 ? "" : "s"} need your attention`
-                  : onboardingItems.length > 0
-                    ? "Finish setting up your account"
-                    : "You're all caught up"}
-              </h3>
-              {attentionItems.length > 0 ? (
-                attentionItems.slice(0, 4).map((item) => (
-                  <div key={item.key}>
-                    {item.href ? (
-                      <Link href={item.href} className="block hover:opacity-90">
-                        <ParentAttentionItem
-                          theme={theme}
-                          icon={item.icon}
-                          title={item.title}
-                          subtitle={item.subtitle}
-                          iconBg={item.iconBg}
-                          iconIncludesWrapper={item.iconIncludesWrapper}
-                          urgent={item.urgent}
-                        />
-                      </Link>
-                    ) : (
-                      <ParentAttentionItem
-                        theme={theme}
-                        icon={item.icon}
-                        title={item.title}
-                        subtitle={item.subtitle}
-                        iconBg={item.iconBg}
-                        iconIncludesWrapper={item.iconIncludesWrapper}
-                        urgent={item.urgent}
-                      />
-                    )}
-                  </div>
-                ))
-              ) : onboardingItems.length > 0 ? (
-                <ParentAttentionItem
-                  theme={theme}
-                  icon={
-                    <ClipboardCheck
-                      className="h-4 w-4"
-                      style={{ color: theme.primary }}
-                    />
-                  }
-                  iconBg={theme.primarySoft}
-                  title="Complete your onboarding"
-                  subtitle="A few quick steps to get the most from your portal"
-                />
+              {contentDeferred ? (
+                <ParentHomeStartHereSkeleton theme={theme} />
               ) : (
-                <p className="text-sm" style={{ color: theme.muted }}>
-                  No urgent tasks right now. Check back for updates from school.
-                </p>
-              )}
-              {onboardingItems.length > 0 ? (
-                <div className="mt-3">
-                  <ParentTextLink
-                    theme={theme}
-                    onClick={() => setOnboardingOpen(true)}
+                <>
+                  <h3
+                    className="mb-4 text-base font-semibold"
+                    style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
                   >
-                    Review today&apos;s to-dos
-                  </ParentTextLink>
-                </div>
-              ) : null}
+                    {attentionItems.length > 0
+                      ? `${attentionItems.length} thing${attentionItems.length === 1 ? "" : "s"} need your attention`
+                      : onboardingItems.length > 0
+                        ? "Finish setting up your account"
+                        : "You're all caught up"}
+                  </h3>
+                  {attentionItems.length > 0 ? (
+                    attentionItems.slice(0, 4).map((item) => (
+                      <div key={item.key}>
+                        {item.href ? (
+                          <Link href={item.href} className="block hover:opacity-90">
+                            <ParentAttentionItem
+                              theme={theme}
+                              icon={item.icon}
+                              title={item.title}
+                              subtitle={item.subtitle}
+                              iconBg={item.iconBg}
+                              iconIncludesWrapper={item.iconIncludesWrapper}
+                              urgent={item.urgent}
+                            />
+                          </Link>
+                        ) : (
+                          <ParentAttentionItem
+                            theme={theme}
+                            icon={item.icon}
+                            title={item.title}
+                            subtitle={item.subtitle}
+                            iconBg={item.iconBg}
+                            iconIncludesWrapper={item.iconIncludesWrapper}
+                            urgent={item.urgent}
+                          />
+                        )}
+                      </div>
+                    ))
+                  ) : onboardingItems.length > 0 ? (
+                    <ParentAttentionItem
+                      theme={theme}
+                      icon={
+                        <ClipboardCheck
+                          className="h-4 w-4"
+                          style={{ color: theme.primary }}
+                        />
+                      }
+                      iconBg={theme.primarySoft}
+                      title="Complete your onboarding"
+                      subtitle="A few quick steps to get the most from your portal"
+                    />
+                  ) : (
+                    <p className="text-sm" style={{ color: theme.muted }}>
+                      No urgent tasks right now. Check back for updates from school.
+                    </p>
+                  )}
+                  {onboardingItems.length > 0 ? (
+                    <div className="mt-3">
+                      <ParentTextLink
+                        theme={theme}
+                        onClick={() => setOnboardingOpen(true)}
+                      >
+                        Review today&apos;s to-dos
+                      </ParentTextLink>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </ParentCard>
           </motion.div>
 
@@ -668,7 +680,9 @@ export default function ParentHomePage({
           >
             Your children
           </h3>
-          {familyChildren.length === 0 ? (
+          {contentDeferred ? (
+            <ParentHomeChildCardsSkeleton theme={theme} />
+          ) : familyChildren.length === 0 ? (
             <ParentCard theme={theme}>
               <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
                 {programPortalLabel
@@ -716,6 +730,7 @@ export default function ParentHomePage({
             messagesHref={messagesHref}
             messagesEnabled={messagesEnabled}
             previewMode={previewMode}
+            contentDeferred={contentDeferred}
           />
         ) : null}
 

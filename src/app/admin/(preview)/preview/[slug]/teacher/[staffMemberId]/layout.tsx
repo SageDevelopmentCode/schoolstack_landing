@@ -64,6 +64,8 @@ export default async function StaffTeacherPreviewLayout({
           userProfile={previewContext.userProfile}
           previewMode
           previewBasePath={previewBasePath}
+          previewStaffMemberId={staffMemberId}
+          staffMemberId={staffMemberId}
         >
           {children}
         </SchoolTeacherBaseline>

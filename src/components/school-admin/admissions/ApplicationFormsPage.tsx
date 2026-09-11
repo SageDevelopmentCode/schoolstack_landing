@@ -99,11 +99,8 @@ import {
   DEFAULT_BUILDER_FOCUS,
   type BuilderFocus,
 } from "./builder-focus";
-import {
-  isUnexpectedOperationalError,
-  parseOperationalError,
-  reportClientOperationalError,
-} from "@/lib/operational-errors-client";
+import { parseOperationalError } from "@/lib/operational-errors-client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
   serializeChecklistEditableState,
   serializeEditableFormState,
@@ -247,25 +244,6 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
 function formatSupabaseError(err: unknown, fallback: string): string {
   const parsed = parseOperationalError(err);
   return parsed.message === "Unknown error" ? fallback : parsed.message;
-}
-
-async function reportChecklistOperationalError(
-  organizationId: string,
-  operation: string,
-  checklistId: string,
-  err: unknown,
-) {
-  const parsed = parseOperationalError(err);
-  await reportClientOperationalError({
-    organizationId,
-    operation,
-    error: parsed.message,
-    code: parsed.code,
-    details: parsed.details,
-    entityType: "enrollment_checklist_template",
-    entityId: checklistId,
-    notify: isUnexpectedOperationalError(err),
-  });
 }
 
 function toEditableState(form: ApplicationFormVersion): EditableFormState {
@@ -631,6 +609,11 @@ export default function ApplicationFormsPage({
         resolveFlowSelection(formRows, checklistRows, flowParam, prev),
       );
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.load",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load forms.");
     } finally {
       setLoading(false);
@@ -678,7 +661,12 @@ export default function ApplicationFormsPage({
         if (!cancelled) {
           setSelectedApplyFormHydrated(true);
         }
-      } catch {
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "forms.load_detail",
+          error: "",
+        }, err);
         // syncEditable will surface edit errors if the full form cannot load.
       }
     }
@@ -723,6 +711,11 @@ export default function ApplicationFormsPage({
           setChecklistSavedSnapshot(serializeChecklistEditableState(nextChecklist));
         }
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "checklist.load",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(
             err instanceof Error ? err.message : "Failed to load enrollment checklist.",
@@ -779,6 +772,11 @@ export default function ApplicationFormsPage({
               );
               next = toEditableState(updated);
             } catch (err) {
+              void reportPortalOperationalError("school_admin", {
+                organizationId,
+                operation: "forms.upgrade_schema",
+                error: "",
+              }, err);
               if (!cancelled) {
                 setError(
                   err instanceof Error
@@ -904,6 +902,11 @@ export default function ApplicationFormsPage({
       setCreateApplyDialogOpen(false);
       adminToast.success("Application form created");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.create_apply",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to create apply form.");
       setError(message);
       adminToast.error(message);
@@ -940,6 +943,11 @@ export default function ApplicationFormsPage({
       setCreateChecklistDialogOpen(false);
       adminToast.success("Enrollment checklist created");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "checklist.create",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to create enrollment checklist.");
       setError(message);
       adminToast.error(message);
@@ -974,6 +982,11 @@ export default function ApplicationFormsPage({
       setFocus(DEFAULT_BUILDER_FOCUS);
       adminToast.success("Form duplicated");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.duplicate",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to duplicate form.");
       setError(message);
       adminToast.error(message);
@@ -1042,6 +1055,11 @@ export default function ApplicationFormsPage({
       setApplySavedSnapshot(serializeEditableFormState(nextEditable));
       adminToast.success(isPublished ? "Form saved" : "Draft saved");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.save",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to save form.");
       if (isSlugRelatedError(message)) {
         focusSlugSetup(message);
@@ -1117,6 +1135,11 @@ export default function ApplicationFormsPage({
       setSetupHighlight(null);
       adminToast.success("Form published");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.publish",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to publish form.");
       if (isSlugRelatedError(message)) {
         focusSlugSetup(message);
@@ -1142,6 +1165,11 @@ export default function ApplicationFormsPage({
       setUnpublishOpen(false);
       adminToast.success("Form unpublished");
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.unpublish",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to unpublish form.");
       setError(message);
       adminToast.error(message);
@@ -1221,12 +1249,13 @@ export default function ApplicationFormsPage({
       const message = formatSupabaseError(err, "Failed to save checklist.");
       setError(message);
       adminToast.error(message);
-      void reportChecklistOperationalError(
+      void reportPortalOperationalError("school_admin", {
         organizationId,
-        "checklist.save",
-        selectedChecklist.id,
-        err,
-      );
+        operation: "checklist.save",
+        error: "",
+        entityType: "enrollment_checklist_template",
+        entityId: selectedChecklist.id,
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -1354,12 +1383,13 @@ export default function ApplicationFormsPage({
       const message = formatSupabaseError(err, "Failed to publish checklist.");
       setError(message);
       adminToast.error(message);
-      void reportChecklistOperationalError(
+      void reportPortalOperationalError("school_admin", {
         organizationId,
-        "checklist.publish",
-        selectedChecklist.id,
-        err,
-      );
+        operation: "checklist.publish",
+        error: "",
+        entityType: "enrollment_checklist_template",
+        entityId: selectedChecklist.id,
+      }, err);
     } finally {
       setPublishing(false);
     }
@@ -1407,12 +1437,13 @@ export default function ApplicationFormsPage({
       const message = formatSupabaseError(err, "Failed to unpublish checklist.");
       setError(message);
       adminToast.error(message);
-      void reportChecklistOperationalError(
+      void reportPortalOperationalError("school_admin", {
         organizationId,
-        "checklist.unpublish",
-        selectedChecklist.id,
-        err,
-      );
+        operation: "checklist.unpublish",
+        error: "",
+        entityType: "enrollment_checklist_template",
+        entityId: selectedChecklist.id,
+      }, err);
     } finally {
       setUnpublishing(false);
     }
@@ -1438,7 +1469,12 @@ export default function ApplicationFormsPage({
     try {
       await navigator.clipboard.writeText(absoluteUrl);
       adminToast.success("Link copied");
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "forms.copy_link",
+        error: "",
+      }, err);
       const message = "Could not copy link to clipboard.";
       setError(message);
       adminToast.error(message);

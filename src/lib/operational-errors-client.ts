@@ -97,8 +97,56 @@ export function shouldReportApplyClientError(
   err: unknown,
   responseStatus?: number,
 ): boolean {
+  return shouldReportPortalClientError(err, responseStatus);
+}
+
+export function shouldReportPortalClientError(
+  err: unknown,
+  responseStatus?: number,
+): boolean {
   if (responseStatus !== undefined && responseStatus >= 400 && responseStatus < 500) {
     return false;
   }
+
+  if (err instanceof DOMException && err.name === "AbortError") {
+    return false;
+  }
+
   return isUnexpectedOperationalError(err);
+}
+
+async function postOperationalError(
+  endpoint: string,
+  payload: ClientOperationalErrorPayload,
+  logLabel: string,
+): Promise<void> {
+  try {
+    await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (reportError) {
+    console.error(`[operational-errors] ${logLabel} report failed:`, reportError);
+  }
+}
+
+export async function reportParentPortalOperationalError(
+  payload: ClientOperationalErrorPayload,
+): Promise<void> {
+  await postOperationalError(
+    "/api/parent-portal/operational-errors",
+    payload,
+    "parent portal",
+  );
+}
+
+export async function reportTeacherPortalOperationalError(
+  payload: ClientOperationalErrorPayload,
+): Promise<void> {
+  await postOperationalError(
+    "/api/teacher-portal/operational-errors",
+    payload,
+    "teacher portal",
+  );
 }

@@ -14,6 +14,7 @@ import { resolveBulletinDisplayStatus } from "@/lib/school-bulletin/bulletin-aud
 import type { BulletinPost, ProgramOption } from "@/lib/school-bulletin/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type BulletinPageProps = {
   organizationId: string;
@@ -23,6 +24,7 @@ type BulletinPageProps = {
 };
 
 export default function BulletinPage({
+  organizationId,
   slug,
   schoolName,
 }: BulletinPageProps) {
@@ -51,11 +53,16 @@ export default function BulletinPage({
       setPosts(data.posts ?? []);
       setPrograms(data.programs ?? []);
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "bulletin.load",
+        error: "",
+      }, error);
       adminToast.error(formatActionError(error, "Could not load bulletin posts."));
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [organizationId, slug]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -169,6 +176,7 @@ export default function BulletinPage({
       <BulletinPostEditorSheet
         open={editorOpen}
         onClose={closeEditor}
+        organizationId={organizationId}
         slug={slug}
         post={editorPost}
         programs={programs}

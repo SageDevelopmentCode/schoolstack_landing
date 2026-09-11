@@ -37,6 +37,7 @@ import {
 } from "@/lib/school-admin/admin-modal-motion";
 import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { studentHasStandingHealthItems, type StudentHealthProfile } from "@/lib/student-health/types";
 
 type StudentDetailPanelProps = {
@@ -124,6 +125,11 @@ export default function StudentDetailPanel({
         }
         setDetail(nextDetail);
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "students.load_detail",
+          error: "",
+        }, err);
         setError(err instanceof Error ? err.message : "Failed to load student.");
         setDetail(null);
       } finally {

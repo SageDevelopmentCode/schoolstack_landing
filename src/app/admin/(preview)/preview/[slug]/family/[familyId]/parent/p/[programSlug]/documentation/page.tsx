@@ -94,6 +94,7 @@ export default async function FamilyPreviewProgramParentDocumentationPage({
     programSlug,
     previewBasePath,
   });
+  const bulletinEnabled = Boolean(org.features.admin?.bulletin);
 
   return (
     <SchoolParentPageShell title="How-to guides">
@@ -104,6 +105,7 @@ export default async function FamilyPreviewProgramParentDocumentationPage({
           branding={org.branding}
           features={programContext.effectiveFeatures}
           coopModeEnabled={programContext.coopMode}
+          bulletinEnabled={bulletinEnabled}
           programSlug={programSlug}
           parentNavBasePath={programContext.parentNavBasePath}
           previewBasePath={previewBasePath}

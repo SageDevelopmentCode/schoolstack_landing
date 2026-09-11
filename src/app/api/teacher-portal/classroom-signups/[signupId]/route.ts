@@ -1,12 +1,19 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { sendClassroomSignupClosedNotification } from "@/lib/classroom-signups/classroom-signup-notifications";
+import {
+  fireClassroomSignupActivityNotification,
+  sendClassroomSignupClosedNotification,
+} from "@/lib/classroom-signups/classroom-signup-notifications";
 import {
   getTeacherClassroomSignupById,
   listClassroomSignupResponses,
 } from "@/lib/classroom-signups/load-teacher-signups";
-import { closeClassroomSignup } from "@/lib/classroom-signups/mutations";
+import {
+  closeClassroomSignup,
+  updateClassroomSignup,
+  type UpdateClassroomSignupInput,
+} from "@/lib/classroom-signups/mutations";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
@@ -99,6 +106,7 @@ export async function GET(request: Request, context: RouteContext) {
 type PatchBody = {
   organizationId?: string;
   status?: "closed";
+  update?: UpdateClassroomSignupInput;
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -131,11 +139,20 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const organizationId = body.organizationId?.trim() ?? "";
-  if (!organizationId || body.status !== "closed") {
+  if (!organizationId) {
     return apiError(ROUTE, {
       request,
       status: 400,
-      error: "organizationId and status=closed are required.",
+      error: "organizationId is required.",
+      code: "missing_fields",
+    });
+  }
+
+  if (body.status !== "closed" && !body.update) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Provide status=closed or an update payload.",
       code: "missing_fields",
     });
   }
@@ -157,31 +174,92 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const profile = await getStaffUserProfile(supabase, user.id, organizationId, user);
     const admin = createAdminClient();
-    const signup = await closeClassroomSignup(
+
+    if (body.status === "closed") {
+      const signup = await closeClassroomSignup(
+        admin,
+        organizationId,
+        staffMemberId,
+        signupId,
+      );
+
+      fireClassroomSignupActivityNotification(
+        admin,
+        sendClassroomSignupClosedNotification(admin, {
+          organizationId,
+          signupId: signup.id,
+          signupTitle: signup.title,
+          teacherName: profile.displayName,
+          staffMemberId,
+          actorUserId: user.id,
+          actorName: profile.displayName,
+          actorEmail: profile.email,
+        }),
+        {
+          organizationId,
+          signupId: signup.id,
+          operation: "classroom_signup_closed_notification",
+          surface: "teacher_portal",
+          actorType: "teacher",
+          actorUserId: user.id,
+          actorEmail: profile.email,
+        },
+      );
+
+      return NextResponse.json({ signup });
+    }
+
+    const existing = await getTeacherClassroomSignupById(
       admin,
       organizationId,
       staffMemberId,
       signupId,
     );
+    if (!existing) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Signup not found.",
+        code: "not_found",
+      });
+    }
 
-    void sendClassroomSignupClosedNotification(admin, {
+    if (existing.status === "closed") {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Closed signups cannot be edited.",
+        code: "invalid_status",
+      });
+    }
+
+    const responses = await listClassroomSignupResponses(
+      admin,
       organizationId,
-      signupId: signup.id,
-      signupTitle: signup.title,
-      teacherName: profile.displayName,
+      signupId,
+    );
+    const confirmedCount = responses.filter(
+      (response) => response.status === "confirmed",
+    ).length;
+    const safeFieldsOnly =
+      existing.status === "open" && confirmedCount > 0;
+
+    const signup = await updateClassroomSignup(
+      admin,
+      organizationId,
       staffMemberId,
-      actorUserId: user.id,
-      actorName: profile.displayName,
-      actorEmail: profile.email,
-    });
+      signupId,
+      body.update ?? {},
+      { safeFieldsOnly },
+    );
 
     return NextResponse.json({ signup });
   } catch (error) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to close signup.",
-      code: "close_failed",
+      error: error instanceof Error ? error.message : "Failed to update signup.",
+      code: "update_failed",
       cause: error,
     });
   }

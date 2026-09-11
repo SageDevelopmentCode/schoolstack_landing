@@ -170,6 +170,7 @@ export async function createCommitteeJoinRequest(
     schoolSlug: input.schoolSlug,
     guardianName: input.guardianName,
     guardianEmail: input.guardianEmail,
+    preferredDutyRoleTitle: request.preferredDutyRoleTitle,
     grade: input.grade ?? null,
     note: input.note ?? null,
     actorUserId: input.userId,

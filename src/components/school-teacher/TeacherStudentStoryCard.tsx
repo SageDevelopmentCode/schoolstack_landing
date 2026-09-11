@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
-import ParentButtonLink from "@/components/school-parent/ui/ParentButtonLink";
+import ParentButton from "@/components/school-parent/ui/ParentButton";
+import { formatStudentClassroomLabel } from "@/lib/school-admin/format-student-classroom-label";
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
@@ -19,7 +21,7 @@ import {
 type TeacherStudentStoryCardProps = {
   student: AdminEnrolledStudentSummary;
   theme: ParentThemeTokens;
-  myStudentsHref: string;
+  onViewProfile: () => void;
   index: number;
 };
 
@@ -46,7 +48,7 @@ function studentSubtitle(student: AdminEnrolledStudentSummary): string {
 export default function TeacherStudentStoryCard({
   student,
   theme,
-  myStudentsHref,
+  onViewProfile,
   index,
 }: TeacherStudentStoryCardProps) {
   const adminCompat = parentThemeToAdminCompat(theme);
@@ -88,6 +90,11 @@ export default function TeacherStudentStoryCard({
             <p className="m-0 mt-1 text-xs leading-relaxed" style={{ color: "#7B878D" }}>
               {studentSubtitle(student)}
             </p>
+            <p className="m-0 mt-1 text-xs" style={{ color: theme.muted }}>
+              {student.classroomNames.length > 0
+                ? formatStudentClassroomLabel(student.classroomNames)
+                : "No classroom assigned"}
+            </p>
             {student.familyName ? (
               <p className="m-0 mt-1 text-xs" style={{ color: theme.muted }}>
                 {student.familyName} family
@@ -96,14 +103,15 @@ export default function TeacherStudentStoryCard({
           </div>
         </div>
         <div className="mt-auto flex flex-col gap-2 pt-2">
-          <ParentButtonLink
+          <ParentButton
             theme={theme}
-            href={myStudentsHref}
             variant="outline"
-            showArrow
+            onClick={onViewProfile}
+            className="inline-flex w-full items-center justify-center gap-1.5 border"
           >
             View {studentFirstName}&apos;s profile
-          </ParentButtonLink>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          </ParentButton>
         </div>
       </ParentCard>
     </motion.div>

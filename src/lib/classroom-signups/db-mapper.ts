@@ -17,6 +17,7 @@ export type ClassroomSignupRow = {
   signup_type: ClassroomSignupType;
   audience: ClassroomSignupAudience;
   classroom_id: string | null;
+  classroom_ids: string[] | null;
   family_count: number;
   status: ClassroomSignupStatus;
   response_deadline: string | null;
@@ -92,6 +93,13 @@ function guardianDisplayName(
 
 export function mapClassroomSignupRow(row: ClassroomSignupRow): ClassroomSignup {
   const classroom = unwrapRelation(row.classrooms);
+  const config = (row.config ?? {}) as ClassroomSignupConfig;
+  const classroomIds = (row.classroom_ids ?? []).map((id) => String(id));
+  const audienceClassroomNames = config.audienceClassroomNames ?? [];
+  const classroomNameFromJoin = classroom?.name ? String(classroom.name) : null;
+  const classroomNameFromConfig =
+    audienceClassroomNames.length > 0 ? audienceClassroomNames.join(", ") : null;
+
   return {
     id: String(row.id),
     organizationId: String(row.organization_id),
@@ -102,11 +110,12 @@ export function mapClassroomSignupRow(row: ClassroomSignupRow): ClassroomSignup 
     signupType: row.signup_type,
     audience: row.audience,
     classroomId: row.classroom_id ? String(row.classroom_id) : null,
-    classroomName: classroom?.name ? String(classroom.name) : null,
+    classroomIds,
+    classroomName: classroomNameFromConfig ?? classroomNameFromJoin,
     familyCount: Number(row.family_count ?? 0),
     status: row.status,
     responseDeadline: row.response_deadline,
-    config: (row.config ?? {}) as ClassroomSignupConfig,
+    config,
     publishedAt: row.published_at,
     closedAt: row.closed_at,
     createdAt: row.created_at,

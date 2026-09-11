@@ -14,6 +14,8 @@ When server code handles an **unexpected failure** (5xx, thrown errors, notifica
 | API route handler | `apiError(ROUTE, { request, status: 500, error, code, cause })` from `@/lib/api/route-errors` |
 | Cron, webhook handler, lib helper | `reportOperationalError(...)` from `@/lib/operational-errors` |
 | Client-side (apply flow) | `reportPublicApplyOperationalError(...)` from `@/lib/operational-errors-client` |
+| Client-side (parent portal) | `reportParentPortalOperationalError(...)` or `reportPortalOperationalError("parent_portal", ...)` from `@/lib/portal-operational-errors` |
+| Client-side (teacher portal) | `reportTeacherPortalOperationalError(...)` or `reportPortalOperationalError("teacher_portal", ...)` from `@/lib/portal-operational-errors` |
 | Client-side (school admin) | `reportClientOperationalError(...)` from `@/lib/operational-errors-client` |
 | Enrollment checklist API failures | `reportEnrollmentChecklistItemApiFailure(...)` |
 | Email/Discord notification failures | `logNotificationFailure(...)` from `@/lib/admissions/notification-logging` |

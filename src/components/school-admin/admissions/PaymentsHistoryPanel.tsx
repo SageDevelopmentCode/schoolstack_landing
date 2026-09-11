@@ -25,10 +25,8 @@ import {
   type AdminThemeTokens,
 } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import {
-  parseOperationalError,
-  reportClientOperationalError,
-} from "@/lib/operational-errors-client";
+import { parseOperationalError } from "@/lib/operational-errors-client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type PaymentsHistoryPanelMode = "admissions" | "revenue" | "transactions";
@@ -249,7 +247,7 @@ export default function PaymentsHistoryPanel({
       );
       setRows([]);
       if (organizationId) {
-        void reportClientOperationalError({
+        void reportPortalOperationalError("school_admin", {
           organizationId,
           operation:
             mode === "admissions"
@@ -258,7 +256,7 @@ export default function PaymentsHistoryPanel({
           error: parsed.message,
           code: parsed.code,
           details: parsed.details,
-        });
+        }, loadError);
       }
     } finally {
       setLoading(false);

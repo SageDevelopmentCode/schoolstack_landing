@@ -38,6 +38,7 @@ import {
 } from "@/lib/student-health/map-row";
 import { emptyStudentHealthProfile } from "@/lib/student-health/types";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast } from "@/lib/school-admin/admin-toast";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -227,6 +228,17 @@ export default function ParentChildHealthTab({
             : "Failed to load health profile.",
         );
         updateProfile(emptyStudentHealthProfile());
+        if (portal === "parent") {
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "health.load",
+              error: "",
+            },
+            error,
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) setLoadedFetchKey(fetchKey);
@@ -357,6 +369,17 @@ export default function ParentChildHealthTab({
             ? error.message
             : "Failed to save health item.",
         );
+        if (portal === "parent") {
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "health.save",
+              error: "",
+            },
+            error,
+          );
+        }
       } finally {
         setSaving(false);
       }
@@ -381,6 +404,17 @@ export default function ParentChildHealthTab({
           ? error.message
           : "Failed to delete health item.",
       );
+      if (portal === "parent") {
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "health.delete",
+            error: "",
+          },
+          error,
+        );
+      }
     } finally {
       setSaving(false);
     }

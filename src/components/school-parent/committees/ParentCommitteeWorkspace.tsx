@@ -7,6 +7,7 @@ import type { Committee } from "@/lib/committees/types";
 import { parseCommitteeSection } from "@/components/school-admin/committees/committee-routing";
 import ParentCommitteeWorkspaceShell from "@/components/school-parent/committees/ParentCommitteeWorkspaceShell";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentCommitteeWorkspaceProps = {
   committeeId: string;
@@ -39,9 +40,10 @@ export default function ParentCommitteeWorkspace({
     (async () => {
       setLoading(true);
       setError(null);
+      let res: Response | undefined;
       try {
         const params = new URLSearchParams({ organizationId });
-        const res = await fetch(
+        res = await fetch(
           `/api/parent-portal/committees/${committeeId}?${params}`,
         );
         const data = await res.json().catch(() => ({}));
@@ -53,6 +55,16 @@ export default function ParentCommitteeWorkspace({
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load committee.");
           setCommittee(null);
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "committees.load_workspace",
+              error: "",
+            },
+            err,
+            res?.status,
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);

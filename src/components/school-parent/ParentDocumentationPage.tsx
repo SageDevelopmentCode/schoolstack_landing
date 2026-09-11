@@ -23,6 +23,7 @@ type ParentDocumentationPageProps = {
   branding: OrganizationBranding;
   features: OrganizationFeatures;
   coopModeEnabled: boolean;
+  bulletinEnabled?: boolean;
   programSlug?: string;
   parentNavBasePath?: string;
   previewBasePath?: string;
@@ -75,6 +76,7 @@ export default function ParentDocumentationPage({
   branding,
   features,
   coopModeEnabled,
+  bulletinEnabled = false,
   programSlug,
   parentNavBasePath,
   previewBasePath,
@@ -88,11 +90,20 @@ export default function ParentDocumentationPage({
       slug,
       features,
       coopModeEnabled,
+      bulletinEnabled,
       programSlug,
       parentNavBasePath,
       previewBasePath,
     }),
-    [slug, features, coopModeEnabled, programSlug, parentNavBasePath, previewBasePath],
+    [
+      slug,
+      features,
+      coopModeEnabled,
+      bulletinEnabled,
+      programSlug,
+      parentNavBasePath,
+      previewBasePath,
+    ],
   );
 
   const allGuides = useMemo(

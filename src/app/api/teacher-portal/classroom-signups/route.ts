@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { sendClassroomSignupPublishedNotification } from "@/lib/classroom-signups/classroom-signup-notifications";
+import {
+  fireClassroomSignupActivityNotification,
+  sendClassroomSignupPublishedNotification,
+} from "@/lib/classroom-signups/classroom-signup-notifications";
 import { countAssignedFamiliesForTeacher } from "@/lib/classroom-signups/audience";
 import { loadTeacherClassroomOptions } from "@/lib/classroom-signups/load-teacher-classrooms";
 import { listTeacherClassroomSignups } from "@/lib/classroom-signups/load-teacher-signups";
@@ -124,12 +127,24 @@ export async function POST(request: Request) {
   }
 
   const organizationId = body.organizationId?.trim() ?? "";
+  const audience = body.audience ?? "classrooms";
+  const classroomIds = body.classroomIds ?? [];
+
   if (!organizationId || !body.title?.trim()) {
     return apiError(ROUTE, {
       request,
       status: 400,
       error: "organizationId and title are required.",
       code: "missing_fields",
+    });
+  }
+
+  if (audience === "classrooms" && classroomIds.length === 0) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Select at least one classroom for this signup.",
+      code: "missing_classrooms",
     });
   }
 
@@ -156,8 +171,9 @@ export async function POST(request: Request) {
       title: body.title,
       description: body.description ?? "",
       signupType: body.signupType ?? "time_slots",
-      audience: body.audience ?? "assigned",
+      audience,
       classroomId: body.classroomId ?? null,
+      classroomIds,
       classroomName: body.classroomName ?? null,
       responseDeadline: body.responseDeadline ?? null,
       config: body.config ?? {},
@@ -165,16 +181,28 @@ export async function POST(request: Request) {
     });
 
     if (status === "open") {
-      void sendClassroomSignupPublishedNotification(admin, {
-        organizationId,
-        signupId: signup.id,
-        signupTitle: signup.title,
-        teacherName: profile.displayName,
-        staffMemberId,
-        actorUserId: user.id,
-        actorName: profile.displayName,
-        actorEmail: profile.email,
-      });
+      fireClassroomSignupActivityNotification(
+        admin,
+        sendClassroomSignupPublishedNotification(admin, {
+          organizationId,
+          signupId: signup.id,
+          signupTitle: signup.title,
+          teacherName: profile.displayName,
+          staffMemberId,
+          actorUserId: user.id,
+          actorName: profile.displayName,
+          actorEmail: profile.email,
+        }),
+        {
+          organizationId,
+          signupId: signup.id,
+          operation: "classroom_signup_published_notification",
+          surface: "teacher_portal",
+          actorType: "teacher",
+          actorUserId: user.id,
+          actorEmail: profile.email,
+        },
+      );
     }
 
     return NextResponse.json({ signup });

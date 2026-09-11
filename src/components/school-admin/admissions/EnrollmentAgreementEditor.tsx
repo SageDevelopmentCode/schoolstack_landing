@@ -18,6 +18,7 @@ import type {
 } from "@/lib/admissions/enrollment-checklist-schema";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import FormattedDocumentText from "@/components/admissions/FormattedDocumentText";
 import MarkdownTextareaField from "@/components/school-admin/admissions/MarkdownTextareaField";
 import { createClient } from "@/utils/supabase/client";
@@ -305,6 +306,11 @@ export function EnrollmentPdfAgreementEditor({
       adminToast.success("PDF uploaded");
     } catch (err) {
       const message = formatActionError(err, "Failed to upload PDF.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.enrollment_agreement.upload",
+        error: "",
+      }, err);
       setUploadError(message);
       adminToast.error(message);
     } finally {
@@ -328,6 +334,11 @@ export function EnrollmentPdfAgreementEditor({
       adminToast.success("PDF removed");
     } catch (err) {
       const message = formatActionError(err, "Failed to remove PDF.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.enrollment_agreement.remove",
+        error: "",
+      }, err);
       setUploadError(message);
       adminToast.error(message);
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { withdrawProgramCoopTeachingScheduleForParent } from "@/lib/admissions/program-coop-teaching-schedule-signup";
 import type { TeachingScheduleParentRole } from "@/lib/admissions/program-coop-teaching-schedule-mock";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -60,19 +61,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ week });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to withdraw from teaching week.";
-    const status =
-      message.includes("access") || message.includes("not signed up")
-        ? 403
-        : message.includes("not found")
-          ? 400
-          : 500;
-
+    const resolved = portalRouteErrorStatus(err, "Failed to withdraw from teaching week.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 500 ? "internal_error" : "withdraw_failed",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.status === 500 ? "internal_error" : "withdraw_failed",
       cause: err,
     });
   }

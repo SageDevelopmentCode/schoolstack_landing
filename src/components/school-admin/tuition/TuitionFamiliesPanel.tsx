@@ -50,6 +50,7 @@ import type {
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
@@ -326,6 +327,11 @@ export default function TuitionFamiliesPanel({
       }
     } catch (err) {
       const message = formatActionError(err, "Failed to record manual payment.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.record_payment",
+        error: "",
+      }, err);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -368,6 +374,11 @@ export default function TuitionFamiliesPanel({
       }
     } catch (err) {
       const message = formatActionError(err, "Failed to waive charge.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.waive_charge",
+        error: "",
+      }, err);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -403,6 +414,11 @@ export default function TuitionFamiliesPanel({
       }
     } catch (err) {
       const message = formatActionError(err, "Failed to send invoice.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.send_invoice",
+        error: "",
+      }, err);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -427,6 +443,11 @@ export default function TuitionFamiliesPanel({
       }
     } catch (err) {
       const message = formatActionError(err, "Failed to process refund.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.refund",
+        error: "",
+      }, err);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -461,6 +482,11 @@ export default function TuitionFamiliesPanel({
       onRefresh();
     } catch (error) {
       const message = formatActionError(error, "Failed to unassign tuition.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.unassign",
+        error: "",
+      }, error);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -489,6 +515,11 @@ export default function TuitionFamiliesPanel({
       onRefresh();
     } catch (error) {
       const message = formatActionError(error, "Failed to sync tuition assignments.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.families.sync",
+        error: "",
+      }, error);
       setPanelError(message);
       adminToast.error(message);
     } finally {
@@ -1032,7 +1063,7 @@ export default function TuitionFamiliesPanel({
                         <span className="font-medium" style={{ color: theme.ink }}>
                           {formatCents(charge.amountCents)}
                         </span>
-                        {charge.status !== "paid" && charge.status !== "void" ? (
+                        {OPEN_CHARGE_STATUSES.has(charge.status) ? (
                           <>
                             {charge.status === "scheduled" ? (
                               <AdminButton
@@ -1228,6 +1259,7 @@ export default function TuitionFamiliesPanel({
 
       <TuitionBillingSplitModal
         open={splitModalOpen && selectedFamily != null}
+        organizationId={organizationId}
         familyId={selectedFamily?.familyId ?? ""}
         familyName={selectedFamily?.familyName ?? ""}
         branding={branding}

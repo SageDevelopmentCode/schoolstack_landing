@@ -27,6 +27,7 @@ import {
   fetchAdminFeatureAnnouncements,
   type ResolvedAdminFeatureAnnouncement,
 } from "@/lib/school-admin/admin-feature-announcements";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { formatCents } from "@/lib/tuition/pricing";
 import { formatShortDate } from "@/lib/admissions/application-submissions";
 
@@ -104,11 +105,27 @@ export async function fetchAdminDashboardSummary(
       : Promise.resolve(null),
     fetchSchoolAdminActivityNotifications(supabase, organizationId, slug, {
       limit: 8,
-    }).catch(() => ({
-      notifications: [] as SchoolAdminActivityNotification[],
-      nextCursor: null,
-      hasMore: false,
-    })),
+    }).catch((err) => {
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId,
+        operation: "dashboard.load_activity_notifications",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to load activity notifications.",
+        severity: "warning",
+        notify: true,
+        actor: { type: "system" },
+        cause: err,
+      });
+      return {
+        notifications: [] as SchoolAdminActivityNotification[],
+        nextCursor: null,
+        hasMore: false,
+      };
+    }),
     features.schedule
       ? loadScheduleStats(supabase, organizationId)
       : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
@@ -129,7 +146,23 @@ export async function fetchAdminDashboardSummary(
           organizationId,
           options.userId,
           options.schoolName ?? "School",
-        ).catch(() => 0)
+        ).catch((err) => {
+          void reportOperationalError({
+            supabase: admin,
+            surface: "school_admin",
+            organizationId,
+            operation: "dashboard.load_messages_unread_count",
+            error:
+              err instanceof Error
+                ? err.message
+                : "Failed to load messages unread count.",
+            severity: "warning",
+            notify: true,
+            actor: { type: "system" },
+            cause: err,
+          });
+          return 0;
+        })
       : 0);
 
   if (features.admissions && !aggregateMetrics) {

@@ -30,6 +30,7 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
+import { reportOperationalError } from "@/lib/operational-errors";
 import {
   insertApplicationFormRevision,
   summarizeApplicationFormChanges,
@@ -680,10 +681,20 @@ export async function updateApplicationForm(
         activityEventId: null,
       });
     } catch (revisionError) {
-      console.error(
-        "[application-forms] revision insert failed:",
-        revisionError,
-      );
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId: form.organization_id,
+        operation: "application_forms.revision_insert",
+        error:
+          revisionError instanceof Error
+            ? revisionError.message
+            : "Failed to insert application form revision.",
+        entityType: "application_form_version",
+        entityId: form.id,
+        actor: { type: "school_admin" },
+        cause: revisionError,
+      });
     }
 
     const activityEventId = await logActivityEvent(supabase, {
@@ -710,10 +721,17 @@ export async function updateApplicationForm(
         .update({ activity_event_id: activityEventId })
         .eq("id", revisionId);
       if (linkError) {
-        console.error(
-          "[application-forms] revision link failed:",
-          linkError.message,
-        );
+        void reportOperationalError({
+          supabase,
+          surface: "school_admin",
+          organizationId: form.organization_id,
+          operation: "application_forms.revision_link",
+          error: linkError.message,
+          entityType: "application_form_version",
+          entityId: form.id,
+          actor: { type: "school_admin" },
+          cause: linkError,
+        });
       }
     }
   }

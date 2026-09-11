@@ -9,6 +9,7 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type UseScheduleCalendarOptions = {
   organizationId: string;
@@ -84,6 +85,15 @@ export function useScheduleCalendar({
         if (!cancelled) {
           setTimezoneError(
             err instanceof Error ? err.message : "Failed to load timezone.",
+          );
+          void reportPortalOperationalError(
+            "school_admin",
+            {
+              organizationId,
+              operation: "schedule.load_timezone",
+              error: "",
+            },
+            err,
           );
         }
       });

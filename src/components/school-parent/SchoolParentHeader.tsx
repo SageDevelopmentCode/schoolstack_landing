@@ -47,6 +47,7 @@ import {
   uploadGuardianProfilePhotoFromParent,
 } from "@/lib/guardians/upload-guardian-profile-photo-client";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type SchoolParentHeaderProps = {
@@ -241,6 +242,15 @@ export default function SchoolParentHeader({
             : error instanceof Error
               ? error.message
               : "Failed to upload photo.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "profile.upload_photo",
+            error: "",
+          },
+          error,
         );
       } finally {
         setPhotoUploading(false);

@@ -1031,6 +1031,82 @@ export async function sendPaymentReceivedAdminNotification(payload: {
   }
 }
 
+export function buildCommitteeJoinRequestAdminNotificationHtml(payload: {
+  schoolName: string;
+  committeeName: string;
+  guardianName: string;
+  guardianEmail: string;
+  preferredDutyRoleTitle?: string | null;
+  grade?: string | null;
+  note?: string | null;
+  submittedAtLabel: string;
+  committeesAdminUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Committee", value: payload.committeeName },
+    { label: "Applicant", value: payload.guardianName },
+    { label: "Email", value: payload.guardianEmail },
+  ];
+
+  if (payload.preferredDutyRoleTitle?.trim()) {
+    details.push({
+      label: "Preferred role",
+      value: payload.preferredDutyRoleTitle.trim(),
+    });
+  }
+  if (payload.grade?.trim()) {
+    details.push({ label: "Grade", value: payload.grade.trim() });
+  }
+  if (payload.note?.trim()) {
+    details.push({ label: "Note", value: payload.note.trim() });
+  }
+  details.push({ label: "Submitted", value: payload.submittedAtLabel });
+
+  return composeEmail({
+    preheader: `${payload.guardianName} requested to join ${payload.committeeName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Join Request")}
+      ${emailHeading("A parent requested to join a committee")}
+      ${emailParagraph(
+        `${escapeHtml(payload.guardianName)} requested to join ${escapeHtml(payload.committeeName)} at ${escapeHtml(payload.schoolName)}. Review the request in your committees dashboard.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Review request", href: payload.committeesAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeJoinRequestAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  committeeName: string;
+  guardianName: string;
+  guardianEmail: string;
+  preferredDutyRoleTitle?: string | null;
+  grade?: string | null;
+  note?: string | null;
+  submittedAtLabel: string;
+  committeesAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildCommitteeJoinRequestAdminNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Committee join request — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error(
+      "Committee join request admin notification email failed:",
+      result.error,
+    );
+  }
+}
+
 export function buildTuitionDueReminderHtml(payload: {
   familyName: string;
   schoolName: string;

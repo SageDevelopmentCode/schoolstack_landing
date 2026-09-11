@@ -1,23 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
   ClipboardList,
   MessageSquare,
   Users,
 } from "lucide-react";
-import AdminQuickActionsCard from "@/components/school-admin/ui/story/AdminQuickActionsCard";
+import PortalHomeSchoolBulletinLauncher from "@/components/portal-home/PortalHomeSchoolBulletinLauncher";
 import PortalHomeSchoolUpdatesCard from "@/components/portal-home/PortalHomeSchoolUpdatesCard";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentDatePill from "@/components/school-parent/ui/ParentDatePill";
 import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import TeacherDocumentationGuidePanel from "@/components/school-teacher/TeacherDocumentationGuidePanel";
+import TeacherHomeHowToGuidesSection from "@/components/school-teacher/home/TeacherHomeHowToGuidesSection";
+import TeacherClassroomStoryCard from "@/components/school-teacher/TeacherClassroomStoryCard";
+import TeacherClassroomStudentsSidebar from "@/components/school-teacher/TeacherClassroomStudentsSidebar";
+import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStudentDetailPanel";
 import TeacherStudentStoryCard from "@/components/school-teacher/TeacherStudentStoryCard";
 import {
   greetingParts,
@@ -25,8 +29,19 @@ import {
   type TeacherDashboardSummary,
 } from "@/lib/school-teacher/teacher-dashboard-summary";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
+import type { StaffClassroomOption } from "@/lib/school-admin/classrooms";
+import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
+import { filterStudentsByClassroomName } from "@/lib/school-teacher/filter-students-by-classroom";
+import {
+  buildTeacherDocumentationGuides,
+  groupTeacherDocumentationByCategory,
+  type TeacherDocGuide,
+} from "@/lib/school-teacher/teacher-documentation";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
+import {
+  schoolTeacherPath,
+  teacherDocumentationPath,
+} from "@/lib/organization-settings/teacher-routes";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
@@ -99,7 +114,7 @@ function focusItemIconBg(icon: TeacherDashboardFocusIcon): string {
 }
 
 export default function TeacherDashboardPage({
-  branding: _branding,
+  branding,
   organizationId,
   slug,
   schoolName,
@@ -114,6 +129,13 @@ export default function TeacherDashboardPage({
   const { theme } = useParentTheme();
   const [summary, setSummary] = useState(initialSummary);
   const [prevInitialSummary, setPrevInitialSummary] = useState(initialSummary);
+  const [classroomSidebar, setClassroomSidebar] = useState<StaffClassroomOption | null>(
+    null,
+  );
+  const [selectedStudent, setSelectedStudent] = useState<AdminEnrolledStudentSummary | null>(
+    null,
+  );
+  const [activeGuide, setActiveGuide] = useState<TeacherDocGuide | null>(null);
 
   if (initialSummary !== prevInitialSummary) {
     setPrevInitialSummary(initialSummary);
@@ -162,9 +184,43 @@ export default function TeacherDashboardPage({
     return () => window.removeEventListener("focus", onFocus);
   }, [previewMode, refreshUnreadCount]);
 
+  useEffect(() => {
+    if (!classroomSidebar && !selectedStudent) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (selectedStudent) {
+        setSelectedStudent(null);
+      } else if (classroomSidebar) {
+        setClassroomSidebar(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [classroomSidebar, selectedStudent]);
+
+  const classroomSidebarStudents = useMemo(() => {
+    if (!classroomSidebar) return [];
+    return filterStudentsByClassroomName(
+      summary.assignedStudents,
+      classroomSidebar.name,
+    );
+  }, [classroomSidebar, summary.assignedStudents]);
+
+  const handleCloseClassroomSidebar = () => {
+    setClassroomSidebar(null);
+    setSelectedStudent(null);
+  };
+
   const name = firstName(userProfile.displayName);
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
   const nextEvent = summary.upcomingEvents[0] ?? null;
   const myStudentsEnabled = Boolean(features.teacher?.my_students);
   const messagesEnabled = Boolean(features.teacher?.messages);
@@ -185,15 +241,32 @@ export default function TeacherDashboardPage({
         ? "No learners are assigned to you yet. Your administrator can link students from the staff directory."
         : `Welcome to ${schoolName}'s staff portal.`;
 
-  const quickActionsForAdminCard = summary.quickActions.map((action) => ({
-    id: action.id,
-    title: action.title,
-    subtitle: action.subtitle,
-    kind: "link" as const,
-    href: action.href,
-  }));
+  const howToGuides = useMemo(
+    () =>
+      buildTeacherDocumentationGuides({
+        slug,
+        features,
+        bulletinEnabled: summary.bulletinEnabled,
+        teacherBasePath,
+      }),
+    [slug, features, summary.bulletinEnabled, teacherBasePath],
+  );
+  const groupedHowToGuides = useMemo(
+    () => groupTeacherDocumentationByCategory(howToGuides),
+    [howToGuides],
+  );
+  const documentationHref = useMemo(
+    () => teacherDocumentationPath(slug, { teacherBasePath }),
+    [slug, teacherBasePath],
+  );
+  const openGuide = useCallback((guide: TeacherDocGuide) => {
+    setActiveGuide(guide);
+  }, []);
+  const closeGuide = useCallback(() => {
+    setActiveGuide(null);
+  }, []);
 
-  const showSchoolUpdates = summary.bulletinEnabled || messagesEnabled;
+  const showSchoolUpdates = !summary.bulletinEnabled && messagesEnabled;
   const teacherMessagesPromo =
     !summary.bulletinEnabled && messagesEnabled
       ? {
@@ -234,14 +307,18 @@ export default function TeacherDashboardPage({
             <p className="mt-2 text-[15px]" style={{ color: theme.muted }}>
               {previewMode
                 ? `Previewing ${schoolName}'s staff portal as ${userProfile.displayName}.`
-                : `Here's your classroom picture for ${dayName}.`}
+                : `Here's your classroom picture for ${todayLabel}.`}
             </p>
             <p className="mt-1 text-sm" style={{ color: theme.muted }}>
               {roleTitle || "Staff"} · {portalRoleLabel(portalRole)}
             </p>
           </div>
           <div className="w-full sm:w-auto">
-            <ParentDatePill theme={theme} />
+            <PortalHomeSchoolBulletinLauncher
+              theme={theme}
+              bulletinEnabled={summary.bulletinEnabled}
+              bulletinPosts={summary.bulletinPosts}
+            />
           </div>
         </motion.header>
 
@@ -332,8 +409,31 @@ export default function TeacherDashboardPage({
           </motion.div>
         ) : null}
 
-        {myStudentsEnabled ? (
+        {myStudentsEnabled && summary.staffClassrooms.length > 0 ? (
           <motion.section custom={4} initial="hidden" animate="visible" variants={fadeUp}>
+            <h3
+              className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
+              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
+            >
+              Your classrooms
+            </h3>
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {summary.staffClassrooms.map((classroom, index) => (
+                <div key={classroom.id} className="h-full">
+                  <TeacherClassroomStoryCard
+                    classroom={classroom}
+                    theme={theme}
+                    onViewStudents={() => setClassroomSidebar(classroom)}
+                    index={index}
+                  />
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        ) : null}
+
+        {myStudentsEnabled ? (
+          <motion.section custom={5} initial="hidden" animate="visible" variants={fadeUp}>
             <h3
               className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
               style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
@@ -355,7 +455,7 @@ export default function TeacherDashboardPage({
                       <TeacherStudentStoryCard
                         student={student}
                         theme={theme}
-                        myStudentsHref={myStudentsHref}
+                        onViewProfile={() => setSelectedStudent(student)}
                         index={index}
                       />
                     </div>
@@ -373,11 +473,14 @@ export default function TeacherDashboardPage({
           </motion.section>
         ) : null}
 
-        {summary.quickActions.length > 0 ? (
-          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-            <ParentCard theme={theme} className="!p-0">
-              <AdminQuickActionsCard theme={theme} actions={quickActionsForAdminCard} />
-            </ParentCard>
+        {howToGuides.length > 0 ? (
+          <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
+            <TeacherHomeHowToGuidesSection
+              theme={theme}
+              documentationHref={documentationHref}
+              groupedGuides={groupedHowToGuides}
+              onOpenGuide={openGuide}
+            />
           </motion.div>
         ) : null}
 
@@ -385,6 +488,40 @@ export default function TeacherDashboardPage({
           Need access changes? Contact your school administrator.
         </p>
       </div>
+
+      <TeacherClassroomStudentsSidebar
+        theme={theme}
+        classroomName={classroomSidebar?.name ?? ""}
+        students={classroomSidebarStudents}
+        open={classroomSidebar !== null}
+        onClose={handleCloseClassroomSidebar}
+        onSelectStudent={setSelectedStudent}
+      />
+
+      <TeacherDocumentationGuidePanel
+        theme={theme}
+        guide={activeGuide}
+        open={activeGuide != null}
+        onClose={closeGuide}
+      />
+
+      <AnimatePresence>
+        {selectedStudent && summary.staffMemberId ? (
+          <div className="fixed inset-0 z-[110]">
+            <TeacherStudentDetailPanel
+              key={selectedStudent.id}
+              student={selectedStudent}
+              organizationId={organizationId}
+              staffMemberId={summary.staffMemberId}
+              branding={branding}
+              schoolSlug={slug}
+              detailAccess="assigned"
+              readOnly={previewMode}
+              onClose={() => setSelectedStudent(null)}
+            />
+          </div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

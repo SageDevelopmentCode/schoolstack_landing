@@ -24,6 +24,7 @@ import {
   getStudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
 import type { ChargeStatus } from "@/lib/tuition/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
   outstandingPeriodLabel,
   type OutstandingPeriod,
@@ -122,6 +123,15 @@ export default function TuitionKpiBreakdownPanel({
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load breakdown.");
         setBreakdown(null);
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "tuition.kpi_breakdown.load",
+            error: "",
+          },
+          err,
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

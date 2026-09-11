@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 
 type PushPayload = {
   organizationId: string;
@@ -54,7 +55,7 @@ export async function sendWebPushToUsers(
     url: payload.url,
   });
 
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     subscriptions.map(async (subscription) => {
       try {
         await webpush.sendNotification(
@@ -77,8 +78,23 @@ export async function sendWebPushToUsers(
             .from("web_push_subscriptions")
             .delete()
             .eq("id", subscription.id);
+          return;
         }
+        throw err;
       }
     }),
+  );
+
+  await logSettledNotificationFailures(
+    admin,
+    {
+      organizationId: payload.organizationId,
+      operation: "messages.web_push_delivery",
+      metadata: {
+        recipientCount: payload.userIds.length,
+        subscriptionCount: subscriptions.length,
+      },
+    },
+    results,
   );
 }

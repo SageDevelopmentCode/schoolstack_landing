@@ -7,16 +7,20 @@ import {
   CreditCard,
   GraduationCap,
   Heart,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 import {
   ACTIVITY_ACTIONS,
   formatActivityActionLabel,
-  getActorIdentityFromUser,
   type ActivityEventRow,
   type ActivitySeverity,
   type ActorType,
 } from "@/lib/activity-log";
+import {
+  resolveSenderDisplayName,
+  resolveThreadRecipientLabels,
+} from "@/lib/messages/message-notification-labels";
 import { getActivityNotificationCategory } from "@/lib/school-admin/activity-notifications";
 
 export type ActivityEventCategory =
@@ -190,6 +194,11 @@ const SEVERITY_VISUALS: Record<
   },
 };
 
+const MESSAGE_EVENT_VISUAL: ActivityEventVisual = {
+  Icon: MessageSquare,
+  className: "bg-sky-50 text-sky-700 border-sky-200",
+};
+
 export function getActivityEventVisual(
   event: Pick<ActivityEventRow, "action" | "severity">,
 ): ActivityEventVisual {
@@ -198,6 +207,9 @@ export function getActivityEventVisual(
   }
   if (event.severity === "warning") {
     return SEVERITY_VISUALS.warning;
+  }
+  if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    return MESSAGE_EVENT_VISUAL;
   }
 
   const category = getActivityEventCategory(event.action);
@@ -224,6 +236,104 @@ type ProfileLookupRow = {
   id: string;
   email: string;
 };
+
+type StaffLookupRow = {
+  user_id: string;
+  organization_id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+};
+
+function metadataString(
+  metadata: Record<string, unknown>,
+  key: string,
+): string | null {
+  const value = metadata[key];
+  if (typeof value !== "string" || !value.trim()) return null;
+  return value.trim();
+}
+
+function metadataStringArray(
+  metadata: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = metadata[key];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
+    )
+    .map((item) => item.trim());
+}
+
+function joinRecipientLabels(labels: string[]): string {
+  if (labels.length === 0) return "the recipient";
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+function parseLegacyMessageSummary(
+  summary: string,
+): { senderName: string; preview: string } | null {
+  const colonIndex = summary.indexOf(": ");
+  if (colonIndex <= 0) return null;
+
+  const senderName = summary.slice(0, colonIndex).trim();
+  const preview = summary.slice(colonIndex + 2).trim();
+  if (!senderName || !preview) return null;
+
+  return { senderName, preview };
+}
+
+function inferMessageViewer(
+  event: Pick<ActivityEventRow, "actor_type" | "metadata">,
+): "parent" | "teacher" | "admin" {
+  const senderPortal = metadataString(event.metadata, "senderPortal");
+  if (senderPortal === "parent" || senderPortal === "teacher") {
+    return senderPortal;
+  }
+  if (senderPortal === "admin") return "admin";
+
+  if (event.actor_type === "parent") return "parent";
+  if (event.actor_type === "teacher") return "teacher";
+  if (event.actor_type === "school_admin") return "admin";
+  return "parent";
+}
+
+export function formatMessageActivityNarrative(
+  event: ActivityEventRow,
+  context?: Partial<ActivityEventDisplayContext>,
+): string {
+  const school = event.organizations?.name?.trim();
+  const recipientLabels = metadataStringArray(event.metadata, "recipientLabels");
+  const legacySummary = parseLegacyMessageSummary(event.summary);
+  const preview =
+    metadataString(event.metadata, "preview") ??
+    legacySummary?.preview ??
+    event.summary.trim();
+
+  const senderName =
+    metadataString(event.metadata, "senderName") ??
+    legacySummary?.senderName ??
+    resolveActorDisplayLabel(event, context);
+
+  if (recipientLabels.length > 0) {
+    const recipients = joinRecipientLabels(recipientLabels);
+    if (school) {
+      return `${senderName} from ${school} messaged ${recipients}: ${preview}`;
+    }
+    return `${senderName} messaged ${recipients}: ${preview}`;
+  }
+
+  const actor = resolveActorDisplayLabel(event, context);
+  if (school) {
+    return `${actor} sent a message for ${school}: ${preview}`;
+  }
+  return `${actor} sent a message: ${preview}`;
+}
 
 function guardianLookupKey(userId: string, organizationId: string | null): string {
   return organizationId ? `${userId}:${organizationId}` : userId;
@@ -270,6 +380,51 @@ async function fetchGuardianActorMap(
   return map;
 }
 
+function staffLookupKey(userId: string, organizationId: string | null): string {
+  return organizationId ? `${userId}:${organizationId}` : userId;
+}
+
+function resolveStaffFromMap(
+  map: Map<string, { name: string; email: string | null }>,
+  userId: string,
+  organizationId: string | null,
+): { name: string; email: string | null } | null {
+  if (organizationId) {
+    const scoped = map.get(staffLookupKey(userId, organizationId));
+    if (scoped) return scoped;
+  }
+  return map.get(userId) ?? null;
+}
+
+async function fetchStaffActorMap(
+  supabase: SupabaseClient,
+  userIds: string[],
+): Promise<Map<string, { name: string; email: string | null }>> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  const map = new Map<string, { name: string; email: string | null }>();
+  if (uniqueIds.length === 0) return map;
+
+  const { data, error } = await supabase
+    .from("staff_members")
+    .select("user_id, organization_id, first_name, last_name, email")
+    .in("user_id", uniqueIds);
+
+  if (error) throw error;
+
+  for (const row of (data ?? []) as StaffLookupRow[]) {
+    const name = formatGuardianName(row.first_name, row.last_name);
+    if (!name) continue;
+
+    const entry = { name, email: row.email?.trim() || null };
+    map.set(staffLookupKey(row.user_id, row.organization_id), entry);
+    if (!map.has(row.user_id)) {
+      map.set(row.user_id, entry);
+    }
+  }
+
+  return map;
+}
+
 async function fetchProfileEmailMap(
   supabase: SupabaseClient,
   userIds: string[],
@@ -298,10 +453,25 @@ async function fetchProfileEmailMap(
 export function resolveActorDisplayLabel(
   event: Pick<
     ActivityEventRow,
-    "actor_type" | "actor_name" | "actor_email" | "actor_user_id" | "organization_id"
+    | "action"
+    | "actor_type"
+    | "actor_name"
+    | "actor_email"
+    | "actor_user_id"
+    | "organization_id"
+    | "metadata"
+    | "summary"
   >,
   context?: Partial<ActivityEventDisplayContext>,
 ): string {
+  if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    const metadataSenderName = metadataString(event.metadata, "senderName");
+    if (metadataSenderName) return metadataSenderName;
+
+    const legacySummary = parseLegacyMessageSummary(event.summary);
+    if (legacySummary?.senderName) return legacySummary.senderName;
+  }
+
   const storedName = event.actor_name?.trim();
   if (storedName) return storedName;
 
@@ -331,6 +501,10 @@ export function formatActivityEventNarrative(
     return event.summary.trim() || formatActivityActionLabel(event.action);
   }
 
+  if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    return formatMessageActivityNarrative(event, context);
+  }
+
   const actor = resolveActorDisplayLabel(event, context);
   const phrase = formatActivityActionPhrase(event.action, event.summary);
   const school = event.organizations?.name?.trim();
@@ -345,6 +519,7 @@ export function formatActivityEventNarrative(
 function resolveDisplayContextForEvent(
   event: ActivityEventRow,
   guardianMap: Map<string, { name: string; email: string | null }>,
+  staffMap: Map<string, { name: string; email: string | null }>,
   profileEmailMap: Map<string, string>,
 ): ActivityEventDisplayContext {
   const storedName = event.actor_name?.trim() || null;
@@ -353,10 +528,16 @@ function resolveDisplayContextForEvent(
   let resolvedName = storedName;
   let resolvedEmail = storedEmail;
 
-  if (event.actor_user_id && event.actor_type === "parent") {
+  const actorUserId =
+    event.actor_user_id ??
+    (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED
+      ? metadataString(event.metadata, "senderUserId")
+      : null);
+
+  if (actorUserId && event.actor_type === "parent") {
     const guardian = resolveGuardianFromMap(
       guardianMap,
-      event.actor_user_id,
+      actorUserId,
       event.organization_id,
     );
     if (!resolvedName && guardian?.name) {
@@ -367,14 +548,67 @@ function resolveDisplayContextForEvent(
     }
   }
 
-  if (event.actor_user_id && !resolvedEmail) {
-    const profileEmail = profileEmailMap.get(event.actor_user_id);
+  if (
+    actorUserId &&
+    (event.actor_type === "teacher" || event.actor_type === "school_admin")
+  ) {
+    const staff = resolveStaffFromMap(
+      staffMap,
+      actorUserId,
+      event.organization_id,
+    );
+    if (!resolvedName && staff?.name) {
+      resolvedName = staff.name;
+    }
+    if (!resolvedEmail && staff?.email) {
+      resolvedEmail = staff.email;
+    }
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED &&
+    actorUserId &&
+    !resolvedName
+  ) {
+    const guardian = resolveGuardianFromMap(
+      guardianMap,
+      actorUserId,
+      event.organization_id,
+    );
+    if (guardian?.name) {
+      resolvedName = guardian.name;
+    }
+    if (!resolvedEmail && guardian?.email) {
+      resolvedEmail = guardian.email;
+    }
+
+    const staff = resolveStaffFromMap(
+      staffMap,
+      actorUserId,
+      event.organization_id,
+    );
+    if (!resolvedName && staff?.name) {
+      resolvedName = staff.name;
+    }
+    if (!resolvedEmail && staff?.email) {
+      resolvedEmail = staff.email;
+    }
+  }
+
+  if (actorUserId && !resolvedEmail) {
+    const profileEmail = profileEmailMap.get(actorUserId);
     if (profileEmail) {
       resolvedEmail = profileEmail;
     }
   }
 
+  const metadataSenderName =
+    event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED
+      ? metadataString(event.metadata, "senderName")
+      : null;
+
   const displayActorName =
+    metadataSenderName ||
     resolvedName ||
     resolvedEmail ||
     ACTOR_TYPE_LABELS[event.actor_type];
@@ -382,17 +616,97 @@ function resolveDisplayContextForEvent(
   return {
     displayActorName,
     displayActorEmail: resolvedEmail,
-    resolvedActorName: resolvedName,
+    resolvedActorName: metadataSenderName || resolvedName,
   };
+}
+
+async function enrichMessageEventMetadata(
+  supabase: SupabaseClient,
+  event: ActivityEventRow,
+  displayActorName: string,
+): Promise<Record<string, unknown>> {
+  if (event.action !== ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    return event.metadata;
+  }
+
+  const metadata = { ...event.metadata };
+  const senderUserId =
+    metadataString(metadata, "senderUserId") ?? event.actor_user_id;
+  const threadId = metadataString(metadata, "threadId");
+  const organizationId = event.organization_id;
+  const schoolName = event.organizations?.name?.trim();
+
+  if (!metadata.senderName && displayActorName !== ACTOR_TYPE_LABELS[event.actor_type]) {
+    metadata.senderName = displayActorName;
+  }
+
+  if (
+    metadataStringArray(metadata, "recipientLabels").length === 0 &&
+    senderUserId &&
+    threadId &&
+    organizationId &&
+    schoolName
+  ) {
+    const schoolOfficeLabel = `${schoolName} Office`;
+    metadata.recipientLabels = await resolveThreadRecipientLabels(
+      supabase,
+      organizationId,
+      threadId,
+      senderUserId,
+      schoolOfficeLabel,
+      inferMessageViewer(event),
+    );
+  }
+
+  if (!metadataString(metadata, "preview")) {
+    const legacySummary = parseLegacyMessageSummary(event.summary);
+    if (legacySummary?.preview) {
+      metadata.preview = legacySummary.preview;
+    }
+  }
+
+  if (!metadata.senderName && senderUserId && organizationId && schoolName) {
+    metadata.senderName = await resolveSenderDisplayName(
+      supabase,
+      organizationId,
+      senderUserId,
+      inferMessageViewer(event),
+      `${schoolName} Office`,
+    );
+  }
+
+  return metadata;
 }
 
 export async function enrichActivityEventsWithActors(
   supabase: SupabaseClient,
   events: ActivityEventRow[],
 ): Promise<EnrichedActivityEvent[]> {
-  const parentUserIds = events
-    .filter((event) => event.actor_type === "parent" && event.actor_user_id)
-    .map((event) => event.actor_user_id as string);
+  const messageSenderUserIds = events
+    .filter((event) => event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED)
+    .map(
+      (event) =>
+        metadataString(event.metadata, "senderUserId") ?? event.actor_user_id,
+    )
+    .filter((userId): userId is string => Boolean(userId));
+
+  const parentUserIds = [
+    ...events
+      .filter((event) => event.actor_type === "parent" && event.actor_user_id)
+      .map((event) => event.actor_user_id as string),
+    ...messageSenderUserIds,
+  ];
+
+  const staffUserIds = [
+    ...events
+      .filter(
+        (event) =>
+          (event.actor_type === "teacher" || event.actor_type === "school_admin") &&
+          event.actor_user_id,
+      )
+      .map((event) => event.actor_user_id as string),
+    ...messageSenderUserIds,
+  ];
 
   const profileUserIds = events
     .filter(
@@ -404,20 +718,35 @@ export async function enrichActivityEventsWithActors(
     )
     .map((event) => event.actor_user_id as string);
 
-  const [guardianMap, profileEmailMap] = await Promise.all([
+  const [guardianMap, staffMap, profileEmailMap] = await Promise.all([
     fetchGuardianActorMap(supabase, parentUserIds),
-    fetchProfileEmailMap(supabase, profileUserIds),
+    fetchStaffActorMap(supabase, staffUserIds),
+    fetchProfileEmailMap(supabase, [
+      ...profileUserIds,
+      ...messageSenderUserIds,
+    ]),
   ]);
 
-  return events.map((event) => {
+  const enrichedEvents: EnrichedActivityEvent[] = [];
+
+  for (const event of events) {
     const context = resolveDisplayContextForEvent(
       event,
       guardianMap,
+      staffMap,
       profileEmailMap,
     );
-    return {
+    const metadata = await enrichMessageEventMetadata(
+      supabase,
+      event,
+      context.displayActorName,
+    );
+    enrichedEvents.push({
       ...event,
+      metadata,
       ...context,
-    };
-  });
+    });
+  }
+
+  return enrichedEvents;
 }

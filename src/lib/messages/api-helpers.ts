@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { PortalRouteError } from "@/lib/api/portal-route-errors";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { getFamilyIdsForUser, userIsOrgAdmin } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { dispatchMessageNotifications } from "@/lib/messages/message-notifications";
@@ -29,7 +31,9 @@ export async function assertParentCanAccessThread(
   threadId: string,
 ): Promise<string> {
   const hasAccess = await userHasEnrolledAccess(supabase, userId, organizationId);
-  if (!hasAccess) throw new Error("You do not have access to messages.");
+  if (!hasAccess) {
+    throw new PortalRouteError("You do not have access to messages.", 403, "forbidden");
+  }
 
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   if (familyIds.length === 0) throw new Error("No family found for this account.");
@@ -60,7 +64,9 @@ export async function assertParentCanAccessThread(
     );
   });
 
-  if (!allowed) throw new Error("You do not have access to this thread.");
+  if (!allowed) {
+    throw new PortalRouteError("You do not have access to this thread.", 403, "forbidden");
+  }
   return familyIds[0];
 }
 
@@ -95,7 +101,9 @@ export async function assertTeacherCanAccessThread(
     return false;
   });
 
-  if (!allowed) throw new Error("You do not have access to this thread.");
+  if (!allowed) {
+    throw new PortalRouteError("You do not have access to this thread.", 403, "forbidden");
+  }
 }
 
 export async function resolveParticipantsForContact(
@@ -227,7 +235,9 @@ export async function sendMessageForViewer(
     senderStaffMemberId = null;
   } else if (input.viewer === "admin") {
     const isAdmin = await userIsOrgAdmin(admin, input.userId, input.organizationId);
-    if (!isAdmin) throw new Error("Admin access required.");
+    if (!isAdmin) {
+      throw new PortalRouteError("Admin access required.", 403, "forbidden");
+    }
     const hasOffice = thread.participants.some((p) => p.kind === "school_office");
     senderKind = hasOffice ? "org_admin" : "staff_member";
     if (!senderStaffMemberId) {
@@ -275,6 +285,14 @@ export async function sendMessageForViewer(
       senderName: message.senderName,
       message,
       viewer: input.viewer,
+    }).catch((err) => {
+      void logNotificationFailure(admin, {
+        organizationId: input.organizationId,
+        operation: "messages.dispatch_notification",
+        error: err,
+        entityType: "message_thread",
+        entityId: input.threadId,
+      });
     });
   }
 

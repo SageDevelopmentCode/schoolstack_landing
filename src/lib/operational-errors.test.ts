@@ -85,6 +85,22 @@ describe("reportOperationalError", () => {
     assert.equal(inserts[0]?.organization_id, "org-1");
   });
 
+  it("can skip activity log insert for meta-failures", async () => {
+    const { supabase, inserts } = createActivityEventsMockSupabase();
+
+    await reportOperationalError({
+      supabase,
+      surface: "system",
+      skipActivityLog: true,
+      operation: "activity_log_insert",
+      error: "Insert failed",
+      notify: false,
+      actor: { type: "system" },
+    });
+
+    assert.equal(inserts.length, 0);
+  });
+
   it("supports custom severity", async () => {
     const { supabase, inserts } = createActivityEventsMockSupabase();
 

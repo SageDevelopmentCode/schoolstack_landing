@@ -8,6 +8,7 @@ import type { Committee } from "@/lib/committees/types";
 import { postMessage } from "@/lib/committees/messages";
 import { getCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 export default function CommitteeMessagesSection({
   committee,
@@ -38,6 +39,11 @@ export default function CommitteeMessagesSection({
       adminToast.success("Message sent");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to send message."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.messages.send",
+        error: "",
+      }, err);
     } finally {
       setSending(false);
     }

@@ -7,6 +7,7 @@ import { SchoolAdminModalListSkeleton } from "@/components/school-admin/skeleton
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { VariantResolutionMap } from "@/lib/admissions/enrollment-checklist-variants";
 
 type PreviewVariant = {
@@ -38,6 +39,7 @@ type StartEnrollmentPreview = {
 
 type StartEnrollmentModalProps = {
   C: AdminThemeTokens;
+  organizationId: string;
   open: boolean;
   applicationId: string;
   studentLabel: string | null;
@@ -48,6 +50,7 @@ type StartEnrollmentModalProps = {
 
 export default function StartEnrollmentModal({
   C,
+  organizationId,
   open,
   applicationId,
   studentLabel,
@@ -89,6 +92,11 @@ export default function StartEnrollmentModal({
         setResolutions(defaults);
       })
       .catch((err) => {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.enrollment.load_preview",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load enrollment options.");
         }
@@ -100,7 +108,7 @@ export default function StartEnrollmentModal({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, open]);
+  }, [applicationId, open, organizationId]);
 
   const sharedSummary = useMemo(() => {
     if (!preview?.sharedItems.length) return null;
@@ -128,6 +136,11 @@ export default function StartEnrollmentModal({
       adminToast.success("Enrollment started");
     } catch (err) {
       const message = formatActionError(err, "Failed to start enrollment.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.enrollment.start",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

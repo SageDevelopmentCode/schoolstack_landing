@@ -16,14 +16,17 @@ import {
   validateCommitteeResourceFile,
 } from "@/lib/committees/resource-file-storage";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 function ResourceFileLink({
+  organizationId,
   resource,
   supabase,
   C,
 }: {
+  organizationId: string;
   resource: Committee["resources"][number];
   supabase: SupabaseClient;
   C: AdminThemeTokens;
@@ -38,6 +41,11 @@ function ResourceFileLink({
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to open file."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.resources.open",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -138,6 +146,11 @@ export default function CommitteeResourcesSection({
       adminToast.success("Resource added");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add resource."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.resources.add",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -150,6 +163,11 @@ export default function CommitteeResourcesSection({
       adminToast.success("Resource deleted");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to delete resource."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.resources.delete",
+        error: "",
+      }, err);
     }
   };
 
@@ -258,7 +276,12 @@ export default function CommitteeResourcesSection({
                 </a>
               )}
               {resource.storagePath && (
-                <ResourceFileLink resource={resource} supabase={supabase} C={C} />
+                <ResourceFileLink
+                  organizationId={organizationId}
+                  resource={resource}
+                  supabase={supabase}
+                  C={C}
+                />
               )}
             </motion.div>
           );

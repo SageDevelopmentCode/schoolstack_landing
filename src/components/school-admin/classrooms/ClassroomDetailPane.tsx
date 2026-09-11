@@ -28,6 +28,7 @@ import type {
   ClassroomSummary,
 } from "@/lib/school-admin/classrooms";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { createClient } from "@/utils/supabase/client";
 
@@ -111,6 +112,11 @@ export default function ClassroomDetailPane({
       setDetail(body.classroom as ClassroomDetail);
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to load classroom."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.load_detail",
+        error: "",
+      }, error);
     } finally {
       setLoadingDetail(false);
     }
@@ -129,6 +135,11 @@ export default function ClassroomDetailPane({
       setStudents((body.students as AdminEnrolledStudentSummary[]) ?? []);
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to load roster."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.load_roster",
+        error: "",
+      }, error);
       setStudents([]);
     } finally {
       setLoadingStudents(false);
@@ -157,6 +168,11 @@ export default function ClassroomDetailPane({
       return rows;
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to load students."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.load_enrolled_students",
+        error: "",
+      }, error);
       return [];
     } finally {
       setLoadingEnrolled(false);
@@ -185,6 +201,11 @@ export default function ClassroomDetailPane({
       await loadDetail();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to save classroom."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.save",
+        error: "",
+      }, error);
     } finally {
       setSaveLoading(false);
     }
@@ -205,6 +226,11 @@ export default function ClassroomDetailPane({
       await onDeleted();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to delete classroom."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.delete",
+        error: "",
+      }, error);
     } finally {
       setDeleteLoading(false);
     }
@@ -235,6 +261,11 @@ export default function ClassroomDetailPane({
       await loadStudents();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to assign staff."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.assign_staff",
+        error: "",
+      }, error);
     } finally {
       setAssigningStaff(false);
     }
@@ -265,6 +296,11 @@ export default function ClassroomDetailPane({
       await loadStudents();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to remove staff."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.remove_staff",
+        error: "",
+      }, error);
     } finally {
       setRemovingStaffId(null);
     }
@@ -295,6 +331,11 @@ export default function ClassroomDetailPane({
       await loadDetail();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to add students."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.add_students",
+        error: "",
+      }, error);
     } finally {
       setAssigningStudents(false);
     }
@@ -321,6 +362,11 @@ export default function ClassroomDetailPane({
       await loadDetail();
     } catch (error) {
       adminToast.error(formatActionError(error, "Failed to remove student."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.remove_student",
+        error: "",
+      }, error);
     } finally {
       setRemovingStudentId(null);
     }

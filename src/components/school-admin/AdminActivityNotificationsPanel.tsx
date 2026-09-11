@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -317,6 +318,11 @@ export default function AdminActivityNotificationsPanel({
         setNextCursor(payload.nextCursor ?? null);
         setHasMore(Boolean(payload.hasMore));
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "activity_notifications.load",
+          error: "",
+        }, err);
         setError(err instanceof Error ? err.message : "Failed to load activity.");
         if (!append) {
           setNotifications([]);
