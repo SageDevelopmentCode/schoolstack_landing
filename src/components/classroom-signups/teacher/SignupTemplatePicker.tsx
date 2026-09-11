@@ -31,7 +31,7 @@ type SignupTemplatePickerProps = {
   onSelect: (templateId: ClassroomSignupTemplateId) => void;
 };
 
-function TemplateCard({
+export function TemplateCard({
   theme,
   template,
   onSelect,

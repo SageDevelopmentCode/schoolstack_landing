@@ -27,6 +27,16 @@ export function schoolTeacherLoginPath(slug: string): string {
   return `/school/${slug}/teacher/login`;
 }
 
+export function teacherDocumentationPath(
+  slug: string,
+  options?: { teacherBasePath?: string },
+): string {
+  if (options?.teacherBasePath) {
+    return `${options.teacherBasePath}/documentation`;
+  }
+  return `/school/${slug}/teacher/documentation`;
+}
+
 export function parseSchoolTeacherPath(pathname: string): TeacherNavPath | null {
   const match = pathname.match(/\/school\/[^/]+\/teacher\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) return null;

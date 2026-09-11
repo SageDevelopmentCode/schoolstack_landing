@@ -5,7 +5,9 @@ import SchoolTeacherBaseline from "@/components/school-teacher/SchoolTeacherBase
 import { getRequestUser } from "@/lib/auth/session";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { schoolTeacherLoginPath, isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
+import { getTeacherPortalActivityUnreadCount } from "@/lib/school-teacher/activity-notifications-server";
 import {
+  getStaffMemberIdForUser,
   getStaffUserProfile,
   userHasTeacherPortalAccess,
 } from "@/lib/staff/teacher-portal-access";
@@ -64,6 +66,21 @@ export default async function SchoolTeacherProtectedLayout({
     user,
   );
 
+  const staffMemberId = await getStaffMemberIdForUser(
+    supabase,
+    user.id,
+    org.id,
+  );
+
+  const initialActivityUnreadCount = staffMemberId
+    ? await getTeacherPortalActivityUnreadCount(supabase, {
+        organizationId: org.id,
+        slug,
+        staffMemberId,
+        userId: user.id,
+      })
+    : 0;
+
   return (
     <SchoolTeacherBaseline
       slug={slug}
@@ -72,6 +89,8 @@ export default async function SchoolTeacherProtectedLayout({
       branding={org.branding}
       features={org.features}
       userProfile={userProfile}
+      staffMemberId={staffMemberId ?? undefined}
+      initialActivityUnreadCount={initialActivityUnreadCount}
     >
       {children}
     </SchoolTeacherBaseline>

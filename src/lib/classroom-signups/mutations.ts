@@ -1,5 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { countAssignedFamiliesForTeacher, resolveAudienceFamilyIds } from "./audience";
+import {
+  countAssignedFamiliesForTeacher,
+  countFamiliesForClassroomIds,
+  resolveAudienceFamilyIds,
+} from "./audience";
 import {
   CLASSROOM_SIGNUP_RESPONSE_SELECT,
   CLASSROOM_SIGNUP_SELECT,
@@ -29,11 +33,13 @@ export async function publishClassroomSignup(
 ): Promise<ClassroomSignup> {
   const now = new Date().toISOString();
   const status = input.status ?? "open";
+  const classroomIds = input.classroomIds ?? [];
   const draftSignup = {
     organizationId,
     createdByStaffMemberId: staffMemberId,
     audience: input.audience,
     classroomId: input.classroomId,
+    classroomIds,
   };
 
   let familyCount = 0;
@@ -44,6 +50,13 @@ export async function publishClassroomSignup(
         organizationId,
         staffMemberId,
       );
+    } else if (input.audience === "classrooms" && classroomIds.length > 0) {
+      const result = await countFamiliesForClassroomIds(
+        admin,
+        organizationId,
+        classroomIds,
+      );
+      familyCount = result.count;
     } else if (input.classroomId) {
       const familyIds = await resolveAudienceFamilyIds(admin, {
         ...draftSignup,
@@ -52,6 +65,19 @@ export async function publishClassroomSignup(
       });
       familyCount = familyIds.length;
     }
+  }
+
+  let config = input.config ?? {};
+  if (input.audience === "classrooms" && classroomIds.length > 0) {
+    const audienceClassroomNames = await fetchClassroomNames(
+      admin,
+      organizationId,
+      classroomIds,
+    );
+    config = {
+      ...config,
+      audienceClassroomNames,
+    };
   }
 
   const { data, error } = await admin
@@ -63,11 +89,12 @@ export async function publishClassroomSignup(
       description: input.description.trim(),
       signup_type: input.signupType,
       audience: input.audience,
-      classroom_id: input.classroomId,
+      classroom_id: input.audience === "classroom" ? input.classroomId : null,
+      classroom_ids: input.audience === "classrooms" ? classroomIds : [],
       family_count: familyCount,
       status,
       response_deadline: input.responseDeadline,
-      config: input.config ?? {},
+      config,
       published_at: status === "open" ? now : null,
       closed_at: null,
     })
@@ -76,6 +103,30 @@ export async function publishClassroomSignup(
 
   if (error) throw error;
   return mapClassroomSignupRow(data as ClassroomSignupRow);
+}
+
+async function fetchClassroomNames(
+  admin: SupabaseClient,
+  organizationId: string,
+  classroomIds: string[],
+): Promise<string[]> {
+  if (classroomIds.length === 0) return [];
+
+  const { data, error } = await admin
+    .from("classrooms")
+    .select("id, name")
+    .eq("organization_id", organizationId)
+    .in("id", classroomIds);
+
+  if (error) throw error;
+
+  const nameById = new Map(
+    (data ?? []).map((row) => [String(row.id), String(row.name ?? "Classroom")]),
+  );
+
+  return classroomIds
+    .map((id) => nameById.get(id))
+    .filter((name): name is string => Boolean(name));
 }
 
 export async function closeClassroomSignup(

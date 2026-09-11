@@ -9,6 +9,7 @@ import { recordManualTuitionPayment } from "@/lib/tuition/payments";
 import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { sendTuitionPaymentReceiptNotifications } from "@/lib/tuition/payment-receipt-notifications";
 import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
+import { isChargePayable } from "@/lib/tuition/charge-payability";
 import { getChargeById } from "@/lib/tuition/charges";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -53,6 +54,15 @@ export async function POST(request: Request, context: RouteContext) {
         status: 403,
         error: "Admin access required.",
         code: "forbidden",
+      });
+    }
+
+    if (!isChargePayable(charge)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "This charge is no longer payable.",
+        code: "invalid_status",
       });
     }
 

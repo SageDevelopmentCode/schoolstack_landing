@@ -50,10 +50,6 @@ export default function ClassroomSignupNotifyModal({
     setSending(false);
     setSent(true);
     onSent?.();
-    setTimeout(() => {
-      setSent(false);
-      onClose();
-    }, 1200);
   };
 
   return (

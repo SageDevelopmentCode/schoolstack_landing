@@ -1,0 +1,156 @@
+import {
+  Bell,
+  CalendarDays,
+  ChevronRight,
+  ClipboardList,
+  HeartPulse,
+  Megaphone,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react";
+import NavigationLink from "@/components/school/shared/NavigationLink";
+import {
+  formatRelativeTime,
+  type TeacherActivityNotification,
+  type TeacherActivityNotificationCategory,
+} from "@/lib/school-teacher/activity-notifications";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+
+type NotificationVisual = {
+  Icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+};
+
+export function getTeacherNotificationVisual(
+  category: TeacherActivityNotificationCategory,
+  theme: ParentThemeTokens,
+): NotificationVisual {
+  switch (category) {
+    case "messages":
+      return {
+        Icon: MessageSquare,
+        iconBg: theme.primarySoft,
+        iconColor: theme.primary,
+      };
+    case "signups":
+      return {
+        Icon: ClipboardList,
+        iconBg: theme.successBg,
+        iconColor: theme.success,
+      };
+    case "health":
+      return {
+        Icon: HeartPulse,
+        iconBg: theme.warningBg,
+        iconColor: theme.warning,
+      };
+    case "announcements":
+      return {
+        Icon: Megaphone,
+        iconBg: theme.warningBg,
+        iconColor: theme.warning,
+      };
+    case "events":
+      return {
+        Icon: CalendarDays,
+        iconBg: theme.infoBg,
+        iconColor: theme.info,
+      };
+    case "other":
+    default:
+      return {
+        Icon: Bell,
+        iconBg: theme.cream,
+        iconColor: theme.muted,
+      };
+  }
+}
+
+type TeacherActivityNotificationRowProps = {
+  notification: TeacherActivityNotification;
+  theme: ParentThemeTokens;
+  onClose: () => void;
+};
+
+function NotificationRowContent({
+  notification,
+  theme,
+}: {
+  notification: TeacherActivityNotification;
+  theme: ParentThemeTokens;
+}) {
+  const { Icon, iconBg, iconColor } = getTeacherNotificationVisual(
+    notification.category,
+    theme,
+  );
+
+  return (
+    <>
+      <div
+        className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px]"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-sm font-semibold leading-snug"
+          style={{ color: theme.ink }}
+        >
+          {notification.title}
+        </p>
+        <p
+          className="mt-0.5 line-clamp-2 text-xs leading-relaxed"
+          style={{ color: theme.muted }}
+        >
+          {notification.detail}
+        </p>
+        <p className="mt-1.5 text-[11px]" style={{ color: theme.muted }}>
+          {formatRelativeTime(notification.createdAt)}
+        </p>
+      </div>
+      <ChevronRight
+        className="mt-0.5 h-4 w-4 shrink-0 opacity-30 transition-opacity group-hover:opacity-60"
+        style={{ color: theme.muted }}
+        aria-hidden
+      />
+    </>
+  );
+}
+
+export default function TeacherActivityNotificationRow({
+  notification,
+  theme,
+  onClose,
+}: TeacherActivityNotificationRowProps) {
+  const className =
+    "group flex w-full items-start gap-3 rounded-[14px] border px-3 py-3 text-left transition-colors hover:opacity-95";
+  const style = {
+    textDecoration: "none" as const,
+    color: "inherit" as const,
+    borderColor: theme.line,
+    backgroundColor: theme.white,
+  };
+
+  const hoverHandlers = {
+    onMouseEnter: (event: React.MouseEvent<HTMLElement>) => {
+      event.currentTarget.style.backgroundColor = theme.cream;
+    },
+    onMouseLeave: (event: React.MouseEvent<HTMLElement>) => {
+      event.currentTarget.style.backgroundColor = theme.white;
+    },
+  };
+
+  return (
+    <NavigationLink
+      href={notification.href}
+      onClick={onClose}
+      className={className}
+      style={style}
+      {...hoverHandlers}
+    >
+      <NotificationRowContent notification={notification} theme={theme} />
+    </NavigationLink>
+  );
+}

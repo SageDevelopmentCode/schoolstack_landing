@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { Bell, ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
@@ -42,6 +42,8 @@ type SchoolTeacherHeaderProps = {
   userProfile: StaffUserProfile;
   previewMode?: boolean;
   previewBasePath?: string;
+  activityUnreadCount?: number;
+  onOpenNotifications?: () => void;
 };
 
 const teacherNavTextClass = "text-[13px] font-semibold";
@@ -97,6 +99,8 @@ export default function SchoolTeacherHeader({
   userProfile,
   previewMode = false,
   previewBasePath,
+  activityUnreadCount = 0,
+  onOpenNotifications,
 }: SchoolTeacherHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -320,7 +324,31 @@ export default function SchoolTeacherHeader({
           ) : null}
         </nav>
 
-        <div className="relative z-[100] shrink-0" ref={menuRef}>
+        <div className="relative z-[100] flex shrink-0 items-center gap-1.5" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => onOpenNotifications?.()}
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+            style={{ color: theme.ink }}
+            aria-label={
+              activityUnreadCount > 0
+                ? `Notifications, ${activityUnreadCount} unread`
+                : "Notifications"
+            }
+          >
+            <Bell className="h-[18px] w-[18px]" aria-hidden />
+            {activityUnreadCount > 0 ? (
+              <span
+                className="absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-semibold leading-none"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.white,
+                }}
+              >
+                {activityUnreadCount > 99 ? "99+" : activityUnreadCount}
+              </span>
+            ) : null}
+          </button>
             <ParentProfileMenuTrigger
               displayName={userProfile.displayName}
               profilePhotoUrl={profilePhotoUrl}

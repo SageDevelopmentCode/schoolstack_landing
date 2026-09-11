@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 export default function SchoolAdminDashboardPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { selectedSchool } = useAuth();
+  const { selectedSchool, user } = useAuth();
 
   if (!selectedSchool || selectedSchool.slug !== slug) {
     return null;
@@ -16,6 +16,7 @@ export default function SchoolAdminDashboardPage() {
       organizationId={selectedSchool.id}
       slug={selectedSchool.slug}
       schoolName={selectedSchool.name}
+      user={user}
     />
   );
 }

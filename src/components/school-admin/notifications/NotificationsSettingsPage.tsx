@@ -25,6 +25,7 @@ const NOTIFICATION_CHANNELS = [
   "applications",
   "payments",
   "visits",
+  "committees",
 ] as const satisfies readonly NotificationChannel[];
 
 const CHANNEL_COPY: Record<
@@ -46,6 +47,11 @@ const CHANNEL_COPY: Record<
     description: "Email when a family books a tour, interview, or shadow day.",
     toggleLabel: "Email admins when visits are scheduled",
   },
+  committees: {
+    title: "Committee join requests",
+    description: "Email when a parent requests to join a committee.",
+    toggleLabel: "Email admins when committee join requests are submitted",
+  },
 };
 
 function emptyRecipients(): OrganizationNotificationRecipients {
@@ -59,6 +65,7 @@ function emptyRecipients(): OrganizationNotificationRecipients {
     applications: { ...empty },
     payments: { ...empty },
     visits: { ...empty },
+    committees: { ...empty },
   };
 }
 

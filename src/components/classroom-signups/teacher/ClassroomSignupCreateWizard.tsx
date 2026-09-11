@@ -1,40 +1,77 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import type { Transition, Variants } from "framer-motion";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
-import SignupTemplatePicker from "./SignupTemplatePicker";
+import SignupTemplateSidebar from "./SignupTemplateSidebar";
 import ClassroomSignupNotifyModal from "./ClassroomSignupNotifyModal";
 import { SignupTypeChip } from "@/components/classroom-signups/shared/SignupTypeChip";
 import SignupTimePicker from "@/components/classroom-signups/shared/SignupTimePicker";
 import SignupDatePicker from "@/components/classroom-signups/shared/SignupDatePicker";
 import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
 import {
+  applyTemplateToDraft,
   buildSignupFromTemplate,
   emptySignupConfig,
 } from "@/lib/classroom-signups/templates";
 import type {
   ClassroomSignup,
-  ClassroomSignupAudience,
   ClassroomSignupDraft,
   ClassroomSignupTemplateId,
   ClassroomSignupTimeSlot,
   ClassroomSignupType,
   TeacherClassroomOption,
 } from "@/lib/classroom-signups/types";
-import { SIGNUP_TYPE_LABELS } from "@/lib/classroom-signups/types";
+import {
+  CLASSROOM_STAFF_ROLE_LABELS,
+  SIGNUP_TYPE_LABELS,
+} from "@/lib/classroom-signups/types";
 import {
   nextSignupEndTimeFromStart,
   parseTimeToMinutes,
 } from "@/lib/school-events/calendar-time";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { formatAudienceLabel } from "@/lib/classroom-signups/utils";
+import {
+  classroomNamesForSelection,
+  estimateFamilyCountForClassrooms,
+  formatAudienceLabel,
+} from "@/lib/classroom-signups/utils";
 
-type WizardStep = 1 | 2 | 3;
+type WizardStep = 1 | 2;
+
+function wizardStepVariants(reducedMotion: boolean): Variants {
+  if (reducedMotion) {
+    return {
+      enter: { opacity: 0 },
+      center: { opacity: 1 },
+      exit: { opacity: 0 },
+    };
+  }
+
+  return {
+    enter: (direction: number) => ({
+      opacity: 0,
+      x: direction > 0 ? 20 : -20,
+    }),
+    center: { opacity: 1, x: 0 },
+    exit: (direction: number) => ({
+      opacity: 0,
+      x: direction > 0 ? -20 : 20,
+    }),
+  };
+}
+
+function wizardStepTransition(reducedMotion: boolean): Transition {
+  return reducedMotion
+    ? { duration: 0.15 }
+    : { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] };
+}
 
 type ClassroomSignupCreateWizardProps = {
   organizationId: string;
@@ -48,7 +85,7 @@ type ClassroomSignupCreateWizardProps = {
 function StepIndicator({ step }: { step: WizardStep }) {
   return (
     <div className="mb-8 flex items-center justify-center gap-2.5">
-      {([1, 2, 3] as WizardStep[]).map((n) => (
+      {([1, 2] as WizardStep[]).map((n) => (
         <div
           key={n}
           className="h-2 rounded-full transition-all"
@@ -69,6 +106,7 @@ function WizardHeader({
   subtitle,
   backLabel,
   onBack,
+  templatesAction,
 }: {
   theme: ParentThemeTokens;
   step: WizardStep;
@@ -76,18 +114,31 @@ function WizardHeader({
   subtitle?: string;
   backLabel: string;
   onBack: () => void;
+  templatesAction?: { label: string; onClick: () => void };
 }) {
   return (
     <>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium"
-        style={{ color: theme.primary }}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {backLabel}
-      </button>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-sm font-medium"
+          style={{ color: theme.primary }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </button>
+        {templatesAction ? (
+          <button
+            type="button"
+            onClick={templatesAction.onClick}
+            className="text-sm font-medium"
+            style={{ color: theme.primary }}
+          >
+            {templatesAction.label}
+          </button>
+        ) : null}
+      </div>
       <ParentSectionKicker theme={theme}>Create signup</ParentSectionKicker>
       <ParentDisplayHeading theme={theme} className="mb-2">
         {title}
@@ -100,6 +151,37 @@ function WizardHeader({
       <StepIndicator step={step} />
     </>
   );
+}
+
+function hasDraftContent(draft: ClassroomSignupDraft): boolean {
+  if (draft.title.trim() || draft.description.trim() || draft.responseDeadline) {
+    return true;
+  }
+
+  if (draft.signupType === "time_slots") {
+    const slots = draft.config.slots ?? [];
+    return slots.some(
+      (slot) =>
+        slot.label.trim() ||
+        slot.date ||
+        slot.startTime !== "09:00" ||
+        slot.endTime !== "09:30" ||
+        slot.capacity !== 1,
+    );
+  }
+
+  if (draft.signupType === "roles") {
+    const roles = draft.config.roles ?? [];
+    return roles.some(
+      (role) =>
+        role.name.trim() ||
+        role.description.trim() ||
+        role.quantityNeeded !== 1,
+    );
+  }
+
+  const defaultPrompt = "How would you like to help?";
+  return (draft.config.parentPrompt ?? "").trim() !== defaultPrompt;
 }
 
 function newSlot() {
@@ -140,6 +222,25 @@ function slotWithStartTime(
   return next;
 }
 
+function createInitialDraft(
+  classroomOptions: TeacherClassroomOption[],
+): ClassroomSignupDraft {
+  const defaultClassroomIds =
+    classroomOptions.length === 1 ? [classroomOptions[0].id] : [];
+
+  return buildSignupFromTemplate("blank", {
+    audience: "classrooms",
+    classroomIds: defaultClassroomIds,
+    classroomId: null,
+    classroomName:
+      classroomNamesForSelection(classroomOptions, defaultClassroomIds) || null,
+    familyCount: estimateFamilyCountForClassrooms(
+      classroomOptions,
+      defaultClassroomIds,
+    ),
+  });
+}
+
 function SlotFieldLabel({ children }: { children: string }) {
   return (
     <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[#76828A]">
@@ -157,29 +258,42 @@ export default function ClassroomSignupCreateWizard({
   onPublished,
 }: ClassroomSignupCreateWizardProps) {
   const { theme } = useParentTheme();
+  const reducedMotion = useReducedMotion();
   const [step, setStep] = useState<WizardStep>(1);
-  const [draft, setDraft] = useState<ClassroomSignupDraft | null>(null);
+  const [direction, setDirection] = useState(1);
+  const [draft, setDraft] = useState<ClassroomSignupDraft>(() =>
+    createInitialDraft(classroomOptions),
+  );
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [publishedSignup, setPublishedSignup] = useState<ClassroomSignup | null>(
     null,
   );
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const finishedPublishRef = useRef(false);
 
-  const familyCount = useMemo(() => {
-    if (!draft) return assignedFamilyCount;
-    if (draft.audience === "assigned") return assignedFamilyCount;
-    const classroom = classroomOptions.find((c) => c.id === draft.classroomId);
-    return classroom?.familyCount ?? assignedFamilyCount;
-  }, [assignedFamilyCount, classroomOptions, draft]);
+  const familyCount = draft.familyCount;
+
+  const finishPublished = (signup: ClassroomSignup) => {
+    if (finishedPublishRef.current) return;
+    finishedPublishRef.current = true;
+    setNotifyOpen(false);
+    onPublished(signup);
+  };
 
   const handleTemplateSelect = (templateId: ClassroomSignupTemplateId) => {
-    setDraft(
-      buildSignupFromTemplate(templateId, {
-        familyCount: assignedFamilyCount,
-      }),
-    );
-    setStep(2);
+    if (
+      hasDraftContent(draft) &&
+      !window.confirm(
+        "Applying a template will replace your current title, description, and signup settings. Continue?",
+      )
+    ) {
+      return;
+    }
+
+    setDraft(applyTemplateToDraft(draft, templateId));
+    setTemplatesOpen(false);
   };
 
   const updateDraft = (patch: Partial<ClassroomSignupDraft>) => {
@@ -193,16 +307,23 @@ export default function ClassroomSignupCreateWizard({
     });
   };
 
-  const handleAudienceChange = (audience: ClassroomSignupAudience) => {
-    const classroom = classroomOptions[0];
+  const goToStep = (nextStep: WizardStep, nextDirection: number) => {
+    setDirection(nextDirection);
+    setStep(nextStep);
+  };
+
+  const toggleClassroomSelection = (classroomId: string) => {
+    const isSelected = draft.classroomIds.includes(classroomId);
+    const classroomIds = isSelected
+      ? draft.classroomIds.filter((id) => id !== classroomId)
+      : [...draft.classroomIds, classroomId];
+
     updateDraft({
-      audience,
-      classroomId: audience === "classroom" ? classroom?.id ?? null : null,
-      classroomName: audience === "classroom" ? classroom?.name ?? null : null,
-      familyCount:
-        audience === "assigned"
-          ? assignedFamilyCount
-          : classroom?.familyCount ?? 0,
+      audience: "classrooms",
+      classroomIds,
+      classroomId: null,
+      classroomName: classroomNamesForSelection(classroomOptions, classroomIds) || null,
+      familyCount: estimateFamilyCountForClassrooms(classroomOptions, classroomIds),
     });
   };
 
@@ -223,6 +344,8 @@ export default function ClassroomSignupCreateWizard({
           signupType: draft.signupType,
           audience: draft.audience,
           classroomId: draft.classroomId,
+          classroomIds: draft.classroomIds,
+          classroomName: draft.classroomName,
           responseDeadline: draft.responseDeadline,
           config: draft.config,
           status: "open",
@@ -242,7 +365,7 @@ export default function ClassroomSignupCreateWizard({
       if (openNotify) {
         setNotifyOpen(true);
       } else {
-        onPublished(payload.signup);
+        finishPublished(payload.signup);
       }
       return payload.signup;
     } catch (error) {
@@ -255,36 +378,49 @@ export default function ClassroomSignupCreateWizard({
     }
   };
 
-  if (step === 1) {
-    return (
-      <div>
-        <WizardHeader
-          theme={theme}
-          step={1}
-          title="Choose a template"
-          subtitle="Start from a common classroom request or configure your own."
-          backLabel="Back to signups"
-          onBack={onCancel}
-        />
-        <SignupTemplatePicker theme={theme} onSelect={handleTemplateSelect} />
-      </div>
-    );
-  }
+  const previewSignup: ClassroomSignup = {
+    ...draft,
+    id: "preview",
+    organizationId: "org-demo",
+    createdByStaffMemberId: "staff-demo",
+    teacherName,
+    familyCount,
+    status: "open",
+    publishedAt: null,
+    closedAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
-  if (!draft) return null;
+  const stepVariants = wizardStepVariants(reducedMotion ?? false);
+  const stepTransition = wizardStepTransition(reducedMotion ?? false);
 
-  if (step === 2) {
-    return (
-      <div>
-        <WizardHeader
-          theme={theme}
-          step={2}
-          title="Configure your signup"
-          backLabel="Back to templates"
-          onBack={() => setStep(1)}
-        />
+  return (
+    <div>
+      <AnimatePresence mode="wait" initial={false} custom={direction}>
+        {step === 1 ? (
+          <motion.div
+            key="configure"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={stepTransition}
+          >
+            <WizardHeader
+              theme={theme}
+              step={1}
+              title="Configure your signup"
+              backLabel="Back to signups"
+              onBack={onCancel}
+              templatesAction={{
+                label: "Templates",
+                onClick: () => setTemplatesOpen(true),
+              }}
+            />
 
-        <div className="mx-auto max-w-3xl">
+            <div className="mx-auto max-w-3xl">
         <div className="space-y-5">
           <ParentCard theme={theme}>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[#76828A]">
@@ -365,72 +501,73 @@ export default function ClassroomSignupCreateWizard({
           </ParentCard>
 
           <ParentCard theme={theme}>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#76828A]">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#76828A]">
               Who should receive this?
             </p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => handleAudienceChange("assigned")}
-                className="w-full rounded-[12px] border p-3 text-left"
-                style={{
-                  borderColor:
-                    draft.audience === "assigned" ? theme.primary : "#DCE4DC",
-                  backgroundColor:
-                    draft.audience === "assigned" ? "#E9F2EA" : theme.white,
-                }}
-              >
-                <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                  Families of my assigned students
-                </p>
-                <p className="text-xs" style={{ color: "#76828A" }}>
-                  {assignedFamilyCount} families
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAudienceChange("classroom")}
-                className="w-full rounded-[12px] border p-3 text-left"
-                style={{
-                  borderColor:
-                    draft.audience === "classroom" ? theme.primary : "#DCE4DC",
-                  backgroundColor:
-                    draft.audience === "classroom" ? "#E9F2EA" : theme.white,
-                }}
-              >
-                <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                  Entire classroom
-                </p>
-                {draft.audience === "classroom" ? (
-                  <select
-                    value={draft.classroomId ?? ""}
-                    onChange={(e) => {
-                      const classroom = classroomOptions.find(
-                        (c) => c.id === e.target.value,
-                      );
-                      updateDraft({
-                        classroomId: e.target.value,
-                        classroomName: classroom?.name ?? null,
-                        familyCount: classroom?.familyCount ?? 0,
-                      });
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="mt-2 rounded-[8px] border px-2 py-1 text-xs"
-                    style={{ borderColor: "#DCE4DC" }}
-                  >
-                    {classroomOptions.map((classroom) => (
-                      <option key={classroom.id} value={classroom.id}>
-                        {classroom.name} · {classroom.familyCount} families
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-xs" style={{ color: "#76828A" }}>
-                    All families in a selected classroom
-                  </p>
-                )}
-              </button>
-            </div>
+            <p className="mb-3 text-sm" style={{ color: "#76828A" }}>
+              Select the classrooms whose families should receive this signup.
+            </p>
+            {classroomOptions.length === 0 ? (
+              <p className="text-sm" style={{ color: "#76828A" }}>
+                You are not assigned to any classrooms yet. Contact your school
+                admin.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {classroomOptions.map((classroom) => {
+                  const isSelected = draft.classroomIds.includes(classroom.id);
+
+                  return (
+                    <label
+                      key={classroom.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-[12px] border p-3"
+                      style={{
+                        borderColor: isSelected ? theme.primary : "#DCE4DC",
+                        backgroundColor: isSelected ? "#E9F2EA" : theme.white,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleClassroomSelection(classroom.id)}
+                        className="mt-1 h-4 w-4 shrink-0 accent-[#3D6B4F]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: theme.ink }}
+                          >
+                            {classroom.name}
+                          </p>
+                          {classroom.role ? (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                              style={{
+                                backgroundColor: "#E9F2EA",
+                                color: theme.primary,
+                              }}
+                            >
+                              {CLASSROOM_STAFF_ROLE_LABELS[classroom.role]}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-xs" style={{ color: "#76828A" }}>
+                          {classroom.familyCount}{" "}
+                          {classroom.familyCount === 1 ? "family" : "families"}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {draft.classroomIds.length > 0 ? (
+              <p className="mt-3 text-sm font-medium" style={{ color: theme.ink }}>
+                {familyCount} {familyCount === 1 ? "family" : "families"} will see
+                this signup
+              </p>
+            ) : null}
           </ParentCard>
 
           {draft.signupType === "time_slots" ? (
@@ -664,42 +801,33 @@ export default function ClassroomSignupCreateWizard({
           <AdminButton
             theme={theme}
             variant="primary"
-            onClick={() => setStep(3)}
-            disabled={!draft.title.trim()}
+            onClick={() => goToStep(2, 1)}
+            disabled={!draft.title.trim() || draft.classroomIds.length === 0}
           >
             Review & publish
           </AdminButton>
         </div>
-        </div>
-      </div>
-    );
-  }
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="review"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={stepTransition}
+          >
+            <WizardHeader
+              theme={theme}
+              step={2}
+              title="Review & publish"
+              backLabel="Back to configure"
+              onBack={() => goToStep(1, -1)}
+            />
 
-  const previewSignup: ClassroomSignup = {
-    ...draft,
-    id: "preview",
-    organizationId: "org-demo",
-    createdByStaffMemberId: "staff-demo",
-    teacherName,
-    familyCount,
-    status: "open",
-    publishedAt: null,
-    closedAt: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  return (
-    <div>
-      <WizardHeader
-        theme={theme}
-        step={3}
-        title="Review & publish"
-        backLabel="Back to configure"
-        onBack={() => setStep(2)}
-      />
-
-      <div className="mx-auto max-w-3xl">
+            <div className="mx-auto max-w-3xl">
       <ParentCard theme={theme}>
         <div className="flex flex-wrap items-center gap-2">
           <SignupTypeChip theme={theme} type={draft.signupType} />
@@ -740,7 +868,17 @@ export default function ClassroomSignupCreateWizard({
           {publishing ? "Publishing…" : "Publish & notify"}
         </AdminButton>
       </div>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <SignupTemplateSidebar
+        theme={theme}
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        onSelect={handleTemplateSelect}
+      />
 
       {publishedSignup ? (
         <ClassroomSignupNotifyModal
@@ -748,11 +886,8 @@ export default function ClassroomSignupCreateWizard({
           responses={[]}
           teacherName={teacherName}
           open={notifyOpen}
-          onClose={() => {
-            setNotifyOpen(false);
-            onPublished(publishedSignup);
-          }}
-          onSent={() => onPublished(publishedSignup)}
+          onClose={() => finishPublished(publishedSignup)}
+          onSent={() => finishPublished(publishedSignup)}
         />
       ) : null}
     </div>

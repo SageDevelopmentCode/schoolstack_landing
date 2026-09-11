@@ -80,7 +80,7 @@ export default function ParentBillingChargeRow({
   const dueLine = formatParentChargeDueLine(charge);
   const showAutopayHint =
     autopayEnabled && UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
-  const canPay = charge.status !== "paid" && charge.status !== "void" && remainingCents > 0;
+  const canPay = UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
 
   return (
     <div

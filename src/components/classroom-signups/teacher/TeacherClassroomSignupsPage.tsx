@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import { ClipboardList, Plus } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
@@ -60,6 +61,26 @@ const fadeUp = {
     },
   }),
 };
+
+function pageEnterVariants(reducedMotion: boolean): Variants {
+  if (reducedMotion) {
+    return {
+      hidden: { opacity: 0 },
+      visible: { opacity: 1, transition: { duration: 0.2 } },
+      exit: { opacity: 0, transition: { duration: 0.15 } },
+    };
+  }
+
+  return {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+    },
+    exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
+  };
+}
 
 function StoryFilterPill({
   active,
@@ -125,6 +146,7 @@ export default function TeacherClassroomSignupsPage({
   previewMode = false,
 }: TeacherClassroomSignupsPageProps) {
   const { theme } = useParentTheme();
+  const reducedMotion = useReducedMotion();
   const [signups, setSignups] = useState<ClassroomSignup[]>(initialSignups);
   const [responsesBySignupId, setResponsesBySignupId] = useState(
     initialResponsesBySignupId,
@@ -151,30 +173,47 @@ export default function TeacherClassroomSignupsPage({
     };
   }, [signups]);
 
-  if (creating) {
-    return (
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <ClassroomSignupCreateWizard
-          organizationId={organizationId}
-          teacherName={teacherName}
-          classroomOptions={classroomOptions}
-          assignedFamilyCount={assignedFamilyCount}
-          onCancel={() => setCreating(false)}
-          onPublished={(signup) => {
-            setSignups((current) => [signup, ...current]);
-            setResponsesBySignupId((current) => ({
-              ...current,
-              [signup.id]: current[signup.id] ?? [],
-            }));
-            setCreating(false);
-          }}
-        />
-      </div>
-    );
-  }
+  const pageVariants = pageEnterVariants(reducedMotion ?? false);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <AnimatePresence mode="wait" initial={false}>
+        {creating ? (
+          <motion.div
+            key="create-wizard"
+            variants={pageVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <ClassroomSignupCreateWizard
+              organizationId={organizationId}
+              teacherName={teacherName}
+              classroomOptions={classroomOptions}
+              assignedFamilyCount={assignedFamilyCount}
+              onCancel={() => setCreating(false)}
+              onPublished={(signup) => {
+                setSignups((current) =>
+                  current.some((entry) => entry.id === signup.id)
+                    ? current
+                    : [signup, ...current],
+                );
+                setResponsesBySignupId((current) => ({
+                  ...current,
+                  [signup.id]: current[signup.id] ?? [],
+                }));
+                setCreating(false);
+              }}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="signup-list"
+            variants={pageVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <ParentSectionKicker theme={theme}>Your classroom</ParentSectionKicker>
@@ -321,6 +360,9 @@ export default function TeacherClassroomSignupsPage({
           })}
         </div>
       )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

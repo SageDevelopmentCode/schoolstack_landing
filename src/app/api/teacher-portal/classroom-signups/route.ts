@@ -124,12 +124,24 @@ export async function POST(request: Request) {
   }
 
   const organizationId = body.organizationId?.trim() ?? "";
+  const audience = body.audience ?? "classrooms";
+  const classroomIds = body.classroomIds ?? [];
+
   if (!organizationId || !body.title?.trim()) {
     return apiError(ROUTE, {
       request,
       status: 400,
       error: "organizationId and title are required.",
       code: "missing_fields",
+    });
+  }
+
+  if (audience === "classrooms" && classroomIds.length === 0) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "Select at least one classroom for this signup.",
+      code: "missing_classrooms",
     });
   }
 
@@ -156,8 +168,9 @@ export async function POST(request: Request) {
       title: body.title,
       description: body.description ?? "",
       signupType: body.signupType ?? "time_slots",
-      audience: body.audience ?? "assigned",
+      audience,
       classroomId: body.classroomId ?? null,
+      classroomIds,
       classroomName: body.classroomName ?? null,
       responseDeadline: body.responseDeadline ?? null,
       config: body.config ?? {},

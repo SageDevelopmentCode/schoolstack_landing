@@ -1,16 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  listStaffClassroomsForTeacher,
+  type StaffClassroomOption,
+} from "@/lib/school-admin/classrooms";
+import {
   listAssignedEnrolledStudents,
   type AdminEnrolledStudentSummary,
 } from "@/lib/school-admin/enrolled-students";
 import { greetingParts } from "@/lib/school-admin/dashboard-summary";
 import { getTeacherMessagesUnreadCount } from "@/lib/messages/unread-count-api";
-import { FEATURE_CATALOG } from "@/lib/organization-settings/catalog";
-import {
-  mergePortalFeatureNav,
-  resolvePortalFeatureOrder,
-} from "@/lib/organization-settings/feature-nav";
-import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
 import { dateKey } from "@/lib/committees/calendar-utils";
@@ -28,13 +26,6 @@ import {
 } from "@/lib/classroom-signups/load-teacher-signups";
 import { computeSignupMetrics } from "@/lib/classroom-signups/utils";
 
-export const IMPLEMENTED_TEACHER_FEATURES = [
-  "my_students",
-  "classroom_signups",
-  "messages",
-  "calendar",
-] as const;
-
 export type TeacherDashboardFocusIcon = "message" | "calendar" | "students" | "signups";
 
 export type TeacherDashboardFocusItem = {
@@ -45,29 +36,16 @@ export type TeacherDashboardFocusItem = {
   icon: TeacherDashboardFocusIcon;
 };
 
-export type TeacherDashboardQuickAction = {
-  id: string;
-  title: string;
-  subtitle: string;
-  href: string;
-};
-
 export type TeacherDashboardSummary = {
   focusItems: TeacherDashboardFocusItem[];
-  quickActions: TeacherDashboardQuickAction[];
   assignedStudents: AdminEnrolledStudentSummary[];
   upcomingEvents: OrganizationEvent[];
   messagesUnreadCount: number;
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
+  staffClassrooms: StaffClassroomOption[];
+  staffMemberId: string | null;
 };
-
-const TEACHER_CATALOG_DESCRIPTIONS = Object.fromEntries(
-  FEATURE_CATALOG.filter((entry) => entry.portal === "teacher").map((entry) => [
-    entry.key,
-    entry.description,
-  ]),
-) as Record<string, string>;
 
 function teacherFeatureEnabled(
   features: OrganizationFeatures,
@@ -76,35 +54,6 @@ function teacherFeatureEnabled(
   const teacher = features.teacher;
   if (!teacher || typeof teacher !== "object") return false;
   return Boolean((teacher as Record<string, boolean>)[key]);
-}
-
-export function buildTeacherQuickActions(
-  slug: string,
-  features: OrganizationFeatures,
-  teacherBasePath?: string,
-): TeacherDashboardQuickAction[] {
-  const portalNav = mergePortalFeatureNav("teacher", features.feature_nav?.teacher);
-  const orderedKeys = resolvePortalFeatureOrder(
-    "teacher",
-    IMPLEMENTED_TEACHER_FEATURES as unknown as string[],
-    portalNav,
-  );
-
-  return orderedKeys
-    .filter(
-      (key) =>
-        IMPLEMENTED_TEACHER_FEATURES.includes(
-          key as (typeof IMPLEMENTED_TEACHER_FEATURES)[number],
-        ) && teacherFeatureEnabled(features, key),
-    )
-    .map((key) => ({
-      id: key,
-      title: getTeacherPageLabel(key, portalNav),
-      subtitle: TEACHER_CATALOG_DESCRIPTIONS[key] ?? "",
-      href: teacherBasePath
-        ? `${teacherBasePath}/${key}`
-        : schoolTeacherPath(slug, key),
-    }));
 }
 
 function findEventToday(events: OrganizationEvent[]): OrganizationEvent | null {
@@ -125,7 +74,6 @@ export async function fetchTeacherDashboardSummary(
     teacherBasePath?: string;
   },
 ): Promise<TeacherDashboardSummary> {
-  const teacherFeatures = features.teacher;
   const messagesEnabled = teacherFeatureEnabled(features, "messages");
   const calendarEnabled = teacherFeatureEnabled(features, "calendar");
   const myStudentsEnabled = teacherFeatureEnabled(features, "my_students");
@@ -146,6 +94,7 @@ export async function fetchTeacherDashboardSummary(
     upcomingEvents,
     messagesUnreadCount,
     bulletinPosts,
+    staffClassrooms,
   ] = await Promise.all([
     myStudentsEnabled && staffMemberId
       ? listAssignedEnrolledStudents(supabase, organizationId, staffMemberId)
@@ -168,7 +117,11 @@ export async function fetchTeacherDashboardSummary(
       organizationId,
       bulletinEnabled,
       viewer: "teacher",
+      limit: 25,
     }),
+    myStudentsEnabled && staffMemberId
+      ? listStaffClassroomsForTeacher(supabase, organizationId, staffMemberId)
+      : Promise.resolve([] as StaffClassroomOption[]),
   ]);
 
   const messagesHref = options.teacherBasePath
@@ -249,20 +202,15 @@ export async function fetchTeacherDashboardSummary(
     });
   }
 
-  const quickActions = buildTeacherQuickActions(
-    slug,
-    features,
-    options.teacherBasePath,
-  );
-
   return {
     focusItems: focusItems.slice(0, 3),
-    quickActions,
     assignedStudents,
     upcomingEvents,
     messagesUnreadCount,
     bulletinEnabled,
     bulletinPosts,
+    staffClassrooms,
+    staffMemberId,
   };
 }
 

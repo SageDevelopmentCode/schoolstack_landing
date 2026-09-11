@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Eye, Loader2 } from "lucide-react";
+import { Bell, Eye, Loader2 } from "lucide-react";
+import OrganizationTeacherNotificationsPanel from "@/components/admin/OrganizationTeacherNotificationsPanel";
 import ParentPortalLoginBadge, {
   getParentPortalLoginStatusLabel,
   type ParentPortalLoginDisplayStatus,
@@ -56,6 +57,10 @@ export default function OrganizationTeacherPortalPanel({
   const [error, setError] = useState<string | null>(null);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
   const [summary, setSummary] = useState<StaffPortalLoginSummary | null>(null);
+  const [notificationsPreview, setNotificationsPreview] = useState<{
+    staffMemberId: string;
+    staffLabel: string;
+  } | null>(null);
 
   const loadStatuses = useCallback(async () => {
     setLoading(true);
@@ -170,25 +175,43 @@ export default function OrganizationTeacherPortalPanel({
                       )}
                     </td>
                     <td className="px-2 py-2.5 align-top">
-                      {previewEnabled ? (
-                        <a
-                          href={previewHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-md border border-admin-border bg-white px-2.5 py-1 text-xs font-medium text-admin-text transition hover:bg-admin-surface"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Preview
-                        </a>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-md border border-admin-border/50 px-2.5 py-1 text-xs text-admin-faint"
-                          title="Staff must have active portal access to preview"
-                        >
-                          <Eye className="h-3.5 w-3.5 opacity-40" />
-                          Preview
-                        </span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {previewEnabled ? (
+                          <a
+                            href={previewHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-admin-border bg-white px-2.5 py-1 text-xs font-medium text-admin-text transition hover:bg-admin-surface"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Preview
+                          </a>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-md border border-admin-border/50 px-2.5 py-1 text-xs text-admin-faint"
+                            title="Staff must have active portal access to preview"
+                          >
+                            <Eye className="h-3.5 w-3.5 opacity-40" />
+                            Preview
+                          </span>
+                        )}
+                        {previewEnabled ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNotificationsPreview({
+                                staffMemberId: member.id,
+                                staffLabel: staffDisplayName(member),
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-md border border-admin-border bg-white px-2.5 py-1 text-xs font-medium text-admin-text transition hover:bg-admin-surface"
+                            title="Preview this staff member's teacher notifications without marking them read"
+                          >
+                            <Bell className="h-3.5 w-3.5" />
+                            Notifications
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -197,6 +220,17 @@ export default function OrganizationTeacherPortalPanel({
           </table>
         </div>
       )}
+
+      {notificationsPreview ? (
+        <OrganizationTeacherNotificationsPanel
+          organizationId={organizationId}
+          organizationSlug={organizationSlug}
+          staffMemberId={notificationsPreview.staffMemberId}
+          staffLabel={notificationsPreview.staffLabel}
+          open
+          onClose={() => setNotificationsPreview(null)}
+        />
+      ) : null}
     </section>
   );
 }

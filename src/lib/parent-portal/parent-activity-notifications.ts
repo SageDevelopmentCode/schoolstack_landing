@@ -123,6 +123,7 @@ export type ParentNotificationFetchOptions = {
 const DEFAULT_NOTIFICATION_DAYS = 30;
 const DEFAULT_NOTIFICATION_PAGE_SIZE = 15;
 const MAX_NOTIFICATION_PAGE_SIZE = 30;
+export const MAX_UNREAD_BADGE_COUNT = 99;
 const ACTIVITY_NOTIFICATION_BATCH_SIZE = 50;
 const MAX_ACTIVITY_NOTIFICATION_BATCHES = 5;
 
@@ -135,6 +136,65 @@ type PageFetchOptions = {
   limit: number;
   cursor: NotificationPageCursor | null;
 };
+
+type NotificationSinceBound = {
+  since: Date;
+  exclusive: boolean;
+};
+
+type ParentNotificationCountOptions = Pick<
+  ParentNotificationFetchOptions,
+  "bulletinScope" | "parentNavBasePath" | "applyBasePath"
+>;
+
+export function resolveNotificationSince(
+  lastReadAt: string | null,
+  rangeStart: Date,
+): NotificationSinceBound {
+  if (!lastReadAt) {
+    return { since: rangeStart, exclusive: false };
+  }
+
+  const read = new Date(lastReadAt);
+  if (Number.isNaN(read.getTime())) {
+    return { since: rangeStart, exclusive: false };
+  }
+
+  if (read >= rangeStart) {
+    return { since: read, exclusive: true };
+  }
+
+  return { since: rangeStart, exclusive: false };
+}
+
+function countUnreadFromNotifications(
+  notifications: ParentActivityNotification[],
+  lastReadAt: string | null,
+  rangeStart: Date,
+  cap: number,
+  seenIds?: Set<string>,
+): number {
+  let count = 0;
+
+  for (const notification of notifications) {
+    if (seenIds?.has(notification.id)) continue;
+    if (
+      !isUnreadActivityNotificationEvent(
+        notification.createdAt,
+        lastReadAt,
+        rangeStart,
+      )
+    ) {
+      continue;
+    }
+
+    seenIds?.add(notification.id);
+    count += 1;
+    if (count >= cap) return cap;
+  }
+
+  return count;
+}
 
 function parseNotificationPageCursor(
   cursor: string | null | undefined,
@@ -1096,6 +1156,136 @@ function mapActivityEventToParentNotification(
   };
 }
 
+async function filterRawActivityEventsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  rawEvents: ActivityEventForNotification[],
+): Promise<ActivityEventForNotification[]> {
+  const familyByEventId = await resolveFamilyIdsForEvents(
+    supabase,
+    organizationId,
+    rawEvents,
+  );
+  const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
+
+  return rawEvents.filter((event) => {
+    if (shouldExcludeParentActorEvent(event)) return false;
+
+    const eventFamilyId = familyByEventId.get(event.id);
+    if (isOrgWideParentNotificationAction(event.action)) {
+      return true;
+    }
+    if (eventFamilyId !== familyId) return false;
+
+    if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+      const senderUserId = metadataString(event.metadata, "senderUserId");
+      if (senderUserId && guardianUserIds.has(senderUserId)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function applyActivityEventSinceBound<
+  T extends {
+    gte: (column: string, value: string) => T;
+    gt: (column: string, value: string) => T;
+  },
+>(query: T, sinceBound: NotificationSinceBound): T {
+  if (sinceBound.exclusive) {
+    return query.gt("created_at", sinceBound.since.toISOString());
+  }
+
+  return query.gte("created_at", sinceBound.since.toISOString());
+}
+
+async function countActivityNotificationsForFamily(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  sinceBound: NotificationSinceBound,
+  lastReadAt: string | null,
+  rangeStart: Date,
+  remainingCap: number,
+  seenIds?: Set<string>,
+): Promise<number> {
+  if (remainingCap <= 0) return 0;
+
+  let count = 0;
+  let batchCursor: NotificationPageCursor | null = null;
+  let batches = 0;
+
+  while (count < remainingCap && batches < MAX_ACTIVITY_NOTIFICATION_BATCHES) {
+    batches += 1;
+
+    let query = applyActivityEventSinceBound(
+      supabase
+        .from("activity_events")
+        .select(
+          "id, action, entity_type, entity_id, summary, metadata, created_at, actor_type, actor_user_id, surface",
+        )
+        .eq("organization_id", organizationId)
+        .in("action", [...PARENT_NOTIFICATION_ACTIONS]),
+      sinceBound,
+    )
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(ACTIVITY_NOTIFICATION_BATCH_SIZE);
+
+    if (batchCursor) {
+      query = query.or(
+        `created_at.lt.${batchCursor.createdAt},and(created_at.eq.${batchCursor.createdAt},id.lt.${batchCursor.id})`,
+      );
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data?.length) break;
+
+    const rawEvents = data.map((row) =>
+      mapActivityEventRow(row as Record<string, unknown>),
+    );
+    const filteredEvents = await filterRawActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      rawEvents,
+    );
+
+    for (const event of filteredEvents) {
+      if (seenIds?.has(event.id)) continue;
+      if (
+        !isUnreadActivityNotificationEvent(
+          event.created_at,
+          lastReadAt,
+          rangeStart,
+        )
+      ) {
+        continue;
+      }
+
+      seenIds?.add(event.id);
+      count += 1;
+      if (count >= remainingCap) return count;
+    }
+
+    const lastRow = data.at(-1);
+    if (!lastRow) break;
+
+    batchCursor = {
+      createdAt: String(lastRow.created_at),
+      id: String(lastRow.id),
+    };
+
+    if (data.length < ACTIVITY_NOTIFICATION_BATCH_SIZE) break;
+  }
+
+  return count;
+}
+
 async function fetchActivityNotificationsForPage(
   supabase: SupabaseClient,
   organizationId: string,
@@ -1150,31 +1340,12 @@ async function fetchActivityNotificationsForPage(
       mapActivityEventRow(row as Record<string, unknown>),
     );
 
-    const familyByEventId = await resolveFamilyIdsForEvents(
+    const filteredEvents = await filterRawActivityEventsForFamily(
       supabase,
       organizationId,
+      familyId,
       rawEvents,
     );
-    const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
-
-    const filteredEvents = rawEvents.filter((event) => {
-      if (shouldExcludeParentActorEvent(event)) return false;
-
-      const eventFamilyId = familyByEventId.get(event.id);
-      if (isOrgWideParentNotificationAction(event.action)) {
-        return true;
-      }
-      if (eventFamilyId !== familyId) return false;
-
-      if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
-        const senderUserId = metadataString(event.metadata, "senderUserId");
-        if (senderUserId && guardianUserIds.has(senderUserId)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
 
     const applicationIdByEventId = await resolveApplicationIdsForEvents(
       supabase,
@@ -1273,6 +1444,7 @@ async function buildParentActivityNotificationsPageForContext(
         ),
         fetchCoopProgramNotifications(
           supabase,
+          organizationId,
           context,
           familyId,
           rangeStart,
@@ -1329,6 +1501,7 @@ async function buildParentActivityNotificationsPageForContext(
     coopProgramContexts.map((programContext) =>
       fetchCoopProgramNotifications(
         supabase,
+        organizationId,
         programContext,
         familyId,
         rangeStart,
@@ -1362,6 +1535,169 @@ async function buildParentActivityNotificationsPageForContext(
     ],
     pageFetch.limit,
   );
+}
+
+async function countUnreadParentActivityNotificationsForContext(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  context: ParentNotificationContext,
+  lastReadAt: string | null,
+  rangeStart: Date,
+  options?: ParentNotificationCountOptions,
+  remainingCap: number = MAX_UNREAD_BADGE_COUNT,
+  seenIds?: Set<string>,
+): Promise<number> {
+  if (remainingCap <= 0) return 0;
+
+  const sinceBound = resolveNotificationSince(lastReadAt, rangeStart);
+  const slug = context.slug;
+  const pageFetch: PageFetchOptions = {
+    limit: remainingCap,
+    cursor: null,
+  };
+
+  let total = await countActivityNotificationsForFamily(
+    supabase,
+    organizationId,
+    familyId,
+    sinceBound,
+    lastReadAt,
+    rangeStart,
+    remainingCap,
+    seenIds,
+  );
+  if (total >= remainingCap) return total;
+
+  const countFetchedNotifications = (
+    notifications: ParentActivityNotification[],
+  ): number => {
+    const added = countUnreadFromNotifications(
+      notifications,
+      lastReadAt,
+      rangeStart,
+      remainingCap - total,
+      seenIds,
+    );
+    total += added;
+    return added;
+  };
+
+  if (context.mode === "program") {
+    const [bulletinNotifications, calendarNotifications, coopNotifications] =
+      await Promise.all([
+        fetchBulletinNotifications(
+          supabase,
+          organizationId,
+          slug,
+          sinceBound.since,
+          parentProgramPortalBulletinScope(context.programId),
+          context.parentNavBasePath,
+          pageFetch,
+        ),
+        fetchCalendarNotifications(
+          supabase,
+          organizationId,
+          slug,
+          sinceBound.since,
+          programPortalAudienceScope(context.programId),
+          context.parentNavBasePath,
+          pageFetch,
+        ),
+        fetchCoopProgramNotifications(
+          supabase,
+          organizationId,
+          context,
+          familyId,
+          sinceBound.since,
+          pageFetch,
+        ),
+      ]);
+
+    countFetchedNotifications(bulletinNotifications);
+    if (total >= remainingCap) return remainingCap;
+    countFetchedNotifications(calendarNotifications);
+    if (total >= remainingCap) return remainingCap;
+    countFetchedNotifications(coopNotifications);
+    return Math.min(total, remainingCap);
+  }
+
+  const coopProgramContexts = await listCoopProgramContextsForMainPortal(
+    supabase,
+    organizationId,
+    slug,
+    familyId,
+    context.applyBasePath,
+    context.parentNavBasePath === schoolParentRootPath(slug)
+      ? undefined
+      : context.parentNavBasePath,
+  );
+
+  const calendarPromises = [
+    fetchCalendarNotifications(
+      supabase,
+      organizationId,
+      slug,
+      sinceBound.since,
+      mainPortalAudienceScope(),
+      context.parentNavBasePath,
+      pageFetch,
+    ),
+    ...coopProgramContexts.map((programContext) =>
+      fetchCalendarNotifications(
+        supabase,
+        organizationId,
+        slug,
+        sinceBound.since,
+        programPortalAudienceScope(programContext.programId),
+        programContext.parentNavBasePath,
+        pageFetch,
+      ),
+    ),
+  ];
+
+  const coopNotificationsPromise = Promise.all(
+    coopProgramContexts.map((programContext) =>
+      fetchCoopProgramNotifications(
+        supabase,
+        organizationId,
+        programContext,
+        familyId,
+        sinceBound.since,
+        pageFetch,
+      ),
+    ),
+  );
+
+  const [bulletinNotifications, coopNotifications, ...calendarResults] =
+    await Promise.all([
+      fetchBulletinNotifications(
+        supabase,
+        organizationId,
+        slug,
+        sinceBound.since,
+        options?.bulletinScope ?? parentMainPortalBulletinScope(),
+        context.parentNavBasePath,
+        pageFetch,
+      ),
+      coopNotificationsPromise,
+      ...calendarPromises,
+    ]);
+
+  countFetchedNotifications(bulletinNotifications);
+  if (total >= remainingCap) return remainingCap;
+
+  for (const calendarNotifications of calendarResults) {
+    countFetchedNotifications(calendarNotifications);
+    if (total >= remainingCap) return remainingCap;
+  }
+
+  for (const coopNotificationsForProgram of coopNotifications) {
+    countFetchedNotifications(coopNotificationsForProgram);
+    if (total >= remainingCap) return remainingCap;
+  }
+
+  return Math.min(total, remainingCap);
 }
 
 async function listCoopProgramContextsForMainPortal(
@@ -1427,284 +1763,48 @@ function resolveNotificationContext(
   });
 }
 
-async function buildParentActivityNotificationsForContext(
-  supabase: SupabaseClient,
-  organizationId: string,
-  familyId: string,
-  context: ParentNotificationContext,
-  options?: ParentNotificationFetchOptions,
-): Promise<ParentActivityNotification[]> {
-  const days = options?.days ?? DEFAULT_NOTIFICATION_DAYS;
-  const rangeStart = getActivityNotificationRangeStart(days);
-  const slug = context.slug;
-  const fetchOptions: Pick<
-    ParentNotificationFetchOptions,
-    "parentNavBasePath" | "applyBasePath"
-  > = {
-    parentNavBasePath: context.parentNavBasePath,
-    applyBasePath: context.applyBasePath,
-  };
-
-  const { data, error } = await supabase
-    .from("activity_events")
-    .select(
-      "id, action, entity_type, entity_id, summary, metadata, created_at, actor_type, actor_user_id, surface",
-    )
-    .eq("organization_id", organizationId)
-    .in("action", [...PARENT_NOTIFICATION_ACTIONS])
-    .gte("created_at", rangeStart.toISOString())
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-
-  const rawEvents = (data ?? []).map((row) =>
-    mapActivityEventRow(row as Record<string, unknown>),
-  );
-
-  const familyByEventId = await resolveFamilyIdsForEvents(
-    supabase,
-    organizationId,
-    rawEvents,
-  );
-  const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
-
-  const filteredEvents = rawEvents.filter((event) => {
-    if (shouldExcludeParentActorEvent(event)) return false;
-
-    const eventFamilyId = familyByEventId.get(event.id);
-    if (isOrgWideParentNotificationAction(event.action)) {
-      return true;
-    }
-    if (eventFamilyId !== familyId) return false;
-
-    if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
-      const senderUserId = metadataString(event.metadata, "senderUserId");
-      if (senderUserId && guardianUserIds.has(senderUserId)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  const applicationIdByEventId = await resolveApplicationIdsForEvents(
-    supabase,
-    filteredEvents,
-  );
-  const applicationIds = [
-    ...new Set(
-      [...applicationIdByEventId.values()].filter(
-        (value): value is string => Boolean(value),
-      ),
-    ),
-  ];
-  const studentLabels = await fetchApplicationStudentLabels(
-    supabase,
-    applicationIds,
-  );
-
-  const activityNotifications = filteredEvents.map((event) =>
-    mapActivityEventToParentNotification(
-      event,
-      slug,
-      applicationIdByEventId.get(event.id) ?? null,
-      applicationIdByEventId.get(event.id)
-        ? studentLabels.get(applicationIdByEventId.get(event.id)!) ?? null
-        : null,
-      fetchOptions,
-    ),
-  );
-
-  if (context.mode === "program") {
-    const bulletinScope = parentProgramPortalBulletinScope(context.programId);
-    const [bulletinNotifications, calendarNotifications, coopNotifications] =
-      await Promise.all([
-        fetchBulletinNotifications(
-          supabase,
-          organizationId,
-          slug,
-          rangeStart,
-          bulletinScope,
-          context.parentNavBasePath,
-        ),
-        fetchCalendarNotifications(
-          supabase,
-          organizationId,
-          slug,
-          rangeStart,
-          programPortalAudienceScope(context.programId),
-          context.parentNavBasePath,
-        ),
-        fetchCoopProgramNotifications(
-          supabase,
-          context,
-          familyId,
-          rangeStart,
-        ),
-      ]);
-
-    return mergeNotificationsById([
-      ...activityNotifications,
-      ...bulletinNotifications,
-      ...calendarNotifications,
-      ...coopNotifications,
-    ]);
-  }
-
-  const coopProgramContexts = await listCoopProgramContextsForMainPortal(
-    supabase,
-    organizationId,
-    slug,
-    familyId,
-    context.applyBasePath,
-    context.parentNavBasePath === schoolParentRootPath(slug)
-      ? undefined
-      : context.parentNavBasePath,
-  );
-
-  const coopNotificationsPromise = Promise.all(
-    coopProgramContexts.map((programContext) =>
-      fetchCoopProgramNotifications(
-        supabase,
-        programContext,
-        familyId,
-        rangeStart,
-      ),
-    ),
-  );
-
-  const calendarPromises = [
-    fetchCalendarNotifications(
-      supabase,
-      organizationId,
-      slug,
-      rangeStart,
-      mainPortalAudienceScope(),
-      context.parentNavBasePath,
-    ),
-    ...coopProgramContexts.map((programContext) =>
-      fetchCalendarNotifications(
-        supabase,
-        organizationId,
-        slug,
-        rangeStart,
-        programPortalAudienceScope(programContext.programId),
-        programContext.parentNavBasePath,
-      ),
-    ),
-  ];
-
-  const [bulletinNotifications, coopNotifications, ...calendarResults] =
-    await Promise.all([
-      fetchBulletinNotifications(
-        supabase,
-        organizationId,
-        slug,
-        rangeStart,
-        options?.bulletinScope ?? parentMainPortalBulletinScope(),
-        context.parentNavBasePath,
-      ),
-      coopNotificationsPromise,
-      ...calendarPromises,
-    ]);
-
-  return mergeNotificationsById([
-    ...activityNotifications,
-    ...bulletinNotifications,
-    ...calendarResults.flat(),
-    ...coopNotifications.flat(),
-  ]);
-}
-
-async function buildParentActivityNotifications(
+async function fetchAggregatedParentActivityNotifications(
   supabase: SupabaseClient,
   organizationId: string,
   slug: string,
   familyId: string,
+  pageFetch: PageFetchOptions,
   options?: ParentNotificationFetchOptions,
-): Promise<ParentActivityNotification[]> {
-  if (options?.aggregateAllContexts) {
-    const contexts = await resolveParentNotificationContexts(supabase, {
-      organizationId,
-      slug,
-      familyId,
-      applyBasePath: options.applyBasePath,
-      previewParentBasePath:
-        options.parentNavBasePath &&
-        options.parentNavBasePath !== schoolParentRootPath(slug)
-          ? options.parentNavBasePath
-          : undefined,
-    });
+): Promise<ParentActivityNotificationsPage> {
+  const contexts = await resolveParentNotificationContexts(supabase, {
+    organizationId,
+    slug,
+    familyId,
+    applyBasePath: options?.applyBasePath,
+    previewParentBasePath:
+      options?.parentNavBasePath &&
+      options.parentNavBasePath !== schoolParentRootPath(slug)
+        ? options.parentNavBasePath
+        : undefined,
+  });
 
-    if (contexts.length === 0) {
-      return buildParentActivityNotificationsForContext(
+  const contextList =
+    contexts.length > 0
+      ? contexts
+      : [resolveNotificationContext(slug, options)];
+
+  const pages = await Promise.all(
+    contextList.map((context) =>
+      buildParentActivityNotificationsPageForContext(
         supabase,
         organizationId,
         familyId,
-        resolveNotificationContext(slug, options),
+        context,
+        pageFetch,
         options,
-      );
-    }
-
-    const feeds = await Promise.all(
-      contexts.map((context) =>
-        buildParentActivityNotificationsForContext(
-          supabase,
-          organizationId,
-          familyId,
-          context,
-          options,
-        ),
       ),
-    );
-
-    return mergeNotificationsById(feeds.flat());
-  }
-
-  const context = resolveNotificationContext(slug, options);
-  return buildParentActivityNotificationsForContext(
-    supabase,
-    organizationId,
-    familyId,
-    context,
-    options,
+    ),
   );
-}
 
-function paginateNotifications(
-  notifications: ParentActivityNotification[],
-  limit: number,
-  cursor?: string | null,
-): ParentActivityNotificationsPage {
-  let startIndex = 0;
-  const decodedCursor = cursor ? decodeActivityNotificationCursor(cursor) : null;
-  if (decodedCursor) {
-    startIndex = notifications.findIndex((notification) => {
-      const created = new Date(notification.createdAt).getTime();
-      const cursorCreated = new Date(decodedCursor.createdAt).getTime();
-      if (created < cursorCreated) return true;
-      if (created === cursorCreated && notification.id < decodedCursor.id) {
-        return true;
-      }
-      return false;
-    });
-    if (startIndex === -1) {
-      return { notifications: [], nextCursor: null, hasMore: false };
-    }
-  }
-
-  const pageItems = notifications.slice(startIndex, startIndex + limit);
-  const hasMore = startIndex + limit < notifications.length;
-  const lastItem = pageItems.at(-1);
-
-  return {
-    notifications: pageItems,
-    nextCursor:
-      hasMore && lastItem
-        ? encodeActivityNotificationCursor(lastItem.createdAt, lastItem.id)
-        : null,
-    hasMore,
-  };
+  return finalizeNotificationPage(
+    mergeNotificationsById(pages.flatMap((page) => page.notifications)),
+    pageFetch.limit,
+  );
 }
 
 export async function fetchParentActivityNotifications(
@@ -1725,15 +1825,14 @@ export async function fetchParentActivityNotifications(
   };
 
   if (options?.aggregateAllContexts) {
-    const notifications = await buildParentActivityNotifications(
+    return fetchAggregatedParentActivityNotifications(
       supabase,
       organizationId,
       slug,
       familyId,
+      pageFetch,
       options,
     );
-
-    return paginateNotifications(notifications, limit, options?.cursor);
   }
 
   const context = resolveNotificationContext(slug, options);
@@ -1806,21 +1905,62 @@ export async function countUnreadParentActivityNotifications(
 ): Promise<number> {
   const days = options?.days ?? DEFAULT_NOTIFICATION_DAYS;
   const rangeStart = getActivityNotificationRangeStart(days);
-  const notifications = await buildParentActivityNotifications(
+
+  if (options?.aggregateAllContexts) {
+    const contexts = await resolveParentNotificationContexts(supabase, {
+      organizationId,
+      slug,
+      familyId,
+      applyBasePath: options.applyBasePath,
+      previewParentBasePath:
+        options.parentNavBasePath &&
+        options.parentNavBasePath !== schoolParentRootPath(slug)
+          ? options.parentNavBasePath
+          : undefined,
+    });
+
+    const contextList =
+      contexts.length > 0
+        ? contexts
+        : [resolveNotificationContext(slug, options)];
+
+    const seenIds = new Set<string>();
+    let total = 0;
+
+    for (const context of contextList) {
+      const added = await countUnreadParentActivityNotificationsForContext(
+        supabase,
+        organizationId,
+        familyId,
+        context,
+        lastReadAt,
+        rangeStart,
+        options,
+        MAX_UNREAD_BADGE_COUNT - total,
+        seenIds,
+      );
+      total += added;
+      if (total >= MAX_UNREAD_BADGE_COUNT) {
+        return MAX_UNREAD_BADGE_COUNT;
+      }
+    }
+
+    return total;
+  }
+
+  const context =
+    options?.notificationContext ?? resolveNotificationContext(slug, options);
+
+  return countUnreadParentActivityNotificationsForContext(
     supabase,
     organizationId,
-    slug,
     familyId,
+    context,
+    lastReadAt,
+    rangeStart,
     options,
+    MAX_UNREAD_BADGE_COUNT,
   );
-
-  return notifications.filter((notification) =>
-    isUnreadActivityNotificationEvent(
-      notification.createdAt,
-      lastReadAt,
-      rangeStart,
-    ),
-  ).length;
 }
 
 export async function fetchUnreadParentActivityNotificationCount(

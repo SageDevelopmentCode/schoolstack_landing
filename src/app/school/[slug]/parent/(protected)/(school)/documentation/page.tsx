@@ -45,6 +45,7 @@ export default async function SchoolParentDocumentationRoute({ params }: PagePro
 
   const features = resolveMainParentOrganizationFeatures(org.features);
   const documentationBasePath = parentDocumentationPath(slug);
+  const bulletinEnabled = Boolean(org.features.admin?.bulletin);
 
   return (
     <SchoolParentPageShell title="How-to guides">
@@ -55,6 +56,7 @@ export default async function SchoolParentDocumentationRoute({ params }: PagePro
           branding={org.branding}
           features={features}
           coopModeEnabled={false}
+          bulletinEnabled={bulletinEnabled}
           documentationBasePath={documentationBasePath}
         />
       </Suspense>

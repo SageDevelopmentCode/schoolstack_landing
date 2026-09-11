@@ -25,6 +25,7 @@ import {
   listChargesForFamily,
 } from "@/lib/tuition/charges";
 import { chargeRemainingCents, listBillingSplits } from "@/lib/tuition/billing-splits";
+import { isChargePayable } from "@/lib/tuition/charge-payability";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import {
   listParentTuitionPaymentHistory,
@@ -629,7 +630,7 @@ function ParentBillingPageContent({
     if (previewMode) return;
     const charge = charges.find((row) => row.id === chargeId);
     if (!charge) return;
-    if (chargeRemainingCents(charge) <= 0) return;
+    if (!isChargePayable(charge) || chargeRemainingCents(charge) <= 0) return;
 
     setPayError(null);
     setPayAmountMode(options?.extra ? "custom" : "balance");

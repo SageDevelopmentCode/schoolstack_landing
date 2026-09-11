@@ -127,6 +127,7 @@ function coopFeatureHref(
 
 export async function fetchCoopProgramNotifications(
   supabase: SupabaseClient,
+  organizationId: string,
   ctx: Extract<ParentNotificationContext, { mode: "program" }>,
   familyId: string,
   rangeStart: Date,
@@ -134,16 +135,18 @@ export async function fetchCoopProgramNotifications(
 ): Promise<CoopParentActivityNotification[]> {
   if (!ctx.coopModeEnabled) return [];
 
-  const organizationId = await resolveOrganizationIdForProgram(
+  const resolvedOrganizationId = await resolveOrganizationIdForProgram(
     supabase,
     ctx.programId,
   );
-  if (!organizationId) return [];
+  if (!resolvedOrganizationId || resolvedOrganizationId !== organizationId) {
+    return [];
+  }
 
   const [supplyItems, teachingWeeks, curriculumRows] = await Promise.all([
-    fetchSupplyItems(supabase, ctx.programId, rangeStart),
-    fetchTeachingWeeks(supabase, ctx.programId, rangeStart),
-    fetchCurriculumRows(supabase, ctx.programId, rangeStart),
+    fetchSupplyItems(supabase, organizationId, ctx.programId, rangeStart),
+    fetchTeachingWeeks(supabase, organizationId, ctx.programId, rangeStart),
+    fetchCurriculumRows(supabase, organizationId, ctx.programId, rangeStart),
   ]);
 
   const notifications: CoopParentActivityNotification[] = [];
@@ -297,12 +300,14 @@ async function resolveOrganizationIdForProgram(
 
 async function fetchSupplyItems(
   supabase: SupabaseClient,
+  organizationId: string,
   programId: string,
   rangeStart: Date,
 ): Promise<SupplyItemRow[]> {
   const { data, error } = await supabase
     .from("program_coop_supply_items")
     .select("id, name, assigned_family_ids, created_at, updated_at")
+    .eq("organization_id", organizationId)
     .eq("program_id", programId)
     .or(
       `created_at.gte.${rangeStart.toISOString()},updated_at.gte.${rangeStart.toISOString()}`,
@@ -315,6 +320,7 @@ async function fetchSupplyItems(
 
 async function fetchTeachingWeeks(
   supabase: SupabaseClient,
+  organizationId: string,
   programId: string,
   rangeStart: Date,
 ): Promise<TeachingWeekRow[]> {
@@ -323,6 +329,7 @@ async function fetchTeachingWeeks(
     .select(
       "id, week_name, start_date, instructor_family_ids, assistant_family_ids, created_at, updated_at",
     )
+    .eq("organization_id", organizationId)
     .eq("program_id", programId)
     .or(
       `created_at.gte.${rangeStart.toISOString()},updated_at.gte.${rangeStart.toISOString()}`,
@@ -335,12 +342,14 @@ async function fetchTeachingWeeks(
 
 async function fetchCurriculumRows(
   supabase: SupabaseClient,
+  organizationId: string,
   programId: string,
   rangeStart: Date,
 ): Promise<CurriculumRow[]> {
   const { data, error } = await supabase
     .from("program_coop_curriculum")
     .select("id, file_name, display_name, updated_at")
+    .eq("organization_id", organizationId)
     .eq("program_id", programId)
     .gte("updated_at", rangeStart.toISOString())
     .order("updated_at", { ascending: false });

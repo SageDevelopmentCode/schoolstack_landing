@@ -18,6 +18,7 @@ export async function loadTeacherClassroomOptions(
       id: classroom.id,
       name: classroom.name,
       familyCount: classroom.studentCount,
+      role: classroom.role ?? null,
     }));
   }
 
@@ -77,6 +78,7 @@ export async function loadTeacherClassroomOptions(
       id: entry.id,
       name: entry.name,
       familyCount: entry.familyIds.size,
+      role: null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

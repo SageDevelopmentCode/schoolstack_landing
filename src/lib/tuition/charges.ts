@@ -168,23 +168,37 @@ export async function updateChargeStatusIf(
     fromStatuses: ChargeStatus[];
     toStatus: ChargeStatus;
     extra?: { sentAt?: string; paidAt?: string };
+    expectedPaidCents?: number;
   },
 ): Promise<TuitionCharge> {
   const patch: Record<string, unknown> = { status: input.toStatus };
   if (input.extra?.sentAt) patch.sent_at = input.extra.sentAt;
   if (input.extra?.paidAt) patch.paid_at = input.extra.paidAt;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("tuition_charges")
     .update(patch)
     .eq("id", chargeId)
-    .in("status", input.fromStatuses)
-    .select("*")
-    .maybeSingle();
+    .in("status", input.fromStatuses);
+
+  if (input.expectedPaidCents !== undefined) {
+    query = query.eq("paid_cents", input.expectedPaidCents);
+  }
+
+  const { data, error } = await query.select("*").maybeSingle();
 
   if (error) throw error;
   if (!data) {
     const current = await getChargeById(supabase, chargeId);
+    if (
+      current &&
+      input.expectedPaidCents !== undefined &&
+      current.paidCents !== input.expectedPaidCents
+    ) {
+      throw new ChargeStatusConflictError(
+        "Charge balance changed before update.",
+      );
+    }
     throw new ChargeStatusConflictError(
       current
         ? `Charge status changed to ${current.status} before update.`

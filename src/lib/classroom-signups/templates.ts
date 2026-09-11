@@ -206,6 +206,21 @@ export function getClassroomSignupTemplate(
   return TEMPLATE_DEFS.find((template) => template.id === id);
 }
 
+export function applyTemplateToDraft(
+  current: ClassroomSignupDraft,
+  templateId: ClassroomSignupTemplateId,
+): ClassroomSignupDraft {
+  const built = buildSignupFromTemplate(templateId);
+  return {
+    ...current,
+    title: built.title,
+    description: built.description,
+    signupType: built.signupType,
+    responseDeadline: built.responseDeadline,
+    config: built.config,
+  };
+}
+
 export function buildSignupFromTemplate(
   id: ClassroomSignupTemplateId,
   overrides: Partial<ClassroomSignupDraft> = {},
@@ -221,10 +236,11 @@ export function buildSignupFromTemplate(
     title: built.title,
     description: built.description,
     signupType: built.signupType,
-    audience: "assigned",
+    audience: "classrooms",
     classroomId: null,
+    classroomIds: [],
     classroomName: null,
-    familyCount: 12,
+    familyCount: 0,
     status: "draft",
     responseDeadline: built.responseDeadline,
     config: built.config,

@@ -1032,7 +1032,7 @@ export default function TuitionFamiliesPanel({
                         <span className="font-medium" style={{ color: theme.ink }}>
                           {formatCents(charge.amountCents)}
                         </span>
-                        {charge.status !== "paid" && charge.status !== "void" ? (
+                        {OPEN_CHARGE_STATUSES.has(charge.status) ? (
                           <>
                             {charge.status === "scheduled" ? (
                               <AdminButton
