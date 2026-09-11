@@ -106,6 +106,28 @@ export type ParentSignupAttentionItem = {
   classroomName: string | null;
 };
 
+export type ParentClassroomSignupListStatus =
+  | "needs_response"
+  | "signed_up"
+  | "closed";
+
+export type ParentClassroomSignupListItem = {
+  signup: ClassroomSignup;
+  familyResponse: ClassroomSignupResponse | null;
+  listStatus: ParentClassroomSignupListStatus;
+};
+
+export type ParentClassroomSignupStudentOption = {
+  id: string;
+  name: string;
+};
+
+export type ParentClassroomSignupsPageBundle = {
+  items: ParentClassroomSignupListItem[];
+  responsesBySignupId: Record<string, ClassroomSignupResponse[]>;
+  studentOptions: ParentClassroomSignupStudentOption[];
+};
+
 export const SIGNUP_TYPE_LABELS: Record<ClassroomSignupType, string> = {
   time_slots: "Time slots",
   roles: "Roles & tasks",

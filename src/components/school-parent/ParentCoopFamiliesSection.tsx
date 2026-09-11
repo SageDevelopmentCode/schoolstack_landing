@@ -11,6 +11,7 @@ import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import { ParentHomeCoopFamiliesSkeleton } from "@/components/school-parent/home/ParentHomeDeferredSkeleton";
 import { childAccentBg } from "@/lib/organization-settings/parent-theme";
 
 type ParentCoopFamiliesSectionProps = {
@@ -22,6 +23,7 @@ type ParentCoopFamiliesSectionProps = {
   messagesHref?: string;
   messagesEnabled?: boolean;
   previewMode?: boolean;
+  contentDeferred?: boolean;
 };
 
 const fadeUp = {
@@ -41,6 +43,7 @@ export default function ParentCoopFamiliesSection({
   messagesHref,
   messagesEnabled = false,
   previewMode = false,
+  contentDeferred = false,
 }: ParentCoopFamiliesSectionProps) {
   const { theme, adminCompat } = useParentTheme();
   const canMessageFamilies = Boolean(
@@ -69,7 +72,9 @@ export default function ParentCoopFamiliesSection({
         </p>
       </div>
 
-      {families.length === 0 ? (
+      {contentDeferred ? (
+        <ParentHomeCoopFamiliesSkeleton theme={theme} />
+      ) : families.length === 0 ? (
         <ParentCard theme={theme}>
           <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
             You&apos;re the first family we see in this co-op so far.

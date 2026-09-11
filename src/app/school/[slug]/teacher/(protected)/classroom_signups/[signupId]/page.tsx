@@ -1,20 +1,11 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import TeacherClassroomSignupDetailPage from "@/components/classroom-signups/teacher/TeacherClassroomSignupDetailPage";
-import { getTeacherPageLabel } from "@/lib/organization-settings/teacher-nav";
-import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
+import {
+  isTeacherFeatureEnabled,
+  teacherClassroomSignupPath,
+} from "@/lib/organization-settings/teacher-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import {
-  getTeacherClassroomSignupById,
-  listClassroomSignupResponses,
-} from "@/lib/classroom-signups/load-teacher-signups";
-import {
-  getStaffMemberIdForUser,
-  getStaffUserProfile,
-  requireTeacherPortalUser,
-} from "@/lib/staff/teacher-portal-access";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +24,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  const pageName = getTeacherPageLabel(
-    "classroom_signups",
-    org.features.feature_nav?.teacher,
-  );
-
   return {
-    title: `${pageName} · ${org.name} Staff`,
+    title: `Classroom signup · ${org.name} Teacher Portal`,
   };
 }
 
@@ -55,32 +41,5 @@ export default async function TeacherClassroomSignupDetailRoute({
     notFound();
   }
 
-  const user = await requireTeacherPortalUser(supabase, org.id);
-  const userProfile = await getStaffUserProfile(supabase, user.id, org.id, user);
-  const staffMemberId = await getStaffMemberIdForUser(supabase, user.id, org.id);
-
-  const admin = createAdminClient();
-  const initialSignup =
-    staffMemberId != null
-      ? await getTeacherClassroomSignupById(
-          admin,
-          org.id,
-          staffMemberId,
-          signupId,
-        )
-      : null;
-  const initialResponses = initialSignup
-    ? await listClassroomSignupResponses(admin, org.id, signupId)
-    : [];
-
-  return (
-    <TeacherClassroomSignupDetailPage
-      slug={slug}
-      organizationId={org.id}
-      signupId={signupId}
-      teacherName={userProfile.displayName}
-      initialSignup={initialSignup}
-      initialResponses={initialResponses}
-    />
-  );
+  redirect(teacherClassroomSignupPath(slug, signupId));
 }

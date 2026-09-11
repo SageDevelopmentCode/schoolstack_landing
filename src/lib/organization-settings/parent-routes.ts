@@ -74,15 +74,23 @@ export function parseProgramParentPath(pathname: string): {
   };
 }
 
+export function parentClassroomSignupsListPath(
+  slug: string,
+  previewBasePath?: string,
+): string {
+  if (previewBasePath) {
+    return `${previewBasePath}/parent/classroom_signups`;
+  }
+  return schoolParentPath(slug, "classroom_signups");
+}
+
 export function parentClassroomSignupPath(
   slug: string,
   signupId: string,
   previewBasePath?: string,
 ): string {
-  if (previewBasePath) {
-    return `${previewBasePath}/parent/classroom_signups/${signupId}`;
-  }
-  return schoolParentPath(slug, "classroom_signups", signupId);
+  const base = parentClassroomSignupsListPath(slug, previewBasePath);
+  return `${base}?signup=${signupId}`;
 }
 
 export function parentChildrenPagePath(

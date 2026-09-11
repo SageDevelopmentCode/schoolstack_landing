@@ -14,13 +14,20 @@ export function schoolTeacherPath(
   return subtab ? `${base}/${subtab}` : base;
 }
 
+export function teacherClassroomSignupsListPath(
+  slug: string,
+  teacherBasePath?: string,
+): string {
+  return teacherBasePath ?? schoolTeacherPath(slug, "classroom_signups");
+}
+
 export function teacherClassroomSignupPath(
   slug: string,
   signupId: string,
   teacherBasePath?: string,
 ): string {
-  const base = teacherBasePath ?? schoolTeacherPath(slug, "classroom_signups");
-  return `${base}/${signupId}`;
+  const base = teacherClassroomSignupsListPath(slug, teacherBasePath);
+  return `${base}?signup=${signupId}`;
 }
 
 export function schoolTeacherLoginPath(slug: string): string {

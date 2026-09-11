@@ -1,5 +1,6 @@
 import type {
   ClassroomSignup,
+  ClassroomSignupDraft,
   ClassroomSignupMetrics,
   ClassroomSignupResponse,
   ClassroomSignupStatus,
@@ -229,4 +230,21 @@ export function countUnrespondedFamilies(
       .map((r) => r.familyId),
   );
   return Math.max(0, signup.familyCount - respondedFamilyIds.size);
+}
+
+export function signupToDraft(signup: ClassroomSignup): ClassroomSignupDraft {
+  return {
+    id: signup.id,
+    title: signup.title,
+    description: signup.description,
+    signupType: signup.signupType,
+    audience: signup.audience,
+    classroomId: signup.classroomId,
+    classroomIds: signup.classroomIds,
+    classroomName: signup.classroomName,
+    familyCount: signup.familyCount,
+    status: signup.status,
+    responseDeadline: signup.responseDeadline,
+    config: signup.config,
+  };
 }

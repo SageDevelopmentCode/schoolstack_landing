@@ -937,7 +937,7 @@ function resolveParentNotificationLink(
       metadataString(event.metadata, "signupId") ?? event.entity_id;
     return {
       href: signupId
-        ? `${parentBase}/classroom_signups/${signupId}`
+        ? `${parentBase}/classroom_signups?signup=${signupId}`
         : `${parentBase}/classroom_signups`,
       ctaLabel: "View signup",
     };

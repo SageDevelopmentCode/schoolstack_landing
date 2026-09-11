@@ -66,7 +66,7 @@ export default function ParentHomePageShell({
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
-  const [contentHydrated, setContentHydrated] = useState(false);
+  const [contentHydrated, setContentHydrated] = useState(!familyId);
 
   const hydrateHomeContent = useCallback((data: ParentHomeContentData) => {
     setHomeContent(data);

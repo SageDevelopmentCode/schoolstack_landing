@@ -16,10 +16,15 @@ import {
   familyPreviewBasePath,
   familyPreviewParentBasePath,
   familyPreviewParentPath,
+  listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
-import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
+import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
+import {
+  loadParentClassroomSignupsPageBundle,
+  loadParentSignupAttentionItems,
+} from "@/lib/classroom-signups/load-parent-signups";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -217,6 +222,42 @@ export default async function FamilyPreviewParentFeaturePage({
           guardianName={guardianName}
           previewMode
           initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "classroom_signups") {
+    const familyChildren = await listFamilyChildrenForHomeByFamilyId(
+      supabase,
+      org.id,
+      familyId,
+    );
+    const initialBundle = await loadParentClassroomSignupsPageBundle(
+      admin,
+      org.id,
+      familyId,
+      familyChildren
+        .filter((child) => child.studentId)
+        .map((child) => ({
+          id: child.studentId!,
+          name: child.studentName,
+        })),
+    );
+    const initialSignupId =
+      typeof resolvedSearchParams.signup === "string"
+        ? resolvedSearchParams.signup
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentClassroomSignupsPage
+          organizationId={org.id}
+          slug={slug}
+          initialBundle={initialBundle}
+          previewBasePath={previewBasePath}
+          readOnly
+          initialSignupId={initialSignupId}
         />
       </SchoolParentPageShell>
     );

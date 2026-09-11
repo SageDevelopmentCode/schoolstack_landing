@@ -20,7 +20,9 @@ import ParentTeachingSchedulePage from "@/components/school-parent/teaching-sche
 import ParentMessagesInboxLoader from "@/components/school-parent/messages/ParentMessagesInboxLoader";
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
+import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
+import { loadParentClassroomSignupsPageBundle } from "@/lib/classroom-signups/load-parent-signups";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -348,6 +350,57 @@ export async function renderSchoolParentFeaturePage(
           branding={org.branding}
           guardianName={guardianName}
           initialData={initialData}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "classroom_signups") {
+    if (!familyId) {
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <SchoolParentComingSoon
+            branding={org.branding}
+            schoolSlug={context.slug}
+            schoolName={org.name}
+            organizationId={org.id}
+            featureKey={context.feature}
+            featureLabel={pageName}
+            userProfile={userProfile}
+          />
+        </SchoolParentPageShell>
+      );
+    }
+
+    const admin = createAdminClient();
+    const familyChildren = await listFamilyChildrenForHome(
+      supabase,
+      org.id,
+      user.id,
+    );
+    const initialBundle = await loadParentClassroomSignupsPageBundle(
+      admin,
+      org.id,
+      familyId,
+      familyChildren
+        .filter((child) => child.studentId)
+        .map((child) => ({
+          id: child.studentId!,
+          name: child.studentName,
+        })),
+    );
+    const initialSignupId =
+      typeof context.searchParams.signup === "string"
+        ? context.searchParams.signup
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentClassroomSignupsPage
+          organizationId={org.id}
+          slug={context.slug}
+          initialBundle={initialBundle}
+          initialSignupId={initialSignupId}
         />
       </SchoolParentPageShell>
     );

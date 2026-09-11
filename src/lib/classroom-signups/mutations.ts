@@ -16,6 +16,7 @@ import type {
   ClassroomSignup,
   ClassroomSignupDraft,
   ClassroomSignupResponse,
+  ClassroomSignupStatus,
 } from "./types";
 
 export type PublishClassroomSignupInput = Omit<
@@ -127,6 +128,171 @@ async function fetchClassroomNames(
   return classroomIds
     .map((id) => nameById.get(id))
     .filter((name): name is string => Boolean(name));
+}
+
+export type UpdateClassroomSignupInput = {
+  title?: string;
+  description?: string;
+  responseDeadline?: string | null;
+  signupType?: ClassroomSignupDraft["signupType"];
+  audience?: ClassroomSignupDraft["audience"];
+  classroomId?: string | null;
+  classroomIds?: string[];
+  config?: ClassroomSignupDraft["config"];
+  status?: "open" | "draft";
+};
+
+async function resolveSignupFamilyCount(
+  admin: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  input: {
+    audience: ClassroomSignupDraft["audience"];
+    classroomId: string | null;
+    classroomIds: string[];
+    status: ClassroomSignupStatus;
+  },
+): Promise<number> {
+  if (input.status !== "open") return 0;
+
+  if (input.audience === "assigned") {
+    return countAssignedFamiliesForTeacher(admin, organizationId, staffMemberId);
+  }
+
+  if (input.audience === "classrooms" && input.classroomIds.length > 0) {
+    const result = await countFamiliesForClassroomIds(
+      admin,
+      organizationId,
+      input.classroomIds,
+    );
+    return result.count;
+  }
+
+  if (input.classroomId) {
+    const familyIds = await resolveAudienceFamilyIds(admin, {
+      organizationId,
+      createdByStaffMemberId: staffMemberId,
+      audience: input.audience,
+      classroomId: input.classroomId,
+      classroomIds: input.classroomIds,
+    });
+    return familyIds.length;
+  }
+
+  return 0;
+}
+
+export async function updateClassroomSignup(
+  admin: SupabaseClient,
+  organizationId: string,
+  staffMemberId: string,
+  signupId: string,
+  input: UpdateClassroomSignupInput,
+  options: { safeFieldsOnly: boolean },
+): Promise<ClassroomSignup> {
+  const { data: existingRow, error: loadError } = await admin
+    .from("classroom_signups")
+    .select(CLASSROOM_SIGNUP_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("created_by_staff_member_id", staffMemberId)
+    .eq("id", signupId)
+    .maybeSingle();
+
+  if (loadError) throw loadError;
+  if (!existingRow) {
+    throw new Error("Signup not found.");
+  }
+
+  const existing = mapClassroomSignupRow(existingRow as ClassroomSignupRow);
+  const now = new Date().toISOString();
+
+  if (options.safeFieldsOnly) {
+    const { data, error } = await admin
+      .from("classroom_signups")
+      .update({
+        title: input.title?.trim() ?? existing.title,
+        description: input.description?.trim() ?? existing.description,
+        response_deadline:
+          input.responseDeadline !== undefined
+            ? input.responseDeadline
+            : existing.responseDeadline,
+        updated_at: now,
+      })
+      .eq("organization_id", organizationId)
+      .eq("created_by_staff_member_id", staffMemberId)
+      .eq("id", signupId)
+      .select(CLASSROOM_SIGNUP_SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapClassroomSignupRow(data as ClassroomSignupRow);
+  }
+
+  const audience = input.audience ?? existing.audience;
+  const classroomIds = input.classroomIds ?? existing.classroomIds;
+  const classroomId =
+    input.classroomId !== undefined
+      ? input.classroomId
+      : audience === "classroom"
+        ? existing.classroomId
+        : null;
+  const nextStatus = input.status ?? existing.status;
+
+  let config = input.config ?? existing.config;
+  if (audience === "classrooms" && classroomIds.length > 0) {
+    const audienceClassroomNames = await fetchClassroomNames(
+      admin,
+      organizationId,
+      classroomIds,
+    );
+    config = {
+      ...config,
+      audienceClassroomNames,
+    };
+  }
+
+  const familyCount = await resolveSignupFamilyCount(
+    admin,
+    organizationId,
+    staffMemberId,
+    {
+      audience,
+      classroomId,
+      classroomIds,
+      status: nextStatus,
+    },
+  );
+
+  const wasDraft = existing.status === "draft";
+  const publishing = wasDraft && nextStatus === "open";
+
+  const { data, error } = await admin
+    .from("classroom_signups")
+    .update({
+      title: input.title?.trim() ?? existing.title,
+      description: input.description?.trim() ?? existing.description,
+      signup_type: input.signupType ?? existing.signupType,
+      audience,
+      classroom_id: audience === "classroom" ? classroomId : null,
+      classroom_ids: audience === "classrooms" ? classroomIds : [],
+      family_count: familyCount,
+      status: nextStatus,
+      response_deadline:
+        input.responseDeadline !== undefined
+          ? input.responseDeadline
+          : existing.responseDeadline,
+      config,
+      published_at: publishing ? now : existing.publishedAt,
+      updated_at: now,
+    })
+    .eq("organization_id", organizationId)
+    .eq("created_by_staff_member_id", staffMemberId)
+    .eq("id", signupId)
+    .select(CLASSROOM_SIGNUP_SELECT)
+    .single();
+
+  if (error) throw error;
+  return mapClassroomSignupRow(data as ClassroomSignupRow);
 }
 
 export async function closeClassroomSignup(
