@@ -7,7 +7,10 @@ import {
   listFamilyChildrenForHome,
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
-import { sendClassroomSignupResponseSubmittedNotification } from "@/lib/classroom-signups/classroom-signup-notifications";
+import {
+  fireClassroomSignupActivityNotification,
+  sendClassroomSignupResponseSubmittedNotification,
+} from "@/lib/classroom-signups/classroom-signup-notifications";
 import {
   getFamilyClassroomSignupResponse,
   listClassroomSignupResponses,
@@ -216,17 +219,29 @@ export async function POST(request: Request, context: RouteContext) {
       note: body.note ?? null,
     });
 
-    void sendClassroomSignupResponseSubmittedNotification(admin, {
-      organizationId,
-      signupId: signup.id,
-      signupTitle: signup.title,
-      staffMemberId: signup.createdByStaffMemberId,
-      familyName: response.familyName,
-      studentName: response.studentName,
-      actorUserId: user.id,
-      actorName: profile.displayName,
-      actorEmail: profile.email,
-    });
+    fireClassroomSignupActivityNotification(
+      admin,
+      sendClassroomSignupResponseSubmittedNotification(admin, {
+        organizationId,
+        signupId: signup.id,
+        signupTitle: signup.title,
+        staffMemberId: signup.createdByStaffMemberId,
+        familyName: response.familyName,
+        studentName: response.studentName,
+        actorUserId: user.id,
+        actorName: profile.displayName,
+        actorEmail: profile.email,
+      }),
+      {
+        organizationId,
+        signupId: signup.id,
+        operation: "classroom_signup_response_submitted_notification",
+        surface: "parent_portal",
+        actorType: "parent",
+        actorUserId: user.id,
+        actorEmail: profile.email,
+      },
+    );
 
     return NextResponse.json({ response });
   } catch (error) {

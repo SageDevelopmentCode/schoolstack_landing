@@ -10,6 +10,7 @@ import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/m
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 
 const ROLE_LABELS: Record<CommitteeRole, string> = {
@@ -63,6 +64,11 @@ export default function CommitteeMembersSection({
       adminToast.success("Member invited");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to invite member."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.members.invite",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -75,6 +81,11 @@ export default function CommitteeMembersSection({
       adminToast.success("Member removed");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to remove member."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.members.remove",
+        error: "",
+      }, err);
     }
   };
 

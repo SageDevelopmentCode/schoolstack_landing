@@ -28,6 +28,7 @@ import TuitionAdjustmentReasonSelect from "@/components/school-admin/tuition/Tui
 import TuitionAdjustmentReasonsModal from "@/components/school-admin/tuition/TuitionAdjustmentReasonsModal";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 const ADJUST_TYPE_HELP: Record<AdjustmentType, string> = {
@@ -133,6 +134,11 @@ export default function TuitionAdjustPanel({
         setReason(options[0] ?? "");
       } catch (err) {
         adminToast.error(formatActionError(err, "Failed to load adjustment reasons."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.adjust.load_reasons",
+        error: "",
+      }, err);
       }
     })();
   }, [assignmentId, open, organizationId]);
@@ -253,6 +259,11 @@ export default function TuitionAdjustPanel({
       onSaved();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save adjustment."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.adjust.save",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }

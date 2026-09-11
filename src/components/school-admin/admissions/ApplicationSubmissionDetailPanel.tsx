@@ -48,6 +48,7 @@ import {
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type SubmissionStatusUpdate = { status: AdminApplicationSubmission["status"] };
 
@@ -132,11 +133,16 @@ export default function ApplicationSubmissionDetailPanel({
         setHasPublishedEnrollmentChecklist(false);
         setEnrollmentChecklistName(null);
       }
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.submission.load_checklist_state",
+        error: "",
+      }, err);
       setHasPublishedEnrollmentChecklist(false);
       setEnrollmentChecklistName(null);
     }
-  }, [submission.id]);
+  }, [organizationId, submission.id]);
 
   const invalidateHistory = useCallback(() => {
     historyLoadedRef.current = false;
@@ -168,6 +174,11 @@ export default function ApplicationSubmissionDetailPanel({
         setFamilyId(resolvedFamilyId);
         await Promise.all([loadChecklistState(), loadPublishedEnrollmentChecklistState()]);
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.submission.load_detail",
+          error: "",
+        }, err);
         setError(err instanceof Error ? err.message : "Failed to load application.");
         setDetail(null);
       } finally {
@@ -206,7 +217,12 @@ export default function ApplicationSubmissionDetailPanel({
         familyId,
       );
       setHistoryEvents(rows);
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.submission.load_history",
+        error: "",
+      }, err);
       setHistoryEvents([]);
       setHistoryUnlinked(true);
     } finally {
@@ -305,6 +321,7 @@ export default function ApplicationSubmissionDetailPanel({
           {canMarkEnrolled ? (
             <AcceptedEnrollmentSection
               C={C}
+              organizationId={organizationId}
               applicationId={submission.id}
               applicationStatus={
                 currentStatus === "enrolling" ? "enrolling" : "accepted"
@@ -327,6 +344,7 @@ export default function ApplicationSubmissionDetailPanel({
           ) : (
             <ApplicationDecisionSection
               C={C}
+              organizationId={organizationId}
               applicationId={submission.id}
               currentStatus={currentStatus}
               onAccept={
@@ -413,6 +431,7 @@ export default function ApplicationSubmissionDetailPanel({
             description="Application fees and enrollment charges for this application."
           >
             <SubmissionPaymentsPanel
+              organizationId={organizationId}
               applicationId={submission.id}
               branding={branding}
             />
@@ -575,6 +594,7 @@ export default function ApplicationSubmissionDetailPanel({
 
       <StartEnrollmentModal
         C={C}
+        organizationId={organizationId}
         open={startEnrollmentOpen}
         applicationId={submission.id}
         studentLabel={submission.studentLabel}

@@ -7,6 +7,7 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { AdminTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -91,6 +92,11 @@ export default function TuitionPaymentHistoryPanel({
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to load payment history.";
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.payment_history.load",
+        error: "",
+      }, err);
         if (append) {
           adminToast.error(message);
         } else {
@@ -124,6 +130,11 @@ export default function TuitionPaymentHistoryPanel({
       await loadPayments();
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to process refund."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.payment_history.refund",
+        error: "",
+      }, err);
     } finally {
       setActionLoading(null);
     }

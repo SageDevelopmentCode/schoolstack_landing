@@ -28,6 +28,7 @@ import type { StudentHealthProfile } from "@/components/school-parent/health/par
 import { fetchAssignedTeachersForStudent } from "@/lib/school-parent/fetch-assigned-teachers";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentChildrenPageProps = {
   branding: OrganizationBranding;
@@ -141,6 +142,7 @@ export default function ParentChildrenPage({
       }
       setProfileLoading(true);
       setProfileError(null);
+      let res: Response | undefined;
       try {
         if (previewBasePath) {
           const [application, checklist] = await Promise.all([
@@ -166,12 +168,22 @@ export default function ParentChildrenPage({
         }
 
         const params = new URLSearchParams({ organizationId });
-        const res = await fetch(
+        res = await fetch(
           `/api/parent-portal/children/${applicationId}/profile?${params}`,
         );
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setProfileError(data.error ?? "Could not load this student profile.");
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "children.load_profile",
+              error: "",
+            },
+            new Error(data.error ?? "Could not load this student profile."),
+            res.status,
+          );
           return;
         }
         if (!data.profile?.application) {
@@ -185,6 +197,16 @@ export default function ParentChildrenPage({
       } catch (err) {
         setProfileError(
           err instanceof Error ? err.message : "Failed to load student profile.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "children.load_profile",
+            error: "",
+          },
+          err,
+          res?.status,
         );
       } finally {
         setProfileLoading(false);

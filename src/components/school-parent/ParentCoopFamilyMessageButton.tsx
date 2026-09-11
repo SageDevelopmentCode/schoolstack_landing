@@ -9,6 +9,7 @@ import {
   formatParentActionError,
   parentToast,
 } from "@/lib/school-parent/parent-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentCoopFamilyMessageButtonProps = {
   theme: ParentThemeTokens;
@@ -74,6 +75,15 @@ export default function ParentCoopFamilyMessageButton({
         formatParentActionError(err, "Could not start that conversation."),
       );
       setLoading(false);
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "messages.start_thread",
+          error: "",
+        },
+        err,
+      );
     }
   };
 

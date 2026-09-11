@@ -10,6 +10,7 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { TeacherActivityNotification } from "@/lib/school-teacher/activity-notifications";
 
 type TeacherActivityNotificationsPanelProps = {
@@ -107,6 +108,11 @@ export default function TeacherActivityNotificationsPanel({
         setNextCursor(payload.nextCursor ?? null);
         setHasMore(Boolean(payload.hasMore));
       } catch (err) {
+        void reportPortalOperationalError("teacher_portal", {
+          organizationId,
+          operation: "activity_notifications.load",
+          error: "",
+        }, err);
         setError(
           err instanceof Error ? err.message : "Failed to load notifications.",
         );

@@ -7,6 +7,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { MAX_FAMILY_NOTIFICATION_EMAILS, getDisplayNotificationEmails } from "@/lib/notifications/family-notification-email-constants";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type NotificationSettingsResponse = {
   familyId: string;
@@ -91,8 +92,9 @@ export default function ParentNotificationSettingsPage({
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
+    let response: Response | undefined;
     try {
-      const response = await fetch(
+      response = await fetch(
         `/api/parent-portal/notification-settings?organizationId=${encodeURIComponent(organizationId)}`,
       );
       const payload = (await response.json()) as NotificationSettingsResponse & {
@@ -110,6 +112,16 @@ export default function ParentNotificationSettingsPage({
         error instanceof Error
           ? error.message
           : "Failed to load notification settings.",
+      );
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "notification_settings.load",
+          error: "",
+        },
+        error,
+        response?.status,
       );
     } finally {
       setLoading(false);
@@ -164,9 +176,10 @@ export default function ParentNotificationSettingsPage({
     if (readOnly) return;
 
     setSaving(true);
+    let response: Response | undefined;
     try {
       const emailsToSave = collectEmailsForSave();
-      const response = await fetch("/api/parent-portal/notification-settings", {
+      response = await fetch("/api/parent-portal/notification-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId, emails: emailsToSave }),
@@ -188,6 +201,16 @@ export default function ParentNotificationSettingsPage({
           ? error.message
           : "Failed to save notification settings.",
       );
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "notification_settings.save",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     } finally {
       setSaving(false);
     }
@@ -198,8 +221,9 @@ export default function ParentNotificationSettingsPage({
 
     applyConfiguredEmails([], settings?.loginEmail ?? null);
     setSaving(true);
+    let response: Response | undefined;
     try {
-      const response = await fetch("/api/parent-portal/notification-settings", {
+      response = await fetch("/api/parent-portal/notification-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId, emails: [] }),
@@ -220,6 +244,16 @@ export default function ParentNotificationSettingsPage({
         error instanceof Error
           ? error.message
           : "Failed to clear notification settings.",
+      );
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "notification_settings.clear",
+          error: "",
+        },
+        error,
+        response?.status,
       );
     } finally {
       setSaving(false);

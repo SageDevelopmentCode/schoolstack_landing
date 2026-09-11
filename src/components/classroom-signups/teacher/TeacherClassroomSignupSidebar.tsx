@@ -24,6 +24,7 @@ import {
   signupToDraft,
 } from "@/lib/classroom-signups/utils";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type TeacherClassroomSignupSidebarProps = {
   theme: ParentThemeTokens;
@@ -169,6 +170,11 @@ export default function TeacherClassroomSignupSidebar({
       setDraft(signupToDraft(payload.signup));
       setEditMode(false);
     } catch (error) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "classroom_signups.save",
+        error: "",
+      }, error);
       setSaveError(
         error instanceof Error ? error.message : "Failed to save signup.",
       );

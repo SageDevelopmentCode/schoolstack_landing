@@ -20,7 +20,7 @@ type OrganizationOption = {
   slug: string;
 };
 
-type SurfaceFilter = "" | "parent" | "school_admin" | "system";
+type SurfaceFilter = "" | "parent" | "teacher" | "school_admin" | "system";
 type ActivityView = "funnel" | "log";
 
 const DATE_PRESETS: { value: ActivityDatePreset; label: string }[] = [
@@ -38,6 +38,7 @@ const VIEW_OPTIONS: { value: ActivityView; label: string }[] = [
 const SURFACE_FILTERS: { value: SurfaceFilter; label: string }[] = [
   { value: "", label: "All surfaces" },
   { value: "parent", label: "Parent" },
+  { value: "teacher", label: "Teacher" },
   { value: "school_admin", label: "School admin" },
   { value: "system", label: "System" },
 ];

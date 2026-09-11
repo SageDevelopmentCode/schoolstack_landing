@@ -15,6 +15,7 @@ import type { FamilyGuardianRecord } from "@/lib/admissions/family-guardians";
 import {
   getGuardianRoleLabel,
 } from "@/lib/admissions/guardian-role-label";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { SITE_URL } from "@/lib/site";
 
@@ -103,6 +104,11 @@ function AddGuardianModal({
       onAdded();
       onClose();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.guardians.add",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to add parent access.");
       setError(message);
       adminToast.error(message);
@@ -275,6 +281,11 @@ export default function FamilyGuardiansSection({
 
       setGuardians((body.guardians as FamilyGuardianRecord[]) ?? []);
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.guardians.load",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load guardians.");
       setGuardians([]);
     } finally {
@@ -312,6 +323,11 @@ export default function FamilyGuardiansSection({
       setRemoveTarget(null);
       await loadGuardians();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.guardians.remove",
+        error: "",
+      }, err);
       const message = formatActionError(err, "Failed to remove parent access.");
       adminToast.error(message);
     } finally {

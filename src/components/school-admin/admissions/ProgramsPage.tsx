@@ -53,6 +53,7 @@ import {
 } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
@@ -233,6 +234,11 @@ export default function ProgramsPage({
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load programs.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.programs.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -341,6 +347,11 @@ export default function ProgramsPage({
       adminToast.success(isNew ? "Program created" : "Program saved");
     } catch (err) {
       const message = formatActionError(err, "Failed to save program.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.programs.save",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {
@@ -366,6 +377,11 @@ export default function ProgramsPage({
       adminToast.success("Program deleted");
     } catch (err) {
       const message = formatActionError(err, "Failed to delete program.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.programs.delete",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
       setDeleteOpen(false);

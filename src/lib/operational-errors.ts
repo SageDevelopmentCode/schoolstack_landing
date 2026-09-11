@@ -35,6 +35,8 @@ export type ReportOperationalErrorInput = {
   metadata?: Record<string, unknown>;
   notify?: boolean;
   severity?: ActivitySeverity;
+  /** When true, skip activity_events insert (used for activity-log meta-failures). */
+  skipActivityLog?: boolean;
   actor: OperationalErrorActor;
   cause?: unknown;
   /** API route context — when set, uses notifyWebsiteApiError instead of school-admin Discord */
@@ -65,6 +67,7 @@ export async function reportOperationalError(
     metadata,
     notify = true,
     severity = "error",
+    skipActivityLog = false,
     actor,
     cause,
     api,
@@ -86,33 +89,35 @@ export async function reportOperationalError(
     ? `${api.method} ${api.route} returned ${api.status}: ${error}`
     : `${operation} failed: ${error}`;
 
-  await logActivityEvent(supabase, {
-    organizationId,
-    actorType: actor.type,
-    actorUserId: actor.userId,
-    actorEmail: actor.email,
-    surface,
-    action,
-    entityType,
-    entityId,
-    summary,
-    severity,
-    metadata: {
-      operation,
-      error,
-      code: code ?? null,
-      details: details ?? null,
-      ...(stack ? { stack } : {}),
-      ...(api
-        ? {
-            route: api.route,
-            method: api.method,
-            status: api.status,
-          }
-        : {}),
-      ...(metadata ?? {}),
-    },
-  });
+  if (!skipActivityLog) {
+    await logActivityEvent(supabase, {
+      organizationId,
+      actorType: actor.type,
+      actorUserId: actor.userId,
+      actorEmail: actor.email,
+      surface,
+      action,
+      entityType,
+      entityId,
+      summary,
+      severity,
+      metadata: {
+        operation,
+        error,
+        code: code ?? null,
+        details: details ?? null,
+        ...(stack ? { stack } : {}),
+        ...(api
+          ? {
+              route: api.route,
+              method: api.method,
+              status: api.status,
+            }
+          : {}),
+        ...(metadata ?? {}),
+      },
+    });
+  }
 
   if (notify) {
     if (api) {
@@ -129,6 +134,7 @@ export async function reportOperationalError(
       await notifySchoolAdminOperationError({
         operation,
         error,
+        surface,
         organizationId: organizationId ?? undefined,
         organizationName: organizationName ?? undefined,
         organizationSlug: organizationSlug ?? undefined,

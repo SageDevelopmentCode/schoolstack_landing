@@ -32,6 +32,7 @@ import {
   type CoopTeachingScheduleFilters,
 } from "@/lib/admissions/program-coop-teaching-schedule-filters";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
@@ -101,6 +102,11 @@ export default function ProgramCoopTeachingScheduleCard({
       setEnrolledFamilies(families);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load teaching schedule."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_schedule.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -151,6 +157,11 @@ export default function ProgramCoopTeachingScheduleCard({
       return persisted;
     } catch (err) {
       if (err instanceof ProgramCoopStorageConflictError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_schedule.save",
+        error: "",
+      }, err);
         adminToast.error(err.message);
         await loadSchedule();
       } else {
@@ -168,6 +179,11 @@ export default function ProgramCoopTeachingScheduleCard({
       setPanelDirty(false);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to remove teaching week."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_schedule.remove_week",
+        error: "",
+      }, err);
       throw err;
     }
   };
@@ -182,6 +198,11 @@ export default function ProgramCoopTeachingScheduleCard({
       setPanelDirty(false);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add teaching week."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_schedule.add_week",
+        error: "",
+      }, err);
     } finally {
       setAddingWeek(false);
     }

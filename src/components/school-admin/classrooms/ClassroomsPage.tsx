@@ -15,6 +15,7 @@ import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionK
 import type { StaffMemberRecord } from "@/lib/staff/staff-members";
 import type { ClassroomStatus, ClassroomSummary } from "@/lib/school-admin/classrooms";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 
 type ProgramOption = { id: string; name: string };
@@ -28,6 +29,7 @@ type ClassroomsPageProps = {
 type AddClassroomModalProps = {
   open: boolean;
   slug: string;
+  organizationId: string;
   programs: ProgramOption[];
   onClose: () => void;
   onAdded: () => void;
@@ -36,6 +38,7 @@ type AddClassroomModalProps = {
 function AddClassroomModal({
   open,
   slug,
+  organizationId,
   programs,
   onClose,
   onAdded,
@@ -88,6 +91,11 @@ function AddClassroomModal({
       onAdded();
       onClose();
     } catch (submitError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.create",
+        error: "",
+      }, submitError);
       setError(formatActionError(submitError, "Failed to create classroom."));
     } finally {
       setSubmitting(false);
@@ -255,11 +263,16 @@ export default function ClassroomsPage({
         return nextClassrooms[0]?.id ?? null;
       });
     } catch (loadError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "classrooms.load",
+        error: "",
+      }, loadError);
       setError(formatActionError(loadError, "Failed to load classrooms."));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [slug]);
+  }, [organizationId, slug]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -380,6 +393,7 @@ export default function ClassroomsPage({
       <AddClassroomModal
         open={addOpen}
         slug={slug}
+        organizationId={organizationId}
         programs={programs}
         onClose={() => setAddOpen(false)}
         onAdded={() => void loadClassrooms()}

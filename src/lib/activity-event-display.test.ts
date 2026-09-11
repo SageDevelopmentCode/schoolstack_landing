@@ -8,7 +8,7 @@ import {
   getActivityEventVisual,
   resolveActorDisplayLabel,
 } from "@/lib/activity-event-display";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, MessageSquare } from "lucide-react";
 
 function baseEvent(
   overrides: Partial<ActivityEventRow> = {},
@@ -90,6 +90,20 @@ describe("resolveActorDisplayLabel", () => {
       "System",
     );
   });
+
+  it("uses message sender metadata for message events", () => {
+    assert.equal(
+      resolveActorDisplayLabel(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+          actor_type: "system",
+          summary: "Parent: Hello there",
+          metadata: { senderName: "Jane Doe" },
+        }),
+      ),
+      "Jane Doe",
+    );
+  });
 });
 
 describe("formatActivityEventNarrative", () => {
@@ -140,6 +154,74 @@ describe("formatActivityEventNarrative", () => {
       "Jane Doe completed an enrollment checklist item",
     );
   });
+
+  it("formats message events with sender, school, recipients, and preview", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+          actor_type: "parent",
+          summary: "Can we reschedule?",
+          metadata: {
+            senderName: "Jane Doe",
+            recipientLabels: ["Rooted Meadows Waldorf School Office"],
+            preview: "Can we reschedule?",
+          },
+        }),
+      ),
+      "Jane Doe from Rooted Meadows Waldorf School messaged Rooted Meadows Waldorf School Office: Can we reschedule?",
+    );
+  });
+
+  it("joins multiple message recipients with and", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+          actor_type: "parent",
+          summary: "Quick question",
+          metadata: {
+            senderName: "Jane Doe",
+            recipientLabels: ["Ms. Smith", "Rooted Meadows Waldorf School Office"],
+            preview: "Quick question",
+          },
+        }),
+      ),
+      "Jane Doe from Rooted Meadows Waldorf School messaged Ms. Smith and Rooted Meadows Waldorf School Office: Quick question",
+    );
+  });
+
+  it("parses legacy message summaries with sender prefix", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+          actor_type: "system",
+          summary: "Parent: I had a quick item to bring up",
+          metadata: {
+            recipientLabels: ["Rooted Meadows Waldorf School Office"],
+            preview: "I had a quick item to bring up",
+          },
+        }),
+      ),
+      "Parent from Rooted Meadows Waldorf School messaged Rooted Meadows Waldorf School Office: I had a quick item to bring up",
+    );
+  });
+
+  it("falls back when message recipient metadata is missing", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+          actor_type: "system",
+          summary: "Hello there",
+          metadata: { preview: "Hello there" },
+        }),
+        { displayActorName: "System", displayActorEmail: null },
+      ),
+      "System sent a message for Rooted Meadows Waldorf School: Hello there",
+    );
+  });
 });
 
 describe("getActivityEventVisual", () => {
@@ -168,5 +250,16 @@ describe("getActivityEventVisual", () => {
   it("uses category styling for info severity", () => {
     const visual = getActivityEventVisual(baseEvent({ severity: "info" }));
     assert.match(visual.className, /emerald/);
+  });
+
+  it("uses message icon for message events", () => {
+    const visual = getActivityEventVisual(
+      baseEvent({
+        action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+        severity: "info",
+      }),
+    );
+    assert.equal(visual.Icon, MessageSquare);
+    assert.match(visual.className, /sky/);
   });
 });

@@ -13,6 +13,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 function groupStudentsByClassroom(
@@ -90,6 +91,11 @@ export default function StaffAssignedStudentsSection({
 
       setStudents((body.students as AdminEnrolledStudentSummary[]) ?? []);
     } catch (loadError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.assigned_students.load",
+        error: "",
+      }, loadError);
       setError(
         loadError instanceof Error
           ? loadError.message
@@ -118,6 +124,11 @@ export default function StaffAssignedStudentsSection({
       setEnrolledStudents(rows);
       return rows;
     } catch (loadError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.assigned_students.load_enrolled",
+        error: "",
+      }, loadError);
       adminToast.error(
         formatActionError(loadError, "Failed to load enrolled students."),
       );
@@ -183,6 +194,11 @@ export default function StaffAssignedStudentsSection({
         );
       }
     } catch (assignError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.assigned_students.assign",
+        error: "",
+      }, assignError);
       adminToast.error(
         formatActionError(assignError, "Failed to assign students."),
       );
@@ -233,6 +249,11 @@ export default function StaffAssignedStudentsSection({
         );
       }
     } catch (unassignError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.assigned_students.unassign",
+        error: "",
+      }, unassignError);
       adminToast.error(
         formatActionError(unassignError, "Failed to unassign student."),
       );

@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentCommitteeBrowseItem } from "@/lib/committees/types";
 import ParentCommitteeRequestStatus from "./ParentCommitteeRequestStatus";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentCommitteeDetailProps = {
   committee: ParentCommitteeBrowseItem;
@@ -48,8 +49,9 @@ export default function ParentCommitteeDetail({
   const handleSubmit = async () => {
     if (readOnly) return;
     setSubmitting(true);
+    let response: Response | undefined;
     try {
-      const res = await fetch("/api/parent-portal/committees/join-requests", {
+      response = await fetch("/api/parent-portal/committees/join-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -63,8 +65,8 @@ export default function ParentCommitteeDetail({
           note: note.trim() || null,
         }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
         throw new Error(data.error ?? "Failed to submit request.");
       }
       setFeedback({ type: "success", message: "Join request submitted." });
@@ -74,6 +76,16 @@ export default function ParentCommitteeDetail({
         type: "error",
         message: err instanceof Error ? err.message : "Failed to submit request.",
       });
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "committees.join_request_submit",
+          error: "",
+        },
+        err,
+        response?.status,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -82,18 +94,19 @@ export default function ParentCommitteeDetail({
   const handleWithdraw = async () => {
     if (readOnly || !committee.requestId) return;
     setWithdrawing(true);
+    let response: Response | undefined;
     try {
       const params = new URLSearchParams({
         organizationId,
         committeeName: committee.name,
         guardianName,
       });
-      const res = await fetch(
+      response = await fetch(
         `/api/parent-portal/committees/join-requests/${committee.requestId}?${params}`,
         { method: "DELETE" },
       );
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
         throw new Error(data.error ?? "Failed to withdraw request.");
       }
       setFeedback({ type: "success", message: "Request withdrawn." });
@@ -103,6 +116,16 @@ export default function ParentCommitteeDetail({
         type: "error",
         message: err instanceof Error ? err.message : "Failed to withdraw request.",
       });
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "committees.join_request_withdraw",
+          error: "",
+        },
+        err,
+        response?.status,
+      );
     } finally {
       setWithdrawing(false);
     }

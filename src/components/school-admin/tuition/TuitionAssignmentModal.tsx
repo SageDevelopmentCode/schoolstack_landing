@@ -11,11 +11,13 @@ import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminS
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionAssignmentModalProps = {
   open: boolean;
+  organizationId: string;
   assignmentId: string;
   branding: OrganizationBranding;
   onClose: () => void;
@@ -24,6 +26,7 @@ type TuitionAssignmentModalProps = {
 
 export default function TuitionAssignmentModal({
   open,
+  organizationId,
   assignmentId,
   branding,
   onClose,
@@ -109,6 +112,11 @@ export default function TuitionAssignmentModal({
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load assignment.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.assignment.load",
+        error: "",
+      }, err);
       } finally {
         setLoading(false);
       }
@@ -137,6 +145,11 @@ export default function TuitionAssignmentModal({
       onSaved();
     } catch (err) {
       const message = formatActionError(err, "Failed to update assignment.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.assignment.save",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

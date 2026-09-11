@@ -30,6 +30,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { ClassroomSummary } from "@/lib/school-admin/classrooms";
 
 type StudentsPageProps = {
@@ -225,6 +226,11 @@ export default function StudentsPage({
           includeMeta: !append,
         });
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "students.load",
+          error: "",
+        }, err);
         const message = err instanceof Error ? err.message : "Failed to load students.";
         if (!append && !tableReady) {
           setError(message);
@@ -252,12 +258,17 @@ export default function StudentsPage({
         classrooms?: ClassroomSummary[];
       };
       setClassrooms(payload.classrooms ?? []);
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "students.load_classrooms",
+        error: "",
+      }, err);
       setClassrooms([]);
     } finally {
       setClassroomsLoading(false);
     }
-  }, [classroomsRequested, slug]);
+  }, [classroomsRequested, organizationId, slug]);
 
   function changeRosterFilter(next: StudentRosterFilter) {
     setRosterFilter(next);
@@ -353,13 +364,18 @@ export default function StudentsPage({
 
         adminToast.success("Classrooms updated.");
       } catch (error) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "students.assign_classrooms",
+          error: "",
+        }, error);
         setStudents(previousStudents);
         adminToast.error(formatActionError(error, "Failed to assign classrooms."));
       } finally {
         setAssigningClassroomStudentId(null);
       }
     },
-    [ensureClassroomsLoaded, slug],
+    [ensureClassroomsLoaded, organizationId, slug],
   );
 
   const skipFilterFetchRef = useRef(true);

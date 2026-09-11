@@ -53,6 +53,7 @@ import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminS
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
@@ -360,6 +361,11 @@ export default function TuitionRateCatalogPanel({
       onRefresh();
     } catch (err) {
       const message = formatActionError(err, "Failed to save rate plan.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.rate_catalog.save",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

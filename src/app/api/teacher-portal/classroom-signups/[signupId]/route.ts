@@ -1,7 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { sendClassroomSignupClosedNotification } from "@/lib/classroom-signups/classroom-signup-notifications";
+import {
+  fireClassroomSignupActivityNotification,
+  sendClassroomSignupClosedNotification,
+} from "@/lib/classroom-signups/classroom-signup-notifications";
 import {
   getTeacherClassroomSignupById,
   listClassroomSignupResponses,
@@ -180,16 +183,28 @@ export async function PATCH(request: Request, context: RouteContext) {
         signupId,
       );
 
-      void sendClassroomSignupClosedNotification(admin, {
-        organizationId,
-        signupId: signup.id,
-        signupTitle: signup.title,
-        teacherName: profile.displayName,
-        staffMemberId,
-        actorUserId: user.id,
-        actorName: profile.displayName,
-        actorEmail: profile.email,
-      });
+      fireClassroomSignupActivityNotification(
+        admin,
+        sendClassroomSignupClosedNotification(admin, {
+          organizationId,
+          signupId: signup.id,
+          signupTitle: signup.title,
+          teacherName: profile.displayName,
+          staffMemberId,
+          actorUserId: user.id,
+          actorName: profile.displayName,
+          actorEmail: profile.email,
+        }),
+        {
+          organizationId,
+          signupId: signup.id,
+          operation: "classroom_signup_closed_notification",
+          surface: "teacher_portal",
+          actorType: "teacher",
+          actorUserId: user.id,
+          actorEmail: profile.email,
+        },
+      );
 
       return NextResponse.json({ signup });
     }

@@ -34,6 +34,7 @@ import {
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type AdmissionsObservationDayAvailabilityEditorProps = {
@@ -197,6 +198,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       try {
         await loadSchedulingMode();
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.observation_day.load_settings",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load settings.");
         }
@@ -220,6 +226,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       try {
         await loadMonthDays();
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "admissions.observation_day.load_days",
+          error: "",
+        }, err);
         if (!cancelled) {
           setError(
             err instanceof Error ? err.message : "Failed to load observation days.",
@@ -285,6 +296,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       adminToast.success(isOpen ? "Observation day closed" : "Observation day opened");
     } catch (err) {
       const message = formatActionError(err, "Failed to update day.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.observation_day.toggle_day",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {
@@ -311,6 +327,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       adminToast.success("Shadow slot added");
     } catch (err) {
       const message = formatActionError(err, "Failed to add slot.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.observation_day.add_slot",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {
@@ -330,6 +351,11 @@ export default function AdmissionsObservationDayAvailabilityEditor({
       adminToast.success("Shadow slot removed");
     } catch (err) {
       const message = formatActionError(err, "Failed to remove slot.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "admissions.observation_day.remove_slot",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

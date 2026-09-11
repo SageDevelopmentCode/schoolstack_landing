@@ -30,6 +30,7 @@ import {
   StaffProfilePhotoClientError,
   uploadStaffProfilePhotoFromTeacher,
 } from "@/lib/staff/upload-staff-profile-photo-client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import { createClient } from "@/utils/supabase/client";
 
@@ -158,6 +159,11 @@ export default function SchoolTeacherHeader({
         setProfilePhotoUrl(nextUrl);
         parentToast.success("Profile photo updated.");
       } catch (error) {
+        void reportPortalOperationalError("teacher_portal", {
+          organizationId,
+          operation: "profile.upload_photo",
+          error: "",
+        }, error);
         parentToast.error(
           error instanceof StaffProfilePhotoClientError
             ? error.message

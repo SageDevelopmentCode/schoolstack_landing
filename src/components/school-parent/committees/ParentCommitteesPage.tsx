@@ -13,6 +13,7 @@ import type {
 import ParentCommitteeBrowseList from "./ParentCommitteeBrowseList";
 import ParentCommitteeDetail from "./ParentCommitteeDetail";
 import ParentCommitteeWorkspace from "./ParentCommitteeWorkspace";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentCommitteesPageProps = {
   organizationId: string;
@@ -111,6 +112,15 @@ function ParentCommitteesPageContent({
       setMyCommittees(mineData.committees ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load committees.");
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "committees.load",
+          error: "",
+        },
+        err,
+      );
     }
   }, [organizationId, previewMode]);
 
@@ -145,6 +155,15 @@ function ParentCommitteesPageContent({
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load committees.");
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "committees.load",
+              error: "",
+            },
+            err,
+          );
         }
       } finally {
         if (!cancelled) {

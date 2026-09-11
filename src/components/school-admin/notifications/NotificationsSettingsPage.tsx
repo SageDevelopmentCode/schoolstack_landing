@@ -13,6 +13,7 @@ import {
 import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type NotificationsSettingsPageProps = {
   organizationId: string;
@@ -107,6 +108,11 @@ export default function NotificationsSettingsPage({
       setSettings(payload.settings ?? getDefaultNotificationSettings());
       setRecipients(payload.recipients ?? emptyRecipients());
     } catch (error) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "notifications.settings.load",
+        error: "",
+      }, error);
       setLoadError(
         error instanceof Error ? error.message : "Failed to load notification settings.",
       );
@@ -149,6 +155,11 @@ export default function NotificationsSettingsPage({
         setRecipients(payload.recipients ?? emptyRecipients());
         adminToast.success("Notification settings saved");
       } catch (error) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "notifications.settings.save",
+          error: "",
+        }, error);
         adminToast.error(
           formatActionError(error, "Failed to save notification settings."),
         );

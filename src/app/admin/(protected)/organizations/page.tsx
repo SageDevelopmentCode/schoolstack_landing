@@ -10,6 +10,7 @@ import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel"
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
 import OrganizationDashboardCardsPanel from "@/components/admin/OrganizationDashboardCardsPanel";
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
+import OrganizationMessagesPanel from "@/components/admin/OrganizationMessagesPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
@@ -20,6 +21,7 @@ type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
 type OrganizationDetailTab =
   | "overview"
   | "notifications"
+  | "messages"
   | "submissions"
   | "teacher-portal"
   | "dashboard-cards";
@@ -30,6 +32,7 @@ const ORGANIZATION_DETAIL_TABS: {
 }[] = [
   { id: "overview", label: "Overview" },
   { id: "notifications", label: "Notifications" },
+  { id: "messages", label: "Messages" },
   { id: "submissions", label: "Submissions" },
   { id: "teacher-portal", label: "Teacher portal" },
   { id: "dashboard-cards", label: "Dashboard cards" },
@@ -550,6 +553,18 @@ export default function AdminOrganizationsPage() {
                 aria-hidden={activeDetailTab !== "notifications"}
               >
                 <OrganizationNotificationsPanel organizationId={selected.id} />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("messages") ? (
+              <div
+                hidden={activeDetailTab !== "messages"}
+                aria-hidden={activeDetailTab !== "messages"}
+              >
+                <OrganizationMessagesPanel
+                  organizationId={selected.id}
+                  organizationName={selected.name}
+                />
               </div>
             ) : null}
 

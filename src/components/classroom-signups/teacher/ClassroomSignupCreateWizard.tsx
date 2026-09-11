@@ -29,6 +29,7 @@ import {
   estimateFamilyCountForClassrooms,
   formatAudienceLabel,
 } from "@/lib/classroom-signups/utils";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type WizardStep = 1 | 2;
 
@@ -288,6 +289,11 @@ export default function ClassroomSignupCreateWizard({
       }
       return payload.signup;
     } catch (error) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "classroom_signups.publish",
+        error: "",
+      }, error);
       setPublishError(
         error instanceof Error ? error.message : "Failed to publish signup.",
       );

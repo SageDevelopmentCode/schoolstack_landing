@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
   MAX_ADJUSTMENT_REASON_LENGTH,
   sanitizeAdjustmentReasonDraft,
@@ -108,6 +109,11 @@ export default function TuitionAdjustmentReasonsModal({
       onClose();
     } catch (err) {
       const message = formatActionError(err, "Failed to save adjustment reasons.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.adjustment_reasons.save",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {

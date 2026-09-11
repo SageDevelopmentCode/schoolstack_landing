@@ -12,6 +12,7 @@ import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKick
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { ParentActivityNotification } from "@/lib/parent-portal/parent-activity-notifications";
 import type { ParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentActivityNotificationsPanelProps = {
   open: boolean;
@@ -68,9 +69,8 @@ export default function ParentActivityNotificationsPanel({
       }
       setError(null);
 
+      let response: Response | undefined;
       try {
-        let response: Response;
-
         if (previewMode && previewFamilyId) {
           const params = new URLSearchParams({
             familyId: previewFamilyId,
@@ -146,6 +146,16 @@ export default function ParentActivityNotificationsPanel({
           setNextCursor(null);
           setHasMore(false);
         }
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "activity_notifications.load",
+            error: "",
+          },
+          err,
+          response?.status,
+        );
       } finally {
         if (append) {
           setLoadingMore(false);

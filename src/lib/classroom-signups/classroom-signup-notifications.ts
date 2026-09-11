@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
+import { ACTIVITY_ACTIONS, logActivityEvent, type ActivitySurface } from "@/lib/activity-log";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 type ClassroomSignupNotificationInput = {
   organizationId: string;
@@ -94,5 +95,40 @@ export async function sendClassroomSignupResponseSubmittedNotification(
       familyName: input.familyName,
       studentName: input.studentName,
     },
+  });
+}
+
+export function fireClassroomSignupActivityNotification(
+  supabase: SupabaseClient,
+  promise: Promise<void>,
+  input: {
+    organizationId: string;
+    signupId: string;
+    operation: string;
+    surface: ActivitySurface;
+    actorType: "parent" | "teacher";
+    actorUserId: string;
+    actorEmail: string;
+  },
+): void {
+  void promise.catch((err) => {
+    void reportOperationalError({
+      supabase,
+      surface: input.surface,
+      organizationId: input.organizationId,
+      operation: input.operation,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to record classroom signup activity notification.",
+      entityType: "classroom_signup",
+      entityId: input.signupId,
+      actor: {
+        type: input.actorType,
+        userId: input.actorUserId,
+        email: input.actorEmail,
+      },
+      cause: err,
+    });
   });
 }

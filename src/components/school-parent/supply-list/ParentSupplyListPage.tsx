@@ -33,6 +33,7 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentSupplyListPageProps = {
   organizationId: string;
@@ -108,8 +109,9 @@ export default function ParentSupplyListPage({
       setPendingAction({ itemId, type });
       setActionError(null);
 
+      let response: Response | undefined;
       try {
-        const response = await fetch(
+        response = await fetch(
           `/api/parent-portal/supply-list/${type === "claim" ? "claim" : "unclaim"}`,
           {
             method: "POST",
@@ -135,6 +137,16 @@ export default function ParentSupplyListPage({
       } catch (error) {
         setActionError(
           error instanceof Error ? error.message : "Unable to update sign-up.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "supply_list.update_signup",
+            error: "",
+          },
+          error,
+          response?.status,
         );
       } finally {
         setPendingAction(null);

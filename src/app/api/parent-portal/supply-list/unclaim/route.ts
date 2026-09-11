@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { unclaimProgramCoopSupplyItemForParent } from "@/lib/admissions/program-coop-supply-list-claim";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -51,19 +52,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ item });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to remove sign-up.";
-    const status =
-      message.includes("access") || message.includes("not signed up")
-        ? 403
-        : message.includes("not found")
-          ? 400
-          : 500;
-
+    const resolved = portalRouteErrorStatus(err, "Failed to remove sign-up.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 500 ? "internal_error" : "unclaim_failed",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.status === 500 ? "internal_error" : "unclaim_failed",
       cause: err,
     });
   }

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { createCommitteeJoinRequest } from "@/lib/committees/join-requests";
 import { resolveParentGuardianForOrg } from "@/lib/committees/parent-committees";
@@ -105,13 +106,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ request: joinRequest });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to submit request.";
-    const status = message.includes("already") ? 409 : 500;
+    const resolved = portalRouteErrorStatus(err, "Failed to submit request.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 409 ? "conflict" : "internal_error",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
     });
   }

@@ -37,6 +37,7 @@ import type { TuitionDashboardData } from "@/lib/tuition/load-tuition-dashboard-
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionDashboardProps = {
@@ -239,6 +240,11 @@ export default function TuitionDashboard({
       applyDashboardData({ ratePlans: plans, pageMeta });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load tuition data.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.dashboard.load",
+        error: "",
+      }, err);
     } finally {
       setInitialLoading(false);
       setIsRefetching(false);
@@ -283,6 +289,11 @@ export default function TuitionDashboard({
       await loadData();
     } catch (err) {
       const message = formatActionError(err, "Failed to sync tuition assignments.");
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.dashboard.sync",
+        error: "",
+      }, err);
       setError(message);
       adminToast.error(message);
     } finally {
@@ -471,6 +482,7 @@ export default function TuitionDashboard({
 
           <TuitionAssignmentModal
             open={editAssignmentId != null}
+            organizationId={organizationId}
             assignmentId={editAssignmentId ?? ""}
             branding={branding}
             onClose={() => setEditAssignmentId(null)}

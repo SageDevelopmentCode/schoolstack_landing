@@ -38,6 +38,7 @@ import {
 } from "@/lib/school-teacher/filter-students-by-classroom";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
 
 type TeacherMyStudentsPageProps = {
@@ -217,6 +218,11 @@ export default function TeacherMyStudentsPage({
       );
       setAssignedStudents(withFlags);
     } catch (err) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "students.load_assigned",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
       setLoadingAssigned(false);
@@ -238,6 +244,11 @@ export default function TeacherMyStudentsPage({
       );
       setSchoolStudents(withFlags);
     } catch (err) {
+      void reportPortalOperationalError("teacher_portal", {
+        organizationId,
+        operation: "students.load_school",
+        error: "",
+      }, err);
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
       setLoadingSchool(false);

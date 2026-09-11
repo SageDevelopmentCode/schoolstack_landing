@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Check, Loader2, X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { CommitteeJoinRequest, CommitteeRole } from "@/lib/committees/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
@@ -60,6 +61,11 @@ export default function CommitteeJoinRequestsPanel({
       if (!res.ok) throw new Error(data.error ?? "Failed to load join requests.");
       setRequests(data.requests ?? []);
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.join_requests.load",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to load join requests."));
       setRequests([]);
     }
@@ -80,6 +86,11 @@ export default function CommitteeJoinRequestsPanel({
         if (!res.ok) throw new Error(data.error ?? "Failed to load join requests.");
         if (!cancelled) setRequests(data.requests ?? []);
       } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "committees.join_requests.load",
+          error: "",
+        }, err);
         if (!cancelled) {
           adminToast.error(formatActionError(err, "Failed to load join requests."));
           setRequests([]);
@@ -115,6 +126,11 @@ export default function CommitteeJoinRequestsPanel({
       await reloadRequests();
       onChanged?.();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.join_requests.approve",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to approve request."));
     } finally {
       setActingId(null);
@@ -138,6 +154,11 @@ export default function CommitteeJoinRequestsPanel({
       await reloadRequests();
       onChanged?.();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "committees.join_requests.decline",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to decline request."));
     } finally {
       setActingId(null);

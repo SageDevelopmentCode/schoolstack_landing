@@ -12,6 +12,7 @@ import {
 import type { TuitionLateFeeOverride, TuitionOrgSettings } from "@/lib/tuition/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type TuitionLateFeeSettingsPanelProps = {
   organizationId: string;
@@ -178,6 +179,11 @@ export default function TuitionLateFeeSettingsPanel({
       setOverrides(overridesPayload.overrides ?? []);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load late fee settings."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.late_fees.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -208,6 +214,11 @@ export default function TuitionLateFeeSettingsPanel({
       adminToast.success("Late fee settings saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save late fee settings."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.late_fees.save",
+        error: "",
+      }, err);
     } finally {
       setSaving(false);
     }
@@ -245,6 +256,11 @@ export default function TuitionLateFeeSettingsPanel({
       adminToast.success("Month override saved");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save override."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.late_fees.save_override",
+        error: "",
+      }, err);
     }
   };
 
@@ -262,6 +278,11 @@ export default function TuitionLateFeeSettingsPanel({
       adminToast.success("Override removed");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to delete override."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "tuition.late_fees.delete_override",
+        error: "",
+      }, err);
     }
   };
 

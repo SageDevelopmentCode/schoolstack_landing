@@ -70,6 +70,8 @@ import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing
 import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-meta";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
 import { isProgramParentPortalPreviewFamilyId } from "@/lib/admissions/program-parent-portal-preview-data";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { parentToast } from "@/lib/school-parent/parent-toast";
 import { createClient } from "@/utils/supabase/client";
 
 type ParentBillingPageProps = {
@@ -345,7 +347,15 @@ function ParentBillingPageContent({
       hasLoadedBillingRef.current = true;
       return summary;
     } catch (error) {
-      console.error(error);
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "billing.load",
+          error: "",
+        },
+        error,
+      );
       return null;
     } finally {
       setInitialLoading(false);
@@ -677,8 +687,9 @@ function ParentBillingPageContent({
       setPayError(null);
       setPayingCombined(true);
 
+      let response: Response | undefined;
       try {
-        const response = await fetch("/api/tuition/charges/combined-checkout", {
+        response = await fetch("/api/tuition/charges/combined-checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -711,6 +722,16 @@ function ParentBillingPageContent({
           error instanceof Error ? error.message : "Failed to start checkout.",
         );
         setPayingCombined(false);
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "billing.checkout",
+            error: "",
+          },
+          error,
+          response?.status,
+        );
       } finally {
         setPayCheckoutLoading(false);
       }
@@ -729,6 +750,7 @@ function ParentBillingPageContent({
     setPayError(null);
     setPayingChargeId(pendingPayCharge.id);
 
+    let response: Response | undefined;
     try {
       const body: {
         paymentMethod: CheckoutPaymentMethod;
@@ -741,7 +763,7 @@ function ParentBillingPageContent({
         body.amountCents = amountCents;
       }
 
-      const response = await fetch(`/api/tuition/charges/${pendingPayCharge.id}/checkout`, {
+      response = await fetch(`/api/tuition/charges/${pendingPayCharge.id}/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -770,6 +792,16 @@ function ParentBillingPageContent({
         error instanceof Error ? error.message : "Failed to start checkout.",
       );
       setPayingChargeId(null);
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "billing.checkout",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     } finally {
       setPayCheckoutLoading(false);
     }
@@ -784,8 +816,9 @@ function ParentBillingPageContent({
   const handleAutopayConfirm = async () => {
     if (previewMode) return;
     setAutopaySaving(true);
+    let response: Response | undefined;
     try {
-      const response = await fetch("/api/tuition/autopay", {
+      response = await fetch("/api/tuition/autopay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -806,7 +839,19 @@ function ParentBillingPageContent({
       setSavedPaymentMethod(payload.savedPaymentMethod ?? null);
       setAutopayModalOpen(false);
     } catch (error) {
-      console.error(error);
+      parentToast.error(
+        error instanceof Error ? error.message : "Failed to update autopay.",
+      );
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "billing.autopay_update",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     } finally {
       setAutopaySaving(false);
     }
@@ -815,8 +860,9 @@ function ParentBillingPageContent({
   const handleManagePaymentMethod = async () => {
     if (previewMode) return;
     setPaymentMethodLoading(true);
+    let response: Response | undefined;
     try {
-      const response = await fetch("/api/tuition/payment-method/setup", {
+      response = await fetch("/api/tuition/payment-method/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId, familyId, orgSlug: slug }),
@@ -828,8 +874,20 @@ function ParentBillingPageContent({
       }
       throw new Error(payload.error ?? "Could not start card setup.");
     } catch (error) {
-      console.error(error);
+      parentToast.error(
+        error instanceof Error ? error.message : "Could not start card setup.",
+      );
       setPaymentMethodLoading(false);
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "billing.payment_method_setup",
+          error: "",
+        },
+        error,
+        response?.status,
+      );
     }
   };
 

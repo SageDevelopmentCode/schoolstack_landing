@@ -38,6 +38,7 @@ import {
   tabPanelTransition,
   tabPanelVariants,
 } from "@/lib/school-admin/admin-modal-motion";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { schoolTeacherLoginPath } from "@/lib/organization-settings/teacher-routes";
 import { SITE_URL } from "@/lib/site";
@@ -178,6 +179,11 @@ export default function StaffDetailPane({
       setIsEditing(false);
       await onUpdated();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.update",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to update staff member."));
     } finally {
       setSaveLoading(false);
@@ -208,6 +214,11 @@ export default function StaffDetailPane({
       setConfirmDeactivate(false);
       await onUpdated();
     } catch (err) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "staff.update_portal_access",
+        error: "",
+      }, err);
       adminToast.error(formatActionError(err, "Failed to update portal access."));
     } finally {
       setActionLoading(false);

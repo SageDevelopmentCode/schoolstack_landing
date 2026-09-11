@@ -10,6 +10,7 @@ import MessagesAvatar from "@/components/messages/MessagesAvatar";
 import MessagesComposeBar from "@/components/messages/MessagesComposeBar";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type CurriculumDiscussionPanelProps = {
   organizationId: string;
@@ -107,6 +108,7 @@ export default function CurriculumDiscussionPanel({
   const refreshMessages = useCallback(async () => {
     if (!organizationId || !programId) return;
     setLoading(true);
+    let response: Response | undefined;
     try {
       const params = new URLSearchParams({ organizationId, programId });
       if (curriculumId) {
@@ -114,7 +116,7 @@ export default function CurriculumDiscussionPanel({
       } else {
         params.set("curriculumId", "general");
       }
-      const response = await fetch(`/api/parent-portal/curriculum-discussion?${params}`);
+      response = await fetch(`/api/parent-portal/curriculum-discussion?${params}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(data.error ?? "Failed to load discussion.");
@@ -123,6 +125,16 @@ export default function CurriculumDiscussionPanel({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load discussion.");
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "curriculum.discussion_load",
+          error: "",
+        },
+        err,
+        response?.status,
+      );
     } finally {
       setLoading(false);
     }
@@ -172,8 +184,9 @@ export default function CurriculumDiscussionPanel({
 
     setSending(true);
     setError(null);
+    let response: Response | undefined;
     try {
-      const response = await fetch("/api/parent-portal/curriculum-discussion", {
+      response = await fetch("/api/parent-portal/curriculum-discussion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -198,6 +211,16 @@ export default function CurriculumDiscussionPanel({
       setText("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message.");
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "curriculum.discussion_send",
+          error: "",
+        },
+        err,
+        response?.status,
+      );
     } finally {
       setSending(false);
     }

@@ -13,6 +13,7 @@ import {
 } from "@/lib/tuition/setup-wizard";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 function possessiveFirstName(fullName: string): string {
   const firstName = fullName.trim().split(/\s+/)[0] ?? fullName;
@@ -88,8 +89,9 @@ export default function ParentTuitionPlanSelector({
 
     setSaving(true);
     setError(null);
+    let response: Response | undefined;
     try {
-      const response = await fetch(
+      response = await fetch(
         `/api/tuition/enrollments/${assignment.enrollmentId}/payment-plan`,
         {
           method: "POST",
@@ -104,6 +106,16 @@ export default function ParentTuitionPlanSelector({
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save payment schedule.");
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId: context.assignment.organizationId,
+          operation: "billing.save_payment_plan",
+          error: "",
+        },
+        err,
+        response?.status,
+      );
     } finally {
       setSaving(false);
     }

@@ -34,6 +34,7 @@ import {
 } from "@/lib/admissions/program-coop-supply-list-storage";
 import { ProgramCoopStorageConflictError } from "@/lib/admissions/program-coop-storage-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -176,6 +177,11 @@ export default function ProgramCoopSupplyListCard({
       setEnrolledFamilies(families);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to load supply list."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_supply.load",
+        error: "",
+      }, err);
     } finally {
       setLoading(false);
     }
@@ -224,6 +230,11 @@ export default function ProgramCoopSupplyListCard({
       return persisted;
     } catch (err) {
       if (err instanceof ProgramCoopStorageConflictError) {
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_supply.save",
+        error: "",
+      }, err);
         adminToast.error(err.message);
         await loadSupplyList();
       } else {
@@ -241,6 +252,11 @@ export default function ProgramCoopSupplyListCard({
       setPanelDirty(false);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to remove supply item."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_supply.remove_item",
+        error: "",
+      }, err);
       throw err;
     }
   };
@@ -254,6 +270,11 @@ export default function ProgramCoopSupplyListCard({
       setSelectedId(nextItem.id);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add supply item."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_supply.add_item",
+        error: "",
+      }, err);
     } finally {
       setAddingItem(false);
     }
@@ -269,6 +290,11 @@ export default function ProgramCoopSupplyListCard({
       setColorLegend(persisted);
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to save color categories."));
+      void reportPortalOperationalError("school_admin", {
+        organizationId,
+        operation: "programs.coop_supply.save_colors",
+        error: "",
+      }, err);
       throw err;
     }
   };

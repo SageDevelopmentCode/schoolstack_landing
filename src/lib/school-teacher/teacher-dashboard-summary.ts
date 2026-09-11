@@ -25,6 +25,7 @@ import {
   listTeacherClassroomSignups,
 } from "@/lib/classroom-signups/load-teacher-signups";
 import { computeSignupMetrics } from "@/lib/classroom-signups/utils";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 export type TeacherDashboardFocusIcon = "message" | "calendar" | "students" | "signups";
 
@@ -109,7 +110,23 @@ export async function fetchTeacherDashboardSummary(
           organizationId,
           options.userId,
           options.schoolName,
-        ).catch(() => 0)
+        ).catch((err) => {
+          void reportOperationalError({
+            supabase: admin,
+            surface: "teacher_portal",
+            organizationId,
+            operation: "dashboard.load_messages_unread_count",
+            error:
+              err instanceof Error
+                ? err.message
+                : "Failed to load messages unread count.",
+            severity: "warning",
+            notify: true,
+            actor: { type: "system" },
+            cause: err,
+          });
+          return 0;
+        })
       : Promise.resolve(0),
     loadHomeBulletinPosts({
       supabase,
