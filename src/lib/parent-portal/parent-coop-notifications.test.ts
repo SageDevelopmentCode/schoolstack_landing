@@ -88,7 +88,7 @@ function createCoopNotificationsMockSupabase(config: {
   }
 
   return {
-    supabase: { from: createQueryBuilder } as SupabaseClient,
+    supabase: { from: createQueryBuilder } as unknown as SupabaseClient,
     eqFilters,
   };
 }

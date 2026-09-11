@@ -53,7 +53,7 @@ function createProgramLookupSupabase(
 
       return builder;
     },
-  } as SupabaseClient;
+  } as unknown as SupabaseClient;
 }
 
 const schoolYearProgram: EnrolledProgramPortalSummary = {
