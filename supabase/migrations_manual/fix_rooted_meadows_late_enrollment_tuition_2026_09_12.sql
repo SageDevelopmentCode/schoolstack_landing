@@ -148,7 +148,25 @@ where tc.assignment_id = tea.id
   and tc.due_date in ('2026-08-15', '2026-09-10')
   and tc.status in ('scheduled', 'sent', 'overdue');
 
--- ── Verify ─────────────────────────────────────────────────────────────────
+-- ── Step 4: Sync payment history labels with remapped charges ───────────────
+-- Zachary paid while the charge was still labeled August; SQL Step 3 remapped
+-- the charge to September but application_payments.label was not updated.
+
+update public.application_payments ap
+set label = tc.label,
+    updated_at = now()
+from public.tuition_charges tc
+join public.tuition_enrollment_assignments tea on tea.id = tc.assignment_id
+join public.families f on f.id = tea.family_id
+join public.organizations o on o.id = f.organization_id
+where ap.tuition_charge_id = tc.id
+  and o.slug = 'rooted-meadows'
+  and f.name = 'Ritchie Family'
+  and ap.payment_type = 'tuition'
+  and ap.status = 'succeeded'
+  and ap.label is distinct from tc.label;
+
+-- ── Verify charges ──────────────────────────────────────────────────────────
 
 select
   f.name,
@@ -165,3 +183,20 @@ left join public.tuition_charges tc on tc.assignment_id = tea.id and tc.status !
 where o.slug = 'rooted-meadows'
   and f.name in ('Evensen Family', 'Ritchie Family')
 order by f.name, tc.due_date nulls first, tc.label;
+
+-- ── Verify payment history labels ───────────────────────────────────────────
+
+select
+  f.name,
+  ap.label as payment_label,
+  tc.label as charge_label,
+  ap.paid_at
+from public.application_payments ap
+join public.tuition_charges tc on tc.id = ap.tuition_charge_id
+join public.families f on f.id = ap.family_id
+join public.organizations o on o.id = f.organization_id
+where o.slug = 'rooted-meadows'
+  and f.name = 'Ritchie Family'
+  and ap.payment_type = 'tuition'
+  and ap.status = 'succeeded'
+order by ap.paid_at;

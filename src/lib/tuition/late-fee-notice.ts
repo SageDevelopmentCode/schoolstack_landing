@@ -1,4 +1,5 @@
 import { chargeRemainingCents } from "./billing-splits";
+import { isChargePayable } from "./charge-payability";
 import type { TuitionCharge } from "./types";
 
 export type LateFeeNotice = {
@@ -19,6 +20,7 @@ export function pickRecentLateFeeNotice(
 
   const recentLateFees = charges.filter((charge) => {
     if (charge.chargeType !== "late_fee") return false;
+    if (!isChargePayable(charge)) return false;
     if (chargeRemainingCents(charge) <= 0) return false;
     if (!charge.sentAt) return false;
     return new Date(charge.sentAt).getTime() >= cutoff;
