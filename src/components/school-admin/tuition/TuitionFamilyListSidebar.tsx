@@ -5,6 +5,7 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import { familyStatusLabel } from "@/components/school-admin/tuition/tuition-family-status";
+import { adminApplicationStatusLabel } from "@/lib/admissions/application-status-ui";
 import {
   familyEnrollmentBadgeAriaLabel,
   familyEnrollmentStatusBadges,
@@ -25,6 +26,9 @@ type TuitionFamilyListSidebarProps = {
   onLoadMore?: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  showUnenrolledFamilies?: boolean;
+  unenrolledCount?: number;
+  onToggleUnenrolled?: () => void;
 };
 
 function familyEnrollmentChipTone(kind: FamilyEnrollmentBadgeKind): "info" | "success" {
@@ -67,7 +71,9 @@ function FamilySidebarRow({
   theme: ParentThemeTokens;
   compact?: boolean;
 }) {
-  const enrollmentBadges = familyEnrollmentStatusBadges(family.enrollments);
+  const enrollmentBadges = familyEnrollmentStatusBadges(family.enrollments).filter(
+    (kind) => !(family.hasWithdrawnApplication && kind === "enrolling"),
+  );
 
   return (
     <button
@@ -98,6 +104,11 @@ function FamilySidebarRow({
         {enrollmentBadges.map((kind) => (
           <FamilyEnrollmentIconBadge key={kind} kind={kind} theme={theme} />
         ))}
+        {family.hasWithdrawnApplication ? (
+          <AdminChip theme={theme} tone="alert">
+            {adminApplicationStatusLabel("withdrawn")}
+          </AdminChip>
+        ) : null}
         {family.status === "overdue" || family.hasOverdueTuition ? (
           <AdminChip theme={theme} tone="alert">
             Overdue
@@ -149,26 +160,51 @@ export default function TuitionFamilyListSidebar({
   onLoadMore,
   searchQuery = "",
   onSearchChange,
+  showUnenrolledFamilies = false,
+  unenrolledCount = 0,
+  onToggleUnenrolled,
 }: TuitionFamilyListSidebarProps) {
+  const visibilityFilteredFamilies = families.filter(
+    (family) => showUnenrolledFamilies || family.tuitionListVisibility === "active",
+  );
   const filteredFamilies = searchQuery.trim()
-    ? families.filter((family) =>
+    ? visibilityFilteredFamilies.filter((family) =>
         family.familyName.toLowerCase().includes(searchQuery.trim().toLowerCase()),
       )
-    : families;
+    : visibilityFilteredFamilies;
+
+  const unenrolledToggle = onToggleUnenrolled && unenrolledCount > 0 ? (
+    <div className={layout === "strip" ? "mb-2" : "border-t p-2.5"} style={layout === "strip" ? undefined : { borderColor: "#E1E8E1" }}>
+      <AdminButton
+        theme={theme}
+        variant="outline"
+        className="w-full"
+        onClick={onToggleUnenrolled}
+        data-testid="tuition-unenrolled-toggle"
+      >
+        {showUnenrolledFamilies
+          ? "Hide unenrolled"
+          : `Show ${unenrolledCount} unenrolled`}
+      </AdminButton>
+    </div>
+  ) : null;
 
   if (layout === "strip") {
     return (
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {filteredFamilies.map((family) => (
-          <FamilySidebarRow
-            key={family.familyId}
-            family={family}
-            isActive={family.familyId === selectedId}
-            onSelect={() => onSelect(family.familyId)}
-            theme={theme}
-            compact
-          />
-        ))}
+      <div>
+        {unenrolledToggle}
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {filteredFamilies.map((family) => (
+            <FamilySidebarRow
+              key={family.familyId}
+              family={family}
+              isActive={family.familyId === selectedId}
+              onSelect={() => onSelect(family.familyId)}
+              theme={theme}
+              compact
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -214,6 +250,7 @@ export default function TuitionFamilyListSidebar({
           </p>
         ) : null}
       </div>
+      {unenrolledToggle}
       {hasMore && onLoadMore ? (
         <div className="border-t p-2.5" style={{ borderColor: "#E1E8E1" }}>
           <AdminButton

@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
+import {
+  filterPaymentPlansForBillingStart,
+  maxInstallmentsForBillingStart,
+} from "@/lib/tuition/billing-start";
 import { getAssignmentById } from "@/lib/tuition/assignments";
 import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import { paymentScheduleLabel } from "@/lib/tuition/setup-wizard";
@@ -13,6 +17,7 @@ import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-the
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { TuitionPaymentPlan } from "@/lib/tuition/types";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionAssignmentModalProps = {
@@ -42,10 +47,18 @@ export default function TuitionAssignmentModal({
   const [error, setError] = useState<string | null>(null);
   const [rateTierId, setRateTierId] = useState<string>("");
   const [paymentPlanId, setPaymentPlanId] = useState<string>("");
+  const [billingStart, setBillingStart] = useState<string>("");
   const [ratePlanName, setRatePlanName] = useState("");
+  const [ratePlanEffectiveStart, setRatePlanEffectiveStart] = useState<string | null>(
+    null,
+  );
+  const [ratePlanEffectiveEnd, setRatePlanEffectiveEnd] = useState<string | null>(
+    null,
+  );
   const [tierOptions, setTierOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
+  const [paymentPlans, setPaymentPlans] = useState<TuitionPaymentPlan[]>([]);
   const [paymentOptions, setPaymentOptions] = useState<
     Array<{ value: string; label: string }>
   >([]);
@@ -53,12 +66,14 @@ export default function TuitionAssignmentModal({
   const [savedSnapshot, setSavedSnapshot] = useState<{
     rateTierId: string;
     paymentPlanId: string;
+    billingStart: string;
   } | null>(null);
 
   const isAssignmentDirty =
     savedSnapshot != null &&
     (rateTierId !== savedSnapshot.rateTierId ||
-      paymentPlanId !== savedSnapshot.paymentPlanId);
+      paymentPlanId !== savedSnapshot.paymentPlanId ||
+      billingStart !== savedSnapshot.billingStart);
 
   useEffect(() => {
     if (!open || !assignmentId) return;
@@ -80,6 +95,9 @@ export default function TuitionAssignmentModal({
         }
 
         setRatePlanName(ratePlan.name);
+        setRatePlanEffectiveStart(ratePlan.effectiveStart);
+        setRatePlanEffectiveEnd(ratePlan.effectiveEnd);
+        setBillingStart(assignment.effectiveStart ?? ratePlan.effectiveStart ?? "");
         setPendingPaymentPlanSelection(
           assignment.metadata.pendingPaymentPlanSelection === true,
         );
@@ -90,6 +108,19 @@ export default function TuitionAssignmentModal({
             "",
         );
         setPaymentPlanId(assignment.paymentPlanId);
+        const resolvedBillingStart =
+          assignment.effectiveStart ?? ratePlan.effectiveStart ?? "";
+        const maxInstallments = maxInstallmentsForBillingStart(
+          ratePlan.effectiveStart,
+          ratePlan.effectiveEnd,
+          resolvedBillingStart,
+        );
+        setPaymentPlans(ratePlan.paymentPlans);
+        const allowedPlans = filterPaymentPlansForBillingStart(
+          ratePlan.paymentPlans,
+          maxInstallments,
+        );
+
         setSavedSnapshot({
           rateTierId:
             assignment.rateTierId ??
@@ -97,6 +128,7 @@ export default function TuitionAssignmentModal({
             ratePlan.tiers[0]?.id ??
             "",
           paymentPlanId: assignment.paymentPlanId,
+          billingStart: resolvedBillingStart,
         });
         setTierOptions(
           ratePlan.tiers.map((tier) => ({
@@ -105,7 +137,7 @@ export default function TuitionAssignmentModal({
           })),
         );
         setPaymentOptions(
-          ratePlan.paymentPlans.map((plan) => ({
+          allowedPlans.map((plan) => ({
             value: plan.id,
             label: plan.name || paymentScheduleLabel(plan.installmentCount),
           })),
@@ -134,13 +166,14 @@ export default function TuitionAssignmentModal({
         body: JSON.stringify({
           rateTierId: rateTierId || null,
           paymentPlanId,
+          effectiveStart: billingStart || null,
         }),
       });
       if (!response.ok) {
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error ?? "Failed to update assignment.");
       }
-      setSavedSnapshot({ rateTierId, paymentPlanId });
+      setSavedSnapshot({ rateTierId, paymentPlanId, billingStart });
       adminToast.success("Billing setup saved");
       onSaved();
     } catch (err) {
@@ -209,6 +242,46 @@ export default function TuitionAssignmentModal({
                 options={tierOptions}
                 disabled={tierOptions.length <= 1}
                 ariaLabel="Tuition rate tier"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span style={{ color: C.textSecondary }}>Billing start</span>
+              <input
+                type="date"
+                value={billingStart}
+                onChange={(event) => {
+                  const nextStart = event.target.value;
+                  setBillingStart(nextStart);
+                  if (!nextStart) return;
+                  const maxInstallments = maxInstallmentsForBillingStart(
+                    ratePlanEffectiveStart,
+                    ratePlanEffectiveEnd,
+                    nextStart,
+                  );
+                  const allowedPlans = filterPaymentPlansForBillingStart(
+                    paymentPlans,
+                    maxInstallments,
+                  );
+                  setPaymentOptions(
+                    allowedPlans.map((plan) => ({
+                      value: plan.id,
+                      label: plan.name || paymentScheduleLabel(plan.installmentCount),
+                    })),
+                  );
+                  if (
+                    paymentPlanId &&
+                    !allowedPlans.some((plan) => plan.id === paymentPlanId)
+                  ) {
+                    setPaymentPlanId(allowedPlans[0]?.id ?? "");
+                  }
+                }}
+                className="rounded-md px-3 py-2 text-sm"
+                style={{
+                  border: `1px solid ${C.border}`,
+                  backgroundColor: C.surface,
+                  color: C.textPrimary,
+                }}
               />
             </label>
 

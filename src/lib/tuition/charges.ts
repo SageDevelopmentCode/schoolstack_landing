@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseProgramParentPortalSettings } from "@/lib/admissions/program-parent-portal";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { mergeFeatures } from "@/lib/organization-settings/merge";
+import { resolveProgramParentFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   formatActiveAdjustmentsList,
   formatAssignmentAdjustmentBadgeLabel,
@@ -19,6 +22,11 @@ import type {
   UnassignedEnrollmentSummary,
 } from "./types";
 import { paymentScheduleLabel } from "./setup-wizard";
+import {
+  familyHasWithdrawnApplication,
+  indexApplicationsByFamilyId,
+} from "./tuition-family-application-status";
+import { classifyTuitionFamilyListVisibility } from "./tuition-family-list-visibility";
 import type { RawKpiChargeRow } from "./kpi-breakdown";
 import {
   computeOutstandingCentsFromCharges,
@@ -298,6 +306,8 @@ export async function listFamilyBillingSummaries(
     { data: tiers },
     { data: paymentPlans },
     { data: adjustmentRows },
+    { data: organizationSettings },
+    { data: applications },
   ] = await Promise.all([
     supabase
       .from("tuition_billing_accounts")
@@ -324,7 +334,7 @@ export async function listFamilyBillingSummaries(
       .not("status", "eq", "void"),
     supabase
       .from("tuition_billing_splits")
-      .select("family_id, share_bps, guardians(first_name, last_name)")
+      .select("family_id, guardian_id, share_bps, guardians(first_name, last_name)")
       .eq("organization_id", organizationId)
       .in("family_id", familyIds),
     supabase
@@ -362,7 +372,7 @@ export async function listFamilyBillingSummaries(
         }),
     supabase
       .from("programs")
-      .select("id, name")
+      .select("id, name, parent_portal_settings")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_plans")
@@ -381,7 +391,30 @@ export async function listFamilyBillingSummaries(
       .select("*")
       .eq("organization_id", organizationId)
       .eq("status", "active"),
+    supabase
+      .from("organization_settings")
+      .select("features")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    supabase
+      .from("applications")
+      .select("family_id, primary_guardian_id, status")
+      .eq("organization_id", organizationId),
   ]);
+
+  const orgFeatures = mergeFeatures(
+    (organizationSettings?.features as Record<string, unknown> | null | undefined) ??
+      null,
+  );
+  const programBillingEnabled = new Map<string, boolean>();
+  for (const program of programs ?? []) {
+    const programId = String(program.id);
+    const settings = parseProgramParentPortalSettings(program.parent_portal_settings);
+    programBillingEnabled.set(
+      programId,
+      resolveProgramParentFeatures(orgFeatures, settings).billing,
+    );
+  }
 
   const programMap = new Map(
     (programs ?? []).map((p) => [String(p.id), String(p.name)]),
@@ -445,7 +478,10 @@ export async function listFamilyBillingSummaries(
     adjustmentsByAssignment.set(assignmentId, existing);
   }
 
-  const billingSplitsByFamily = new Map<string, Array<{ shareBps: number; guardianName: string }>>();
+  const billingSplitsByFamily = new Map<
+    string,
+    Array<{ guardianId: string; shareBps: number; guardianName: string }>
+  >();
   for (const row of billingSplits ?? []) {
     const familyId = String(row.family_id);
     const guardian = row.guardians as
@@ -457,6 +493,7 @@ export async function listFamilyBillingSummaries(
       : "Guardian";
     const existing = billingSplitsByFamily.get(familyId) ?? [];
     existing.push({
+      guardianId: String(row.guardian_id),
       shareBps: Number(row.share_bps),
       guardianName: guardianName || "Guardian",
     });
@@ -493,6 +530,29 @@ export async function listFamilyBillingSummaries(
     });
     guardiansByFamily.set(familyId, existing);
   }
+
+  const guardianIdToFamilyId = new Map<string, string>();
+  for (const [familyId, familyGuardians] of guardiansByFamily) {
+    for (const guardian of familyGuardians) {
+      guardianIdToFamilyId.set(guardian.id, familyId);
+    }
+  }
+
+  const applicationsByFamilyId = indexApplicationsByFamilyId({
+    applications: (applications ?? []).map((row) => ({
+      familyId:
+        row.family_id === null || row.family_id === undefined
+          ? null
+          : String(row.family_id),
+      primaryGuardianId:
+        row.primary_guardian_id === null || row.primary_guardian_id === undefined
+          ? null
+          : String(row.primary_guardian_id),
+      status: String(row.status),
+    })),
+    guardianIdToFamilyId,
+    familyIds: new Set(familyIds),
+  });
 
   const lastFailureByFamily = new Map<string, string>();
   for (const row of autopayFailures ?? []) {
@@ -678,13 +738,20 @@ export async function listFamilyBillingSummaries(
 
     const familySplitRows = billingSplitsByFamily.get(familyId) ?? [];
     const hasBillingSplit = familySplitRows.length > 0;
+    const billingSplits = hasBillingSplit
+      ? familySplitRows.map((row) => ({
+          guardianId: row.guardianId,
+          shareBps: row.shareBps,
+          guardianName: row.guardianName,
+        }))
+      : [];
     const billingSplitSummary = hasBillingSplit
       ? formatBillingSplitSummary(
-          familySplitRows.map((row, index) => ({
+          billingSplits.map((row, index) => ({
             id: `${familyId}-${index}`,
             organizationId,
             familyId,
-            guardianId: "",
+            guardianId: row.guardianId,
             shareBps: row.shareBps,
             createdAt: "",
             updatedAt: "",
@@ -705,6 +772,27 @@ export async function listFamilyBillingSummaries(
       })),
       hasBillingSplit,
     });
+
+
+    const tuitionListVisibility = classifyTuitionFamilyListVisibility({
+      enrollments: familyEnrollments.map((enrollment) => ({
+        enrollmentId: String(enrollment.id),
+        programId: String(enrollment.program_id),
+        status: String(enrollment.status) as EnrollmentBillingStatus,
+      })),
+      assignmentEnrollmentIds: familyAssignments.map((assignment) =>
+        String(assignment.enrollment_id),
+      ),
+      chargeCount: familyCharges.length,
+      isProgramBillingEnabled: (programId) =>
+        programBillingEnabled.get(programId) ?? false,
+    });
+
+    if (tuitionListVisibility === "excluded") {
+      return {
+        excluded: true as const,
+      };
+    }
 
     const catalogTuition = resolveFamilyCatalogTuition({
       assignments: familyAssignments.map((assignment) => {
@@ -766,12 +854,18 @@ export async function listFamilyBillingSummaries(
       unassignedEnrollments,
       readiness,
       billingSplitSummary,
+      billingSplits,
       hasBillingSplit,
       hasPendingEnrollment,
       catalogTuition,
+      tuitionListVisibility,
+      hasWithdrawnApplication: familyHasWithdrawnApplication(
+        applicationsByFamilyId.get(familyId) ?? [],
+      ),
       hasBillingRelevance,
     } satisfies FamilyBillingSummary & { hasBillingRelevance: boolean };
   })
+    .filter((summary) => !("excluded" in summary && summary.excluded))
     .filter((summary) => summary.hasBillingRelevance)
     .map(({ hasBillingRelevance: _ignored, ...summary }) => summary)
     .sort((a, b) => {

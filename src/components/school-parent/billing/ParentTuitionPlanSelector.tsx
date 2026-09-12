@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import { PaymentScheduleSelectionCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
+import {
+  filterPaymentPlansForBillingStart,
+  maxInstallmentsForBillingStart,
+} from "@/lib/tuition/billing-start";
 import { computeInstallmentAmountCents } from "@/lib/tuition/assignments";
 import { formatCents } from "@/lib/tuition/pricing";
 import type { EnrollmentTuitionSelectionContext } from "@/lib/tuition/enrollment-selection";
@@ -42,9 +46,21 @@ export default function ParentTuitionPlanSelector({
     ratePlan.tiers.find((item) => item.isDefault) ??
     ratePlan.tiers[0];
   const annualAmountCents = tier?.amountCents ?? ratePlan.amountCents;
+  const billingStart =
+    assignment.effectiveStart ?? ratePlan.effectiveStart ?? null;
   const schoolYearMonths = schoolYearMonthSpan(
-    ratePlan.effectiveStart,
+    billingStart ?? ratePlan.effectiveStart,
     ratePlan.effectiveEnd,
+  );
+  const availablePaymentPlans = filterPaymentPlansForBillingStart(
+    ratePlan.paymentPlans,
+    billingStart
+      ? maxInstallmentsForBillingStart(
+          ratePlan.effectiveStart,
+          ratePlan.effectiveEnd,
+          billingStart,
+        )
+      : null,
   );
   const enrollmentFees = ratePlan.feeComponents.filter(
     (fee) => fee.timing === "enrollment",
@@ -52,15 +68,15 @@ export default function ParentTuitionPlanSelector({
 
   const [selectedPlanId, setSelectedPlanId] = useState(
     assignment.paymentPlanId ||
-      ratePlan.paymentPlans.find((p) => p.isDefault)?.id ||
-      ratePlan.paymentPlans[0]?.id ||
+      availablePaymentPlans.find((p) => p.isDefault)?.id ||
+      availablePaymentPlans[0]?.id ||
       "",
   );
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedPlan = ratePlan.paymentPlans.find((plan) => plan.id === selectedPlanId);
+  const selectedPlan = availablePaymentPlans.find((plan) => plan.id === selectedPlanId);
 
   const selectedPreview = useMemo(() => {
     if (!selectedPlan) return null;
@@ -145,7 +161,7 @@ export default function ParentTuitionPlanSelector({
       </div>
 
       <div className="flex flex-col gap-2">
-        {ratePlan.paymentPlans.map((plan) => {
+        {availablePaymentPlans.map((plan) => {
           const amountCents = computeInstallmentAmountCents(
             annualAmountCents,
             plan.installmentCount,
@@ -234,7 +250,7 @@ export default function ParentTuitionPlanSelector({
         previews={selectedPreview ? [selectedPreview] : []}
         defaultCount={selectedPreview?.count ?? 1}
         annualAmountCents={annualAmountCents}
-        effectiveStart={ratePlan.effectiveStart}
+        effectiveStart={billingStart ?? ratePlan.effectiveStart}
         effectiveEnd={ratePlan.effectiveEnd}
         schoolYearMonths={schoolYearMonths}
         testId="parent-schedule-preview-modal"

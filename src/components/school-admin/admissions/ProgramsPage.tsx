@@ -57,7 +57,7 @@ import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import ProgramParentPortalSettingsCard from "./ProgramParentPortalSettingsCard";
 import ProgramCoopCurriculumUploadCard from "./ProgramCoopCurriculumUploadCard";
-import ProgramCoopPlaceholderCard from "./ProgramCoopPlaceholderCard";
+import ProgramCoopFamiliesCard from "./ProgramCoopFamiliesCard";
 import ProgramCoopSupplyListCard from "./ProgramCoopSupplyListCard";
 import ProgramCoopTeachingScheduleCard from "./ProgramCoopTeachingScheduleCard";
 import { createClient } from "@/utils/supabase/client";
@@ -499,7 +499,8 @@ export default function ProgramsPage({
                 <motion.div
                   key={`${canvasKey}-${visibleEditorTab}`}
                   className={`mx-auto space-y-4 ${
-                    visibleEditorTab === "teaching_schedule"
+                    visibleEditorTab === "teaching_schedule" ||
+                    visibleEditorTab === "families"
                       ? "max-w-5xl"
                       : visibleEditorTab === "supply_list"
                         ? "max-w-4xl"
@@ -724,21 +725,16 @@ export default function ProgramsPage({
                       coopModeEnabled={coopModeEnabled}
                     />
                   ) : visibleEditorTab === "families" && selectedProgram ? (
-                    <>
-                      <BuilderSectionIntro
-                        C={C}
-                        theme={theme}
-                        eyebrow="Co-op families"
-                        title="Families"
-                        subtitle="Manage enrolled families in this co-op program."
-                      />
-                      <ProgramCoopPlaceholderCard
-                        C={C}
-                        question="Families"
-                        helper="Coming soon."
-                        message="Co-op family management is coming soon."
-                      />
-                    </>
+                    <ProgramCoopFamiliesCard
+                      C={C}
+                      theme={theme}
+                      schoolSlug={slug}
+                      supabase={supabase}
+                      organizationId={organizationId}
+                      programId={selectedProgram.id}
+                      coopModeEnabled={coopModeEnabled}
+                      onNavigateTab={setActiveEditorTab}
+                    />
                   ) : null}
                 </motion.div>
               ) : null}

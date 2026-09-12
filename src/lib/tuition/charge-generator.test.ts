@@ -64,6 +64,24 @@ describe("buildInstallmentDueDates", () => {
     );
     assert.deepEqual(dates.slice(0, 3), ["2026-08-01", "2026-09-01", "2026-10-01"]);
   });
+
+  it("skips partial start month when billing day is earlier than start date", () => {
+    const dates = buildInstallmentDueDates(
+      { ...paymentPlan, installmentCount: 12 },
+      new Date("2026-08-17T00:00:00Z"),
+    );
+    assert.equal(dates[0], "2026-09-01");
+    assert.equal(dates[11], "2027-08-01");
+  });
+
+  it("starts in September for a September billing start", () => {
+    const dates = buildInstallmentDueDates(
+      { ...paymentPlan, installmentCount: 12 },
+      new Date("2026-09-01T00:00:00Z"),
+    );
+    assert.equal(dates[0], "2026-09-01");
+    assert.equal(dates[11], "2027-08-01");
+  });
 });
 
 describe("expandDraftsForBillingSplits", () => {

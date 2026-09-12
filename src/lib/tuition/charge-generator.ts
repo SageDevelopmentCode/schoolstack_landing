@@ -12,6 +12,12 @@ import {
   resolveAssignmentTier,
 } from "./assignments";
 import { rowToAdjustment, rowToAssignment, rowToCharge } from "./row-mappers";
+import {
+  buildInstallmentSchedule,
+  formatBillingStartDate,
+  isDueDateBeforeBillingStart,
+  tuitionLabelForDueDate,
+} from "./billing-start";
 import type {
   TuitionAdjustment,
   TuitionBillingSplit,
@@ -72,40 +78,14 @@ export function expandDraftsForBillingSplits(
   });
 }
 
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
 export function buildInstallmentDueDates(
   paymentPlan: TuitionPaymentPlan,
   startDate: Date,
 ): string[] {
-  const day = paymentPlan.billingDayOfMonth ?? startDate.getUTCDate();
-  const dates: string[] = [];
-
-  for (let i = 0; i < paymentPlan.installmentCount; i++) {
-    const d = new Date(
-      Date.UTC(
-        startDate.getUTCFullYear(),
-        startDate.getUTCMonth() + i,
-        Math.min(day, 28),
-      ),
-    );
-    dates.push(d.toISOString().slice(0, 10));
-  }
-
-  return dates;
+  const billingStart = formatBillingStartDate(startDate);
+  return buildInstallmentSchedule(paymentPlan, billingStart).map(
+    (installment) => installment.dueDate,
+  );
 }
 
 export function buildChargeDrafts(input: {
@@ -147,9 +127,8 @@ export function buildChargeDrafts(input: {
       baseAmountCents,
       activeAdjustments,
     );
-    const monthLabel = MONTH_NAMES[new Date(`${dueDate}T00:00:00Z`).getUTCMonth()];
     drafts.push({
-      label: `${monthLabel} Tuition`,
+      label: tuitionLabelForDueDate(dueDate),
       baseAmountCents,
       amountCents,
       dueDate,
@@ -159,6 +138,107 @@ export function buildChargeDrafts(input: {
   });
 
   return drafts;
+}
+
+export async function reconcileChargesForBillingStart(
+  supabase: SupabaseClient,
+  input: {
+    assignmentId: string;
+    billingStart: string;
+    paymentPlan: TuitionPaymentPlan;
+    billingSplits: TuitionBillingSplit[];
+    guardianNames: GuardianNameMap;
+  },
+): Promise<void> {
+  const schedule = buildInstallmentSchedule(input.paymentPlan, input.billingStart);
+  if (schedule.length === 0) return;
+
+  const { data: charges, error } = await supabase
+    .from("tuition_charges")
+    .select(
+      "id, status, due_date, charge_type, installment_number, label, guardian_id, paid_cents",
+    )
+    .eq("assignment_id", input.assignmentId)
+    .neq("status", "void");
+
+  if (error) throw error;
+
+  const openStatuses = new Set(["scheduled", "sent", "overdue"]);
+  const beforeBillingStart = (charges ?? []).filter(
+    (charge) =>
+      isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart),
+  );
+
+  const openBeforeStart = beforeBillingStart.filter(
+    (charge) =>
+      openStatuses.has(String(charge.status)) &&
+      (String(charge.charge_type) === "tuition" ||
+        String(charge.charge_type) === "fee"),
+  );
+  if (openBeforeStart.length > 0) {
+    const { error: voidError } = await supabase
+      .from("tuition_charges")
+      .update({ status: "void" })
+      .in(
+        "id",
+        openBeforeStart.map((charge) => String(charge.id)),
+      );
+    if (voidError) throw voidError;
+  }
+
+  const paidBeforeStart = beforeBillingStart.filter(
+    (charge) =>
+      String(charge.charge_type) === "tuition" &&
+      (String(charge.status) === "paid" || String(charge.status) === "waived"),
+  );
+  if (paidBeforeStart.length === 0) return;
+
+  const usedInstallments = new Set(
+    (charges ?? [])
+      .filter(
+        (charge) =>
+          String(charge.charge_type) === "tuition" &&
+          !isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart) &&
+          (String(charge.status) === "paid" || String(charge.status) === "waived"),
+      )
+      .map((charge) => {
+        const guardianKey =
+          typeof charge.guardian_id === "string" ? charge.guardian_id : "family";
+        return `${guardianKey}:${charge.installment_number}`;
+      }),
+  );
+
+  for (const charge of paidBeforeStart) {
+    const guardianId =
+      typeof charge.guardian_id === "string" ? charge.guardian_id : null;
+    const guardianKey = guardianId ?? "family";
+    const firstName = guardianId
+      ? input.guardianNames.get(guardianId)?.split(/\s+/)[0] ?? ""
+      : "";
+    const suffix = payerLabelSuffix(firstName);
+
+    let target = schedule[0];
+    for (const installment of schedule) {
+      const key = `${guardianKey}:${installment.installmentNumber}`;
+      if (!usedInstallments.has(key)) {
+        target = installment;
+        break;
+      }
+    }
+
+    const label = `${target.label}${suffix}`;
+    const { error: updateError } = await supabase
+      .from("tuition_charges")
+      .update({
+        due_date: target.dueDate,
+        label,
+        installment_number: target.installmentNumber,
+      })
+      .eq("id", charge.id);
+
+    if (updateError) throw updateError;
+    usedInstallments.add(`${guardianKey}:${target.installmentNumber}`);
+  }
 }
 
 export async function regenerateFutureCharges(
@@ -287,6 +367,32 @@ export async function regenerateFutureCharges(
     billingSplits,
     guardianNames,
   );
+
+  const billingStart = assignment.effective_start
+    ? String(assignment.effective_start)
+    : formatBillingStartDate(startDate);
+
+  await reconcileChargesForBillingStart(supabase, {
+    assignmentId,
+    billingStart,
+    paymentPlan: {
+      id: String(paymentPlan.id),
+      organizationId: String(paymentPlan.organization_id),
+      ratePlanId: String(paymentPlan.rate_plan_id),
+      name: String(paymentPlan.name),
+      installmentCount,
+      installmentAmountCents: Number(paymentPlan.installment_amount_cents),
+      billingDayOfMonth:
+        typeof paymentPlan.billing_day_of_month === "number"
+          ? paymentPlan.billing_day_of_month
+          : null,
+      isDefault: Boolean(paymentPlan.is_default),
+      createdAt: String(paymentPlan.created_at),
+      updatedAt: String(paymentPlan.updated_at),
+    },
+    billingSplits,
+    guardianNames,
+  });
 
   const { data: existingCharges, error: existingError } = await supabase
     .from("tuition_charges")

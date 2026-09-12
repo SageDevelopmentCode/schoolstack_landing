@@ -41,6 +41,9 @@ export function familyStatusLabel(family: FamilyBillingSummary): string {
   if (enrolledUnassigned.length > 0) {
     return catalogAmountLabel ? `${catalogAmountLabel} · Setup needed` : "Setup needed";
   }
+  if (family.hasWithdrawnApplication) {
+    return catalogAmountLabel ? `${catalogAmountLabel} · Withdrawn` : "Withdrawn";
+  }
   if (enrolling.length > 0) {
     return catalogAmountLabel ? `${catalogAmountLabel} · Enrolling` : "Enrolling";
   }

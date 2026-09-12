@@ -1,8 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  isPaymentPlanAllowedForBillingStart,
+  resolveAssignmentBillingStart,
+} from "./billing-start";
 import { regenerateFutureCharges } from "./charge-generator";
 import { evaluateAndApplyRulesForAssignment } from "./rules-engine";
 import { rowToAssignment, rowToBillingAccount } from "./row-mappers";
-import { getDefaultRatePlanForProgram } from "./rate-plans";
+import { getDefaultRatePlanForProgram, getRatePlanWithDetails } from "./rate-plans";
 import { getDefaultTierForRatePlan, getTierById } from "./rate-tiers";
 import {
   ACTIVITY_ACTIONS,
@@ -21,6 +25,41 @@ export function assignmentNeedsPaymentPlanSelection(
   assignment: Pick<TuitionEnrollmentAssignment, "metadata">,
 ): boolean {
   return assignment.metadata.pendingPaymentPlanSelection === true;
+}
+
+export async function getEnrollmentDate(
+  supabase: SupabaseClient,
+  enrollmentId: string,
+): Promise<Date | null> {
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select("created_at")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.created_at ? new Date(String(data.created_at)) : null;
+}
+
+export async function resolveBillingStartForAssignment(
+  supabase: SupabaseClient,
+  input: {
+    enrollmentId: string;
+    ratePlanStart: string | null;
+    billingDayOfMonth: number;
+    overrideStart?: string | null;
+  },
+): Promise<string | null> {
+  if (input.overrideStart) return input.overrideStart;
+
+  const enrollmentDate = await getEnrollmentDate(supabase, input.enrollmentId);
+  if (!enrollmentDate) return input.ratePlanStart;
+
+  return resolveAssignmentBillingStart({
+    ratePlanStart: input.ratePlanStart,
+    enrollmentDate,
+    billingDayOfMonth: input.billingDayOfMonth,
+  });
 }
 
 export async function isEnrollmentEnrolled(
@@ -215,11 +254,18 @@ export async function autoAssignTuitionForEnrollment(
 
   let assignment: TuitionEnrollmentAssignment;
 
+  const billingStart = await resolveBillingStartForAssignment(supabase, {
+    enrollmentId: input.enrollmentId,
+    ratePlanStart: ratePlan.effectiveStart,
+    billingDayOfMonth: defaultPaymentPlan.billingDayOfMonth ?? 1,
+  });
+
   if (existing) {
     assignment = await updateAssignment(supabase, existing.id, {
       ratePlanId: ratePlan.id,
       rateTierId: defaultTier?.id ?? null,
       paymentPlanId: defaultPaymentPlan.id,
+      effectiveStart: billingStart,
       status: "active",
       metadata,
     }, options);
@@ -233,7 +279,7 @@ export async function autoAssignTuitionForEnrollment(
       paymentPlanId: defaultPaymentPlan.id,
       assignmentSource: "default",
       assignedByUserId: input.assignedByUserId ?? null,
-      effectiveStart: ratePlan.effectiveStart,
+      effectiveStart: billingStart,
       metadata,
     }, options);
   }
@@ -480,22 +526,40 @@ export async function finalizeEnrollmentPaymentPlan(
     throw new Error("Payment plan has already been selected for this enrollment.");
   }
 
-  const { data: paymentPlan, error: planError } = await supabase
-    .from("tuition_payment_plans")
-    .select("id, rate_plan_id")
-    .eq("id", input.paymentPlanId)
-    .maybeSingle();
+  const ratePlan = await getRatePlanWithDetails(supabase, assignment.ratePlanId);
+  if (!ratePlan) throw new Error("Rate plan not found.");
 
-  if (planError) throw planError;
-  if (!paymentPlan) throw new Error("Payment plan not found.");
-  if (String(paymentPlan.rate_plan_id) !== assignment.ratePlanId) {
-    throw new Error("Payment plan does not belong to this rate plan.");
+  const selectedPlan = ratePlan.paymentPlans.find(
+    (plan) => plan.id === input.paymentPlanId,
+  );
+  if (!selectedPlan) throw new Error("Payment plan not found.");
+
+  const billingStart = await resolveBillingStartForAssignment(supabase, {
+    enrollmentId: assignment.enrollmentId,
+    ratePlanStart: ratePlan.effectiveStart,
+    billingDayOfMonth: selectedPlan.billingDayOfMonth ?? 1,
+    overrideStart: assignment.effectiveStart,
+  });
+
+  if (
+    billingStart &&
+    !isPaymentPlanAllowedForBillingStart(
+      selectedPlan.installmentCount,
+      ratePlan.effectiveStart,
+      ratePlan.effectiveEnd,
+      billingStart,
+    )
+  ) {
+    throw new Error(
+      "This payment schedule has too many installments for the remaining school year.",
+    );
   }
 
   const { data, error } = await supabase
     .from("tuition_enrollment_assignments")
     .update({
       payment_plan_id: input.paymentPlanId,
+      effective_start: billingStart,
       assignment_source: "manual",
       metadata: { pendingPaymentPlanSelection: false },
     })
@@ -546,6 +610,7 @@ export async function updateAssignment(
     ratePlanId: string;
     rateTierId: string | null;
     paymentPlanId: string;
+    effectiveStart: string | null;
     status: TuitionEnrollmentAssignment["status"];
     metadata: TuitionEnrollmentAssignment["metadata"];
   }>,
@@ -558,6 +623,7 @@ export async function updateAssignment(
   if (input.ratePlanId !== undefined) patch.rate_plan_id = input.ratePlanId;
   if (input.rateTierId !== undefined) patch.rate_tier_id = input.rateTierId;
   if (input.paymentPlanId !== undefined) patch.payment_plan_id = input.paymentPlanId;
+  if (input.effectiveStart !== undefined) patch.effective_start = input.effectiveStart;
   if (input.status !== undefined) patch.status = input.status;
   if (input.metadata !== undefined) patch.metadata = input.metadata;
 
@@ -570,7 +636,12 @@ export async function updateAssignment(
 
   if (error) throw error;
 
-  if (input.ratePlanId || input.rateTierId || input.paymentPlanId) {
+  if (
+    input.ratePlanId ||
+    input.rateTierId ||
+    input.paymentPlanId ||
+    input.effectiveStart !== undefined
+  ) {
     await regenerateFutureCharges(supabase, assignmentId);
   }
 
