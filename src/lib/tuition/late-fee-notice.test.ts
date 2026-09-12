@@ -18,7 +18,7 @@ function lateFeeCharge(
     paidCents: overrides.paidCents ?? 0,
     currency: "usd",
     dueDate: "2026-08-11",
-    status: "sent",
+    status: overrides.status ?? "sent",
     chargeType: "late_fee",
     installmentNumber: null,
     sentAt: overrides.sentAt ?? "2026-08-11T12:00:00.000Z",
@@ -78,5 +78,26 @@ describe("pickRecentLateFeeNotice", () => {
     assert.notEqual(notice, null);
     assert.equal(notice?.totalCents, 2500);
     assert.deepEqual(notice?.labels, ["Late fee — August 2026"]);
+  });
+
+  it("ignores waived late fees that still have a recent sentAt", () => {
+    const notice = pickRecentLateFeeNotice(
+      [
+        lateFeeCharge({
+          id: "aug-waived",
+          status: "waived",
+          sentAt: "2026-09-07T12:28:47.000Z",
+        }),
+        lateFeeCharge({
+          id: "sep-waived",
+          label: "Late fee — September 2026",
+          status: "waived",
+          sentAt: "2026-09-11T12:28:55.000Z",
+        }),
+      ],
+      { now: new Date("2026-09-12T12:00:00.000Z") },
+    );
+
+    assert.equal(notice, null);
   });
 });

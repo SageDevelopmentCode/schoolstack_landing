@@ -125,7 +125,13 @@ export async function listTuitionPaymentsForFamily(
 
   if (error) throw error;
 
-  return mapTuitionPaymentRows(data ?? [], familyId);
+  const payments = mapTuitionPaymentRows(data ?? [], familyId);
+  const chargeLabelById = await fetchChargeLabelsById(
+    supabase,
+    tuitionChargeIdsFromPayments(payments),
+  );
+
+  return applyChargeLabelsToTuitionPayments(payments, chargeLabelById);
 }
 
 /** Parent portal payment history — completed payments only. */
@@ -143,24 +149,10 @@ export async function listParentTuitionPaymentHistory(
 
   if (error) throw error;
 
-  const payments = mapTuitionPaymentRows(data ?? [], familyId);
-  const studentContextByChargeId = await fetchStudentContextByChargeId(
+  return enrichParentTuitionPayments(
     supabase,
-    payments
-      .map((payment) => payment.tuitionChargeId)
-      .filter((id): id is string => Boolean(id)),
+    mapTuitionPaymentRows(data ?? [], familyId),
   );
-
-  return payments.map((payment) => {
-    const context = payment.tuitionChargeId
-      ? studentContextByChargeId.get(payment.tuitionChargeId)
-      : undefined;
-    return {
-      ...payment,
-      studentFirstName: context?.firstName ?? null,
-      enrollmentId: context?.enrollmentId ?? null,
-    };
-  });
 }
 
 export async function listParentTuitionPaymentHistoryPaginated(
@@ -191,25 +183,11 @@ export async function listParentTuitionPaymentHistoryPaginated(
 
   if (error) throw error;
 
-  const payments = mapTuitionPaymentRows(data ?? [], familyId);
-  const studentContextByChargeId = await fetchStudentContextByChargeId(
-    supabase,
-    payments
-      .map((payment) => payment.tuitionChargeId)
-      .filter((id): id is string => Boolean(id)),
-  );
-
   return {
-    payments: payments.map((payment) => {
-      const context = payment.tuitionChargeId
-        ? studentContextByChargeId.get(payment.tuitionChargeId)
-        : undefined;
-      return {
-        ...payment,
-        studentFirstName: context?.firstName ?? null,
-        enrollmentId: context?.enrollmentId ?? null,
-      };
-    }),
+    payments: await enrichParentTuitionPayments(
+      supabase,
+      mapTuitionPaymentRows(data ?? [], familyId),
+    ),
     totalCount: count ?? 0,
   };
 }
@@ -243,23 +221,88 @@ export async function listOrganizationTuitionPaymentsPaginated(
   if (error) throw error;
 
   const payments = mapTuitionPaymentRows(data ?? [], "");
-  const [studentContextByChargeId, familyNameById] = await Promise.all([
-    fetchStudentContextByChargeId(
-      supabase,
-      payments
-        .map((payment) => payment.tuitionChargeId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-    fetchFamilyNamesById(
-      supabase,
-      payments
-        .map((payment) => payment.familyId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ]);
+  const chargeIds = tuitionChargeIdsFromPayments(payments);
+  const [studentContextByChargeId, chargeLabelById, familyNameById] =
+    await Promise.all([
+      fetchStudentContextByChargeId(supabase, chargeIds),
+      fetchChargeLabelsById(supabase, chargeIds),
+      fetchFamilyNamesById(
+        supabase,
+        payments
+          .map((payment) => payment.familyId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ]);
 
   return {
-    payments: payments.map((payment) => {
+    payments: applyChargeLabelsToTuitionPayments(payments, chargeLabelById).map(
+      (payment) => {
+        const context = payment.tuitionChargeId
+          ? studentContextByChargeId.get(payment.tuitionChargeId)
+          : undefined;
+        return {
+          ...payment,
+          studentFirstName: context?.firstName ?? null,
+          enrollmentId: context?.enrollmentId ?? null,
+          familyName: payment.familyId
+            ? (familyNameById.get(payment.familyId) ?? "Family")
+            : "Family",
+        };
+      },
+    ),
+    totalCount: count ?? 0,
+  };
+}
+
+function tuitionChargeIdsFromPayments(payments: PaymentRecord[]): string[] {
+  return payments
+    .map((payment) => payment.tuitionChargeId)
+    .filter((id): id is string => Boolean(id));
+}
+
+export function applyChargeLabelsToTuitionPayments<T extends PaymentRecord>(
+  payments: T[],
+  chargeLabelById: Map<string, string>,
+): T[] {
+  return payments.map((payment) => {
+    if (!payment.tuitionChargeId) return payment;
+    const chargeLabel = chargeLabelById.get(payment.tuitionChargeId);
+    if (!chargeLabel) return payment;
+    return { ...payment, label: chargeLabel };
+  });
+}
+
+async function fetchChargeLabelsById(
+  supabase: SupabaseClient,
+  chargeIds: string[],
+): Promise<Map<string, string>> {
+  const uniqueChargeIds = [...new Set(chargeIds)];
+  if (uniqueChargeIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from("tuition_charges")
+    .select("id, label")
+    .in("id", uniqueChargeIds);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((charge) => [String(charge.id), String(charge.label)]),
+  );
+}
+
+async function enrichParentTuitionPayments(
+  supabase: SupabaseClient,
+  payments: PaymentRecord[],
+): Promise<ParentTuitionPaymentRecord[]> {
+  const chargeIds = tuitionChargeIdsFromPayments(payments);
+  const [studentContextByChargeId, chargeLabelById] = await Promise.all([
+    fetchStudentContextByChargeId(supabase, chargeIds),
+    fetchChargeLabelsById(supabase, chargeIds),
+  ]);
+
+  return applyChargeLabelsToTuitionPayments(payments, chargeLabelById).map(
+    (payment) => {
       const context = payment.tuitionChargeId
         ? studentContextByChargeId.get(payment.tuitionChargeId)
         : undefined;
@@ -267,13 +310,9 @@ export async function listOrganizationTuitionPaymentsPaginated(
         ...payment,
         studentFirstName: context?.firstName ?? null,
         enrollmentId: context?.enrollmentId ?? null,
-        familyName: payment.familyId
-          ? (familyNameById.get(payment.familyId) ?? "Family")
-          : "Family",
       };
-    }),
-    totalCount: count ?? 0,
-  };
+    },
+  );
 }
 
 async function fetchFamilyNamesById(
@@ -415,8 +454,12 @@ export function mapParentTuitionPaymentRows(
   rows: Record<string, unknown>[],
   familyId: string,
   studentContextByChargeId: Map<string, StudentPaymentContext> = new Map(),
+  chargeLabelById: Map<string, string> = new Map(),
 ): ParentTuitionPaymentRecord[] {
-  return mapTuitionPaymentRows(rows, familyId).map((payment) => {
+  return applyChargeLabelsToTuitionPayments(
+    mapTuitionPaymentRows(rows, familyId),
+    chargeLabelById,
+  ).map((payment) => {
     const context = payment.tuitionChargeId
       ? studentContextByChargeId.get(payment.tuitionChargeId)
       : undefined;
