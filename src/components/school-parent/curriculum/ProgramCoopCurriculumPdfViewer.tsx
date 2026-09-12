@@ -267,7 +267,7 @@ export default function ProgramCoopCurriculumPdfViewer({
 
   const handlePanPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isPannable || event.button !== 0) return;
+      if (!isPannable || contentsOpen || event.button !== 0) return;
 
       const container = scrollContainerRef.current;
       if (!container) return;
@@ -284,7 +284,7 @@ export default function ProgramCoopCurriculumPdfViewer({
       container.setPointerCapture(event.pointerId);
       event.preventDefault();
     },
-    [isPannable],
+    [contentsOpen, isPannable],
   );
 
   const handlePanPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -446,17 +446,37 @@ export default function ProgramCoopCurriculumPdfViewer({
           </div>
         </div>
 
-        <div
-          ref={scrollContainerRef}
-          className={`relative min-h-0 flex-1 overflow-auto bg-white ${
-            isPannable ? (isPanning ? "cursor-grabbing select-none" : "cursor-grab") : ""
-          }`}
-          style={{ touchAction: isPannable ? "none" : "auto" }}
-          onPointerDown={handlePanPointerDown}
-          onPointerMove={handlePanPointerMove}
-          onPointerUp={endPan}
-          onPointerCancel={endPan}
-        >
+        <div className="relative min-h-0 flex-1">
+          <div
+            ref={scrollContainerRef}
+            className={`h-full min-h-0 overflow-auto bg-white ${
+              isPannable ? (isPanning ? "cursor-grabbing select-none" : "cursor-grab") : ""
+            }`}
+            style={{ touchAction: isPannable ? "none" : "auto" }}
+            onPointerDown={handlePanPointerDown}
+            onPointerMove={handlePanPointerMove}
+            onPointerUp={endPan}
+            onPointerCancel={endPan}
+          >
+            {rendering ? (
+              <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
+                <Loader2
+                  className="h-4 w-4 animate-spin"
+                  style={{ color: theme.muted }}
+                  aria-hidden
+                />
+              </div>
+            ) : null}
+            <div className="inline-block min-w-full p-3">
+              <canvas
+                ref={canvasRef}
+                title={fileName}
+                className="mx-auto block shadow-sm"
+                onContextMenu={(event) => event.preventDefault()}
+              />
+            </div>
+          </div>
+
           <CurriculumPdfContentsPanel
             theme={theme}
             open={contentsOpen}
@@ -466,24 +486,6 @@ export default function ProgramCoopCurriculumPdfViewer({
             onClose={() => setContentsOpen(false)}
             onSelectPage={handleSelectPage}
           />
-
-          {rendering ? (
-            <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
-              <Loader2
-                className="h-4 w-4 animate-spin"
-                style={{ color: theme.muted }}
-                aria-hidden
-              />
-            </div>
-          ) : null}
-          <div className="inline-block min-w-full p-3">
-            <canvas
-              ref={canvasRef}
-              title={fileName}
-              className="mx-auto block shadow-sm"
-              onContextMenu={(event) => event.preventDefault()}
-            />
-          </div>
         </div>
       </ParentCard>
     </>
