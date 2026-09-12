@@ -421,6 +421,13 @@ export type TeachingScheduleSummary = {
   nextWeekName: string;
 };
 
+export function countUnfilledTeachingWeeks(weeks: CoopTeachingScheduleWeek[]): number {
+  return weeks.filter(
+    (week) =>
+      week.instructorFamilyIds.length === 0 || week.assistantFamilyIds.length === 0,
+  ).length;
+}
+
 export function computeTeachingScheduleSummary(
   weeks: CoopTeachingScheduleWeek[],
   referenceDate: Date = new Date(),

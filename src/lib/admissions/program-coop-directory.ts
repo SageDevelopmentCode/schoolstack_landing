@@ -14,6 +14,7 @@ export type ProgramCoopFamily = {
   isCurrentFamily: boolean;
   contactGuardianId: string | null;
   learners: ProgramCoopLearner[];
+  enrolledAt: string | null;
 };
 
 type CoopEnrollmentRow = {
@@ -24,6 +25,7 @@ type CoopEnrollmentRow = {
   profilePhotoUrl: string | null;
   familyId: string;
   familyName: string | null;
+  enrolledAt: string | null;
 };
 
 function normalizeProfilePhotoUrl(value: unknown): string | null {
@@ -73,6 +75,14 @@ export function groupEnrollmentsIntoCoopFamilies(
       if (!existing.learners.some((entry) => entry.studentId === learner.studentId)) {
         existing.learners.push(learner);
       }
+      if (row.enrolledAt) {
+        if (
+          !existing.enrolledAt ||
+          new Date(row.enrolledAt).getTime() < new Date(existing.enrolledAt).getTime()
+        ) {
+          existing.enrolledAt = row.enrolledAt;
+        }
+      }
       continue;
     }
 
@@ -82,6 +92,7 @@ export function groupEnrollmentsIntoCoopFamilies(
       isCurrentFamily: row.familyId === currentFamilyId,
       contactGuardianId: null,
       learners: [learner],
+      enrolledAt: row.enrolledAt,
     });
   }
 
@@ -129,6 +140,7 @@ export async function listProgramCoopFamilies(
     .from("enrollments")
     .select(
       `
+      created_at,
       students!inner (
         id,
         first_name,
@@ -151,6 +163,8 @@ export async function listProgramCoopFamilies(
   const rows: CoopEnrollmentRow[] = [];
 
   for (const enrollment of data ?? []) {
+    const enrolledAt =
+      typeof enrollment.created_at === "string" ? enrollment.created_at : null;
     const student = enrollment.students as
       | {
           id?: string;
@@ -191,6 +205,7 @@ export async function listProgramCoopFamilies(
       profilePhotoUrl: normalizeProfilePhotoUrl(studentRow.profile_photo_url),
       familyId: String(studentRow.family_id),
       familyName: familyRow?.name ? String(familyRow.name) : null,
+      enrolledAt,
     });
   }
 

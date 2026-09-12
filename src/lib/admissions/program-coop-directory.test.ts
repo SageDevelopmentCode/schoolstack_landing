@@ -18,6 +18,7 @@ describe("groupEnrollmentsIntoCoopFamilies", () => {
           profilePhotoUrl: "https://example.com/mia.jpg",
           familyId: "family-b",
           familyName: "The Rivera family",
+          enrolledAt: "2026-01-10T00:00:00.000Z",
         },
         {
           studentId: "student-a",
@@ -27,6 +28,7 @@ describe("groupEnrollmentsIntoCoopFamilies", () => {
           profilePhotoUrl: null,
           familyId: "family-a",
           familyName: "The Cecilia family",
+          enrolledAt: "2026-01-05T00:00:00.000Z",
         },
         {
           studentId: "student-b2",
@@ -36,6 +38,7 @@ describe("groupEnrollmentsIntoCoopFamilies", () => {
           profilePhotoUrl: null,
           familyId: "family-b",
           familyName: "The Rivera family",
+          enrolledAt: "2026-01-12T00:00:00.000Z",
         },
       ],
       "family-a",
@@ -59,6 +62,8 @@ describe("groupEnrollmentsIntoCoopFamilies", () => {
         ?.profilePhotoUrl,
       "https://example.com/mia.jpg",
     );
+    assert.equal(families[0]?.enrolledAt, "2026-01-05T00:00:00.000Z");
+    assert.equal(families[1]?.enrolledAt, "2026-01-10T00:00:00.000Z");
   });
 
   it("falls back to a last-name family label when families.name is missing", () => {
@@ -72,6 +77,7 @@ describe("groupEnrollmentsIntoCoopFamilies", () => {
           profilePhotoUrl: "https://example.com/sam.jpg",
           familyId: "family-c",
           familyName: null,
+          enrolledAt: null,
         },
       ],
       "family-other",
@@ -100,6 +106,7 @@ describe("attachContactGuardiansToCoopFamilies", () => {
           isCurrentFamily: true,
           contactGuardianId: null,
           learners: [],
+          enrolledAt: null,
         },
         {
           familyId: "family-b",
@@ -107,6 +114,7 @@ describe("attachContactGuardiansToCoopFamilies", () => {
           isCurrentFamily: false,
           contactGuardianId: null,
           learners: [],
+          enrolledAt: null,
         },
       ],
       {

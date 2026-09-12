@@ -281,10 +281,18 @@ export type GuardianAutopayStatus = {
   hasPaymentMethod: boolean;
 };
 
+export type FamilyBillingSplitSummary = {
+  guardianId: string;
+  shareBps: number;
+  guardianName: string;
+};
+
 export type CatalogTuitionSummary = {
   baseCents: number;
   adjustedCents: number;
 };
+
+export type TuitionFamilyListVisibility = "active" | "unenrolled";
 
 export type FamilyBillingSummary = {
   familyId: string;
@@ -310,9 +318,12 @@ export type FamilyBillingSummary = {
   unassignedEnrollments: UnassignedEnrollmentSummary[];
   readiness: FamilyBillingReadinessState;
   billingSplitSummary: string | null;
+  billingSplits: FamilyBillingSplitSummary[];
   hasBillingSplit: boolean;
   hasPendingEnrollment: boolean;
   catalogTuition: CatalogTuitionSummary | null;
+  tuitionListVisibility: TuitionFamilyListVisibility;
+  hasWithdrawnApplication: boolean;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

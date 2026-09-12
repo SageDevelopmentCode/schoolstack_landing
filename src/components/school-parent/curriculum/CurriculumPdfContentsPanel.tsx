@@ -146,6 +146,7 @@ export default function CurriculumPdfContentsPanel({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           data-testid="curriculum-pdf-contents-panel"
+          onPointerDown={(event) => event.stopPropagation()}
         >
           <div
             className="absolute inset-0"

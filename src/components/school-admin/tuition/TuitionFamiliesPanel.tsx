@@ -32,6 +32,13 @@ import { listTuitionPaymentsForFamily } from "@/lib/tuition/payments";
 import { childFirstNameFromFullName } from "@/lib/tuition/parent-billing-summary";
 import { formatCents } from "@/lib/tuition/pricing";
 import {
+  buildGuardianColorIndexMap,
+  formatSharePercent,
+  groupChargesForSplitBilling,
+  resolveGuardianName,
+  resolveShareBps,
+} from "@/lib/tuition/split-billing-schedule-display";
+import {
   buildStudentColorIndexMap,
   getStudentBadgeColors,
 } from "@/lib/tuition/student-badge-colors";
@@ -56,6 +63,34 @@ import { createClient } from "@/utils/supabase/client";
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
 const FAMILIES_PAGE_SIZE = 50;
+
+function pickDefaultFamilyId(
+  rows: FamilyBillingSummary[],
+  options: {
+    preferredId?: string | null;
+    previousId?: string | null;
+    includeUnenrolled?: boolean;
+  },
+): string | null {
+  const visibleRows = options.includeUnenrolled
+    ? rows
+    : rows.filter((row) => row.tuitionListVisibility === "active");
+  if (
+    options.preferredId &&
+    visibleRows.some((row) => row.familyId === options.preferredId)
+  ) {
+    return options.preferredId;
+  }
+  if (
+    options.previousId &&
+    visibleRows.some((row) => row.familyId === options.previousId)
+  ) {
+    return options.previousId;
+  }
+  const activeRow = rows.find((row) => row.tuitionListVisibility === "active");
+  return activeRow?.familyId ?? visibleRows[0]?.familyId ?? null;
+}
+
 
 async function fetchFamiliesPage(
   organizationId: string,
@@ -203,6 +238,7 @@ export default function TuitionFamiliesPanel({
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const [familySearchQuery, setFamilySearchQuery] = useState("");
+  const [showUnenrolledFamilies, setShowUnenrolledFamilies] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
   const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
   const [hasMoreFamilies, setHasMoreFamilies] = useState(false);
@@ -228,6 +264,31 @@ export default function TuitionFamiliesPanel({
   const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
   const selectedFamilyIdRef = useRef<string | null>(null);
 
+
+  const unenrolledCount = useMemo(
+    () => families.filter((family) => family.tuitionListVisibility === "unenrolled").length,
+    [families],
+  );
+
+  const handleToggleUnenrolled = useCallback(() => {
+    setShowUnenrolledFamilies((current) => {
+      const next = !current;
+      if (current) {
+        const selected = families.find((family) => family.familyId === selectedFamilyIdRef.current);
+        if (selected?.tuitionListVisibility === "unenrolled") {
+          const nextSelected = pickDefaultFamilyId(families, {
+            includeUnenrolled: false,
+          });
+          selectedFamilyIdRef.current = nextSelected;
+          setSelectedFamilyId(nextSelected);
+          setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
+        }
+      }
+      return next;
+    });
+  }, [families]);
+
+
   const selectFamily = useCallback((familyId: string) => {
     selectedFamilyIdRef.current = familyId;
     setSelectedFamilyId(familyId);
@@ -245,9 +306,10 @@ export default function TuitionFamiliesPanel({
         initialFamilyId && rows.some((row) => row.familyId === initialFamilyId)
           ? initialFamilyId
           : null;
-      const next =
-        preferred ??
-        (prev && rows.some((r) => r.familyId === prev) ? prev : rows[0]?.familyId ?? null);
+      const next = pickDefaultFamilyId(rows, {
+        preferredId: preferred,
+        previousId: prev,
+      });
       if (next !== prev) {
         setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);
       }
@@ -581,6 +643,18 @@ export default function TuitionFamiliesPanel({
     [displayedFamilyCharges],
   );
 
+  const scheduleChargeGroups = useMemo(() => {
+    if (!selectedFamily?.hasBillingSplit) return [];
+    return groupChargesForSplitBilling(upcomingFamilyCharges);
+  }, [selectedFamily?.hasBillingSplit, upcomingFamilyCharges]);
+
+  const guardianColorMap = useMemo(() => {
+    if (!selectedFamily?.hasBillingSplit) return new Map<string, number>();
+    return buildGuardianColorIndexMap(
+      selectedFamily.billingSplits.map((split) => split.guardianId),
+    );
+  }, [selectedFamily]);
+
   const resolveStudentBadgeForAssignment = (assignmentId: string) => {
     if (!hasMultipleStudents) return null;
     const context = assignmentContextByAssignmentId.get(assignmentId);
@@ -598,6 +672,111 @@ export default function TuitionFamiliesPanel({
     const charge = familyCharges.find((item) => item.id === tuitionChargeId);
     if (!charge) return null;
     return resolveStudentBadgeForAssignment(charge.assignmentId);
+  };
+
+  const renderScheduleChargeRow = (
+    charge: (typeof upcomingFamilyCharges)[number],
+    options?: {
+      label?: string;
+      backgroundColor?: string;
+      roundedClassName?: string;
+    },
+  ) => {
+    const studentBadge = resolveStudentBadgeForAssignment(charge.assignmentId);
+    const statusBadge = formatParentChargeStatusBadge(charge);
+    const canWaiveLateFee = charge.chargeType === "late_fee";
+    const canWaiveTuition =
+      charge.chargeType === "tuition" && charge.status === "overdue";
+
+    return (
+      <div
+        key={charge.id}
+        className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${options?.roundedClassName ?? "rounded-md"}`}
+        style={{
+          backgroundColor: options?.backgroundColor ?? "#F4F8F4",
+          border: "1px solid #E0E7E0",
+        }}
+      >
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            {studentBadge ? (
+              <TuitionStudentBadge
+                firstName={studentBadge.firstName}
+                badgeColors={studentBadge.badgeColors}
+              />
+            ) : null}
+            <p style={{ color: theme.ink }}>{options?.label ?? charge.label}</p>
+            <AdminChip
+              theme={theme}
+              tone={adminChipToneFromChargeBadge(statusBadge.tone)}
+            >
+              {statusBadge.label}
+            </AdminChip>
+          </div>
+          <p className="text-xs" style={{ color: theme.muted }}>
+            {formatParentChargeDueLine(charge)}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="font-medium" style={{ color: theme.ink }}>
+            {formatCents(charge.amountCents)}
+          </span>
+          {OPEN_CHARGE_STATUSES.has(charge.status) ? (
+            <>
+              {charge.status === "scheduled" ? (
+                <AdminButton
+                  theme={theme}
+                  variant="primary"
+                  size="compact"
+                  disabled={actionLoading === charge.id}
+                  onClick={() => void handleSendInvoice(charge.id)}
+                >
+                  Send invoice
+                </AdminButton>
+              ) : null}
+              {canWaiveLateFee ? (
+                <AdminButton
+                  theme={theme}
+                  variant="outline"
+                  size="compact"
+                  disabled={actionLoading === charge.id}
+                  onClick={() => void handleWaiveCharge(charge)}
+                >
+                  Waive late fee
+                </AdminButton>
+              ) : null}
+              {canWaiveTuition ? (
+                <AdminButton
+                  theme={theme}
+                  variant="outline"
+                  size="compact"
+                  disabled={actionLoading === charge.id}
+                  onClick={() => void handleWaiveCharge(charge)}
+                >
+                  Waive charge
+                </AdminButton>
+              ) : null}
+              <AdminButton
+                theme={theme}
+                variant="soft"
+                size="compact"
+                disabled={actionLoading === charge.id}
+                onClick={() =>
+                  setManualPaymentCharge({
+                    id: charge.id,
+                    label: charge.label,
+                    amountCents: charge.amountCents,
+                    paidCents: charge.paidCents,
+                  })
+                }
+              >
+                Mark paid
+              </AdminButton>
+            </>
+          ) : null}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -1025,101 +1204,57 @@ export default function TuitionFamiliesPanel({
               </p>
               <div className="flex flex-col gap-2">
                 {upcomingFamilyCharges.length > 0 ? (
-                  upcomingFamilyCharges.map((charge) => {
-                    const studentBadge = resolveStudentBadgeForAssignment(
-                      charge.assignmentId,
-                    );
-                    const statusBadge = formatParentChargeStatusBadge(charge);
-                    const canWaiveLateFee = charge.chargeType === "late_fee";
-                    const canWaiveTuition =
-                      charge.chargeType === "tuition" && charge.status === "overdue";
-                    return (
-                    <div
-                      key={charge.id}
-                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm"
-                      style={{ backgroundColor: "#F4F8F4", border: "1px solid #E0E7E0" }}
-                    >
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {studentBadge ? (
-                            <TuitionStudentBadge
-                              firstName={studentBadge.firstName}
-                              badgeColors={studentBadge.badgeColors}
-                            />
-                          ) : null}
-                          <p style={{ color: theme.ink }}>{charge.label}</p>
-                          <AdminChip
-                            theme={theme}
-                            tone={adminChipToneFromChargeBadge(statusBadge.tone)}
-                          >
-                            {statusBadge.label}
-                          </AdminChip>
-                        </div>
-                        <p className="text-xs" style={{ color: theme.muted }}>
-                          {formatParentChargeDueLine(charge)}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <span className="font-medium" style={{ color: theme.ink }}>
-                          {formatCents(charge.amountCents)}
-                        </span>
-                        {OPEN_CHARGE_STATUSES.has(charge.status) ? (
-                          <>
-                            {charge.status === "scheduled" ? (
-                              <AdminButton
-                                theme={theme}
-                                variant="primary"
-                                size="compact"
-                                disabled={actionLoading === charge.id}
-                                onClick={() => void handleSendInvoice(charge.id)}
-                              >
-                                Send invoice
-                              </AdminButton>
-                            ) : null}
-                            {canWaiveLateFee ? (
-                              <AdminButton
-                                theme={theme}
-                                variant="outline"
-                                size="compact"
-                                disabled={actionLoading === charge.id}
-                                onClick={() => void handleWaiveCharge(charge)}
-                              >
-                                Waive late fee
-                              </AdminButton>
-                            ) : null}
-                            {canWaiveTuition ? (
-                              <AdminButton
-                                theme={theme}
-                                variant="outline"
-                                size="compact"
-                                disabled={actionLoading === charge.id}
-                                onClick={() => void handleWaiveCharge(charge)}
-                              >
-                                Waive charge
-                              </AdminButton>
-                            ) : null}
-                            <AdminButton
-                              theme={theme}
-                              variant="soft"
-                              size="compact"
-                              disabled={actionLoading === charge.id}
-                              onClick={() =>
-                                setManualPaymentCharge({
-                                  id: charge.id,
-                                  label: charge.label,
-                                  amountCents: charge.amountCents,
-                                  paidCents: charge.paidCents,
-                                })
-                              }
+                  selectedFamily.hasBillingSplit ? (
+                    scheduleChargeGroups.flatMap((group) =>
+                      group.isSplitGroup
+                        ? [
+                            <div
+                              key={group.key}
+                              className="overflow-hidden rounded-md border"
+                              style={{ borderColor: "#E0E7E0" }}
+                              data-testid="tuition-split-schedule-group"
                             >
-                              Mark paid
-                            </AdminButton>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                    );
-                  })
+                              <div
+                                className="px-3 py-2 text-xs font-medium"
+                                style={{
+                                  color: theme.muted,
+                                  backgroundColor: "#FAFBFA",
+                                  borderBottom: "1px solid #E0E7E0",
+                                }}
+                              >
+                                {group.baseLabel} · {formatCents(group.totalCents)} total
+                              </div>
+                              <div className="flex flex-col gap-1 p-1">
+                                {group.charges.map((charge) => {
+                                  const guardianId = charge.guardianId ?? "";
+                                  const rowColors = getStudentBadgeColors(
+                                    C,
+                                    guardianColorMap.get(guardianId) ?? 0,
+                                  );
+                                  const shareBps = resolveShareBps(
+                                    charge,
+                                    group.totalCents,
+                                    selectedFamily.billingSplits,
+                                  );
+                                  const guardianName = resolveGuardianName(
+                                    charge,
+                                    selectedFamily.billingSplits,
+                                  );
+
+                                  return renderScheduleChargeRow(charge, {
+                                    label: `${guardianName} · ${formatSharePercent(shareBps)}`,
+                                    backgroundColor: rowColors.backgroundColor,
+                                    roundedClassName: "rounded-sm",
+                                  });
+                                })}
+                              </div>
+                            </div>,
+                          ]
+                        : group.charges.map((charge) => renderScheduleChargeRow(charge)),
+                    )
+                  ) : (
+                    upcomingFamilyCharges.map((charge) => renderScheduleChargeRow(charge))
+                  )
                 ) : displayedFamilyCharges.length > 0 ? (
                   <p
                     className="text-sm px-3 py-2 rounded-md"
@@ -1237,6 +1372,9 @@ export default function TuitionFamiliesPanel({
           layout="strip"
           searchQuery={familySearchQuery}
           onSearchChange={setFamilySearchQuery}
+          showUnenrolledFamilies={showUnenrolledFamilies}
+          unenrolledCount={unenrolledCount}
+          onToggleUnenrolled={handleToggleUnenrolled}
         />
       </div>
 
@@ -1252,6 +1390,9 @@ export default function TuitionFamiliesPanel({
             onLoadMore={() => void loadMoreFamilies()}
             searchQuery={familySearchQuery}
             onSearchChange={setFamilySearchQuery}
+            showUnenrolledFamilies={showUnenrolledFamilies}
+            unenrolledCount={unenrolledCount}
+            onToggleUnenrolled={handleToggleUnenrolled}
           />
         </div>
         {detailPane}

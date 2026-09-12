@@ -35,16 +35,16 @@
 -- join public.organizations o on o.id = a.organization_id
 -- where o.slug = 'rooted-meadows-demo'
 -- order by a.created_at;
---
+
 -- Confirm no Stripe account on demo (production org will also have none):
---
+
 -- select o.slug, pa.*
 -- from public.organization_payment_accounts pa
 -- join public.organizations o on o.id = pa.organization_id
 -- where o.slug = 'rooted-meadows-demo';
---
+
 -- Count schedule openings on demo (production org will have 0):
---
+
 -- select count(*) as demo_slots
 -- from public.admissions_availability_slots s
 -- join public.organizations o on o.id = s.organization_id

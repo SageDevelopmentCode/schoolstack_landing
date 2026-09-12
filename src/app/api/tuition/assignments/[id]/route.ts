@@ -5,10 +5,12 @@ import {
   AuthError,
   requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { isPaymentPlanAllowedForBillingStart } from "@/lib/tuition/billing-start";
 import {
   getAssignmentById,
   updateAssignment,
 } from "@/lib/tuition/assignments";
+import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
 import { getTierById } from "@/lib/tuition/rate-tiers";
 import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -60,6 +62,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const body = (await request.json()) as {
       rateTierId?: string | null;
       paymentPlanId?: string;
+      effectiveStart?: string | null;
     };
 
     if (body.rateTierId) {
@@ -74,15 +77,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     }
 
-    if (body.paymentPlanId) {
-      const { data: paymentPlan, error: planError } = await admin
-        .from("tuition_payment_plans")
-        .select("id, rate_plan_id")
-        .eq("id", body.paymentPlanId)
-        .maybeSingle();
+    const ratePlan = await getRatePlanWithDetails(admin, assignment.ratePlanId);
+    if (!ratePlan) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Rate plan not found.",
+        code: "not_found",
+      });
+    }
 
-      if (planError) throw planError;
-      if (!paymentPlan || String(paymentPlan.rate_plan_id) !== assignment.ratePlanId) {
+    let paymentPlanInstallmentCount: number | null = null;
+    if (body.paymentPlanId) {
+      const paymentPlan = ratePlan.paymentPlans.find(
+        (plan) => plan.id === body.paymentPlanId,
+      );
+      if (!paymentPlan) {
         return apiError(ROUTE, {
           request,
           status: 400,
@@ -90,11 +100,54 @@ export async function PATCH(request: Request, context: RouteContext) {
           code: "invalid_payment_plan",
         });
       }
+      paymentPlanInstallmentCount = paymentPlan.installmentCount;
+    } else {
+      const currentPlan = ratePlan.paymentPlans.find(
+        (plan) => plan.id === assignment.paymentPlanId,
+      );
+      paymentPlanInstallmentCount = currentPlan?.installmentCount ?? null;
+    }
+
+    const billingStart =
+      body.effectiveStart !== undefined
+        ? body.effectiveStart
+        : assignment.effectiveStart;
+
+    if (
+      billingStart &&
+      paymentPlanInstallmentCount != null &&
+      !isPaymentPlanAllowedForBillingStart(
+        paymentPlanInstallmentCount,
+        ratePlan.effectiveStart,
+        ratePlan.effectiveEnd,
+        billingStart,
+      )
+    ) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error:
+          "This payment schedule has too many installments for the remaining school year.",
+        code: "invalid_payment_plan",
+      });
+    }
+
+    if (
+      body.effectiveStart &&
+      !/^\d{4}-\d{2}-\d{2}$/.test(body.effectiveStart)
+    ) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Billing start must be a valid date (YYYY-MM-DD).",
+        code: "invalid_billing_start",
+      });
     }
 
     const updated = await updateAssignment(admin, assignmentId, {
       rateTierId: body.rateTierId,
       paymentPlanId: body.paymentPlanId,
+      effectiveStart: body.effectiveStart,
       metadata:
         body.paymentPlanId != null
           ? { pendingPaymentPlanSelection: false }

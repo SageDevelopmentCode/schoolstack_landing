@@ -37,7 +37,7 @@ declare
 begin
   foreach v_application_id in array v_application_ids loop
     if not exists (
-      select 1
+      select 1p
       from public.applications a
       where a.id = v_application_id
         and a.organization_id = v_org_id
