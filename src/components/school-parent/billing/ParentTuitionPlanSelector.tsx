@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import PaymentSchedulePreviewModal from "@/components/school-admin/tuition/PaymentSchedulePreviewModal";
 import { PaymentScheduleSelectionCard } from "@/components/school-admin/tuition/TuitionPaymentScheduleCards";
@@ -77,20 +77,24 @@ export default function ParentTuitionPlanSelector({
   const [error, setError] = useState<string | null>(null);
 
   const selectedPlan = availablePaymentPlans.find((plan) => plan.id === selectedPlanId);
-
-  const selectedPreview = useMemo(() => {
-    if (!selectedPlan) return null;
+  let selectedPreview: {
+    count: number;
+    label: string;
+    amountCents: number;
+    totalCents: number;
+  } | null = null;
+  if (selectedPlan) {
     const amountCents = computeInstallmentAmountCents(
       annualAmountCents,
       selectedPlan.installmentCount,
     );
-    return {
+    selectedPreview = {
       count: selectedPlan.installmentCount,
       label: selectedPlan.name,
       amountCents,
       totalCents: amountCents * selectedPlan.installmentCount,
     };
-  }, [annualAmountCents, selectedPlan]);
+  }
 
   const heading = studentName
     ? `${possessiveFirstName(studentName)} payment schedule`

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildChargeDrafts,
   buildInstallmentDueDates,
+  chargeDraftLockKey,
   expandDraftsForBillingSplits,
 } from "./charge-generator";
 import { computeInstallmentAmountCents } from "./assignments";
@@ -81,6 +82,38 @@ describe("buildInstallmentDueDates", () => {
     );
     assert.equal(dates[0], "2026-09-01");
     assert.equal(dates[11], "2027-08-01");
+  });
+});
+
+describe("chargeDraftLockKey", () => {
+  it("keys tuition charges by due date and guardian", () => {
+    const paid = chargeDraftLockKey({
+      chargeType: "tuition",
+      installmentNumber: 2,
+      label: "Sep Tuition (Francesca)",
+      guardianId: "guardian-1",
+      dueDate: "2026-09-01",
+    });
+    const draft = chargeDraftLockKey({
+      chargeType: "tuition",
+      installmentNumber: 1,
+      label: "Sep Tuition (Francesca)",
+      guardianId: "guardian-1",
+      dueDate: "2026-09-01",
+    });
+    assert.equal(paid, draft);
+  });
+
+  it("keys non-tuition charges by label when installment number is null", () => {
+    assert.equal(
+      chargeDraftLockKey({
+        chargeType: "fee",
+        installmentNumber: null,
+        label: "Enrollment Fee",
+        guardianId: null,
+      }),
+      "fee:Enrollment Fee:family",
+    );
   });
 });
 

@@ -2,8 +2,31 @@
 -- Families enrolled late August and should not owe August tuition or late fees.
 --
 -- Run in Supabase SQL Editor AFTER deploying the billing-start code changes.
--- Then re-save each assignment in My School → Tuition → Families to regenerate charges,
--- or toggle payment plan and save back.
+-- Do NOT open the assignment modal and click Save (it no-ops when values are unchanged).
+-- Do NOT toggle the payment plan or change the billing date during this procedure.
+--
+-- After Steps 1–3 (and optional 2b), regenerate charges with a same-value PATCH per
+-- assignment while logged in as school admin (browser console):
+--
+-- await fetch("/api/tuition/assignments/d6dc604d-943c-4e79-a417-9f21caf3f636", {
+--   method: "PATCH",
+--   headers: { "Content-Type": "application/json" },
+--   body: JSON.stringify({
+--     paymentPlanId: "d71cbc99-6d74-4c57-b174-fa0bd8d6a164",
+--     effectiveStart: "2026-09-01",
+--   }),
+-- });
+-- await fetch("/api/tuition/assignments/fa3d745b-c239-460e-9446-969f0b239740", {
+--   method: "PATCH",
+--   headers: { "Content-Type": "application/json" },
+--   body: JSON.stringify({
+--     paymentPlanId: "d71cbc99-6d74-4c57-b174-fa0bd8d6a164",
+--     effectiveStart: "2026-09-01",
+--   }),
+-- });
+--
+-- Re-run the verify select. Expect: Aug gone, Sep paid/owed as installment 1,
+-- then Oct… through Aug 2027 as 2–12 (12-pay preserved).
 --
 -- Ritchie note: Zachary's paid August charge is reassigned to September (no refund).
 
@@ -45,6 +68,21 @@ where tc.assignment_id = tea.id
   and f.name = 'Evensen Family'
   and tc.charge_type = 'late_fee'
   and tc.due_date in ('2026-08-15', '2026-09-10')
+  and tc.status in ('scheduled', 'sent', 'overdue');
+
+-- ── Step 2b (optional): void all remaining open tuition before regen ─────────
+-- Closes the pay-the-old-installment window until regen runs. Paid rows untouched.
+
+update public.tuition_charges tc
+set status = 'void',
+    updated_at = now()
+from public.tuition_enrollment_assignments tea
+join public.families f on f.id = tea.family_id
+join public.organizations o on o.id = f.organization_id
+where tc.assignment_id = tea.id
+  and o.slug = 'rooted-meadows'
+  and f.name in ('Evensen Family', 'Ritchie Family')
+  and tc.charge_type = 'tuition'
   and tc.status in ('scheduled', 'sent', 'overdue');
 
 -- ── Step 3: Ritchie — reassign paid August, void unpaid August/Sep dupes ────

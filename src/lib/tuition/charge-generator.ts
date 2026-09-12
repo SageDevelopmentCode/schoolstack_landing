@@ -43,8 +43,12 @@ export function chargeDraftLockKey(draft: {
   installmentNumber: number | null;
   label: string;
   guardianId?: string | null;
+  dueDate?: string | null;
 }): string {
   const guardianKey = draft.guardianId ?? "family";
+  if (draft.chargeType === "tuition" && draft.dueDate) {
+    return `${draft.chargeType}:${draft.dueDate}:${guardianKey}`;
+  }
   return `${draft.chargeType}:${draft.installmentNumber ?? draft.label}:${guardianKey}`;
 }
 
@@ -191,7 +195,6 @@ export async function reconcileChargesForBillingStart(
       String(charge.charge_type) === "tuition" &&
       (String(charge.status) === "paid" || String(charge.status) === "waived"),
   );
-  if (paidBeforeStart.length === 0) return;
 
   const usedInstallments = new Set(
     (charges ?? [])
@@ -238,6 +241,41 @@ export async function reconcileChargesForBillingStart(
 
     if (updateError) throw updateError;
     usedInstallments.add(`${guardianKey}:${target.installmentNumber}`);
+  }
+
+  const scheduleByDueDate = new Map(
+    schedule.map((installment) => [installment.dueDate, installment]),
+  );
+  const paidOnOrAfterStart = (charges ?? []).filter(
+    (charge) =>
+      String(charge.charge_type) === "tuition" &&
+      !isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart) &&
+      (String(charge.status) === "paid" || String(charge.status) === "waived"),
+  );
+
+  for (const charge of paidOnOrAfterStart) {
+    const target = scheduleByDueDate.get(String(charge.due_date));
+    if (!target || charge.installment_number === target.installmentNumber) {
+      continue;
+    }
+
+    const guardianId =
+      typeof charge.guardian_id === "string" ? charge.guardian_id : null;
+    const firstName = guardianId
+      ? input.guardianNames.get(guardianId)?.split(/\s+/)[0] ?? ""
+      : "";
+    const suffix = payerLabelSuffix(firstName);
+    const label = `${target.label}${suffix}`;
+
+    const { error: updateError } = await supabase
+      .from("tuition_charges")
+      .update({
+        label,
+        installment_number: target.installmentNumber,
+      })
+      .eq("id", charge.id);
+
+    if (updateError) throw updateError;
   }
 }
 
@@ -396,7 +434,9 @@ export async function regenerateFutureCharges(
 
   const { data: existingCharges, error: existingError } = await supabase
     .from("tuition_charges")
-    .select("id, status, installment_number, charge_type, label, guardian_id")
+    .select(
+      "id, status, installment_number, charge_type, label, guardian_id, due_date",
+    )
     .eq("assignment_id", assignmentId);
 
   if (existingError) throw existingError;
@@ -414,6 +454,7 @@ export async function regenerateFutureCharges(
         label: String(c.label),
         guardianId:
           typeof c.guardian_id === "string" ? c.guardian_id : null,
+        dueDate: String(c.due_date),
       }),
     ),
   );

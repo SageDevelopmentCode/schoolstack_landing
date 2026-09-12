@@ -24,6 +24,7 @@ type ChargeRow = {
   assignment_id: string;
   organization_id: string;
   family_id: string;
+  guardian_id?: string | null;
   label: string;
   base_amount_cents: number;
   amount_cents: number;
@@ -32,6 +33,22 @@ type ChargeRow = {
   charge_type: string;
   installment_number: number | null;
   metadata?: Record<string, unknown>;
+};
+
+type BillingSplitRow = {
+  id: string;
+  organization_id: string;
+  family_id: string;
+  guardian_id: string;
+  share_bps: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type GuardianRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
 };
 
 function chargeMatchesFilters(
@@ -57,6 +74,9 @@ function chargeMatchesFilters(
     return false;
   }
   if (filters.status__not && charge.status === filters.status__not) {
+    return false;
+  }
+  if (filters.status__neq && charge.status === filters.status__neq) {
     return false;
   }
   if (
@@ -87,10 +107,14 @@ function createRegenerationMockSupabase(options: {
   existingCharges?: ChargeRow[];
   feeComponents?: unknown[];
   adjustments?: unknown[];
+  billingSplits?: BillingSplitRow[];
+  guardians?: GuardianRow[];
 }) {
   const {
     assignments,
     enrollments = [{ id: "enrollment-1", status: "enrolled" }],
+    billingSplits = [],
+    guardians = [],
     paymentPlan = {
       id: "plan-1",
       organization_id: "org-1",
@@ -201,6 +225,16 @@ function createRegenerationMockSupabase(options: {
             resolve: (value: { data: ChargeRow[] | null; error: null }) => void,
           ) {
             if (table === "tuition_charges") {
+              const targetId = pendingUpdate.filters.id as string | undefined;
+              if (targetId) {
+                const charge = charges.find((row) => row.id === targetId);
+                if (charge) {
+                  Object.assign(charge, pendingUpdate.values);
+                }
+                resolve({ data: null, error: null });
+                return;
+              }
+
               const targetStatus = pendingUpdate.filters.status__in as
                 | string[]
                 | undefined;
@@ -212,8 +246,10 @@ function createRegenerationMockSupabase(options: {
               for (const charge of charges) {
                 if (targetIds) {
                   if (targetIds.includes(charge.id)) {
-                    charge.status = String(pendingUpdate.values.status);
-                    voidedChargeIds.push(charge.id);
+                    Object.assign(charge, pendingUpdate.values);
+                    if (pendingUpdate.values.status === "void") {
+                      voidedChargeIds.push(charge.id);
+                    }
                   }
                   continue;
                 }
@@ -224,8 +260,10 @@ function createRegenerationMockSupabase(options: {
                   (excludedChargeType == null ||
                     charge.charge_type !== excludedChargeType)
                 ) {
-                  charge.status = String(pendingUpdate.values.status);
-                  voidedChargeIds.push(charge.id);
+                  Object.assign(charge, pendingUpdate.values);
+                  if (pendingUpdate.values.status === "void") {
+                    voidedChargeIds.push(charge.id);
+                  }
                 }
               }
             }
@@ -254,6 +292,8 @@ function createRegenerationMockSupabase(options: {
               typeof row.installment_number === "number"
                 ? row.installment_number
                 : null,
+            guardian_id:
+              typeof row.guardian_id === "string" ? row.guardian_id : null,
           });
         }
         return {
@@ -291,6 +331,23 @@ function createRegenerationMockSupabase(options: {
 
         if (table === "tuition_charges") {
           const rows = charges.filter((charge) => chargeMatchesFilters(charge, nextFilters));
+          resolve({ data: rows, error: null });
+          return;
+        }
+
+        if (table === "tuition_billing_splits") {
+          const rows = billingSplits.filter(
+            (split) => split.family_id === nextFilters.family_id,
+          );
+          resolve({ data: rows, error: null });
+          return;
+        }
+
+        if (table === "guardians") {
+          const targetIds = nextFilters.id__in as string[] | undefined;
+          const rows = targetIds
+            ? guardians.filter((guardian) => targetIds.includes(guardian.id))
+            : guardians;
           resolve({ data: rows, error: null });
           return;
         }
@@ -581,6 +638,154 @@ describe("regenerateFutureCharges", () => {
       getCharges().find((charge) => charge.id === "charge-late-fee-unlinked")?.status,
       "sent",
     );
+  });
+
+  it("does not duplicate September when billing start shifts for split billing", async () => {
+    const guardianFrancesca = "guardian-francesca";
+    const guardianZachary = "guardian-zachary";
+    const { supabase, getCharges, insertedCharges } = createRegenerationMockSupabase({
+      assignments: [
+        {
+          id: "assign-ritchie",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          payment_plan_id: "plan-12",
+          rate_plan_id: "rate-1",
+          rate_tier_id: "tier-1",
+          effective_start: "2026-09-01",
+          metadata: {},
+          status: "active",
+        },
+      ],
+      paymentPlan: {
+        id: "plan-12",
+        organization_id: "org-1",
+        rate_plan_id: "rate-1",
+        installment_count: 12,
+        installment_amount_cents: 60000,
+        billing_day_of_month: 1,
+        name: "12 payments",
+        is_default: true,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+      tier: { id: "tier-1", amount_cents: 720000 },
+      billingSplits: [
+        {
+          id: "split-1",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianFrancesca,
+          share_bps: 5000,
+          created_at: "",
+          updated_at: "",
+        },
+        {
+          id: "split-2",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianZachary,
+          share_bps: 5000,
+          created_at: "",
+          updated_at: "",
+        },
+      ],
+      guardians: [
+        { id: guardianFrancesca, first_name: "Francesca", last_name: "Ritchie" },
+        { id: guardianZachary, first_name: "Zachary", last_name: "Ritchie" },
+      ],
+      existingCharges: [
+        {
+          id: "zachary-paid-aug",
+          assignment_id: "assign-ritchie",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianZachary,
+          label: "Aug Tuition (Zachary)",
+          base_amount_cents: 30000,
+          amount_cents: 30000,
+          due_date: "2026-08-01",
+          status: "paid",
+          charge_type: "tuition",
+          installment_number: 1,
+        },
+        {
+          id: "francesca-paid-sep",
+          assignment_id: "assign-ritchie",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianFrancesca,
+          label: "Sep Tuition (Francesca)",
+          base_amount_cents: 30000,
+          amount_cents: 30000,
+          due_date: "2026-09-01",
+          status: "paid",
+          charge_type: "tuition",
+          installment_number: 2,
+        },
+        {
+          id: "francesca-overdue-aug",
+          assignment_id: "assign-ritchie",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianFrancesca,
+          label: "Aug Tuition (Francesca)",
+          base_amount_cents: 30000,
+          amount_cents: 30000,
+          due_date: "2026-08-01",
+          status: "overdue",
+          charge_type: "tuition",
+          installment_number: 1,
+        },
+        {
+          id: "zachary-overdue-sep",
+          assignment_id: "assign-ritchie",
+          organization_id: "org-1",
+          family_id: "family-ritchie",
+          guardian_id: guardianZachary,
+          label: "Sep Tuition (Zachary)",
+          base_amount_cents: 30000,
+          amount_cents: 30000,
+          due_date: "2026-09-01",
+          status: "overdue",
+          charge_type: "tuition",
+          installment_number: 2,
+        },
+      ],
+    });
+
+    await regenerateFutureCharges(supabase, "assign-ritchie");
+
+    const activeCharges = getCharges().filter((charge) => charge.status !== "void");
+    const tuitionCharges = activeCharges.filter(
+      (charge) => charge.charge_type === "tuition",
+    );
+
+    for (const guardianId of [guardianFrancesca, guardianZachary]) {
+      const guardianCharges = tuitionCharges.filter(
+        (charge) => charge.guardian_id === guardianId,
+      );
+      assert.equal(guardianCharges.length, 12);
+
+      const septemberCharges = guardianCharges.filter(
+        (charge) => charge.due_date === "2026-09-01",
+      );
+      assert.equal(septemberCharges.length, 1);
+      assert.equal(septemberCharges[0]?.status, "paid");
+      assert.equal(septemberCharges[0]?.installment_number, 1);
+    }
+
+    const insertedSeptember = insertedCharges.filter(
+      (charge) =>
+        charge.charge_type === "tuition" && charge.due_date === "2026-09-01",
+    );
+    assert.equal(insertedSeptember.length, 0);
+
+    const zacharyPaid = tuitionCharges.find(
+      (charge) => charge.id === "zachary-paid-aug",
+    );
+    assert.equal(zacharyPaid?.due_date, "2026-09-01");
+    assert.equal(zacharyPaid?.installment_number, 1);
   });
 
   it("skips charge generation while enrollment is still pending", async () => {

@@ -181,7 +181,7 @@ export function buildInstallmentSchedule(
   if (!start) return [];
 
   const billingDay = paymentPlan.billingDayOfMonth ?? start.getUTCDate();
-  let firstYear = start.getUTCFullYear();
+  const firstYear = start.getUTCFullYear();
   let firstMonth = start.getUTCMonth();
   if (start.getUTCDate() > billingDay) {
     firstMonth += 1;
