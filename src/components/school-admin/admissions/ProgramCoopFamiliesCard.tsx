@@ -219,27 +219,23 @@ export default function ProgramCoopFamiliesCard({
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <AdminMetricCard
           theme={theme}
-          label="Families"
+          label="Families in program"
           value={String(summary.familyCount)}
-          helper="Enrolled in this program"
         />
         <AdminMetricCard
           theme={theme}
-          label="Learners"
+          label="Learners across families"
           value={String(summary.learnerCount)}
-          helper="Students across families"
         />
         <AdminMetricCard
           theme={theme}
-          label="Unassigned supply"
+          label="Unassigned supply items"
           value={String(summary.unassignedSupplyItemCount)}
-          helper="Items without a family"
         />
         <AdminMetricCard
           theme={theme}
-          label="Unfilled weeks"
+          label="Unfilled teaching weeks"
           value={String(summary.unfilledTeachingWeekCount)}
-          helper="Teaching weeks missing a parent"
         />
       </div>
 
