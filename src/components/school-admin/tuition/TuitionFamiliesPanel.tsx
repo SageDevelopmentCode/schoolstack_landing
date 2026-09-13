@@ -293,7 +293,10 @@ export default function TuitionFamiliesPanel({
   const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
   const selectedFamilyIdRef = useRef<string | null>(null);
   const showUnenrolledFamiliesRef = useRef(showUnenrolledFamilies);
-  showUnenrolledFamiliesRef.current = showUnenrolledFamilies;
+
+  useEffect(() => {
+    showUnenrolledFamiliesRef.current = showUnenrolledFamilies;
+  }, [showUnenrolledFamilies]);
 
   const unenrolledCount = useMemo(
     () => families.filter((family) => family.tuitionListVisibility === "unenrolled").length,
