@@ -14,6 +14,7 @@ import { MessageThreadHeader } from '@/components/school-admin/messages/message-
 import { ThemedText } from '@/components/themed-text';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { resolveAdminComposeState } from '@/lib/messages/compose-gating';
 import { loadMessageThread, loadMessagesInbox, mergeMessages, sendMessage } from '@/lib/messages/api';
@@ -308,14 +309,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingVertical: Spacing.four,
   },
   banner: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.two,
   },
   errorWrap: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   messagesArea: {
@@ -325,7 +327,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   messagesContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },

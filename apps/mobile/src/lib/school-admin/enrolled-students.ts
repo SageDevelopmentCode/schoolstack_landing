@@ -19,16 +19,20 @@ export type AdminEnrolledStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  classroomNames: string[];
+  classroomIds: string[];
   enrolledAt: string;
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
   profilePhotoUrl: string | null;
+  hasStandingHealthItems: boolean;
 };
 
 export type EnrolledStudentEnrollment = {
   id: string;
   programName: string;
   classroomName: string | null;
+  classroomIds: string[];
   enrolledAt: string;
 };
 
@@ -44,6 +48,8 @@ export type EnrolledStudentDetail = {
   familyPrimaryEmail: string | null;
   familyPrimaryPhone: string | null;
   programNames: string[];
+  classroomNames: string[];
+  classroomIds: string[];
   enrollments: EnrolledStudentEnrollment[];
   applicationId: string | null;
   applicationStatus: string | null;
@@ -76,6 +82,7 @@ const ENROLLED_ENROLLMENT_SELECT = `
   ),
   enrollment_classrooms (
     classrooms (
+      id,
       name
     )
   )
@@ -226,6 +233,8 @@ export function normalizeEnrolledStudentSummary(
         ? student.primaryContactEmail
         : null,
     programNames: Array.isArray(student.programNames) ? student.programNames : [],
+    classroomNames: Array.isArray(student.classroomNames) ? student.classroomNames : [],
+    classroomIds: Array.isArray(student.classroomIds) ? student.classroomIds : [],
     enrolledAt: String(student.enrolledAt ?? ""),
     assignedTeachers,
     assignedTeacherNames,
@@ -234,6 +243,7 @@ export function normalizeEnrolledStudentSummary(
       student.profilePhotoUrl.trim() !== ""
         ? student.profilePhotoUrl.trim()
         : null,
+    hasStandingHealthItems: student.hasStandingHealthItems === true,
   };
 }
 
@@ -318,6 +328,8 @@ async function fetchPrimaryContactsByFamilyId(
 type EnrollmentAggregate = {
   summary: AdminEnrolledStudentSummary;
   programNameSet: Set<string>;
+  classroomNameSet: Set<string>;
+  classroomIdSet: Set<string>;
 };
 
 type StudentRow = {
@@ -401,6 +413,110 @@ async function fetchTeacherAssignmentsByStudentIds(
   return result;
 }
 
+export async function fetchClassroomLeadTeachersByStudentIds(
+  supabase: SupabaseClient,
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, AssignedTeacher[]>> {
+  const result = new Map<string, AssignedTeacher[]>();
+  if (studentIds.length === 0) return result;
+
+  const { data: junctionRows, error: enrollmentError } = await supabase
+    .from("enrollment_classrooms")
+    .select("classroom_id, enrollments!inner ( student_id, status )")
+    .eq("organization_id", organizationId)
+    .eq("enrollments.status", "enrolled")
+    .in("enrollments.student_id", studentIds);
+
+  if (enrollmentError) throw enrollmentError;
+
+  const classroomIds = new Set<string>();
+  const classroomsByStudent = new Map<string, Set<string>>();
+
+  for (const row of junctionRows ?? []) {
+    const enrollment = unwrapRelation(
+      row.enrollments as { student_id?: string } | { student_id?: string }[] | null,
+    );
+    const studentId = enrollment?.student_id ? String(enrollment.student_id) : null;
+    const classroomId = row.classroom_id ? String(row.classroom_id) : null;
+    if (!studentId || !classroomId) continue;
+
+    classroomIds.add(classroomId);
+    const set = classroomsByStudent.get(studentId) ?? new Set<string>();
+    set.add(classroomId);
+    classroomsByStudent.set(studentId, set);
+  }
+
+  if (classroomIds.size === 0) return result;
+
+  const { data: assignmentRows, error: assignmentError } = await supabase
+    .from("classroom_staff_assignments")
+    .select(
+      `
+      classroom_id,
+      staff_members!inner (
+        id,
+        first_name,
+        last_name
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .eq("role", "lead")
+    .in("classroom_id", [...classroomIds]);
+
+  if (assignmentError) throw assignmentError;
+
+  const teachersByClassroomId = new Map<string, AssignedTeacher[]>();
+
+  for (const row of assignmentRows ?? []) {
+    const classroomId = String(row.classroom_id);
+    const staffMember = unwrapRelation(
+      row.staff_members as
+        | { id?: string; first_name?: string; last_name?: string }
+        | { id?: string; first_name?: string; last_name?: string }[]
+        | null,
+    );
+    if (!staffMember?.id) continue;
+
+    const teacher: AssignedTeacher = {
+      id: String(staffMember.id),
+      name: formatStaffMemberName({
+        firstName: String(staffMember.first_name ?? ""),
+        lastName: String(staffMember.last_name ?? ""),
+      }),
+    };
+
+    const list = teachersByClassroomId.get(classroomId) ?? [];
+    if (!list.some((entry) => entry.id === teacher.id)) {
+      list.push(teacher);
+    }
+    teachersByClassroomId.set(classroomId, list);
+  }
+
+  for (const studentId of studentIds) {
+    const classroomIdSet = classroomsByStudent.get(studentId);
+    if (!classroomIdSet) {
+      result.set(studentId, []);
+      continue;
+    }
+
+    const teachersById = new Map<string, AssignedTeacher>();
+    for (const classroomId of classroomIdSet) {
+      for (const teacher of teachersByClassroomId.get(classroomId) ?? []) {
+        teachersById.set(teacher.id, teacher);
+      }
+    }
+
+    result.set(
+      studentId,
+      [...teachersById.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+  }
+
+  return result;
+}
+
 function mapEnrollmentRowToAggregate(
   row: Record<string, unknown>,
   primaryContactsByFamilyId: Map<string, { name: string | null; email: string | null }>,
@@ -420,6 +536,26 @@ function mapEnrollmentRowToAggregate(
     row.programs as { name?: string } | { name?: string }[] | null,
   );
   const programName = program?.name ? String(program.name) : null;
+  const enrollmentClassroomRows = row.enrollment_classrooms;
+  const classroomEntries = Array.isArray(enrollmentClassroomRows)
+    ? enrollmentClassroomRows
+    : enrollmentClassroomRows
+      ? [enrollmentClassroomRows]
+      : [];
+
+  const classroomNames: string[] = [];
+  const classroomIds: string[] = [];
+  for (const entry of classroomEntries) {
+    const record = entry as Record<string, unknown>;
+    const classroom = unwrapRelation(
+      record.classrooms as
+        | { id?: string; name?: string }
+        | { id?: string; name?: string }[]
+        | null,
+    );
+    if (classroom?.id) classroomIds.push(String(classroom.id));
+    if (classroom?.name) classroomNames.push(String(classroom.name));
+  }
   const enrolledAt = String(row.created_at ?? "");
 
   const primaryContact = primaryContactsByFamilyId.get(familyId);
@@ -446,6 +582,8 @@ function mapEnrollmentRowToAggregate(
     primaryContactName: primaryContact?.name ?? null,
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
+    classroomNames,
+    classroomIds,
     enrolledAt,
     assignedTeachers,
     assignedTeacherNames: formatAssignedTeacherNames(assignedTeachers),
@@ -454,11 +592,14 @@ function mapEnrollmentRowToAggregate(
       student.profile_photo_url.trim() !== ""
         ? student.profile_photo_url.trim()
         : null,
+    hasStandingHealthItems: false,
   };
 
   return {
     summary,
     programNameSet: new Set(programName ? [programName] : []),
+    classroomNameSet: new Set(classroomNames),
+    classroomIdSet: new Set(classroomIds),
   };
 }
 
@@ -468,6 +609,14 @@ function mergeEnrollmentAggregate(
 ): EnrollmentAggregate {
   for (const programName of incoming.programNameSet) {
     existing.programNameSet.add(programName);
+  }
+
+  for (const classroomName of incoming.classroomNameSet) {
+    existing.classroomNameSet.add(classroomName);
+  }
+
+  for (const classroomId of incoming.classroomIdSet) {
+    existing.classroomIdSet.add(classroomId);
   }
 
   if (
@@ -481,14 +630,25 @@ function mergeEnrollmentAggregate(
   existing.summary.programNames = [...existing.programNameSet].sort((a, b) =>
     a.localeCompare(b),
   );
+  existing.summary.classroomNames = [...existing.classroomNameSet].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  existing.summary.classroomIds = [...existing.classroomIdSet].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return existing;
 }
+
+type AggregateEnrolledStudentSummariesOptions = {
+  useClassroomLeadTeachers?: boolean;
+};
 
 async function aggregateEnrolledStudentSummaries(
   supabase: SupabaseClient,
   organizationId: string,
   rows: Record<string, unknown>[],
+  options: AggregateEnrolledStudentSummariesOptions = {},
 ): Promise<AdminEnrolledStudentSummary[]> {
   const familyIds = new Set<string>();
   const studentIds = new Set<string>();
@@ -505,9 +665,13 @@ async function aggregateEnrolledStudentSummaries(
     }
   }
 
+  const fetchTeachers = options.useClassroomLeadTeachers
+    ? fetchClassroomLeadTeachersByStudentIds(supabase, organizationId, [...studentIds])
+    : fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [...studentIds]);
+
   const [primaryContactsByFamilyId, teachersByStudentId] = await Promise.all([
     fetchPrimaryContactsByFamilyId(supabase, organizationId, [...familyIds]),
-    fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [...studentIds]),
+    fetchTeachers,
   ]);
 
   const aggregates = new Map<string, EnrollmentAggregate>();
@@ -562,6 +726,7 @@ export async function listOrgEnrolledStudents(
     supabase,
     organizationId,
     (data ?? []) as Record<string, unknown>[],
+    { useClassroomLeadTeachers: true },
   );
 }
 
@@ -586,6 +751,7 @@ export async function listFamilyEnrolledStudents(
     supabase,
     organizationId,
     (data ?? []) as Record<string, unknown>[],
+    { useClassroomLeadTeachers: true },
   );
 
   for (const summary of summaries) {
@@ -708,7 +874,7 @@ export async function loadEnrolledStudentDetail(
         status,
         programs ( name ),
         enrollment_classrooms (
-          classrooms ( name )
+          classrooms ( id, name )
         )
       `,
       )
@@ -723,7 +889,7 @@ export async function loadEnrolledStudentDetail(
       .eq("student_id", studentId)
       .order("updated_at", { ascending: false })
       .limit(1),
-    fetchTeacherAssignmentsByStudentIds(supabase, organizationId, [studentId]),
+    fetchClassroomLeadTeachersByStudentIds(supabase, organizationId, [studentId]),
   ]);
 
   if (enrollmentsError) throw enrollmentsError;
@@ -741,11 +907,16 @@ export async function loadEnrolledStudentDetail(
           ? [enrollmentClassroomRows]
           : [];
       const classroomNameList: string[] = [];
+      const classroomIdList: string[] = [];
       for (const entry of classroomEntries) {
         const record = entry as Record<string, unknown>;
         const classroom = unwrapRelation(
-          record.classrooms as { name?: string } | { name?: string }[] | null,
+          record.classrooms as
+            | { id?: string; name?: string }
+            | { id?: string; name?: string }[]
+            | null,
         );
+        if (classroom?.id) classroomIdList.push(String(classroom.id));
         if (classroom?.name) classroomNameList.push(String(classroom.name));
       }
 
@@ -756,6 +927,7 @@ export async function loadEnrolledStudentDetail(
           classroomNameList.length > 0
             ? [...classroomNameList].sort((a, b) => a.localeCompare(b)).join(", ")
             : null,
+        classroomIds: [...classroomIdList].sort((a, b) => a.localeCompare(b)),
         enrolledAt: String(row.created_at ?? ""),
       };
     },
@@ -764,6 +936,18 @@ export async function loadEnrolledStudentDetail(
   const programNames = [...new Set(enrollments.map((row) => row.programName))].sort(
     (a, b) => a.localeCompare(b),
   );
+  const classroomNameSet = new Set<string>();
+  const classroomIdSet = new Set<string>();
+  for (const enrollment of enrollments) {
+    if (enrollment.classroomName) {
+      for (const name of enrollment.classroomName.split(', ')) {
+        if (name.trim()) classroomNameSet.add(name.trim());
+      }
+    }
+    for (const classroomId of enrollment.classroomIds) {
+      classroomIdSet.add(classroomId);
+    }
+  }
 
   const latestApplication = applicationRows?.[0];
   const assignedTeachers = teachersByStudentId.get(studentId) ?? [];
@@ -789,6 +973,8 @@ export async function loadEnrolledStudentDetail(
         ? family.primary_phone.trim() || null
         : null,
     programNames,
+    classroomNames: [...classroomNameSet].sort((a, b) => a.localeCompare(b)),
+    classroomIds: [...classroomIdSet].sort((a, b) => a.localeCompare(b)),
     enrollments,
     applicationId: latestApplication?.id ? String(latestApplication.id) : null,
     applicationStatus: latestApplication?.status

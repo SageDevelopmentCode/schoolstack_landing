@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -71,7 +72,9 @@ export function AdminDashboardSkeleton() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
   kicker: {

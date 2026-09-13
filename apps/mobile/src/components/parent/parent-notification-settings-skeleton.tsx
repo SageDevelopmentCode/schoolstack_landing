@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
 
@@ -42,7 +43,7 @@ export function ParentNotificationSettingsSkeleton() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     gap: Spacing.four,
   },

@@ -13,6 +13,7 @@ import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { MESSAGE_ATTACHMENT_MIME_TYPES } from '@/lib/messages/constants';
 import {
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderStyle: 'dashed',
     borderRadius: Radius.md,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.five,
     gap: Spacing.one,
   },

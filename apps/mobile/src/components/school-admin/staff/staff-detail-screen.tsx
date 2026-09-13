@@ -18,6 +18,7 @@ import { StaffPortalLoginBadge } from '@/components/school-admin/staff/staff-por
 import { ReadOnlyFieldRow } from '@/components/school-admin/submission-detail/read-only-field-row';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import {
   deactivateStaffPortalAccess,
@@ -601,18 +602,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+
+    paddingVertical: Spacing.four,
   },
   scrollContent: {
     paddingBottom: Spacing.six,
   },
   summary: {
     gap: Spacing.one,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
   },
   tabContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     gap: Spacing.five,
   },
@@ -648,7 +651,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radius.md,
     paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
   secondaryButton: {
     alignItems: 'center',
@@ -656,6 +659,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
 });

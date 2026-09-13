@@ -11,6 +11,7 @@ import {
   getPortalHeading,
   getPortalLabel,
 } from '@/lib/auth/resolve-portal';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Brand, Spacing } from '@/constants/theme';
 
 export default function PortalScreen() {
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.six,
     gap: Spacing.two,
   },

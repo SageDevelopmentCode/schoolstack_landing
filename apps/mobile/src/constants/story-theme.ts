@@ -30,6 +30,9 @@ export const StoryFonts = {
   bodySemiBold: 'DMSans_600SemiBold',
 } as const;
 
+/** Inner padding for Story cards on mobile parent home surfaces. */
+export const StoryCardPadding = 16;
+
 export function storyCardShadow() {
   return {
     shadowColor: '#32483D',

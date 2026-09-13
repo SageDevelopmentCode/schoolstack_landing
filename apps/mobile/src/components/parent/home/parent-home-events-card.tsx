@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { StoryCard } from '@/components/story/story-card';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryTextLink } from '@/components/story/story-text-link';
-import { StoryFonts } from '@/constants/story-theme';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 
@@ -25,7 +25,7 @@ function formatEventDate(date: string): string {
 export function ParentHomeEventsCard({ nextEvent, onViewCalendar }: ParentHomeEventsCardProps) {
   return (
     <StoryCard variant="primary" style={styles.card}>
-      <StorySectionKicker light>Upcoming events</StorySectionKicker>
+      <StorySectionKicker light style={styles.kicker}>Upcoming events</StorySectionKicker>
 
       {nextEvent ? (
         <View style={styles.eventPreview}>
@@ -51,12 +51,15 @@ export function ParentHomeEventsCard({ nextEvent, onViewCalendar }: ParentHomeEv
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.five,
+    padding: StoryCardPadding,
+  },
+  kicker: {
+    marginBottom: 6,
   },
   eventPreview: {
     borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 12,
+    padding: 10,
   },
   eventTitle: {
     fontFamily: StoryFonts.bodySemiBold,
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
     color: '#D5E3D9',
   },
   calendarLink: {
-    marginTop: Spacing.four,
+    marginTop: Spacing.two,
     paddingVertical: 0,
   },
 });

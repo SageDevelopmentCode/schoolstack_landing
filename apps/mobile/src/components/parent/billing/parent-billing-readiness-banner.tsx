@@ -1,9 +1,9 @@
-import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import type { FamilyBillingReadiness } from '@/lib/parent/parent-portal-api';
 
 type ParentBillingReadinessBannerProps = {
@@ -19,7 +19,7 @@ export function ParentBillingReadinessBanner({
   hasPendingSchedule,
   onOpenEnrollment,
 }: ParentBillingReadinessBannerProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   if (hasCharges) return null;
 
@@ -40,7 +40,8 @@ export function ParentBillingReadinessBanner({
     case 'needs_payment_plan':
       if (hasPendingSchedule) return null;
       title = 'Choose your payment schedule';
-      body = 'Complete your enrollment checklist to select an installment plan and generate tuition charges.';
+      body =
+        'Complete your enrollment checklist to select an installment plan and generate tuition charges.';
       cta = readiness.enrollmentChecklistHref ? 'Go to enrollment' : null;
       break;
     case 'no_charges':
@@ -59,25 +60,19 @@ export function ParentBillingReadinessBanner({
     <View
       style={[
         styles.banner,
-        { backgroundColor: `${theme.accent}12`, borderColor: `${theme.accent}33` },
+        { backgroundColor: theme.primarySoft, borderColor: `${theme.primary}33` },
       ]}>
-      <Ionicons name="information-circle-outline" size={22} color={theme.accent} />
+      <Ionicons name="information-circle-outline" size={22} color={theme.primary} />
       <View style={styles.textColumn}>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-          {title}
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-          {body}
-        </ThemedText>
+        <Text style={[styles.title, { color: theme.ink }]}>{title}</Text>
+        <Text style={[styles.body, { color: theme.muted }]}>{body}</Text>
         {cta && onOpenEnrollment ? (
           <Pressable
             onPress={onOpenEnrollment}
             accessibilityRole="button"
             style={({ pressed }) => [styles.cta, pressed && { opacity: 0.8 }]}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              {cta}
-            </ThemedText>
-            <Ionicons name="open-outline" size={14} color={theme.accent} />
+            <Text style={[styles.ctaText, { color: theme.primary }]}>{cta}</Text>
+            <Ionicons name="open-outline" size={14} color={theme.primary} />
           </Pressable>
         ) : null}
       </View>
@@ -90,18 +85,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.three,
-    borderRadius: Radius.lg,
+    borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.four,
   },
   textColumn: {
     flex: 1,
-    gap: 2,
+    gap: 4,
+  },
+  title: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  body: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginTop: Spacing.two,
+  },
+  ctaText: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

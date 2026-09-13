@@ -17,7 +17,8 @@ import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useParentHome } from '@/contexts/parent-home-context';
-import { Story, StoryFonts } from '@/constants/story-theme';
+import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   resolveWebUrl,
@@ -143,11 +144,10 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             </StoryCard>
           ) : (
             <View style={styles.childrenList}>
-              {data.familyChildren.map((child, index) => (
+              {data.familyChildren.map((child) => (
                 <ParentHomeChildStoryCard
                   key={child.applicationId}
                   child={child}
-                  index={index}
                   onViewDetails={() =>
                     router.push(parentChildrenRoute(slug, child.applicationId))
                   }
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     gap: Spacing.three,
   },
   retry: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   emptyCard: {
-    padding: Spacing.five,
+    padding: StoryCardPadding,
   },
   emptyCopy: {
     fontFamily: StoryFonts.body,

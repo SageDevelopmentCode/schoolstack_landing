@@ -7,22 +7,19 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { StoryFonts } from '@/constants/story-theme';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
-import { childAccentBg } from '@/lib/organization-settings/parent-theme';
 import { childSubtitleLine } from '@/lib/parent/parent-home-utils';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
 
 type ParentHomeChildStoryCardProps = {
   child: FamilyChildOverview;
-  index: number;
   onViewDetails: () => void;
   onOpenEnrollment?: () => void;
 };
 
 export function ParentHomeChildStoryCard({
   child,
-  index,
   onViewDetails,
   onOpenEnrollment,
 }: ParentHomeChildStoryCardProps) {
@@ -34,9 +31,7 @@ export function ParentHomeChildStoryCard({
   return (
     <StoryCard style={styles.card}>
       <View style={styles.headerRow}>
-        <View style={[styles.photoWrap, { backgroundColor: childAccentBg(index) }]}>
-          <StudentPhoto name={child.studentName} photoUrl={child.profilePhotoUrl} size="lg" />
-        </View>
+        <StudentPhoto name={child.studentName} photoUrl={child.profilePhotoUrl} size="lg" />
         <View style={styles.headerCopy}>
           <View style={styles.titleRow}>
             <Text style={[styles.name, { color: theme.ink }]}>{childFirstName}</Text>
@@ -63,19 +58,13 @@ export function ParentHomeChildStoryCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.five,
+    padding: StoryCardPadding,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.three,
-    marginBottom: Spacing.four,
-  },
-  photoWrap: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    padding: 4,
-    flexShrink: 0,
+    marginBottom: Spacing.three,
   },
   headerCopy: {
     flex: 1,

@@ -235,20 +235,96 @@ export type ParentBillingNextCharge = {
   amountCents: number;
 };
 
+export type TuitionPaymentPlanSummary = {
+  id: string;
+  organizationId: string;
+  ratePlanId: string;
+  name: string;
+  installmentCount: number;
+  installmentAmountCents: number;
+  billingDayOfMonth: number | null;
+  isDefault: boolean;
+};
+
+export type TuitionRateTierSummary = {
+  id: string;
+  label: string;
+  amountCents: number;
+  isDefault: boolean;
+};
+
+export type TuitionFeeComponentSummary = {
+  id: string;
+  label: string;
+  amountCents: number;
+  timing: 'enrollment' | 'first_installment' | 'annual';
+};
+
+export type TuitionEnrollmentAssignmentSummary = {
+  id: string;
+  organizationId: string;
+  enrollmentId: string;
+  familyId: string;
+  ratePlanId: string;
+  rateTierId: string | null;
+  paymentPlanId: string;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  status: string;
+};
+
+export type RatePlanWithDetailsSummary = {
+  id: string;
+  name: string;
+  amountCents: number;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  paymentPlans: TuitionPaymentPlanSummary[];
+  feeComponents: TuitionFeeComponentSummary[];
+  tiers: TuitionRateTierSummary[];
+};
+
+export type EnrollmentTuitionSelectionContext = {
+  assignment: TuitionEnrollmentAssignmentSummary;
+  ratePlan: RatePlanWithDetailsSummary;
+};
+
+export type FamilyTuitionSelectionItem = {
+  studentName: string;
+  context: EnrollmentTuitionSelectionContext;
+};
+
+export type TuitionAdjustment = {
+  id: string;
+  organizationId: string;
+  assignmentId: string;
+  scope: string;
+  adjustmentType: string;
+  valuePercent: number | null;
+  valueCents: number | null;
+  reason: string;
+  status: string;
+};
+
 export type ParentBillingChildView = {
   childKey: string;
   studentName: string;
   assignmentId: string | null;
+  annualTuitionCents: number;
   balanceDueCents: number;
   totalRemainingCents: number;
   nextCharge: ParentBillingNextCharge | null;
+  nextChargeId: string | null;
   status: 'needs_schedule' | 'ready' | 'no_assignment';
+  selectionItem: FamilyTuitionSelectionItem | null;
+  paymentPlanLabel: string | null;
 };
 
 export type ParentBillingFamilySummary = {
   balanceDueCents: number;
   totalRemainingCents: number;
   familyTotalRemainingCents: number | null;
+  annualTuitionCents: number;
   nextCharge: ParentBillingNextCharge | null;
   hasPendingSchedule: boolean;
   children: ParentBillingChildView[];
@@ -263,6 +339,7 @@ export type ParentBillingData = {
   charges: TuitionCharge[];
   allFamilyCharges: TuitionCharge[];
   payments: ParentTuitionPaymentRecord[];
+  adjustments: TuitionAdjustment[];
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;
   autopayEnabled: boolean;
@@ -271,6 +348,7 @@ export type ParentBillingData = {
   guardianId: string | null;
   hasBillingSplit: boolean;
   initialChildKey: string | null;
+  showTaxCreditPaymentBanner: boolean;
 };
 
 export type CheckoutPaymentMethod = 'card' | 'us_bank_account';
@@ -333,6 +411,16 @@ export async function setAutopayEnabled(input: {
   await fetchParentApi('/api/tuition/autopay', {
     method: 'POST',
     body: input,
+  });
+}
+
+export async function saveEnrollmentPaymentPlan(
+  enrollmentId: string,
+  paymentPlanId: string,
+): Promise<void> {
+  await fetchParentApi(`/api/tuition/enrollments/${enrollmentId}/payment-plan`, {
+    method: 'POST',
+    body: { paymentPlanId },
   });
 }
 

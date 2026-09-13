@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
@@ -68,13 +69,13 @@ export function ParentPlaceholderScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.six,
   },
   card: {
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.six,
     alignItems: 'center',
     gap: Spacing.three,

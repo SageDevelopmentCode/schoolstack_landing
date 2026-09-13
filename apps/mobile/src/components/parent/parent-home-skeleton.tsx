@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Story, StoryRadius } from '@/constants/story-theme';
+import { Story, StoryCardPadding, StoryRadius } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -83,7 +84,7 @@ export function ParentHomeSkeleton() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
@@ -110,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: StoryRadius.card,
     borderWidth: 1,
     backgroundColor: Story.white,
-    padding: Spacing.five,
+    padding: StoryCardPadding,
     gap: Spacing.three,
   },
   startHereCard: {
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   },
   eventsCard: {
     borderRadius: StoryRadius.card,
-    padding: Spacing.five,
+    padding: StoryCardPadding,
     gap: Spacing.three,
   },
   eventPreview: {
@@ -160,9 +161,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
   },
   childPhoto: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   childTextColumn: {
     flex: 1,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Fragment } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -11,8 +11,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BillingListSeparator } from '@/components/parent/billing/parent-billing-list-separator';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 import type { TuitionCharge } from '@/lib/parent/parent-portal-api';
 
@@ -33,7 +33,7 @@ export function ParentBillingChargesSheet({
   onClose,
   renderChargeRow,
 }: ParentBillingChargesSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useSharedValue(0);
@@ -88,22 +88,20 @@ export function ParentBillingChargesSheet({
             styles.sheet,
             sheetAnimatedStyle,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: Story.white,
+              borderColor: theme.line,
               paddingBottom: insets.bottom + Spacing.four,
             },
           ]}>
           <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
+            <View style={[styles.handle, { backgroundColor: theme.line }]} />
           </View>
 
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <ThemedText type="title" style={{ color: theme.textPrimary }}>
-              Upcoming charges
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
+          <View style={[styles.header, { borderBottomColor: theme.line }]}>
+            <Text style={[styles.title, { color: theme.ink }]}>Payment schedule</Text>
+            <Text style={[styles.subtitle, { color: theme.muted }]}>
               {charges.length} open {charges.length === 1 ? 'charge' : 'charges'}
-            </ThemedText>
+            </Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.list}>
@@ -149,7 +147,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  title: {
+    fontFamily: StoryFonts.display,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  subtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    marginTop: 4,
+  },
   list: {
     padding: Spacing.four,
+    gap: Spacing.two,
   },
 });

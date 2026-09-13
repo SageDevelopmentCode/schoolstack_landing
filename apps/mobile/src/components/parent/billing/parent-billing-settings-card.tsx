@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryCard } from '@/components/story/story-card';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import type { SavedPaymentMethodSummary } from '@/lib/parent/parent-portal-api';
 import { formatPaymentMethodLabel } from '@/lib/tuition/billing-helpers';
 
@@ -12,7 +13,7 @@ type ParentBillingSettingsCardProps = {
   autopayEnabled: boolean;
   savedPaymentMethod: SavedPaymentMethodSummary | null;
   paymentMethodLoading: boolean;
-  onAutopayToggle: (enabled: boolean) => void;
+  onAutopayToggleRequest: (enabled: boolean) => void;
   onManagePaymentMethod: () => void;
 };
 
@@ -20,100 +21,94 @@ export function ParentBillingSettingsCard({
   autopayEnabled,
   savedPaymentMethod,
   paymentMethodLoading,
-  onAutopayToggle,
+  onAutopayToggleRequest,
   onManagePaymentMethod,
 }: ParentBillingSettingsCardProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const methodLabel = formatPaymentMethodLabel(savedPaymentMethod);
 
   return (
-    <View style={styles.container}>
-      <View
-        style={[
-          styles.card,
-          adminCardShadow(theme),
-          { backgroundColor: theme.surface, borderColor: theme.border },
-        ]}>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-          Saved payment method
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-          {methodLabel ?? 'No card on file'}
-        </ThemedText>
+    <StoryCard variant="primary" style={styles.card} testID="parent-billing-family-settings">
+      <StorySectionKicker light>Payment settings</StorySectionKicker>
+
+      <Text style={styles.heading}>
+        {autopayEnabled ? 'Autopay is on' : 'Autopay is off'}
+      </Text>
+
+      <Text style={styles.body}>
+        {autopayEnabled
+          ? 'Due charges are paid automatically with your saved card on each due date.'
+          : "Turn on automatic payments and we'll process each scheduled tuition payment on its due date."}
+      </Text>
+
+      <View style={styles.methodRow} testID="parent-payment-method-card">
+        <Text style={styles.methodLabel}>Payment method</Text>
         <Pressable
           onPress={onManagePaymentMethod}
           disabled={paymentMethodLoading}
           accessibilityRole="button"
-          accessibilityLabel="Update card"
-          style={({ pressed }) => [
-            styles.manageButton,
-            { borderColor: theme.border },
-            pressed && { opacity: 0.8 },
-          ]}>
-          <ThemedText type="small" style={{ color: theme.accent }}>
-            {paymentMethodLoading ? 'Opening…' : methodLabel ? 'Update card' : 'Add card'}
-          </ThemedText>
-          <Ionicons name="open-outline" size={16} color={theme.accent} />
+          testID="parent-payment-method-manage">
+          {paymentMethodLoading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.methodAction}>
+              {methodLabel ? `${methodLabel} →` : 'Add a card →'}
+            </Text>
+          )}
         </Pressable>
       </View>
 
-      <View
-        style={[
-          styles.card,
-          adminCardShadow(theme),
-          { backgroundColor: theme.surface, borderColor: theme.border },
-        ]}>
-        <View style={styles.autopayRow}>
-          <View style={styles.autopayText}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              Autopay
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-              {autopayEnabled
-                ? 'Due charges are paid automatically with your saved card.'
-                : 'Pay each charge manually in the parent portal.'}
-            </ThemedText>
-          </View>
-          <Switch
-            value={autopayEnabled}
-            onValueChange={onAutopayToggle}
-            trackColor={{ false: theme.border, true: theme.accent }}
-            thumbColor="#FFFFFF"
-            accessibilityLabel="Autopay"
-          />
-        </View>
-      </View>
-    </View>
+      <StoryButton
+        label={autopayEnabled ? 'Manage autopay' : 'Turn on autopay'}
+        variant="soft"
+        onPress={() => onAutopayToggleRequest(!autopayEnabled)}
+        testID="parent-billing-autopay-toggle"
+        style={[styles.autopayButton, { backgroundColor: '#FFFFFF' }]}
+      />
+    </StoryCard>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.three,
-  },
   card: {
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.four,
+    padding: StoryCardPadding + 4,
     gap: Spacing.two,
   },
-  manageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
-    alignSelf: 'flex-start',
-    marginTop: Spacing.two,
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
+  heading: {
+    fontFamily: StoryFonts.display,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  autopayRow: {
+  body: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#D6E6D9',
+  },
+  methodRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.three,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.17)',
+    paddingTop: Spacing.three,
+    marginTop: Spacing.one,
   },
-  autopayText: {
-    flex: 1,
+  methodLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 11,
+    color: '#D4E4D7',
+  },
+  methodAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  autopayButton: {
+    marginTop: Spacing.two,
   },
 });

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import {
   formatStaffMemberName,
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   header: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
   footerButton: {

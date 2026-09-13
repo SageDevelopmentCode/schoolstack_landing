@@ -16,6 +16,7 @@ import {
   type AdminEnrolledStudentSummary,
   type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
+import { mergeStudentStandingHealthFlags } from '@/lib/school-admin/merge-student-standing-health-flags';
 import {
   createPortalCache,
   resolvePortalProviderInit,
@@ -40,7 +41,7 @@ type SchoolAdminStudentsContextValue = {
 
 const SchoolAdminStudentsContext = createContext<SchoolAdminStudentsContextValue | null>(null);
 
-const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v2:');
+const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v3:');
 
 function cacheKey(organizationId: string): string {
   return organizationId;
@@ -52,8 +53,14 @@ async function fetchStudentsData(organizationId: string): Promise<SchoolAdminStu
     listOrgEnrolledStudents(supabase, organizationId),
     listOrgStaffMembers(supabase, organizationId).catch(() => [] as OrgStaffMemberRecord[]),
   ]);
+  const normalizedStudents = normalizeEnrolledStudentSummaries(students);
+  const studentsWithHealth = await mergeStudentStandingHealthFlags(
+    supabase,
+    organizationId,
+    normalizedStudents,
+  );
   return {
-    students: normalizeEnrolledStudentSummaries(students),
+    students: studentsWithHealth,
     staffMembers,
   };
 }

@@ -7,9 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { Story, StoryCardPadding } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -39,14 +38,13 @@ function SkeletonCardRow({ backgroundColor }: { backgroundColor: string }) {
         <SkeletonBlock style={styles.avatar} backgroundColor={backgroundColor} />
         <View style={styles.textColumn}>
           <SkeletonBlock style={styles.nameBar} backgroundColor={backgroundColor} />
-          <SkeletonBlock style={styles.subtitleBar} backgroundColor={backgroundColor} />
+          <View style={styles.badgeRow}>
+            <SkeletonBlock style={styles.badgePill} backgroundColor={backgroundColor} />
+            <SkeletonBlock style={styles.badgePillWide} backgroundColor={backgroundColor} />
+          </View>
         </View>
       </View>
-      <View style={styles.badgeRow}>
-        <SkeletonBlock style={styles.badgePill} backgroundColor={backgroundColor} />
-        <SkeletonBlock style={styles.badgePillWide} backgroundColor={backgroundColor} />
-        <SkeletonBlock style={styles.badgePill} backgroundColor={backgroundColor} />
-      </View>
+      <SkeletonBlock style={styles.metaBar} backgroundColor={backgroundColor} />
     </View>
   );
 }
@@ -55,21 +53,18 @@ type StudentsListSkeletonProps = {
   rowCount?: number;
 };
 
-export function StudentsListSkeleton({ rowCount = 6 }: StudentsListSkeletonProps) {
-  const theme = useAdminTheme();
+export function StudentsListSkeleton({ rowCount = 5 }: StudentsListSkeletonProps) {
+  const skeletonColor = '#E4E8E1';
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.searchBarWrap,
-          {
-            backgroundColor: theme.input,
-            borderColor: theme.inputBorder,
-          },
-        ]}>
-        <SkeletonBlock style={styles.searchBar} backgroundColor={theme.border} />
+      <SkeletonBlock style={styles.headerBar} backgroundColor={skeletonColor} />
+      <View style={styles.metricsRow}>
+        <SkeletonBlock style={styles.metricCard} backgroundColor={skeletonColor} />
+        <SkeletonBlock style={styles.metricCard} backgroundColor={skeletonColor} />
       </View>
+      <SkeletonBlock style={styles.filterBar} backgroundColor={skeletonColor} />
+      <SkeletonBlock style={styles.searchBar} backgroundColor={skeletonColor} />
       <View style={styles.list}>
         {Array.from({ length: rowCount }, (_, index) => (
           <View
@@ -77,12 +72,11 @@ export function StudentsListSkeleton({ rowCount = 6 }: StudentsListSkeletonProps
             style={[
               styles.cardWrap,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: Story.white,
+                borderColor: Story.line,
               },
-              adminCardShadow(theme),
             ]}>
-            <SkeletonCardRow backgroundColor={theme.border} />
+            <SkeletonCardRow backgroundColor={skeletonColor} />
           </View>
         ))}
       </View>
@@ -93,18 +87,31 @@ export function StudentsListSkeleton({ rowCount = 6 }: StudentsListSkeletonProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    backgroundColor: Story.paper,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
     gap: Spacing.three,
   },
-  searchBarWrap: {
+  headerBar: {
+    height: 72,
+    borderRadius: Radius.md,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  metricCard: {
+    flex: 1,
+    height: 88,
+    borderRadius: Radius.lg,
+  },
+  filterBar: {
+    height: 36,
     borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 10,
+    width: '70%',
   },
   searchBar: {
-    height: 20,
+    height: 44,
     borderRadius: Radius.pill,
   },
   list: {
@@ -112,8 +119,8 @@ const styles = StyleSheet.create({
   },
   cardWrap: {
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
+    borderWidth: 1,
+    padding: StoryCardPadding,
   },
   card: {
     gap: Spacing.two,
@@ -137,11 +144,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     width: '55%',
   },
-  subtitleBar: {
-    height: 11,
-    borderRadius: 6,
-    width: '40%',
-  },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -156,5 +158,10 @@ const styles = StyleSheet.create({
     height: 22,
     width: 100,
     borderRadius: Radius.pill,
+  },
+  metaBar: {
+    height: 64,
+    borderRadius: 12,
+    width: '100%',
   },
 });

@@ -130,6 +130,7 @@ const APPLICATION_SUBMISSION_LIST_SELECT = `
   )
 `;
 
+export const ORG_SUBMISSIONS_INITIAL_PAGE_SIZE = 30;
 export const ORG_SUBMISSIONS_LIST_DEFAULT_LIMIT = 100;
 
 type ListOrgApplicationSubmissionsOptions = {

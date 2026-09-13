@@ -1,7 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 
 import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Story } from '@/constants/story-theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
 const BUBBLE_LAYOUT = [
@@ -13,17 +15,22 @@ const BUBBLE_LAYOUT = [
 ];
 
 export function ParentMessageThreadSkeleton() {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
+  const blockColor = Story.line;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
-        <SkeletonPulse style={styles.backBar} backgroundColor={theme.border} />
+    <View style={[styles.container, { backgroundColor: theme.paper }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.line, backgroundColor: theme.paper },
+        ]}>
+        <SkeletonPulse style={styles.backBar} backgroundColor={blockColor} />
         <View style={styles.headerCenter}>
-          <SkeletonPulse style={styles.headerAvatar} backgroundColor={theme.border} />
+          <SkeletonPulse style={styles.headerAvatar} backgroundColor={blockColor} />
           <View style={styles.headerText}>
-            <SkeletonPulse style={styles.headerTitle} backgroundColor={theme.border} />
-            <SkeletonPulse style={styles.headerSubtitle} backgroundColor={theme.border} />
+            <SkeletonPulse style={styles.headerTitle} backgroundColor={blockColor} />
+            <SkeletonPulse style={styles.headerSubtitle} backgroundColor={blockColor} />
           </View>
         </View>
         <View style={styles.headerSpacer} />
@@ -37,23 +44,22 @@ export function ParentMessageThreadSkeleton() {
               styles.bubbleRow,
               bubble.align === 'right' ? styles.bubbleRowRight : styles.bubbleRowLeft,
             ]}>
+            <SkeletonPulse style={styles.storyAvatar} backgroundColor={blockColor} />
             <SkeletonPulse
-              style={[
-                styles.bubble,
-                {
-                  width: bubble.width,
-                  borderRadius: Radius.lg,
-                },
-              ]}
-              backgroundColor={theme.border}
+              style={{
+                height: 44,
+                width: bubble.width as `${number}%`,
+                borderRadius: Radius.lg,
+              }}
+              backgroundColor={blockColor}
             />
           </View>
         ))}
       </View>
 
-      <View style={[styles.composeBar, { borderTopColor: theme.border, backgroundColor: theme.surface }]}>
-        <SkeletonPulse style={styles.composeInput} backgroundColor={theme.border} />
-        <SkeletonPulse style={styles.composeSend} backgroundColor={theme.border} />
+      <View style={[styles.composeBar, { backgroundColor: theme.paper }]}>
+        <SkeletonPulse style={styles.composeInput} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.composeSend} backgroundColor={blockColor} />
       </View>
     </View>
   );
@@ -67,7 +73,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
@@ -108,29 +114,33 @@ const styles = StyleSheet.create({
   },
   messagesArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
   bubbleRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
   },
   bubbleRowLeft: {
     justifyContent: 'flex-start',
   },
   bubbleRowRight: {
-    justifyContent: 'flex-end',
+    flexDirection: 'row-reverse',
+    justifyContent: 'flex-start',
   },
-  bubble: {
-    height: 44,
+  storyAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   composeBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   composeInput: {
     flex: 1,

@@ -18,9 +18,10 @@ import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
-export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff';
+export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff' | 'classrooms';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -51,6 +52,12 @@ const MENU_ITEMS: {
     label: 'Staff',
     subtitle: 'Roster and portal access',
     icon: 'people-outline',
+  },
+  {
+    id: 'classrooms',
+    label: 'Classrooms',
+    subtitle: 'Rosters and lead teachers',
+    icon: 'school-outline',
   },
 ];
 
@@ -299,7 +306,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
@@ -313,14 +320,14 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   header: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: Spacing.three,
   },

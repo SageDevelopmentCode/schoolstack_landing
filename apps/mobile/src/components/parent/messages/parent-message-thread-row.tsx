@@ -1,31 +1,43 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { ScalePressable } from '@/components/scale-pressable';
+import {
+  MESSAGES_ROW_PADDING_HORIZONTAL,
+  MESSAGES_ROW_PADDING_VERTICAL,
+} from '@/components/parent/messages/messages-layout';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { MessagesDualAvatar } from '@/components/school-admin/messages/messages-dual-avatar';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { StoryFonts } from '@/constants/story-theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { MessageThreadSummary } from '@/lib/messages/types';
-
-/** Inset for list dividers: horizontal padding + avatar + gap */
-export const PARENT_MESSAGE_ROW_SEPARATOR_INSET =
-  Spacing.four + 32 + Spacing.three;
 
 type ParentMessageThreadRowProps = {
   thread: MessageThreadSummary;
   onPress: () => void;
 };
 
+function shouldShowSubtitle(thread: MessageThreadSummary): boolean {
+  if (thread.listAvatars?.length) return false;
+  if (thread.subtitleStudents?.length) return false;
+  return Boolean(thread.subtitle);
+}
+
 export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadRowProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const hasUnread = thread.unreadCount > 0;
+  const showSubtitle = shouldShowSubtitle(thread);
 
   return (
     <ScalePressable
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.rowPressable, { backgroundColor: theme.bg }]}>
+      style={[
+        styles.rowPressable,
+        {
+          backgroundColor: theme.white,
+          borderBottomColor: theme.line,
+        },
+      ]}>
       <View style={styles.row}>
         {thread.listAvatars?.length === 2 ? (
           <MessagesDualAvatar avatars={thread.listAvatars} size="sm" />
@@ -39,42 +51,47 @@ export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadR
         )}
         <View style={styles.content}>
           <View style={styles.topLine}>
-            <ThemedText
-              type="smallBold"
+            <Text
               numberOfLines={1}
-              style={[styles.title, { color: theme.textPrimary, flex: 1 }]}>
+              style={[
+                styles.title,
+                {
+                  color: theme.ink,
+                  fontWeight: hasUnread ? '700' : '600',
+                },
+              ]}>
               {thread.title}
-            </ThemedText>
+            </Text>
             {thread.lastMessageTimeLabel ? (
-              <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                {thread.lastMessageTimeLabel}
-              </ThemedText>
+              <View style={styles.timeWrap}>
+                {hasUnread ? (
+                  <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+                ) : null}
+                <Text style={[styles.timeLabel, { color: theme.muted }]}>
+                  {thread.lastMessageTimeLabel}
+                </Text>
+              </View>
             ) : null}
           </View>
-          {thread.subtitle ? (
-            <ThemedText type="small" numberOfLines={1} style={{ color: theme.textSecondary }}>
+          {showSubtitle ? (
+            <Text numberOfLines={1} style={[styles.subtitle, { color: theme.muted }]}>
               {thread.subtitle}
-            </ThemedText>
+            </Text>
           ) : null}
           {thread.lastMessagePreview ? (
-            <ThemedText
-              type="small"
-              numberOfLines={2}
-              style={{
-                color: hasUnread ? theme.textPrimary : theme.textSecondary,
-                fontWeight: hasUnread ? '600' : '400',
-              }}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.preview,
+                {
+                  color: theme.muted,
+                  fontWeight: hasUnread ? '500' : '400',
+                },
+              ]}>
               {thread.lastMessagePreview}
-            </ThemedText>
+            </Text>
           ) : null}
         </View>
-        {hasUnread ? (
-          <View style={[styles.unreadBadge, { backgroundColor: theme.accent }]}>
-            <ThemedText type="badge" style={{ color: '#FFFFFF', fontSize: 10 }}>
-              {thread.unreadCount > 9 ? '9+' : String(thread.unreadCount)}
-            </ThemedText>
-          </View>
-        ) : null}
       </View>
     </ScalePressable>
   );
@@ -82,13 +99,14 @@ export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadR
 
 const styles = StyleSheet.create({
   rowPressable: {
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
+    paddingHorizontal: MESSAGES_ROW_PADDING_HORIZONTAL,
+    paddingVertical: MESSAGES_ROW_PADDING_VERTICAL,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.three,
+    gap: 12,
   },
   content: {
     flex: 1,
@@ -97,18 +115,39 @@ const styles = StyleSheet.create({
   topLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: 8,
   },
   title: {
-    flexShrink: 1,
+    flex: 1,
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 18,
   },
-  unreadBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: Radius.pill,
+  timeWrap: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
+    gap: 6,
+    flexShrink: 0,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  timeLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  subtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  preview: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
     marginTop: 2,
   },
 });

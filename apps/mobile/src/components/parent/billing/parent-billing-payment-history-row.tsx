@@ -1,12 +1,9 @@
-import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import {
-  AdminListCard,
-  AdminListCardPressable,
-} from '@/components/school-admin/admin-list-card';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryCard } from '@/components/story/story-card';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import type { ParentTuitionPaymentRecord } from '@/lib/parent/parent-portal-api';
 import { formatCents } from '@/lib/tuition/format-cents';
@@ -29,35 +26,35 @@ export function ParentBillingPaymentHistoryRow({
   payment,
   onPress,
 }: ParentBillingPaymentHistoryRowProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const amount = payment.chargedAmountCents ?? payment.amountCents;
   const subtitle = payment.studentFirstName
     ? `${payment.studentFirstName} · ${payment.label ?? 'Tuition'}`
     : (payment.label ?? 'Tuition');
 
   return (
-    <AdminListCard>
-      <AdminListCardPressable onPress={onPress}>
+    <Pressable onPress={onPress} accessibilityRole="button">
+      <StoryCard compact style={styles.card}>
         <View style={styles.row}>
           <View style={styles.textColumn}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              {formatCents(amount)}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              {subtitle}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
+            <Text style={[styles.amount, { color: theme.ink }]}>{formatCents(amount)}</Text>
+            <Text style={[styles.meta, { color: theme.muted }]}>{subtitle}</Text>
+            <Text style={[styles.meta, { color: theme.muted }]}>
               {formatPaymentDate(payment.paidAt ?? payment.createdAt)}
-            </ThemedText>
+            </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+          <Ionicons name="chevron-forward" size={18} color={theme.muted} />
         </View>
-      </AdminListCardPressable>
-    </AdminListCard>
+      </StoryCard>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: 15,
+    padding: Spacing.four,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -67,5 +64,15 @@ const styles = StyleSheet.create({
   textColumn: {
     flex: 1,
     gap: 2,
+  },
+  amount: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  meta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

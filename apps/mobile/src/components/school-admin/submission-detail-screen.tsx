@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AdminSectionDivider } from '@/components/admin/admin-section-divider';
-import { DetailTabBar, type DetailTab } from '@/components/school-admin/detail-tab-bar';
+import { SubmissionStoryDetailHeader } from '@/components/school-admin/admissions/submission-story-detail-header';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
+import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
 import { ApplicationFormStepDetailSheet } from '@/components/school-admin/submission-detail/application-form-step-detail-sheet';
 import { EnrollmentChecklistStepDetailSheet } from '@/components/school-admin/submission-detail/enrollment-checklist-step-detail-sheet';
 import { PaymentDetailSheet } from '@/components/school-admin/submission-detail/payment-detail-sheet';
@@ -17,14 +18,12 @@ import {
   SubmissionOverviewDetailsSection,
   SubmissionPaymentsSection,
   SubmissionPostSubmitSection,
-  SubmissionSummaryStrip,
   loadEnrollmentChecklistState,
   loadPaymentsState,
 } from '@/components/school-admin/submission-detail-sections';
-import { SubmissionDetailHeader } from '@/components/school-admin/submission-detail-header';
 import { SubmissionDetailScreenSkeleton } from '@/components/school-admin/submission-detail-skeleton';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { loadApplicationDetail, type ApplicationDetail } from '@/lib/admissions/application-detail';
 import {
   buildApplicationFormSteps,
@@ -46,6 +45,7 @@ import {
   patchApplicationStatus,
 } from '@/lib/school-admin-api';
 import { getSupabaseClient } from '@/lib/supabase';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 
 type SubmissionDetailScreenProps = {
@@ -59,7 +59,7 @@ export function SubmissionDetailScreen({
   applicationId,
   slug,
 }: SubmissionDetailScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
 
@@ -311,8 +311,7 @@ export function SubmissionDetailScreen({
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <SubmissionDetailHeader />
+      <View style={[styles.container, { backgroundColor: Story.paper }]}>
         <SubmissionDetailScreenSkeleton />
       </View>
     );
@@ -320,12 +319,15 @@ export function SubmissionDetailScreen({
 
   if (error || !submission || !detail) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <SubmissionDetailHeader />
+      <View style={[styles.container, { backgroundColor: Story.paper }]}>
+        <SubmissionStoryDetailHeader
+          studentLabel={submission?.studentLabel ?? null}
+          status={currentStatus}
+        />
         <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
+          <Text style={[styles.errorText, { color: theme.muted }]}>
             {error ?? 'Submission not found.'}
-          </ThemedText>
+          </Text>
         </View>
       </View>
     );
@@ -344,15 +346,16 @@ export function SubmissionDetailScreen({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <SubmissionDetailHeader />
-      <SubmissionSummaryStrip submission={{ ...submission, status: currentStatus }} />
-      <DetailTabBar tabs={tabs} activeTabId={activeTab} onChange={setActiveTab} />
+    <View style={[styles.container, { backgroundColor: Story.paper }]}>
+      <SubmissionStoryDetailHeader
+        studentLabel={submission.studentLabel}
+        status={currentStatus}
+      />
+      <SubmissionStoryTabBar tabs={tabs} activeTabId={activeTab} onChange={setActiveTab} />
       <ScrollView contentContainerStyle={styles.content}>
         {activeTab === 'overview' ? (
           <View style={styles.tabContent}>
             <SubmissionOverviewDetailsSection submission={{ ...submission, status: currentStatus }} />
-            <AdminSectionDivider />
             {currentStatus === 'accepted' || currentStatus === 'enrolling' ? (
               <SubmissionEnrollmentActionsSection
                 currentStatus={currentStatus}
@@ -370,7 +373,6 @@ export function SubmissionDetailScreen({
                 loadingStatus={actionLoadingStatus}
               />
             ) : null}
-            <AdminSectionDivider />
             {showEnrollmentStatus ? (
               <SubmissionEnrollmentStepsSection
                 checklist={enrollmentChecklist}
@@ -382,9 +384,7 @@ export function SubmissionDetailScreen({
             ) : (
               applicationFormSection
             )}
-            <AdminSectionDivider />
             <SubmissionPostSubmitSection steps={detail.postSubmitSteps} />
-            <AdminSectionDivider />
             <SubmissionGuardiansSection guardians={guardians} loading={guardiansLoading} />
           </View>
         ) : null}
@@ -448,13 +448,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+
+    paddingVertical: Spacing.four,
   },
   content: {
     paddingBottom: Spacing.six,
   },
   tabContent: {
-    padding: Spacing.four,
-    gap: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
+  },
+  errorText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { StudentPhoto } from '@/components/school-admin/student-photo';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { applicationStatusBadgeStyle } from '@/lib/admissions/application-status-ui';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
@@ -87,7 +88,7 @@ export function ParentChildListRow({ child, onPress }: ParentChildListRowProps) 
 
 const styles = StyleSheet.create({
   rowPressable: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
   },
   row: {

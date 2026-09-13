@@ -12,6 +12,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useParentHome } from '@/contexts/parent-home-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import { parentChildDetailRoute } from '@/lib/parent/parent-nav';
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     gap: Spacing.three,
   },
   retry: {
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   title: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

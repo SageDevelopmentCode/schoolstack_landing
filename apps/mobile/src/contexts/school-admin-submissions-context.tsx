@@ -11,39 +11,70 @@ import {
 
 import {
   listOrgApplicationSubmissions,
+  ORG_SUBMISSIONS_INITIAL_PAGE_SIZE,
   type AdminApplicationSubmission,
 } from '@/lib/admissions/application-submissions';
 import {
   createPortalCache,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
+import {
+  fetchSubmissionPageMeta,
+  submissionsPageHasMore,
+  type SubmissionPageMeta,
+} from '@/lib/school-admin/submissions-page-meta';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type SchoolAdminSubmissionsData = {
   submissions: AdminApplicationSubmission[];
+  meta: SubmissionPageMeta | null;
+  hasMore: boolean;
 };
 
 type SchoolAdminSubmissionsContextValue = {
   submissions: AdminApplicationSubmission[];
+  meta: SubmissionPageMeta | null;
   isLoading: boolean;
   isRefreshing: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   hasLoaded: boolean;
   refresh: (options?: { silent?: boolean }) => Promise<void>;
+  loadMore: () => Promise<void>;
 };
 
 const SchoolAdminSubmissionsContext = createContext<SchoolAdminSubmissionsContextValue | null>(null);
 
-const submissionsCache = createPortalCache<SchoolAdminSubmissionsData>('school_admin_submissions:');
+const submissionsCache = createPortalCache<SchoolAdminSubmissionsData>('school_admin_submissions:v2:');
 
 function cacheKey(organizationId: string): string {
   return organizationId;
 }
 
+async function fetchSubmissionsPage(
+  organizationId: string,
+  offset: number,
+): Promise<AdminApplicationSubmission[]> {
+  const supabase = getSupabaseClient();
+  return listOrgApplicationSubmissions(supabase, organizationId, {
+    limit: ORG_SUBMISSIONS_INITIAL_PAGE_SIZE,
+    offset,
+  });
+}
+
 async function fetchSubmissionsData(organizationId: string): Promise<SchoolAdminSubmissionsData> {
   const supabase = getSupabaseClient();
-  const submissions = await listOrgApplicationSubmissions(supabase, organizationId);
-  return { submissions };
+  const [meta, submissions] = await Promise.all([
+    fetchSubmissionPageMeta(supabase, organizationId),
+    fetchSubmissionsPage(organizationId, 0),
+  ]);
+
+  return {
+    submissions,
+    meta,
+    hasMore: submissionsPageHasMore(submissions.length, ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
+  };
 }
 
 function fetchAndCacheSubmissions(
@@ -80,14 +111,20 @@ export function SchoolAdminSubmissionsProvider({
   const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>(
     cached?.submissions ?? [],
   );
+  const [meta, setMeta] = useState<SubmissionPageMeta | null>(cached?.meta ?? null);
+  const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
   const [isLoading, setIsLoading] = useState(!cached);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const loadMorePromiseRef = useRef<Promise<void> | null>(null);
 
   const applyData = useCallback((data: SchoolAdminSubmissionsData | null) => {
     setSubmissions(data?.submissions ?? []);
+    setMeta(data?.meta ?? null);
+    setHasMore(data?.hasMore ?? false);
   }, []);
 
   const load = useCallback(
@@ -140,6 +177,36 @@ export function SchoolAdminSubmissionsProvider({
     [load],
   );
 
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isLoadingMore || isLoading || isRefreshing) return;
+    if (loadMorePromiseRef.current) {
+      await loadMorePromiseRef.current;
+      return;
+    }
+
+    const run = async () => {
+      setIsLoadingMore(true);
+      setError(null);
+
+      try {
+        const nextPage = await fetchSubmissionsPage(organizationId, submissions.length);
+        setSubmissions((prev) => [...prev, ...nextPage]);
+        setHasMore(
+          submissionsPageHasMore(nextPage.length, ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
+        );
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load more submissions.');
+      } finally {
+        setIsLoadingMore(false);
+        loadMorePromiseRef.current = null;
+      }
+    };
+
+    const promise = run();
+    loadMorePromiseRef.current = promise;
+    await promise;
+  }, [hasMore, isLoading, isLoadingMore, isRefreshing, organizationId, submissions.length]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -191,13 +258,28 @@ export function SchoolAdminSubmissionsProvider({
   const value = useMemo(
     () => ({
       submissions,
+      meta,
       isLoading,
       isRefreshing,
+      isLoadingMore,
+      hasMore,
       error,
       hasLoaded,
       refresh,
+      loadMore,
     }),
-    [error, hasLoaded, isLoading, isRefreshing, refresh, submissions],
+    [
+      error,
+      hasLoaded,
+      hasMore,
+      isLoading,
+      isLoadingMore,
+      isRefreshing,
+      loadMore,
+      meta,
+      refresh,
+      submissions,
+    ],
   );
 
   return (

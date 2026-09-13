@@ -10,7 +10,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { StoryFonts } from '@/constants/story-theme';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { getQuickActionIconStyle } from '@/lib/parent/parent-nav';
 import type {
@@ -61,7 +61,7 @@ export function ParentHomeStartHereCard({
 
   return (
     <StoryCard variant="today" style={styles.card}>
-      <StorySectionKicker>Start here</StorySectionKicker>
+      <StorySectionKicker style={styles.kicker}>Start here</StorySectionKicker>
       <Text style={[styles.headline, { color: theme.ink }]}>{headline}</Text>
 
       {attentionItems.length > 0 ? (
@@ -121,14 +121,17 @@ export function ParentHomeStartHereCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.five,
+    padding: StoryCardPadding,
+  },
+  kicker: {
+    marginBottom: 6,
   },
   headline: {
     fontFamily: StoryFonts.display,
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 22,
-    marginBottom: Spacing.three,
+    marginBottom: Spacing.two,
   },
   attentionList: {
     gap: 0,

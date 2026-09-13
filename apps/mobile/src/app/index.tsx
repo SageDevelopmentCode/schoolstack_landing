@@ -12,6 +12,7 @@ import { MudKitchenLogo } from '@/components/mudkitchen-logo';
 import { StoryButton } from '@/components/story/story-button';
 import { INTRO_SLIDE_INTERVAL_MS, INTRO_SLIDES } from '@/constants/intro-slides';
 import { Story } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
@@ -67,7 +68,7 @@ export default function IntroScreen() {
           {
             paddingTop: insets.top + 12,
             paddingBottom: insets.bottom + Spacing.three,
-            paddingHorizontal: Spacing.four,
+            paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
           },
         ]}
         pointerEvents="box-none">

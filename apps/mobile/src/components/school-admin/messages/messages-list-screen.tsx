@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { buildAdminSectionedListItems } from '@/lib/messages/admin-thread-sections';
 import { createMessageThread } from '@/lib/messages/api';
@@ -254,6 +255,6 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     paddingTop: Spacing.six,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
 });

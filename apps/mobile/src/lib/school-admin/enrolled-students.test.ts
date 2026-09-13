@@ -38,10 +38,13 @@ describe('formatEnrolledStudentSubtitle', () => {
         primaryContactName: null,
         primaryContactEmail: null,
         programNames: [],
+        classroomNames: [],
+        classroomIds: [],
         enrolledAt: '',
         assignedTeachers: [],
         assignedTeacherNames: '',
         profilePhotoUrl: null,
+        hasStandingHealthItems: false,
       },
       {
         id: '2',
@@ -55,10 +58,13 @@ describe('formatEnrolledStudentSubtitle', () => {
         primaryContactName: null,
         primaryContactEmail: null,
         programNames: [],
+        classroomNames: [],
+        classroomIds: [],
         enrolledAt: '',
         assignedTeachers: [],
         assignedTeacherNames: '',
         profilePhotoUrl: null,
+        hasStandingHealthItems: false,
       },
     ])).toBe(`${alpha} · ${beta}`);
   });
@@ -116,5 +122,8 @@ describe('normalizeEnrolledStudentSummary', () => {
 
     expect(normalized.assignedTeachers).toEqual([]);
     expect(normalized.assignedTeacherNames).toBe('');
+    expect(normalized.classroomNames).toEqual([]);
+    expect(normalized.classroomIds).toEqual([]);
+    expect(normalized.hasStandingHealthItems).toBe(false);
   });
 });

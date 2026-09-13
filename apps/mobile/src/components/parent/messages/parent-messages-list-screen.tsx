@@ -1,28 +1,22 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { ParentMessagesEmptyState } from '@/components/parent/messages/parent-messages-empty-state';
 import { ParentMessagesListSkeleton } from '@/components/parent/messages/parent-messages-list-skeleton';
-import {
-  PARENT_MESSAGE_ROW_SEPARATOR_INSET,
-  ParentMessageThreadRow,
-} from '@/components/parent/messages/parent-message-thread-row';
+import { ParentMessagesStoryHeader } from '@/components/parent/messages/parent-messages-story-header';
+import { ParentMessageThreadRow } from '@/components/parent/messages/parent-message-thread-row';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import { createParentMessageThread } from '@/lib/messages/parent-api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
-import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
-import type { MessageContact } from '@/lib/messages/types';
+import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
 
 type ParentMessagesListScreenProps = {
   organizationId: string;
@@ -37,11 +31,22 @@ function sortThreadsByRecency<T extends { lastMessageAt: string | null }>(thread
   });
 }
 
+function filterThreadsBySearch(threads: MessageThreadSummary[], query: string): MessageThreadSummary[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return threads;
+  return threads.filter(
+    (thread) =>
+      thread.title.toLowerCase().includes(normalized) ||
+      thread.subtitle?.toLowerCase().includes(normalized) ||
+      thread.lastMessagePreview?.toLowerCase().includes(normalized),
+  );
+}
+
 export function ParentMessagesListScreen({
   organizationId,
   organizationSlug,
 }: ParentMessagesListScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const {
     threads,
@@ -53,12 +58,18 @@ export function ParentMessagesListScreen({
     refresh,
   } = useParentMessagesInbox();
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [startingConversation, setStartingConversation] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const sortedThreads = useMemo(() => sortThreadsByRecency(threads), [threads]);
+  const filteredThreads = useMemo(
+    () => filterThreadsBySearch(sortedThreads, searchQuery),
+    [searchQuery, sortedThreads],
+  );
   const displayError = actionError ?? error;
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const { registerInboxConsumer } = useMessagesRealtime();
 
@@ -114,81 +125,57 @@ export function ParentMessagesListScreen({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={{ color: theme.textPrimary }}>
-          Messages
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="New message"
-          disabled={startingConversation}
-          onPress={() => setNewConversationOpen(true)}
-          style={({ pressed }) => [
-            styles.newButton,
-            {
-              backgroundColor: theme.accent,
-              opacity: pressed || startingConversation ? 0.85 : 1,
-            },
-          ]}>
-          <Ionicons name="add" size={18} color="#FFFFFF" />
-          <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-            New
-          </ThemedText>
-        </Pressable>
+    <View style={[styles.container, { backgroundColor: theme.paper }]}>
+      <View style={[styles.inboxSurface, { backgroundColor: theme.white }]}>
+        <Animated.View entering={FadeInDown.duration(280)}>
+          <ParentMessagesStoryHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onNewMessage={() => setNewConversationOpen(true)}
+            newMessageDisabled={startingConversation}
+          />
+        </Animated.View>
+
+        {displayError ? (
+          <View style={styles.errorWrap}>
+            <StoryErrorBanner message={displayError} />
+          </View>
+        ) : null}
+
+        {isLoading && threads.length === 0 ? (
+          <ParentMessagesListSkeleton />
+        ) : (
+          <FlatList
+            data={filteredThreads}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ParentMessageThreadRow thread={item} onPress={() => openThread(item.id)} />
+            )}
+            style={styles.list}
+            contentContainerStyle={[
+              styles.listContent,
+              filteredThreads.length === 0 ? styles.listContentEmpty : null,
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={theme.primary}
+              />
+            }
+            ListEmptyComponent={
+              displayError ? null : (
+                <ParentMessagesEmptyState hasSearchQuery={hasSearchQuery} />
+              )
+            }
+          />
+        )}
       </View>
-
-      {displayError ? (
-        <View style={styles.errorWrap}>
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {displayError}
-          </ThemedText>
-        </View>
-      ) : null}
-
-      {isLoading && threads.length === 0 ? (
-        <ParentMessagesListSkeleton />
-      ) : (
-        <FlatList
-          data={sortedThreads}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ParentMessageThreadRow thread={item} onPress={() => openThread(item.id)} />
-          )}
-          ItemSeparatorComponent={() => (
-            <View
-              style={[
-                styles.separator,
-                {
-                  backgroundColor: theme.border,
-                  marginLeft: PARENT_MESSAGE_ROW_SEPARATOR_INSET,
-                },
-              ]}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.accent}
-            />
-          }
-          ListEmptyComponent={
-            displayError ? null : (
-              <View style={styles.emptyState}>
-                <ThemedText type="default" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-                  No conversations yet. Tap New to message your school office or your child's teachers.
-                </ThemedText>
-              </View>
-            )
-          }
-        />
-      )}
 
       <NewConversationSheet
         visible={newConversationOpen}
         contacts={contacts}
+        variant="parent-story"
         onClose={() => setNewConversationOpen(false)}
         onSelect={(contact) => {
           void handleNewConversationSelect(contact);
@@ -202,34 +189,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.three,
+  inboxSurface: {
+    flex: 1,
   },
-  newButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Radius.pill,
+  list: {
+    flex: 1,
   },
   errorWrap: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   listContent: {
     paddingBottom: Spacing.six,
   },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-  },
-  emptyState: {
-    paddingTop: Spacing.six,
-    paddingHorizontal: Spacing.four,
+  listContentEmpty: {
+    flexGrow: 1,
   },
 });

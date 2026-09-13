@@ -80,6 +80,21 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/students/${studentDetailMatch[1]}`;
   }
 
+  const classroomsPaths = [
+    `/school/${slug}/admin/classrooms`,
+    `/school/${slug}/admin/my_school/classrooms`,
+  ];
+  if (classroomsPaths.includes(pathname)) {
+    return `/school-admin/${slug}/more/classrooms`;
+  }
+
+  const classroomDetailMatch = pathname.match(
+    new RegExp(`^/school/${slug}/admin/(?:my_school/)?classrooms/([^/]+)$`),
+  );
+  if (classroomDetailMatch?.[1]) {
+    return `/school-admin/${slug}/more/classrooms/${classroomDetailMatch[1]}`;
+  }
+
   return null;
 }
 

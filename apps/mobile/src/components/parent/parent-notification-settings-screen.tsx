@@ -18,6 +18,7 @@ import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-float
 import { ParentNotificationSettingsSkeleton } from '@/components/parent/parent-notification-settings-skeleton';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -576,7 +577,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     gap: Spacing.four,
   },
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.two,
     minHeight: 44,
     justifyContent: 'center',
@@ -667,7 +668,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
   savingOverlay: {
     ...StyleSheet.absoluteFill,

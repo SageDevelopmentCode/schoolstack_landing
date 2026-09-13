@@ -15,6 +15,7 @@ import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useParentCalendar } from '@/contexts/parent-calendar-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { dateKey } from '@/lib/school-events/calendar-utils';
 import { groupOrganizationEventsByDate } from '@/lib/school-events/events';
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     gap: Spacing.three,
   },
   retry: {

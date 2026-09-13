@@ -10,6 +10,7 @@ import { TransactionSummaryCards } from '@/components/school-admin/more/transact
 import { TransactionsListSkeleton } from '@/components/school-admin/more/transactions-list-skeleton';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   listOrganizationPayments,
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.five,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     gap: Spacing.two,
   },
   emptyIcon: {

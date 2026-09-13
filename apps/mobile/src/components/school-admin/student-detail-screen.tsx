@@ -1,31 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import { DetailSection } from '@/components/school-admin/detail-section';
-import { DetailTabBar, type DetailTab } from '@/components/school-admin/detail-tab-bar';
-import { StudentPhoto } from '@/components/school-admin/student-photo';
-import { StudentTeacherAssignPicker } from '@/components/school-admin/student-teacher-assign-picker';
+import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
+import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
+import { StudentClassroomAssignButton } from '@/components/school-admin/students/student-classroom-assign-button';
+import { StudentClassroomAssignPicker } from '@/components/school-admin/students/student-classroom-assign-picker';
+import { StudentHealthTab } from '@/components/school-admin/students/student-health-tab';
+import { StudentStoryDetailHeader } from '@/components/school-admin/students/student-story-detail-header';
 import { SubmissionGuardiansSection } from '@/components/school-admin/submission-detail-sections';
-import { ThemedText } from '@/components/themed-text';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Spacing } from '@/constants/theme';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { applicationStatusLabel } from '@/lib/admissions/application-status-ui';
 import { listFamilyGuardians, type FamilyGuardianRecord } from '@/lib/admissions/family-guardians';
+import type { ClassroomSummary } from '@/lib/school-admin/classrooms';
 import {
   formatAssignedTeachersLabel,
-  setStudentTeachers,
   formatEnrolledDate,
   formatEnrolledStudentName,
   formatStudentGrade,
   loadEnrolledStudentDetail,
-  listOrgStaffMembers,
   studentStatusLabel,
   type EnrolledStudentDetail,
-  type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
+import { fetchClassrooms, setStudentClassroomsApi } from '@/lib/school-admin-api';
+import { studentHasStandingHealthItems, type StudentHealthProfile } from '@/lib/student-health/types';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import { getSupabaseClient } from '@/lib/supabase';
 
 type StudentDetailScreenProps = {
@@ -34,79 +46,41 @@ type StudentDetailScreenProps = {
   slug: string;
 };
 
-function StudentDetailHeader() {
-  const theme = useAdminTheme();
-  const router = useRouter();
-
-  return (
-    <View
-      style={[
-        styles.headerBar,
-        { borderBottomColor: theme.border, backgroundColor: theme.surface },
-      ]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Back to students"
-        onPress={() => router.back()}
-        style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
-        <Ionicons name="chevron-back" size={20} color={theme.accent} />
-        <ThemedText type="small" style={{ color: theme.accent }}>
-          Students
-        </ThemedText>
-      </Pressable>
-      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-        Student
-      </ThemedText>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
-}
-
-function DetailField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  const theme = useAdminTheme();
+function DetailField({ label, value }: { label: string; value: string }) {
+  const theme = useParentTheme();
 
   return (
     <View style={styles.field}>
-      <ThemedText type="small" style={{ color: theme.textTertiary }}>
-        {label}
-      </ThemedText>
-      <ThemedText type="small" style={{ color: theme.textPrimary }}>
-        {value}
-      </ThemedText>
+      <Text style={[styles.fieldLabel, { color: theme.muted }]}>{label}</Text>
+      <Text style={[styles.fieldValue, { color: theme.ink }]}>{value}</Text>
     </View>
   );
 }
 
 export function StudentDetailScreen({ organizationId, studentId, slug }: StudentDetailScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
 
   const [detail, setDetail] = useState<EnrolledStudentDetail | null>(null);
-  const [staffMembers, setStaffMembers] = useState<OrgStaffMemberRecord[]>([]);
   const [guardians, setGuardians] = useState<FamilyGuardianRecord[]>([]);
   const [guardiansLoading, setGuardiansLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [assigningTeacher, setAssigningTeacher] = useState(false);
-  const [pickerVisible, setPickerVisible] = useState(false);
-
-  const activeStaff = useMemo(
-    () => staffMembers.filter((member) => member.employmentStatus === 'active'),
-    [staffMembers],
-  );
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(['overview']));
+  const [classroomPickerOpen, setClassroomPickerOpen] = useState(false);
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [classroomsLoaded, setClassroomsLoaded] = useState(false);
+  const [assigningClassroom, setAssigningClassroom] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [hasStandingHealth, setHasStandingHealth] = useState(false);
 
   const tabs = useMemo<DetailTab[]>(
     () => [
       { id: 'overview', label: 'Overview' },
       { id: 'family', label: 'Family' },
+      { id: 'health', label: 'Health' },
     ],
     [],
   );
@@ -127,13 +101,6 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
       setDetail(null);
     } finally {
       setLoading(false);
-    }
-
-    try {
-      const nextStaff = await listOrgStaffMembers(supabase, organizationId);
-      setStaffMembers(nextStaff);
-    } catch {
-      setStaffMembers([]);
     }
   }, [organizationId, studentId, supabase]);
 
@@ -163,37 +130,65 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
     }
   }, [activeTab, loadGuardians]);
 
-  const handleSetTeachers = async (staffMemberIds: string[]) => {
+  const ensureClassroomsLoaded = useCallback(async () => {
+    if (classroomsLoaded) return;
+    const payload = await fetchClassrooms(slug);
+    setClassrooms(payload.classrooms);
+    setClassroomsLoaded(true);
+  }, [classroomsLoaded, slug]);
+
+  const handleAssignClassrooms = async (classroomIds: string[]) => {
     if (!detail) return;
-    setAssigningTeacher(true);
+    setAssigningClassroom(true);
+    setAssignError(null);
     try {
-      const result = await setStudentTeachers(supabase, {
-        organizationId,
-        studentId: detail.id,
-        staffMemberIds,
-      });
+      const result = await setStudentClassroomsApi(slug, detail.id, classroomIds);
       setDetail((current) =>
         current
           ? {
               ...current,
+              classroomIds: result.classroomIds,
+              classroomNames: result.classroomNames,
               assignedTeachers: result.assignedTeachers,
               assignedTeacherNames: result.assignedTeacherNames,
+              enrollments: current.enrollments.map((enrollment) => ({
+                ...enrollment,
+                classroomName:
+                  result.classroomNames.length > 0 ? result.classroomNames.join(', ') : null,
+                classroomIds: result.classroomIds,
+              })),
             }
           : current,
       );
     } catch (assignError) {
-      setError(assignError instanceof Error ? assignError.message : 'Failed to assign teachers.');
+      setAssignError(
+        assignError instanceof Error ? assignError.message : 'Failed to assign classrooms.',
+      );
+      throw assignError;
     } finally {
-      setAssigningTeacher(false);
+      setAssigningClassroom(false);
     }
+  };
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    setVisitedTabs((previous) => {
+      if (previous.has(tabId)) return previous;
+      const next = new Set(previous);
+      next.add(tabId);
+      return next;
+    });
+  };
+
+  const handleHealthProfileChange = (profile: StudentHealthProfile) => {
+    setHasStandingHealth(studentHasStandingHealthItems(profile));
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <StudentDetailHeader />
         <View style={styles.centered}>
-          <ActivityIndicator color={theme.accent} />
+          <ActivityIndicator color={theme.primary} />
         </View>
       </View>
     );
@@ -202,11 +197,8 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
   if (error || !detail) {
     return (
       <View style={styles.container}>
-        <StudentDetailHeader />
         <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {error ?? 'Student not found.'}
-          </ThemedText>
+          <Text style={[styles.errorCopy, { color: theme.muted }]}>{error ?? 'Student not found.'}</Text>
         </View>
       </View>
     );
@@ -216,142 +208,151 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
   const gradeLabel = formatStudentGrade(detail.grade);
   const programLabel =
     detail.programNames.length > 0 ? detail.programNames.join(' · ') : 'No program';
-
   return (
     <View style={styles.container}>
-      <StudentDetailHeader />
-
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.summary}>
-          <StudentPhoto name={studentName} photoUrl={detail.profilePhotoUrl} size="lg" />
-          <View style={styles.summaryCopy}>
-            <ThemedText type="title" style={{ color: theme.textPrimary }}>
-              {studentName}
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              {gradeLabel ?? 'No grade'} · {programLabel}
-            </ThemedText>
-            <StatusBadge
-              label={studentStatusLabel(detail.status)}
-              colors={{ backgroundColor: theme.successBg, color: theme.success }}
-            />
-          </View>
-        </View>
+        <StudentStoryDetailHeader
+          studentName={studentName}
+          photoUrl={detail.profilePhotoUrl}
+          statusLabel={studentStatusLabel(detail.status)}
+          subtitle={`${gradeLabel ?? 'No grade'} · ${programLabel}`}
+          showHealthIndicator={hasStandingHealth}
+        />
 
-        <DetailTabBar tabs={tabs} activeTabId={activeTab} onChange={setActiveTab} />
+        <SubmissionStoryTabBar tabs={tabs} activeTabId={activeTab} onChange={handleTabChange} />
 
-        {activeTab === 'overview' ? (
-          <View style={styles.tabContent}>
-            <DetailSection
-              title="Student details"
-              description="Core profile information for this enrolled student.">
-              <View style={styles.fieldGrid}>
-                <DetailField label="Full name" value={studentName} />
-                <DetailField label="Grade" value={gradeLabel ?? '—'} />
-                <DetailField
-                  label="Date of birth"
-                  value={detail.dateOfBirth ? formatEnrolledDate(detail.dateOfBirth) : '—'}
+        <View style={styles.tabContent}>
+          {assignError ? <StoryErrorBanner message={assignError} /> : null}
+
+          {activeTab === 'overview' ? (
+            <>
+              <StoryDetailSection
+                title="Student details"
+                description="Core profile information for this enrolled student.">
+                <View style={styles.fieldGrid}>
+                  <DetailField label="Full name" value={studentName} />
+                  <DetailField label="Grade" value={gradeLabel ?? '—'} />
+                  <DetailField
+                    label="Date of birth"
+                    value={detail.dateOfBirth ? formatEnrolledDate(detail.dateOfBirth) : '—'}
+                  />
+                  <DetailField label="Student status" value={studentStatusLabel(detail.status)} />
+                  <DetailField label="Family" value={detail.familyName ?? '—'} />
+                  <DetailField label="Family email" value={detail.familyPrimaryEmail ?? '—'} />
+                </View>
+              </StoryDetailSection>
+
+              <StoryDetailSection
+                title="Classrooms"
+                description="Assign classrooms for this student. Lead teachers sync from classroom assignments.">
+                <StudentClassroomAssignButton
+                  label="Classrooms"
+                  classroomNames={detail.classroomNames}
+                  leadTeacherLabel={formatAssignedTeachersLabel(detail.assignedTeachers)}
+                  onPress={() => {
+                    void ensureClassroomsLoaded();
+                    setClassroomPickerOpen(true);
+                  }}
                 />
-                <DetailField label="Student status" value={studentStatusLabel(detail.status)} />
-                <DetailField label="Family" value={detail.familyName ?? '—'} />
-                <DetailField label="Family email" value={detail.familyPrimaryEmail ?? '—'} />
-              </View>
+                <StoryTextLink
+                  label="Manage on Classrooms →"
+                  onPress={() => router.push(`/school-admin/${slug}/more/classrooms`)}
+                />
+              </StoryDetailSection>
 
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setPickerVisible(true)}
-                style={({ pressed }) => [
-                  styles.teacherRow,
-                  { borderColor: theme.border, backgroundColor: theme.bg },
-                  pressed && { opacity: 0.85 },
-                ]}>
-                <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                  Teachers
-                </ThemedText>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  {formatAssignedTeachersLabel(detail.assignedTeachers)}
-                </ThemedText>
-              </Pressable>
-            </DetailSection>
+              <StoryDetailSection
+                title="Enrollments"
+                description="Programs this student is currently enrolled in.">
+                {detail.enrollments.length === 0 ? (
+                  <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                    No enrolled programs found.
+                  </Text>
+                ) : (
+                  detail.enrollments.map((enrollment) => (
+                    <View
+                      key={enrollment.id}
+                      style={[styles.enrollmentCard, { borderColor: theme.line }]}>
+                      <Text style={[styles.enrollmentTitle, { color: theme.ink }]}>
+                        {enrollment.programName}
+                      </Text>
+                      <Text style={[styles.enrollmentMeta, { color: theme.muted }]}>
+                        {enrollment.classroomName
+                          ? `Classroom: ${enrollment.classroomName}`
+                          : 'No classroom assigned'}
+                        {' · '}
+                        Enrolled {formatEnrolledDate(enrollment.enrolledAt)}
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </StoryDetailSection>
 
-            <DetailSection
-              title="Enrollments"
-              description="Programs this student is currently enrolled in.">
-              {detail.enrollments.length === 0 ? (
-                <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                  No enrolled programs found.
-                </ThemedText>
-              ) : (
-                detail.enrollments.map((enrollment) => (
-                  <View
-                    key={enrollment.id}
-                    style={[
-                      styles.enrollmentCard,
-                      { borderColor: theme.border, backgroundColor: theme.bg },
-                    ]}>
-                    <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                      {enrollment.programName}
-                    </ThemedText>
-                    <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                      {enrollment.classroomName
-                        ? `Classroom: ${enrollment.classroomName}`
-                        : 'No classroom assigned'}
-                      {' · '}
-                      Enrolled {formatEnrolledDate(enrollment.enrolledAt)}
-                    </ThemedText>
-                  </View>
-                ))
-              )}
-            </DetailSection>
+              {detail.applicationId ? (
+                <StoryDetailSection
+                  title="Admissions"
+                  description="View the original application for this student.">
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push(
+                        `/school-admin/${slug}/admissions/submissions/${detail.applicationId}`,
+                      )
+                    }
+                    style={({ pressed }) => [styles.applicationLink, pressed && { opacity: 0.7 }]}>
+                    <Text style={[styles.applicationLinkLabel, { color: theme.primary }]}>
+                      View application
+                      {detail.applicationStatus
+                        ? ` (${applicationStatusLabel(detail.applicationStatus)})`
+                        : ''}
+                    </Text>
+                    <Ionicons name="open-outline" size={14} color={theme.primary} />
+                  </Pressable>
+                </StoryDetailSection>
+              ) : null}
+            </>
+          ) : null}
 
-            {detail.applicationId ? (
-              <DetailSection
-                title="Admissions"
-                description="View the original application for this student.">
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() =>
-                    router.push(
-                      `/school-admin/${slug}/admissions/submissions/${detail.applicationId}`,
-                    )
-                  }
-                  style={({ pressed }) => [styles.applicationLink, pressed && { opacity: 0.7 }]}>
-                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                    View application
-                    {detail.applicationStatus
-                      ? ` (${applicationStatusLabel(detail.applicationStatus)})`
-                      : ''}
-                  </ThemedText>
-                  <Ionicons name="open-outline" size={14} color={theme.accent} />
-                </Pressable>
-              </DetailSection>
-            ) : null}
-          </View>
-        ) : (
-          <View style={styles.tabContent}>
-            <DetailSection
-              title="Family record"
-              description="Household contact details linked to this student.">
-              <View style={styles.fieldGrid}>
-                <DetailField label="Family name" value={detail.familyName ?? '—'} />
-                <DetailField label="Primary email" value={detail.familyPrimaryEmail ?? '—'} />
-                <DetailField label="Primary phone" value={detail.familyPrimaryPhone ?? '—'} />
-              </View>
-            </DetailSection>
+          {activeTab === 'family' ? (
+            <>
+              <StoryDetailSection
+                title="Family record"
+                description="Household contact details linked to this student.">
+                <View style={styles.fieldGrid}>
+                  <DetailField label="Family name" value={detail.familyName ?? '—'} />
+                  <DetailField label="Primary email" value={detail.familyPrimaryEmail ?? '—'} />
+                  <DetailField label="Primary phone" value={detail.familyPrimaryPhone ?? '—'} />
+                </View>
+              </StoryDetailSection>
+              <SubmissionGuardiansSection guardians={guardians} loading={guardiansLoading} />
+            </>
+          ) : null}
 
-            <SubmissionGuardiansSection guardians={guardians} loading={guardiansLoading} />
-          </View>
-        )}
+          {visitedTabs.has('health') ? (
+            <View style={activeTab === 'health' ? undefined : styles.hiddenTab}>
+              <StudentHealthTab
+                slug={slug}
+                studentId={detail.id}
+                studentFirstName={detail.firstName}
+                onProfileChange={handleHealthProfileChange}
+              />
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
 
-      <StudentTeacherAssignPicker
-        visible={pickerVisible}
+      <StudentClassroomAssignPicker
+        visible={classroomPickerOpen}
         studentName={studentName}
-        assignedTeacherIds={detail.assignedTeachers.map((teacher) => teacher.id)}
-        activeStaff={activeStaff}
-        saving={assigningTeacher}
-        onClose={() => setPickerVisible(false)}
-        onSave={handleSetTeachers}
+        studentProgramNames={detail.programNames}
+        classroomIds={detail.classroomIds}
+        classrooms={classrooms}
+        saving={assigningClassroom}
+        onClose={() => setClassroomPickerOpen(false)}
+        onAddClassroom={() => {
+          setClassroomPickerOpen(false);
+          router.push(`/school-admin/${slug}/more/classrooms`);
+        }}
+        onSave={handleAssignClassrooms}
       />
     </View>
   );
@@ -360,48 +361,31 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Story.paper,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+
+    paddingVertical: Spacing.four,
   },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    minWidth: 110,
-  },
-  headerSpacer: {
-    minWidth: 110,
+  errorCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    textAlign: 'center',
   },
   scrollContent: {
     paddingBottom: Spacing.six,
   },
-  summary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.four,
-  },
-  summaryCopy: {
-    flex: 1,
-    gap: Spacing.one,
-  },
   tabContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
-    gap: Spacing.five,
+    gap: Spacing.four,
+  },
+  hiddenTab: {
+    display: 'none',
   },
   fieldGrid: {
     gap: Spacing.three,
@@ -409,22 +393,45 @@ const styles = StyleSheet.create({
   field: {
     gap: 2,
   },
-  teacherRow: {
-    marginTop: Spacing.two,
-    padding: Spacing.three,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 4,
+  fieldLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  fieldValue: {
+    fontFamily: StoryFonts.body,
+    fontSize: 15,
+    lineHeight: 20,
   },
   enrollmentCard: {
     padding: Spacing.three,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    borderWidth: 1,
     gap: 4,
+    marginBottom: Spacing.two,
+  },
+  enrollmentTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  enrollmentMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
   applicationLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  applicationLinkLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
   },
 });

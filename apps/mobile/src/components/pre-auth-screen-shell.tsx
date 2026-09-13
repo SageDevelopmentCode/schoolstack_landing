@@ -8,6 +8,7 @@ import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { Story, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 type PreAuthScreenShellProps = {
   kicker?: string;
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
   backButton: {

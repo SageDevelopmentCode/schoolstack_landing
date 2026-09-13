@@ -5,15 +5,25 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import {
+  MESSAGES_SEARCH_FIELD_BG,
+} from '@/components/parent/messages/messages-layout';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { ThemedText } from '@/components/themed-text';
+import { StoryFonts } from '@/constants/story-theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
+import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
+import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
 import type { MessageContact } from '@/lib/messages/types';
 
 type NewConversationSheetProps = {
@@ -21,6 +31,7 @@ type NewConversationSheetProps = {
   contacts: MessageContact[];
   onClose: () => void;
   onSelect: (contact: MessageContact) => void;
+  variant?: MessagesLayoutVariant;
 };
 
 function matchesContact(contact: MessageContact, query: string): boolean {
@@ -34,8 +45,11 @@ export function NewConversationSheet({
   contacts,
   onClose,
   onSelect,
+  variant = 'default',
 }: NewConversationSheetProps) {
   const theme = useAdminTheme();
+  const parentTheme = useOptionalParentTheme();
+  const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -44,18 +58,38 @@ export function NewConversationSheet({
     [contacts, searchQuery],
   );
 
+  const backgroundColor = parentStory ? parentTheme.paper : theme.bg;
+  const surfaceColor = parentStory ? parentTheme.white : theme.bg;
+  const borderColor = parentStory ? parentTheme.line : theme.border;
+  const accentColor = parentStory ? parentTheme.primary : theme.accent;
+  const textPrimary = parentStory ? parentTheme.ink : theme.textPrimary;
+  const textSecondary = parentStory ? parentTheme.muted : theme.textSecondary;
+  const textTertiary = parentStory ? parentTheme.muted : theme.textTertiary;
+  const searchBg = parentStory ? MESSAGES_SEARCH_FIELD_BG : theme.input;
+  const searchBorder = parentStory ? parentTheme.line : theme.inputBorder;
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.container, { backgroundColor, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: surfaceColor }]}>
           <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Cancel
-            </ThemedText>
+            {parentStory ? (
+              <Text style={[styles.cancelLabel, { color: accentColor }]}>Cancel</Text>
+            ) : (
+              <ThemedText type="small" style={{ color: accentColor }}>
+                Cancel
+              </ThemedText>
+            )}
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            New message
-          </ThemedText>
+          {parentStory ? (
+            <StoryDisplayHeading size="section" style={styles.sheetTitle}>
+              New message
+            </StoryDisplayHeading>
+          ) : (
+            <ThemedText type="smallBold" style={{ color: textPrimary }}>
+              New message
+            </ThemedText>
+          )}
           <View style={styles.headerSpacer} />
         </View>
 
@@ -63,18 +97,24 @@ export function NewConversationSheet({
           style={[
             styles.searchWrap,
             {
-              backgroundColor: theme.input,
-              borderColor: theme.inputBorder,
+              backgroundColor: searchBg,
+              borderColor: searchBorder,
             },
           ]}>
-          <Ionicons name="search" size={18} color={theme.textTertiary} />
+          <Ionicons name="search" size={18} color={textTertiary} />
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Search contacts"
-            placeholderTextColor={theme.textTertiary}
+            placeholderTextColor={textTertiary}
             autoCorrect={false}
-            style={[styles.searchInput, { color: theme.textPrimary, fontFamily: Fonts.body }]}
+            style={[
+              styles.searchInput,
+              {
+                color: textPrimary,
+                fontFamily: parentStory ? StoryFonts.body : Fonts.body,
+              },
+            ]}
           />
         </View>
 
@@ -83,10 +123,15 @@ export function NewConversationSheet({
           keyExtractor={(item) => item.key}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: surfaceColor }}
           ListEmptyComponent={
-            <ThemedText type="small" style={{ color: theme.textTertiary, textAlign: 'center', marginTop: 24 }}>
-              No contacts found.
-            </ThemedText>
+            parentStory ? (
+              <Text style={[styles.emptyText, { color: textTertiary }]}>No contacts found.</Text>
+            ) : (
+              <ThemedText type="small" style={{ color: textTertiary, textAlign: 'center', marginTop: 24 }}>
+                No contacts found.
+              </ThemedText>
+            )
           }
           renderItem={({ item }) => (
             <Pressable
@@ -94,7 +139,7 @@ export function NewConversationSheet({
               onPress={() => onSelect(item)}
               style={({ pressed }) => [
                 styles.contactRow,
-                { borderBottomColor: theme.border, opacity: pressed ? 0.85 : 1 },
+                { borderBottomColor: borderColor, opacity: pressed ? 0.85 : 1 },
               ]}>
               <MessagesAvatar
                 name={item.name}
@@ -103,14 +148,27 @@ export function NewConversationSheet({
                 size="sm"
               />
               <View style={styles.contactText}>
-                <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                  {item.name}
-                </ThemedText>
-                {item.subtitle ? (
-                  <ThemedText type="small" numberOfLines={2} style={{ color: theme.textSecondary }}>
-                    {item.subtitle}
-                  </ThemedText>
-                ) : null}
+                {parentStory ? (
+                  <>
+                    <Text style={[styles.contactName, { color: textPrimary }]}>{item.name}</Text>
+                    {item.subtitle ? (
+                      <Text style={[styles.contactSubtitle, { color: textSecondary }]} numberOfLines={2}>
+                        {item.subtitle}
+                      </Text>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <ThemedText type="smallBold" style={{ color: textPrimary }}>
+                      {item.name}
+                    </ThemedText>
+                    {item.subtitle ? (
+                      <ThemedText type="small" numberOfLines={2} style={{ color: textSecondary }}>
+                        {item.subtitle}
+                      </ThemedText>
+                    ) : null}
+                  </>
+                )}
               </View>
             </Pressable>
           )}
@@ -128,12 +186,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerSpacer: {
     width: 48,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  cancelLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
   searchWrap: {
     flexDirection: 'row',
@@ -159,12 +226,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   contactText: {
     flex: 1,
     gap: 2,
+  },
+  contactName: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  contactSubtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emptyText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 24,
   },
 });
