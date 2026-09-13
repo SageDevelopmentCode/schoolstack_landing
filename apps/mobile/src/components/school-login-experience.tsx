@@ -1,20 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 
-import { MudKitchenLogo } from '@/components/mudkitchen-logo';
-import { OrganizationLogo } from '@/components/organization-logo';
 import { OrganizationSelector } from '@/components/organization-selector';
 import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
-import { PrimaryButton } from '@/components/primary-button';
-import { ThemedText } from '@/components/themed-text';
+import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryTextField } from '@/components/story/story-text-field';
+import { StoryTextLink } from '@/components/story/story-text-link';
 import { VerificationCodeInput } from '@/components/verification-code-input';
 import {
   completeSchoolSignIn,
@@ -23,7 +16,7 @@ import {
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { listLiveOrganizations, type LiveOrganization } from '@/lib/organizations';
 import { getSupabaseClient } from '@/lib/supabase';
-import { Brand, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -31,7 +24,6 @@ type LoginPhase = 'select_org' | 'email' | 'verify' | 'password';
 
 export function SchoolLoginExperience() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const supabase = getSupabaseClient();
   const { user, portalType, setResolvedPortal, isLoading: authLoading } = useAuth();
 
@@ -304,334 +296,174 @@ export function SchoolLoginExperience() {
         ? 'Sign in to continue'
         : 'Check your email';
 
+  const subtext =
+    phase === 'select_org'
+      ? 'Choose your school to continue to your portal.'
+      : phase === 'email'
+        ? `Enter the email you use with ${selectedOrganization?.name}. We'll send you a one-time code.`
+        : phase === 'password'
+          ? 'Sign in with your email and password.'
+          : `We sent a 6-digit code to ${email.trim().toLowerCase()}. If it doesn't arrive within a minute, check your spam or junk folder.`;
+
+  const handleBack =
+    phase === 'select_org'
+      ? () => router.back()
+      : phase === 'email' || phase === 'password'
+        ? handleBackToOrganizations
+        : handleBackToEmail;
+
   return (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingBottom: Math.max(insets.bottom, Spacing.three) },
-      ]}
-      style={styles.wrapper}>
-      <View style={styles.card}>
-        {phase !== 'select_org' ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            disabled={isSubmitting}
-            onPress={
-              phase === 'email' || phase === 'password'
-                ? handleBackToOrganizations
-                : handleBackToEmail
+    <PreAuthScreenShell
+      kicker={phase === 'select_org' ? 'Sign in' : undefined}
+      heading={heading}
+      headingTestID="school-login-heading"
+      subtext={subtext}
+      error={error}
+      onBack={handleBack}
+      backDisabled={isSubmitting}
+      showMudKitchenLogo={phase === 'select_org'}
+      schoolLogo={
+        selectedOrganization?.branding.logoSrc
+          ? {
+              logoSrc: selectedOrganization.branding.logoSrc,
+              logoAlt: selectedOrganization.branding.logoAlt,
+              name: selectedOrganization.name,
             }
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-            <ThemedText type="link" style={styles.backLabel}>
-              ← Back
-            </ThemedText>
-          </Pressable>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-            <ThemedText type="link" style={styles.backLabel}>
-              ← Back
-            </ThemedText>
-          </Pressable>
-        )}
+          : undefined
+      }
+      footer={
+        phase === 'select_org' && !orgsLoading
+          ? (
+              <StoryTextLink
+                label="Admin sign in"
+                onPress={() => router.push('/login/admin')}
+              />
+            )
+          : undefined
+      }>
+      {phase === 'select_org' && orgsLoading ? (
+        <OrganizationSelectorSkeleton rowCount={3} />
+      ) : phase === 'select_org' ? (
+        <OrganizationSelector
+          organizations={organizations}
+          onSelect={handleOrganizationSelect}
+          disabled={isSubmitting}
+        />
+      ) : null}
 
-        {selectedOrganization?.branding.logoSrc ? (
-          <OrganizationLogo
-            variant="header"
-            logoSrc={selectedOrganization.branding.logoSrc}
-            logoAlt={selectedOrganization.branding.logoAlt}
-            name={selectedOrganization.name}
-            style={styles.schoolLogo}
+      {phase === 'email' ? (
+        <View style={styles.formSection}>
+          <StoryTextField
+            label="Email"
+            accessibilityLabel="Email"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            editable={!isSubmitting}
           />
-        ) : phase === 'select_org' ? (
-          <MudKitchenLogo size="md" style={styles.logo} />
-        ) : null}
 
-        <ThemedText
-          testID="school-login-heading"
-          accessibilityLabel="Sign in to your school"
-          type="title"
-          style={styles.heading}>
-          {heading}
-        </ThemedText>
+          <StoryButton
+            label={isSubmitting ? 'Sending code…' : 'Send verification code'}
+            disabled={!email.trim() || isSubmitting}
+            onPress={handleEmailSubmit}
+          />
 
-        <ThemedText type="small" color={Brand.textMuted} style={styles.subtext}>
-          {phase === 'select_org'
-            ? 'Choose your school to continue to your portal.'
-            : phase === 'email'
-              ? `Enter the email you use with ${selectedOrganization?.name}. We'll send you a one-time code.`
-              : phase === 'password'
-                ? 'Sign in with your email and password.'
-                : `We sent a 6-digit code to ${email.trim().toLowerCase()}. If it doesn't arrive within a minute, check your spam or junk folder.`}
-        </ThemedText>
+          <StoryTextLink
+            label="Use password instead"
+            onPress={() => goToPhase('password')}
+            disabled={isSubmitting}
+            style={styles.centeredLink}
+          />
+        </View>
+      ) : null}
 
-        {error ? (
-          <View style={styles.errorBox}>
-            <ThemedText type="small" style={styles.errorText}>
-              {error}
-            </ThemedText>
-          </View>
-        ) : null}
+      {phase === 'password' ? (
+        <View style={styles.formSection}>
+          <StoryTextField
+            label="Email"
+            accessibilityLabel="Email"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            editable={!isSubmitting}
+          />
 
-        {phase === 'select_org' && orgsLoading ? (
-          <OrganizationSelectorSkeleton rowCount={3} />
-        ) : phase === 'select_org' ? (
-          <OrganizationSelector
-            organizations={organizations}
-            onSelect={handleOrganizationSelect}
+          <StoryTextField
+            label="Password"
+            accessibilityLabel="Password"
+            autoCapitalize="none"
+            autoComplete="current-password"
+            secureTextEntry
+            placeholder="Your password"
+            value={password}
+            onChangeText={setPassword}
+            editable={!isSubmitting}
+          />
+
+          <StoryButton
+            label={isSubmitting ? 'Signing in…' : 'Sign in'}
+            disabled={!email.trim() || !password || isSubmitting}
+            onPress={handlePasswordSubmit}
+          />
+
+          <StoryTextLink
+            label="Use email code instead"
+            onPress={() => goToPhase('email')}
+            disabled={isSubmitting}
+            style={styles.centeredLink}
+          />
+        </View>
+      ) : null}
+
+      {phase === 'verify' ? (
+        <View style={styles.formSection}>
+          <VerificationCodeInput
+            value={code}
+            onChange={setCode}
             disabled={isSubmitting}
           />
-        ) : null}
 
-        {phase === 'email' ? (
-          <View style={styles.formSection}>
-            <View style={styles.field}>
-              <ThemedText type="label">Email</ThemedText>
-              <TextInput
-                accessibilityLabel="Email"
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor={Brand.textMuted}
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                editable={!isSubmitting}
-              />
-            </View>
+          <StoryButton
+            label={isSubmitting ? 'Verifying…' : 'Continue'}
+            disabled={normalizedCode.length < 6 || isSubmitting}
+            onPress={handleVerifySubmit}
+          />
 
-            <PrimaryButton
-              label={isSubmitting ? 'Sending code…' : 'Send verification code'}
-              variant="accent"
-              disabled={!email.trim() || isSubmitting}
-              onPress={handleEmailSubmit}
-              style={styles.submitButton}
+          <View style={styles.verifyActions}>
+            <StoryTextLink
+              label="Use a different email"
+              variant="muted"
+              onPress={handleBackToEmail}
             />
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => goToPhase('password')}
-              disabled={isSubmitting}
-              style={styles.passwordLink}>
-              <ThemedText type="linkPrimary" style={styles.passwordLinkText}>
-                Use password instead
-              </ThemedText>
-            </Pressable>
+            <StoryTextLink
+              label={resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+              onPress={handleResendCode}
+              disabled={resendCooldown > 0 || isSubmitting}
+            />
           </View>
-        ) : null}
-
-        {phase === 'password' ? (
-          <View style={styles.formSection}>
-            <View style={styles.field}>
-              <ThemedText type="label">Email</ThemedText>
-              <TextInput
-                accessibilityLabel="Email"
-                autoCapitalize="none"
-                autoComplete="email"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor={Brand.textMuted}
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                editable={!isSubmitting}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText type="label">Password</ThemedText>
-              <TextInput
-                accessibilityLabel="Password"
-                autoCapitalize="none"
-                autoComplete="current-password"
-                secureTextEntry
-                placeholder="Your password"
-                placeholderTextColor={Brand.textMuted}
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                editable={!isSubmitting}
-              />
-            </View>
-
-            <PrimaryButton
-              label={isSubmitting ? 'Signing in…' : 'Sign in'}
-              variant="accent"
-              disabled={!email.trim() || !password || isSubmitting}
-              onPress={handlePasswordSubmit}
-              style={styles.submitButton}
-            />
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => goToPhase('email')}
-              disabled={isSubmitting}
-              style={styles.passwordLink}>
-              <ThemedText type="linkPrimary" style={styles.passwordLinkText}>
-                Use email code instead
-              </ThemedText>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {phase === 'verify' ? (
-          <View style={styles.formSection}>
-            <VerificationCodeInput
-              value={code}
-              onChange={setCode}
-              disabled={isSubmitting}
-            />
-
-            <PrimaryButton
-              label={isSubmitting ? 'Verifying…' : 'Continue'}
-              variant="accent"
-              disabled={normalizedCode.length < 6 || isSubmitting}
-              onPress={handleVerifySubmit}
-              style={styles.submitButton}
-            />
-
-            <View style={styles.verifyActions}>
-              <Pressable accessibilityRole="button" onPress={handleBackToEmail}>
-                <ThemedText type="link" style={styles.verifyActionText}>
-                  Use a different email
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleResendCode}
-                disabled={resendCooldown > 0 || isSubmitting}>
-                <ThemedText
-                  type="linkPrimary"
-                  style={[
-                    styles.verifyActionText,
-                    (resendCooldown > 0 || isSubmitting) && styles.disabledLink,
-                  ]}>
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-                </ThemedText>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
-        {phase === 'select_org' && !orgsLoading ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/login/admin')}
-            style={styles.adminLink}>
-            <ThemedText type="linkPrimary" style={styles.adminLinkText}>
-              Admin sign in
-            </ThemedText>
-          </Pressable>
-        ) : null}
-      </View>
-    </ScrollView>
+        </View>
+      ) : null}
+    </PreAuthScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: Brand.bg,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  card: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.three,
-    paddingVertical: 4,
-  },
-  backButtonPressed: {
-    opacity: 0.7,
-  },
-  backLabel: {
-    fontSize: 14,
-  },
-  logo: {
-    marginBottom: Spacing.five,
-  },
-  schoolLogo: {
-    width: 160,
-    height: 40,
-    marginBottom: Spacing.five,
-  },
-  heading: {
-    marginBottom: Spacing.two,
-  },
-  subtext: {
-    marginBottom: Spacing.four,
-    lineHeight: 20,
-  },
-  errorBox: {
-    borderWidth: 1,
-    borderColor: Brand.border,
-    backgroundColor: Brand.surface,
-    borderRadius: Radius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: Spacing.three,
-  },
-  errorText: {
-    color: '#b42318',
-    lineHeight: 20,
-  },
   formSection: {
     gap: Spacing.three,
   },
-  field: {
-    gap: 6,
-  },
-  input: {
-    fontFamily: Fonts.body,
-    fontSize: 15,
-    color: Brand.text,
-    backgroundColor: Brand.input,
-    borderWidth: 1,
-    borderColor: Brand.inputBorder,
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  submitButton: {
-    width: '100%',
-    shadowColor: Brand.accent,
-  },
-  passwordLink: {
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-  },
-  passwordLinkText: {
-    fontSize: 14,
+  centeredLink: {
+    alignSelf: 'center',
   },
   verifyActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  verifyActionText: {
-    fontSize: 14,
-  },
-  disabledLink: {
-    opacity: 0.6,
-  },
-  adminLink: {
-    alignItems: 'center',
-    marginTop: Spacing.five,
-    paddingVertical: Spacing.two,
-  },
-  adminLinkText: {
-    fontSize: 14,
   },
 });

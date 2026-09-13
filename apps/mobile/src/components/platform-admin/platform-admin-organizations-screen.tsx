@@ -35,7 +35,7 @@ export function PlatformAdminOrganizationsScreen() {
 
   useEffect(() => {
     if (!authLoading && (!user || portalType !== 'platform_admin')) {
-      router.replace('/login/admin');
+      router.replace('/');
     }
   }, [authLoading, user, portalType, router]);
 

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
+  Text,
   TextInput,
   View,
   type NativeSyntheticEvent,
   type TextInputKeyPressEventData,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { Brand, Fonts, Radius } from '@/constants/theme';
+import { Story, StoryFonts, StoryRadius } from '@/constants/story-theme';
+import { Fonts } from '@/constants/theme';
 
 const CODE_LENGTH = 6;
 
@@ -121,7 +122,7 @@ export function VerificationCodeInput({
 
   return (
     <View style={styles.wrapper}>
-      <ThemedText type="label">Verification code</ThemedText>
+      <Text style={styles.label}>Verification code</Text>
 
       <View
         accessibilityLabel="Verification code"
@@ -185,6 +186,13 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: 6,
   },
+  label: {
+    fontFamily: StoryFonts.bodyMedium,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: Story.ink,
+  },
   cellsWrapper: {
     position: 'relative',
   },
@@ -204,16 +212,16 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mono,
     fontSize: 22,
     textAlign: 'center',
-    color: Brand.text,
-    backgroundColor: Brand.input,
+    color: Story.ink,
+    backgroundColor: Story.white,
     borderWidth: 1,
-    borderColor: Brand.inputBorder,
-    borderRadius: Radius.md,
+    borderColor: Story.line,
+    borderRadius: StoryRadius.input,
     paddingHorizontal: 0,
     paddingVertical: 10,
   },
   cellFocused: {
-    borderColor: Brand.accent,
+    borderColor: Story.primary,
   },
   cellDisabled: {
     opacity: 0.6,

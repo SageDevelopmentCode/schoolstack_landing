@@ -80,7 +80,7 @@ function SchoolAdminLayoutContent() {
     if (isLoading || !slug) return;
 
     if (!user) {
-      router.replace('/login/admin');
+      router.replace('/');
       return;
     }
 
@@ -198,13 +198,25 @@ function SchoolAdminLayoutContent() {
 }
 
 export default function SchoolAdminLayout() {
-  const { selectedSchool } = useAuth();
+  const { selectedSchool, user, isLoading } = useAuth();
+  const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const organization = useMemo(() => {
     if (selectedSchool?.slug === slug) return selectedSchool;
     return null;
   }, [selectedSchool, slug]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      router.replace('/');
+    }
+  }, [isLoading, router, user]);
+
+  if (!isLoading && !user) {
+    return null;
+  }
 
   if (!organization) {
     return (

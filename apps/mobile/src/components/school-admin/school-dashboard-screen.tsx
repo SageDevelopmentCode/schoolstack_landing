@@ -5,12 +5,16 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PrimaryButton } from '@/components/primary-button';
+import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import { AdminActivityFeedCard } from '@/components/school-admin/dashboard/admin-activity-feed-card';
 import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-dashboard-header';
 import { AdminDashboardSkeleton } from '@/components/school-admin/dashboard/admin-dashboard-skeleton';
+import { AdminFeatureAnnouncementsCard } from '@/components/school-admin/dashboard/admin-feature-announcements-card';
 import { AdminFocusQueueCard } from '@/components/school-admin/dashboard/admin-focus-queue-card';
 import { AdminMetricCard } from '@/components/school-admin/dashboard/admin-metric-card';
+import { AdminNeedHelpCard } from '@/components/school-admin/dashboard/admin-need-help-card';
 import { AdminQuickActionsCard } from '@/components/school-admin/dashboard/admin-quick-actions-card';
+import { AdminSupportRequestSheet } from '@/components/school-admin/dashboard/admin-support-request-sheet';
 import {
   AdminSignalCard,
   AdminSignalEmptyCard,
@@ -55,7 +59,10 @@ export function SchoolDashboardScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const stripePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useAuthRequiredRedirect(error);
 
   const loadSummary = useCallback(
     async (isRefresh = false) => {
@@ -144,8 +151,8 @@ export function SchoolDashboardScreen({
     [navigateToHref],
   );
 
-  const handleReviewAdmissions = useCallback(() => {
-    router.push(schoolAdminSubmissionsRoute(slug) as Href);
+  const handleOpenAdmissions = useCallback(() => {
+    router.replace(schoolAdminSubmissionsRoute(slug) as Href);
   }, [router, slug]);
 
   if (loading && !summary) {
@@ -186,7 +193,6 @@ export function SchoolDashboardScreen({
         <AdminDashboardHeader
           schoolName={schoolName}
           userFirstName={userFirstNameFromMetadata(user ?? null)}
-          onReviewAdmissions={handleReviewAdmissions}
         />
       </Animated.View>
 
@@ -211,7 +217,7 @@ export function SchoolDashboardScreen({
             headline={summary.signal.headline}
             body={summary.signal.body}
             ctaLabel={summary.signal.ctaLabel}
-            onPress={() => navigateToHref(summary.signal!.href)}
+            onPress={handleOpenAdmissions}
           />
         ) : (
           <AdminSignalEmptyCard />
@@ -235,6 +241,25 @@ export function SchoolDashboardScreen({
           <AdminQuickActionsCard actions={summary.quickActions} onPressLink={handleQuickActionLink} />
         </Animated.View>
       ) : null}
+
+      {summary.featureAnnouncements.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
+          <AdminFeatureAnnouncementsCard announcements={summary.featureAnnouncements} />
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={FadeInDown.delay(320).duration(350)} style={styles.section}>
+        <AdminNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+      </Animated.View>
+
+      <AdminSupportRequestSheet
+        visible={supportSheetOpen}
+        onClose={() => setSupportSheetOpen(false)}
+        organizationId={organizationId}
+        slug={slug}
+        userEmail={user?.email}
+        sourcePagePath={`/school-admin/${slug}/dashboard`}
+      />
     </ScrollView>
   );
 }

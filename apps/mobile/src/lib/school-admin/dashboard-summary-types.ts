@@ -67,6 +67,16 @@ export type SchoolAdminActivityNotification = {
   category: ActivityNotificationCategory;
 };
 
+export type ResolvedAdminFeatureAnnouncement = {
+  id: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  feature: string;
+  href: string;
+  publishedAt: string;
+};
+
 export type AdminDashboardSummary = {
   setupStatus: AdmissionsSetupStatus;
   focusItems: DashboardFocusItem[];
@@ -79,14 +89,14 @@ export type AdminDashboardSummary = {
   metrics: DashboardMetric[];
   recentActivity: SchoolAdminActivityNotification[];
   quickActions: DashboardQuickAction[];
-  featureAnnouncements: unknown[];
+  featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
 };
 
 export type MobileAdminDashboardSummary = Omit<
   AdminDashboardSummary,
-  'focusItems' | 'recentActivity' | 'quickActions' | 'featureAnnouncements'
+  'focusItems' | 'recentActivity' | 'quickActions'
 > & {
   focusItems: DashboardFocusItem[];
   recentActivity: SchoolAdminActivityNotification[];

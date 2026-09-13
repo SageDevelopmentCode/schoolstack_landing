@@ -20,7 +20,7 @@ export default function PortalScreen() {
   useEffect(() => {
     if (isLoading || !user || !portalType) {
       if (!isLoading && (!user || !portalType)) {
-        router.replace('/login');
+        router.replace('/');
       }
       return;
     }

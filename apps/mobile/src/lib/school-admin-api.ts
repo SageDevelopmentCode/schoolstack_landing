@@ -1,4 +1,4 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -7,33 +7,18 @@ type FetchSchoolAdminApiOptions = {
   body?: unknown;
 };
 
-async function getAuthHeaders(includeJson = false): Promise<Record<string, string>> {
-  const supabase = getSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    throw new Error('You must be signed in to continue.');
-  }
-
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
-  };
-}
-
 export async function fetchSchoolAdminApi<T>(
   path: string,
   options: FetchSchoolAdminApiOptions = {},
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: await getAuthHeaders(options.body !== undefined),
+    headers: await getApiAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -48,11 +33,12 @@ export async function fetchSchoolAdminApiFormData<T>(
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method,
-    headers: await getAuthHeaders(false),
+    headers: await getApiAuthHeaders(false),
     body: formData,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }

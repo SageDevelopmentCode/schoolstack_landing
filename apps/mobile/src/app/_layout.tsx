@@ -1,4 +1,10 @@
 import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+} from '@expo-google-fonts/dm-sans';
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
+import {
   Lora_500Medium,
   Lora_500Medium_Italic,
 } from '@expo-google-fonts/lora';
@@ -12,8 +18,10 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
+import { AuthSessionGuard } from '@/components/auth-session-guard';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
+import { Story } from '@/constants/story-theme';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
 
@@ -25,6 +33,10 @@ if (isMobileE2e) {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
+    Fraunces_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
     Lora_500Medium,
     Lora_500Medium_Italic,
     Poppins_400Regular,
@@ -33,11 +45,12 @@ export default function RootLayout() {
   });
 
   if (!fontsLoaded && !isMobileE2e) {
-    return <View style={{ flex: 1, backgroundColor: Brand.bg }} />;
+    return <View style={{ flex: 1, backgroundColor: Story.paper }} />;
   }
 
   return (
     <AuthProvider>
+      <AuthSessionGuard />
       <SplashOverlay />
       <Stack
         screenOptions={{

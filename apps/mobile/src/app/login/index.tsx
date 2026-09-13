@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SchoolLoginExperience } from '@/components/school-login-experience';
-import { Brand } from '@/constants/theme';
+import { Story } from '@/constants/story-theme';
 
 export default function LoginScreen() {
   return (
@@ -21,7 +21,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Brand.bg,
+    backgroundColor: Story.paper,
   },
   keyboardView: {
     flex: 1,
