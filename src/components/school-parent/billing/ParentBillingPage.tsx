@@ -366,14 +366,16 @@ function ParentBillingPageContent({
   useEffect(() => {
     if (!initialData) return;
 
-    setAdjustments(initialData.adjustments);
-    setReadiness(initialData.readiness);
-    setFamilySummary(initialData.familySummary);
-    setAutopayEnabledState(initialData.autopayEnabled);
-    setSavedPaymentMethod(initialData.savedPaymentMethod);
-    setRecentAutopayFailure(initialData.recentAutopayFailure);
-    setInitialLoading(false);
-    hasLoadedBillingRef.current = true;
+    queueMicrotask(() => {
+      setAdjustments(initialData.adjustments);
+      setReadiness(initialData.readiness);
+      setFamilySummary(initialData.familySummary);
+      setAutopayEnabledState(initialData.autopayEnabled);
+      setSavedPaymentMethod(initialData.savedPaymentMethod);
+      setRecentAutopayFailure(initialData.recentAutopayFailure);
+      setInitialLoading(false);
+      hasLoadedBillingRef.current = true;
+    });
   }, [initialData]);
 
   const fetchDeferredBillingLists = useCallback(async () => {
