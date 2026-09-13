@@ -1,6 +1,14 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -363,19 +371,17 @@ function ParentBillingPageContent({
     }
   }, [familyId, guardianId, organizationId, previewMode, slug, supabase]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!initialData) return;
 
-    queueMicrotask(() => {
-      setAdjustments(initialData.adjustments);
-      setReadiness(initialData.readiness);
-      setFamilySummary(initialData.familySummary);
-      setAutopayEnabledState(initialData.autopayEnabled);
-      setSavedPaymentMethod(initialData.savedPaymentMethod);
-      setRecentAutopayFailure(initialData.recentAutopayFailure);
-      setInitialLoading(false);
-      hasLoadedBillingRef.current = true;
-    });
+    setAdjustments(initialData.adjustments);
+    setReadiness(initialData.readiness);
+    setFamilySummary(initialData.familySummary);
+    setAutopayEnabledState(initialData.autopayEnabled);
+    setSavedPaymentMethod(initialData.savedPaymentMethod);
+    setRecentAutopayFailure(initialData.recentAutopayFailure);
+    setInitialLoading(false);
+    hasLoadedBillingRef.current = true;
   }, [initialData]);
 
   const fetchDeferredBillingLists = useCallback(async () => {

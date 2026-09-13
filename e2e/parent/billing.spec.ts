@@ -761,6 +761,7 @@ test("parent billing summary supports per-student pay and child drill-down", asy
     .single();
 
   const enrollmentIds: string[] = [];
+  const assignmentIds: string[] = [];
 
   for (const [firstName, lastName] of [
     ["Julia", "Summary"],
@@ -785,6 +786,7 @@ test("parent billing summary supports per-student pay and child drill-down", asy
         student_id: student!.id,
         program_id: program!.id,
         status: "enrolled",
+        enrolled_at: "2026-08-01T12:00:00.000Z",
       })
       .select("id")
       .single();
@@ -802,18 +804,20 @@ test("parent billing summary supports per-student pay and child drill-down", asy
         payment_plan_id: paymentPlan!.id,
         assignment_source: "default",
         status: "active",
-        metadata: { pendingPaymentPlanSelection: false },
+        metadata: { pendingPaymentPlanSelection: false, billingStartLocked: true },
         effective_start: "2026-08-01",
       })
       .select("id")
       .single();
+
+    assignmentIds.push(String(assignment!.id));
 
     await regenerateFutureCharges(admin, String(assignment!.id));
   }
 
   const { data: paidCharge, error: paidChargeError } = await admin
     .from("tuition_charges")
-    .select("id, amount_cents")
+    .select("id, amount_cents, label")
     .eq("family_id", family.id)
     .order("due_date", { ascending: true })
     .limit(1)
@@ -822,12 +826,32 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   expect(paidChargeError).toBeNull();
   expect(paidCharge?.id).toBeTruthy();
 
+  const { data: pendingCharges, error: pendingChargesError } = await admin
+    .from("tuition_charges")
+    .select("label, assignment_id")
+    .eq("family_id", family.id)
+    .in("assignment_id", assignmentIds)
+    .in("status", ["scheduled", "sent", "overdue"])
+    .order("due_date", { ascending: true });
+
+  expect(pendingChargesError).toBeNull();
+
+  const juliaChargeLabel = pendingCharges?.find(
+    (charge) => charge.assignment_id === assignmentIds[0],
+  )?.label;
+  const calebChargeLabel = pendingCharges?.find(
+    (charge) => charge.assignment_id === assignmentIds[1],
+  )?.label;
+
+  expect(juliaChargeLabel).toBeTruthy();
+  expect(calebChargeLabel).toBeTruthy();
+
   const { error: paymentInsertError } = await admin.from("application_payments").insert({
     organization_id: organizationId,
     family_id: family.id,
     tuition_charge_id: paidCharge!.id,
     payment_type: "tuition",
-    label: "Aug Tuition",
+    label: paidCharge!.label,
     amount_cents: paidCharge!.amount_cents,
     currency: "USD",
     status: "succeeded",
@@ -885,8 +909,12 @@ test("parent billing summary supports per-student pay and child drill-down", asy
   const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
   await expect(paymentModal).toBeVisible();
   await expect(paymentModal.getByText(/Combined tuition \(2 students\)/)).toBeVisible();
-  await expect(paymentModal.getByText("Julia — Aug Tuition")).toBeVisible();
-  await expect(paymentModal.getByText("Caleb — Aug Tuition")).toBeVisible();
+  await expect(
+    paymentModal.getByText(`Julia — ${juliaChargeLabel}`),
+  ).toBeVisible();
+  await expect(
+    paymentModal.getByText(`Caleb — ${calebChargeLabel}`),
+  ).toBeVisible();
   await expect(paymentModal.getByText("$720.00")).toHaveCount(2);
 
   await paymentModal.getByRole("button", { name: "Cancel" }).click();
