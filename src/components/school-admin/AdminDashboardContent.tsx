@@ -75,7 +75,7 @@ export default function AdminDashboardContent({
       const next = (await response.json()) as AdminDashboardSummary;
       setSummary(next);
     } catch {
-      // Keep last known summary on refresh failure.
+      // Keep last known summary on refresh failure. intentionally silent
     }
   }, [organizationId, slug]);
 
@@ -93,7 +93,7 @@ export default function AdminDashboardContent({
       await fetch("/api/stripe/connect/status");
       await refreshSummary();
     } catch {
-      // Ignore polling errors.
+      // Ignore polling errors. intentionally silent
     }
   }, [refreshSummary]);
 

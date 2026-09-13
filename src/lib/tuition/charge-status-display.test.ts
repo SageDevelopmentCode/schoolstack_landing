@@ -57,6 +57,26 @@ describe("formatParentChargeStatusBadge", () => {
     assert.equal(badge.label, "LATE FEE");
     assert.equal(badge.tone, "warning");
   });
+
+  it("returns WAIVED for waived tuition charges", () => {
+    const badge = formatParentChargeStatusBadge(
+      charge({ id: "c-1", status: "waived" }),
+    );
+    assert.equal(badge.label, "WAIVED");
+    assert.equal(badge.tone, "neutral");
+  });
+
+  it("returns WAIVED for waived late fee charges", () => {
+    const badge = formatParentChargeStatusBadge(
+      charge({
+        id: "c-1",
+        chargeType: "late_fee",
+        status: "waived",
+      }),
+    );
+    assert.equal(badge.label, "WAIVED");
+    assert.equal(badge.tone, "neutral");
+  });
 });
 
 describe("formatParentChargeDueLine", () => {
@@ -78,6 +98,17 @@ describe("formatParentChargeDueLine", () => {
       }),
     );
     assert.equal(line, "Paid Aug 1, 2026");
+  });
+
+  it("formats waived charges with waived date", () => {
+    const line = formatParentChargeDueLine(
+      charge({
+        id: "c-1",
+        status: "waived",
+        updatedAt: "2026-09-12T10:00:00.000Z",
+      }),
+    );
+    assert.equal(line, "Waived Sep 12, 2026");
   });
 });
 

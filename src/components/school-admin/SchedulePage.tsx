@@ -28,6 +28,7 @@ import { upcomingVisitCountFromVisits } from "@/lib/school-admin/schedule-page-m
 import { useScheduleVisitsContext } from "@/components/school-admin/schedule/schedule-visits-context";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type SchedulePageProps = {
   organizationId: string;
@@ -144,7 +145,18 @@ export default function SchedulePage({
           visit.applicationId,
         );
         setSelectedSubmission(submission);
-      } catch {
+      } catch (err) {
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "schedule.visit_submission.load",
+            error: "",
+            entityType: "application",
+            entityId: visit.applicationId,
+          },
+          err,
+        );
         setSelectedApplicationId(null);
       } finally {
         setLoadingSubmission(false);

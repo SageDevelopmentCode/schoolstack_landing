@@ -357,7 +357,7 @@ export async function listFamilyBillingSummaries(
     studentIds.length > 0
       ? supabase
           .from("enrollments")
-          .select("id, student_id, program_id, status")
+          .select("id, student_id, program_id, status, enrolled_at")
           .eq("organization_id", organizationId)
           .in("status", ["enrolled", "pending"])
           .in("student_id", studentIds)
@@ -367,6 +367,7 @@ export async function listFamilyBillingSummaries(
             student_id: string;
             program_id: string;
             status: string;
+            enrolled_at: string | null;
           }>,
           error: null,
         }),
@@ -435,6 +436,12 @@ export async function listFamilyBillingSummaries(
     (enrollments ?? []).map((e) => [
       String(e.id),
       String(e.status) as EnrollmentBillingStatus,
+    ]),
+  );
+  const enrollmentToEnrolledAt = new Map(
+    (enrollments ?? []).map((e) => [
+      String(e.id),
+      e.enrolled_at ? String(e.enrolled_at) : null,
     ]),
   );
   const ratePlanMap = new Map(
@@ -653,6 +660,7 @@ export async function listFamilyBillingSummaries(
         enrollmentId,
         studentName,
         enrollmentStatus: enrollmentToStatus.get(enrollmentId) ?? "enrolled",
+        enrolledAt: enrollmentToEnrolledAt.get(enrollmentId) ?? null,
         ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
         tierLabel:
           typeof assignment.rate_tier_id === "string"

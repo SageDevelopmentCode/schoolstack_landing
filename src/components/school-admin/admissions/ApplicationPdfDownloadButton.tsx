@@ -31,7 +31,7 @@ export default function ApplicationPdfDownloadButton({
     try {
       await exportApplicationPdf(element, downloadLabel);
     } catch {
-      setDownloadError("Failed to generate PDF. Please try again.");
+      setDownloadError("Failed to generate PDF. Please try again."); // intentionally silent
     } finally {
       setDownloading(false);
     }

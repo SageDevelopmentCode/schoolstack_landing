@@ -25,6 +25,7 @@ type ApplicationFileUploadFieldProps = {
   error?: string | null;
   previewSuffix?: string;
   C: AdminThemeTokens;
+  organizationId?: string;
   supabase?: SupabaseClient;
   removable?: boolean;
   onSelectFiles: (files: FileList) => void | Promise<void>;
@@ -50,6 +51,7 @@ export default function ApplicationFileUploadField({
   error = null,
   previewSuffix = "",
   C,
+  organizationId,
   supabase,
   removable = true,
   onSelectFiles,
@@ -166,6 +168,7 @@ export default function ApplicationFileUploadField({
           <ApplicationUploadedFileList
             files={files}
             C={C}
+            organizationId={organizationId}
             supabase={supabase}
             removable={showRemove}
             onRemove={onRemoveFile}

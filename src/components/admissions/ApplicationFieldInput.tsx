@@ -24,6 +24,7 @@ import {
 } from "@/lib/admissions/application-file-storage";
 import { formatPhoneNumberInput } from "@/lib/phone-format";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type ApplicationFieldInputProps = {
   field: ApplicationField;
@@ -163,6 +164,10 @@ export default function ApplicationFieldInput({
         );
       }
     } catch (err) {
+      reportApplyOperationalError(uploadContext?.organizationId, "apply.file.upload", err, {
+        entityType: "application",
+        entityId: uploadContext?.applicationId,
+      });
       setFileError(
         err instanceof Error ? err.message : "Failed to upload file.",
       );
@@ -180,6 +185,10 @@ export default function ApplicationFieldInput({
       try {
         await removeApplicationFile(supabase, target);
       } catch (err) {
+        reportApplyOperationalError(uploadContext?.organizationId, "apply.file.remove", err, {
+          entityType: "application",
+          entityId: uploadContext?.applicationId,
+        });
         setFileError(
           err instanceof Error ? err.message : "Failed to remove file.",
         );
@@ -296,6 +305,7 @@ export default function ApplicationFieldInput({
         error={displayError}
         previewSuffix={isPreview ? " (preview)" : ""}
         C={C}
+        organizationId={uploadContext?.organizationId}
         supabase={supabase}
         removable={!disabled}
         onSelectFiles={handleFileSelection}

@@ -41,6 +41,10 @@ import {
   type VariantResolutionMap,
   validateResolutionMap,
 } from "./enrollment-checklist-variants";
+import {
+  enrollmentEnrolledStatusPatch,
+  newEnrollmentAsEnrolledRow,
+} from "@/lib/admissions/enrollment-enrolled-at";
 import { tryAutoAssignTuitionForEnrollment } from "@/lib/tuition/enrollment-hook";
 
 const ENROLLED_STUDENT_STATUS = "active" as const;
@@ -403,7 +407,7 @@ async function directEnrollWithoutChecklist(
 
   const { data: existingEnrollment, error: existingEnrollmentError } = await supabase
     .from("enrollments")
-    .select("id, status")
+    .select("id, status, enrolled_at")
     .eq("student_id", studentId)
     .eq("program_id", programId)
     .maybeSingle();
@@ -427,7 +431,13 @@ async function directEnrollWithoutChecklist(
       enrollmentId = String(existingEnrollment.id);
       const { error: enrollmentUpdateError } = await supabase
         .from("enrollments")
-        .update({ status: "enrolled" })
+        .update(
+          enrollmentEnrolledStatusPatch(
+            existingEnrollment.enrolled_at
+              ? String(existingEnrollment.enrolled_at)
+              : null,
+          ),
+        )
         .eq("id", enrollmentId);
 
       if (enrollmentUpdateError) throw enrollmentUpdateError;
@@ -435,12 +445,13 @@ async function directEnrollWithoutChecklist(
   } else {
     const { data: enrollment, error: enrollmentError } = await supabase
       .from("enrollments")
-      .insert({
-        organization_id: application.organization_id,
-        student_id: studentId,
-        program_id: programId,
-        status: "enrolled",
-      })
+      .insert(
+        newEnrollmentAsEnrolledRow({
+          organization_id: String(application.organization_id),
+          student_id: studentId,
+          program_id: programId,
+        }),
+      )
       .select("id")
       .single();
 
@@ -1628,7 +1639,7 @@ async function finalizeEnrollmentIfComplete(
 
   const { data: enrollment, error: enrollmentError } = await supabase
     .from("enrollments")
-    .select("id, student_id, program_id, status, organization_id")
+    .select("id, student_id, program_id, status, organization_id, enrolled_at")
     .eq("id", enrollmentId)
     .maybeSingle();
 
@@ -1640,7 +1651,11 @@ async function finalizeEnrollmentIfComplete(
   if (enrollment.status !== "enrolled") {
     const { error: enrollmentUpdateError } = await supabase
       .from("enrollments")
-      .update({ status: "enrolled" })
+      .update(
+        enrollmentEnrolledStatusPatch(
+          enrollment.enrolled_at ? String(enrollment.enrolled_at) : null,
+        ),
+      )
       .eq("id", enrollmentId);
 
     if (enrollmentUpdateError) throw enrollmentUpdateError;

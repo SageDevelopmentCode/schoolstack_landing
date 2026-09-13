@@ -55,11 +55,13 @@ function ReadOnlyField({
   value,
   C,
   layout,
+  organizationId,
 }: {
   field: ApplicationField;
   value: string | undefined;
   C: ReturnType<typeof buildAdminThemeTokens>;
   layout: ReadOnlyLayout;
+  organizationId?: string;
 }) {
   const fileValue =
     field.type === "file" ? parseApplicationFileFieldValue(value ?? "") : [];
@@ -72,7 +74,11 @@ function ReadOnlyField({
   const answerContent =
     field.type === "file" ? (
       fileValue.length > 0 ? (
-        <ApplicationUploadedFileList files={fileValue} C={C} />
+        <ApplicationUploadedFileList
+          files={fileValue}
+          C={C}
+          organizationId={organizationId}
+        />
       ) : (
         "—"
       )
@@ -109,11 +115,13 @@ function ReadOnlySection({
   responses,
   C,
   layout,
+  organizationId,
 }: {
   section: ApplicationSection;
   responses: Record<string, string>;
   C: ReturnType<typeof buildAdminThemeTokens>;
   layout: ReadOnlyLayout;
+  organizationId?: string;
 }) {
   if (layout === "detail") {
     const visibleFields = section.fields.filter(
@@ -136,6 +144,7 @@ function ReadOnlySection({
                 value={responses[field.id]}
                 C={C}
                 layout={layout}
+                organizationId={organizationId}
               />
             </div>
           ))}
@@ -164,7 +173,13 @@ function ReadOnlySection({
                 : "sm:col-span-1"
             }
           >
-            <ReadOnlyField field={field} value={responses[field.id]} C={C} layout={layout} />
+            <ReadOnlyField
+              field={field}
+              value={responses[field.id]}
+              C={C}
+              layout={layout}
+              organizationId={organizationId}
+            />
           </div>
         ))}
       </dl>
@@ -246,6 +261,7 @@ function ReadOnlyContent({
   layout,
   view = "full",
   sectionId,
+  organizationId,
 }: {
   schema: ApplicationFormSchema;
   responses: Record<string, string>;
@@ -255,13 +271,20 @@ function ReadOnlyContent({
   layout: ReadOnlyLayout;
   view?: "full" | "section" | "acknowledgments";
   sectionId?: string;
+  organizationId?: string;
 }) {
   if (view === "section") {
     const section = schema.sections.find((entry) => entry.id === sectionId);
     if (!section) return null;
 
     return (
-      <ReadOnlySection section={section} responses={responses} C={C} layout={layout} />
+      <ReadOnlySection
+        section={section}
+        responses={responses}
+        C={C}
+        layout={layout}
+        organizationId={organizationId}
+      />
     );
   }
 
@@ -286,6 +309,7 @@ function ReadOnlyContent({
           responses={responses}
           C={C}
           layout={layout}
+          organizationId={organizationId}
         />
       ))}
       <ReadOnlyAcknowledgments
@@ -397,6 +421,7 @@ function ApplicationReadOnlyBody({
           layout={layout}
           view={view}
           sectionId={sectionId}
+          organizationId={organizationId}
         />
       </div>
     </>

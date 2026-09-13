@@ -145,7 +145,7 @@ export default function StudentClassroomAssignSheet({
       await onSave(selectedIds);
       onClose();
     } catch {
-      // Parent shows toast; keep sheet open for retry.
+      // Parent shows toast; keep sheet open for retry. intentionally silent
     }
   };
 

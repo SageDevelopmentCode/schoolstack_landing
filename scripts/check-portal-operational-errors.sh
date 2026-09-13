@@ -8,6 +8,8 @@ PATTERN_DIRS=(
   "src/components/school-parent"
   "src/components/school-teacher"
   "src/components/school-admin"
+  "src/components/school-events"
+  "src/components/admissions"
   "src/components/classroom-signups"
   "src/components/messages/MessagesInboxLayout.tsx"
 )
@@ -16,6 +18,7 @@ EXCLUDE_FILES=(
   "SchoolAdminLoginForm.tsx"
   "SchoolTeacherLoginForm.tsx"
   "ParentHomePage.tsx"
+  "ParentPortalSignIn.tsx"
 )
 
 failures=0
@@ -38,7 +41,7 @@ check_file() {
     return
   fi
 
-  if ! grep -qE 'catch[[:space:]]*(\(|[a-zA-Z_][a-zA-Z0-9_]*)' "$file"; then
+  if ! grep -qE 'catch[[:space:]]*(\(|\{|[a-zA-Z_])' "$file"; then
     return
   fi
 
@@ -46,7 +49,7 @@ check_file() {
     return
   fi
 
-  if grep -q 'reportPortalOperationalError\|reportClientOperationalError\|reportPublicApplyOperationalError\|reportEnrollmentChecklistError' "$file"; then
+  if grep -qE 'reportPortalOperationalError|reportClientOperationalError|reportPublicApplyOperationalError|reportApplyOperationalError|reportEnrollmentChecklistError' "$file"; then
     return
   fi
 

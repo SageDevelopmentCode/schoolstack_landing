@@ -124,6 +124,7 @@ export async function createOrganizationEvent(
   supabase: SupabaseClient,
   organizationId: string,
   input: CreateOrganizationEventInput,
+  actor?: { userId?: string | null; name?: string | null },
 ): Promise<OrganizationEvent> {
   const isAllDay = input.isAllDay ?? !input.time;
 
@@ -153,6 +154,8 @@ export async function createOrganizationEvent(
     eventId: event.id,
     title: event.title,
     programId: event.programId ?? null,
+    actorUserId: actor?.userId ?? null,
+    actorName: actor?.name ?? null,
   });
 
   return event;

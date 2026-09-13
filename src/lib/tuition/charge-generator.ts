@@ -8,6 +8,7 @@ import { computeAdjustedAmountCents } from "./pricing";
 import {
   assignmentNeedsPaymentPlanSelection,
   computeInstallmentAmountCents,
+  ensureAssignmentBillingStart,
   isEnrollmentEnrolled,
   resolveAssignmentTier,
 } from "./assignments";
@@ -16,6 +17,7 @@ import {
   buildInstallmentSchedule,
   formatBillingStartDate,
   isDueDateBeforeBillingStart,
+  normalizeBillingStartForSchedule,
   tuitionLabelForDueDate,
 } from "./billing-start";
 import type {
@@ -144,6 +146,94 @@ export function buildChargeDrafts(input: {
   return drafts;
 }
 
+export type PaidChargeRemapRow = {
+  id: string;
+  dueDate: string;
+  installmentNumber: number | null;
+  guardianId: string | null;
+  status: string;
+};
+
+export type PaidChargeRemapUpdate = {
+  id: string;
+  dueDate: string;
+  installmentNumber: number;
+  label: string;
+};
+
+function paidChargeGuardianKey(guardianId: string | null): string {
+  return guardianId ?? "family";
+}
+
+function paidChargeSlotKey(guardianKey: string, dueDate: string): string {
+  return `${guardianKey}:${dueDate}`;
+}
+
+export function remapPaidChargesForBillingStart(input: {
+  billingStart: string;
+  schedule: Array<{ dueDate: string; installmentNumber: number; label: string }>;
+  charges: PaidChargeRemapRow[];
+  guardianNames: GuardianNameMap;
+}): PaidChargeRemapUpdate[] {
+  const scheduleByDueDate = new Map(
+    input.schedule.map((installment) => [installment.dueDate, installment]),
+  );
+
+  const paidTuition = input.charges
+    .filter(
+      (charge) =>
+        charge.status === "paid" || charge.status === "waived",
+    )
+    .sort((left, right) => {
+      const dueCompare = left.dueDate.localeCompare(right.dueDate);
+      if (dueCompare !== 0) return dueCompare;
+      return (left.installmentNumber ?? 0) - (right.installmentNumber ?? 0);
+    });
+
+  const usedSlots = new Set<string>();
+  const updates: PaidChargeRemapUpdate[] = [];
+
+  for (const charge of paidTuition) {
+    const guardianKey = paidChargeGuardianKey(charge.guardianId);
+    const firstName = charge.guardianId
+      ? input.guardianNames.get(charge.guardianId)?.split(/\s+/)[0] ?? ""
+      : "";
+    const suffix = payerLabelSuffix(firstName);
+
+    const matching = scheduleByDueDate.get(charge.dueDate);
+    let target: { dueDate: string; installmentNumber: number; label: string } | null =
+      null;
+
+    if (
+      matching &&
+      !isDueDateBeforeBillingStart(charge.dueDate, input.billingStart) &&
+      !usedSlots.has(paidChargeSlotKey(guardianKey, matching.dueDate))
+    ) {
+      target = matching;
+    } else {
+      for (const installment of input.schedule) {
+        const slotKey = paidChargeSlotKey(guardianKey, installment.dueDate);
+        if (!usedSlots.has(slotKey)) {
+          target = installment;
+          break;
+        }
+      }
+    }
+
+    if (!target) continue;
+
+    usedSlots.add(paidChargeSlotKey(guardianKey, target.dueDate));
+    updates.push({
+      id: charge.id,
+      dueDate: target.dueDate,
+      installmentNumber: target.installmentNumber,
+      label: `${target.label}${suffix}`,
+    });
+  }
+
+  return updates;
+}
+
 export async function reconcileChargesForBillingStart(
   supabase: SupabaseClient,
   input: {
@@ -154,7 +244,12 @@ export async function reconcileChargesForBillingStart(
     guardianNames: GuardianNameMap;
   },
 ): Promise<void> {
-  const schedule = buildInstallmentSchedule(input.paymentPlan, input.billingStart);
+  const billingDay = input.paymentPlan.billingDayOfMonth ?? 1;
+  const billingStart = normalizeBillingStartForSchedule(
+    input.billingStart,
+    billingDay,
+  );
+  const schedule = buildInstallmentSchedule(input.paymentPlan, billingStart);
   if (schedule.length === 0) return;
 
   const { data: charges, error } = await supabase
@@ -170,7 +265,7 @@ export async function reconcileChargesForBillingStart(
   const openStatuses = new Set(["scheduled", "sent", "overdue"]);
   const beforeBillingStart = (charges ?? []).filter(
     (charge) =>
-      isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart),
+      isDueDateBeforeBillingStart(String(charge.due_date), billingStart),
   );
 
   const openBeforeStart = beforeBillingStart.filter(
@@ -190,90 +285,49 @@ export async function reconcileChargesForBillingStart(
     if (voidError) throw voidError;
   }
 
-  const paidBeforeStart = beforeBillingStart.filter(
-    (charge) =>
-      String(charge.charge_type) === "tuition" &&
-      (String(charge.status) === "paid" || String(charge.status) === "waived"),
-  );
+  const paidTuitionRows: PaidChargeRemapRow[] = (charges ?? [])
+    .filter((charge) => String(charge.charge_type) === "tuition")
+    .filter(
+      (charge) =>
+        String(charge.status) === "paid" || String(charge.status) === "waived",
+    )
+    .map((charge) => ({
+      id: String(charge.id),
+      dueDate: String(charge.due_date),
+      installmentNumber:
+        typeof charge.installment_number === "number"
+          ? charge.installment_number
+          : null,
+      guardianId:
+        typeof charge.guardian_id === "string" ? charge.guardian_id : null,
+      status: String(charge.status),
+    }));
 
-  const usedInstallments = new Set(
-    (charges ?? [])
-      .filter(
-        (charge) =>
-          String(charge.charge_type) === "tuition" &&
-          !isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart) &&
-          (String(charge.status) === "paid" || String(charge.status) === "waived"),
-      )
-      .map((charge) => {
-        const guardianKey =
-          typeof charge.guardian_id === "string" ? charge.guardian_id : "family";
-        return `${guardianKey}:${charge.installment_number}`;
-      }),
-  );
+  const remapUpdates = remapPaidChargesForBillingStart({
+    billingStart,
+    schedule,
+    charges: paidTuitionRows,
+    guardianNames: input.guardianNames,
+  });
 
-  for (const charge of paidBeforeStart) {
-    const guardianId =
-      typeof charge.guardian_id === "string" ? charge.guardian_id : null;
-    const guardianKey = guardianId ?? "family";
-    const firstName = guardianId
-      ? input.guardianNames.get(guardianId)?.split(/\s+/)[0] ?? ""
-      : "";
-    const suffix = payerLabelSuffix(firstName);
-
-    let target = schedule[0];
-    for (const installment of schedule) {
-      const key = `${guardianKey}:${installment.installmentNumber}`;
-      if (!usedInstallments.has(key)) {
-        target = installment;
-        break;
-      }
-    }
-
-    const label = `${target.label}${suffix}`;
-    const { error: updateError } = await supabase
-      .from("tuition_charges")
-      .update({
-        due_date: target.dueDate,
-        label,
-        installment_number: target.installmentNumber,
-      })
-      .eq("id", charge.id);
-
-    if (updateError) throw updateError;
-    usedInstallments.add(`${guardianKey}:${target.installmentNumber}`);
-  }
-
-  const scheduleByDueDate = new Map(
-    schedule.map((installment) => [installment.dueDate, installment]),
-  );
-  const paidOnOrAfterStart = (charges ?? []).filter(
-    (charge) =>
-      String(charge.charge_type) === "tuition" &&
-      !isDueDateBeforeBillingStart(String(charge.due_date), input.billingStart) &&
-      (String(charge.status) === "paid" || String(charge.status) === "waived"),
-  );
-
-  for (const charge of paidOnOrAfterStart) {
-    const target = scheduleByDueDate.get(String(charge.due_date));
-    if (!target || charge.installment_number === target.installmentNumber) {
+  for (const update of remapUpdates) {
+    const existing = paidTuitionRows.find((row) => row.id === update.id);
+    if (
+      existing &&
+      existing.dueDate === update.dueDate &&
+      existing.installmentNumber === update.installmentNumber
+    ) {
       continue;
     }
 
-    const guardianId =
-      typeof charge.guardian_id === "string" ? charge.guardian_id : null;
-    const firstName = guardianId
-      ? input.guardianNames.get(guardianId)?.split(/\s+/)[0] ?? ""
-      : "";
-    const suffix = payerLabelSuffix(firstName);
-    const label = `${target.label}${suffix}`;
-
     const { error: updateError } = await supabase
       .from("tuition_charges")
       .update({
-        label,
-        installment_number: target.installmentNumber,
+        due_date: update.dueDate,
+        label: update.label,
+        installment_number: update.installmentNumber,
       })
-      .eq("id", charge.id);
+      .eq("id", update.id);
 
     if (updateError) throw updateError;
   }
@@ -294,7 +348,7 @@ export async function regenerateFutureCharges(
   if (assignmentError) throw assignmentError;
   if (!assignment) throw new Error("Assignment not found");
 
-  const parsedAssignment = rowToAssignment(assignment);
+  let parsedAssignment = rowToAssignment(assignment);
   if (assignmentNeedsPaymentPlanSelection(parsedAssignment)) {
     return [];
   }
@@ -306,6 +360,8 @@ export async function regenerateFutureCharges(
   if (!enrolled) {
     return [];
   }
+
+  parsedAssignment = await ensureAssignmentBillingStart(supabase, parsedAssignment);
 
   const tier = await resolveAssignmentTier(supabase, parsedAssignment);
 
@@ -333,11 +389,17 @@ export async function regenerateFutureCharges(
 
   if (adjError) throw adjError;
 
-  const startDate = assignment.effective_start
-    ? new Date(`${assignment.effective_start}T00:00:00Z`)
-    : new Date();
-
   const paymentPlanRow = paymentPlan;
+  const billingDay =
+    typeof paymentPlanRow.billing_day_of_month === "number"
+      ? paymentPlanRow.billing_day_of_month
+      : 1;
+  const rawBillingStart = parsedAssignment.effectiveStart
+    ? parsedAssignment.effectiveStart
+    : formatBillingStartDate(new Date());
+  const billingStart = normalizeBillingStartForSchedule(rawBillingStart, billingDay);
+  const startDate = new Date(`${billingStart}T00:00:00Z`);
+
   const installmentCount = Number(paymentPlanRow.installment_count);
   const installmentAmountCents = tier
     ? computeInstallmentAmountCents(tier.amountCents, installmentCount)
@@ -405,10 +467,6 @@ export async function regenerateFutureCharges(
     billingSplits,
     guardianNames,
   );
-
-  const billingStart = assignment.effective_start
-    ? String(assignment.effective_start)
-    : formatBillingStartDate(startDate);
 
   await reconcileChargesForBillingStart(supabase, {
     assignmentId,

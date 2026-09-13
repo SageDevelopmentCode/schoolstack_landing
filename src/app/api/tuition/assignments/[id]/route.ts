@@ -8,6 +8,7 @@ import {
 import { isPaymentPlanAllowedForBillingStart } from "@/lib/tuition/billing-start";
 import {
   getAssignmentById,
+  shouldSetBillingStartLocked,
   updateAssignment,
 } from "@/lib/tuition/assignments";
 import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
@@ -144,14 +145,27 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
+    let metadata: typeof assignment.metadata | undefined;
+    if (body.paymentPlanId != null || body.effectiveStart !== undefined) {
+      metadata = { ...assignment.metadata };
+      if (body.paymentPlanId != null) {
+        metadata.pendingPaymentPlanSelection = false;
+      }
+      if (
+        shouldSetBillingStartLocked(
+          assignment.effectiveStart,
+          body.effectiveStart,
+        )
+      ) {
+        metadata.billingStartLocked = true;
+      }
+    }
+
     const updated = await updateAssignment(admin, assignmentId, {
       rateTierId: body.rateTierId,
       paymentPlanId: body.paymentPlanId,
       effectiveStart: body.effectiveStart,
-      metadata:
-        body.paymentPlanId != null
-          ? { pendingPaymentPlanSelection: false }
-          : undefined,
+      metadata,
     }, { context: schoolAdminActivityContext(user) });
 
     return NextResponse.json({ assignment: updated });

@@ -22,6 +22,11 @@ import {
   uploadGuardianProfilePhotoFromParent,
 } from "@/lib/guardians/upload-guardian-profile-photo-client";
 import { parentToast } from "@/lib/school-parent/parent-toast";
+import {
+  parseOperationalError,
+  reportPublicApplyOperationalError,
+  shouldReportApplyClientError,
+} from "@/lib/operational-errors-client";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 
@@ -123,6 +128,17 @@ export default function ApplyPortalNavbar({
         setProfilePhotoUrl(nextUrl);
         parentToast.success("Profile photo updated.");
       } catch (error) {
+        if (organizationId && shouldReportApplyClientError(error)) {
+          const parsed = parseOperationalError(error);
+          void reportPublicApplyOperationalError({
+            organizationId,
+            operation: "apply.profile_photo.upload",
+            error: parsed.message,
+            code: parsed.code,
+            details: parsed.details,
+            notify: true,
+          });
+        }
         parentToast.error(
           error instanceof GuardianProfilePhotoClientError
             ? error.message

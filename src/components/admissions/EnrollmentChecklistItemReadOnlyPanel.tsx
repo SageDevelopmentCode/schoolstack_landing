@@ -35,9 +35,11 @@ import {
 import { greatVibes } from "@/lib/fonts";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
+import { reportEnrollmentChecklistError } from "@/lib/admissions/enrollment-checklist-errors";
 
 type EnrollmentChecklistItemReadOnlyPanelProps = {
   C: AdminThemeTokens;
+  organizationId?: string;
   item: EnrollmentChecklistItem;
   instance?: EnrollmentChecklistItemInstance;
 };
@@ -46,10 +48,12 @@ function ReadOnlyField({
   field,
   value,
   C,
+  organizationId,
 }: {
   field: ApplicationField;
   value: string | undefined;
   C: AdminThemeTokens;
+  organizationId?: string;
 }) {
   const fileValue = field.type === "file" ? parseApplicationFileFieldValue(value ?? "") : [];
 
@@ -68,7 +72,11 @@ function ReadOnlyField({
           <div style={{ color: C.textPrimary }}>
             {field.type === "file" ? (
               fileValue.length > 0 ? (
-                <ApplicationUploadedFileList files={fileValue} C={C} />
+                <ApplicationUploadedFileList
+                  files={fileValue}
+                  C={C}
+                  organizationId={organizationId}
+                />
               ) : (
                 "—"
               )
@@ -235,10 +243,14 @@ function DocumentSignInlineReadOnly({
 
 function DocumentSignPdfReadOnly({
   C,
+  organizationId,
+  instanceId,
   item,
   responses,
 }: {
   C: AdminThemeTokens;
+  organizationId?: string;
+  instanceId?: string;
   item: EnrollmentChecklistItem;
   responses: Record<string, unknown>;
 }) {
@@ -274,6 +286,11 @@ function DocumentSignPdfReadOnly({
       })
       .catch((err) => {
         if (!cancelled) {
+          reportEnrollmentChecklistError(
+            { organizationId, instanceId },
+            "enrollment_checklist.pdf_signed_url",
+            err,
+          );
           setLoadError(err instanceof Error ? err.message : "Failed to load PDF.");
           setLoading(false);
         }
@@ -282,7 +299,7 @@ function DocumentSignPdfReadOnly({
     return () => {
       cancelled = true;
     };
-  }, [pdfDocument?.storagePath, supabase]);
+  }, [instanceId, organizationId, pdfDocument?.storagePath, supabase]);
 
   if (!pdfDocument?.storagePath) {
     return (
@@ -341,10 +358,12 @@ function DocumentSignPdfReadOnly({
 
 function FormReadOnly({
   C,
+  organizationId,
   item,
   responses,
 }: {
   C: AdminThemeTokens;
+  organizationId?: string;
   item: EnrollmentChecklistItem;
   responses: Record<string, unknown>;
 }) {
@@ -397,6 +416,7 @@ function FormReadOnly({
                   field={field}
                   value={entry.values[field.id]}
                   C={C}
+                  organizationId={organizationId}
                 />
               ))}
             </dl>
@@ -419,7 +439,13 @@ function FormReadOnly({
       ) : null}
       <dl className="grid gap-4 sm:grid-cols-2">
         {fields.map((field) => (
-          <ReadOnlyField key={field.id} field={field} value={values[field.id]} C={C} />
+          <ReadOnlyField
+            key={field.id}
+            field={field}
+            value={values[field.id]}
+            C={C}
+            organizationId={organizationId}
+          />
         ))}
       </dl>
     </div>
@@ -428,9 +454,11 @@ function FormReadOnly({
 
 function FileUploadReadOnly({
   C,
+  organizationId,
   responses,
 }: {
   C: AdminThemeTokens;
+  organizationId?: string;
   responses: Record<string, unknown>;
 }) {
   const files = parseChecklistFileResponses(responses);
@@ -439,7 +467,7 @@ function FileUploadReadOnly({
     return <EmptySubmissionNote C={C} message="No files uploaded yet." />;
   }
 
-  return <ApplicationUploadedFileList files={files} C={C} />;
+  return <ApplicationUploadedFileList files={files} C={C} organizationId={organizationId} />;
 }
 
 function PaymentReadOnly({
@@ -526,6 +554,7 @@ function AcknowledgmentReadOnly({
 
 export default function EnrollmentChecklistItemReadOnlyPanel({
   C,
+  organizationId,
   item,
   instance,
 }: EnrollmentChecklistItemReadOnlyPanelProps) {
@@ -544,15 +573,21 @@ export default function EnrollmentChecklistItemReadOnlyPanel({
 
       {item.type === "document_sign_pdf" ||
       (item.type === "document_sign" && item.document?.kind === "pdf") ? (
-        <DocumentSignPdfReadOnly C={C} item={item} responses={responses} />
+        <DocumentSignPdfReadOnly
+          C={C}
+          organizationId={organizationId}
+          instanceId={instance?.id}
+          item={item}
+          responses={responses}
+        />
       ) : null}
 
       {item.type === "form" ? (
-        <FormReadOnly C={C} item={item} responses={responses} />
+        <FormReadOnly C={C} organizationId={organizationId} item={item} responses={responses} />
       ) : null}
 
       {item.type === "file_upload" ? (
-        <FileUploadReadOnly C={C} responses={responses} />
+        <FileUploadReadOnly C={C} organizationId={organizationId} responses={responses} />
       ) : null}
 
       {item.type === "payment" ? (

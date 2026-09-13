@@ -3,9 +3,11 @@ import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { TEST_ORG_SLUG } from "../helpers/constants";
 
 async function expectTeacherLoginRedirect(page: Page) {
-  await expect(page).toHaveURL(
-    new RegExp(`/school/${TEST_ORG_SLUG}/teacher/dashboard`),
+  const teacherDashboardRegex = new RegExp(
+    `/school/${TEST_ORG_SLUG}/teacher/dashboard`,
   );
+  await page.waitForURL(teacherDashboardRegex, { timeout: 15_000 });
+  await expect(page).toHaveURL(teacherDashboardRegex);
   await expect(
     page.getByRole("heading", {
       name: /^Good (morning|afternoon|evening), E2E/i,

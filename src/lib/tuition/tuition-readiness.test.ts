@@ -29,6 +29,7 @@ function assignment(
     enrollmentId: "enrollment-1",
     studentName: "Test Child",
     enrollmentStatus: "enrolled",
+    enrolledAt: null,
     ratePlanName: "School Year 2026–27",
     tierLabel: "Standard",
     paymentPlanLabel: "4 payments",
@@ -265,5 +266,19 @@ describe("assignTuitionLabel", () => {
 
   it("uses plural copy for multiple students", () => {
     assert.equal(assignTuitionLabel(2), "Assign tuition to 2 students");
+  });
+});
+
+describe("FamilyAssignmentSummary enrolledAt", () => {
+  it("carries enroll-complete timestamp when set", () => {
+    const summary = assignment({
+      enrolledAt: "2026-08-28T12:00:00Z",
+    });
+    assert.equal(summary.enrolledAt, "2026-08-28T12:00:00Z");
+  });
+
+  it("defaults to null for pending enrollments", () => {
+    const summary = assignment({ enrolledAt: null });
+    assert.equal(summary.enrolledAt, null);
   });
 });

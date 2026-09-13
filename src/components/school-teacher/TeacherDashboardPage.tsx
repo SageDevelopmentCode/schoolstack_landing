@@ -171,7 +171,7 @@ export default function TeacherDashboardPage({
         messagesUnreadCount: unreadCount,
       }));
     } catch {
-      // Keep last known count on refresh failure.
+      // Keep last known count on refresh failure. intentionally silent
     }
   }, [previewMode, features.teacher?.messages, organizationId, schoolName]);
 

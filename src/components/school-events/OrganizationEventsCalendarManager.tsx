@@ -24,13 +24,15 @@ import {
 } from "@/lib/school-events/calendar-time";
 import { getDefaultColorKeyForType } from "@/lib/school-events/event-labels";
 import {
-  createOrganizationEvent,
-  deleteOrganizationEvent,
-  listEventsForOrg,
-  updateOrganizationEvent,
-} from "@/lib/school-events/events";
+  createOrganizationEventViaApi,
+  deleteOrganizationEventViaApi,
+  schoolEventApiErrorStatus,
+  updateOrganizationEventViaApi,
+} from "@/lib/school-events/event-api";
+import { listEventsForOrg } from "@/lib/school-events/events";
 import { formatOrganizationEventAudienceLabel } from "@/lib/school-events/event-audience";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { listPrograms, type ProgramOption } from "@/lib/admissions/programs";
 import { createClient } from "@/utils/supabase/client";
 
@@ -75,6 +77,24 @@ export default function OrganizationEventsCalendarManager({
 }: OrganizationEventsCalendarManagerProps) {
   const supabase = useMemo(() => createClient(), []);
   const toasts = useEventToasts(toastVariant);
+  const reportingSurface =
+    toastVariant === "admin" ? "school_admin" : "teacher_portal";
+
+  const reportCalendarError = useCallback(
+    (operation: string, err: unknown) => {
+      const status = schoolEventApiErrorStatus(err);
+      if (status !== undefined && status >= 500) {
+        return;
+      }
+      void reportPortalOperationalError(
+        reportingSurface,
+        { organizationId, operation, error: "" },
+        err,
+        status,
+      );
+    },
+    [organizationId, reportingSurface],
+  );
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<CalendarViewMode>("month");
@@ -100,11 +120,12 @@ export default function OrganizationEventsCalendarManager({
       const rows = await listEventsForOrg(supabase, organizationId);
       setEvents(rows);
     } catch (err) {
+      reportCalendarError("school_events.load", err);
       toasts.error(err, "Failed to load events.");
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase, toasts]);
+  }, [organizationId, reportCalendarError, supabase, toasts]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -118,14 +139,15 @@ export default function OrganizationEventsCalendarManager({
       try {
         const rows = await listPrograms(supabase, organizationId);
         if (!cancelled) setProgramOptions(rows);
-      } catch {
+      } catch (err) {
+        reportCalendarError("calendar.programs.load", err);
         if (!cancelled) setProgramOptions([]);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [organizationId, supabase]);
+  }, [organizationId, reportCalendarError, supabase]);
 
   useEffect(() => {
     onLoadingChange?.(loading);
@@ -194,7 +216,7 @@ export default function OrganizationEventsCalendarManager({
       };
 
       if (editingEventId) {
-        await updateOrganizationEvent(supabase, editingEventId, {
+        await updateOrganizationEventViaApi(organizationId, editingEventId, {
           ...payload,
           time: form.isAllDay ? null : form.time || null,
           endTime: form.isAllDay ? null : endTime || null,
@@ -205,13 +227,17 @@ export default function OrganizationEventsCalendarManager({
         });
         toasts.success("Event updated");
       } else {
-        await createOrganizationEvent(supabase, organizationId, payload);
+        await createOrganizationEventViaApi(organizationId, payload);
         toasts.success("Event added");
       }
 
       setFormOpen(false);
       await loadEvents();
     } catch (err) {
+      reportCalendarError(
+        editingEventId ? "school_events.update" : "school_events.create",
+        err,
+      );
       toasts.error(
         err,
         editingEventId ? "Failed to update event." : "Failed to add event.",
@@ -224,11 +250,12 @@ export default function OrganizationEventsCalendarManager({
   const handleDelete = async (eventId: string) => {
     if (interactionsDisabled) return;
     try {
-      await deleteOrganizationEvent(supabase, eventId);
+      await deleteOrganizationEventViaApi(organizationId, eventId);
       setSelectedEventId(null);
       await loadEvents();
       toasts.success("Event deleted");
     } catch (err) {
+      reportCalendarError("school_events.delete", err);
       toasts.error(err, "Failed to delete event.");
     }
   };

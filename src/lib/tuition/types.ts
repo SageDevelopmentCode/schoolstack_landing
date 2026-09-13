@@ -97,6 +97,8 @@ export type TuitionBillingAccount = {
 
 export type TuitionAssignmentMetadata = {
   pendingPaymentPlanSelection?: boolean;
+  /** Admin manually set billing start; skip auto-recompute from enrolled_at. */
+  billingStartLocked?: boolean;
 };
 
 export type TuitionEnrollmentAssignment = {
@@ -122,6 +124,8 @@ export type FamilyAssignmentSummary = {
   enrollmentId: string;
   studentName: string | null;
   enrollmentStatus: EnrollmentBillingStatus;
+  /** Enroll-complete timestamp; null while checklist is still pending. */
+  enrolledAt: string | null;
   ratePlanName: string;
   tierLabel: string | null;
   paymentPlanLabel: string;

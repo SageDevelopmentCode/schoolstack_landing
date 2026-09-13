@@ -29,6 +29,7 @@ import ApplyProgramSelectStep, {
   type ApplyProgramOption,
 } from "@/components/admissions/ApplyProgramSelectStep";
 import { createClient } from "@/utils/supabase/client";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 const AuthGatePromoPanelLazy = dynamic(
   () =>
@@ -365,7 +366,11 @@ export default function ApplicationAuthGate({
     };
 
     if (!response.ok) {
-      throw new Error(payload.error ?? "Failed to set up your application.");
+      const error = Object.assign(
+        new Error(payload.error ?? "Failed to set up your application."),
+        { status: response.status },
+      );
+      throw error;
     }
 
     if (payload.action === "redirect_apply_dashboard") {
@@ -409,6 +414,12 @@ export default function ApplicationAuthGate({
         onComplete();
       }
     } catch (error) {
+      reportApplyOperationalError(organizationId, "apply.applicant_bootstrap", error, {
+        responseStatus:
+          error && typeof error === "object" && "status" in error
+            ? Number((error as { status: number }).status)
+            : undefined,
+      });
       setAuthError(
         error instanceof Error
           ? error.message
@@ -470,8 +481,6 @@ export default function ApplicationAuthGate({
       if (verifyError) {
         throw new Error(verifyError.message);
       }
-
-      await continueAfterAuth();
     } catch (error) {
       reportAuthOtpFailed({
         email: email.trim().toLowerCase(),
@@ -485,6 +494,22 @@ export default function ApplicationAuthGate({
       });
       setAuthError(
         error instanceof Error ? error.message : "Verification failed. Please try again.",
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await continueAfterAuth();
+    } catch (error) {
+      reportApplyOperationalError(organizationId, "apply.applicant_bootstrap", error, {
+        responseStatus:
+          error && typeof error === "object" && "status" in error
+            ? Number((error as { status: number }).status)
+            : undefined,
+      });
+      setAuthError(
+        error instanceof Error ? error.message : "Failed to set up your application.",
       );
     } finally {
       setIsSubmitting(false);

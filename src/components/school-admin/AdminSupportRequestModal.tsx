@@ -16,6 +16,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -237,19 +238,40 @@ export default function AdminSupportRequestModal({
             message = payload.error.trim();
           }
         } catch {
-          // ignore JSON parse errors
+          // ignore JSON parse errors. intentionally silent
         }
         setSubmitError(message);
         adminToast.error(message);
+        if (response.status < 500) {
+          void reportPortalOperationalError(
+            "school_admin",
+            {
+              organizationId,
+              operation: "support_request.submit",
+              error: message,
+            },
+            new Error(message),
+            response.status,
+          );
+        }
         return;
       }
 
       setSubmitted(true);
       adminToast.success("Support request submitted");
-    } catch {
+    } catch (err) {
       const message = "Failed to submit your request. Please try again.";
       setSubmitError(message);
       adminToast.error(message);
+      void reportPortalOperationalError(
+        "school_admin",
+        {
+          organizationId,
+          operation: "support_request.submit",
+          error: message,
+        },
+        err,
+      );
     } finally {
       setSubmitting(false);
     }

@@ -4,6 +4,7 @@ import { Clock, Search, UserCheck } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import { formatDueDateLabel } from "@/components/school-admin/tuition/PaymentSchedulePreviewPanel";
 import { familyStatusLabel } from "@/components/school-admin/tuition/tuition-family-status";
 import { adminApplicationStatusLabel } from "@/lib/admissions/application-status-ui";
 import {
@@ -135,16 +136,35 @@ export function enrollmentStatusChipTone(
   return "warning";
 }
 
+function formatEnrolledAtLabel(enrolledAt: string): string {
+  const dateOnly = enrolledAt.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+    return formatDueDateLabel(dateOnly);
+  }
+  const parsed = new Date(enrolledAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return enrolledAt;
+  }
+  return formatDueDateLabel(parsed.toISOString().slice(0, 10));
+}
+
 export function EnrollmentStatusChip({
   status,
   theme,
+  enrolledAt,
 }: {
   status: EnrollmentBillingStatus;
   theme: ParentThemeTokens;
+  enrolledAt?: string | null;
 }) {
+  const label =
+    status === "enrolled" && enrolledAt
+      ? `${formatEnrollmentStatusLabel(status)} ${formatEnrolledAtLabel(enrolledAt)}`
+      : formatEnrollmentStatusLabel(status);
+
   return (
     <AdminChip theme={theme} tone={enrollmentStatusChipTone(status)}>
-      {formatEnrollmentStatusLabel(status)}
+      {label}
     </AdminChip>
   );
 }

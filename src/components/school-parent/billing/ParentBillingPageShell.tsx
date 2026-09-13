@@ -56,10 +56,16 @@ export default function ParentBillingPageShell({
   );
 
   const staticPreview = previewMode && initialPreviewData;
+  const billingPageKey = staticPreview
+    ? `preview-${familyId}`
+    : billingHydrated
+      ? `live-${familyId}`
+      : `live-${familyId}-pending`;
 
   return (
     <ParentBillingPageContext.Provider value={contextValue}>
       <ParentBillingPage
+        key={billingPageKey}
         organizationId={organizationId}
         familyId={familyId}
         branding={branding}

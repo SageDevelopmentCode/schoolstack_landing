@@ -12,9 +12,11 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import { formatSelectedDate, MONTH_NAMES } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type AdmissionsDateTimePickerProps = {
   C: AdminThemeTokens;
+  organizationId?: string;
   applicationId?: string;
   actionId?: string;
   availabilityEndpointBuilder?: (start: string, end: string) => string;
@@ -37,6 +39,7 @@ function monthDateRange(year: number, month: number): { start: string; end: stri
 
 export default function AdmissionsDateTimePicker({
   C,
+  organizationId,
   applicationId,
   actionId,
   availabilityEndpointBuilder,
@@ -90,8 +93,10 @@ export default function AdmissionsDateTimePicker({
       ? availabilityEndpointBuilder(start, end)
       : `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`;
 
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(endpoint);
+      responseStatus = response.status;
       const payload = (await response.json()) as {
         mode?: string;
         availability?: Record<string, string[]>;
@@ -108,12 +113,17 @@ export default function AdmissionsDateTimePicker({
         setAvailabilitySlots(payload.availability ?? {});
       }
     } catch (err) {
+      reportApplyOperationalError(organizationId, "admissions.availability.load", err, {
+        responseStatus,
+        entityType: applicationId ? "application" : undefined,
+        entityId: applicationId,
+      });
       setAvailabilitySlots({});
       setError(err instanceof Error ? err.message : "Failed to load availability.");
     } finally {
       setLoading(false);
     }
-  }, [actionId, applicationId, availabilityEndpointBuilder, viewMonth, viewYear]);
+  }, [actionId, applicationId, availabilityEndpointBuilder, organizationId, viewMonth, viewYear]);
 
   useEffect(() => {
     queueMicrotask(() => {

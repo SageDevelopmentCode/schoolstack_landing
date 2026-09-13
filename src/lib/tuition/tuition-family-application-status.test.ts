@@ -23,6 +23,36 @@ describe("familyHasWithdrawnApplication", () => {
     );
   });
 
+  it("returns false when a sibling application is still enrolling", () => {
+    assert.equal(
+      familyHasWithdrawnApplication([
+        { status: "withdrawn" },
+        { status: "enrolling" },
+      ]),
+      false,
+    );
+  });
+
+  it("returns false when a sibling application is accepted", () => {
+    assert.equal(
+      familyHasWithdrawnApplication([
+        { status: "withdrawn" },
+        { status: "accepted" },
+      ]),
+      false,
+    );
+  });
+
+  it("returns true when withdrawn is paired only with declined siblings", () => {
+    assert.equal(
+      familyHasWithdrawnApplication([
+        { status: "withdrawn" },
+        { status: "declined" },
+      ]),
+      true,
+    );
+  });
+
   it("returns false for pending applications only", () => {
     assert.equal(
       familyHasWithdrawnApplication([{ status: "submitted" }]),

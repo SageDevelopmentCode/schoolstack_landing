@@ -372,6 +372,7 @@ export default function ApplicationSubmissionDetailPanel({
 
           <ApplicationSubmissionPostSubmitSection
             C={C}
+            organizationId={organizationId}
             applicationId={submission.id}
             steps={detail.postSubmitSteps}
             onStepUpdated={() => {

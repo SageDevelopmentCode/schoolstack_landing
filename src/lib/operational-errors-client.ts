@@ -100,6 +100,33 @@ export function shouldReportApplyClientError(
   return shouldReportPortalClientError(err, responseStatus);
 }
 
+export function reportApplyOperationalError(
+  organizationId: string | undefined,
+  operation: string,
+  err: unknown,
+  options?: {
+    responseStatus?: number;
+    entityType?: string;
+    entityId?: string;
+  },
+): void {
+  if (!organizationId || !shouldReportApplyClientError(err, options?.responseStatus)) {
+    return;
+  }
+
+  const parsed = parseOperationalError(err);
+  void reportPublicApplyOperationalError({
+    organizationId,
+    operation,
+    error: parsed.message,
+    code: parsed.code,
+    details: parsed.details,
+    entityType: options?.entityType,
+    entityId: options?.entityId,
+    notify: true,
+  });
+}
+
 export function shouldReportPortalClientError(
   err: unknown,
   responseStatus?: number,

@@ -18,6 +18,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 type ApplyRequiredActionsSectionProps = {
   theme: ParentThemeTokens;
   adminCompat: AdminThemeTokens;
+  organizationId?: string;
   timezone: string;
   applications: FamilyApplication[];
   onBooked: () => void;
@@ -43,6 +44,7 @@ function hasPendingRequired(application: FamilyApplication): boolean {
 export default function ApplyRequiredActionsSection({
   theme,
   adminCompat,
+  organizationId,
   timezone,
   applications,
   onBooked,
@@ -152,6 +154,7 @@ export default function ApplyRequiredActionsSection({
       {bookingTarget ? (
         <PostSubmitBookingModal
           C={adminCompat}
+          organizationId={organizationId}
           applicationId={bookingTarget.applicationId}
           task={bookingTarget.task}
           timezone={timezone}

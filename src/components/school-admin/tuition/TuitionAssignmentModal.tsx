@@ -160,14 +160,25 @@ export default function TuitionAssignmentModal({
     setSaving(true);
     setError(null);
     try {
+      const patchBody: {
+        rateTierId: string | null;
+        paymentPlanId: string;
+        effectiveStart?: string | null;
+      } = {
+        rateTierId: rateTierId || null,
+        paymentPlanId,
+      };
+      if (
+        savedSnapshot != null &&
+        billingStart !== savedSnapshot.billingStart
+      ) {
+        patchBody.effectiveStart = billingStart || null;
+      }
+
       const response = await fetch(`/api/tuition/assignments/${assignmentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rateTierId: rateTierId || null,
-          paymentPlanId,
-          effectiveStart: billingStart || null,
-        }),
+        body: JSON.stringify(patchBody),
       });
       if (!response.ok) {
         const body = (await response.json()) as { error?: string };

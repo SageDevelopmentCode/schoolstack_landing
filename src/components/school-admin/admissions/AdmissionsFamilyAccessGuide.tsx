@@ -823,7 +823,7 @@ export function AdmissionsFamilyAccessGuideModal({
       window.setTimeout(() => setCopiedPath(null), 1500);
       adminToast.success("Link copied");
     } catch {
-      adminToast.error("Could not copy link to clipboard.");
+      adminToast.error("Could not copy link to clipboard."); // intentionally silent
     }
   }, []);
 

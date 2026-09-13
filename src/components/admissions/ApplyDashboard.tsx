@@ -513,6 +513,7 @@ export default function ApplyDashboard({
           <ApplyRequiredActionsSection
             theme={theme}
             adminCompat={adminCompat}
+            organizationId={organizationId}
             timezone={timezone}
             applications={applicationsWithTasks}
             onBooked={() => router.refresh()}

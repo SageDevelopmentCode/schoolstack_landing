@@ -12,9 +12,11 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import { MONTH_NAMES } from "@/lib/demo-scheduler";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type AdmissionsDatePickerProps = {
   C: AdminThemeTokens;
+  organizationId?: string;
   applicationId: string;
   actionId: string;
   timezone: string;
@@ -35,6 +37,7 @@ function monthDateRange(year: number, month: number): { start: string; end: stri
 
 export default function AdmissionsDatePicker({
   C,
+  organizationId,
   applicationId,
   actionId,
   timezone,
@@ -62,23 +65,34 @@ export default function AdmissionsDatePicker({
       end,
     });
 
-    const response = await fetch(
-      `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
-    );
-    const payload = (await response.json()) as BookableAvailabilityResult & {
-      error?: string;
-    };
+    let responseStatus: number | undefined;
+    try {
+      const response = await fetch(
+        `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
+      );
+      responseStatus = response.status;
+      const payload = (await response.json()) as BookableAvailabilityResult & {
+        error?: string;
+      };
 
-    if (!response.ok) {
-      throw new Error(payload.error ?? "Failed to load availability.");
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Failed to load availability.");
+      }
+
+      if (payload.mode !== "whole_day") {
+        throw new Error("Unexpected availability mode.");
+      }
+
+      setBookableDates(new Set(payload.bookableDates));
+    } catch (err) {
+      reportApplyOperationalError(organizationId, "admissions.availability.load", err, {
+        responseStatus,
+        entityType: "application",
+        entityId: applicationId,
+      });
+      throw err;
     }
-
-    if (payload.mode !== "whole_day") {
-      throw new Error("Unexpected availability mode.");
-    }
-
-    setBookableDates(new Set(payload.bookableDates));
-  }, [actionId, applicationId, viewMonth, viewYear]);
+  }, [actionId, applicationId, organizationId, viewMonth, viewYear]);
 
   useEffect(() => {
     let cancelled = false;

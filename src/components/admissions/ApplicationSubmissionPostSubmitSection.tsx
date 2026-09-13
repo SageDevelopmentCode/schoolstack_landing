@@ -12,9 +12,11 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import { SITE_NAME } from "@/lib/site";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ApplicationSubmissionPostSubmitSectionProps = {
   C: AdminThemeTokens;
+  organizationId: string;
   applicationId: string;
   steps: AdminPostSubmitStep[];
   onStepUpdated?: () => void;
@@ -34,6 +36,7 @@ function formatBookingLabel(step: AdminPostSubmitStep): string {
 
 export default function ApplicationSubmissionPostSubmitSection({
   C,
+  organizationId,
   applicationId,
   steps,
   onStepUpdated,
@@ -45,6 +48,7 @@ export default function ApplicationSubmissionPostSubmitSection({
     if (!pendingAction) return;
 
     setSubmitting(true);
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/post-submit/complete`,
@@ -54,6 +58,7 @@ export default function ApplicationSubmissionPostSubmitSection({
           body: JSON.stringify({ actionId: pendingAction.step.actionId }),
         },
       );
+      responseStatus = response.status;
 
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -68,6 +73,20 @@ export default function ApplicationSubmissionPostSubmitSection({
       setPendingAction(null);
       onStepUpdated?.();
     } catch (error) {
+      if (responseStatus === undefined || responseStatus < 500) {
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "admissions.post_submit.update",
+            error: "",
+            entityType: "application",
+            entityId: applicationId,
+          },
+          error,
+          responseStatus,
+        );
+      }
       adminToast.error(formatActionError(error, "Failed to update post-application step."));
     } finally {
       setSubmitting(false);

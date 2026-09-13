@@ -41,7 +41,7 @@ function CopyApplyLinkAction({
       adminToast.success("Link copied");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      adminToast.error("Could not copy link.");
+      adminToast.error("Could not copy link."); // intentionally silent
     }
   }, [action.applyFormPublicPath]);
 

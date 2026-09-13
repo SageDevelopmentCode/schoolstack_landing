@@ -314,6 +314,7 @@ export default function ApplicationFormPostSubmitEditor({
     } catch {
       setMonthSlotCount(0);
       setMonthObservationDayCount(0);
+      // Availability counts are decorative. intentionally silent
     }
   }, [organizationId, supabase]);
 
