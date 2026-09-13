@@ -50,7 +50,17 @@ test("complete agreement routes to first unsigned section", async ({ page }) => 
   await page.goto(state.enrollmentHref);
 
   await expect(page.getByText("Section 3 of 3")).toBeVisible();
+  await expect(page.getByLabel(/Type your full legal name/)).toHaveValue("E2E Parent");
+
+  const saveSectionResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().includes("/api/admissions/enrollment-checklist-items/") &&
+      response.status() === 200,
+  );
   await page.getByRole("button", { name: "Complete agreement" }).click();
-  await expect(page.getByText("Section 1 of 3")).toBeVisible();
+  await saveSectionResponse;
+
   await expect(page.getByRole("heading", { name: "Tuition Summary" })).toBeVisible();
+  await expect(page.getByText("Section 1 of 3")).toBeVisible();
 });

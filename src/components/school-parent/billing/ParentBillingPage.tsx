@@ -363,6 +363,19 @@ function ParentBillingPageContent({
     }
   }, [familyId, guardianId, organizationId, previewMode, slug, supabase]);
 
+  useEffect(() => {
+    if (!initialData) return;
+
+    setAdjustments(initialData.adjustments);
+    setReadiness(initialData.readiness);
+    setFamilySummary(initialData.familySummary);
+    setAutopayEnabledState(initialData.autopayEnabled);
+    setSavedPaymentMethod(initialData.savedPaymentMethod);
+    setRecentAutopayFailure(initialData.recentAutopayFailure);
+    setInitialLoading(false);
+    hasLoadedBillingRef.current = true;
+  }, [initialData]);
+
   const fetchDeferredBillingLists = useCallback(async () => {
     if (previewMode || isProgramParentPortalPreviewFamilyId(familyId)) return;
 

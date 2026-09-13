@@ -8,6 +8,7 @@ import {
 import { isPaymentPlanAllowedForBillingStart } from "@/lib/tuition/billing-start";
 import {
   getAssignmentById,
+  shouldSetBillingStartLocked,
   updateAssignment,
 } from "@/lib/tuition/assignments";
 import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
@@ -150,7 +151,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       if (body.paymentPlanId != null) {
         metadata.pendingPaymentPlanSelection = false;
       }
-      if (body.effectiveStart !== undefined) {
+      if (
+        shouldSetBillingStartLocked(
+          assignment.effectiveStart,
+          body.effectiveStart,
+        )
+      ) {
         metadata.billingStartLocked = true;
       }
     }

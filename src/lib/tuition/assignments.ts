@@ -34,6 +34,15 @@ export function assignmentBillingStartLocked(
   return assignment.metadata.billingStartLocked === true;
 }
 
+/** True when a PATCH effectiveStart value is an explicit change from stored. */
+export function shouldSetBillingStartLocked(
+  storedEffectiveStart: string | null,
+  incomingEffectiveStart: string | null | undefined,
+): boolean {
+  if (incomingEffectiveStart === undefined) return false;
+  return (incomingEffectiveStart ?? null) !== (storedEffectiveStart ?? null);
+}
+
 /** Enroll-complete date for billing; null while enrollment is still pending. */
 export async function getBillingEnrollmentDate(
   supabase: SupabaseClient,
@@ -112,6 +121,11 @@ export async function ensureAssignmentBillingStart(
     return assignment;
   }
 
+  // Forward-only: fill missing starts or advance late joiners; never pull back admin delays.
+  if (normalizedExisting != null && billingStart <= normalizedExisting) {
+    return assignment;
+  }
+
   const { data, error } = await supabase
     .from("tuition_enrollment_assignments")
     .update({ effective_start: billingStart })
@@ -120,7 +134,28 @@ export async function ensureAssignmentBillingStart(
     .single();
 
   if (error) throw error;
-  return rowToAssignment(data);
+  const updated = rowToAssignment(data);
+
+  void logTuitionActivity(supabase, {
+    organizationId: assignment.organizationId,
+    action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED,
+    entityType: "tuition_enrollment_assignment",
+    entityId: assignment.id,
+    summary: "Recomputed billing start from enrollment date",
+    changeSummary: {
+      changedFields: ["effectiveStart"],
+      changes: [
+        `Billing start changed from ${assignment.effectiveStart ?? "unset"} to ${billingStart}`,
+      ],
+    },
+    metadata: {
+      enrollmentId: assignment.enrollmentId,
+      familyId: assignment.familyId,
+      billingStartRecomputed: true,
+    },
+  });
+
+  return updated;
 }
 
 export async function isEnrollmentEnrolled(
