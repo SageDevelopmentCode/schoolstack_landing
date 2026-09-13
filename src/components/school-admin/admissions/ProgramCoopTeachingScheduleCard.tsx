@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CoopTeachingScheduleFilterBar from "@/components/admissions/CoopTeachingScheduleFilterBar";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalendarDays, Loader2, Plus } from "lucide-react";
@@ -79,11 +79,14 @@ export default function ProgramCoopTeachingScheduleCard({
     DEFAULT_COOP_TEACHING_SCHEDULE_FILTERS,
   );
   const [prevProgramId, setPrevProgramId] = useState(programId);
+  const loadGenerationRef = useRef(0);
 
   if (programId !== prevProgramId) {
     setPrevProgramId(programId);
     setSelectedId(null);
     setPanelDirty(false);
+    setWeeks([]);
+    setEnrolledFamilies([]);
   }
 
   const scheduleContext = useMemo(
@@ -92,15 +95,21 @@ export default function ProgramCoopTeachingScheduleCard({
   );
 
   const loadSchedule = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
+    const requestedProgramId = programId;
     setLoading(true);
     try {
       const [result, families] = await Promise.all([
-        listProgramCoopTeachingSchedule(supabase, programId),
-        listProgramCoopEnrolledFamilies(supabase, organizationId, programId),
+        listProgramCoopTeachingSchedule(supabase, requestedProgramId),
+        listProgramCoopEnrolledFamilies(supabase, organizationId, requestedProgramId),
       ]);
+      if (generation !== loadGenerationRef.current) return;
       setWeeks(sortTeachingScheduleWeeks(result));
       setEnrolledFamilies(families);
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
+      setWeeks([]);
+      setEnrolledFamilies([]);
       adminToast.error(formatActionError(err, "Failed to load teaching schedule."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -108,7 +117,9 @@ export default function ProgramCoopTeachingScheduleCard({
         error: "",
       }, err);
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [organizationId, programId, supabase]);
 

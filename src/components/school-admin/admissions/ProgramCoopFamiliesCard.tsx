@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Loader2, Search } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -46,6 +46,13 @@ const TABLE_HEADINGS = [
   "Teaching",
   "Enrolled",
 ] as const;
+
+const EMPTY_COOP_FAMILIES_SUMMARY = {
+  familyCount: 0,
+  learnerCount: 0,
+  unassignedSupplyItemCount: 0,
+  unfilledTeachingWeekCount: 0,
+};
 
 function StoryFilterPill({
   active,
@@ -98,34 +105,38 @@ export default function ProgramCoopFamiliesCard({
   onNavigateTab,
 }: ProgramCoopFamiliesCardProps) {
   const [families, setFamilies] = useState<ProgramCoopFamilyAdminRow[]>([]);
-  const [summary, setSummary] = useState({
-    familyCount: 0,
-    learnerCount: 0,
-    unassignedSupplyItemCount: 0,
-    unfilledTeachingWeekCount: 0,
-  });
+  const [summary, setSummary] = useState(EMPTY_COOP_FAMILIES_SUMMARY);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<ProgramCoopFamiliesFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [prevProgramId, setPrevProgramId] = useState(programId);
+  const loadGenerationRef = useRef(0);
 
   if (programId !== prevProgramId) {
     setPrevProgramId(programId);
     setSelectedId(null);
+    setFamilies([]);
+    setSummary(EMPTY_COOP_FAMILIES_SUMMARY);
   }
 
   const loadFamilies = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
+    const requestedProgramId = programId;
     setLoading(true);
     try {
       const result = await loadProgramCoopFamiliesAdminData(supabase, {
         organizationId,
-        programId,
+        programId: requestedProgramId,
       });
+      if (generation !== loadGenerationRef.current) return;
       setFamilies(result.families);
       setSummary(result.summary);
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
+      setFamilies([]);
+      setSummary(EMPTY_COOP_FAMILIES_SUMMARY);
       adminToast.error(formatActionError(err, "Failed to load co-op families."));
       void reportPortalOperationalError(
         "school_admin",
@@ -137,7 +148,9 @@ export default function ProgramCoopFamiliesCard({
         err,
       );
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [organizationId, programId, supabase]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -151,6 +151,7 @@ export default function ProgramCoopSupplyListCard({
     DEFAULT_COOP_SUPPLY_LIST_FILTERS,
   );
   const [prevProgramId, setPrevProgramId] = useState(programId);
+  const loadGenerationRef = useRef(0);
 
   if (programId !== prevProgramId) {
     setPrevProgramId(programId);
@@ -158,6 +159,9 @@ export default function ProgramCoopSupplyListCard({
     setLegendPanelOpen(false);
     setPanelDirty(false);
     setLegendPanelDirty(false);
+    setItems([]);
+    setEnrolledFamilies([]);
+    setColorLegend(defaultCoopSupplyColorLegend());
   }
 
   const supplyListContext = useMemo(
@@ -166,16 +170,23 @@ export default function ProgramCoopSupplyListCard({
   );
 
   const loadSupplyList = useCallback(async () => {
+    const generation = ++loadGenerationRef.current;
+    const requestedProgramId = programId;
     setLoading(true);
     try {
       const [result, families] = await Promise.all([
-        listProgramCoopSupplyList(supabase, programId),
-        listProgramCoopEnrolledFamilies(supabase, organizationId, programId),
+        listProgramCoopSupplyList(supabase, requestedProgramId),
+        listProgramCoopEnrolledFamilies(supabase, organizationId, requestedProgramId),
       ]);
+      if (generation !== loadGenerationRef.current) return;
       setItems(result.items);
       setColorLegend(result.colorLegend);
       setEnrolledFamilies(families);
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
+      setItems([]);
+      setEnrolledFamilies([]);
+      setColorLegend(defaultCoopSupplyColorLegend());
       adminToast.error(formatActionError(err, "Failed to load supply list."));
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -183,7 +194,9 @@ export default function ProgramCoopSupplyListCard({
         error: "",
       }, err);
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [organizationId, programId, supabase]);
 

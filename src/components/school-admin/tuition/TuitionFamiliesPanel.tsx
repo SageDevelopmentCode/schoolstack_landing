@@ -65,6 +65,28 @@ const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 
 const FAMILIES_PAGE_SIZE = 50;
 
+function tuitionUnenrolledToggleStorageKey(organizationId: string): string {
+  return `tuition-show-unenrolled:${organizationId}`;
+}
+
+function readStoredShowUnenrolledFamilies(organizationId: string): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    sessionStorage.getItem(tuitionUnenrolledToggleStorageKey(organizationId)) === "true"
+  );
+}
+
+function persistShowUnenrolledFamilies(
+  organizationId: string,
+  showUnenrolledFamilies: boolean,
+): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(
+    tuitionUnenrolledToggleStorageKey(organizationId),
+    String(showUnenrolledFamilies),
+  );
+}
+
 function pickDefaultFamilyId(
   rows: FamilyBillingSummary[],
   options: {
@@ -243,7 +265,9 @@ export default function TuitionFamiliesPanel({
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const [familySearchQuery, setFamilySearchQuery] = useState("");
-  const [showUnenrolledFamilies, setShowUnenrolledFamilies] = useState(false);
+  const [showUnenrolledFamilies, setShowUnenrolledFamilies] = useState(() =>
+    readStoredShowUnenrolledFamilies(organizationId),
+  );
   const reducedMotion = useReducedMotion() ?? false;
   const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
   const [hasMoreFamilies, setHasMoreFamilies] = useState(false);
@@ -268,7 +292,8 @@ export default function TuitionFamiliesPanel({
   >([]);
   const [familyPayments, setFamilyPayments] = useState<PaymentRecord[]>([]);
   const selectedFamilyIdRef = useRef<string | null>(null);
-
+  const showUnenrolledFamiliesRef = useRef(showUnenrolledFamilies);
+  showUnenrolledFamiliesRef.current = showUnenrolledFamilies;
 
   const unenrolledCount = useMemo(
     () => families.filter((family) => family.tuitionListVisibility === "unenrolled").length,
@@ -278,6 +303,7 @@ export default function TuitionFamiliesPanel({
   const handleToggleUnenrolled = useCallback(() => {
     setShowUnenrolledFamilies((current) => {
       const next = !current;
+      persistShowUnenrolledFamilies(organizationId, next);
       if (current) {
         const selected = families.find((family) => family.familyId === selectedFamilyIdRef.current);
         if (selected?.tuitionListVisibility === "unenrolled") {
@@ -291,7 +317,7 @@ export default function TuitionFamiliesPanel({
       }
       return next;
     });
-  }, [families]);
+  }, [families, organizationId]);
 
 
   const selectFamily = useCallback((familyId: string) => {
@@ -311,9 +337,19 @@ export default function TuitionFamiliesPanel({
         initialFamilyId && rows.some((row) => row.familyId === initialFamilyId)
           ? initialFamilyId
           : null;
+      const preferredRow = preferred
+        ? rows.find((row) => row.familyId === preferred)
+        : null;
+      let includeUnenrolled = showUnenrolledFamiliesRef.current;
+      if (preferredRow?.tuitionListVisibility === "unenrolled") {
+        includeUnenrolled = true;
+        setShowUnenrolledFamilies(true);
+        persistShowUnenrolledFamilies(organizationId, true);
+      }
       const next = pickDefaultFamilyId(rows, {
         preferredId: preferred,
         previousId: prev,
+        includeUnenrolled,
       });
       if (next !== prev) {
         setActiveFamilyTab(DEFAULT_TUITION_FAMILY_TAB);

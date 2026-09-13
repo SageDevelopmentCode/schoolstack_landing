@@ -33,6 +33,17 @@ export function indexApplicationsByFamilyId(input: {
   return applicationsByFamilyId;
 }
 
+const ACTIVE_APPLICATION_STATUSES = new Set([
+  "draft",
+  "submitted",
+  "fee_pending",
+  "under_review",
+  "observation",
+  "accepted",
+  "enrolling",
+  "enrolled",
+]);
+
 export function familyHasWithdrawnApplication(
   applications: TuitionFamilyApplicationRef[],
 ): boolean {
@@ -40,5 +51,7 @@ export function familyHasWithdrawnApplication(
     return false;
   }
 
-  return !applications.some((application) => application.status === "enrolled");
+  return !applications.some((application) =>
+    ACTIVE_APPLICATION_STATUSES.has(application.status),
+  );
 }
