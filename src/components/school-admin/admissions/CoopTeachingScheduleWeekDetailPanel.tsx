@@ -238,7 +238,7 @@ export default function CoopTeachingScheduleWeekDetailPanel({
       setSavedWeek({ ...nextWeek });
       adminToast.success("Teaching week saved");
     } catch {
-      // Parent surfaces persistence errors.
+      // Parent surfaces persistence errors. intentionally silent
     } finally {
       setSaving(false);
     }

@@ -14,9 +14,11 @@ import { isWholeDayPostSubmitAction } from "@/lib/admissions/application-form-sc
 import type { ApplicationPostSubmitTask } from "@/lib/admissions/parent-portal-access";
 import { resolvedPostSubmitMaxVisitDays } from "@/lib/admissions/post-submit-templates";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type PostSubmitBookingModalProps = {
   C: AdminThemeTokens;
+  organizationId?: string;
   applicationId: string;
   task: ApplicationPostSubmitTask;
   timezone: string;
@@ -43,6 +45,7 @@ function currentMonthRange(timezone: string): { start: string; end: string } {
 
 export default function PostSubmitBookingModal({
   C,
+  organizationId,
   applicationId,
   task,
   timezone,
@@ -104,6 +107,7 @@ export default function PostSubmitBookingModal({
     async function loadShadowMode() {
       setModeLoading(true);
       setError(null);
+      let responseStatus: number | undefined;
       try {
         const { start, end } = currentMonthRange(timezone);
         const params = new URLSearchParams({
@@ -114,6 +118,7 @@ export default function PostSubmitBookingModal({
         const response = await fetch(
           `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`,
         );
+        responseStatus = response.status;
         const payload = (await response.json()) as BookableAvailabilityResult & {
           error?: string;
         };
@@ -126,6 +131,11 @@ export default function PostSubmitBookingModal({
           );
         }
       } catch (err) {
+        reportApplyOperationalError(organizationId, "admissions.availability.load", err, {
+          responseStatus,
+          entityType: "application",
+          entityId: applicationId,
+        });
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load availability.");
         }
@@ -138,7 +148,7 @@ export default function PostSubmitBookingModal({
     return () => {
       cancelled = true;
     };
-  }, [applicationId, isWholeDay, open, previewMode, shadowDaySchedulingMode, task.actionId, timezone]);
+  }, [applicationId, isWholeDay, open, organizationId, previewMode, shadowDaySchedulingMode, task.actionId, timezone]);
 
   async function handleConfirm() {
     if (isWholeDay) {
@@ -161,6 +171,7 @@ export default function PostSubmitBookingModal({
       return;
     }
 
+    let responseStatus: number | undefined;
     try {
       const response = await fetch(
         `/api/admissions/applications/${applicationId}/post-submit/schedule`,
@@ -186,6 +197,7 @@ export default function PostSubmitBookingModal({
           ),
         },
       );
+      responseStatus = response.status;
 
       const payload = (await response.json()) as { error?: string };
 
@@ -196,6 +208,11 @@ export default function PostSubmitBookingModal({
       onBooked();
       onClose();
     } catch (err) {
+      reportApplyOperationalError(organizationId, "admissions.post_submit.schedule", err, {
+        responseStatus,
+        entityType: "application",
+        entityId: applicationId,
+      });
       setError(err instanceof Error ? err.message : "Failed to schedule visit.");
     } finally {
       setSubmitting(false);
@@ -270,6 +287,7 @@ export default function PostSubmitBookingModal({
               ) : shadowAvailabilityMode === "observation_slot" ? (
                 <AdmissionsObservationSlotPicker
                   C={C}
+                  organizationId={organizationId}
                   applicationId={applicationId}
                   actionId={task.actionId}
                   timezone={timezone}
@@ -281,6 +299,7 @@ export default function PostSubmitBookingModal({
               ) : (
                 <AdmissionsDatePicker
                   C={C}
+                  organizationId={organizationId}
                   applicationId={applicationId}
                   actionId={task.actionId}
                   timezone={timezone}
@@ -293,6 +312,7 @@ export default function PostSubmitBookingModal({
             ) : (
               <AdmissionsDateTimePicker
                 C={C}
+                organizationId={organizationId}
                 applicationId={applicationId}
                 actionId={task.actionId}
                 timezone={timezone}

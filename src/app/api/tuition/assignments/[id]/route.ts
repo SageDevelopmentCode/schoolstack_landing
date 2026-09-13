@@ -144,14 +144,22 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
+    let metadata: typeof assignment.metadata | undefined;
+    if (body.paymentPlanId != null || body.effectiveStart !== undefined) {
+      metadata = { ...assignment.metadata };
+      if (body.paymentPlanId != null) {
+        metadata.pendingPaymentPlanSelection = false;
+      }
+      if (body.effectiveStart !== undefined) {
+        metadata.billingStartLocked = true;
+      }
+    }
+
     const updated = await updateAssignment(admin, assignmentId, {
       rateTierId: body.rateTierId,
       paymentPlanId: body.paymentPlanId,
       effectiveStart: body.effectiveStart,
-      metadata:
-        body.paymentPlanId != null
-          ? { pendingPaymentPlanSelection: false }
-          : undefined,
+      metadata,
     }, { context: schoolAdminActivityContext(user) });
 
     return NextResponse.json({ assignment: updated });

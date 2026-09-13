@@ -49,6 +49,10 @@ export type ChargeStatusBadge = {
 };
 
 export function formatParentChargeStatusBadge(charge: TuitionCharge): ChargeStatusBadge {
+  if (charge.status === "waived") {
+    return { label: "WAIVED", tone: "neutral" };
+  }
+
   if (charge.chargeType === "late_fee") {
     return { label: "LATE FEE", tone: "warning" };
   }
@@ -64,8 +68,6 @@ export function formatParentChargeStatusBadge(charge: TuitionCharge): ChargeStat
       return { label: "SENT", tone: "accent" };
     case "void":
       return { label: "VOID", tone: "neutral" };
-    case "waived":
-      return { label: "WAIVED", tone: "neutral" };
     default: {
       charge.status satisfies never;
       return { label: "UNKNOWN", tone: "neutral" };
@@ -82,6 +84,11 @@ export function formatParentChargeDueLine(
       ? formatBillingDueDate(charge.paidAt.slice(0, 10))
       : formatBillingDueDate(charge.dueDate);
     return `Paid ${paidDate}`;
+  }
+
+  if (charge.status === "waived") {
+    const waivedDate = formatBillingDueDate(charge.updatedAt.slice(0, 10));
+    return `Waived ${waivedDate}`;
   }
 
   const dueDateLabel = formatBillingDueDate(charge.dueDate);

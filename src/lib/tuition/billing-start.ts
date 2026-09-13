@@ -153,6 +153,28 @@ export function isDueDateBeforeBillingStart(
   return dueDate < billingStart;
 }
 
+/**
+ * Stored effective_start is the first due-date anchor (billing day of month).
+ * Legacy rows may have rate-plan calendar dates (e.g. 2026-08-17); normalize
+ * to YYYY-MM-{billingDay} without advancing the month.
+ */
+export function normalizeBillingStartForSchedule(
+  billingStart: string,
+  billingDayOfMonth: number,
+): string {
+  const start = parseIsoDate(billingStart);
+  if (!start) return billingStart;
+
+  const billingDay = Math.min(Math.max(billingDayOfMonth, 1), 28);
+  return formatBillingStartDate(
+    firstOfMonthUtc(
+      start.getUTCFullYear(),
+      start.getUTCMonth(),
+      billingDay,
+    ),
+  );
+}
+
 const MONTH_NAMES = [
   "Jan",
   "Feb",

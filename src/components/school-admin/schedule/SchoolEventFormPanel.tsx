@@ -4,6 +4,7 @@ import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import EventColorPicker from "@/components/school-admin/schedule/EventColorPicker";
 import PopupTimePicker from "@/components/school-events/PopupTimePicker";
+import SchoolAdminDatePicker from "@/components/school-admin/ui/SchoolAdminDatePicker";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -206,12 +207,13 @@ export default function SchoolEventFormPanel({
 
               <div>
                 <FieldLabel theme={theme}>Date</FieldLabel>
-                <input
-                  type="date"
+                <SchoolAdminDatePicker
+                  id="school-event-date"
+                  C={C}
                   value={form.date}
-                  onChange={(e) => onChange({ ...form, date: e.target.value })}
-                  className={inputClass}
-                  style={inputStyle(theme)}
+                  onChange={(date) => onChange({ ...form, date })}
+                  placeholder="Select date…"
+                  disabled={saving}
                 />
               </div>
 

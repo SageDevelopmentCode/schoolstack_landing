@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   isPaymentPlanAllowedForBillingStart,
+  normalizeBillingStartForSchedule,
   resolveAssignmentBillingStart,
 } from "./billing-start";
 import { regenerateFutureCharges } from "./charge-generator";
@@ -27,18 +28,31 @@ export function assignmentNeedsPaymentPlanSelection(
   return assignment.metadata.pendingPaymentPlanSelection === true;
 }
 
-export async function getEnrollmentDate(
+export function assignmentBillingStartLocked(
+  assignment: Pick<TuitionEnrollmentAssignment, "metadata">,
+): boolean {
+  return assignment.metadata.billingStartLocked === true;
+}
+
+/** Enroll-complete date for billing; null while enrollment is still pending. */
+export async function getBillingEnrollmentDate(
   supabase: SupabaseClient,
   enrollmentId: string,
 ): Promise<Date | null> {
   const { data, error } = await supabase
     .from("enrollments")
-    .select("created_at")
+    .select("enrolled_at, status")
     .eq("id", enrollmentId)
     .maybeSingle();
 
   if (error) throw error;
-  return data?.created_at ? new Date(String(data.created_at)) : null;
+  if (data?.enrolled_at) {
+    return new Date(String(data.enrolled_at));
+  }
+  if (data?.status === "enrolled") {
+    return null;
+  }
+  return null;
 }
 
 export async function resolveBillingStartForAssignment(
@@ -47,19 +61,66 @@ export async function resolveBillingStartForAssignment(
     enrollmentId: string;
     ratePlanStart: string | null;
     billingDayOfMonth: number;
-    overrideStart?: string | null;
   },
 ): Promise<string | null> {
-  if (input.overrideStart) return input.overrideStart;
-
-  const enrollmentDate = await getEnrollmentDate(supabase, input.enrollmentId);
-  if (!enrollmentDate) return input.ratePlanStart;
+  const enrollmentDate = await getBillingEnrollmentDate(supabase, input.enrollmentId);
+  if (!enrollmentDate) return null;
 
   return resolveAssignmentBillingStart({
     ratePlanStart: input.ratePlanStart,
     enrollmentDate,
     billingDayOfMonth: input.billingDayOfMonth,
   });
+}
+
+export async function ensureAssignmentBillingStart(
+  supabase: SupabaseClient,
+  assignment: TuitionEnrollmentAssignment,
+): Promise<TuitionEnrollmentAssignment> {
+  if (assignmentBillingStartLocked(assignment)) {
+    return assignment;
+  }
+
+  const enrollmentDate = await getBillingEnrollmentDate(
+    supabase,
+    assignment.enrollmentId,
+  );
+  if (!enrollmentDate) {
+    return assignment;
+  }
+
+  const ratePlan = await getRatePlanWithDetails(supabase, assignment.ratePlanId);
+  if (!ratePlan) return assignment;
+
+  const paymentPlan = ratePlan.paymentPlans.find(
+    (plan) => plan.id === assignment.paymentPlanId,
+  );
+  const billingDay = paymentPlan?.billingDayOfMonth ?? 1;
+  const resolvedStart = resolveAssignmentBillingStart({
+    ratePlanStart: ratePlan.effectiveStart,
+    enrollmentDate,
+    billingDayOfMonth: billingDay,
+  });
+  if (!resolvedStart) return assignment;
+
+  const billingStart = normalizeBillingStartForSchedule(resolvedStart, billingDay);
+  const normalizedExisting = assignment.effectiveStart
+    ? normalizeBillingStartForSchedule(assignment.effectiveStart, billingDay)
+    : null;
+
+  if (billingStart === normalizedExisting) {
+    return assignment;
+  }
+
+  const { data, error } = await supabase
+    .from("tuition_enrollment_assignments")
+    .update({ effective_start: billingStart })
+    .eq("id", assignment.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return rowToAssignment(data);
 }
 
 export async function isEnrollmentEnrolled(
@@ -223,12 +284,17 @@ export async function autoAssignTuitionForEnrollment(
 ): Promise<TuitionEnrollmentAssignment | null> {
   const existing = await getAssignmentForEnrollment(supabase, input.enrollmentId);
   if (existing?.status === "active") {
+    let assignment = existing;
+    const isEnrolled = await isEnrollmentEnrolled(supabase, input.enrollmentId);
+    if (isEnrolled) {
+      assignment = await ensureAssignmentBillingStart(supabase, existing);
+    }
     await maybeRegenerateChargesForAssignment(
       supabase,
       input.enrollmentId,
-      existing,
+      assignment,
     );
-    return existing;
+    return assignment;
   }
 
   const ratePlan = await getDefaultRatePlanForProgram(
@@ -254,18 +320,12 @@ export async function autoAssignTuitionForEnrollment(
 
   let assignment: TuitionEnrollmentAssignment;
 
-  const billingStart = await resolveBillingStartForAssignment(supabase, {
-    enrollmentId: input.enrollmentId,
-    ratePlanStart: ratePlan.effectiveStart,
-    billingDayOfMonth: defaultPaymentPlan.billingDayOfMonth ?? 1,
-  });
-
   if (existing) {
     assignment = await updateAssignment(supabase, existing.id, {
       ratePlanId: ratePlan.id,
       rateTierId: defaultTier?.id ?? null,
       paymentPlanId: defaultPaymentPlan.id,
-      effectiveStart: billingStart,
+      effectiveStart: null,
       status: "active",
       metadata,
     }, options);
@@ -279,9 +339,14 @@ export async function autoAssignTuitionForEnrollment(
       paymentPlanId: defaultPaymentPlan.id,
       assignmentSource: "default",
       assignedByUserId: input.assignedByUserId ?? null,
-      effectiveStart: billingStart,
+      effectiveStart: null,
       metadata,
     }, options);
+  }
+
+  const isEnrolled = await isEnrollmentEnrolled(supabase, input.enrollmentId);
+  if (isEnrolled) {
+    assignment = await ensureAssignmentBillingStart(supabase, assignment);
   }
 
   await evaluateAndApplyRulesForAssignment(supabase, assignment.id);
@@ -534,20 +599,23 @@ export async function finalizeEnrollmentPaymentPlan(
   );
   if (!selectedPlan) throw new Error("Payment plan not found.");
 
-  const billingStart = await resolveBillingStartForAssignment(supabase, {
-    enrollmentId: assignment.enrollmentId,
-    ratePlanStart: ratePlan.effectiveStart,
-    billingDayOfMonth: selectedPlan.billingDayOfMonth ?? 1,
-    overrideStart: assignment.effectiveStart,
-  });
+  const isEnrolled = await isEnrollmentEnrolled(supabase, assignment.enrollmentId);
+  const billingStart = isEnrolled
+    ? await resolveBillingStartForAssignment(supabase, {
+        enrollmentId: assignment.enrollmentId,
+        ratePlanStart: ratePlan.effectiveStart,
+        billingDayOfMonth: selectedPlan.billingDayOfMonth ?? 1,
+      })
+    : null;
+  const validationStart = billingStart ?? ratePlan.effectiveStart;
 
   if (
-    billingStart &&
+    validationStart &&
     !isPaymentPlanAllowedForBillingStart(
       selectedPlan.installmentCount,
       ratePlan.effectiveStart,
       ratePlan.effectiveEnd,
-      billingStart,
+      validationStart,
     )
   ) {
     throw new Error(
@@ -561,7 +629,10 @@ export async function finalizeEnrollmentPaymentPlan(
       payment_plan_id: input.paymentPlanId,
       effective_start: billingStart,
       assignment_source: "manual",
-      metadata: { pendingPaymentPlanSelection: false },
+      metadata: {
+        ...assignment.metadata,
+        pendingPaymentPlanSelection: false,
+      },
     })
     .eq("id", input.assignmentId)
     .select("*")

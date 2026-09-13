@@ -99,11 +99,13 @@ function calculateAge(value: string): number | null {
 function ChecklistItemRow({
   C,
   theme,
+  organizationId,
   item,
   instance,
 }: {
   C: AdminThemeTokens;
   theme: ParentThemeTokens;
+  organizationId: string;
   item: EnrollmentChecklistItem;
   instance?: EnrollmentChecklistItemInstance;
 }) {
@@ -156,7 +158,12 @@ function ChecklistItemRow({
       </button>
       {expanded ? (
         <div className="border-t px-4 py-4" style={{ borderColor: theme.line }}>
-          <EnrollmentChecklistItemReadOnlyPanel C={C} item={item} instance={instance} />
+          <EnrollmentChecklistItemReadOnlyPanel
+            C={C}
+            organizationId={organizationId}
+            item={item}
+            instance={instance}
+          />
         </div>
       ) : null}
     </div>
@@ -402,6 +409,7 @@ export default function ParentChildRecordWorkspace({
                       key={item.id}
                       C={C}
                       theme={theme}
+                      organizationId={organizationId}
                       item={item}
                       instance={instanceByTemplateItemId.get(item.id)}
                     />

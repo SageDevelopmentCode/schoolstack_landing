@@ -41,6 +41,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { ApplyAuthEntryOption } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 const ApplicationFormExperience = dynamic(
   () => import("@/components/admissions/ApplicationFormExperience"),
@@ -102,7 +103,10 @@ async function bootstrapApplicant(
   };
 
   if (!response.ok) {
-    throw new Error(payload.error ?? "Failed to resume your application.");
+    throw Object.assign(
+      new Error(payload.error ?? "Failed to resume your application."),
+      { status: response.status },
+    );
   }
 
   return payload;
@@ -209,6 +213,10 @@ export default function PublicApplicationFormClient({
           return;
         }
 
+        reportApplyOperationalError(organizationId, "apply.draft.resume", err, {
+          entityType: "application",
+          entityId: nextApplicationId,
+        });
         setError(
           err instanceof Error
             ? err.message
@@ -282,6 +290,12 @@ export default function PublicApplicationFormClient({
         await handleBootstrapResult(result);
       } catch (err) {
         if (cancelled) return;
+        reportApplyOperationalError(organizationId, "apply.applicant_bootstrap", err, {
+          responseStatus:
+            err && typeof err === "object" && "status" in err
+              ? Number((err as { status: number }).status)
+              : undefined,
+        });
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -347,7 +361,7 @@ export default function PublicApplicationFormClient({
             return;
           }
         } catch {
-          // Keep polling briefly while webhook processes.
+          // Keep polling briefly while webhook processes. intentionally silent
         }
 
         await sleep(PAYMENT_POLL_INTERVAL_MS);

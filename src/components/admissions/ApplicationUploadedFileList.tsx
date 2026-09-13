@@ -10,10 +10,12 @@ import {
 } from "@/lib/admissions/application-file-storage";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { createClient } from "@/utils/supabase/client";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type ApplicationUploadedFileListProps = {
   files: ApplicationFileUploadMeta[];
   C: AdminThemeTokens;
+  organizationId?: string;
   supabase?: SupabaseClient;
   removable?: boolean;
   onRemove?: (file: ApplicationFileUploadMeta) => void | Promise<void>;
@@ -22,6 +24,7 @@ type ApplicationUploadedFileListProps = {
 export default function ApplicationUploadedFileList({
   files,
   C,
+  organizationId,
   supabase,
   removable = false,
   onRemove,
@@ -45,6 +48,7 @@ export default function ApplicationUploadedFileList({
       const signedUrl = await getApplicationFileSignedUrl(client, file.storagePath);
       window.open(signedUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
+      reportApplyOperationalError(organizationId, "apply.file.open", err);
       setError(err instanceof Error ? err.message : "Failed to open file.");
     } finally {
       setOpeningId(null);
@@ -60,6 +64,7 @@ export default function ApplicationUploadedFileList({
     try {
       await onRemove(file);
     } catch (err) {
+      reportApplyOperationalError(organizationId, "apply.file.remove", err);
       setError(err instanceof Error ? err.message : "Failed to remove file.");
     } finally {
       setRemovingId(null);

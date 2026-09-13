@@ -21,6 +21,7 @@ import {
   SCHOOL_EVENT_TYPE_LABELS,
 } from "@/lib/school-events/event-labels";
 import type { OrganizationEvent } from "@/lib/school-events/types";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ScheduleOverviewTabProps = {
   theme: ParentThemeTokens;
@@ -76,7 +77,16 @@ export default function ScheduleOverviewTab({
     try {
       const rows = await listUpcomingEventsForOrg(supabase, organizationId, 5);
       setUpcomingEvents(rows);
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError(
+        "school_admin",
+        {
+          organizationId,
+          operation: "schedule.upcoming_events.load",
+          error: "",
+        },
+        err,
+      );
       setUpcomingEvents([]);
     } finally {
       setEventsLoading(false);

@@ -10,6 +10,7 @@ import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
+import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 type ScheduleTourExperienceProps = {
   branding: OrganizationBranding;
@@ -63,6 +64,7 @@ export default function ScheduleTourExperience({
       return;
     }
 
+    let responseStatus: number | undefined;
     try {
       const response = await fetch("/api/admissions/family-tours/schedule", {
         method: "POST",
@@ -73,6 +75,7 @@ export default function ScheduleTourExperience({
           startTimeSlot: selectedTime,
         }),
       });
+      responseStatus = response.status;
 
       const payload = (await response.json()) as { error?: string };
 
@@ -82,6 +85,9 @@ export default function ScheduleTourExperience({
 
       router.replace(`/school/${schoolSlug}/apply`);
     } catch (err) {
+      reportApplyOperationalError(organizationId, "apply.family_tour.schedule", err, {
+        responseStatus,
+      });
       setError(err instanceof Error ? err.message : "Failed to schedule tour.");
       setSubmitting(false);
     }
@@ -113,6 +119,7 @@ export default function ScheduleTourExperience({
         <div className="mt-8">
           <AdmissionsDateTimePicker
             C={C}
+            organizationId={organizationId}
             availabilityEndpointBuilder={(start, end) =>
               `/api/admissions/family-tours/availability?organizationId=${encodeURIComponent(
                 organizationId,

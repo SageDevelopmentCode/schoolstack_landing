@@ -81,7 +81,7 @@ function SchoolTeacherBaselineInner({
       setActivityUnreadCount(payload.unreadCount ?? 0);
       lastUnreadFetchRef.current = Date.now();
     } catch {
-      // ignore transient fetch errors
+      // ignore transient fetch errors. intentionally silent
     }
   }, [organizationId, previewMode, slug]);
 

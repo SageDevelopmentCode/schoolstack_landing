@@ -7,6 +7,7 @@ import { CheckCircle2, X } from "lucide-react";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 const FEEDBACK_TYPE_OPTIONS = [
   { value: "feature_request", label: "Feature request" },
@@ -119,12 +120,33 @@ export default function ParentPortalFeedbackModal({
       const data = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok) {
+        if (response.status < 500) {
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "parent_portal.feedback.submit",
+              error: data.error ?? "Failed to submit feedback.",
+            },
+            new Error(data.error ?? "Failed to submit feedback."),
+            response.status,
+          );
+        }
         setSubmitError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
 
       setSubmitted(true);
-    } catch {
+    } catch (err) {
+      void reportPortalOperationalError(
+        "parent_portal",
+        {
+          organizationId,
+          operation: "parent_portal.feedback.submit",
+          error: "",
+        },
+        err,
+      );
       setSubmitError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);

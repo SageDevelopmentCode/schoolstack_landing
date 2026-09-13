@@ -184,7 +184,7 @@ export default function PublicEnrollmentChecklistClient({
           previousInstances = nextInstances;
           setInstances(nextInstances);
         } catch {
-          // Keep polling briefly while webhook processes.
+          // Keep polling briefly while webhook processes. intentionally silent
         }
 
         if (attempts < PAYMENT_POLL_MAX_ATTEMPTS) {

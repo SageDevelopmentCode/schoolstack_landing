@@ -385,7 +385,7 @@ export async function fetchFamilyBillingReadiness(
     familyStudentIds.length > 0
       ? supabase
           .from("enrollments")
-          .select("id, student_id, program_id, status")
+          .select("id, student_id, program_id, status, enrolled_at")
           .eq("organization_id", organizationId)
           .eq("status", "enrolled")
           .in("student_id", familyStudentIds)
@@ -394,6 +394,7 @@ export async function fetchFamilyBillingReadiness(
           student_id: string;
           program_id: string;
           status: string;
+          enrolled_at: string | null;
         }>, error: null }),
     supabase
       .from("tuition_enrollment_assignments")
@@ -464,11 +465,15 @@ export async function fetchFamilyBillingReadiness(
       )?.student_id;
       const metadata = parseAssignmentMetadata(assignment.metadata);
       const paymentPlanId = String(assignment.payment_plan_id);
+      const enrollment = familyEnrollments.find(
+        (row) => String(row.id) === enrollmentId,
+      );
       return {
         assignmentId: String(assignment.id),
         enrollmentId,
         studentName: studentId ? studentMap.get(String(studentId)) ?? null : null,
         enrollmentStatus: "enrolled",
+        enrolledAt: enrollment?.enrolled_at ? String(enrollment.enrolled_at) : null,
         ratePlanName:
           ratePlanMap.get(String(assignment.rate_plan_id)) ?? "Rate plan",
         tierLabel:

@@ -52,6 +52,7 @@ import type {
   CatalogTuitionSummary,
   FamilyAssignmentSummary,
   FamilyBillingSummary,
+  TuitionCharge,
   UnassignedEnrollmentSummary,
 } from "@/lib/tuition/types";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
@@ -189,7 +190,11 @@ function AssignmentMetaBadges({
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      <EnrollmentStatusChip status={assignment.enrollmentStatus} theme={theme} />
+      <EnrollmentStatusChip
+        status={assignment.enrollmentStatus}
+        theme={theme}
+        enrolledAt={assignment.enrolledAt}
+      />
       <AdminChip theme={theme} tone="info">
         {assignment.ratePlanName}
       </AdminChip>
@@ -643,6 +648,14 @@ export default function TuitionFamiliesPanel({
     [displayedFamilyCharges],
   );
 
+  const waivedFamilyCharges = useMemo(
+    () =>
+      displayedFamilyCharges
+        .filter((charge) => charge.status === "waived")
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [displayedFamilyCharges],
+  );
+
   const scheduleChargeGroups = useMemo(() => {
     if (!selectedFamily?.hasBillingSplit) return [];
     return groupChargesForSplitBilling(upcomingFamilyCharges);
@@ -675,13 +688,14 @@ export default function TuitionFamiliesPanel({
   };
 
   const renderScheduleChargeRow = (
-    charge: (typeof upcomingFamilyCharges)[number],
+    charge: TuitionCharge,
     options?: {
       label?: string;
       backgroundColor?: string;
       roundedClassName?: string;
     },
   ) => {
+    const isWaived = charge.status === "waived";
     const studentBadge = resolveStudentBadgeForAssignment(charge.assignmentId);
     const statusBadge = formatParentChargeStatusBadge(charge);
     const canWaiveLateFee = charge.chargeType === "late_fee";
@@ -691,9 +705,9 @@ export default function TuitionFamiliesPanel({
     return (
       <div
         key={charge.id}
-        className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${options?.roundedClassName ?? "rounded-md"}`}
+        className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${options?.roundedClassName ?? "rounded-md"}${isWaived ? " opacity-70" : ""}`}
         style={{
-          backgroundColor: options?.backgroundColor ?? "#F4F8F4",
+          backgroundColor: options?.backgroundColor ?? (isWaived ? "#FAFBFA" : "#F4F8F4"),
           border: "1px solid #E0E7E0",
         }}
       >
@@ -718,7 +732,10 @@ export default function TuitionFamiliesPanel({
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className="font-medium" style={{ color: theme.ink }}>
+          <span
+            className="font-medium"
+            style={{ color: isWaived ? theme.muted : theme.ink }}
+          >
             {formatCents(charge.amountCents)}
           </span>
           {OPEN_CHARGE_STATUSES.has(charge.status) ? (
@@ -1255,30 +1272,50 @@ export default function TuitionFamiliesPanel({
                   ) : (
                     upcomingFamilyCharges.map((charge) => renderScheduleChargeRow(charge))
                   )
-                ) : displayedFamilyCharges.length > 0 ? (
-                  <p
-                    className="text-sm px-3 py-2 rounded-md"
-                    style={{
-                      color: theme.muted,
-                      backgroundColor: "#F4F8F4",
-                      border: "1px solid #E0E7E0",
-                    }}
-                  >
-                    No upcoming charges. Paid installments appear in Payment history.
-                  </p>
-                ) : (
-                  <p
-                    className="text-sm px-3 py-2 rounded-md"
-                    style={{
-                      color: theme.muted,
-                      backgroundColor: "#F4F8F4",
-                      border: "1px solid #E0E7E0",
-                    }}
-                  >
-                    No charges yet. Assign a rate plan and choose a payment schedule to generate
-                    the billing schedule.
-                  </p>
-                )}
+                ) : null}
+                {upcomingFamilyCharges.length === 0 ? (
+                  displayedFamilyCharges.length > 0 ? (
+                    <p
+                      className="text-sm px-3 py-2 rounded-md"
+                      style={{
+                        color: theme.muted,
+                        backgroundColor: "#F4F8F4",
+                        border: "1px solid #E0E7E0",
+                      }}
+                    >
+                      {waivedFamilyCharges.length > 0
+                        ? "No upcoming charges. See waived charges below."
+                        : "No upcoming charges. Paid installments appear in Payment history."}
+                    </p>
+                  ) : (
+                    <p
+                      className="text-sm px-3 py-2 rounded-md"
+                      style={{
+                        color: theme.muted,
+                        backgroundColor: "#F4F8F4",
+                        border: "1px solid #E0E7E0",
+                      }}
+                    >
+                      No charges yet. Assign a rate plan and choose a payment schedule to generate
+                      the billing schedule.
+                    </p>
+                  )
+                ) : null}
+                {waivedFamilyCharges.length > 0 ? (
+                  <div className="mt-3">
+                    <p
+                      className="text-xs font-medium mb-2"
+                      style={{ color: theme.muted }}
+                    >
+                      Waived
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {waivedFamilyCharges.map((charge) =>
+                        renderScheduleChargeRow(charge),
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}

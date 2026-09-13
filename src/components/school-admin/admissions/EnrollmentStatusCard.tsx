@@ -250,6 +250,7 @@ export default function EnrollmentStatusCard({
 
       <EnrollmentChecklistStepDetailModal
         C={C}
+        organizationId={organizationId}
         open={detailOpen}
         item={selectedItem}
         instance={selectedInstance}

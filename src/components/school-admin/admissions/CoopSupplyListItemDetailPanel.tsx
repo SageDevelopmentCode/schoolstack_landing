@@ -190,7 +190,7 @@ export default function CoopSupplyListItemDetailPanel({
       setSavedItem({ ...nextItem });
       adminToast.success("Supply item saved");
     } catch {
-      // Parent surfaces persistence errors.
+      // Parent surfaces persistence errors. intentionally silent
     } finally {
       setSaving(false);
     }

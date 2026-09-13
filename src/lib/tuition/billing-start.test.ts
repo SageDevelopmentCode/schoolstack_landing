@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildInstallmentSchedule,
   canUseExtendedPaymentSchedule,
   filterPaymentPlansForBillingStart,
   isPaymentPlanAllowedForBillingStart,
   maxInstallmentsForBillingStart,
+  normalizeBillingStartForSchedule,
   remainingBillableMonths,
   resolveAssignmentBillingStart,
 } from "./billing-start";
@@ -13,7 +15,7 @@ describe("resolveAssignmentBillingStart", () => {
   const ratePlanStart = "2026-08-17";
   const billingDay = 1;
 
-  it("uses rate plan start month when enrolled before school year", () => {
+  it("uses rate plan start month when enroll-complete is before school year", () => {
     const result = resolveAssignmentBillingStart({
       ratePlanStart,
       enrollmentDate: new Date("2026-07-27T00:00:00Z"),
@@ -47,6 +49,34 @@ describe("resolveAssignmentBillingStart", () => {
       billingDayOfMonth: billingDay,
     });
     assert.equal(result, "2026-10-01");
+  });
+});
+
+describe("normalizeBillingStartForSchedule", () => {
+  it("maps legacy rate-plan calendar dates to billing day in the same month", () => {
+    assert.equal(
+      normalizeBillingStartForSchedule("2026-08-17", 1),
+      "2026-08-01",
+    );
+  });
+
+  it("keeps billing-day anchors unchanged", () => {
+    assert.equal(
+      normalizeBillingStartForSchedule("2026-09-01", 1),
+      "2026-09-01",
+    );
+  });
+});
+
+describe("buildInstallmentSchedule with normalized billing start", () => {
+  it("starts in August when legacy effective_start is normalized", () => {
+    const billingStart = normalizeBillingStartForSchedule("2026-08-17", 1);
+    const schedule = buildInstallmentSchedule(
+      { installmentCount: 12, billingDayOfMonth: 1 },
+      billingStart,
+    );
+    assert.equal(schedule[0]?.dueDate, "2026-08-01");
+    assert.equal(schedule[0]?.installmentNumber, 1);
   });
 });
 

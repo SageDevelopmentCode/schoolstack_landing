@@ -120,6 +120,7 @@ function parseAssignmentMetadata(
   const record = value as Record<string, unknown>;
   return {
     pendingPaymentPlanSelection: record.pendingPaymentPlanSelection === true,
+    billingStartLocked: record.billingStartLocked === true,
   };
 }
 

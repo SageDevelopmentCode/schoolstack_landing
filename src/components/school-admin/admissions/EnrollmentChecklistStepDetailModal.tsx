@@ -16,6 +16,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type EnrollmentChecklistStepDetailModalProps = {
   C: AdminThemeTokens;
+  organizationId?: string;
   open: boolean;
   item: EnrollmentChecklistItem | null;
   instance: EnrollmentChecklistItemInstance | null;
@@ -24,6 +25,7 @@ type EnrollmentChecklistStepDetailModalProps = {
 
 export default function EnrollmentChecklistStepDetailModal({
   C,
+  organizationId,
   open,
   item,
   instance,
@@ -98,6 +100,7 @@ export default function EnrollmentChecklistStepDetailModal({
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               <EnrollmentChecklistItemReadOnlyPanel
                 C={C}
+                organizationId={organizationId}
                 item={item}
                 instance={instance ?? undefined}
               />

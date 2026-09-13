@@ -97,7 +97,7 @@ export default function CoopSupplyColorLegendEditPanel({
       setSavedLegend(nextLegend);
       adminToast.success("Color categories saved");
     } catch {
-      // Parent surfaces persistence errors.
+      // Parent surfaces persistence errors. intentionally silent
     } finally {
       setSaving(false);
     }
