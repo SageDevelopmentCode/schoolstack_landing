@@ -19,6 +19,7 @@ import type { HealthItemType, StudentHealthProfile } from '@/lib/student-health/
 import { SEVERITY_LABELS, emptyStudentHealthProfile } from '@/lib/student-health/types';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StudentHealthTabProps = {
   slug: string;
@@ -64,6 +65,7 @@ export function StudentHealthTab({
   onProfileChange,
 }: StudentHealthTabProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter();
   const [profile, setProfile] = useState<StudentHealthProfile>(emptyStudentHealthProfile());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,11 @@ export function StudentHealthTab({
       }
       await loadProfile();
     } catch (saveError) {
+      reportError('school_admin_student_health_save', saveError, {
+        entityType: 'student',
+        entityId: studentId,
+        metadata: { itemType: formState.mode === 'edit' ? formState.itemType : values.type },
+      });
       Alert.alert(
         'Save failed',
         saveError instanceof Error ? saveError.message : 'Failed to save health item.',
@@ -128,6 +135,11 @@ export function StudentHealthTab({
               await deleteStudentHealthItemAdmin(slug, studentId, itemId);
               await loadProfile();
             } catch (deleteError) {
+              reportError('school_admin_student_health_delete', deleteError, {
+                entityType: 'student',
+                entityId: studentId,
+                metadata: { itemType, itemId },
+              });
               Alert.alert(
                 'Delete failed',
                 deleteError instanceof Error ? deleteError.message : 'Failed to delete health item.',

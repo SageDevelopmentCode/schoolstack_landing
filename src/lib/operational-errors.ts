@@ -9,6 +9,7 @@ import {
   type ActorType,
 } from "@/lib/activity-log";
 import {
+  notifyMobileOperationalError,
   notifySchoolAdminOperationError,
   notifyWebsiteApiError,
 } from "@/lib/discord";
@@ -161,6 +162,97 @@ export async function reportOperationalError(
         organizationId,
         entityType,
         entityId,
+      },
+    },
+  );
+}
+
+export async function reportMobileOperationalError(
+  input: ReportOperationalErrorInput,
+): Promise<void> {
+  const {
+    supabase,
+    surface,
+    organizationId,
+    organizationName,
+    organizationSlug,
+    operation,
+    error,
+    code,
+    details,
+    entityType,
+    entityId,
+    metadata,
+    notify = true,
+    severity = "error",
+    skipActivityLog = false,
+    actor,
+    cause,
+  } = input;
+
+  const action = input.action ?? ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED;
+  const stack = stackFromCause(cause);
+  const summary = `${operation} failed: ${error}`;
+  const platform =
+    typeof metadata?.platform === "string" ? metadata.platform : undefined;
+
+  if (!skipActivityLog) {
+    await logActivityEvent(supabase, {
+      organizationId,
+      actorType: actor.type,
+      actorUserId: actor.userId,
+      actorEmail: actor.email,
+      surface,
+      action,
+      entityType,
+      entityId,
+      summary,
+      severity,
+      metadata: {
+        operation,
+        error,
+        code: code ?? null,
+        details: details ?? null,
+        client: "mobile",
+        ...(platform ? { platform } : {}),
+        ...(stack ? { stack } : {}),
+        ...(metadata ?? {}),
+      },
+    });
+  }
+
+  if (notify) {
+    await notifyMobileOperationalError({
+      operation,
+      error,
+      surface,
+      organizationId: organizationId ?? undefined,
+      organizationName: organizationName ?? undefined,
+      organizationSlug: organizationSlug ?? undefined,
+      actorEmail: actor.email ?? undefined,
+      code: code ?? undefined,
+      details: details ?? undefined,
+      entityType: entityType ?? undefined,
+      entityId: entityId ?? undefined,
+      platform,
+    });
+  }
+
+  Sentry.captureException(
+    cause instanceof Error ? cause : new Error(error),
+    {
+      tags: {
+        surface,
+        operation,
+        client: "mobile",
+      },
+      extra: {
+        code,
+        details,
+        organizationId,
+        entityType,
+        entityId,
+        platform,
       },
     },
   );

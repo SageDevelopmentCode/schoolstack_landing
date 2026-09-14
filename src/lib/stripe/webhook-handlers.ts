@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { after } from "next/server";
 import type Stripe from "stripe";
+import { activityClientMetadataFromStripeMetadata } from "@/lib/activity-client";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
@@ -511,6 +512,7 @@ async function handleTuitionSetupCheckoutCompleted(
       familyId,
       familyName: familyName ?? null,
       guardianId,
+      ...(activityClientMetadataFromStripeMetadata(metadata) ?? {}),
     },
     context: parentActivityContext({
       id: payerUserId ?? "",
@@ -649,6 +651,9 @@ async function handleTuitionCheckoutCompleted(
       ? metadata.tuition_charge_id
       : payment.tuitionChargeId;
 
+  const activityMetadata =
+    activityClientMetadataFromStripeMetadata(metadata) ?? undefined;
+
   const { newlyRecorded } = await recordTuitionPaymentCompleted(admin, {
     payment,
     organizationId: String(metadata.organization_id),
@@ -656,6 +661,7 @@ async function handleTuitionCheckoutCompleted(
     checkoutSessionId,
     paymentIntentId,
     stripeProviderStatus: inferStripeProviderStatusFromCheckoutSession(session),
+    activityMetadata,
   });
 
   if (paymentIntentId && payment.familyId) {

@@ -23,6 +23,7 @@ import {
   type ChildProfileData,
   type ParentChildRecordSection,
 } from '@/lib/parent/parent-children-utils';
+import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { fetchParentChildProfile } from '@/lib/parent/parent-portal-api';
 
 type ParentChildrenScreenProps = {
@@ -95,9 +96,22 @@ export function ParentChildrenScreen({
           [applicationId]: profile,
         }));
       } catch (loadError) {
-        setProfileError(
-          loadError instanceof Error ? loadError.message : 'Failed to load student profile.',
-        );
+        const message =
+          loadError instanceof Error ? loadError.message : 'Failed to load student profile.';
+        setProfileError(message);
+        if (organizationId) {
+          void reportMobileOperationalError(
+            {
+              organizationId,
+              surface: 'parent_portal',
+              operation: 'parent_children_load_profile',
+              error: message,
+              entityType: 'application',
+              entityId: applicationId,
+            },
+            loadError,
+          );
+        }
       } finally {
         setProfileLoading(false);
       }

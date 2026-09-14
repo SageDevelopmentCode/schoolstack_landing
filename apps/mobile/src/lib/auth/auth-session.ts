@@ -1,6 +1,12 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 import { getSupabaseClient } from '@/lib/supabase';
 
 export const AUTH_REQUIRED_MESSAGE = 'You must be signed in to continue.';
+
+export const MOBILE_CLIENT_HEADER = 'X-Schoolstack-Client';
+export const MOBILE_PLATFORM_HEADER = 'X-Schoolstack-Platform';
 
 export function isAuthRequiredError(error: unknown): boolean {
   return error instanceof Error && error.message === AUTH_REQUIRED_MESSAGE;
@@ -42,6 +48,23 @@ export async function resolveAccessToken(): Promise<string | null> {
   return null;
 }
 
+function mobileClientHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    [MOBILE_CLIENT_HEADER]: 'mobile',
+  };
+
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
+    headers[MOBILE_PLATFORM_HEADER] = Platform.OS;
+  }
+
+  const appVersion = Constants.expoConfig?.version?.trim();
+  if (appVersion) {
+    headers['X-Schoolstack-App-Version'] = appVersion;
+  }
+
+  return headers;
+}
+
 export async function getApiAuthHeaders(includeJson = false): Promise<Record<string, string>> {
   const accessToken = await resolveAccessToken();
 
@@ -51,6 +74,7 @@ export async function getApiAuthHeaders(includeJson = false): Promise<Record<str
 
   return {
     Authorization: `Bearer ${accessToken}`,
+    ...mobileClientHeaders(),
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
   };
 }

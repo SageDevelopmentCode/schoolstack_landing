@@ -1,13 +1,14 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import { userIsGuardianForStudent } from "@/lib/admissions/parent-portal-access";
+import { logParentPortalActivity } from "@/lib/parent-portal/parent-portal-activity";
 import {
   StudentPhotoUploadError,
   uploadStudentProfilePhoto,
 } from "@/lib/students/student-photo-storage";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/profile-photo";
 
@@ -17,8 +18,7 @@ type RouteContext = {
 
 export async function POST(request: Request, context: RouteContext) {
   const { studentId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
@@ -124,6 +124,51 @@ export async function POST(request: Request, context: RouteContext) {
       code: "update_failed",
     });
   }
+
+  const [{ data: student }, { data: guardian }] = await Promise.all([
+    admin
+      .from("students")
+      .select("first_name, last_name, family_id, families(name)")
+      .eq("id", studentId)
+      .maybeSingle(),
+    supabase
+      .from("guardians")
+      .select("first_name, last_name")
+      .eq("user_id", user.id)
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+  ]);
+
+  const studentName = [student?.first_name, student?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const guardianName = [guardian?.first_name, guardian?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const family = student?.families as { name?: string } | { name?: string }[] | null;
+  const familyRow = Array.isArray(family) ? family[0] : family;
+  const familyName =
+    typeof familyRow?.name === "string" ? familyRow.name.trim() : null;
+
+  void logParentPortalActivity(admin, {
+    organizationId,
+    actorUserId: user.id,
+    actorEmail: user.email ?? null,
+    actorName: guardianName || null,
+    action: ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED,
+    summary: `Updated profile photo for ${studentName || "student"}`,
+    entityType: "student",
+    entityId: studentId,
+    metadata: {
+      studentId,
+      studentName: studentName || null,
+      familyId: student?.family_id ? String(student.family_id) : null,
+      familyName,
+    },
+    request,
+  });
 
   return NextResponse.json({ profilePhotoUrl });
 }

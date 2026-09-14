@@ -5,6 +5,8 @@ import { StoryDetailSection } from '@/components/school-admin/admissions/story-d
 import { DetailProgressBar } from '@/components/school-admin/detail-progress-bar';
 import { AdmissionHistoryTimeline } from '@/components/school-admin/admission-history-timeline';
 import { StoryButton } from '@/components/story/story-button';
+import { StoryProgressBar } from '@/components/story/story-progress-bar';
+import { StoryStepTimeline } from '@/components/story/story-step-timeline';
 import {
   DetailRowListSkeleton,
   DetailTimelineSectionSkeleton,
@@ -30,6 +32,7 @@ import {
   buildEnrollmentTimelineMeta,
   checklistItemTypeLabel,
   loadEnrollmentChecklistForApplication,
+  resolveChecklistProgress,
   type LoadedEnrollmentChecklist,
 } from '@/lib/admissions/enrollment-checklist';
 import type { FamilyGuardianRecord } from '@/lib/admissions/family-guardians';
@@ -233,14 +236,27 @@ export function SubmissionApplicationStepsSection({
       title={detail.formTitle}
       description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
       variant={embedded ? 'embedded' : 'card'}>
-      <DetailProgressBar completed={progress.completed} total={progress.total} />
-      <DetailStepTimeline
-        items={items}
-        rowSpacing={timelineRowSpacing}
-        showStatusText={progress.completed < progress.total}
-        onItemPress={onItemPress}
-        activeItemId={activeItemId}
-      />
+      {embedded ? (
+        <StoryProgressBar completed={progress.completed} total={progress.total} />
+      ) : (
+        <DetailProgressBar completed={progress.completed} total={progress.total} />
+      )}
+      {embedded ? (
+        <StoryStepTimeline
+          items={items}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      ) : (
+        <DetailStepTimeline
+          items={items}
+          rowSpacing={timelineRowSpacing}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      )}
     </StoryDetailSection>
   );
 }
@@ -285,6 +301,8 @@ export function SubmissionEnrollmentStepsSection({
 
   if (!checklist) return null;
 
+  const progress = resolveChecklistProgress(checklist);
+
   const items: DetailStepTimelineItem[] = checklist.items.map((item) => {
     const instance = instanceByTemplateId.get(item.id);
     const status = instance?.status ?? 'not_started';
@@ -303,17 +321,27 @@ export function SubmissionEnrollmentStepsSection({
       title={checklist.title}
       description="Enrollment checklist progress"
       variant={embedded ? 'embedded' : 'card'}>
-      <DetailProgressBar
-        completed={checklist.progress.completed}
-        total={checklist.progress.total}
-      />
-      <DetailStepTimeline
-        items={items}
-        rowSpacing={Spacing.five}
-        showStatusText={checklist.progress.completed < checklist.progress.total}
-        onItemPress={onItemPress}
-        activeItemId={activeItemId}
-      />
+      {embedded ? (
+        <StoryProgressBar completed={progress.completed} total={progress.total} />
+      ) : (
+        <DetailProgressBar completed={progress.completed} total={progress.total} />
+      )}
+      {embedded ? (
+        <StoryStepTimeline
+          items={items}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      ) : (
+        <DetailStepTimeline
+          items={items}
+          rowSpacing={Spacing.five}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      )}
     </StoryDetailSection>
   );
 }

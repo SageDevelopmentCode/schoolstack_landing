@@ -18,6 +18,7 @@ import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
+import { createParentPortalErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentHomeContextValue = {
   data: ParentHomeData | null;
@@ -78,6 +79,10 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const load = useCallback(
     async (options?: { refresh?: boolean }) => {
@@ -102,6 +107,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
           setData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('parent_home_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load home.');
         } finally {
           setIsLoading(false);
@@ -116,7 +122,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
       }
       await promise;
     },
-    [data, key, organizationId, slug],
+    [data, key, organizationId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
@@ -158,6 +164,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
         setHasLoaded(Boolean(homeCache.get(key)));
         setError(null);
       } catch (loadError) {
+        reportError('parent_home_load', loadError);
         if (!cancelled && !homeCache.get(key)) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load home.');
         }
@@ -174,7 +181,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, slug]);
+  }, [key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

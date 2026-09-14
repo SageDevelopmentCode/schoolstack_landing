@@ -45,6 +45,7 @@ type StudentHealthNotificationInput = {
   actorUserId: string;
   actorName: string;
   actorEmail: string;
+  activityMetadata?: Record<string, unknown>;
 };
 
 export async function sendStudentHealthItemNotifications(
@@ -81,6 +82,7 @@ export async function sendStudentHealthItemNotifications(
       itemType: input.itemType,
       itemLabel,
       action: input.action,
+      ...(input.activityMetadata ?? {}),
     },
   });
 }

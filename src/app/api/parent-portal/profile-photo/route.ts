@@ -1,18 +1,18 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   GuardianPhotoUploadError,
   uploadGuardianProfilePhoto,
 } from "@/lib/guardians/guardian-photo-storage";
+import { logParentPortalActivity } from "@/lib/parent-portal/parent-portal-activity";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/profile-photo";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
   const { data: guardian, error: guardianError } = await supabase
     .from("guardians")
-    .select("id")
+    .select("id, first_name, last_name, family_id")
     .eq("user_id", user.id)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -127,6 +127,37 @@ export async function POST(request: Request) {
       code: "update_failed",
     });
   }
+
+  let familyName: string | null = null;
+  if (guardian.family_id) {
+    const { data: family } = await admin
+      .from("families")
+      .select("name")
+      .eq("id", guardian.family_id)
+      .maybeSingle();
+    familyName =
+      typeof family?.name === "string" ? family.name.trim() : null;
+  }
+  const guardianName = [guardian.first_name, guardian.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  void logParentPortalActivity(admin, {
+    organizationId,
+    actorUserId: user.id,
+    actorEmail: user.email ?? null,
+    actorName: guardianName || null,
+    action: ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED,
+    summary: "Updated guardian profile photo",
+    entityType: "guardian",
+    entityId: guardian.id,
+    metadata: {
+      guardianId: guardian.id,
+      familyName,
+    },
+    request,
+  });
 
   return NextResponse.json({ profilePhotoUrl });
 }

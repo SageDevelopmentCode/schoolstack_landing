@@ -18,6 +18,7 @@ import { getEventDisplayStyle, SCHOOL_EVENT_TYPE_LABELS } from '@/lib/school-eve
 import { listUpcomingEventsForOrg } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleOverviewTabProps = {
   organizationId: string;
@@ -43,6 +44,7 @@ export function ScheduleOverviewTab({
   const theme = useAdminTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<OrganizationEvent[]>([]);
@@ -62,6 +64,7 @@ export function ScheduleOverviewTab({
       setVisits(visitRows);
       setUpcomingEvents(eventRows);
     } catch (loadError) {
+      reportError('school_admin_schedule_overview_load', loadError);
       setError(loadError instanceof Error ? loadError.message : 'Failed to load schedule overview.');
       setVisits([]);
       setUpcomingEvents([]);
@@ -69,7 +72,7 @@ export function ScheduleOverviewTab({
       setLoading(false);
       setEventsLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadData();

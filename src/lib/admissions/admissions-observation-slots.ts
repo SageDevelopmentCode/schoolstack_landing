@@ -303,6 +303,7 @@ export async function createObservationSlot(
   supabase: SupabaseClient,
   organizationId: string,
   input: ObservationSlotInput,
+  extraMetadata?: Record<string, unknown>,
 ): Promise<ObservationSlot> {
   const gradeValues = normalizeGradeValues(input.gradeValues);
   const endTime = input.endTime ?? null;
@@ -341,6 +342,7 @@ export async function createObservationSlot(
       startTime: input.startTime,
       endTime,
       gradeValues,
+      ...(extraMetadata ?? {}),
     },
   });
 
@@ -384,6 +386,7 @@ export async function deleteObservationSlot(
   supabase: SupabaseClient,
   organizationId: string,
   slotId: string,
+  extraMetadata?: Record<string, unknown>,
 ): Promise<void> {
   const { data: booked, error: bookedError } = await supabase
     .from("admissions_scheduled_visit_days")
@@ -420,6 +423,7 @@ export async function deleteObservationSlot(
         availabilityType: "observation_slot",
         startTime: String(data.start_time),
         endTime: data.end_time ? String(data.end_time) : null,
+        ...(extraMetadata ?? {}),
       },
     });
   }

@@ -12,8 +12,8 @@ import { Spacing } from '@/constants/theme';
 import {
   listObservationDayAvailability,
   listOccupiedObservationDays,
-  toggleObservationDay,
 } from '@/lib/admissions/admissions-observation-availability';
+import { toggleObservationDayViaApi } from '@/lib/school-admin/schedule-api';
 import {
   getAdmissionsOrgSettings,
   resolveShadowDaySchedulingMode,
@@ -24,6 +24,7 @@ import {
   type ObservationSlot,
 } from '@/lib/admissions/admissions-observation-slots';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleShadowTabProps = {
   organizationId: string;
@@ -40,6 +41,7 @@ export function ScheduleShadowTab({
 }: ScheduleShadowTabProps) {
   const theme = useAdminTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [shadowMode, setShadowMode] = useState(resolveShadowDaySchedulingMode({}));
   const [openDays, setOpenDays] = useState<Set<string>>(new Set());
@@ -161,11 +163,18 @@ export function ScheduleShadowTab({
     if (!calendar.selectedDate || wholeDayBooked) return;
     setTogglingWholeDay(true);
     try {
-      await toggleObservationDay(supabase, organizationId, calendar.selectedDate, open);
+      await toggleObservationDayViaApi({
+        organizationId,
+        date: calendar.selectedDate,
+        open,
+      });
       await loadMonthData();
       await loadSelectedDay();
       onRefresh();
     } catch (toggleError) {
+      reportError('school_admin_schedule_shadow_day_toggle', toggleError, {
+        metadata: { date: calendar.selectedDate, open },
+      });
       Alert.alert('Error', toggleError instanceof Error ? toggleError.message : 'Failed to update shadow day.');
     } finally {
       setTogglingWholeDay(false);

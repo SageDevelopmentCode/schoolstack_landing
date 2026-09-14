@@ -21,6 +21,7 @@ import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { AdminConversationListItem } from '@/lib/messages/admin-thread-sections';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type MessagesListScreenProps = {
   organizationId: string;
@@ -47,6 +48,7 @@ export function MessagesListScreen({
   const theme = useParentTheme();
   const router = useRouter();
   const { refreshUnreadCount } = useMessagesUnread();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const {
     threads,
     contacts,
@@ -127,6 +129,10 @@ export function MessagesListScreen({
       await refreshUnreadCount();
       openThread(threadId);
     } catch (selectError) {
+      reportError('school_admin_message_thread_create', selectError, {
+        entityType: 'message_contact',
+        entityId: contact.key,
+      });
       setActionError(
         selectError instanceof Error ? selectError.message : 'Failed to start conversation.',
       );

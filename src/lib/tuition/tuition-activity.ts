@@ -33,6 +33,7 @@ export type TuitionActivityContext = {
 export type TuitionActivityOptions = {
   context?: TuitionActivityContext;
   skip?: boolean;
+  activityMetadata?: Record<string, unknown>;
 };
 
 export type LogTuitionActivityInput = {

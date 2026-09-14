@@ -20,6 +20,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ClassroomFormSheetProps = {
   visible: boolean;
@@ -42,6 +43,7 @@ export function ClassroomFormSheet({
 }: ClassroomFormSheetProps) {
   const theme = useParentTheme();
   const insets = useSafeAreaInsets();
+  const { reportError } = useMobileErrorReporter();
   const isEdit = classroom != null;
 
   const [name, setName] = useState('');
@@ -102,6 +104,11 @@ export function ClassroomFormSheet({
       onSaved();
       onClose();
     } catch (saveError) {
+      reportError('school_admin_classroom_save', saveError, {
+        entityType: 'classroom',
+        entityId: classroom?.id,
+        metadata: { mode: isEdit ? 'edit' : 'create' },
+      });
       setError(saveError instanceof Error ? saveError.message : 'Failed to save classroom.');
     } finally {
       setSaving(false);

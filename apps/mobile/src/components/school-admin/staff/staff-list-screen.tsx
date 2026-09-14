@@ -19,6 +19,7 @@ import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { fetchStaffMembers, type StaffMemberRecord } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StaffListScreenProps = {
   slug: string;
@@ -47,6 +48,7 @@ function ListSeparator() {
 export function StaffListScreen({ slug }: StaffListScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter();
 
   const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,7 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
         const members = await fetchStaffMembers(slug);
         setStaffMembers(members);
       } catch (loadError) {
+        reportError('school_admin_staff_list_load', loadError);
         setError(formatStaffApiError(loadError, 'Failed to load staff.'));
         setStaffMembers([]);
       } finally {
@@ -72,7 +75,7 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
         setRefreshing(false);
       }
     },
-    [slug],
+    [reportError, slug],
   );
 
   useEffect(() => {

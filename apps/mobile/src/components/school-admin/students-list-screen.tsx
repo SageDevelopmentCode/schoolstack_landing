@@ -37,15 +37,17 @@ import { fetchClassrooms, setStudentClassroomsApi } from '@/lib/school-admin-api
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StudentsListScreenProps = {
   organizationId: string;
   slug: string;
 };
 
-export function StudentsListScreen({ organizationId: _organizationId, slug }: StudentsListScreenProps) {
+export function StudentsListScreen({ organizationId, slug }: StudentsListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const { students, isLoading, isRefreshing, error, staffError, refresh } =
     useSchoolAdminStudents();
 
@@ -82,12 +84,13 @@ export function StudentsListScreen({ organizationId: _organizationId, slug }: St
       const payload = await fetchClassrooms(slug);
       setClassrooms(payload.classrooms);
       setClassroomsLoaded(true);
-    } catch {
+    } catch (loadError) {
+      reportError('school_admin_classrooms_load', loadError);
       setAssignError('Failed to load classrooms.');
     } finally {
       setClassroomsLoading(false);
     }
-  }, [classroomsLoaded, classroomsLoading, slug]);
+  }, [classroomsLoaded, classroomsLoading, reportError, slug]);
 
   const handlePressStudent = (student: AdminEnrolledStudentSummary) => {
     router.push(`/school-admin/${slug}/students/${student.id}`);
@@ -105,6 +108,11 @@ export function StudentsListScreen({ organizationId: _organizationId, slug }: St
       await setStudentClassroomsApi(slug, studentId, classroomIds);
       await refresh({ silent: true });
     } catch (assignError) {
+      reportError('school_admin_student_classrooms_assign', assignError, {
+        entityType: 'student',
+        entityId: studentId,
+        metadata: { classroomIds },
+      });
       setAssignError(
         assignError instanceof Error ? assignError.message : 'Failed to assign classrooms.',
       );

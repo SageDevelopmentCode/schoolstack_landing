@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   ClassroomError,
@@ -6,9 +7,11 @@ import {
   setStudentClassrooms,
 } from "@/lib/school-admin/classrooms";
 import {
+  getSchoolAdminUserProfile,
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { logSchoolAdminActivity } from "@/lib/school-admin/school-admin-activity";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -65,7 +68,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId, request);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const actor = getSchoolAdminUserProfile(user);
 
     const result =
       body.classroomIds !== undefined
@@ -79,6 +83,22 @@ export async function PATCH(request: Request, context: RouteContext) {
             studentId,
             classroomId: body.classroomId ?? null,
           });
+
+    void logSchoolAdminActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: actor.email,
+      actorName: actor.displayName,
+      action: ACTIVITY_ACTIONS.STUDENT_CLASSROOM_UPDATED,
+      summary: "Updated student classroom assignment",
+      entityType: "student",
+      entityId: studentId,
+      metadata: {
+        classroomId: body.classroomId ?? null,
+        classroomIds: body.classroomIds ?? null,
+      },
+      request,
+    });
 
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

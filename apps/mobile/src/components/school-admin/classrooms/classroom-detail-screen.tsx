@@ -45,6 +45,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ClassroomDetailScreenProps = {
   slug: string;
@@ -60,6 +61,7 @@ export function ClassroomDetailScreen({
   const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [summary, setSummary] = useState<ClassroomSummary | null>(null);
   const [detail, setDetail] = useState<ClassroomDetail | null>(null);
@@ -94,11 +96,15 @@ export function ClassroomDetailScreen({
       setRoster(rosterPayload);
       setStaffMembers(staffPayload);
     } catch (loadError) {
+      reportError('school_admin_classroom_load', loadError, {
+        entityType: 'classroom',
+        entityId: classroomId,
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load classroom.');
     } finally {
       setLoading(false);
     }
-  }, [classroomId, slug]);
+  }, [classroomId, reportError, slug]);
 
   useEffect(() => {
     void loadData();
@@ -115,6 +121,16 @@ export function ClassroomDetailScreen({
     try {
       await assignStaffToClassroomApi(slug, classroomId, staffMemberId, role);
       await loadData();
+    } catch (assignError) {
+      reportError('school_admin_classroom_staff_assign', assignError, {
+        entityType: 'classroom',
+        entityId: classroomId,
+        metadata: { staffMemberId, role },
+      });
+      Alert.alert(
+        'Assign failed',
+        assignError instanceof Error ? assignError.message : 'Failed to assign staff.',
+      );
     } finally {
       setAssigningStaff(false);
     }
@@ -125,6 +141,16 @@ export function ClassroomDetailScreen({
     try {
       await assignStudentsToClassroomApi(slug, classroomId, studentIds);
       await loadData();
+    } catch (assignError) {
+      reportError('school_admin_classroom_students_assign', assignError, {
+        entityType: 'classroom',
+        entityId: classroomId,
+        metadata: { studentIds },
+      });
+      Alert.alert(
+        'Assign failed',
+        assignError instanceof Error ? assignError.message : 'Failed to assign students.',
+      );
     } finally {
       setAssigningStudents(false);
     }
@@ -138,8 +164,20 @@ export function ClassroomDetailScreen({
         style: 'destructive',
         onPress: () => {
           void (async () => {
-            await removeStaffFromClassroomApi(slug, classroomId, staffMemberId);
-            await loadData();
+            try {
+              await removeStaffFromClassroomApi(slug, classroomId, staffMemberId);
+              await loadData();
+            } catch (removeError) {
+              reportError('school_admin_classroom_staff_remove', removeError, {
+                entityType: 'classroom',
+                entityId: classroomId,
+                metadata: { staffMemberId },
+              });
+              Alert.alert(
+                'Remove failed',
+                removeError instanceof Error ? removeError.message : 'Failed to remove staff.',
+              );
+            }
           })();
         },
       },
@@ -154,8 +192,20 @@ export function ClassroomDetailScreen({
         style: 'destructive',
         onPress: () => {
           void (async () => {
-            await removeStudentFromClassroomApi(slug, classroomId, studentId);
-            await loadData();
+            try {
+              await removeStudentFromClassroomApi(slug, classroomId, studentId);
+              await loadData();
+            } catch (removeError) {
+              reportError('school_admin_classroom_student_remove', removeError, {
+                entityType: 'classroom',
+                entityId: classroomId,
+                metadata: { studentId },
+              });
+              Alert.alert(
+                'Remove failed',
+                removeError instanceof Error ? removeError.message : 'Failed to remove student.',
+              );
+            }
           })();
         },
       },
@@ -175,6 +225,10 @@ export function ClassroomDetailScreen({
               await deleteClassroomApi(slug, classroomId);
               router.back();
             } catch (deleteError) {
+              reportError('school_admin_classroom_delete', deleteError, {
+                entityType: 'classroom',
+                entityId: classroomId,
+              });
               Alert.alert(
                 'Delete failed',
                 deleteError instanceof Error ? deleteError.message : 'Failed to delete classroom.',

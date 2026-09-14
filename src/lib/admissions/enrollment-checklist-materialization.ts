@@ -398,9 +398,11 @@ async function directEnrollWithoutChecklist(
     actorUserId: string;
     note?: string;
     leaveChecklistIncomplete?: boolean;
+    activityMetadata?: Record<string, unknown>;
   },
 ): Promise<MarkedEnrollment> {
-  const { application, actorUserId, note, leaveChecklistIncomplete } = input;
+  const { application, actorUserId, note, leaveChecklistIncomplete, activityMetadata } =
+    input;
   const applicationId = String(application.id);
   const studentId = String(application.student_id);
   const programId = String(application.program_id);
@@ -509,6 +511,7 @@ async function directEnrollWithoutChecklist(
       bypassedChecklist: true,
       ...(leaveChecklistIncomplete ? { leaveChecklistIncomplete: true } : {}),
       ...(note ? { note } : {}),
+      ...(activityMetadata ?? {}),
     },
   });
 
@@ -664,9 +667,10 @@ export async function markApplicationAsEnrolled(
     actorUserId: string;
     note?: string;
     completeChecklist?: boolean;
+    activityMetadata?: Record<string, unknown>;
   },
 ): Promise<MarkedEnrollment> {
-  const { applicationId, actorUserId, note } = input;
+  const { applicationId, actorUserId, note, activityMetadata } = input;
   const completeChecklist = input.completeChecklist !== false;
 
   const { data: application, error: appError } = await supabase
@@ -730,6 +734,7 @@ export async function markApplicationAsEnrolled(
       actorUserId,
       note,
       leaveChecklistIncomplete: Boolean(publishedChecklist || existingChecklist),
+      activityMetadata,
     });
   }
 
@@ -790,6 +795,7 @@ export async function markApplicationAsEnrolled(
         checklistId,
         adminBypassCompletedChecklist: true,
         ...(note ? { note } : {}),
+        ...(activityMetadata ?? {}),
       },
     });
 
@@ -807,6 +813,7 @@ export async function markApplicationAsEnrolled(
     },
     actorUserId,
     note,
+    activityMetadata,
   });
 }
 

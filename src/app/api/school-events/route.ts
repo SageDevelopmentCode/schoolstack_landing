@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import { getSchoolAdminUserProfile } from "@/lib/school-admin/access";
 import {
@@ -66,7 +67,11 @@ export async function POST(request: Request) {
       admin,
       parsed.organizationId,
       parsed.input,
-      { userId: user.id, name: actor.displayName },
+      {
+        userId: user.id,
+        name: actor.displayName,
+        activityMetadata: activityClientMetadataFromRequest(request),
+      },
     );
 
     return NextResponse.json({ event });

@@ -15,6 +15,7 @@ import {
 } from '@/contexts/auth-context';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { listLiveOrganizations, type LiveOrganization } from '@/lib/organizations';
+import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Spacing } from '@/constants/theme';
 
@@ -101,6 +102,7 @@ export function SchoolLoginExperience() {
 
       const portal = await completeSchoolSignIn(userId, organization);
       await setResolvedPortal(portal);
+      void logMobileAuthSignedIn(portal);
       router.replace('/portal');
     },
     [router, setResolvedPortal, user],
@@ -201,6 +203,7 @@ export function SchoolLoginExperience() {
 
       const portal = await completeSchoolSignIn(signedInUser.id, selectedOrganization);
       await setResolvedPortal(portal);
+      void logMobileAuthSignedIn(portal, { method: 'otp' });
       router.replace('/portal');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {
@@ -242,6 +245,7 @@ export function SchoolLoginExperience() {
 
       const portal = await completeSchoolSignIn(signedInUser.id, selectedOrganization);
       await setResolvedPortal(portal);
+      void logMobileAuthSignedIn(portal, { method: 'password' });
       router.replace('/portal');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {

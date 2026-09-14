@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
   getSchoolAdminUserProfile,
@@ -138,6 +139,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       actorUserId: user.id,
       actorName: actor.displayName,
       actorEmail: actor.email,
+      activityMetadata: activityClientMetadataFromRequest(request),
     });
 
     return NextResponse.json({ item });
@@ -199,6 +201,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       actorUserId: user.id,
       actorName: actor.displayName,
       actorEmail: actor.email,
+      activityMetadata: activityClientMetadataFromRequest(request),
     });
 
     return NextResponse.json({ success: true });

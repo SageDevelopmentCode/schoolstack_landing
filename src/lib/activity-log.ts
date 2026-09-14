@@ -82,6 +82,23 @@ export const ACTIVITY_ACTIONS = {
   CLASSROOM_SIGNUP_RESPONSE_SUBMITTED: "classroom_signup.response_submitted",
   CLASSROOM_SIGNUP_CLOSED: "classroom_signup.closed",
   BULLETIN_POST_PUBLISHED: "bulletin.post_published",
+  STAFF_CREATED: "staff.created",
+  STAFF_UPDATED: "staff.updated",
+  STAFF_PORTAL_ACCESS_DEACTIVATED: "staff.portal_access_deactivated",
+  STAFF_PORTAL_ACCESS_REACTIVATED: "staff.portal_access_reactivated",
+  STAFF_STUDENTS_ASSIGNED: "staff.students_assigned",
+  STAFF_STUDENT_UNASSIGNED: "staff.student_unassigned",
+  CLASSROOM_CREATED: "classroom.created",
+  CLASSROOM_UPDATED: "classroom.updated",
+  CLASSROOM_DELETED: "classroom.deleted",
+  CLASSROOM_STUDENTS_ASSIGNED: "classroom.students_assigned",
+  CLASSROOM_STUDENT_REMOVED: "classroom.student_removed",
+  CLASSROOM_STAFF_ASSIGNED: "classroom.staff_assigned",
+  CLASSROOM_STAFF_REMOVED: "classroom.staff_removed",
+  STUDENT_CLASSROOM_UPDATED: "student.classroom_updated",
+  PARENT_PROFILE_PHOTO_UPDATED: "parent.profile_photo_updated",
+  PARENT_STUDENT_PROFILE_PHOTO_UPDATED: "parent.student_profile_photo_updated",
+  PARENT_NOTIFICATION_SETTINGS_UPDATED: "parent.notification_settings_updated",
   CALENDAR_EVENT_POSTED: "calendar.event_posted",
   COOP_SUPPLY_ITEM_ADDED: "coop.supply_item.added",
   COOP_SUPPLY_ITEM_UPDATED: "coop.supply_item.updated",
@@ -240,6 +257,23 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
   [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "Bulletin published",
+  [ACTIVITY_ACTIONS.STAFF_CREATED]: "Staff member added",
+  [ACTIVITY_ACTIONS.STAFF_UPDATED]: "Staff member updated",
+  [ACTIVITY_ACTIONS.STAFF_PORTAL_ACCESS_DEACTIVATED]: "Staff portal access deactivated",
+  [ACTIVITY_ACTIONS.STAFF_PORTAL_ACCESS_REACTIVATED]: "Staff portal access reactivated",
+  [ACTIVITY_ACTIONS.STAFF_STUDENTS_ASSIGNED]: "Students assigned to staff",
+  [ACTIVITY_ACTIONS.STAFF_STUDENT_UNASSIGNED]: "Student unassigned from staff",
+  [ACTIVITY_ACTIONS.CLASSROOM_CREATED]: "Classroom created",
+  [ACTIVITY_ACTIONS.CLASSROOM_UPDATED]: "Classroom updated",
+  [ACTIVITY_ACTIONS.CLASSROOM_DELETED]: "Classroom deleted",
+  [ACTIVITY_ACTIONS.CLASSROOM_STUDENTS_ASSIGNED]: "Students assigned to classroom",
+  [ACTIVITY_ACTIONS.CLASSROOM_STUDENT_REMOVED]: "Student removed from classroom",
+  [ACTIVITY_ACTIONS.CLASSROOM_STAFF_ASSIGNED]: "Staff assigned to classroom",
+  [ACTIVITY_ACTIONS.CLASSROOM_STAFF_REMOVED]: "Staff removed from classroom",
+  [ACTIVITY_ACTIONS.STUDENT_CLASSROOM_UPDATED]: "Student classroom updated",
+  [ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED]: "Profile photo updated",
+  [ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED]: "Student profile photo updated",
+  [ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED]: "Notification settings updated",
   [ACTIVITY_ACTIONS.CALENDAR_EVENT_POSTED]: "Calendar event posted",
   [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_ADDED]: "Co-op supply item added",
   [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_UPDATED]: "Co-op supply item updated",
@@ -261,6 +295,9 @@ export type AuthActivityMetadata = {
   resent?: boolean;
   organizationSlug?: string;
   errorCode?: string;
+  client?: "web" | "mobile";
+  platform?: "ios" | "android";
+  appVersion?: string;
 };
 
 export type LogAuthActivityInput = {
@@ -268,6 +305,7 @@ export type LogAuthActivityInput = {
   actorUserId?: string | null;
   actorEmail?: string | null;
   actorName?: string | null;
+  actorType?: ActorType;
   surface: ActivitySurface;
   action: ActivityAction | string;
   summary: string;
@@ -370,7 +408,7 @@ export async function logAuthActivity(
 ): Promise<void> {
   await logActivityEvent(supabase, {
     organizationId: event.organizationId,
-    actorType: "parent",
+    actorType: event.actorType ?? "parent",
     actorUserId: event.actorUserId,
     actorEmail: event.actorEmail,
     actorName: event.actorName,

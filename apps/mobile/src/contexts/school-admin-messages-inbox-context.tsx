@@ -15,6 +15,7 @@ import {
   createPortalCache,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
+import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type SchoolAdminMessagesInboxData = {
   threads: MessageThreadSummary[];
@@ -98,6 +99,10 @@ export function SchoolAdminMessagesInboxProvider({
 }: SchoolAdminMessagesInboxProviderProps) {
   const key = cacheKey(organizationId, schoolName);
   const cached = messagesInboxCache.get(key);
+  const reportError = useMemo(
+    () => createSchoolAdminErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const [threads, setThreads] = useState<MessageThreadSummary[]>(cached?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(cached?.contacts ?? []);
@@ -145,6 +150,7 @@ export function SchoolAdminMessagesInboxProvider({
           applyInboxData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('school_admin_messages_inbox_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
         } finally {
           setIsLoading(false);
@@ -159,7 +165,7 @@ export function SchoolAdminMessagesInboxProvider({
       }
       await promise;
     },
-    [applyInboxData, key, organizationId, schoolName],
+    [applyInboxData, key, organizationId, reportError, schoolName],
   );
 
   const refresh = useCallback(
@@ -183,6 +189,7 @@ export function SchoolAdminMessagesInboxProvider({
         setContacts(nextContacts);
         setError(null);
       } catch (loadError) {
+        reportError('school_admin_messages_contacts_load', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load contacts.');
       } finally {
         setLoadingContacts(false);
@@ -193,7 +200,7 @@ export function SchoolAdminMessagesInboxProvider({
     const promise = run();
     contactsPromiseRef.current = promise;
     await promise;
-  }, [contacts.length, organizationId, schoolName]);
+  }, [contacts.length, organizationId, reportError, schoolName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +233,7 @@ export function SchoolAdminMessagesInboxProvider({
         setError(null);
       } catch (loadError) {
         if (!cancelled && !messagesInboxCache.get(key)) {
+          reportError('school_admin_messages_inbox_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
         }
       } finally {
@@ -241,7 +249,7 @@ export function SchoolAdminMessagesInboxProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyInboxData, key, organizationId, schoolName]);
+  }, [applyInboxData, key, organizationId, reportError, schoolName]);
 
   const value = useMemo(
     () => ({

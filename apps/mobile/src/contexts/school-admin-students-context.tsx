@@ -22,6 +22,7 @@ import {
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
+import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type SchoolAdminStudentsData = {
   students: AdminEnrolledStudentSummary[];
@@ -95,6 +96,10 @@ export function SchoolAdminStudentsProvider({
 }: SchoolAdminStudentsProviderProps) {
   const key = cacheKey(organizationId);
   const cached = studentsCache.get(key);
+  const reportError = useMemo(
+    () => createSchoolAdminErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
     normalizeEnrolledStudentSummaries(cached?.students ?? []),
@@ -144,6 +149,7 @@ export function SchoolAdminStudentsProvider({
           ]);
 
           if (studentsResult.status === 'rejected') {
+            reportError('school_admin_students_load', studentsResult.reason);
             setError(
               studentsResult.reason instanceof Error
                 ? studentsResult.reason.message
@@ -156,6 +162,7 @@ export function SchoolAdminStudentsProvider({
           const nextStaff =
             staffResult.status === 'fulfilled' ? staffResult.value : [];
           if (staffResult.status === 'rejected') {
+            reportError('school_admin_students_staff_load', staffResult.reason);
             setStaffError(
               staffResult.reason instanceof Error
                 ? staffResult.reason.message
@@ -171,6 +178,7 @@ export function SchoolAdminStudentsProvider({
           applyData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('school_admin_students_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load students.');
         } finally {
           setIsLoading(false);
@@ -185,7 +193,7 @@ export function SchoolAdminStudentsProvider({
       }
       await promise;
     },
-    [applyData, key, organizationId],
+    [applyData, key, organizationId, reportError],
   );
 
   const refresh = useCallback(
@@ -228,6 +236,7 @@ export function SchoolAdminStudentsProvider({
         setStaffError(null);
       } catch (loadError) {
         if (!cancelled && !studentsCache.get(key)) {
+          reportError('school_admin_students_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load students.');
         }
       } finally {
@@ -243,7 +252,7 @@ export function SchoolAdminStudentsProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyData, key, organizationId]);
+  }, [applyData, key, organizationId, reportError]);
 
   const value = useMemo(
     () => ({

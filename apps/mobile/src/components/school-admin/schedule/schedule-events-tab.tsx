@@ -17,14 +17,17 @@ import { Radius, Spacing } from '@/constants/theme';
 import { addMinutesToTimeInput, DEFAULT_EVENT_DURATION_MINUTES, toTimeInputValue } from '@/lib/school-events/calendar-time';
 import { getDefaultColorKeyForType } from '@/lib/school-events/event-labels';
 import {
-  createOrganizationEvent,
-  deleteOrganizationEvent,
+  createOrganizationEventViaApi,
+  deleteOrganizationEventViaApi,
+  updateOrganizationEventViaApi,
+} from '@/lib/school-events/event-api';
+import {
   groupOrganizationEventsByDate,
   listEventsForOrg,
-  updateOrganizationEvent,
 } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleEventsTabProps = {
   organizationId: string;
@@ -35,6 +38,7 @@ type ScheduleEventsTabProps = {
 export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: ScheduleEventsTabProps) {
   const theme = useAdminTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,11 +62,12 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       const rows = await listEventsForOrg(supabase, organizationId);
       setEvents(rows);
     } catch (error) {
+      reportError('school_admin_schedule_events_load', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to load events.');
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadEvents();
@@ -118,7 +123,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
           : form.endTime;
 
       if (formMode === 'create') {
-        await createOrganizationEvent(supabase, organizationId, {
+        await createOrganizationEventViaApi(organizationId, {
           title: form.title,
           date: form.date,
           time: form.isAllDay ? undefined : form.time,
@@ -130,7 +135,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
           description: form.description,
         });
       } else if (editingEventId) {
-        await updateOrganizationEvent(supabase, editingEventId, {
+        await updateOrganizationEventViaApi(organizationId, editingEventId, {
           title: form.title,
           date: form.date,
           time: form.isAllDay ? null : form.time,
@@ -147,6 +152,11 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       await loadEvents();
       onRefresh();
     } catch (error) {
+      reportError('school_admin_schedule_event_save', error, {
+        entityType: 'organization_event',
+        entityId: editingEventId ?? undefined,
+        metadata: { mode: formMode },
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save event.');
     } finally {
       setSaving(false);
@@ -157,11 +167,15 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     if (!selectedEvent) return;
     setDeleting(true);
     try {
-      await deleteOrganizationEvent(supabase, selectedEvent.id);
+      await deleteOrganizationEventViaApi(organizationId, selectedEvent.id);
       setSelectedEventId(null);
       await loadEvents();
       onRefresh();
     } catch (error) {
+      reportError('school_admin_schedule_event_delete', error, {
+        entityType: 'organization_event',
+        entityId: selectedEvent.id,
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
     } finally {
       setDeleting(false);

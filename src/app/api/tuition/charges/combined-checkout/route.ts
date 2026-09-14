@@ -30,6 +30,7 @@ import {
   validateCombinedTuitionChargeIds,
 } from "@/lib/tuition/combined-tuition-payment";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { activityClientMetadataForStripeSession } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -285,6 +286,7 @@ export async function POST(request: Request) {
         tuition_charge_ids: tuitionChargeIdsValue,
         payment_ids: paymentIdsValue,
         payment_type: "tuition_combined",
+        ...activityClientMetadataForStripeSession(request),
       },
     });
 

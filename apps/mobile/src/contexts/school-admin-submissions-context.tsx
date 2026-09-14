@@ -24,6 +24,7 @@ import {
   type SubmissionPageMeta,
 } from '@/lib/school-admin/submissions-page-meta';
 import { getSupabaseClient } from '@/lib/supabase';
+import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type SchoolAdminSubmissionsData = {
   submissions: AdminApplicationSubmission[];
@@ -107,6 +108,10 @@ export function SchoolAdminSubmissionsProvider({
 }: SchoolAdminSubmissionsProviderProps) {
   const key = cacheKey(organizationId);
   const cached = submissionsCache.get(key);
+  const reportError = useMemo(
+    () => createSchoolAdminErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>(
     cached?.submissions ?? [],
@@ -153,6 +158,7 @@ export function SchoolAdminSubmissionsProvider({
           applyData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('school_admin_submissions_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load submissions.');
         } finally {
           setIsLoading(false);
@@ -167,7 +173,7 @@ export function SchoolAdminSubmissionsProvider({
       }
       await promise;
     },
-    [applyData, key, organizationId],
+    [applyData, key, organizationId, reportError],
   );
 
   const refresh = useCallback(
@@ -195,6 +201,7 @@ export function SchoolAdminSubmissionsProvider({
           submissionsPageHasMore(nextPage.length, ORG_SUBMISSIONS_INITIAL_PAGE_SIZE),
         );
       } catch (loadError) {
+        reportError('school_admin_submissions_load_more', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load more submissions.');
       } finally {
         setIsLoadingMore(false);
@@ -205,7 +212,7 @@ export function SchoolAdminSubmissionsProvider({
     const promise = run();
     loadMorePromiseRef.current = promise;
     await promise;
-  }, [hasMore, isLoading, isLoadingMore, isRefreshing, organizationId, submissions.length]);
+  }, [hasMore, isLoading, isLoadingMore, isRefreshing, organizationId, reportError, submissions.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -238,6 +245,7 @@ export function SchoolAdminSubmissionsProvider({
         setError(null);
       } catch (loadError) {
         if (!cancelled && !submissionsCache.get(key)) {
+          reportError('school_admin_submissions_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load submissions.');
         }
       } finally {
@@ -253,7 +261,7 @@ export function SchoolAdminSubmissionsProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyData, key, organizationId]);
+  }, [applyData, key, organizationId, reportError]);
 
   const value = useMemo(
     () => ({

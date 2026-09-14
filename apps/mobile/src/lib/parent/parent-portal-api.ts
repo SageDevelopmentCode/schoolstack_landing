@@ -3,6 +3,7 @@ import {
   getApiAuthHeaders,
   throwUnauthorized,
 } from '@/lib/auth/auth-session';
+import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist';
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
@@ -184,6 +185,12 @@ export async function fetchParentChildProfile(
       ...profile.application,
       feeStatus: profile.application.feeStatus ?? 'not_required',
     },
+    checklist: profile.checklist
+      ? {
+          ...profile.checklist,
+          progress: resolveChecklistProgress(profile.checklist),
+        }
+      : null,
   };
 }
 

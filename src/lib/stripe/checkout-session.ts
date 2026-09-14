@@ -161,6 +161,7 @@ export type CreateTuitionSetupCheckoutSessionInput = {
   guardianId: string | null;
   successUrl: string;
   cancelUrl: string;
+  sessionMetadata?: Record<string, string>;
 };
 
 export async function createTuitionSetupCheckoutSession(
@@ -179,6 +180,7 @@ export async function createTuitionSetupCheckoutSession(
       family_id: input.familyId,
       guardian_id: input.guardianId ?? "",
       supabase_user_id: input.payerUserId,
+      ...(input.sessionMetadata ?? {}),
     },
     success_url: input.successUrl,
     cancel_url: input.cancelUrl,

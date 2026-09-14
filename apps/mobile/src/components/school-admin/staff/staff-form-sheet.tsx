@@ -18,6 +18,7 @@ import type { StaffPortalRole } from '@/lib/school-admin-api';
 import { createStaffMember } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
 import { requestCloseIfClean } from '@/lib/unsaved-changes';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type StaffFormState = {
   firstName: string;
@@ -47,6 +48,7 @@ const PORTAL_ROLES: StaffPortalRole[] = ['teacher', 'staff'];
 export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormSheetProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
+  const { reportError } = useMobileErrorReporter();
   const [form, setForm] = useState<StaffFormState>(EMPTY_STAFF_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
       onCreated(member.id);
       onClose();
     } catch (saveError) {
+      reportError('school_admin_staff_create', saveError);
       setError(formatStaffApiError(saveError, 'Failed to add staff member.'));
     } finally {
       setSaving(false);

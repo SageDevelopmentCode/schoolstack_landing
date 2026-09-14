@@ -7,6 +7,7 @@ import { StoryFonts, StoryRadius } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import type { FamilyTuitionSelectionItem } from '@/lib/parent/parent-portal-api';
 import { saveEnrollmentPaymentPlan } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   computeInstallmentAmountCents,
   filterPaymentPlansForBillingStart,
@@ -33,6 +34,7 @@ export function ParentTuitionPlanSelector({
   studentName,
   onComplete,
 }: ParentTuitionPlanSelectorProps) {
+  const { reportError } = useMobileErrorReporter();
   const theme = useParentTheme();
   const { assignment, ratePlan } = selectionItem.context;
   const tier =
@@ -82,6 +84,10 @@ export function ParentTuitionPlanSelector({
       await saveEnrollmentPaymentPlan(assignment.enrollmentId, selectedPlanId);
       onComplete();
     } catch (err) {
+      reportError('parent_billing_payment_plan_save', err, {
+        entityType: 'enrollment',
+        entityId: assignment.enrollmentId,
+      });
       setError(err instanceof Error ? err.message : 'Failed to save payment schedule.');
     } finally {
       setSaving(false);

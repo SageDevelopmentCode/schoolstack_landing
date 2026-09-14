@@ -5,6 +5,7 @@ import {
   markApplicationAsEnrolled,
 } from "@/lib/admissions/enrollment-checklist-materialization";
 import { fireEnrollmentCompletedNotificationsIfNeeded } from "@/lib/admissions/fire-enrollment-completed-notifications";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -72,6 +73,7 @@ export async function POST(request: Request, context: RouteContext) {
       actorUserId: user.id,
       note: body.note?.trim() || undefined,
       completeChecklist: body.completeChecklist,
+      activityMetadata: activityClientMetadataFromRequest(request),
     });
 
     fireEnrollmentCompletedNotificationsIfNeeded(admin, result);

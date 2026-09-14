@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   addStaffPortalAccess,
@@ -10,12 +10,13 @@ import {
 import { listStaffMembersWithLoginStatus } from "@/lib/staff/staff-portal-login-status";
 import { fetchAssignedStudentCountsByStaffIds } from "@/lib/school-admin/enrolled-students";
 import {
+  getSchoolAdminUserProfile,
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { logSchoolAdminActivity } from "@/lib/school-admin/school-admin-activity";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school/[slug]/staff";
 
@@ -101,8 +102,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   const { slug } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   try {
     let body: CreateStaffBody;
@@ -129,7 +129,8 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId, request);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const actor = getSchoolAdminUserProfile(user);
 
     const email = body.email?.trim();
     const firstName = body.firstName?.trim();
@@ -153,6 +154,19 @@ export async function POST(request: Request, context: RouteContext) {
       lastName,
       roleTitle,
       portalRole,
+    });
+
+    void logSchoolAdminActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: actor.email,
+      actorName: actor.displayName,
+      action: ACTIVITY_ACTIONS.STAFF_CREATED,
+      summary: `Added staff member ${firstName} ${lastName}`,
+      entityType: "staff_member",
+      entityId: staffMember.id,
+      metadata: { email, portalRole, roleTitle },
+      request,
     });
 
     return NextResponse.json({ staffMember });

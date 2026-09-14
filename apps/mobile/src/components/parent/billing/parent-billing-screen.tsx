@@ -43,6 +43,7 @@ import {
   type CheckoutPaymentMethod,
   type TuitionCharge,
 } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   chargeRemainingCents,
   childFirstNameFromFullName,
@@ -88,6 +89,7 @@ function resolveNextChargeId(
 export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
   const theme = useParentTheme();
   const { data, isLoading, isRefreshing, error, refresh } = useParentBilling();
+  const { reportError } = useMobileErrorReporter(data?.organizationId);
 
   const [activeChildKey, setActiveChildKey] = useState(PARENT_BILLING_SUMMARY_TAB);
   const [dismissedAutopayFailure, setDismissedAutopayFailure] = useState(false);
@@ -299,6 +301,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         checkoutBrowserOpenRef.current = false;
       }
     } catch (checkoutError) {
+      reportError('parent_billing_checkout', checkoutError);
       Alert.alert(
         'Payment failed',
         checkoutError instanceof Error ? checkoutError.message : 'Failed to start checkout.',
@@ -353,6 +356,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
               });
               await refresh();
             } catch (autopayError) {
+              reportError('parent_billing_autopay', autopayError);
               Alert.alert(
                 'Autopay update failed',
                 autopayError instanceof Error
@@ -389,6 +393,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         checkoutBrowserOpenRef.current = false;
       }
     } catch (setupError) {
+      reportError('parent_billing_payment_method_setup', setupError);
       Alert.alert(
         'Could not open card setup',
         setupError instanceof Error ? setupError.message : 'Please try again.',

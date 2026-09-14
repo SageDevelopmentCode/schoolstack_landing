@@ -207,6 +207,7 @@ export async function sendMessageForViewer(
     schoolName: string;
     schoolOfficeLabel: string;
     skipNotifications?: boolean;
+    activityMetadata?: Record<string, unknown>;
   },
 ) {
   const thread = await getThreadDetail(
@@ -285,6 +286,7 @@ export async function sendMessageForViewer(
       senderName: message.senderName,
       message,
       viewer: input.viewer,
+      activityMetadata: input.activityMetadata,
     }).catch((err) => {
       void logNotificationFailure(admin, {
         organizationId: input.organizationId,

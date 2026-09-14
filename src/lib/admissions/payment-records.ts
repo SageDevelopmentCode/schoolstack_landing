@@ -1,11 +1,25 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   listPaymentRecords,
+  listPaymentRecordsPaginated,
   type ListPaymentRecordsFilters,
+  type ListPaymentRecordsPaginatedFilters,
+  type ListPaymentRecordsPaginatedResult,
   type PaymentRecord,
   type PaymentStatus,
   type PaymentType,
 } from "@/lib/stripe/application-payments";
+
+export const TRANSACTIONS_PAGE_DEFAULT_SIZE = 50;
+export const TRANSACTIONS_PAGE_MAX_SIZE = 100;
+
+export type OrganizationPaymentsPaginatedResult = {
+  rows: PaymentRecordDisplayRow[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
 
 export type { PaymentRecord };
 
@@ -262,6 +276,32 @@ export async function listOrganizationPayments(
 
   return enrichPaymentDisplayRows(supabase, records);
 }
+
+export async function listOrganizationPaymentsPaginated(
+  supabase: SupabaseClient,
+  organizationId: string,
+  filters: Omit<ListPaymentRecordsPaginatedFilters, "organizationId"> = {},
+): Promise<OrganizationPaymentsPaginatedResult> {
+  const page = await listPaymentRecordsPaginated(supabase, {
+    organizationId,
+    paymentType: filters.paymentType,
+    status: filters.status,
+    limit: filters.limit ?? TRANSACTIONS_PAGE_DEFAULT_SIZE,
+    offset: filters.offset ?? 0,
+  });
+
+  const rows = await enrichPaymentDisplayRows(supabase, page.records);
+
+  return {
+    rows,
+    totalCount: page.totalCount,
+    limit: page.limit,
+    offset: page.offset,
+    hasMore: page.hasMore,
+  };
+}
+
+export type { ListPaymentRecordsPaginatedResult };
 
 export async function listApplicationPayments(
   supabase: SupabaseClient,

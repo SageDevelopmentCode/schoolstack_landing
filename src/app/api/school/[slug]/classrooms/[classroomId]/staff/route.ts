@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   assignStaffToClassroom,
@@ -8,9 +9,11 @@ import {
   type ClassroomStaffRole,
 } from "@/lib/school-admin/classrooms";
 import {
+  getSchoolAdminUserProfile,
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { logSchoolAdminActivity } from "@/lib/school-admin/school-admin-activity";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -124,7 +127,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId, request);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const actor = getSchoolAdminUserProfile(user);
 
     if (body.action === "remove") {
       await removeStaffFromClassroom(admin, {
@@ -132,12 +136,38 @@ export async function PATCH(request: Request, context: RouteContext) {
         classroomId,
         staffMemberId: body.staffMemberId,
       });
+
+      void logSchoolAdminActivity(admin, {
+        organizationId,
+        actorUserId: user.id,
+        actorEmail: actor.email,
+        actorName: actor.displayName,
+        action: ACTIVITY_ACTIONS.CLASSROOM_STAFF_REMOVED,
+        summary: "Removed staff from classroom",
+        entityType: "classroom",
+        entityId: classroomId,
+        metadata: { staffMemberId: body.staffMemberId },
+        request,
+      });
     } else {
       await assignStaffToClassroom(admin, {
         organizationId,
         classroomId,
         staffMemberId: body.staffMemberId,
         role: body.role,
+      });
+
+      void logSchoolAdminActivity(admin, {
+        organizationId,
+        actorUserId: user.id,
+        actorEmail: actor.email,
+        actorName: actor.displayName,
+        action: ACTIVITY_ACTIONS.CLASSROOM_STAFF_ASSIGNED,
+        summary: "Assigned staff to classroom",
+        entityType: "classroom",
+        entityId: classroomId,
+        metadata: { staffMemberId: body.staffMemberId, role: body.role ?? null },
+        request,
       });
     }
 

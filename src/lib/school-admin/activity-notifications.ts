@@ -22,10 +22,18 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED,
   ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED,
   ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED,
+  ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED,
+  ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
+  ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED,
+  ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
+  ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED,
   ACTIVITY_ACTIONS.TUITION_PAYMENT_MANUAL,
   ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED,
+  ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED,
+  ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED,
+  ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED,
   ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
@@ -99,8 +107,16 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.POST_SUBMIT_VISIT_SCHEDULED]: "Visit scheduled",
   [ACTIVITY_ACTIONS.ENROLLMENT_COMPLETED]: "Enrollment completed",
   [ACTIVITY_ACTIONS.PAYMENTS_STRIPE_CONNECTED]: "Payments ready",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED]: "Autopay enabled",
+  [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED]: "Payment plan selected",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED]: "Tuition payment received",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
+  [ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED]: "Profile photo updated",
+  [ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED]: "Student photo updated",
+  [ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED]: "Notification settings updated",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED]: "Committee join request",
   [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
@@ -238,9 +254,13 @@ export function getActivityNotificationCategory(
   if (
     action.startsWith("payments.") ||
     action.startsWith("tuition.") ||
-    action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED
+    action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED ||
+    action === ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED
   ) {
     return "payments";
+  }
+  if (action.startsWith("parent.")) {
+    return "other";
   }
   if (action.startsWith("committee.")) {
     return "committees";
@@ -817,7 +837,8 @@ export function formatActivityNotificationDetail(
   },
 ): string {
   const isTuitionPayment =
-    action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED &&
+    (action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED ||
+      action === ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED) &&
     tuitionContext != null;
 
   if (isTuitionPayment) {
@@ -845,6 +866,55 @@ export function formatActivityNotificationDetail(
       return `${fallbackSummary} — ${paymentAmountLabel}`;
     }
     return fallbackSummary;
+  }
+
+  const familyLabel = options?.guardianLabel ?? null;
+
+  if (action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED) {
+    return familyLabel
+      ? `${familyLabel} enabled tuition autopay`
+      : "A family enabled tuition autopay";
+  }
+
+  if (action === ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED) {
+    return familyLabel
+      ? `${familyLabel} disabled tuition autopay`
+      : "A family disabled tuition autopay";
+  }
+
+  if (action === ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED) {
+    return familyLabel
+      ? `${familyLabel} saved a payment method`
+      : fallbackSummary;
+  }
+
+  if (action === ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED) {
+    if (fallbackSummary.toLowerCase().includes("payment plan")) {
+      return familyLabel
+        ? `${familyLabel} selected a tuition payment plan`
+        : fallbackSummary;
+    }
+    return fallbackSummary;
+  }
+
+  if (action === ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED) {
+    return familyLabel
+      ? `${familyLabel} updated their profile photo`
+      : fallbackSummary;
+  }
+
+  if (action === ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED) {
+    const studentName = subjectLabel;
+    if (familyLabel && studentName) {
+      return `${familyLabel} updated ${studentName}'s profile photo`;
+    }
+    return fallbackSummary;
+  }
+
+  if (action === ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED) {
+    return familyLabel
+      ? `${familyLabel} updated notification email settings`
+      : fallbackSummary;
   }
 
   if (!subjectLabel) {
@@ -1062,8 +1132,29 @@ export async function resolveActivityNotificationLink(
     return { href: paymentsHref(slug), ctaLabel: "View payments" };
   }
 
-  if (event.entity_type === "tuition_charge") {
+  if (
+    event.entity_type === "tuition_charge" ||
+    event.action.startsWith("tuition.")
+  ) {
     return { href: tuitionHref(slug), ctaLabel: "View tuition" };
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.PARENT_PROFILE_PHOTO_UPDATED ||
+    event.action === ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED
+  ) {
+    const studentId = metadataString(event.metadata, "studentId");
+    if (studentId) {
+      return {
+        href: schoolAdminPath(slug, "students", studentId),
+        ctaLabel: "View student",
+      };
+    }
+    return { href: studentsHref(slug), ctaLabel: "View students" };
+  }
+
+  if (event.action === ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED) {
+    return { href: tuitionHref(slug), ctaLabel: "View billing" };
   }
 
   if (event.action === ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED) {
@@ -1137,11 +1228,20 @@ export function mapActivityEventToNotification(
   paymentLabel?: string | null,
 ): SchoolAdminActivityNotification {
   const metadataSubject = metadataString(event.metadata, "guardianName");
-  let guardianLabel = context?.guardianLabel ?? metadataSubject ?? null;
+  const metadataFamilyName = metadataString(event.metadata, "familyName");
+  let guardianLabel =
+    context?.guardianLabel ?? metadataSubject ?? metadataFamilyName ?? null;
   let subjectLabel =
     tuitionContext?.subjectLabel ??
     context?.subjectLabel ??
     metadataSubject;
+
+  if (event.action === ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED) {
+    const studentName = metadataString(event.metadata, "studentName");
+    if (studentName) {
+      subjectLabel = shortenSubjectLabel(studentName);
+    }
+  }
 
   if (tuitionContext) {
     guardianLabel =

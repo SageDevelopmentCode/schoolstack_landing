@@ -23,6 +23,7 @@ import {
   formatEnrolledStudentName,
   formatStudentGrade,
 } from '@/lib/school-admin/enrolled-students';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StaffAssignedStudentsSectionProps = {
   slug: string;
@@ -41,6 +42,7 @@ export function StaffAssignedStudentsSection({
 }: StaffAssignedStudentsSectionProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,12 +58,16 @@ export function StaffAssignedStudentsSection({
       const rows = await fetchStaffAssignedStudents(slug, staffMemberId);
       setStudents(rows);
     } catch (loadError) {
+      reportError('school_admin_staff_students_load', loadError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+      });
       setError(formatStaffApiError(loadError, 'Failed to load assigned students.'));
       setStudents([]);
     } finally {
       setLoading(false);
     }
-  }, [slug, staffMemberId]);
+  }, [reportError, slug, staffMemberId]);
 
   useEffect(() => {
     void loadStudents();
@@ -73,6 +79,11 @@ export function StaffAssignedStudentsSection({
       await assignStudentsToStaffApi(slug, staffMemberId, studentIds);
       await loadStudents();
     } catch (assignError) {
+      reportError('school_admin_staff_students_assign', assignError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+        metadata: { studentIds },
+      });
       Alert.alert('Error', formatStaffApiError(assignError, 'Failed to assign students.'));
     } finally {
       setAssigning(false);
@@ -100,6 +111,11 @@ export function StaffAssignedStudentsSection({
       await unassignStudentFromStaffApi(slug, staffMemberId, studentId);
       setStudents((current) => current.filter((row) => row.id !== studentId));
     } catch (unassignError) {
+      reportError('school_admin_staff_students_unassign', unassignError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+        metadata: { studentId },
+      });
       Alert.alert('Error', formatStaffApiError(unassignError, 'Failed to unassign student.'));
     } finally {
       setRemovingStudentId(null);

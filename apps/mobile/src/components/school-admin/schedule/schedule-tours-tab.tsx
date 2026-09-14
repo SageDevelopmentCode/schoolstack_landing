@@ -12,14 +12,15 @@ import { Spacing } from '@/constants/theme';
 import {
   availabilitySlotKey,
   listAdmissionsAvailabilitySlots,
-  toggleAdmissionsAvailabilitySlot,
   type AdmissionsAvailabilitySlotKey,
 } from '@/lib/admissions/admissions-availability';
+import { toggleAdmissionsAvailabilitySlotViaApi } from '@/lib/school-admin/schedule-api';
 import {
   listOccupiedSlotKeysForDateRange,
   occupiedSlotKeysToBookedDates,
 } from '@/lib/admissions/admin-scheduled-visits';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleToursTabProps = {
   organizationId: string;
@@ -36,6 +37,7 @@ export function ScheduleToursTab({
 }: ScheduleToursTabProps) {
   const theme = useAdminTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
   const [occupiedSlots, setOccupiedSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
@@ -111,16 +113,18 @@ export function ScheduleToursTab({
     setTogglingKey(key);
 
     try {
-      await toggleAdmissionsAvailabilitySlot(
-        supabase,
+      await toggleAdmissionsAvailabilitySlotViaApi({
         organizationId,
-        calendar.selectedDate,
+        date: calendar.selectedDate,
         timeSlot,
         open,
-      );
+      });
       onMonthSlotCountChange?.(next.size);
       onRefresh();
     } catch (toggleError) {
+      reportError('school_admin_schedule_tour_toggle', toggleError, {
+        metadata: { date: calendar.selectedDate, timeSlot, open },
+      });
       setOpenSlots(previous);
       Alert.alert('Error', toggleError instanceof Error ? toggleError.message : 'Failed to update slot.');
     } finally {

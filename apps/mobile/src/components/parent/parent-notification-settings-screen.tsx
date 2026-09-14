@@ -33,6 +33,7 @@ import {
   updateParentNotificationSettings,
   type ParentNotificationSettings,
 } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 function sourceLabel(source: string): string {
   switch (source) {
@@ -183,6 +184,7 @@ export function ParentNotificationSettingsScreen() {
   const theme = useAdminTheme();
   const { selectedSchool } = useAuth();
   const organizationId = selectedSchool?.id ?? '';
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -221,6 +223,7 @@ export function ParentNotificationSettingsScreen() {
         setSettings(payload);
         applyConfiguredEmails(payload.configuredEmails, payload.loginEmail);
       } catch (loadError) {
+        reportError('parent_notification_settings_load', loadError);
         setError(
           loadError instanceof Error
             ? loadError.message
@@ -231,7 +234,7 @@ export function ParentNotificationSettingsScreen() {
         setRefreshing(false);
       }
     },
-    [applyConfiguredEmails, organizationId],
+    [applyConfiguredEmails, organizationId, reportError],
   );
 
   useEffect(() => {
@@ -297,6 +300,7 @@ export function ParentNotificationSettingsScreen() {
       setSettings(payload);
       applyConfiguredEmails(payload.configuredEmails, payload.loginEmail);
     } catch (saveError) {
+      reportError('parent_notification_settings_save', saveError);
       Alert.alert(
         'Save failed',
         saveError instanceof Error
@@ -332,6 +336,7 @@ export function ParentNotificationSettingsScreen() {
       setSettings(payload);
       applyConfiguredEmails(payload.configuredEmails, payload.loginEmail);
     } catch (clearError) {
+      reportError('parent_notification_settings_clear', clearError);
       Alert.alert(
         'Could not reset',
         clearError instanceof Error

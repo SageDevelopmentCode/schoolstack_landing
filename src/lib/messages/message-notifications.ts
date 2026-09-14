@@ -24,6 +24,7 @@ export type MessageNotificationContext = {
   senderName: string;
   message: PortalMessage;
   viewer: "parent" | "teacher" | "admin";
+  activityMetadata?: Record<string, unknown>;
 };
 
 type Recipient = {
@@ -349,6 +350,7 @@ export async function dispatchMessageNotifications(
     senderPortal: context.viewer,
     recipientLabels,
     preview,
+    ...(context.activityMetadata ?? {}),
   };
 
   if (context.viewer !== "admin") {

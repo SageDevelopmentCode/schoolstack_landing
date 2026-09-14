@@ -25,6 +25,7 @@ import {
   type StagedSupportAttachment,
   type SupportRequestTopic,
 } from '@/lib/school-admin/support-request';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type AdminSupportRequestSheetProps = {
   visible: boolean;
@@ -50,6 +51,7 @@ export function AdminSupportRequestSheet({
   sourcePagePath,
 }: AdminSupportRequestSheetProps) {
   const theme = useAdminTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [topic, setTopic] = useState<SupportRequestTopic>('general');
   const [topicOpen, setTopicOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -145,6 +147,9 @@ export function AdminSupportRequestSheet({
       });
       setSubmitted(true);
     } catch (error) {
+      reportError('school_admin_support_request_submit', error, {
+        metadata: { topic },
+      });
       setSubmitError(
         error instanceof Error ? error.message : 'Failed to submit your request. Please try again.',
       );

@@ -24,6 +24,7 @@ import {
   type ParentChildRecordSection,
 } from '@/lib/parent/parent-children-utils';
 import { fetchParentChildProfile, type FamilyChildOverview } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentChildDetailScreenProps = {
   slug: string;
@@ -48,6 +49,7 @@ export function ParentChildDetailScreen({
   const theme = useParentTheme();
   const router = useRouter();
   const { data: homeData } = useParentHome();
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [profile, setProfile] = useState<ChildProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -89,6 +91,10 @@ export function ParentChildDetailScreen({
       setProfile(loadedProfile);
       setActiveSection(resolveInitialSection(initialSection));
     } catch (error) {
+      reportError('parent_children_load_profile', error, {
+        entityType: 'application',
+        entityId: applicationId,
+      });
       setProfileError(
         error instanceof Error ? error.message : 'Failed to load student profile.',
       );
@@ -96,7 +102,7 @@ export function ParentChildDetailScreen({
     } finally {
       setProfileLoading(false);
     }
-  }, [applicationId, initialSection, organizationId]);
+  }, [applicationId, initialSection, organizationId, reportError]);
 
   useEffect(() => {
     void loadProfile();

@@ -45,6 +45,7 @@ import {
   patchApplicationStatus,
 } from '@/lib/school-admin-api';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 
@@ -62,6 +63,7 @@ export function SubmissionDetailScreen({
   const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [submission, setSubmission] = useState<AdminApplicationSubmission | null>(null);
   const [detail, setDetail] = useState<ApplicationDetail | null>(null);
@@ -134,13 +136,17 @@ export function SubmissionDetailScreen({
       setHasPublishedEnrollmentChecklist(publishedChecklist.hasChecklist);
       setEnrollmentChecklistName(publishedChecklist.templateName);
     } catch (loadError) {
+      reportError('school_admin_submission_load', loadError, {
+        entityType: 'application',
+        entityId: applicationId,
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load submission.');
       setSubmission(null);
       setDetail(null);
     } finally {
       setLoading(false);
     }
-  }, [applicationId, organizationId, supabase]);
+  }, [applicationId, organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadCore();
@@ -154,6 +160,10 @@ export function SubmissionDetailScreen({
       const checklist = await loadEnrollmentChecklistState(supabase, applicationId, organizationId);
       setEnrollmentChecklist(checklist);
     } catch (loadError) {
+      reportError('school_admin_submission_enrollment_load', loadError, {
+        entityType: 'application',
+        entityId: applicationId,
+      });
       setEnrollmentError(
         loadError instanceof Error ? loadError.message : 'Failed to load enrollment checklist.',
       );
@@ -161,7 +171,7 @@ export function SubmissionDetailScreen({
     } finally {
       setEnrollmentLoading(false);
     }
-  }, [applicationId, organizationId, showEnrollmentStatus, supabase]);
+  }, [applicationId, organizationId, reportError, showEnrollmentStatus, supabase]);
 
   useEffect(() => {
     if (activeTab === 'overview' || activeTab === 'application') {
@@ -247,12 +257,17 @@ export function SubmissionDetailScreen({
         await patchApplicationStatus(applicationId, status);
         await loadCore();
       } catch (actionError) {
+        reportError('school_admin_submission_status', actionError, {
+          entityType: 'application',
+          entityId: applicationId,
+          metadata: { status },
+        });
         setError(actionError instanceof Error ? actionError.message : 'Failed to update status.');
       } finally {
         setActionLoadingStatus(null);
       }
     },
-    [applicationId, loadCore],
+    [applicationId, loadCore, reportError],
   );
 
   const handleMarkEnrolled = useCallback(async () => {
@@ -261,11 +276,15 @@ export function SubmissionDetailScreen({
       await markApplicationEnrolled(applicationId);
       await loadCore();
     } catch (actionError) {
+      reportError('school_admin_mark_enrolled', actionError, {
+        entityType: 'application',
+        entityId: applicationId,
+      });
       setError(actionError instanceof Error ? actionError.message : 'Failed to mark enrolled.');
     } finally {
       setMarkEnrolledLoading(false);
     }
-  }, [applicationId, loadCore]);
+  }, [applicationId, loadCore, reportError]);
 
   const handleSelectApplication = useCallback(
     (nextApplicationId: string) => {

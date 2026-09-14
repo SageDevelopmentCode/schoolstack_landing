@@ -1,23 +1,21 @@
 import type { User } from '@supabase/supabase-js';
-import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
+import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
+import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
+import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
+import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useParentHome } from '@/contexts/parent-home-context';
-import { Radius, Spacing } from '@/constants/theme';
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 
 type ParentMoreMenuSheetProps = {
   visible: boolean;
@@ -31,42 +29,50 @@ const MENU_ITEMS: {
   label: string;
   subtitle: string;
   icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+  iconColor: string;
 }[] = [
   {
     id: 'attendance',
     label: 'Attendance',
     subtitle: 'Child attendance history',
     icon: 'clipboard-outline',
+    iconBg: '#FEF3C7',
+    iconColor: '#D97706',
   },
   {
     id: 'children',
     label: 'My children',
     subtitle: 'Profiles and details',
     icon: 'people-outline',
+    iconBg: '#FFE4E6',
+    iconColor: '#E11D48',
   },
   {
     id: 'committees',
     label: 'Committees',
     subtitle: 'Volunteer participation',
     icon: 'heart-outline',
+    iconBg: '#FCE7F3',
+    iconColor: '#DB2777',
   },
   {
     id: 'applications',
     label: 'Your applications',
     subtitle: 'Application dashboard',
     icon: 'document-text-outline',
+    iconBg: '#E0E7FF',
+    iconColor: '#4F46E5',
   },
   {
     id: 'notifications',
     label: 'Notification settings',
     subtitle: 'Family email preferences',
     icon: 'notifications-outline',
+    iconBg: '#E0F2FE',
+    iconColor: '#0284C7',
   },
 ];
-
-const SHEET_SLIDE_OFFSET = 400;
-const OPEN_DURATION_MS = 280;
-const CLOSE_DURATION_MS = 220;
 
 function getDisplayName(user: User): string {
   const fullName = user.user_metadata?.full_name;
@@ -86,18 +92,14 @@ export function ParentMoreMenuSheet({
   onSelect,
   onSelectAccount,
 }: ParentMoreMenuSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const { user } = useAuth();
   const { data: homeData, ensureLoaded } = useParentHome();
-  const insets = useSafeAreaInsets();
   const displayName = useMemo(() => {
     const profileName = homeData?.userProfile.displayName?.trim();
     if (profileName) return profileName;
     return user ? getDisplayName(user) : '';
   }, [homeData?.userProfile.displayName, user]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const backdropOpacity = useSharedValue(0);
-  const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
 
   useEffect(() => {
     if (visible) {
@@ -105,179 +107,84 @@ export function ParentMoreMenuSheet({
     }
   }, [visible, ensureLoaded]);
 
-  useEffect(() => {
-    if (visible) {
-      setModalVisible(true);
-      backdropOpacity.value = 0;
-      sheetTranslateY.value = SHEET_SLIDE_OFFSET;
-      backdropOpacity.value = withTiming(1, { duration: 250 });
-      sheetTranslateY.value = withTiming(0, {
-        duration: OPEN_DURATION_MS,
-        easing: Easing.out(Easing.cubic),
-      });
-      return;
-    }
-
-    if (!visible && modalVisible) {
-      backdropOpacity.value = withTiming(0, { duration: 200 });
-      sheetTranslateY.value = withTiming(
-        SHEET_SLIDE_OFFSET,
-        { duration: CLOSE_DURATION_MS, easing: Easing.in(Easing.cubic) },
-        (finished) => {
-          if (finished) {
-            runOnJS(setModalVisible)(false);
-          }
-        },
-      );
-    }
-  }, [visible, modalVisible, backdropOpacity, sheetTranslateY]);
-
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: sheetTranslateY.value }],
-  }));
-
   return (
-    <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Animated.View pointerEvents="none" style={[styles.backdrop, backdropAnimatedStyle]} />
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
-          accessibilityLabel="Close more menu"
-        />
-        <Animated.View
-          style={[
-            styles.sheet,
-            sheetAnimatedStyle,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              paddingBottom: insets.bottom + Spacing.four,
-              shadowColor: theme.shadowColor,
-            },
-          ]}>
-          <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
-          </View>
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              More
-            </ThemedText>
-          </View>
+    <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
+      <StoryMoreMenuHeader
+        kicker="Family portal"
+        title="More"
+        subtitle="Children, applications, and account settings"
+      />
 
-          {MENU_ITEMS.map((item) => (
-            <Pressable
-              key={item.id}
-              accessibilityRole="button"
-              accessibilityLabel={item.label}
-              onPress={() => onSelect(item.id)}
-              style={({ pressed }) => [
-                styles.row,
-                pressed && { backgroundColor: theme.elevated },
-              ]}>
-              <View style={[styles.iconCircle, { backgroundColor: theme.accentLight }]}>
-                <Ionicons name={item.icon} size={20} color={theme.accent} />
-              </View>
-              <View style={styles.rowCopy}>
-                <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                  {item.label}
-                </ThemedText>
-                <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  {item.subtitle}
-                </ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
-            </Pressable>
-          ))}
+      <StoryMoreMenuItemsCard>
+        {MENU_ITEMS.map((item, index) => (
+          <StoryMoreMenuItemRow
+            key={item.id}
+            isFirst={index === 0}
+            label={item.label}
+            subtitle={item.subtitle}
+            onPress={() => onSelect(item.id)}
+            icon={
+              <StoryMoreMenuIcon
+                name={item.icon}
+                iconBg={item.iconBg}
+                iconColor={item.iconColor}
+              />
+            }
+          />
+        ))}
+      </StoryMoreMenuItemsCard>
 
-          {user ? (
-            <View style={[styles.accountSection, { borderTopColor: theme.border }]}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Account for ${displayName}`}
-                onPress={onSelectAccount}
-                style={({ pressed }) => [
-                  styles.row,
-                  pressed && { backgroundColor: theme.elevated },
-                ]}>
-                <MessagesAvatar
-                  name={displayName}
-                  color={theme.accent}
-                  photoUrl={homeData?.userProfile.profilePhotoUrl}
-                  size="md"
-                />
-                <View style={styles.rowCopy}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    {displayName}
-                  </ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
-              </Pressable>
+      {user ? (
+        <StoryCard compact style={styles.accountCard}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Account for ${displayName}`}
+            onPress={onSelectAccount}
+            style={({ pressed }) => [styles.accountRow, pressed && styles.pressed]}>
+            <MessagesAvatar
+              name={displayName}
+              color={theme.primary}
+              photoUrl={homeData?.userProfile.profilePhotoUrl}
+              size="md"
+            />
+            <View style={styles.accountCopy}>
+              <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
+              <Text style={[styles.accountMeta, { color: theme.muted }]}>Account settings</Text>
             </View>
-          ) : null}
-        </Animated.View>
-      </View>
-    </Modal>
+            <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+          </Pressable>
+        </StoryCard>
+      ) : null}
+    </StoryMoreMenuSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
+  accountCard: {
+    padding: StoryCardPadding,
   },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxHeight: '80%',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 16,
-  },
-  handleRow: {
-    alignItems: 'center',
-    paddingTop: Spacing.two,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: Radius.pill,
-  },
-  header: {
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  row: {
+  accountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
     gap: Spacing.three,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  pressed: {
+    opacity: 0.85,
   },
-  rowCopy: {
+  accountCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
-  accountSection: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+  accountName: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  accountMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

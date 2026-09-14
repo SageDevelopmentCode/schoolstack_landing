@@ -3,12 +3,25 @@ import {
   assertApiAuthenticated,
   getApiAuthHeaders,
   isAuthRequiredError,
+  MOBILE_CLIENT_HEADER,
+  MOBILE_PLATFORM_HEADER,
   resolveAccessToken,
 } from '@/lib/auth/auth-session';
 import { getSupabaseClient } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase', () => ({
   getSupabaseClient: jest.fn(),
+}));
+
+jest.mock('react-native', () => ({
+  Platform: { OS: 'ios' },
+}));
+
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { version: '1.2.3' },
+  },
 }));
 
 const mockGetSupabaseClient = getSupabaseClient as jest.MockedFunction<typeof getSupabaseClient>;
@@ -92,6 +105,9 @@ describe('getApiAuthHeaders', () => {
 
     await expect(getApiAuthHeaders(true)).resolves.toEqual({
       Authorization: 'Bearer token-123',
+      [MOBILE_CLIENT_HEADER]: 'mobile',
+      [MOBILE_PLATFORM_HEADER]: 'ios',
+      'X-Schoolstack-App-Version': '1.2.3',
       'Content-Type': 'application/json',
     });
     expect(signOut).not.toHaveBeenCalled();
@@ -110,6 +126,9 @@ describe('getApiAuthHeaders', () => {
 
     await expect(getApiAuthHeaders()).resolves.toEqual({
       Authorization: 'Bearer refreshed-token',
+      [MOBILE_CLIENT_HEADER]: 'mobile',
+      [MOBILE_PLATFORM_HEADER]: 'ios',
+      'X-Schoolstack-App-Version': '1.2.3',
     });
     expect(refreshSession).toHaveBeenCalledTimes(1);
     expect(signOut).not.toHaveBeenCalled();

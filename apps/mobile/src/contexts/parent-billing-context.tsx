@@ -17,6 +17,7 @@ import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
+import { createParentPortalErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ParentBillingContextValue = {
   data: ParentBillingData | null;
@@ -81,6 +82,10 @@ export function ParentBillingProvider({
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const load = useCallback(
     async (options?: { refresh?: boolean }) => {
@@ -107,6 +112,7 @@ export function ParentBillingProvider({
           setData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('parent_billing_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load billing.');
         } finally {
           setIsLoading(false);
@@ -121,7 +127,7 @@ export function ParentBillingProvider({
       }
       await promise;
     },
-    [data, key, organizationId, slug],
+    [data, key, organizationId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
@@ -163,6 +169,7 @@ export function ParentBillingProvider({
         setHasLoaded(Boolean(billingCache.get(key)));
         setError(null);
       } catch (loadError) {
+        reportError('parent_billing_load', loadError);
         if (!cancelled && !billingCache.get(key)) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load billing.');
         }
@@ -179,7 +186,7 @@ export function ParentBillingProvider({
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, slug]);
+  }, [key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

@@ -21,6 +21,7 @@ import {
   parentActivityContext,
   summarizeAutopayToggle,
 } from "@/lib/tuition/tuition-activity";
+import { mergeActivityClientMetadata } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -122,12 +123,12 @@ export async function POST(request: Request) {
         paymentMethodLabel: enabled ? savedPaymentMethodLabel ?? undefined : undefined,
       }),
       logWhenEmpty: true,
-      metadata: {
+      metadata: mergeActivityClientMetadata(request, {
         familyId,
         familyName: familyName ?? null,
         guardianId,
         enabled,
-      },
+      }),
       context: parentActivityContext(user),
     });
 

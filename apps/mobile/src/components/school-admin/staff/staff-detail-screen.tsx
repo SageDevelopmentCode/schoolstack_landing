@@ -37,6 +37,7 @@ import {
   staffDisplayName,
   staffPortalLoginStatus,
 } from '@/lib/school-admin/staff-labels';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -182,6 +183,7 @@ function FormField({
 export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter();
 
   const [member, setMember] = useState<StaffMemberRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -232,12 +234,16 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
       resetEditForm(nextMember);
       setIsEditing(false);
     } catch (loadError) {
+      reportError('school_admin_staff_load', loadError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+      });
       setError(formatStaffApiError(loadError, 'Failed to load staff member.'));
       setMember(null);
     } finally {
       setLoading(false);
     }
-  }, [resetEditForm, slug, staffMemberId]);
+  }, [reportError, resetEditForm, slug, staffMemberId]);
 
   useEffect(() => {
     void loadMember();
@@ -257,6 +263,10 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
       setIsEditing(false);
       await loadMember();
     } catch (saveError) {
+      reportError('school_admin_staff_save', saveError, {
+        entityType: 'staff_member',
+        entityId: member.id,
+      });
       Alert.alert('Error', formatStaffApiError(saveError, 'Failed to update staff member.'));
     } finally {
       setSaveLoading(false);
@@ -274,6 +284,11 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
       }
       await loadMember();
     } catch (portalError) {
+      reportError('school_admin_staff_portal_access', portalError, {
+        entityType: 'staff_member',
+        entityId: member.id,
+        metadata: { action },
+      });
       Alert.alert(
         'Error',
         formatStaffApiError(portalError, 'Failed to update portal access.'),

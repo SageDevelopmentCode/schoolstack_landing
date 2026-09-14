@@ -15,6 +15,7 @@ import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { createParentMessageThread } from '@/lib/messages/parent-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
 
@@ -48,6 +49,7 @@ export function ParentMessagesListScreen({
 }: ParentMessagesListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const {
     threads,
     contacts,
@@ -116,6 +118,7 @@ export function ParentMessagesListScreen({
       await refresh({ silent: true });
       openThread(threadId);
     } catch (selectError) {
+      reportError('parent_message_thread_create', selectError);
       setActionError(
         selectError instanceof Error ? selectError.message : 'Failed to start conversation.',
       );

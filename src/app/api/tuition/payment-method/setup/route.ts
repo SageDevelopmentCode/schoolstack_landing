@@ -13,6 +13,7 @@ import {
   getOrganizationPaymentAccount,
   isPaymentReady,
 } from "@/lib/stripe/organization-payment-account";
+import { activityClientMetadataForStripeSession } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
       guardianId,
       successUrl,
       cancelUrl,
+      sessionMetadata: activityClientMetadataForStripeSession(request),
     });
 
     if (!session.url) {

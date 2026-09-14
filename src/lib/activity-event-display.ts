@@ -10,6 +10,7 @@ import {
   MessageSquare,
   type LucideIcon,
 } from "lucide-react";
+import { formatActivityClientLabel } from "@/lib/activity-client";
 import {
   ACTIVITY_ACTIONS,
   formatActivityActionLabel,
@@ -489,6 +490,14 @@ export function resolveActorDisplayLabel(
   return ACTOR_TYPE_LABELS[event.actor_type];
 }
 
+function appendActivityClientLabel(
+  narrative: string,
+  metadata: Record<string, unknown> | undefined,
+): string {
+  const clientLabel = formatActivityClientLabel(metadata);
+  return clientLabel ? `${narrative} (${clientLabel})` : narrative;
+}
+
 export function formatActivityEventNarrative(
   event: ActivityEventRow,
   context?: Partial<ActivityEventDisplayContext>,
@@ -498,11 +507,17 @@ export function formatActivityEventNarrative(
     event.action === ACTIVITY_ACTIONS.ADMIN_OPERATION_FAILED ||
     event.action === ACTIVITY_ACTIONS.NOTIFICATION_FAILED
   ) {
-    return event.summary.trim() || formatActivityActionLabel(event.action);
+    return appendActivityClientLabel(
+      event.summary.trim() || formatActivityActionLabel(event.action),
+      event.metadata,
+    );
   }
 
   if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
-    return formatMessageActivityNarrative(event, context);
+    return appendActivityClientLabel(
+      formatMessageActivityNarrative(event, context),
+      event.metadata,
+    );
   }
 
   const actor = resolveActorDisplayLabel(event, context);
@@ -510,10 +525,10 @@ export function formatActivityEventNarrative(
   const school = event.organizations?.name?.trim();
 
   if (school) {
-    return `${actor} ${phrase} for ${school}`;
+    return appendActivityClientLabel(`${actor} ${phrase} for ${school}`, event.metadata);
   }
 
-  return `${actor} ${phrase}`;
+  return appendActivityClientLabel(`${actor} ${phrase}`, event.metadata);
 }
 
 function resolveDisplayContextForEvent(

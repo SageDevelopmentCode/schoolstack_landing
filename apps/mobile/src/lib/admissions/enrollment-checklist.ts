@@ -84,7 +84,7 @@ export type LoadedEnrollmentChecklist = {
   checklistId: string;
   title: string;
   status: string;
-  progress: { completed: number; total: number };
+  progress?: { completed: number; total: number };
   items: EnrollmentChecklistItem[];
   instances: EnrollmentChecklistItemInstance[];
 };
@@ -368,6 +368,12 @@ export function computeChecklistProgress(
     if (instance?.status === 'completed') completed += 1;
   }
   return { completed, total: requiredItems.length };
+}
+
+export function resolveChecklistProgress(
+  checklist: LoadedEnrollmentChecklist,
+): { completed: number; total: number } {
+  return checklist.progress ?? computeChecklistProgress(checklist.items, checklist.instances);
 }
 
 export function checklistItemTypeLabel(type: EnrollmentChecklistItemType): string {

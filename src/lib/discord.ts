@@ -505,6 +505,85 @@ export async function notifySchoolAdminOperationError(payload: {
   );
 }
 
+async function sendMobileActivityDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.DISCORD_MOBILE_ACTIVITY_ERRORS_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_MOBILE_ACTIVITY_ERRORS_WEBHOOK_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+export async function notifyMobileOperationalError(payload: {
+  operation: string;
+  error: string;
+  surface?: string;
+  organizationId?: string;
+  organizationName?: string;
+  organizationSlug?: string;
+  actorEmail?: string;
+  code?: string;
+  details?: string;
+  entityType?: string;
+  entityId?: string;
+  platform?: string;
+}) {
+  const fields: DiscordEmbedField[] = [
+    embedField("Operation", truncate(payload.operation), true),
+    embedField("Error", truncate(payload.error)),
+    embedField("Client", "Mobile", true),
+  ];
+
+  if (payload.platform) {
+    fields.push(embedField("Platform", truncate(payload.platform), true));
+  }
+
+  if (payload.organizationId) {
+    fields.push(
+      schoolField(
+        payload.organizationName ?? "Unknown",
+        payload.organizationSlug,
+        payload.organizationId,
+      ),
+    );
+  }
+
+  if (payload.actorEmail) {
+    fields.push(embedField("Actor", truncate(payload.actorEmail), true));
+  }
+
+  if (payload.code) {
+    fields.push(embedField("Code", truncate(payload.code), true));
+  }
+
+  if (payload.details) {
+    fields.push(embedField("Details", truncate(payload.details)));
+  }
+
+  if (payload.entityType || payload.entityId) {
+    const entityParts = [payload.entityType, payload.entityId].filter(Boolean);
+    fields.push(
+      embedField("Entity", truncate(entityParts.join(" · ")), true),
+    );
+  }
+
+  await sendMobileActivityDiscordEmbed(
+    {
+      title: `📱 Mobile error · ${payload.operation}`,
+      description: truncate(payload.error, 200),
+      color: DISCORD_EMBED_COLORS.error,
+      fields,
+    },
+    { content: "@everyone" },
+  );
+}
+
 export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   schoolName: string;
   email: string;

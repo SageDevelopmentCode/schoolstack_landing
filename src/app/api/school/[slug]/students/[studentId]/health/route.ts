@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
   getSchoolAdminUserProfile,
@@ -165,6 +166,7 @@ export async function POST(request: Request, context: RouteContext) {
       actorUserId: user.id,
       actorName: actor.displayName,
       actorEmail: actor.email,
+      activityMetadata: activityClientMetadataFromRequest(request),
     });
 
     return NextResponse.json({ item });

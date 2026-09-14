@@ -25,6 +25,7 @@ import { buildMessageRenderItems } from '@/lib/messages/format-chat';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { RenderMessageItem } from '@/lib/messages/format-chat';
 import type { MessageThreadDetail, PortalMessage, StagedMessageFile } from '@/lib/messages/types';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type MessageThreadScreenProps = {
   threadId: string;
@@ -41,6 +42,7 @@ export function MessageThreadScreen({
 }: MessageThreadScreenProps) {
   const theme = useParentTheme();
   const { refreshUnreadCount } = useMessagesUnread();
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [thread, setThread] = useState<MessageThreadDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,12 +72,16 @@ export function MessageThreadScreen({
         });
         await refreshUnreadCount();
       } catch (loadError) {
+        reportError('school_admin_message_thread_load', loadError, {
+          entityType: 'message_thread',
+          entityId: threadId,
+        });
         setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
       } finally {
         setLoading(false);
       }
     },
-    [organizationId, refreshUnreadCount, schoolName, threadId],
+    [organizationId, refreshUnreadCount, reportError, schoolName, threadId],
   );
 
   useEffect(() => {
@@ -177,6 +183,10 @@ export function MessageThreadScreen({
       });
       await loadThread({ silent: true });
     } catch (sendError) {
+      reportError('school_admin_message_send', sendError, {
+        entityType: 'message_thread',
+        entityId: threadId,
+      });
       pendingOptimisticIds.current.delete(optimisticId);
       setThread((prev) =>
         prev

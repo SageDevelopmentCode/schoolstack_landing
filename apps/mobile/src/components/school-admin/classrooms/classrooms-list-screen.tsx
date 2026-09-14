@@ -23,6 +23,7 @@ import { fetchClassrooms } from '@/lib/school-admin-api';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ClassroomsListScreenProps = {
   slug: string;
@@ -31,6 +32,7 @@ type ClassroomsListScreenProps = {
 export function ClassroomsListScreen({ slug }: ClassroomsListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter();
 
   const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
   const [programs, setPrograms] = useState<ProgramOption[]>([]);
@@ -49,13 +51,14 @@ export function ClassroomsListScreen({ slug }: ClassroomsListScreenProps) {
         setClassrooms(payload.classrooms);
         setPrograms(payload.programs);
       } catch (loadError) {
+        reportError('school_admin_classrooms_load', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load classrooms.');
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [slug],
+    [reportError, slug],
   );
 
   useEffect(() => {

@@ -8,8 +8,10 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 import { formatDateOnlyLabel } from '@/lib/admissions/admissions-availability';
 import {
-  createObservationSlot,
-  deleteObservationSlot,
+  createObservationSlotViaApi,
+  deleteObservationSlotViaApi,
+} from '@/lib/school-admin/schedule-api';
+import {
   formatGradeValuesLabel,
   formatObservationSlotLabel,
   formatObservationSlotTimeLabel,
@@ -18,7 +20,7 @@ import {
 } from '@/lib/admissions/admissions-observation-slots';
 import type { ShadowDaySchedulingMode } from '@/lib/admissions/admissions-org-settings';
 import { STUDENT_GRADE_OPTIONS } from '@/lib/admissions/apply-system-fields';
-import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ShadowDaySheetProps = {
   visible: boolean;
@@ -53,7 +55,7 @@ export function ShadowDaySheet({
 }: ShadowDaySheetProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
-  const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const presets = useMemo(() => getShadowDayTimeWindowPresets(), []);
 
   const [gradeValues, setGradeValues] = useState<string[]>([]);
@@ -87,7 +89,8 @@ export function ShadowDaySheet({
     const preset = presets.find((entry) => entry.id === presetId) ?? presets[0];
     setSubmitting(true);
     try {
-      await createObservationSlot(supabase, organizationId, {
+      await createObservationSlotViaApi({
+        organizationId,
         date,
         startTime: includeTime ? preset.startTime : 'ALL_DAY',
         endTime: includeTime ? preset.endTime : null,
@@ -98,6 +101,9 @@ export function ShadowDaySheet({
       setLabel('');
       onReload();
     } catch (error) {
+      reportError('school_admin_schedule_shadow_slot_add', error, {
+        metadata: { date, mode },
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add shadow slot.');
     } finally {
       setSubmitting(false);
@@ -107,9 +113,13 @@ export function ShadowDaySheet({
   const handleDeleteSlot = async (slotId: string) => {
     setDeletingId(slotId);
     try {
-      await deleteObservationSlot(supabase, organizationId, slotId);
+      await deleteObservationSlotViaApi(organizationId, slotId);
       onReload();
     } catch (error) {
+      reportError('school_admin_schedule_shadow_slot_delete', error, {
+        entityType: 'observation_slot',
+        entityId: slotId,
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove shadow slot.');
     } finally {
       setDeletingId(null);

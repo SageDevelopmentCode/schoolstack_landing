@@ -17,6 +17,7 @@ import {
   type AdminScheduledVisit,
 } from '@/lib/admissions/admin-scheduled-visits';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleVisitsTabProps = {
   organizationId: string;
@@ -34,6 +35,7 @@ export function ScheduleVisitsTab({
   const theme = useAdminTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,12 +50,13 @@ export function ScheduleVisitsTab({
       const rows = await listOrgScheduledVisits(supabase, organizationId);
       setVisits(rows);
     } catch (loadError) {
+      reportError('school_admin_schedule_visits_load', loadError);
       setError(loadError instanceof Error ? loadError.message : 'Failed to load visits.');
       setVisits([]);
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadVisits();

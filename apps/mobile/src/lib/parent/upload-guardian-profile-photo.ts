@@ -1,3 +1,4 @@
+import { reportMobileOperationalError } from '@/lib/mobile-activity';
 import { fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
 
 export class GuardianProfilePhotoUploadError extends Error {
@@ -52,9 +53,20 @@ export async function uploadGuardianProfilePhotoFromParent(
     if (error instanceof GuardianProfilePhotoUploadError) {
       throw error;
     }
-    if (error instanceof Error) {
-      throw new GuardianProfilePhotoUploadError(error.message, 'upload_failed');
-    }
-    throw new GuardianProfilePhotoUploadError('Failed to upload photo.', 'upload_failed');
+
+    const message =
+      error instanceof Error ? error.message : 'Failed to upload photo.';
+    void reportMobileOperationalError(
+      {
+        organizationId,
+        surface: 'parent_portal',
+        operation: 'parent_guardian_profile_photo_upload',
+        error: message,
+        code: 'upload_failed',
+      },
+      error,
+    );
+
+    throw new GuardianProfilePhotoUploadError(message, 'upload_failed');
   }
 }

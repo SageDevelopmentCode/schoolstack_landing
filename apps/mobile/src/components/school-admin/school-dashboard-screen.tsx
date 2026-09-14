@@ -40,6 +40,7 @@ import {
   resolveSchoolAdminNativeRoute,
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type SchoolDashboardScreenProps = {
   organizationId: string;
@@ -56,6 +57,7 @@ export function SchoolDashboardScreen({
 }: SchoolDashboardScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { reportError } = useMobileErrorReporter(organizationId);
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,13 +80,14 @@ export function SchoolDashboardScreen({
         const nextSummary = await fetchAdminDashboardSummary(organizationId, slug);
         setSummary(filterMobileDashboardSummary(slug, nextSummary));
       } catch (loadError) {
+        reportError('school_admin_dashboard_load', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load dashboard.');
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [organizationId, slug],
+    [organizationId, reportError, slug],
   );
 
   useFocusEffect(

@@ -12,6 +12,7 @@ import {
   buildWithdrawalRestoreAction,
   resolveWithdrawalRestoreStatus,
 } from "@/lib/admissions/application-withdrawal-restore";
+import { mergeActivityClientMetadata } from "@/lib/activity-client";
 import { getActorIdentityFromUser, logActivityEvent } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -142,11 +143,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       summary: isWithdrawalRestore
         ? activitySummaryForWithdrawalRestore(toStatus)
         : activitySummaryForStatusChange(toStatus),
-      metadata: {
+      metadata: mergeActivityClientMetadata(request, {
         fromStatus: currentStatus,
         toStatus,
         ...(note ? { note } : {}),
-      },
+      }),
     });
 
     return NextResponse.json({
