@@ -1,0 +1,12 @@
+---
+description: Use MudKitchen as the product name in user-facing copy and docs
+alwaysApply: true
+---
+
+# MudKitchen branding
+
+The product is **MudKitchen**, not SchoolStack.
+
+- **User-facing copy** (build logs, emails, UI strings, timeline entries, help text): say **MudKitchen** or **MudKitchen mobile app**.
+- **Internal/technical** (repo folder `schoolstack_landing`, package names, env vars, code identifiers): keep existing names — do not rename code for branding.
+- When unsure, prefer "MudKitchen" for anything a school admin or parent would read.
