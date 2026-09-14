@@ -41,7 +41,7 @@ type SchoolAdminStudentsContextValue = {
 
 const SchoolAdminStudentsContext = createContext<SchoolAdminStudentsContextValue | null>(null);
 
-const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v3:');
+const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v4:');
 
 function cacheKey(organizationId: string): string {
   return organizationId;

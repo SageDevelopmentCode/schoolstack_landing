@@ -27,6 +27,17 @@ export async function loadMessagesInbox(
   return fetchSchoolAdminApi<MessagesInboxData>(`${BASE_PATH}/threads?${query}`);
 }
 
+export async function loadMessagesContacts(
+  organizationId: string,
+  schoolName: string,
+): Promise<MessageContact[]> {
+  const query = buildQuery(organizationId, schoolName);
+  const payload = await fetchSchoolAdminApi<{ contacts: MessageContact[] }>(
+    `${BASE_PATH}/contacts?${query}`,
+  );
+  return payload.contacts ?? [];
+}
+
 export async function loadMessageThread(
   threadId: string,
   organizationId: string,

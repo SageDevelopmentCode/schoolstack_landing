@@ -4,8 +4,9 @@ import { listAssignedEnrolledStudents, formatEnrolledStudentFirstNames, formatEn
 import { listStaffMembers } from "@/lib/staff/staff-members";
 import { colorForKey } from "./format";
 import {
-  guardianPhotoUrl,
+  guardianDisplayPhotoUrl,
   resolveGuardianDisplayName,
+  resolveGuardianProfilePhotoUrl,
   toMessageStudentRefs,
   toMessageStudentSummaries,
   type ParticipantDisplayContext,
@@ -191,7 +192,7 @@ export async function listTeacherMessageContacts(
       subtitleStudents: toMessageStudentRefs(enrolledStudents),
       subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
       color: colorForKey(guardianId),
-      profilePhotoUrl: guardianPhotoUrl(guardianId, displayContext),
+      profilePhotoUrl: guardianDisplayPhotoUrl(guardianId, displayContext),
     });
   }
 
@@ -248,10 +249,10 @@ export async function listAdminMessageContacts(
       subtitleStudents: toMessageStudentRefs(enrolledStudents),
       subtitleStudentSummaries: toMessageStudentSummaries(enrolledStudents),
       color: colorForKey(guardianId),
-      profilePhotoUrl:
-        typeof guardian.profile_photo_url === "string" && guardian.profile_photo_url.trim()
-          ? guardian.profile_photo_url.trim()
-          : null,
+      profilePhotoUrl: resolveGuardianProfilePhotoUrl(
+        typeof guardian.profile_photo_url === "string" ? guardian.profile_photo_url : null,
+        enrolledStudents,
+      ),
     });
   }
 
@@ -286,14 +287,6 @@ export async function listAdminMessageContacts(
       profilePhotoUrl: staffPhotoById.get(staff.id) ?? null,
     });
   }
-
-  contacts.unshift({
-    key: "school_office",
-    kind: "school_office",
-    name: schoolOfficeLabel,
-    subtitle: "Shared inbox",
-    color: "#4A6354",
-  });
 
   return contacts;
 }

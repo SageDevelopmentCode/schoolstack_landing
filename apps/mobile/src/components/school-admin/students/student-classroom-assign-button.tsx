@@ -14,7 +14,7 @@ type StudentClassroomAssignButtonProps = {
   onPress: () => void;
   disabled?: boolean;
   label?: string;
-  leadTeacherLabel?: string;
+  showFieldLabel?: boolean;
 };
 
 export function StudentClassroomAssignButton({
@@ -22,14 +22,12 @@ export function StudentClassroomAssignButton({
   onPress,
   disabled = false,
   label = 'Classroom',
-  leadTeacherLabel,
+  showFieldLabel = false,
 }: StudentClassroomAssignButtonProps) {
   const theme = useParentTheme();
   const isUnassigned = classroomNames.length === 0;
   const classroomLabel = formatStudentClassroomLabel(classroomNames);
-  const accessibilityLabel = leadTeacherLabel
-    ? `Assign classrooms. Lead teacher: ${leadTeacherLabel}`
-    : 'Assign classrooms';
+  const accessibilityLabel = `Assign classrooms. ${classroomLabel}`;
 
   return (
     <Pressable
@@ -47,7 +45,9 @@ export function StudentClassroomAssignButton({
         pressed && !disabled && { opacity: 0.85 },
         disabled && styles.disabled,
       ]}>
-      <Text style={[styles.fieldLabel, { color: theme.muted }]}>{label}</Text>
+      {showFieldLabel ? (
+        <Text style={[styles.fieldLabel, { color: theme.muted }]}>{label}</Text>
+      ) : null}
       <View style={styles.valueRow}>
         <Text
           style={[
@@ -63,14 +63,6 @@ export function StudentClassroomAssignButton({
           color={isUnassigned ? UNASSIGNED_BORDER : theme.muted}
         />
       </View>
-      {leadTeacherLabel ? (
-        <View style={styles.teacherRow}>
-          <Text style={[styles.teacherLabel, { color: theme.muted }]}>Lead teacher</Text>
-          <Text style={[styles.teacherValue, { color: theme.ink }]} numberOfLines={1}>
-            {leadTeacherLabel}
-          </Text>
-        </View>
-      ) : null}
     </Pressable>
   );
 }
@@ -80,7 +72,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: 10,
     gap: 4,
   },
   disabled: {
@@ -104,24 +96,5 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 14,
     lineHeight: 20,
-  },
-  teacherRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-    marginTop: 2,
-  },
-  teacherLabel: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  teacherValue: {
-    flex: 1,
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: 'right',
   },
 });

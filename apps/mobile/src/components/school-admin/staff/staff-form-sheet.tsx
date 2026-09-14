@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -17,6 +17,7 @@ import { Fonts, Radius, Spacing } from '@/constants/theme';
 import type { StaffPortalRole } from '@/lib/school-admin-api';
 import { createStaffMember } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 
 export type StaffFormState = {
   firstName: string;
@@ -56,16 +57,32 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
     setError(null);
   }, [visible]);
 
+  const isDirty = useMemo(
+    () =>
+      Boolean(
+        form.firstName.trim() ||
+          form.lastName.trim() ||
+          form.email.trim() ||
+          form.roleTitle.trim(),
+      ),
+    [form],
+  );
+
   const canSave = useMemo(
     () =>
+      isDirty &&
       Boolean(
         form.firstName.trim() &&
           form.lastName.trim() &&
           form.email.trim() &&
           form.roleTitle.trim(),
       ),
-    [form],
+    [form, isDirty],
   );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -89,10 +106,10 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Pressable accessibilityRole="button" onPress={onClose}>
+          <Pressable accessibilityRole="button" onPress={requestClose}>
             <ThemedText type="small" style={{ color: theme.accent }}>
               Cancel
             </ThemedText>

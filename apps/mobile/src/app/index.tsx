@@ -44,7 +44,7 @@ export default function IntroScreen() {
   }
 
   if (user) {
-    return <Redirect href="/login" />;
+    return <Redirect href="/portal" />;
   }
 
   return (

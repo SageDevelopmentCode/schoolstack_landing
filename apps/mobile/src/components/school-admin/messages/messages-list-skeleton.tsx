@@ -1,46 +1,31 @@
-import { useEffect } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { StyleSheet, View } from 'react-native';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import {
+  MESSAGES_ROW_PADDING_HORIZONTAL,
+  MESSAGES_ROW_PADDING_VERTICAL,
+} from '@/components/parent/messages/messages-layout';
+import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
+import { Story } from '@/constants/story-theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 
-function SkeletonBlock({
-  style,
+function SkeletonRow({
   backgroundColor,
+  borderColor,
 }: {
-  style: ViewStyle;
   backgroundColor: string;
+  borderColor: string;
 }) {
-  const opacity = useSharedValue(0.4);
-
-  useEffect(() => {
-    opacity.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
-  }, [opacity]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return <Animated.View style={[style, { backgroundColor }, animatedStyle]} />;
-}
-
-function SkeletonCardRow({ backgroundColor }: { backgroundColor: string }) {
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <SkeletonBlock style={styles.avatar} backgroundColor={backgroundColor} />
+    <View style={[styles.rowWrap, { borderBottomColor: borderColor }]}>
+      <View style={styles.row}>
+        <SkeletonPulse style={styles.avatar} backgroundColor={backgroundColor} />
         <View style={styles.textColumn}>
-          <SkeletonBlock style={styles.nameBar} backgroundColor={backgroundColor} />
-          <SkeletonBlock style={styles.subtitleBar} backgroundColor={backgroundColor} />
-          <SkeletonBlock style={styles.previewBar} backgroundColor={backgroundColor} />
+          <View style={styles.topLine}>
+            <SkeletonPulse style={styles.nameBar} backgroundColor={backgroundColor} />
+            <SkeletonPulse style={styles.timeBar} backgroundColor={backgroundColor} />
+          </View>
+          <SkeletonPulse style={styles.previewBar} backgroundColor={backgroundColor} />
         </View>
       </View>
     </View>
@@ -51,27 +36,15 @@ type MessagesListSkeletonProps = {
   rowCount?: number;
 };
 
-export function MessagesListSkeleton({ rowCount = 6 }: MessagesListSkeletonProps) {
-  const theme = useAdminTheme();
+export function MessagesListSkeleton({ rowCount = 8 }: MessagesListSkeletonProps) {
+  const theme = useParentTheme();
+  const blockColor = Story.line;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.list}>
-        {Array.from({ length: rowCount }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.cardWrap,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-              adminCardShadow(theme),
-            ]}>
-            <SkeletonCardRow backgroundColor={theme.border} />
-          </View>
-        ))}
-      </View>
+    <View style={[styles.container, { backgroundColor: theme.white }]}>
+      {Array.from({ length: rowCount }, (_, index) => (
+        <SkeletonRow key={index} backgroundColor={blockColor} borderColor={theme.line} />
+      ))}
     </View>
   );
 }
@@ -79,46 +52,45 @@ export function MessagesListSkeleton({ rowCount = 6 }: MessagesListSkeletonProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.three,
   },
-  list: {
-    gap: Spacing.three,
+  rowWrap: {
+    paddingHorizontal: MESSAGES_ROW_PADDING_HORIZONTAL,
+    paddingVertical: MESSAGES_ROW_PADDING_VERTICAL,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  cardWrap: {
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
-  },
-  card: {
-    gap: Spacing.two,
-  },
-  cardHeader: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: Spacing.three,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   textColumn: {
     flex: 1,
     gap: Spacing.two,
   },
+  topLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
   nameBar: {
+    flex: 1,
     height: 14,
-    width: '55%',
     borderRadius: Radius.sm,
   },
-  subtitleBar: {
+  timeBar: {
+    width: 36,
     height: 12,
-    width: '70%',
     borderRadius: Radius.sm,
   },
   previewBar: {
+    width: '72%',
     height: 12,
-    width: '90%',
     borderRadius: Radius.sm,
   },
 });

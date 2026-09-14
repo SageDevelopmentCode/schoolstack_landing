@@ -124,6 +124,37 @@ export function guardianPhotoUrl(
   return context.guardians.get(guardianId)?.profilePhotoUrl ?? null;
 }
 
+export function firstStudentProfilePhotoUrl(
+  students: Array<{ profilePhotoUrl?: string | null }>,
+): string | null {
+  for (const student of students) {
+    const url = student.profilePhotoUrl?.trim();
+    if (url) return url;
+  }
+  return null;
+}
+
+export function resolveGuardianProfilePhotoUrl(
+  guardianPhotoUrlValue: string | null | undefined,
+  enrolledStudents: Array<{ profilePhotoUrl?: string | null }>,
+): string | null {
+  const guardianPhoto = guardianPhotoUrlValue?.trim();
+  if (guardianPhoto) return guardianPhoto;
+  return firstStudentProfilePhotoUrl(enrolledStudents);
+}
+
+export function guardianDisplayPhotoUrl(
+  guardianId: string,
+  context: ParticipantDisplayContext,
+): string | null {
+  const guardianPhoto = guardianPhotoUrl(guardianId, context);
+  const familyId = context.guardians.get(guardianId)?.familyId ?? null;
+  const enrolledStudents = familyId
+    ? (context.familyEnrolledStudents.get(familyId) ?? [])
+    : [];
+  return resolveGuardianProfilePhotoUrl(guardianPhoto, enrolledStudents);
+}
+
 export function familyGuardianPhotoUrl(
   familyId: string,
   context: ParticipantDisplayContext,
@@ -132,22 +163,23 @@ export function familyGuardianPhotoUrl(
 ): string | null {
   const messagingGuardianId = findLastGuardianMessageSenderId(lastMessage, messages);
   if (messagingGuardianId) {
-    const messagingPhoto = guardianPhotoUrl(messagingGuardianId, context);
+    const messagingPhoto = guardianDisplayPhotoUrl(messagingGuardianId, context);
     if (messagingPhoto) return messagingPhoto;
   }
 
   const primaryGuardianId = context.familyPrimaryGuardianIds.get(familyId);
   if (primaryGuardianId) {
-    const primaryPhoto = guardianPhotoUrl(primaryGuardianId, context);
+    const primaryPhoto = guardianDisplayPhotoUrl(primaryGuardianId, context);
     if (primaryPhoto) return primaryPhoto;
   }
 
   const firstGuardianId = context.familyFirstGuardianIds.get(familyId);
   if (firstGuardianId) {
-    return guardianPhotoUrl(firstGuardianId, context);
+    const firstPhoto = guardianDisplayPhotoUrl(firstGuardianId, context);
+    if (firstPhoto) return firstPhoto;
   }
 
-  return null;
+  return firstStudentProfilePhotoUrl(context.familyEnrolledStudents.get(familyId) ?? []);
 }
 
 function findLastGuardianMessageSenderId(
@@ -274,7 +306,7 @@ export function resolveThreadTitle(
       return {
         title: guardianName,
         subtitle: familyName ?? "Co-op family",
-        photoUrl: guardianPhotoUrl(otherGuardianId, context),
+        photoUrl: guardianDisplayPhotoUrl(otherGuardianId, context),
         color: colorForKey(otherGuardianId),
       };
     }
@@ -293,7 +325,7 @@ export function resolveThreadTitle(
     if (viewer === "admin") {
       return {
         title: guardianName,
-        photoUrl: guardianPhotoUrl(guardianId, context),
+        photoUrl: guardianDisplayPhotoUrl(guardianId, context),
         color: "#4A6354",
       };
     }
@@ -386,7 +418,7 @@ export function resolveThreadTitle(
       ? [staff.firstName, staff.lastName].filter(Boolean).join(" ")
       : "Teacher";
     const guardianName = resolveGuardianThreadTitle(guardianId, context);
-    const guardianPhoto = guardianPhotoUrl(guardianId, context);
+    const guardianPhoto = guardianDisplayPhotoUrl(guardianId, context);
 
     if (viewer === "parent") {
       return {
@@ -529,7 +561,7 @@ export function mapMessageRow(
     senderName = guardian
       ? [guardian.firstName, guardian.lastName].filter(Boolean).join(" ")
       : "Parent";
-    profilePhotoUrl = guardian?.profilePhotoUrl ?? null;
+    profilePhotoUrl = guardianDisplayPhotoUrl(row.sender_guardian_id, context);
   } else if (row.sender_kind === "guardian") {
     senderName = "Parent";
   } else if (row.sender_kind === "staff_member" && row.sender_staff_member_id) {

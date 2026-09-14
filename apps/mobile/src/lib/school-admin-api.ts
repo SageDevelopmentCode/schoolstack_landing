@@ -28,7 +28,7 @@ export async function fetchSchoolAdminApi<T>(
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  assertApiAuthenticated(response);
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -48,7 +48,7 @@ export async function fetchSchoolAdminApiFormData<T>(
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  assertApiAuthenticated(response);
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -259,6 +259,7 @@ export type AdminEnrolledStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  programIds: string[];
   classroomNames: string[];
   classroomIds: string[];
   enrolledAt: string;

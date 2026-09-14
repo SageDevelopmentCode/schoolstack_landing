@@ -19,6 +19,7 @@ export type AdminEnrolledStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  programIds: string[];
   classroomNames: string[];
   classroomIds: string[];
   enrolledAt: string;
@@ -48,6 +49,7 @@ export type EnrolledStudentDetail = {
   familyPrimaryEmail: string | null;
   familyPrimaryPhone: string | null;
   programNames: string[];
+  programIds: string[];
   classroomNames: string[];
   classroomIds: string[];
   enrollments: EnrolledStudentEnrollment[];
@@ -78,6 +80,7 @@ const ENROLLED_ENROLLMENT_SELECT = `
     )
   ),
   programs (
+    id,
     name
   ),
   enrollment_classrooms (
@@ -233,6 +236,7 @@ export function normalizeEnrolledStudentSummary(
         ? student.primaryContactEmail
         : null,
     programNames: Array.isArray(student.programNames) ? student.programNames : [],
+    programIds: Array.isArray(student.programIds) ? student.programIds : [],
     classroomNames: Array.isArray(student.classroomNames) ? student.classroomNames : [],
     classroomIds: Array.isArray(student.classroomIds) ? student.classroomIds : [],
     enrolledAt: String(student.enrolledAt ?? ""),
@@ -328,6 +332,7 @@ async function fetchPrimaryContactsByFamilyId(
 type EnrollmentAggregate = {
   summary: AdminEnrolledStudentSummary;
   programNameSet: Set<string>;
+  programIdSet: Set<string>;
   classroomNameSet: Set<string>;
   classroomIdSet: Set<string>;
 };
@@ -533,9 +538,10 @@ function mapEnrollmentRowToAggregate(
   if (!familyId) return null;
 
   const program = unwrapRelation(
-    row.programs as { name?: string } | { name?: string }[] | null,
+    row.programs as { id?: string; name?: string } | { id?: string; name?: string }[] | null,
   );
   const programName = program?.name ? String(program.name) : null;
+  const programId = program?.id ? String(program.id) : null;
   const enrollmentClassroomRows = row.enrollment_classrooms;
   const classroomEntries = Array.isArray(enrollmentClassroomRows)
     ? enrollmentClassroomRows
@@ -582,6 +588,7 @@ function mapEnrollmentRowToAggregate(
     primaryContactName: primaryContact?.name ?? null,
     primaryContactEmail: primaryContact?.email ?? familyPrimaryEmail,
     programNames: programName ? [programName] : [],
+    programIds: programId ? [programId] : [],
     classroomNames,
     classroomIds,
     enrolledAt,
@@ -598,6 +605,7 @@ function mapEnrollmentRowToAggregate(
   return {
     summary,
     programNameSet: new Set(programName ? [programName] : []),
+    programIdSet: new Set(programId ? [programId] : []),
     classroomNameSet: new Set(classroomNames),
     classroomIdSet: new Set(classroomIds),
   };
@@ -609,6 +617,10 @@ function mergeEnrollmentAggregate(
 ): EnrollmentAggregate {
   for (const programName of incoming.programNameSet) {
     existing.programNameSet.add(programName);
+  }
+
+  for (const programId of incoming.programIdSet) {
+    existing.programIdSet.add(programId);
   }
 
   for (const classroomName of incoming.classroomNameSet) {
@@ -628,6 +640,9 @@ function mergeEnrollmentAggregate(
   }
 
   existing.summary.programNames = [...existing.programNameSet].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  existing.summary.programIds = [...existing.programIdSet].sort((a, b) =>
     a.localeCompare(b),
   );
   existing.summary.classroomNames = [...existing.classroomNameSet].sort((a, b) =>
@@ -872,7 +887,7 @@ export async function loadEnrolledStudentDetail(
         id,
         created_at,
         status,
-        programs ( name ),
+        programs ( id, name ),
         enrollment_classrooms (
           classrooms ( id, name )
         )
@@ -898,7 +913,7 @@ export async function loadEnrolledStudentDetail(
   const enrollments: EnrolledStudentEnrollment[] = (enrollmentRows ?? []).map(
     (row) => {
       const program = unwrapRelation(
-        row.programs as { name?: string } | { name?: string }[] | null,
+        row.programs as { id?: string; name?: string } | { id?: string; name?: string }[] | null,
       );
       const enrollmentClassroomRows = row.enrollment_classrooms;
       const classroomEntries = Array.isArray(enrollmentClassroomRows)
@@ -936,6 +951,18 @@ export async function loadEnrolledStudentDetail(
   const programNames = [...new Set(enrollments.map((row) => row.programName))].sort(
     (a, b) => a.localeCompare(b),
   );
+  const programIds = [
+    ...new Set(
+      (enrollmentRows ?? [])
+        .map((row) => {
+          const program = unwrapRelation(
+            row.programs as { id?: string } | { id?: string }[] | null,
+          );
+          return program?.id ? String(program.id) : null;
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
   const classroomNameSet = new Set<string>();
   const classroomIdSet = new Set<string>();
   for (const enrollment of enrollments) {
@@ -973,6 +1000,7 @@ export async function loadEnrolledStudentDetail(
         ? family.primary_phone.trim() || null
         : null,
     programNames,
+    programIds,
     classroomNames: [...classroomNameSet].sort((a, b) => a.localeCompare(b)),
     classroomIds: [...classroomIdSet].sort((a, b) => a.localeCompare(b)),
     enrollments,

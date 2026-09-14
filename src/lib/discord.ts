@@ -251,13 +251,26 @@ async function sendAdmissionsDiscordEmbed(
 ) {
   const webhookUrl = resolveAdmissionsDiscordWebhookUrl();
   if (!webhookUrl) {
-    console.warn(
-      "No admissions Discord webhook configured (DISCORD_APPLICATION_NOTIFICATIONS_WEBHOOK_URL, DISCORD_E2E_ALERTS_WEBHOOK_URL, or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL); skipping Discord notification.",
+    throw new Error(
+      "No admissions Discord webhook configured (DISCORD_APPLICATION_NOTIFICATIONS_WEBHOOK_URL, DISCORD_E2E_ALERTS_WEBHOOK_URL, or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL)",
     );
-    return;
   }
 
-  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, {
+    ...options,
+    strict: true,
+  });
+}
+
+async function sendRootedMeadowsApplyDiscordEmbed(embed: DiscordEmbed) {
+  const webhookUrl = process.env.ROOTED_MEADOWS_VERIFICATION_CODE_DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) {
+    throw new Error(
+      "ROOTED_MEADOWS_VERIFICATION_CODE_DISCORD_WEBHOOK_URL is not set",
+    );
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, { strict: true });
 }
 
 async function sendCustomerBillingDiscordEmbed(
@@ -568,6 +581,7 @@ export async function notifyRootedMeadowsParentApplicationStarted(payload: {
 
 export async function notifyApplicationSubmitted(payload: {
   schoolName: string;
+  schoolSlug?: string;
   email: string;
   applicationId: string;
   formTitle?: string;
@@ -598,12 +612,18 @@ export async function notifyApplicationSubmitted(payload: {
     );
   }
 
-  await sendAdmissionsDiscordEmbed({
+  const embed: DiscordEmbed = {
     title: "✅ Application submitted",
     description: `**${payload.schoolName}** · ${contactLabel}`,
     color: DISCORD_EMBED_COLORS.success,
     fields,
-  });
+  };
+
+  await sendAdmissionsDiscordEmbed(embed);
+
+  if (payload.schoolSlug === "rooted-meadows") {
+    await sendRootedMeadowsApplyDiscordEmbed(embed);
+  }
 }
 
 function formatDraftReminderDelayLabel(delayHours: number): string {

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +9,8 @@ import { Spacing } from '@/constants/theme';
 export type DetailTab = {
   id: string;
   label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconActive?: keyof typeof Ionicons.glyphMap;
 };
 
 type DetailTabBarProps = {

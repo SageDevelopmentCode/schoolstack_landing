@@ -2,6 +2,7 @@ import { useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useAuth } from '@/contexts/auth-context';
+import { resolveAuthRecoveryRoute } from '@/lib/auth/auth-recovery';
 
 const PROTECTED_ROOT_SEGMENTS = new Set([
   'parent',
@@ -25,7 +26,9 @@ export function AuthSessionGuard() {
   useEffect(() => {
     if (isLoading) return;
     if (!user && isProtectedRoute(segments)) {
-      router.replace('/');
+      void resolveAuthRecoveryRoute().then((route) => {
+        router.replace(route);
+      });
     }
   }, [isLoading, router, segments, user]);
 

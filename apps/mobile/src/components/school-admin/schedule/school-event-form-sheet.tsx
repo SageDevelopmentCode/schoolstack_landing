@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import {
   getColorStyle,
 } from '@/lib/school-events/event-labels';
 import type { SchoolEventColorKey, SchoolEventType } from '@/lib/school-events/types';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 
 export type EventFormState = {
   title: string;
@@ -40,10 +41,15 @@ export const EMPTY_EVENT_FORM: EventFormState = {
   description: '',
 };
 
+export function eventFormsEqual(left: EventFormState, right: EventFormState): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 type SchoolEventFormSheetProps = {
   visible: boolean;
   mode: 'create' | 'edit';
   form: EventFormState;
+  isDirty: boolean;
   saving: boolean;
   onClose: () => void;
   onChange: (form: EventFormState) => void;
@@ -56,6 +62,7 @@ export function SchoolEventFormSheet({
   visible,
   mode,
   form,
+  isDirty,
   saving,
   onClose,
   onChange,
@@ -63,16 +70,21 @@ export function SchoolEventFormSheet({
 }: SchoolEventFormSheetProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
-  const canSave = useMemo(
+  const isValid = useMemo(
     () => Boolean(form.title.trim() && form.date && (form.isAllDay || form.time.trim())),
     [form],
   );
+  const canSave = isDirty && isValid;
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
       <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Pressable accessibilityRole="button" onPress={onClose}>
+          <Pressable accessibilityRole="button" onPress={requestClose}>
             <ThemedText type="small" style={{ color: theme.accent }}>
               Cancel
             </ThemedText>

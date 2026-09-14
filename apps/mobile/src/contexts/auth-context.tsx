@@ -165,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
@@ -174,6 +174,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
         void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
+        return;
+      }
+
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        void restorePortalState();
       }
     });
 

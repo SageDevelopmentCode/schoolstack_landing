@@ -1,4 +1,9 @@
-import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
+import {
+  assertApiAuthenticated,
+  getApiAuthHeaders,
+  throwUnauthorized,
+} from '@/lib/auth/auth-session';
+import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 
@@ -20,7 +25,29 @@ export async function fetchParentApi<T>(
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  assertApiAuthenticated(response);
+  await assertApiAuthenticated(response);
+  if (!response.ok) {
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+  }
+
+  return payload;
+}
+
+/** Non-critical parent API fetch — 401 throws without signing the user out. */
+export async function fetchParentApiSoft<T>(
+  path: string,
+  options: FetchParentApiOptions = {},
+): Promise<T> {
+  const response = await fetch(`${siteUrl}${path}`, {
+    method: options.method ?? 'GET',
+    headers: await getApiAuthHeaders(options.body !== undefined),
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  if (response.status === 401) {
+    throwUnauthorized();
+  }
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -40,7 +67,7 @@ export async function fetchParentApiFormData<T>(
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  assertApiAuthenticated(response);
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -133,10 +160,31 @@ export async function fetchAssignedTeachersForStudent(
   studentId: string,
 ): Promise<ParentAssignedTeacher[]> {
   const query = new URLSearchParams({ organizationId }).toString();
-  const payload = await fetchParentApi<{ teachers: ParentAssignedTeacher[] }>(
+  const payload = await fetchParentApiSoft<{ teachers: ParentAssignedTeacher[] }>(
     `/api/parent-portal/students/${encodeURIComponent(studentId)}/teachers?${query}`,
   );
   return payload.teachers ?? [];
+}
+
+export async function fetchParentChildProfile(
+  applicationId: string,
+  organizationId: string,
+): Promise<ChildProfileData> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ profile: ChildProfileData }>(
+    `/api/parent-portal/children/${encodeURIComponent(applicationId)}/profile?${query}`,
+  );
+  if (!payload.profile?.application) {
+    throw new Error('Could not load this student profile.');
+  }
+  const profile = payload.profile;
+  return {
+    ...profile,
+    application: {
+      ...profile.application,
+      feeStatus: profile.application.feeStatus ?? 'not_required',
+    },
+  };
 }
 
 export type ParentCalendarData = ParentCalendarInitialData & {

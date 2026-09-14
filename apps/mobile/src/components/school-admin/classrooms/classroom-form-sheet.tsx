@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -17,8 +17,9 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { ClassroomStatus, ClassroomSummary, ProgramOption } from '@/lib/school-admin/classrooms';
 import { createClassroomApi, updateClassroomApi } from '@/lib/school-admin-api';
 import { Story, StoryFonts } from '@/constants/story-theme';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 
 type ClassroomFormSheetProps = {
   visible: boolean;
@@ -46,16 +47,39 @@ export function ClassroomFormSheet({
   const [name, setName] = useState('');
   const [programId, setProgramId] = useState('');
   const [status, setStatus] = useState<ClassroomStatus>('open');
+  const [baselineName, setBaselineName] = useState('');
+  const [baselineProgramId, setBaselineProgramId] = useState('');
+  const [baselineStatus, setBaselineStatus] = useState<ClassroomStatus>('open');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
-    setName(classroom?.name ?? '');
-    setProgramId(classroom?.programId ?? '');
-    setStatus(classroom?.status ?? 'open');
+    const nextName = classroom?.name ?? '';
+    const nextProgramId = classroom?.programId ?? '';
+    const nextStatus = classroom?.status ?? 'open';
+    setName(nextName);
+    setProgramId(nextProgramId);
+    setStatus(nextStatus);
+    setBaselineName(nextName);
+    setBaselineProgramId(nextProgramId);
+    setBaselineStatus(nextStatus);
     setError(null);
   }, [visible, classroom]);
+
+  const isDirty = useMemo(
+    () =>
+      name !== baselineName ||
+      programId !== baselineProgramId ||
+      status !== baselineStatus,
+    [name, baselineName, programId, baselineProgramId, status, baselineStatus],
+  );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
+
+  const canSave = isDirty && Boolean(name.trim());
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -85,8 +109,8 @@ export function ClassroomFormSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
+      <Pressable style={styles.overlay} onPress={requestClose}>
         <Animated.View
           entering={SlideInDown.duration(260)}
           exiting={SlideOutDown.duration(220)}
@@ -102,7 +126,7 @@ export function ClassroomFormSheet({
               <Text style={[styles.title, { color: theme.ink }]}>
                 {isEdit ? 'Edit classroom' : 'Add classroom'}
               </Text>
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
                 <Ionicons name="close" size={22} color={theme.muted} />
               </Pressable>
             </View>
@@ -171,14 +195,20 @@ export function ClassroomFormSheet({
             </ScrollView>
 
             <View style={styles.footer}>
-              <Pressable accessibilityRole="button" disabled={saving} onPress={onClose}>
+              <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
                 <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={saving || !name.trim()}
+                disabled={saving || !canSave}
                 onPress={() => void handleSave()}
-                style={[styles.saveButton, { backgroundColor: theme.primary }]}>
+                style={[
+                  styles.saveButton,
+                  {
+                    backgroundColor: theme.primary,
+                    opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                  },
+                ]}>
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (

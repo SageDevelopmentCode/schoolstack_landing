@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -21,8 +21,9 @@ import {
   type AdminEnrolledStudentSummary,
 } from '@/lib/school-admin/enrolled-students';
 import { Story, StoryFonts } from '@/constants/story-theme';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 
 type ClassroomStudentAssignPickerProps = {
   visible: boolean;
@@ -97,15 +98,23 @@ export function ClassroomStudentAssignPicker({
     );
   };
 
+  const isDirty = selectedIds.length > 0;
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
+
   const handleSave = async () => {
     if (selectedIds.length === 0) return;
     await onSave(selectedIds);
     onClose();
   };
 
+  const canSave = selectedIds.length > 0;
+
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
+      <Pressable style={styles.overlay} onPress={requestClose}>
         <Animated.View
           entering={SlideInDown.duration(260)}
           exiting={SlideOutDown.duration(220)}
@@ -119,7 +128,7 @@ export function ClassroomStudentAssignPicker({
                 <Text style={[styles.title, { color: theme.ink }]}>Add students</Text>
                 <Text style={[styles.subtitle, { color: theme.muted }]}>{classroomName}</Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
                 <Ionicons name="close" size={22} color={theme.muted} />
               </Pressable>
             </View>
@@ -191,14 +200,20 @@ export function ClassroomStudentAssignPicker({
             />
 
             <View style={styles.footer}>
-              <Pressable accessibilityRole="button" disabled={saving} onPress={onClose}>
+              <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
                 <Text style={{ color: theme.muted }}>Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={saving || selectedIds.length === 0}
+                disabled={saving || !canSave}
                 onPress={() => void handleSave()}
-                style={[styles.saveButton, { backgroundColor: theme.primary }]}>
+                style={[
+                  styles.saveButton,
+                  {
+                    backgroundColor: theme.primary,
+                    opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                  },
+                ]}>
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (

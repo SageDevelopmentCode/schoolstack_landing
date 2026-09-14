@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import { NewConversationContactFilters } from '@/components/school-admin/messages/new-conversation-contact-filters';
+import { NewConversationContactsSkeleton } from '@/components/school-admin/messages/new-conversation-contacts-skeleton';
 import {
   MESSAGES_SEARCH_FIELD_BG,
 } from '@/components/parent/messages/messages-layout';
@@ -22,27 +24,31 @@ import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
+import {
+  filterContactsForPicker,
+  getContactPickerEmptyMessage,
+  type MessageContactAudienceFilter,
+} from '@/lib/messages/contact-filters';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
-import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
+import {
+  isAdminStoryMessagesVariant,
+  isStoryMessagesVariant,
+} from '@/lib/messages/messages-layout-variant';
 import type { MessageContact } from '@/lib/messages/types';
 
 type NewConversationSheetProps = {
   visible: boolean;
   contacts: MessageContact[];
+  loadingContacts?: boolean;
   onClose: () => void;
   onSelect: (contact: MessageContact) => void;
   variant?: MessagesLayoutVariant;
 };
 
-function matchesContact(contact: MessageContact, query: string): boolean {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-  return [contact.name, contact.subtitle ?? ''].join(' ').toLowerCase().includes(normalized);
-}
-
 export function NewConversationSheet({
   visible,
   contacts,
+  loadingContacts = false,
   onClose,
   onSelect,
   variant = 'default',
@@ -50,13 +56,33 @@ export function NewConversationSheet({
   const theme = useAdminTheme();
   const parentTheme = useOptionalParentTheme();
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
+  const adminStory = isAdminStoryMessagesVariant(variant);
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
+  const [audienceFilter, setAudienceFilter] = useState<MessageContactAudienceFilter>('all');
+
+  useEffect(() => {
+    if (!visible) {
+      setSearchQuery('');
+      setAudienceFilter('all');
+    }
+  }, [visible]);
 
   const filteredContacts = useMemo(
-    () => contacts.filter((contact) => matchesContact(contact, searchQuery)),
-    [contacts, searchQuery],
+    () =>
+      adminStory
+        ? filterContactsForPicker(contacts, audienceFilter, searchQuery)
+        : contacts.filter((contact) => {
+            const normalized = searchQuery.trim().toLowerCase();
+            if (!normalized) return true;
+            return [contact.name, contact.subtitle ?? ''].join(' ').toLowerCase().includes(normalized);
+          }),
+    [adminStory, audienceFilter, contacts, searchQuery],
   );
+
+  const emptyMessage = adminStory
+    ? getContactPickerEmptyMessage(audienceFilter, searchQuery.trim().length > 0)
+    : 'No contacts found.';
 
   const backgroundColor = parentStory ? parentTheme.paper : theme.bg;
   const surfaceColor = parentStory ? parentTheme.white : theme.bg;
@@ -93,47 +119,60 @@ export function NewConversationSheet({
           <View style={styles.headerSpacer} />
         </View>
 
-        <View
-          style={[
-            styles.searchWrap,
-            {
-              backgroundColor: searchBg,
-              borderColor: searchBorder,
-            },
-          ]}>
-          <Ionicons name="search" size={18} color={textTertiary} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search contacts"
-            placeholderTextColor={textTertiary}
-            autoCorrect={false}
+        <View style={styles.toolbar}>
+          <View
             style={[
-              styles.searchInput,
+              styles.searchWrap,
               {
-                color: textPrimary,
-                fontFamily: parentStory ? StoryFonts.body : Fonts.body,
+                backgroundColor: searchBg,
+                borderColor: searchBorder,
               },
-            ]}
-          />
+            ]}>
+            <Ionicons name="search" size={18} color={textTertiary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search contacts"
+              placeholderTextColor={textTertiary}
+              autoCorrect={false}
+              style={[
+                styles.searchInput,
+                {
+                  color: textPrimary,
+                  fontFamily: parentStory ? StoryFonts.body : Fonts.body,
+                },
+              ]}
+            />
+          </View>
+
+          {adminStory ? (
+            <NewConversationContactFilters
+              contacts={contacts}
+              activeFilter={audienceFilter}
+              onChange={setAudienceFilter}
+            />
+          ) : null}
         </View>
 
-        <FlatList
-          data={filteredContacts}
-          keyExtractor={(item) => item.key}
-          contentContainerStyle={styles.listContent}
-          keyboardShouldPersistTaps="handled"
-          style={{ backgroundColor: surfaceColor }}
-          ListEmptyComponent={
-            parentStory ? (
-              <Text style={[styles.emptyText, { color: textTertiary }]}>No contacts found.</Text>
-            ) : (
-              <ThemedText type="small" style={{ color: textTertiary, textAlign: 'center', marginTop: 24 }}>
-                No contacts found.
-              </ThemedText>
-            )
-          }
-          renderItem={({ item }) => (
+        {loadingContacts ? (
+          <NewConversationContactsSkeleton />
+        ) : (
+          <FlatList
+            data={filteredContacts}
+            keyExtractor={(item) => item.key}
+            contentContainerStyle={styles.listContent}
+            keyboardShouldPersistTaps="handled"
+            style={{ backgroundColor: surfaceColor, flex: 1 }}
+            ListEmptyComponent={
+              parentStory ? (
+                <Text style={[styles.emptyText, { color: textTertiary }]}>{emptyMessage}</Text>
+              ) : (
+                <ThemedText type="small" style={{ color: textTertiary, textAlign: 'center', marginTop: 24 }}>
+                  {emptyMessage}
+                </ThemedText>
+              )
+            }
+            renderItem={({ item }) => (
             <Pressable
               accessibilityRole="button"
               onPress={() => onSelect(item)}
@@ -172,7 +211,8 @@ export function NewConversationSheet({
               </View>
             </Pressable>
           )}
-        />
+          />
+        )}
       </View>
     </Modal>
   );
@@ -202,13 +242,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  toolbar: {
+    flexGrow: 0,
+    flexShrink: 0,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    marginHorizontal: Spacing.four,
-    marginTop: Spacing.three,
-    marginBottom: Spacing.two,
+    marginHorizontal: SCREEN_HORIZONTAL_PADDING,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.three,

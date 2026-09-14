@@ -22,6 +22,7 @@ function student(
     primaryContactName: 'Hayley Calvert',
     primaryContactEmail: 'parent@example.com',
     programNames: ['School Year 2026–27'],
+    programIds: ['program-1'],
     classroomNames: ['Meadow Room'],
     classroomIds: ['classroom-1'],
     enrolledAt: '2026-08-01T00:00:00.000Z',

@@ -15,6 +15,7 @@ import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/subm
 import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
 import { StudentClassroomAssignButton } from '@/components/school-admin/students/student-classroom-assign-button';
 import { StudentClassroomAssignPicker } from '@/components/school-admin/students/student-classroom-assign-picker';
+import { StudentLeadTeacherCaption } from '@/components/school-admin/students/student-lead-teacher-caption';
 import { StudentHealthTab } from '@/components/school-admin/students/student-health-tab';
 import { StudentStoryDetailHeader } from '@/components/school-admin/students/student-story-detail-header';
 import { SubmissionGuardiansSection } from '@/components/school-admin/submission-detail-sections';
@@ -71,6 +72,7 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
   const [visitedTabs, setVisitedTabs] = useState<Set<string>>(() => new Set(['overview']));
   const [classroomPickerOpen, setClassroomPickerOpen] = useState(false);
   const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [classroomsLoading, setClassroomsLoading] = useState(false);
   const [classroomsLoaded, setClassroomsLoaded] = useState(false);
   const [assigningClassroom, setAssigningClassroom] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
@@ -78,9 +80,9 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
 
   const tabs = useMemo<DetailTab[]>(
     () => [
-      { id: 'overview', label: 'Overview' },
-      { id: 'family', label: 'Family' },
-      { id: 'health', label: 'Health' },
+      { id: 'overview', label: 'Overview', icon: 'grid-outline', iconActive: 'grid' },
+      { id: 'family', label: 'Family', icon: 'people-outline', iconActive: 'people' },
+      { id: 'health', label: 'Health', icon: 'heart-outline', iconActive: 'heart' },
     ],
     [],
   );
@@ -131,11 +133,18 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
   }, [activeTab, loadGuardians]);
 
   const ensureClassroomsLoaded = useCallback(async () => {
-    if (classroomsLoaded) return;
-    const payload = await fetchClassrooms(slug);
-    setClassrooms(payload.classrooms);
-    setClassroomsLoaded(true);
-  }, [classroomsLoaded, slug]);
+    if (classroomsLoaded || classroomsLoading) return;
+    setClassroomsLoading(true);
+    try {
+      const payload = await fetchClassrooms(slug);
+      setClassrooms(payload.classrooms);
+      setClassroomsLoaded(true);
+    } catch {
+      setAssignError('Failed to load classrooms.');
+    } finally {
+      setClassroomsLoading(false);
+    }
+  }, [classroomsLoaded, classroomsLoading, slug]);
 
   const handleAssignClassrooms = async (classroomIds: string[]) => {
     if (!detail) return;
@@ -245,15 +254,19 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
               <StoryDetailSection
                 title="Classrooms"
                 description="Assign classrooms for this student. Lead teachers sync from classroom assignments.">
-                <StudentClassroomAssignButton
-                  label="Classrooms"
-                  classroomNames={detail.classroomNames}
-                  leadTeacherLabel={formatAssignedTeachersLabel(detail.assignedTeachers)}
-                  onPress={() => {
-                    void ensureClassroomsLoaded();
-                    setClassroomPickerOpen(true);
-                  }}
-                />
+                <View style={styles.classroomFooter}>
+                  <StudentClassroomAssignButton
+                    classroomNames={detail.classroomNames}
+                    onPress={() => {
+                      void ensureClassroomsLoaded();
+                      setClassroomPickerOpen(true);
+                    }}
+                  />
+                  <StudentLeadTeacherCaption
+                    classroomNames={detail.classroomNames}
+                    leadTeacherLabel={formatAssignedTeachersLabel(detail.assignedTeachers)}
+                  />
+                </View>
                 <StoryTextLink
                   label="Manage on Classrooms →"
                   onPress={() => router.push(`/school-admin/${slug}/more/classrooms`)}
@@ -344,8 +357,10 @@ export function StudentDetailScreen({ organizationId, studentId, slug }: Student
         visible={classroomPickerOpen}
         studentName={studentName}
         studentProgramNames={detail.programNames}
+        studentProgramIds={detail.programIds}
         classroomIds={detail.classroomIds}
         classrooms={classrooms}
+        loading={classroomsLoading || (classroomPickerOpen && !classroomsLoaded)}
         saving={assigningClassroom}
         onClose={() => setClassroomPickerOpen(false)}
         onAddClassroom={() => {
@@ -402,6 +417,10 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 15,
     lineHeight: 20,
+  },
+  classroomFooter: {
+    gap: Spacing.one,
+    marginBottom: Spacing.two,
   },
   enrollmentCard: {
     padding: Spacing.three,

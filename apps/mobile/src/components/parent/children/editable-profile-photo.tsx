@@ -18,6 +18,7 @@ export type EditableProfilePhotoProps = {
   editable?: boolean;
   uploading?: boolean;
   showEditHint?: boolean;
+  editTrigger?: 'photo' | 'badge';
   onPhotoSelected?: (uri: string, mimeType?: string) => void;
 };
 
@@ -40,12 +41,14 @@ export function EditableProfilePhoto({
   editable = false,
   uploading = false,
   showEditHint = false,
+  editTrigger = 'photo',
   onPhotoSelected,
 }: EditableProfilePhotoProps) {
   const theme = useAdminTheme();
   const resolvedUrl = photoUrl ? resolveOrganizationAssetUrl(photoUrl) : '';
   const borderRadius = getBorderRadius(shape, size);
-  const showDashedBorder = editable && !uploading;
+  const badgeOnlyEdit = editTrigger === 'badge';
+  const showDashedBorder = editable && !uploading && !badgeOnlyEdit;
 
   const handlePress = async () => {
     if (!editable || uploading || !onPhotoSelected) return;
@@ -78,10 +81,12 @@ export function EditableProfilePhoto({
   const photoContent = (
     <View style={[styles.photoWrapper, { width: size, height: size }]}>
       <Pressable
-        accessibilityRole={editable ? 'button' : undefined}
-        accessibilityLabel={editable ? `Change photo for ${name}` : `Photo of ${name}`}
+        accessibilityRole={editable && !badgeOnlyEdit ? 'button' : undefined}
+        accessibilityLabel={
+          editable && !badgeOnlyEdit ? `Change photo for ${name}` : `Photo of ${name}`
+        }
         onPress={() => void handlePress()}
-        disabled={!editable || uploading}
+        disabled={!editable || uploading || badgeOnlyEdit}
         style={[
           styles.photoContainer,
           {
@@ -118,21 +123,42 @@ export function EditableProfilePhoto({
       </Pressable>
 
       {editable && !uploading ? (
-        <View
-          style={[
-            styles.editBadge,
-            {
-              width: badgeSize,
-              height: badgeSize,
-              borderRadius: badgeSize / 2,
-              bottom: badgeOffset,
-              right: badgeOffset,
-              backgroundColor: theme.accent,
-              borderColor: '#FFFFFF',
-            },
-          ]}>
-          <Ionicons name="camera-outline" size={badgeIconSize} color="#FFFFFF" />
-        </View>
+        badgeOnlyEdit ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Change photo for ${name}`}
+            onPress={() => void handlePress()}
+            style={[
+              styles.editBadge,
+              {
+                width: badgeSize,
+                height: badgeSize,
+                borderRadius: badgeSize / 2,
+                bottom: badgeOffset,
+                right: badgeOffset,
+                backgroundColor: theme.accent,
+                borderColor: '#FFFFFF',
+              },
+            ]}>
+            <Ionicons name="camera-outline" size={badgeIconSize} color="#FFFFFF" />
+          </Pressable>
+        ) : (
+          <View
+            style={[
+              styles.editBadge,
+              {
+                width: badgeSize,
+                height: badgeSize,
+                borderRadius: badgeSize / 2,
+                bottom: badgeOffset,
+                right: badgeOffset,
+                backgroundColor: theme.accent,
+                borderColor: '#FFFFFF',
+              },
+            ]}>
+            <Ionicons name="camera-outline" size={badgeIconSize} color="#FFFFFF" />
+          </View>
+        )
       ) : null}
     </View>
   );

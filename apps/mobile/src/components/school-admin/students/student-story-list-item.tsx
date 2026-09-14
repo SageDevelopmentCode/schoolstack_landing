@@ -11,6 +11,7 @@ import {
   type AdminEnrolledStudentSummary,
 } from '@/lib/school-admin/enrolled-students';
 import { StudentClassroomAssignButton } from '@/components/school-admin/students/student-classroom-assign-button';
+import { StudentLeadTeacherCaption } from '@/components/school-admin/students/student-lead-teacher-caption';
 import { isStudentUnassigned } from '@/lib/school-admin/admin-student-roster-metrics';
 import { StoryCardPadding } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -58,11 +59,16 @@ export function StudentStoryListItem({
           </View>
         </View>
 
-        <StudentClassroomAssignButton
-          classroomNames={student.classroomNames}
-          leadTeacherLabel={teacherLabel}
-          onPress={() => onPressClassroom(student)}
-        />
+        <View style={styles.footer}>
+          <StudentClassroomAssignButton
+            classroomNames={student.classroomNames}
+            onPress={() => onPressClassroom(student)}
+          />
+          <StudentLeadTeacherCaption
+            classroomNames={student.classroomNames}
+            leadTeacherLabel={teacherLabel}
+          />
+        </View>
       </StoryCard>
     </Pressable>
   );
@@ -90,6 +96,9 @@ const styles = StyleSheet.create({
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: Spacing.one,
+  },
+  footer: {
     gap: Spacing.one,
   },
 });

@@ -30,6 +30,7 @@ import {
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
+import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
 
 function getActiveTab(pathname: string): ParentTab | null {
@@ -73,13 +74,10 @@ function ParentLayoutContent() {
     void refreshUnreadCount();
   }, [pathname, refreshUnreadCount]);
 
-  useEffect(() => {
-    if (isLoading || !slug) return;
+  useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
-    if (!user) {
-      router.replace('/');
-      return;
-    }
+  useEffect(() => {
+    if (isLoading || !slug || !user) return;
 
     if (portalType !== 'parent' || selectedSchool?.slug !== slug) {
       router.replace('/portal');
@@ -191,13 +189,13 @@ export default function ParentLayout() {
 
   const [loadedOrg, setLoadedOrg] = useState(organization);
 
+  useRecoverableAuthRedirect(!user, isLoading);
+
   useEffect(() => {
-    if (isLoading) return;
     if (!user) {
       setLoadedOrg(null);
-      router.replace('/');
     }
-  }, [isLoading, router, user]);
+  }, [user]);
 
   useEffect(() => {
     if (organization) {

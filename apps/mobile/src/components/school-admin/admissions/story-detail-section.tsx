@@ -11,20 +11,32 @@ type StoryDetailSectionProps = {
   title: string;
   description?: string;
   children: ReactNode;
+  variant?: 'card' | 'embedded';
 };
 
-export function StoryDetailSection({ title, description, children }: StoryDetailSectionProps) {
+export function StoryDetailSection({
+  title,
+  description,
+  children,
+  variant = 'card',
+}: StoryDetailSectionProps) {
   const theme = useParentTheme();
 
-  return (
-    <StoryCard compact style={styles.card}>
+  const content = (
+    <>
       <StorySectionKicker style={styles.kicker}>{title}</StorySectionKicker>
       {description ? (
         <Text style={[styles.description, { color: theme.muted }]}>{description}</Text>
       ) : null}
       <View style={styles.body}>{children}</View>
-    </StoryCard>
+    </>
   );
+
+  if (variant === 'embedded') {
+    return <View style={styles.embedded}>{content}</View>;
+  }
+
+  return <StoryCard compact style={styles.card}>{content}</StoryCard>;
 }
 
 const styles = StyleSheet.create({
@@ -41,6 +53,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   body: {
+    gap: Spacing.two,
+  },
+  embedded: {
     gap: Spacing.two,
   },
 });

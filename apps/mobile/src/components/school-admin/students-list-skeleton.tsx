@@ -44,7 +44,10 @@ function SkeletonCardRow({ backgroundColor }: { backgroundColor: string }) {
           </View>
         </View>
       </View>
-      <SkeletonBlock style={styles.metaBar} backgroundColor={backgroundColor} />
+      <View style={styles.footer}>
+        <SkeletonBlock style={styles.metaBar} backgroundColor={backgroundColor} />
+        <SkeletonBlock style={styles.captionBar} backgroundColor={backgroundColor} />
+      </View>
     </View>
   );
 }
@@ -159,9 +162,17 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: Radius.pill,
   },
+  footer: {
+    gap: Spacing.one,
+  },
   metaBar: {
-    height: 64,
+    height: 40,
     borderRadius: 12,
     width: '100%',
+  },
+  captionBar: {
+    height: 10,
+    borderRadius: 5,
+    width: '55%',
   },
 });

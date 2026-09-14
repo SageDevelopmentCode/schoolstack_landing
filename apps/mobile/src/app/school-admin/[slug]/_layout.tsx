@@ -22,6 +22,7 @@ import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissi
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
@@ -74,17 +75,14 @@ function SchoolAdminLayoutContent() {
   const activeTab = moreSheetOpen ? 'more' : pathTab;
   const showTabBar = pathTab !== null;
 
+  useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
+
   useEffect(() => {
     void refreshUnreadCount();
   }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
-    if (isLoading || !slug) return;
-
-    if (!user) {
-      router.replace('/');
-      return;
-    }
+    if (isLoading || !slug || !user) return;
 
     if (portalType !== 'school_admin' || selectedSchool?.slug !== slug) {
       void (async () => {
@@ -211,12 +209,7 @@ export default function SchoolAdminLayout() {
     return null;
   }, [selectedSchool, slug]);
 
-  useEffect(() => {
-    if (isLoading) return;
-    if (!user) {
-      router.replace('/');
-    }
-  }, [isLoading, router, user]);
+  useRecoverableAuthRedirect(!user, isLoading);
 
   if (!isLoading && !user) {
     return null;

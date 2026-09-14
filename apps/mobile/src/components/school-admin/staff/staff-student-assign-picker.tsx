@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
@@ -22,6 +22,7 @@ import {
   type AdminEnrolledStudentSummary,
 } from '@/lib/school-admin/enrolled-students';
 import { getSupabaseClient } from '@/lib/supabase';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 
 type StaffStudentAssignPickerProps = {
   visible: boolean;
@@ -120,18 +121,26 @@ export function StaffStudentAssignPicker({
     );
   };
 
+  const isDirty = selectedIds.length > 0;
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
+
   const handleSave = async () => {
     if (selectedIds.length === 0) return;
     await onSave(selectedIds);
     onClose();
   };
 
+  const canSave = selectedIds.length > 0;
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={requestClose}>
       <View style={styles.overlay}>
         <Pressable
           style={styles.backdrop}
-          onPress={onClose}
+          onPress={requestClose}
           accessibilityLabel="Close student picker"
         />
         <Animated.View
@@ -214,7 +223,7 @@ export function StaffStudentAssignPicker({
           <View style={styles.footer}>
             <Pressable
               accessibilityRole="button"
-              onPress={onClose}
+              onPress={requestClose}
               disabled={saving}
               style={({ pressed }) => [
                 styles.footerButton,
@@ -229,13 +238,14 @@ export function StaffStudentAssignPicker({
             <Pressable
               accessibilityRole="button"
               onPress={() => void handleSave()}
-              disabled={saving || selectedIds.length === 0}
+              disabled={saving || !canSave}
               style={({ pressed }) => [
                 styles.footerButton,
                 styles.saveButton,
-                { backgroundColor: theme.accent },
-                pressed && { opacity: 0.85 },
-                (saving || selectedIds.length === 0) && { opacity: 0.6 },
+                {
+                  backgroundColor: theme.accent,
+                  opacity: pressed && canSave && !saving ? 0.85 : canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                },
               ]}>
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />

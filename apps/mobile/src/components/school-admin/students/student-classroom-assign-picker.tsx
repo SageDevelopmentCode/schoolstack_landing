@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,81 +8,43 @@ import {
   Text,
   TextInput,
   View,
+  type ViewStyle,
 } from 'react-native';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, {
+  SlideInDown,
+  SlideOutDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import {
+  buildAssignableClassroomPickerGroups,
+  getAssignableClassrooms,
+} from '@/lib/school-admin/assignable-classrooms';
 import type { ClassroomSummary } from '@/lib/school-admin/classrooms';
+import { haveSameIds, requestCloseIfClean } from '@/lib/unsaved-changes';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
-
-type ClassroomGroup = {
-  programLabel: string;
-  classrooms: ClassroomSummary[];
-};
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 
 type StudentClassroomAssignPickerProps = {
   visible: boolean;
   studentName: string;
   studentProgramNames: string[];
+  studentProgramIds: string[];
   classroomIds: string[];
   classrooms: ClassroomSummary[];
+  loading?: boolean;
   saving?: boolean;
   onClose: () => void;
   onSave: (classroomIds: string[]) => Promise<void>;
   onAddClassroom?: () => void;
 };
-
-function classroomSortKey(classroom: ClassroomSummary): string {
-  return classroom.name.toLowerCase();
-}
-
-function sortClassrooms(classrooms: ClassroomSummary[]): ClassroomSummary[] {
-  return [...classrooms].sort((a, b) => classroomSortKey(a).localeCompare(classroomSortKey(b)));
-}
-
-function buildStudentProgramGroups(
-  studentProgramNames: string[],
-  classrooms: ClassroomSummary[],
-): ClassroomGroup[] {
-  const orgWideClassrooms = sortClassrooms(classrooms.filter((classroom) => !classroom.programId));
-  const programSpecificClassrooms = classrooms.filter((classroom) => classroom.programId);
-
-  if (studentProgramNames.length === 0) {
-    const byProgram = new Map<string, ClassroomSummary[]>();
-    for (const classroom of programSpecificClassrooms) {
-      const label = classroom.programName ?? 'Program';
-      const list = byProgram.get(label) ?? [];
-      list.push(classroom);
-      byProgram.set(label, list);
-    }
-
-    const groups = [...byProgram.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([programLabel, entries]) => ({
-        programLabel,
-        classrooms: sortClassrooms([...entries, ...orgWideClassrooms]),
-      }));
-
-    if (groups.length > 0) return groups;
-    return orgWideClassrooms.length > 0
-      ? [{ programLabel: 'All programs', classrooms: orgWideClassrooms }]
-      : [];
-  }
-
-  return studentProgramNames.map((programLabel) => {
-    const matching = programSpecificClassrooms.filter(
-      (classroom) => classroom.programName === programLabel,
-    );
-    return {
-      programLabel,
-      classrooms: sortClassrooms([...matching, ...orgWideClassrooms]),
-    };
-  });
-}
 
 type PickerRow = {
   key: string;
@@ -91,12 +53,48 @@ type PickerRow = {
   classroom?: ClassroomSummary;
 };
 
+function SkeletonBlock({
+  style,
+  backgroundColor,
+}: {
+  style: ViewStyle;
+  backgroundColor: string;
+}) {
+  const opacity = useSharedValue(0.4);
+
+  useEffect(() => {
+    opacity.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return <Animated.View style={[style, { backgroundColor }, animatedStyle]} />;
+}
+
+function ClassroomPickerSkeleton({ backgroundColor }: { backgroundColor: string }) {
+  return (
+    <View style={styles.skeletonList}>
+      {Array.from({ length: 5 }, (_, index) => (
+        <SkeletonBlock
+          key={index}
+          style={styles.skeletonOption}
+          backgroundColor={backgroundColor}
+        />
+      ))}
+    </View>
+  );
+}
+
 export function StudentClassroomAssignPicker({
   visible,
   studentName,
   studentProgramNames,
+  studentProgramIds,
   classroomIds,
   classrooms,
+  loading = false,
   saving = false,
   onClose,
   onSave,
@@ -113,9 +111,19 @@ export function StudentClassroomAssignPicker({
     setSearchQuery('');
   }, [visible, classroomIds]);
 
+  const assignableClassrooms = useMemo(
+    () => getAssignableClassrooms(classrooms, studentProgramIds, studentProgramNames),
+    [classrooms, studentProgramIds, studentProgramNames],
+  );
+
   const groupedClassrooms = useMemo(
-    () => buildStudentProgramGroups(studentProgramNames, classrooms),
-    [classrooms, studentProgramNames],
+    () =>
+      buildAssignableClassroomPickerGroups(
+        classrooms,
+        studentProgramIds,
+        studentProgramNames,
+      ),
+    [classrooms, studentProgramIds, studentProgramNames],
   );
 
   const rows = useMemo(() => {
@@ -153,14 +161,28 @@ export function StudentClassroomAssignPicker({
     );
   };
 
+  const isDirty = useMemo(
+    () => !haveSameIds(selectedIds, classroomIds),
+    [selectedIds, classroomIds],
+  );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
+
   const handleSave = async () => {
     await onSave(selectedIds);
     onClose();
   };
 
+  const canSave = isDirty && !loading && classrooms.length > 0;
+  const skeletonColor = '#E4E8E1';
+  const showTrueEmpty = !loading && classrooms.length === 0;
+  const showNoAssignable = !loading && classrooms.length > 0 && assignableClassrooms.length === 0;
+
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
+      <Pressable style={styles.overlay} onPress={requestClose}>
         <Animated.View
           entering={SlideInDown.duration(260)}
           exiting={SlideOutDown.duration(220)}
@@ -177,16 +199,16 @@ export function StudentClassroomAssignPicker({
                 <Text style={[styles.title, { color: theme.ink }]}>Assign classrooms</Text>
                 <Text style={[styles.subtitle, { color: theme.muted }]}>{studentName}</Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
                 <Ionicons name="close" size={22} color={theme.muted} />
               </Pressable>
             </View>
 
-            {classrooms.length === 0 ? (
+            {loading ? (
+              <ClassroomPickerSkeleton backgroundColor={skeletonColor} />
+            ) : showTrueEmpty ? (
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                  No classrooms yet.
-                </Text>
+                <Text style={[styles.emptyCopy, { color: theme.muted }]}>No classrooms yet.</Text>
                 {onAddClassroom ? (
                   <Pressable accessibilityRole="button" onPress={onAddClassroom}>
                     <Text style={[styles.link, { color: theme.primary }]}>Add a classroom →</Text>
@@ -216,59 +238,65 @@ export function StudentClassroomAssignPicker({
                   />
                 </View>
 
-                <FlatList
-                  data={rows}
-                  keyExtractor={(item) => item.key}
-                  style={styles.list}
-                  keyboardShouldPersistTaps="handled"
-                  renderItem={({ item }) => {
-                    if (item.type === 'header') {
+                {showNoAssignable ? (
+                  <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                    No classrooms available for this student's programs.
+                  </Text>
+                ) : (
+                  <FlatList
+                    data={rows}
+                    keyExtractor={(item) => item.key}
+                    style={styles.list}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({ item }) => {
+                      if (item.type === 'header') {
+                        return (
+                          <Text style={[styles.groupLabel, { color: theme.muted }]}>
+                            {item.programLabel}
+                          </Text>
+                        );
+                      }
+
+                      const classroom = item.classroom!;
+                      const selected = selectedIds.includes(classroom.id);
+                      const teacherLine = classroom.leadTeacherNames.join(', ') || 'No lead teacher';
+
                       return (
-                        <Text style={[styles.groupLabel, { color: theme.muted }]}>
-                          {item.programLabel}
-                        </Text>
+                        <Pressable
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: selected }}
+                          disabled={saving}
+                          onPress={() => toggleClassroom(classroom.id)}
+                          style={[
+                            styles.option,
+                            {
+                              borderColor: selected ? '#BCD4C1' : Story.line,
+                              backgroundColor: selected ? '#E9F2EA' : theme.white,
+                            },
+                          ]}>
+                          <View style={styles.optionCopy}>
+                            <Text style={[styles.optionTitle, { color: theme.ink }]}>
+                              {classroom.name}
+                            </Text>
+                            <Text style={[styles.optionMeta, { color: theme.muted }]}>
+                              {teacherLine}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={22}
+                            color={selected ? theme.primary : theme.muted}
+                          />
+                        </Pressable>
                       );
+                    }}
+                    ListEmptyComponent={
+                      <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                        No classrooms match your search.
+                      </Text>
                     }
-
-                    const classroom = item.classroom!;
-                    const selected = selectedIds.includes(classroom.id);
-                    const teacherLine = classroom.leadTeacherNames.join(', ') || 'No lead teacher';
-
-                    return (
-                      <Pressable
-                        accessibilityRole="checkbox"
-                        accessibilityState={{ checked: selected }}
-                        disabled={saving}
-                        onPress={() => toggleClassroom(classroom.id)}
-                        style={[
-                          styles.option,
-                          {
-                            borderColor: selected ? '#BCD4C1' : Story.line,
-                            backgroundColor: selected ? '#E9F2EA' : theme.white,
-                          },
-                        ]}>
-                        <View style={styles.optionCopy}>
-                          <Text style={[styles.optionTitle, { color: theme.ink }]}>
-                            {classroom.name}
-                          </Text>
-                          <Text style={[styles.optionMeta, { color: theme.muted }]}>
-                            {teacherLine}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                          size={22}
-                          color={selected ? theme.primary : theme.muted}
-                        />
-                      </Pressable>
-                    );
-                  }}
-                  ListEmptyComponent={
-                    <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                      No classrooms match your search.
-                    </Text>
-                  }
-                />
+                  />
+                )}
               </>
             )}
 
@@ -276,15 +304,21 @@ export function StudentClassroomAssignPicker({
               <Pressable
                 accessibilityRole="button"
                 disabled={saving}
-                onPress={onClose}
+                onPress={requestClose}
                 style={styles.footerButton}>
                 <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={saving || classrooms.length === 0}
+                disabled={!canSave || saving}
                 onPress={() => void handleSave()}
-                style={[styles.saveButton, { backgroundColor: theme.primary }]}>
+                style={[
+                  styles.saveButton,
+                  {
+                    backgroundColor: theme.primary,
+                    opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                  },
+                ]}>
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
@@ -355,6 +389,14 @@ const styles = StyleSheet.create({
   },
   list: {
     maxHeight: 360,
+  },
+  skeletonList: {
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
+  skeletonOption: {
+    height: 56,
+    borderRadius: 12,
   },
   groupLabel: {
     fontFamily: StoryFonts.bodySemiBold,

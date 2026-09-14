@@ -7,7 +7,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { childSubtitleLine } from '@/lib/parent/parent-home-utils';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
@@ -44,9 +44,9 @@ export function ParentHomeChildStoryCard({
       <View style={styles.actions}>
         <StoryButton
           label={`See ${childFirstName}'s details`}
-          variant="outline"
+          variant="primary"
           onPress={onViewDetails}
-          trailingIcon={<Ionicons name="arrow-forward" size={16} color={theme.primary} />}
+          trailingIcon={<Ionicons name="arrow-forward" size={16} color={Story.white} />}
         />
         {showEnrollmentLink && onOpenEnrollment ? (
           <StoryTextLink label="Enrollment checklist" onPress={onOpenEnrollment} />

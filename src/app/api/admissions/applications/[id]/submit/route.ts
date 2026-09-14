@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import {
   AuthError,
   requireAuthenticatedUser,
@@ -117,7 +117,9 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    void sendApplicationSubmittedNotifications(admin, applicationId);
+    after(async () => {
+      await sendApplicationSubmittedNotifications(admin, applicationId);
+    });
 
     const { data: formRow } = await admin
       .from("application_form_versions")

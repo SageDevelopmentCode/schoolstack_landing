@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { after } from "next/server";
 import type Stripe from "stripe";
 import {
   ACTIVITY_ACTIONS,
@@ -793,7 +794,9 @@ async function processApplicationFeePayment(
     return;
   }
 
-  void sendApplicationSubmittedNotifications(admin, payment.applicationId);
+  after(async () => {
+    await sendApplicationSubmittedNotifications(admin, payment.applicationId);
+  });
 
   const { data: formRow } = await admin
     .from("application_form_versions")

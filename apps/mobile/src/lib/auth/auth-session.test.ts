@@ -3,6 +3,7 @@ import {
   assertApiAuthenticated,
   getApiAuthHeaders,
   isAuthRequiredError,
+  resolveAccessToken,
 } from '@/lib/auth/auth-session';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -23,17 +24,62 @@ describe('isAuthRequiredError', () => {
   });
 });
 
+describe('resolveAccessToken', () => {
+  const signOut = jest.fn().mockResolvedValue(undefined);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns the cached session token when available', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'token-123' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe('token-123');
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('refreshes and returns a token when the cached session is empty', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe('refreshed-token');
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out when refresh does not produce a token', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBeNull();
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('getApiAuthHeaders', () => {
   const signOut = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetSupabaseClient.mockReturnValue({
-      auth: {
-        getSession: jest.fn(),
-        signOut,
-      },
-    } as never);
   });
 
   it('returns auth headers when a session token exists', async () => {
@@ -41,7 +87,7 @@ describe('getApiAuthHeaders', () => {
       data: { session: { access_token: 'token-123' } },
     });
     mockGetSupabaseClient.mockReturnValue({
-      auth: { getSession, signOut },
+      auth: { getSession, refreshSession: jest.fn(), signOut },
     } as never);
 
     await expect(getApiAuthHeaders(true)).resolves.toEqual({
@@ -51,12 +97,33 @@ describe('getApiAuthHeaders', () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it('signs out and throws when the session token is missing', async () => {
+  it('refreshes before returning headers when the cached session is empty', async () => {
     const getSession = jest.fn().mockResolvedValue({
       data: { session: null },
     });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
     mockGetSupabaseClient.mockReturnValue({
-      auth: { getSession, signOut },
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    await expect(getApiAuthHeaders()).resolves.toEqual({
+      Authorization: 'Bearer refreshed-token',
+    });
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('throws when refresh does not produce a token', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
     } as never);
 
     await expect(getApiAuthHeaders()).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
@@ -70,19 +137,41 @@ describe('assertApiAuthenticated', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetSupabaseClient.mockReturnValue({
-      auth: { signOut },
+      auth: { refreshSession: jest.fn(), signOut },
     } as never);
   });
 
-  it('signs out and throws on 401 responses', () => {
-    expect(() => assertApiAuthenticated({ status: 401 } as Response)).toThrow(
+  it('does nothing for non-401 responses', async () => {
+    await expect(assertApiAuthenticated({ status: 403 } as Response)).resolves.toBeUndefined();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not sign out when refresh recovers a session after 401', async () => {
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { refreshSession, signOut },
+    } as never);
+
+    await expect(assertApiAuthenticated({ status: 401 } as Response)).rejects.toThrow(
+      AUTH_REQUIRED_MESSAGE,
+    );
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out when refresh fails after 401', async () => {
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { refreshSession, signOut },
+    } as never);
+
+    await expect(assertApiAuthenticated({ status: 401 } as Response)).rejects.toThrow(
       AUTH_REQUIRED_MESSAGE,
     );
     expect(signOut).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing for non-401 responses', () => {
-    expect(() => assertApiAuthenticated({ status: 403 } as Response)).not.toThrow();
-    expect(signOut).not.toHaveBeenCalled();
   });
 });

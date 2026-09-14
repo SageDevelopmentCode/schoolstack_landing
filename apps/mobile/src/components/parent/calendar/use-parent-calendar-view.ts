@@ -7,23 +7,26 @@ import {
   todayKeyInTimezone,
   todayMonthYearInTimezone,
 } from '@/lib/admissions/admissions-availability';
-import type { MobileAdminTheme } from '@/lib/organization-settings/build-admin-theme';
+import type { MobileParentTheme } from '@/lib/organization-settings/parent-theme';
 import {
+  addDays,
   addMonths,
   addWeeks,
+  dateKey,
+  formatDayLabel,
   formatMonthLabel,
   formatWeekRangeLabel,
   getWeekDates,
   parseEventDate,
 } from '@/lib/school-events/calendar-utils';
 
-export type ParentCalendarViewMode = 'week' | 'month';
+export type ParentCalendarViewMode = 'day' | 'week' | 'month';
 
 type UseParentCalendarViewOptions = {
   organizationId: string;
   supabase: SupabaseClient;
   timezoneProp?: string;
-  theme: MobileAdminTheme;
+  theme: MobileParentTheme;
 };
 
 export function useParentCalendarView({
@@ -33,7 +36,7 @@ export function useParentCalendarView({
   theme,
 }: UseParentCalendarViewOptions) {
   const [timezone, setTimezone] = useState(timezoneProp ?? 'America/Chicago');
-  const [viewMode, setViewMode] = useState<ParentCalendarViewMode>('week');
+  const [viewMode, setViewMode] = useState<ParentCalendarViewMode>('day');
 
   const initialToday = todayKeyInTimezone(timezone);
   const initialMonthYear = todayMonthYearInTimezone(timezone);
@@ -48,15 +51,22 @@ export function useParentCalendarView({
 
   const weekDates = useMemo(() => getWeekDates(weekAnchor), [weekAnchor]);
 
-  const periodLabel =
-    viewMode === 'week' ? formatWeekRangeLabel(weekDates) : formatMonthLabel(viewYear, viewMonth);
+  const periodLabel = useMemo(() => {
+    if (viewMode === 'day' && selectedDate) {
+      return formatDayLabel(selectedDate);
+    }
+    if (viewMode === 'week') {
+      return formatWeekRangeLabel(weekDates);
+    }
+    return formatMonthLabel(viewYear, viewMonth);
+  }, [selectedDate, viewMode, viewMonth, viewYear, weekDates]);
 
   const calendarColors = useMemo(
     () => ({
-      accent: theme.accent,
-      accentLight: theme.accentLight,
-      text: theme.textPrimary,
-      textFaint: theme.textTertiary,
+      accent: theme.primary,
+      accentLight: theme.primarySoft,
+      text: theme.ink,
+      textFaint: theme.muted,
       warning: theme.warning,
       warningBg: theme.warningBg,
     }),
@@ -102,7 +112,20 @@ export function useParentCalendarView({
     [selectedDate],
   );
 
+  const shiftSelectedDate = useCallback(
+    (deltaDays: number) => {
+      const anchor = selectedDate ? parseEventDate(selectedDate) : parseEventDate(today);
+      const next = addDays(anchor, deltaDays);
+      syncFromSelectedDate(dateKey(next));
+    },
+    [selectedDate, syncFromSelectedDate, today],
+  );
+
   const prevPeriod = useCallback(() => {
+    if (viewMode === 'day') {
+      shiftSelectedDate(-1);
+      return;
+    }
     if (viewMode === 'week') {
       setWeekAnchor((current) => addWeeks(current, -1));
       return;
@@ -110,9 +133,13 @@ export function useParentCalendarView({
     const next = addMonths(viewYear, viewMonth, -1);
     setViewYear(next.year);
     setViewMonth(next.month);
-  }, [viewMode, viewMonth, viewYear]);
+  }, [shiftSelectedDate, viewMode, viewMonth, viewYear]);
 
   const nextPeriod = useCallback(() => {
+    if (viewMode === 'day') {
+      shiftSelectedDate(1);
+      return;
+    }
     if (viewMode === 'week') {
       setWeekAnchor((current) => addWeeks(current, 1));
       return;
@@ -120,7 +147,7 @@ export function useParentCalendarView({
     const next = addMonths(viewYear, viewMonth, 1);
     setViewYear(next.year);
     setViewMonth(next.month);
-  }, [viewMode, viewMonth, viewYear]);
+  }, [shiftSelectedDate, viewMode, viewMonth, viewYear]);
 
   const goToToday = useCallback(() => {
     const nextToday = todayKeyInTimezone(timezone);
@@ -134,7 +161,7 @@ export function useParentCalendarView({
   const goToDate = useCallback(
     (dateKeyValue: string) => {
       syncFromSelectedDate(dateKeyValue);
-      setViewMode('week');
+      setViewMode('day');
     },
     [syncFromSelectedDate],
   );

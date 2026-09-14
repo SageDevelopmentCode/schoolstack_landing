@@ -253,18 +253,13 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   formTitle: string;
   applyDashboardUrl: string;
 }): Promise<void> {
-  if (!(await isZohoConfigured())) return;
-
   const content = buildApplicationSubmittedConfirmationHtml(payload);
-  const result = await sendZohoEmail({
+  await deliverZohoEmail({
+    channel: "Application submitted confirmation",
     toAddress: payload.email,
     subject: `Application received — ${payload.schoolName}`,
     content,
   });
-
-  if (!result.success) {
-    console.error("Application submitted confirmation email failed:", result.error);
-  }
 }
 
 export function buildApplicationAcceptedEnrollmentHtml(payload: {
@@ -501,18 +496,13 @@ export async function sendApplicationSubmittedOwnerNotification(payload: {
   submittedAtLabel: string;
   submissionAdminUrl: string;
 }): Promise<void> {
-  if (!(await isZohoConfigured())) return;
-
   const content = buildApplicationSubmittedOwnerNotificationHtml(payload);
-  const result = await sendZohoEmail({
+  await deliverZohoEmail({
+    channel: "Application submitted owner notification",
     toAddress: payload.email,
     subject: `New application submitted — ${payload.schoolName}`,
     content,
   });
-
-  if (!result.success) {
-    console.error("Application submitted owner notification email failed:", result.error);
-  }
 }
 
 export function buildPostSubmitVisitConfirmationHtml(payload: {

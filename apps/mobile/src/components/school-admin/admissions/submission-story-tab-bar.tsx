@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
@@ -31,14 +32,23 @@ export function SubmissionStoryTabBar({
               accessibilityState={{ selected: active }}
               onPress={() => onChange(tab.id)}
               style={[styles.tab, { borderBottomColor: active ? theme.primary : 'transparent' }]}>
-              <Text
-                style={[
-                  styles.label,
-                  { color: active ? theme.primary : theme.muted },
-                  active && styles.labelActive,
-                ]}>
-                {tab.label}
-              </Text>
+              <View style={styles.tabInner}>
+                {tab.icon ? (
+                  <Ionicons
+                    name={active ? (tab.iconActive ?? tab.icon) : tab.icon}
+                    size={14}
+                    color={active ? theme.primary : theme.muted}
+                  />
+                ) : null}
+                <Text
+                  style={[
+                    styles.label,
+                    { color: active ? theme.primary : theme.muted },
+                    active && styles.labelActive,
+                  ]}>
+                  {tab.label}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -58,6 +68,11 @@ const styles = StyleSheet.create({
   tab: {
     paddingVertical: Spacing.three,
     borderBottomWidth: 2,
+  },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   label: {
     fontFamily: StoryFonts.body,

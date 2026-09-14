@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
-import { loadMessagesInbox } from '@/lib/messages/api';
+import { loadMessagesContacts, loadMessagesInbox } from '@/lib/messages/api';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
 import {
   createPortalCache,
@@ -26,9 +26,11 @@ type SchoolAdminMessagesInboxContextValue = {
   contacts: MessageContact[];
   isLoading: boolean;
   isRefreshing: boolean;
+  loadingContacts: boolean;
   error: string | null;
   hasLoaded: boolean;
   refresh: (options?: { silent?: boolean }) => Promise<void>;
+  ensureContactsLoaded: () => Promise<void>;
 };
 
 const SchoolAdminMessagesInboxContext =
@@ -101,13 +103,18 @@ export function SchoolAdminMessagesInboxProvider({
   const [contacts, setContacts] = useState<MessageContact[]>(cached?.contacts ?? []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const contactsPromiseRef = useRef<Promise<void> | null>(null);
 
   const applyInboxData = useCallback((inbox: SchoolAdminMessagesInboxData | null) => {
     setThreads(inbox?.threads ?? []);
-    setContacts(inbox?.contacts ?? []);
+    // Threads API excludes contacts; only overwrite when contacts were loaded.
+    if ((inbox?.contacts?.length ?? 0) > 0) {
+      setContacts(inbox.contacts);
+    }
   }, []);
 
   const load = useCallback(
@@ -161,6 +168,32 @@ export function SchoolAdminMessagesInboxProvider({
     },
     [load],
   );
+
+  const ensureContactsLoaded = useCallback(async () => {
+    if (contacts.length > 0) return;
+    if (contactsPromiseRef.current) {
+      await contactsPromiseRef.current;
+      return;
+    }
+
+    const run = async () => {
+      setLoadingContacts(true);
+      try {
+        const nextContacts = await loadMessagesContacts(organizationId, schoolName);
+        setContacts(nextContacts);
+        setError(null);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load contacts.');
+      } finally {
+        setLoadingContacts(false);
+        contactsPromiseRef.current = null;
+      }
+    };
+
+    const promise = run();
+    contactsPromiseRef.current = promise;
+    await promise;
+  }, [contacts.length, organizationId, schoolName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,11 +249,23 @@ export function SchoolAdminMessagesInboxProvider({
       contacts,
       isLoading,
       isRefreshing,
+      loadingContacts,
       error,
       hasLoaded,
       refresh,
+      ensureContactsLoaded,
     }),
-    [contacts, error, hasLoaded, isLoading, isRefreshing, refresh, threads],
+    [
+      contacts,
+      ensureContactsLoaded,
+      error,
+      hasLoaded,
+      isLoading,
+      isRefreshing,
+      loadingContacts,
+      refresh,
+      threads,
+    ],
   );
 
   return (

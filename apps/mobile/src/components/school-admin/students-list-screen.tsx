@@ -237,8 +237,10 @@ export function StudentsListScreen({ organizationId: _organizationId, slug }: St
         visible={pickerStudent !== null}
         studentName={pickerStudent ? formatEnrolledStudentName(pickerStudent) : ''}
         studentProgramNames={pickerStudent?.programNames ?? []}
+        studentProgramIds={pickerStudent?.programIds ?? []}
         classroomIds={pickerStudent?.classroomIds ?? []}
         classrooms={classrooms}
+        loading={classroomsLoading || (pickerStudent !== null && !classroomsLoaded)}
         saving={pickerStudent ? assigningStudentId === pickerStudent.id : false}
         onClose={() => setPickerStudent(null)}
         onAddClassroom={() => {

@@ -4,6 +4,7 @@ import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from '
 import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
 import {
   EMPTY_EVENT_FORM,
+  eventFormsEqual,
   SchoolEventFormSheet,
   type EventFormState,
 } from '@/components/school-admin/schedule/school-event-form-sheet';
@@ -41,6 +42,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [form, setForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
+  const [initialForm, setInitialForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -70,11 +72,13 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     setSelectedEventId(null);
     setEditingEventId(null);
     setFormMode('create');
-    setForm({
+    const nextForm = {
       ...EMPTY_EVENT_FORM,
       date: prefillDate ?? calendar.selectedDate ?? '',
       colorKey: getDefaultColorKeyForType(EMPTY_EVENT_FORM.eventType),
-    });
+    };
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setFormOpen(true);
   };
 
@@ -82,7 +86,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     setSelectedEventId(null);
     setEditingEventId(event.id);
     setFormMode('edit');
-    setForm({
+    const nextForm = {
       title: event.title,
       date: event.date,
       time: toTimeInputValue(event.time),
@@ -93,7 +97,9 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       colorManuallySet: Boolean(event.colorKey),
       location: event.location ?? '',
       description: event.description ?? '',
-    });
+    };
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setFormOpen(true);
   };
 
@@ -245,6 +251,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
         visible={formOpen}
         mode={formMode}
         form={form}
+        isDirty={!eventFormsEqual(form, initialForm)}
         saving={saving}
         onClose={() => setFormOpen(false)}
         onChange={setForm}

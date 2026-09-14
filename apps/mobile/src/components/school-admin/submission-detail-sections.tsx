@@ -190,6 +190,7 @@ export function SubmissionApplicationStepsSection({
   onItemPress,
   activeItemId,
   timelineRowSpacing,
+  embedded = false,
 }: {
   detail: ApplicationDetail;
   feeStatus: string;
@@ -199,20 +200,24 @@ export function SubmissionApplicationStepsSection({
   onItemPress?: (stepId: string) => void;
   activeItemId?: string;
   timelineRowSpacing?: number;
+  embedded?: boolean;
 }) {
   const subtitleParts: string[] = [];
   if (applicationStatus !== 'draft' && submittedAt) {
     subtitleParts.push(`Submitted ${formatShortDate(submittedAt)}`);
   }
-  if (feeEnabled && feeStatus !== 'not_required') {
-    subtitleParts.push(`Fee ${(FEE_STATUS_LABELS[feeStatus] ?? feeStatus).toLowerCase()}`);
+  const resolvedFeeStatus = feeStatus ?? 'not_required';
+  if (feeEnabled && resolvedFeeStatus !== 'not_required') {
+    const feeLabel =
+      FEE_STATUS_LABELS[resolvedFeeStatus] ?? resolvedFeeStatus.replace(/_/g, ' ');
+    subtitleParts.push(`Fee ${feeLabel.toLowerCase()}`);
   }
 
   const steps = buildApplicationFormSteps(detail.schema, detail.feeConfig);
   const stepsWithStatus = computeApplicationFormStepStatuses(steps, {
     applicationStatus,
     stepIndex: detail.stepIndex,
-    feeStatus,
+    feeStatus: resolvedFeeStatus,
   });
   const progress = summarizeApplicationFormProgress(stepsWithStatus);
 
@@ -226,7 +231,8 @@ export function SubmissionApplicationStepsSection({
   return (
     <StoryDetailSection
       title={detail.formTitle}
-      description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}>
+      description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
+      variant={embedded ? 'embedded' : 'card'}>
       <DetailProgressBar completed={progress.completed} total={progress.total} />
       <DetailStepTimeline
         items={items}
@@ -245,12 +251,14 @@ export function SubmissionEnrollmentStepsSection({
   error,
   onItemPress,
   activeItemId,
+  embedded = false,
 }: {
   checklist: LoadedEnrollmentChecklist | null;
   loading: boolean;
   error: string | null;
   onItemPress?: (itemId: string) => void;
   activeItemId?: string;
+  embedded?: boolean;
 }) {
   const theme = useParentTheme();
   const instanceByTemplateId = useMemo(
@@ -260,7 +268,10 @@ export function SubmissionEnrollmentStepsSection({
 
   if (loading) {
     return (
-      <StoryDetailSection title="Enrollment checklist" description="Enrollment checklist progress">
+      <StoryDetailSection
+        title="Enrollment checklist"
+        description="Enrollment checklist progress"
+        variant={embedded ? 'embedded' : 'card'}>
         <DetailTimelineSectionSkeleton />
       </StoryDetailSection>
     );
@@ -288,7 +299,10 @@ export function SubmissionEnrollmentStepsSection({
   });
 
   return (
-    <StoryDetailSection title={checklist.title} description="Enrollment checklist progress">
+    <StoryDetailSection
+      title={checklist.title}
+      description="Enrollment checklist progress"
+      variant={embedded ? 'embedded' : 'card'}>
       <DetailProgressBar
         completed={checklist.progress.completed}
         total={checklist.progress.total}

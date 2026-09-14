@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ import { StoryFonts } from '@/constants/story-theme';
 export type StoryPillNavItem = {
   key: string;
   label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   suffix?: ReactNode;
   disabled?: boolean;
   testID?: string;
@@ -50,6 +52,13 @@ export function StoryPillNav({
           pressed && !item.disabled && { opacity: 0.85 },
           item.disabled && { opacity: 0.7 },
         ]}>
+        {item.icon ? (
+          <Ionicons
+            name={item.icon}
+            size={fullWidth ? 14 : 12}
+            color={active ? theme.primary : INACTIVE_COLOR}
+          />
+        ) : null}
         <Text
           numberOfLines={1}
           ellipsizeMode="tail"

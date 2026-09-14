@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -17,8 +17,9 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { HealthAllergySeverity, HealthItemType } from '@/lib/student-health/types';
 import { SEVERITY_LABELS } from '@/lib/student-health/types';
 import { Story, StoryFonts } from '@/constants/story-theme';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 
 export type HealthFormValues =
   | {
@@ -82,11 +83,23 @@ export function StudentHealthFormSheet({
   const theme = useParentTheme();
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState<HealthFormValues>(defaultValues(itemType));
+  const [baselineValues, setBaselineValues] = useState<HealthFormValues>(defaultValues(itemType));
 
   useEffect(() => {
     if (!visible) return;
-    setValues(initialValues ?? defaultValues(itemType));
+    const nextValues = initialValues ?? defaultValues(itemType);
+    setValues(nextValues);
+    setBaselineValues(nextValues);
   }, [visible, initialValues, itemType]);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(values) !== JSON.stringify(baselineValues),
+    [values, baselineValues],
+  );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
 
   const title =
     itemType === 'allergy'
@@ -101,8 +114,8 @@ export function StudentHealthFormSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
+      <Pressable style={styles.overlay} onPress={requestClose}>
         <Animated.View
           entering={SlideInDown.duration(260)}
           exiting={SlideOutDown.duration(220)}
@@ -116,7 +129,7 @@ export function StudentHealthFormSheet({
           <Pressable onPress={(event) => event.stopPropagation()}>
             <View style={styles.header}>
               <Text style={[styles.headerTitle, { color: theme.ink }]}>{title}</Text>
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
                 <Ionicons name="close" size={22} color={theme.muted} />
               </Pressable>
             </View>
@@ -219,14 +232,20 @@ export function StudentHealthFormSheet({
             </ScrollView>
 
             <View style={styles.footer}>
-              <Pressable accessibilityRole="button" disabled={saving} onPress={onClose}>
+              <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
                 <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                disabled={saving}
+                disabled={saving || !isDirty}
                 onPress={() => void handleSave()}
-                style={[styles.saveButton, { backgroundColor: theme.primary }]}>
+                style={[
+                  styles.saveButton,
+                  {
+                    backgroundColor: theme.primary,
+                    opacity: isDirty && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                  },
+                ]}>
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (

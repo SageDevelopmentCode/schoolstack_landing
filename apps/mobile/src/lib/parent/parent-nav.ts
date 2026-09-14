@@ -1,6 +1,8 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 
+import type { ParentChildRecordSection } from '@/lib/parent/parent-children-utils';
+
 export type ParentTab = 'home' | 'billing' | 'messages' | 'calendar' | 'more';
 
 export type ParentMoreMenuItemId =
@@ -28,13 +30,22 @@ export function parentAccountRoute(slug: string): Href {
 
 export function parentChildrenRoute(slug: string, applicationId?: string): Href {
   if (applicationId) {
-    return parentChildDetailRoute(slug, applicationId);
+    const params = new URLSearchParams({ applicationId });
+    return `/parent/${slug}/more/children?${params.toString()}` as Href;
   }
   return parentMoreRoute(slug, 'children');
 }
 
-export function parentChildDetailRoute(slug: string, applicationId: string): Href {
-  return `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}` as Href;
+export function parentChildDetailRoute(
+  slug: string,
+  applicationId: string,
+  section?: ParentChildRecordSection,
+): Href {
+  const base = `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}`;
+  if (section) {
+    return `${base}?section=${section}` as Href;
+  }
+  return base as Href;
 }
 
 export function isParentChildDetailPath(pathname: string): boolean {

@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -23,10 +24,10 @@ const SIZE_MAP: Record<StudentPhotoSize, { dimension: number; fontSize: number }
 };
 
 const HEALTH_BADGE_SIZE: Record<StudentPhotoSize, { container: number; icon: number }> = {
-  sm: { container: 16, icon: 10 },
-  md: { container: 18, icon: 11 },
-  row: { container: 18, icon: 11 },
-  lg: { container: 22, icon: 13 },
+  sm: { container: 16, icon: 9 },
+  md: { container: 18, icon: 10 },
+  row: { container: 18, icon: 10 },
+  lg: { container: 22, icon: 12 },
 };
 
 const HEALTH_INDICATOR_COLOR = '#EF4444';
@@ -98,9 +99,7 @@ export function StudentPhoto({
               backgroundColor: HEALTH_INDICATOR_COLOR,
             },
           ]}>
-          <Text style={[styles.healthAsterisk, { fontSize: iconSize, lineHeight: iconSize + 1 }]}>
-            *
-          </Text>
+          <Ionicons name="medical" size={iconSize} color="#FFFFFF" />
         </View>
       ) : null}
     </View>
@@ -124,12 +123,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 2,
     elevation: 2,
-  },
-  healthAsterisk: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    textAlign: 'center',
-    includeFontPadding: false,
   },
   container: {
     alignItems: 'center',

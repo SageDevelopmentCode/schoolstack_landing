@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/contexts/auth-context';
+import { resolveAuthRecoveryRoute } from '@/lib/auth/auth-recovery';
 import {
   getPortalHeading,
   getPortalLabel,
@@ -16,13 +17,31 @@ import { Brand, Spacing } from '@/constants/theme';
 
 export default function PortalScreen() {
   const router = useRouter();
-  const { user, portalType, selectedSchool, isLoading, signOut } = useAuth();
+  const { user, portalType, selectedSchool, isLoading, signOut, restorePortalState } = useAuth();
+  const [restoringPortal, setRestoringPortal] = useState(false);
+  const restoreAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (isLoading || !user || !portalType) {
-      if (!isLoading && (!user || !portalType)) {
-        router.replace('/');
+    if (isLoading) return;
+
+    if (!user) {
+      void resolveAuthRecoveryRoute().then((route) => {
+        router.replace(route);
+      });
+      return;
+    }
+
+    if (!portalType) {
+      if (restoreAttemptedRef.current) {
+        router.replace('/login');
+        return;
       }
+
+      restoreAttemptedRef.current = true;
+      setRestoringPortal(true);
+      void restorePortalState().finally(() => {
+        setRestoringPortal(false);
+      });
       return;
     }
 
@@ -44,9 +63,9 @@ export default function PortalScreen() {
     if (portalType === 'parent' && selectedSchool) {
       router.replace(`/parent/${selectedSchool.slug}/home`);
     }
-  }, [isLoading, user, portalType, selectedSchool, router]);
+  }, [isLoading, portalType, restorePortalState, router, selectedSchool, user]);
 
-  if (isLoading || !user || !portalType) {
+  if (isLoading || restoringPortal || !user || !portalType) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Brand.accent} />
@@ -54,7 +73,12 @@ export default function PortalScreen() {
     );
   }
 
-  if (portalType === 'platform_admin' || portalType === 'school_admin' || portalType === 'parent_apply' || portalType === 'parent') {
+  if (
+    portalType === 'platform_admin' ||
+    portalType === 'school_admin' ||
+    portalType === 'parent_apply' ||
+    portalType === 'parent'
+  ) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Brand.accent} />

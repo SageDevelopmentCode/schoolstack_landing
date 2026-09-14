@@ -4,6 +4,10 @@ export function isStoryMessagesVariant(variant: MessagesLayoutVariant): boolean 
   return variant === 'parent-story' || variant === 'admin-story';
 }
 
+export function isAdminStoryMessagesVariant(variant: MessagesLayoutVariant): boolean {
+  return variant === 'admin-story';
+}
+
 export function isSplitPaneMessagesVariant(variant: MessagesLayoutVariant): boolean {
   return variant === 'parent-story' || variant === 'admin-story';
 }
