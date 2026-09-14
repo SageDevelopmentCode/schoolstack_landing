@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import {
@@ -35,7 +37,7 @@ export function TourSlotDaySheet({
   onClose,
   onToggleSlot,
 }: TourSlotDaySheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>('morning');
 
@@ -48,26 +50,21 @@ export function TourSlotDaySheet({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Done
-            </ThemedText>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Done</Text>
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Tour slots
-          </ThemedText>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>Tour slots</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText type="title" style={{ color: theme.textPrimary }}>
-            {formatDateOnlyLabel(date)}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
+          <StorySectionKicker style={styles.kicker}>Availability</StorySectionKicker>
+          <StoryDisplayHeading size="section">{formatDateOnlyLabel(date)}</StoryDisplayHeading>
+          <Text style={[styles.helperCopy, { color: theme.muted }]}>
             Tap a time to open or close it for family booking.
-          </ThemedText>
+          </Text>
 
           <View style={styles.segmentRow}>
             {ADMISSIONS_TIME_SLOT_GROUPS.map((group) => {
@@ -80,13 +77,17 @@ export function TourSlotDaySheet({
                   style={[
                     styles.segment,
                     {
-                      backgroundColor: active ? theme.accentLight : theme.surface,
-                      borderColor: active ? theme.accent : theme.border,
+                      backgroundColor: active ? theme.primarySoft : theme.white,
+                      borderColor: active ? theme.primary : theme.line,
                     },
                   ]}>
-                  <ThemedText type="smallBold" style={{ color: active ? theme.accent : theme.textSecondary }}>
+                  <Text
+                    style={[
+                      styles.segmentLabel,
+                      { color: active ? theme.primary : theme.muted },
+                    ]}>
                     {group.label}
-                  </ThemedText>
+                  </Text>
                 </Pressable>
               );
             })}
@@ -112,22 +113,24 @@ export function TourSlotDaySheet({
                       backgroundColor: isBooked
                         ? theme.warningBg
                         : isOpen
-                          ? theme.accentLight
-                          : theme.surface,
-                      borderColor: isOpen ? theme.accent : theme.border,
+                          ? theme.primarySoft
+                          : theme.white,
+                      borderColor: isOpen ? theme.primary : theme.line,
                       opacity: disabled ? 0.7 : 1,
                     },
                   ]}>
                   {isToggling ? (
-                    <ActivityIndicator size="small" color={theme.accent} />
+                    <ActivityIndicator size="small" color={theme.primary} />
                   ) : (
-                    <ThemedText
-                      type="small"
-                      style={{
-                        color: isBooked ? theme.warning : isOpen ? theme.accent : theme.textSecondary,
-                      }}>
+                    <Text
+                      style={[
+                        styles.slotLabel,
+                        {
+                          color: isBooked ? theme.warning : isOpen ? theme.primary : theme.muted,
+                        },
+                      ]}>
                       {timeSlot}
-                    </ThemedText>
+                    </Text>
                   )}
                 </Pressable>
               );
@@ -151,6 +154,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  headerAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   headerSpacer: {
     width: 40,
   },
@@ -158,6 +171,14 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
     paddingBottom: Spacing.six,
+  },
+  kicker: {
+    marginBottom: 0,
+  },
+  helperCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   segmentRow: {
     flexDirection: 'row',
@@ -169,6 +190,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingVertical: Spacing.two,
     alignItems: 'center',
+  },
+  segmentLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   slotGrid: {
     flexDirection: 'row',
@@ -184,5 +210,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
+  },
+  slotLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

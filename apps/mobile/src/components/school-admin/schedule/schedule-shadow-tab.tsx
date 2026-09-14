@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
 import { ScheduleMonthCalendar } from '@/components/school-admin/schedule/schedule-month-calendar';
 import { ScheduleAvailabilityLegend } from '@/components/school-admin/schedule/schedule-availability-legend';
 import { ShadowDaySheet } from '@/components/school-admin/schedule/shadow-day-sheet';
 import { useScheduleCalendar } from '@/components/school-admin/schedule/use-schedule-calendar';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   listObservationDayAvailability,
@@ -39,7 +42,7 @@ export function ScheduleShadowTab({
   onRefresh,
   onMonthDayCountChange,
 }: ScheduleShadowTabProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
   const { reportError } = useMobileErrorReporter(organizationId);
 
@@ -193,34 +196,32 @@ export function ScheduleShadowTab({
               void loadMonthData();
               void loadSelectedDay();
             }}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-          Shadow days
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          Tap a day to open shadow availability or manage grade slots.
-        </ThemedText>
-        {error ? (
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
-          </ThemedText>
-        ) : null}
+        <View style={styles.intro}>
+          <StorySectionKicker style={styles.kicker}>Shadow days</StorySectionKicker>
+          <Text style={[styles.helperCopy, { color: theme.muted }]}>
+            Tap a day to open shadow availability or manage grade slots.
+          </Text>
+        </View>
+        {error ? <StoryErrorBanner message={error} /> : null}
 
-        <ScheduleMonthCalendar
-          viewYear={calendar.viewYear}
-          viewMonth={calendar.viewMonth}
-          selectedDate={calendar.selectedDate}
-          onSelectDate={handleSelectDate}
-          availableDates={openDays}
-          bookedDates={occupiedDays}
-          minDate={calendar.today}
-          onPrevMonth={calendar.prevMonth}
-          onNextMonth={calendar.nextMonth}
-          colors={calendar.calendarColors}
-          editable
-        />
+        <StoryCard style={styles.calendarCard}>
+          <ScheduleMonthCalendar
+            viewYear={calendar.viewYear}
+            viewMonth={calendar.viewMonth}
+            selectedDate={calendar.selectedDate}
+            onSelectDate={handleSelectDate}
+            availableDates={openDays}
+            bookedDates={occupiedDays}
+            minDate={calendar.today}
+            onPrevMonth={calendar.prevMonth}
+            onNextMonth={calendar.nextMonth}
+            colors={calendar.calendarColors}
+            editable
+          />
+        </StoryCard>
         <ScheduleAvailabilityLegend
           openLabel={shadowMode === 'whole_day' ? 'Open for shadow visits' : 'Open slots'}
         />
@@ -254,8 +255,22 @@ export function ScheduleShadowTab({
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.six,
     gap: Spacing.three,
+  },
+  intro: {
+    gap: Spacing.one,
+  },
+  kicker: {
+    marginBottom: 0,
+  },
+  helperCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  calendarCard: {
+    padding: StoryCardPadding,
   },
 });

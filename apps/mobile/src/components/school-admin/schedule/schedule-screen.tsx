@@ -1,22 +1,21 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { DetailTabBar } from '@/components/school-admin/detail-tab-bar';
 import { ScheduleEventsTab } from '@/components/school-admin/schedule/schedule-events-tab';
 import { ScheduleOverviewTab } from '@/components/school-admin/schedule/schedule-overview-tab';
 import { ScheduleShadowTab } from '@/components/school-admin/schedule/schedule-shadow-tab';
 import { ScheduleScreenSkeleton } from '@/components/school-admin/schedule/schedule-screen-skeleton';
+import { ScheduleStoryHeader } from '@/components/school-admin/schedule/schedule-story-header';
 import { ScheduleToursTab } from '@/components/school-admin/schedule/schedule-tours-tab';
 import { ScheduleVisitsTab } from '@/components/school-admin/schedule/schedule-visits-tab';
 import {
   parseScheduleTab,
-  SCHEDULE_TABS,
   type ScheduleTabId,
 } from '@/components/school-admin/schedule/schedule-constants';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Story } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   countAdmissionsAvailabilitySlotsInMonth,
@@ -32,26 +31,7 @@ type ScheduleScreenProps = {
   slug: string;
 };
 
-function formatHeaderStats(
-  monthSlotCount: number | null,
-  monthObservationDayCount: number | null,
-  upcomingVisitCount: number | null,
-): string {
-  const parts: string[] = [];
-  if (monthSlotCount != null) {
-    parts.push(`${monthSlotCount} open slot${monthSlotCount === 1 ? '' : 's'}`);
-  }
-  if (monthObservationDayCount != null) {
-    parts.push(`${monthObservationDayCount} shadow day${monthObservationDayCount === 1 ? '' : 's'}`);
-  }
-  if (upcomingVisitCount != null) {
-    parts.push(`${upcomingVisitCount} upcoming visit${upcomingVisitCount === 1 ? '' : 's'}`);
-  }
-  return parts.join(' · ');
-}
-
 export function ScheduleScreen({ organizationId, slug }: ScheduleScreenProps) {
-  const theme = useAdminTheme();
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const supabase = useMemo(() => getSupabaseClient(), []);
@@ -107,30 +87,23 @@ export function ScheduleScreen({ organizationId, slug }: ScheduleScreenProps) {
     void loadStats().finally(() => setRefreshing(false));
   }, [loadStats]);
 
-  const headerStats = formatHeaderStats(monthSlotCount, monthObservationDayCount, upcomingVisitCount);
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={{ color: theme.textPrimary }}>
-          Schedule
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          {statsLoading ? 'Loading schedule summary…' : headerStats}
-        </ThemedText>
-        <View style={[styles.timezonePill, { backgroundColor: theme.elevated, borderColor: theme.border }]}>
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
-            {timezoneLabel}
-          </ThemedText>
-        </View>
+    <View style={[styles.container, { backgroundColor: Story.paper }]} testID="schedule-screen">
+      <View style={styles.headerShell}>
+        <Animated.View entering={FadeInDown.duration(350)}>
+          <ScheduleStoryHeader
+            activeTab={activeTab}
+            timezoneLabel={timezoneLabel}
+            monthSlotCount={monthSlotCount}
+            monthObservationDayCount={monthObservationDayCount}
+            upcomingVisitCount={upcomingVisitCount}
+            loadingTabKey={statsLoading && activeTab === 'overview' ? 'overview' : null}
+            onTabChange={setActiveTab}
+          />
+        </Animated.View>
       </View>
-
-      <DetailTabBar
-        tabs={SCHEDULE_TABS.map((entry) => ({ id: entry.id, label: entry.label }))}
-        activeTabId={activeTab}
-        onChange={(tabId) => setActiveTab(tabId as ScheduleTabId)}
-      />
 
       {statsLoading && activeTab === 'overview' ? (
         <ScheduleScreenSkeleton />
@@ -189,19 +162,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+  headerShell: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.three,
-    gap: Spacing.one,
-  },
-  timezonePill: {
-    alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
-    marginTop: Spacing.one,
   },
   panel: {
     flex: 1,

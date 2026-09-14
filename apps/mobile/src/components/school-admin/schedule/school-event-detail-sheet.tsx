@@ -1,8 +1,10 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { formatEventTimeRange } from '@/lib/school-events/calendar-time';
@@ -26,7 +28,7 @@ export function SchoolEventDetailSheet({
   onEdit,
   onDelete,
 }: SchoolEventDetailSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
 
   if (!event) return null;
@@ -34,31 +36,24 @@ export function SchoolEventDetailSheet({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Close
-            </ThemedText>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Close</Text>
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Event details
-          </ThemedText>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>Event details</Text>
           <Pressable accessibilityRole="button" onPress={onEdit}>
-            <ThemedText type="smallBold" style={{ color: theme.accent }}>
-              Edit
-            </ThemedText>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Edit</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText type="title" style={{ color: theme.textPrimary }}>
-            {event.title}
-          </ThemedText>
+          <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
+          <StoryDisplayHeading size="section">{event.title}</StoryDisplayHeading>
           <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-            <ThemedText type="small" style={{ color: colors.text }}>
+            <Text style={[styles.badgeLabel, { color: colors.text }]}>
               {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-            </ThemedText>
+            </Text>
           </View>
 
           <DetailRow label="Date" value={event.date} />
@@ -70,10 +65,10 @@ export function SchoolEventDetailSheet({
             accessibilityRole="button"
             disabled={deleting}
             onPress={onDelete}
-            style={[styles.deleteButton, { borderColor: theme.error }]}>
-            <ThemedText type="smallBold" style={{ color: theme.error }}>
+            style={[styles.deleteButton, { borderColor: theme.alert }]}>
+            <Text style={[styles.deleteLabel, { color: theme.alert }]}>
               {deleting ? 'Deleting…' : 'Delete event'}
-            </ThemedText>
+            </Text>
           </Pressable>
         </ScrollView>
       </View>
@@ -82,15 +77,11 @@ export function SchoolEventDetailSheet({
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   return (
     <View style={styles.detailRow}>
-      <ThemedText type="smallBold" style={{ color: theme.textTertiary }}>
-        {label}
-      </ThemedText>
-      <ThemedText type="small" style={{ color: theme.textPrimary }}>
-        {value}
-      </ThemedText>
+      <Text style={[styles.detailLabel, { color: theme.muted }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: theme.ink }]}>{value}</Text>
     </View>
   );
 }
@@ -107,9 +98,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  headerAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   content: {
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  kicker: {
+    marginBottom: 0,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -117,8 +121,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
   },
+  badgeLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
   detailRow: {
     gap: 4,
+  },
+  detailLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.44,
+    textTransform: 'uppercase',
+  },
+  detailValue: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
   deleteButton: {
     marginTop: Spacing.four,
@@ -126,5 +147,10 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingVertical: Spacing.three,
     alignItems: 'center',
+  },
+  deleteLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

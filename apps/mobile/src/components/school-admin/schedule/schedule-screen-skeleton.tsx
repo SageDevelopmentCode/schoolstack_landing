@@ -1,18 +1,18 @@
 import { StyleSheet, View } from 'react-native';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Story } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
 function SkeletonBlock({ width, height }: { width: number | `${number}%`; height: number }) {
-  const theme = useAdminTheme();
   return (
     <View
       style={{
         width,
         height,
         borderRadius: Radius.sm,
-        backgroundColor: theme.elevated,
+        backgroundColor: Story.line,
+        opacity: 0.65,
       }}
     />
   );
@@ -21,27 +21,42 @@ function SkeletonBlock({ width, height }: { width: number | `${number}%`; height
 export function ScheduleScreenSkeleton() {
   return (
     <View style={styles.container}>
-      <SkeletonBlock width="45%" height={28} />
-      <SkeletonBlock width="70%" height={14} />
-      <View style={styles.tabRow}>
+      <SkeletonBlock width="34%" height={12} />
+      <SkeletonBlock width="52%" height={32} />
+      <SkeletonBlock width="78%" height={14} />
+      <View style={styles.pillTrack}>
         {[1, 2, 3, 4, 5].map((item) => (
-          <SkeletonBlock key={item} width={72} height={28} />
+          <SkeletonBlock key={item} width={72} height={32} />
         ))}
       </View>
-      <SkeletonBlock width="100%" height={280} />
-      <SkeletonBlock width="100%" height={120} />
+      <View style={styles.metricGrid}>
+        <SkeletonBlock width="48%" height={96} />
+        <SkeletonBlock width="48%" height={96} />
+        <SkeletonBlock width="48%" height={96} />
+      </View>
+      <SkeletonBlock width="100%" height={220} />
+      <SkeletonBlock width="100%" height={160} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.two,
     gap: Spacing.three,
   },
-  tabRow: {
+  pillTrack: {
     flexDirection: 'row',
+    gap: Spacing.two,
+    backgroundColor: '#EAF2EB',
+    borderRadius: 12,
+    padding: 4,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: Spacing.two,
   },
 });

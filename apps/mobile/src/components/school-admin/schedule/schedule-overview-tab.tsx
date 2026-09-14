@@ -1,15 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
 import type { ScheduleTabId } from '@/components/school-admin/schedule/schedule-constants';
-import { ScheduleSummaryCards } from '@/components/school-admin/schedule/schedule-summary-cards';
-import { VisitListItem } from '@/components/school-admin/schedule/visit-list-item';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { ScheduleMetricRow } from '@/components/school-admin/schedule/schedule-metric-row';
+import { VisitStoryListItem } from '@/components/school-admin/schedule/visit-story-list-item';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
@@ -31,6 +37,31 @@ type ScheduleOverviewTabProps = {
   onRefresh: () => void;
 };
 
+function SectionHeader({
+  kicker,
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+}: {
+  kicker: string;
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionCopy}>
+        <StorySectionKicker style={styles.sectionKicker}>{kicker}</StorySectionKicker>
+        <StoryDisplayHeading size="section">{title}</StoryDisplayHeading>
+        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+      </View>
+      <StoryTextLink label={actionLabel} onPress={onAction} style={styles.sectionAction} />
+    </View>
+  );
+}
+
 export function ScheduleOverviewTab({
   organizationId,
   slug,
@@ -41,7 +72,7 @@ export function ScheduleOverviewTab({
   refreshing,
   onRefresh,
 }: ScheduleOverviewTabProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
   const { reportError } = useMobileErrorReporter(organizationId);
@@ -120,10 +151,10 @@ export function ScheduleOverviewTab({
             onRefresh();
             void loadData();
           }}
-          tintColor={theme.accent}
+          tintColor={theme.primary}
         />
       }>
-      <ScheduleSummaryCards
+      <ScheduleMetricRow
         monthSlotCount={monthSlotCount}
         monthObservationDayCount={monthObservationDayCount}
         upcomingVisitCount={loading ? null : upcomingCount}
@@ -132,198 +163,187 @@ export function ScheduleOverviewTab({
         onPressVisits={() => onTabChange('visits')}
       />
 
-      <SectionHeader
-        title="Upcoming agenda"
-        subtitle="Next tours, interviews, and shadow visits"
-        actionLabel="View all"
-        onAction={() => onTabChange('visits')}
-      />
-
-      {loading ? (
-        <LoadingCard label="Loading upcoming visits…" />
-      ) : error ? (
-        <ThemedText type="small" style={{ color: theme.error }}>
-          {error}
-        </ThemedText>
-      ) : upcomingVisits.length === 0 ? (
-        <EmptyCard
-          message="No upcoming visits yet. Families book after submitting an application."
-          actions={[
-            { label: 'Set tour slots', onPress: () => onTabChange('tours') },
-            { label: 'Open shadow days', onPress: () => onTabChange('shadow') },
-          ]}
+      <StoryCard style={styles.card}>
+        <SectionHeader
+          kicker="Upcoming agenda"
+          title="Next visits"
+          subtitle="Tours, interviews, and shadow visits on your calendar"
+          actionLabel="View all"
+          onAction={() => onTabChange('visits')}
         />
-      ) : (
-        <View style={styles.list}>
-          {visitsByDate.map(([date, dayVisits]) => (
-            <View key={date} style={styles.group}>
-              <ThemedText type="smallBold" style={{ color: theme.textTertiary }}>
-                {dayVisits[0]?.whenLabel.split('·')[0]?.trim() ?? date}
-              </ThemedText>
-              {dayVisits.map((visit) => (
-                <VisitListItem
-                  key={visit.id}
-                  visit={visit}
-                  onPress={visit.applicationId ? () => handleVisitPress(visit) : undefined}
-                />
-              ))}
+
+        {loading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={theme.primary} />
+            <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading upcoming visits…</Text>
+          </View>
+        ) : error ? (
+          <StoryErrorBanner message={error} />
+        ) : upcomingVisits.length === 0 ? (
+          <View style={styles.emptyBlock}>
+            <View style={[styles.emptyIcon, { backgroundColor: theme.primarySoft }]}>
+              <Ionicons name="calendar-outline" size={22} color={theme.primary} />
             </View>
-          ))}
-        </View>
-      )}
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              No upcoming visits yet. Families book after submitting an application.
+            </Text>
+            <View style={styles.emptyActions}>
+              <StoryButton
+                label="Set tour slots"
+                variant="soft"
+                onPress={() => onTabChange('tours')}
+                style={styles.emptyButton}
+              />
+              <StoryButton
+                label="Open shadow days"
+                variant="soft"
+                onPress={() => onTabChange('shadow')}
+                style={styles.emptyButton}
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {visitsByDate.map(([date, dayVisits], groupIndex) => (
+              <View key={date}>
+                <Text
+                  style={[
+                    styles.dateLabel,
+                    groupIndex > 0 && { borderTopColor: '#EDF1ED', borderTopWidth: StyleSheet.hairlineWidth },
+                  ]}>
+                  {dayVisits[0]?.whenLabel.split('·')[0]?.trim() ?? date}
+                </Text>
+                {dayVisits.map((visit, visitIndex) => (
+                  <View
+                    key={visit.id}
+                    style={
+                      visitIndex > 0 || groupIndex > 0
+                        ? { borderTopColor: '#E9EFEA', borderTopWidth: StyleSheet.hairlineWidth }
+                        : undefined
+                    }>
+                    <VisitStoryListItem
+                      visit={visit}
+                      onPress={visit.applicationId ? () => handleVisitPress(visit) : undefined}
+                    />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+      </StoryCard>
 
-      <SectionHeader
-        title="Upcoming school events"
-        subtitle="Events families see in the parent portal"
-        actionLabel="Manage events"
-        onAction={() => onTabChange('events')}
-      />
-
-      {eventsLoading ? (
-        <LoadingCard label="Loading school events…" />
-      ) : upcomingEvents.length === 0 ? (
-        <EmptyCard
-          message="No school events yet. Add field trips, no-school days, and community events."
-          actions={[{ label: 'Add event', onPress: () => onTabChange('events') }]}
+      <StoryCard style={styles.card}>
+        <SectionHeader
+          kicker="School events"
+          title="On the calendar"
+          subtitle="Events families see in the parent portal"
+          actionLabel="Manage"
+          onAction={() => onTabChange('events')}
         />
-      ) : (
-        <View style={styles.list}>
-          {upcomingEvents.map((event) => {
-            const colors = getEventDisplayStyle(event);
-            return (
-              <Pressable
-                key={event.id}
-                accessibilityRole="button"
-                onPress={() => onTabChange('events')}
-                style={[styles.eventRow, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                <View style={styles.eventCopy}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    {event.title}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {event.date}
-                    {!event.isAllDay && event.time ? ` · ${event.time}` : ''}
-                  </ThemedText>
-                </View>
-                <View style={[styles.eventBadge, { backgroundColor: colors.bg }]}>
-                  <ThemedText type="small" style={{ color: colors.text }}>
-                    {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-                  </ThemedText>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+
+        {eventsLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={theme.primary} />
+            <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading school events…</Text>
+          </View>
+        ) : upcomingEvents.length === 0 ? (
+          <View style={styles.emptyBlock}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              No school events yet. Add field trips, no-school days, and community events.
+            </Text>
+            <StoryButton
+              label="Add event"
+              variant="soft"
+              onPress={() => onTabChange('events')}
+              style={styles.emptyButton}
+            />
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {upcomingEvents.map((event, index) => {
+              const colors = getEventDisplayStyle(event);
+              return (
+                <Pressable
+                  key={event.id}
+                  accessibilityRole="button"
+                  onPress={() => onTabChange('events')}
+                  style={[
+                    styles.eventRow,
+                    index > 0 && { borderTopColor: '#E9EFEA', borderTopWidth: StyleSheet.hairlineWidth },
+                  ]}>
+                  <View style={styles.eventCopy}>
+                    <Text numberOfLines={1} style={[styles.eventTitle, { color: theme.ink }]}>
+                      {event.title}
+                    </Text>
+                    <Text style={[styles.eventMeta, { color: theme.muted }]}>
+                      {event.date}
+                      {!event.isAllDay && event.time ? ` · ${event.time}` : ''}
+                    </Text>
+                  </View>
+                  <View style={[styles.eventBadge, { backgroundColor: colors.bg }]}>
+                    <Text style={[styles.eventBadgeLabel, { color: colors.text }]}>
+                      {SCHOOL_EVENT_TYPE_LABELS[event.type]}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </StoryCard>
     </ScrollView>
-  );
-}
-
-function SectionHeader({
-  title,
-  subtitle,
-  actionLabel,
-  onAction,
-}: {
-  title: string;
-  subtitle: string;
-  actionLabel: string;
-  onAction: () => void;
-}) {
-  const theme = useAdminTheme();
-  return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionCopy}>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-          {title}
-        </ThemedText>
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          {subtitle}
-        </ThemedText>
-      </View>
-      <Pressable accessibilityRole="button" onPress={onAction}>
-        <ThemedText type="smallBold" style={{ color: theme.accent }}>
-          {actionLabel}
-        </ThemedText>
-      </Pressable>
-    </View>
-  );
-}
-
-function LoadingCard({ label }: { label: string }) {
-  const theme = useAdminTheme();
-  return (
-    <View style={[styles.card, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-      <ThemedText type="small" style={{ color: theme.textTertiary }}>
-        {label}
-      </ThemedText>
-    </View>
-  );
-}
-
-function EmptyCard({
-  message,
-  actions,
-}: {
-  message: string;
-  actions: Array<{ label: string; onPress: () => void }>;
-}) {
-  const theme = useAdminTheme();
-  return (
-    <View style={[styles.card, styles.emptyCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-      <View style={[styles.emptyIcon, { backgroundColor: theme.accentGlow }]}>
-        <Ionicons name="calendar-outline" size={22} color={theme.accent} />
-      </View>
-      <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-        {message}
-      </ThemedText>
-      <View style={styles.emptyActions}>
-        {actions.map((action) => (
-          <Pressable
-            key={action.label}
-            accessibilityRole="button"
-            onPress={action.onPress}
-            style={[styles.primaryButton, { backgroundColor: theme.accent }]}>
-            <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-              {action.label}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
+  },
+  card: {
+    padding: StoryCardPadding,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.three,
+    marginBottom: Spacing.three,
   },
   sectionCopy: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
   },
-  list: {
+  sectionKicker: {
+    marginBottom: 4,
+  },
+  sectionSubtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#65777F',
+    marginTop: Spacing.one,
+  },
+  sectionAction: {
+    paddingVertical: 0,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
+    paddingVertical: Spacing.two,
   },
-  group: {
-    gap: Spacing.two,
+  loadingCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    padding: Spacing.four,
-  },
-  emptyCard: {
+  emptyBlock: {
     alignItems: 'center',
     gap: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   emptyIcon: {
     width: 48,
@@ -332,32 +352,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   emptyActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    width: '100%',
     gap: Spacing.two,
   },
-  primaryButton: {
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
+  emptyButton: {
+    width: '100%',
+  },
+  list: {
+    gap: 0,
+  },
+  dateLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: '#8B9699',
     paddingVertical: Spacing.two,
   },
   eventRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    padding: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   eventCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
+  eventTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  eventMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 10,
+    lineHeight: 14,
+  },
   eventBadge: {
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.two,
+    borderRadius: 999,
+    paddingHorizontal: 8,
     paddingVertical: 4,
+  },
+  eventBadgeLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

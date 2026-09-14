@@ -1,7 +1,7 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 type ScheduleAvailabilityLegendProps = {
@@ -9,7 +9,7 @@ type ScheduleAvailabilityLegendProps = {
 };
 
 export function ScheduleAvailabilityLegend({ openLabel }: ScheduleAvailabilityLegendProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   return (
     <View style={styles.row}>
@@ -18,39 +18,33 @@ export function ScheduleAvailabilityLegend({ openLabel }: ScheduleAvailabilityLe
           style={[
             styles.swatch,
             {
-              backgroundColor: theme.bg,
-              borderColor: theme.border,
+              backgroundColor: theme.paper,
+              borderColor: theme.line,
               borderStyle: 'dashed',
             },
           ]}
         />
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          Not open
-        </ThemedText>
+        <Text style={[styles.label, { color: theme.muted }]}>Not open</Text>
       </View>
       <View style={styles.item}>
         <View
           style={[
             styles.swatch,
             {
-              backgroundColor: theme.accentLight,
-              borderColor: theme.accent,
+              backgroundColor: theme.primarySoft,
+              borderColor: theme.primary,
               borderWidth: 2,
             },
           ]}
         />
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          {openLabel}
-        </ThemedText>
+        <Text style={[styles.label, { color: theme.muted }]}>{openLabel}</Text>
       </View>
       <View style={styles.item}>
-        <View style={[styles.swatch, styles.bookedSwatch, { borderColor: theme.accent }]}>
-          <View style={[styles.swatchFill, { backgroundColor: theme.accentLight }]} />
+        <View style={[styles.swatch, styles.bookedSwatch, { borderColor: theme.primary }]}>
+          <View style={[styles.swatchFill, { backgroundColor: theme.primarySoft }]} />
           <View style={[styles.bookedStripe, { backgroundColor: theme.warning }]} />
         </View>
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          Has booking
-        </ThemedText>
+        <Text style={[styles.label, { color: theme.muted }]}>Has booking</Text>
       </View>
     </View>
   );
@@ -67,6 +61,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one,
   },
+  label: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
   swatch: {
     width: 12,
     height: 12,
@@ -79,7 +78,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   swatchFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   bookedStripe: {
     position: 'absolute',
