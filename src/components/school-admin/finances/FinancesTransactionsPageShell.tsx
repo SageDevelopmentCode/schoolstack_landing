@@ -116,7 +116,7 @@ export default function FinancesTransactionsPageShell({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [dismissedAttention, setDismissedAttention] = useState<
     Partial<Record<TransactionsAttentionVariant, boolean>>
-  >({});
+  >(() => readDismissedAttention(organizationId));
   const [trackedOrganizationId, setTrackedOrganizationId] = useState(organizationId);
   const loadedRowsLengthRef = useRef(0);
   const metaRef = useRef<TransactionsPageMeta | null>(null);
@@ -326,37 +326,24 @@ export default function FinancesTransactionsPageShell({
     return null;
   }, [summary.failedCount, summary.pendingCount]);
 
-  const attentionBanner = useMemo(() => {
-    if (attentionVariant === "failed") {
-      return {
-        variant: attentionVariant,
-        message: `Needs attention: ${summary.failedCount} payment${summary.failedCount === 1 ? "" : "s"} failed and may need follow-up.`,
-        cta: "View failed →",
-        onClick: () => applyStatusFilter("failed"),
-      };
-    }
-    if (attentionVariant === "pending") {
-      return {
-        variant: attentionVariant,
-        message: `Needs attention: ${summary.pendingCount} payment${summary.pendingCount === 1 ? " is" : "s are"} still pending.`,
-        cta: "View pending →",
-        onClick: () => applyStatusFilter("pending"),
-      };
-    }
-    return null;
-  }, [applyStatusFilter, attentionVariant, summary.failedCount, summary.pendingCount]);
-
   const showAttentionBanner =
-    attentionBanner != null && !dismissedAttention[attentionBanner.variant];
+    attentionVariant != null && !dismissedAttention[attentionVariant];
+
+  const attentionMessage =
+    attentionVariant === "failed"
+      ? `Needs attention: ${summary.failedCount} payment${summary.failedCount === 1 ? "" : "s"} failed and may need follow-up.`
+      : attentionVariant === "pending"
+        ? `Needs attention: ${summary.pendingCount} payment${summary.pendingCount === 1 ? " is" : "s are"} still pending.`
+        : null;
 
   const handleDismissAttention = useCallback(() => {
-    if (!attentionBanner) return;
-    dismissAttention(organizationId, attentionBanner.variant);
+    if (!attentionVariant) return;
+    dismissAttention(organizationId, attentionVariant);
     setDismissedAttention((current) => ({
       ...current,
-      [attentionBanner.variant]: true,
+      [attentionVariant]: true,
     }));
-  }, [attentionBanner, organizationId]);
+  }, [attentionVariant, organizationId]);
 
   const tableContent = loading ? (
     <SchoolAdminTableSkeleton
@@ -530,7 +517,7 @@ export default function FinancesTransactionsPageShell({
                 />
               </div>
 
-              {showAttentionBanner && attentionBanner ? (
+              {showAttentionBanner && attentionVariant && attentionMessage ? (
                 <div
                   className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
                   style={{
@@ -539,14 +526,14 @@ export default function FinancesTransactionsPageShell({
                     color: "#42694F",
                   }}
                 >
-                  <span className="text-xs">{attentionBanner.message}</span>
+                  <span className="text-xs">{attentionMessage}</span>
                   <div className="flex flex-wrap items-center gap-3">
                     <AdminButton
                       theme={theme}
                       variant="soft"
-                      onClick={attentionBanner.onClick}
+                      onClick={() => applyStatusFilter(attentionVariant)}
                     >
-                      {attentionBanner.cta}
+                      {attentionVariant === "failed" ? "View failed →" : "View pending →"}
                     </AdminButton>
                     <button
                       type="button"

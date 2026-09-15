@@ -65,14 +65,7 @@ export default function ParentClassroomSignupSidebar({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || !signupId) {
-      setResponses([]);
-      setResponse(initialFamilyResponse);
-      setDetailStudentOptions(studentOptions);
-      setDetailError(null);
-      setIsLoadingDetail(false);
-      return;
-    }
+    if (!open || !signupId) return;
 
     let cancelled = false;
 
