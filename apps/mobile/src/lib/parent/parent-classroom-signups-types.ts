@@ -92,7 +92,6 @@ export type ParentClassroomSignupStudentOption = {
 
 export type ParentClassroomSignupsPageBundle = {
   items: ParentClassroomSignupListItem[];
-  responsesBySignupId: Record<string, ClassroomSignupResponse[]>;
   studentOptions: ParentClassroomSignupStudentOption[];
 };
 

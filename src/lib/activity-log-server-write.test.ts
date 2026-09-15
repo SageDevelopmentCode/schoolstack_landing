@@ -64,22 +64,22 @@ describe("resolveActivityWriteClient", () => {
   it("returns the session client in browser environments", async () => {
     globalThis.window = originalWindow ?? ({} as Window & typeof globalThis);
 
-    const sessionClient = { marker: "session" } as SupabaseClient;
+    const sessionClient = { marker: "session" } as unknown as SupabaseClient;
     const writeClient = await resolveActivityWriteClient(sessionClient);
 
     assert.equal(writeClient, sessionClient);
   });
 
   it("returns the session client in test environments", async () => {
-    const sessionClient = { marker: "session" } as SupabaseClient;
+    const sessionClient = { marker: "session" } as unknown as SupabaseClient;
     const writeClient = await resolveActivityWriteClient(sessionClient);
 
     assert.equal(writeClient, sessionClient);
   });
 
   it("uses the test override when configured", async () => {
-    const sessionClient = { marker: "session" } as SupabaseClient;
-    const overrideClient = { marker: "override" } as SupabaseClient;
+    const sessionClient = { marker: "session" } as unknown as SupabaseClient;
+    const overrideClient = { marker: "override" } as unknown as SupabaseClient;
 
     setActivityWriteClientForTests(overrideClient);
     const writeClient = await resolveActivityWriteClient(sessionClient);

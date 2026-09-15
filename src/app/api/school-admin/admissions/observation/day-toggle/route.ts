@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { toggleObservationDay } from "@/lib/admissions/admissions-observation-availability";
+import { AdmissionsAvailabilityConflictError } from "@/lib/admissions/admissions-availability-errors";
 import { apiError } from "@/lib/api/route-errors";
 import {
   requireSchoolAdminUser,
@@ -61,10 +62,20 @@ export async function POST(request: Request) {
       });
     }
 
+    if (error instanceof AdmissionsAvailabilityConflictError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to toggle shadow day.",
+      error: "Failed to toggle shadow day.",
       code: "internal_error",
       cause: error,
     });

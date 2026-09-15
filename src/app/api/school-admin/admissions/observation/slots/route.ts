@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createObservationSlot } from "@/lib/admissions/admissions-observation-slots";
+import { AdmissionsAvailabilityConflictError } from "@/lib/admissions/admissions-availability-errors";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -76,10 +77,20 @@ export async function POST(request: Request) {
       });
     }
 
+    if (error instanceof AdmissionsAvailabilityConflictError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to create shadow slot.",
+      error: "Failed to create shadow slot.",
       code: "internal_error",
       cause: error,
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import AlertsStoryHeader from "@/components/school-admin/notifications/AlertsStoryHeader";
 import NotificationChannelCard from "@/components/school-admin/notifications/NotificationChannelCard";
@@ -16,6 +17,10 @@ import {
   type OrganizationNotificationSettings,
 } from "@/lib/notifications/org-notification-settings";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  tabPanelTransition,
+  tabPanelVariants,
+} from "@/lib/school-admin/admin-modal-motion";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
@@ -80,6 +85,7 @@ export default function NotificationsSettingsPage({
   schoolName,
 }: NotificationsSettingsPageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
+  const reducedMotion = useReducedMotion() ?? false;
   const [settings, setSettings] = useState<OrganizationNotificationSettings>(
     getDefaultNotificationSettings(),
   );
@@ -296,29 +302,37 @@ export default function NotificationsSettingsPage({
               onTabChange={setActiveChannel}
             />
 
-            <div
-              id={`alerts-panel-${activeChannel}`}
-              role="tabpanel"
-              aria-labelledby={`alerts-tab-${activeChannel}`}
-            >
-              <NotificationChannelCard
-                theme={theme}
-                C={C}
-                title={activeCopy.title}
-                description={activeCopy.description}
-                toggleLabel={activeCopy.toggleLabel}
-                channel={settings[activeChannel]}
-                recipients={recipients[activeChannel]}
-                saving={saving}
-                showTitle={false}
-                onToggle={(enabled) => updateChannel(activeChannel, { enabled })}
-                onToggleIncludeOrgAdmins={(include_org_admins) =>
-                  updateChannel(activeChannel, { include_org_admins })
-                }
-                onAddEmail={(email) => handleAddEmail(activeChannel, email)}
-                onRemoveEmail={(email) => handleRemoveEmail(activeChannel, email)}
-              />
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeChannel}
+                id={`alerts-panel-${activeChannel}`}
+                role="tabpanel"
+                aria-labelledby={`alerts-tab-${activeChannel}`}
+                variants={tabPanelVariants(reducedMotion)}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={tabPanelTransition(reducedMotion)}
+              >
+                <NotificationChannelCard
+                  theme={theme}
+                  C={C}
+                  title={activeCopy.title}
+                  description={activeCopy.description}
+                  toggleLabel={activeCopy.toggleLabel}
+                  channel={settings[activeChannel]}
+                  recipients={recipients[activeChannel]}
+                  saving={saving}
+                  showTitle={false}
+                  onToggle={(enabled) => updateChannel(activeChannel, { enabled })}
+                  onToggleIncludeOrgAdmins={(include_org_admins) =>
+                    updateChannel(activeChannel, { include_org_admins })
+                  }
+                  onAddEmail={(email) => handleAddEmail(activeChannel, email)}
+                  onRemoveEmail={(email) => handleRemoveEmail(activeChannel, email)}
+                />
+              </motion.div>
+            </AnimatePresence>
           </>
         ) : null}
       </div>

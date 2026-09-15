@@ -11,6 +11,7 @@ export async function fetchAdminDashboardSummary(
   );
 }
 
-export async function refreshStripeConnectStatus(): Promise<void> {
-  await fetchSchoolAdminApi('/api/stripe/connect/status');
+export async function refreshStripeConnectStatus(organizationId: string): Promise<void> {
+  const params = new URLSearchParams({ organizationId });
+  await fetchSchoolAdminApi(`/api/stripe/connect/status?${params.toString()}`);
 }

@@ -25,7 +25,6 @@ import { fetchParentClassroomSignups } from '@/lib/parent/parent-portal-api';
 
 type ParentClassroomSignupsContextValue = {
   items: ParentClassroomSignupListItem[];
-  responsesBySignupId: Record<string, ClassroomSignupResponse[]>;
   studentOptions: ParentClassroomSignupStudentOption[];
   isLoading: boolean;
   isRefreshing: boolean;
@@ -33,16 +32,8 @@ type ParentClassroomSignupsContextValue = {
   hasLoaded: boolean;
   ensureLoaded: () => void;
   refresh: () => Promise<void>;
-  applySubmittedResponse: (
-    signupId: string,
-    response: ClassroomSignupResponse,
-    allResponses: ClassroomSignupResponse[],
-  ) => void;
-  applyWithdrawnResponse: (
-    signupId: string,
-    familyId: string,
-    allResponses: ClassroomSignupResponse[],
-  ) => void;
+  applySubmittedResponse: (signupId: string, response: ClassroomSignupResponse) => void;
+  applyWithdrawnResponse: (signupId: string) => void;
 };
 
 const ParentClassroomSignupsContext = createContext<ParentClassroomSignupsContextValue | null>(
@@ -50,11 +41,21 @@ const ParentClassroomSignupsContext = createContext<ParentClassroomSignupsContex
 );
 
 const signupsCache = createParentPortalCache<ParentClassroomSignupsPageBundle>(
-  'parent_classroom_signups:',
+  'parent_classroom_signups:v2:',
 );
 
 function cacheKey(organizationId: string, slug: string): string {
   return `${organizationId}:${slug}`;
+}
+
+async function fetchParentClassroomSignupsBundle(
+  organizationId: string,
+): Promise<ParentClassroomSignupsPageBundle> {
+  const data = await fetchParentClassroomSignups(organizationId);
+  return {
+    items: data.items,
+    studentOptions: data.studentOptions,
+  };
 }
 
 async function fetchAndCacheParentClassroomSignups(
@@ -65,7 +66,7 @@ async function fetchAndCacheParentClassroomSignups(
   const key = cacheKey(organizationId, slug);
   return signupsCache.fetchAndCache(
     key,
-    () => fetchParentClassroomSignups(organizationId),
+    () => fetchParentClassroomSignupsBundle(organizationId),
     options,
   );
 }
@@ -102,9 +103,6 @@ export function ParentClassroomSignupsProvider({
   const cached = signupsCache.get(key);
 
   const [items, setItems] = useState(cached?.items ?? []);
-  const [responsesBySignupId, setResponsesBySignupId] = useState(
-    cached?.responsesBySignupId ?? {},
-  );
   const [studentOptions, setStudentOptions] = useState(cached?.studentOptions ?? []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -118,7 +116,6 @@ export function ParentClassroomSignupsProvider({
 
   const applyData = useCallback((data: ParentClassroomSignupsPageBundle | null | undefined) => {
     setItems(data?.items ?? []);
-    setResponsesBySignupId(data?.responsesBySignupId ?? {});
     setStudentOptions(data?.studentOptions ?? []);
   }, []);
 
@@ -177,12 +174,7 @@ export function ParentClassroomSignupsProvider({
   }, [load]);
 
   const applySubmittedResponse = useCallback(
-    (signupId: string, response: ClassroomSignupResponse, allResponses: ClassroomSignupResponse[]) => {
-      setResponsesBySignupId((current) => ({
-        ...current,
-        [signupId]: allResponses,
-      }));
-
+    (signupId: string, response: ClassroomSignupResponse) => {
       setItems((current) => {
         const existing = current.find((item) => item.signup.id === signupId);
         if (!existing) return current;
@@ -196,25 +188,17 @@ export function ParentClassroomSignupsProvider({
     [],
   );
 
-  const applyWithdrawnResponse = useCallback(
-    (signupId: string, familyId: string, allResponses: ClassroomSignupResponse[]) => {
-      setResponsesBySignupId((current) => ({
-        ...current,
-        [signupId]: allResponses,
-      }));
-
-      setItems((current) => {
-        const existing = current.find((item) => item.signup.id === signupId);
-        if (!existing) return current;
-        const nextItem = classifyParentClassroomSignupListItem(existing.signup, null);
-        if (!nextItem) {
-          return current.filter((item) => item.signup.id !== signupId);
-        }
-        return current.map((item) => (item.signup.id === signupId ? nextItem : item));
-      });
-    },
-    [],
-  );
+  const applyWithdrawnResponse = useCallback((signupId: string) => {
+    setItems((current) => {
+      const existing = current.find((item) => item.signup.id === signupId);
+      if (!existing) return current;
+      const nextItem = classifyParentClassroomSignupListItem(existing.signup, null);
+      if (!nextItem) {
+        return current.filter((item) => item.signup.id !== signupId);
+      }
+      return current.map((item) => (item.signup.id === signupId ? nextItem : item));
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,7 +254,6 @@ export function ParentClassroomSignupsProvider({
   const value = useMemo(
     () => ({
       items,
-      responsesBySignupId,
       studentOptions,
       isLoading,
       isRefreshing,
@@ -291,7 +274,6 @@ export function ParentClassroomSignupsProvider({
       isRefreshing,
       items,
       refresh,
-      responsesBySignupId,
       studentOptions,
     ],
   );

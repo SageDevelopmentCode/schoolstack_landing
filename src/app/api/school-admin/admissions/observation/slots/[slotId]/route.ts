@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteObservationSlot } from "@/lib/admissions/admissions-observation-slots";
+import { AdmissionsAvailabilityConflictError } from "@/lib/admissions/admissions-availability-errors";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
@@ -52,10 +53,20 @@ export async function DELETE(request: Request, context: RouteContext) {
       });
     }
 
+    if (error instanceof AdmissionsAvailabilityConflictError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to delete shadow slot.",
+      error: "Failed to delete shadow slot.",
       code: "internal_error",
       cause: error,
     });

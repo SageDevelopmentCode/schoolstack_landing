@@ -85,16 +85,16 @@ export function ParentClassroomSignupDetailScreen({
     (response: ClassroomSignupResponse, allResponses: ClassroomSignupResponse[]) => {
       setFamilyResponse(response);
       setResponses(allResponses);
-      applySubmittedResponse(signupId, response, allResponses);
+      applySubmittedResponse(signupId, response);
     },
     [applySubmittedResponse, signupId],
   );
 
   const handleWithdrawn = useCallback(
-    (familyId: string, allResponses: ClassroomSignupResponse[]) => {
+    (_familyId: string, allResponses: ClassroomSignupResponse[]) => {
       setFamilyResponse(null);
       setResponses(allResponses);
-      applyWithdrawnResponse(signupId, familyId, allResponses);
+      applyWithdrawnResponse(signupId);
     },
     [applyWithdrawnResponse, signupId],
   );

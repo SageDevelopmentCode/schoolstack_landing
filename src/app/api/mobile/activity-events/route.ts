@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
-import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import {
   AUTHENTICATED_AUTH_ACTIONS,
   recordAuthActivity,
-  userHasActiveOrgMembership,
 } from "@/lib/activity-auth-server";
 import { mergeActivityClientMetadata } from "@/lib/activity-client";
 import {
-  ACTIVITY_ACTIONS,
   type ActivitySurface,
   type AuthActivityMetadata,
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
-import {
-  requireSchoolAdminUser,
-  SchoolAdminAuthError,
-} from "@/lib/school-admin/access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { authorizeMobileActivityEvent } from "./authorize-mobile-activity";
 
 const ROUTE = "/api/mobile/activity-events";
 
@@ -87,56 +81,22 @@ export async function POST(request: Request) {
   const organizationId = body.organizationId?.trim();
   const admin = createAdminClient();
 
-  if (organizationId && action !== ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED) {
-    if (surface === "parent_portal") {
-      const allowed = await userHasEnrolledAccess(
-        supabase,
-        user.id,
-        organizationId,
-      );
+  const authResult = await authorizeMobileActivityEvent(
+    supabase,
+    user.id,
+    organizationId,
+    surface,
+    request,
+  );
 
-      if (!allowed) {
-        return apiError(ROUTE, {
-          request,
-          status: 403,
-          error: "You do not have parent portal access to this school.",
-          code: "forbidden",
-        });
-      }
-    } else {
-      try {
-        await requireSchoolAdminUser(supabase, organizationId);
-      } catch (err) {
-        if (err instanceof SchoolAdminAuthError) {
-          return apiError(ROUTE, {
-            request,
-            status: err.status,
-            error: err.message,
-            code: err.code,
-            cause: err,
-          });
-        }
-        throw err;
-      }
-    }
-  } else if (
-    organizationId &&
-    action === ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED
-  ) {
-    const hasMembership = await userHasActiveOrgMembership(
-      admin,
-      user.id,
-      organizationId,
-    );
-
-    if (!hasMembership) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to this school.",
-        code: "forbidden",
-      });
-    }
+  if (!authResult.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: authResult.status,
+      error: authResult.error,
+      code: authResult.code,
+      cause: authResult.cause,
+    });
   }
 
   const metadata = mergeActivityClientMetadata(
@@ -148,7 +108,7 @@ export async function POST(request: Request) {
     organizationId: organizationId ?? null,
     actorUserId: user.id,
     actorEmail: user.email ?? null,
-    actorType: surface === "school_admin" ? "school_admin" : "parent",
+    actorType: authResult.actorType,
     surface,
     action,
     metadata: {

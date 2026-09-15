@@ -109,7 +109,7 @@ export function SchoolDashboardScreen({
     }
 
     stripePollRef.current = setInterval(() => {
-      void refreshStripeConnectStatus()
+      void refreshStripeConnectStatus(organizationId)
         .then(() => loadSummary(true))
         .catch(() => {
           // Keep last known summary on polling errors.
@@ -122,7 +122,7 @@ export function SchoolDashboardScreen({
         stripePollRef.current = null;
       }
     };
-  }, [loadSummary, stripeStep?.status]);
+  }, [loadSummary, organizationId, stripeStep?.status]);
 
   const navigateToHref = useCallback(
     (href: string) => {

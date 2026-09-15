@@ -801,7 +801,7 @@ async function processApplicationFeePayment(
   }
 
   runAfterResponse(async () => {
-    await sendApplicationSubmittedNotifications(admin, payment.applicationId);
+    await sendApplicationSubmittedNotifications(admin, application.id);
   });
 
   const { data: formRow } = await admin

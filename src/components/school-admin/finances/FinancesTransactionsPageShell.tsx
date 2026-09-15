@@ -12,7 +12,6 @@ import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard"
 import type { FinancesTransactionsApiResponse } from "@/app/api/school-admin/finances/transactions/route";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
-  matchesPaymentRecordFilters,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -121,6 +120,8 @@ export default function FinancesTransactionsPageShell({
   const [trackedOrganizationId, setTrackedOrganizationId] = useState(organizationId);
   const loadedRowsLengthRef = useRef(0);
   const metaRef = useRef<TransactionsPageMeta | null>(null);
+  const statusFilterRef = useRef(statusFilter);
+  const typeFilterRef = useRef(typeFilter);
 
   if (organizationId !== trackedOrganizationId) {
     setTrackedOrganizationId(organizationId);
@@ -136,21 +137,35 @@ export default function FinancesTransactionsPageShell({
     metaRef.current = meta;
   }, [meta]);
 
+  useEffect(() => {
+    statusFilterRef.current = statusFilter;
+  }, [statusFilter]);
+
+  useEffect(() => {
+    typeFilterRef.current = typeFilter;
+  }, [typeFilter]);
+
   const fetchTransactionsPage = useCallback(
     async ({
       offset,
       append,
       includeMeta,
+      status,
+      paymentType,
     }: {
       offset: number;
       append: boolean;
       includeMeta?: boolean;
+      status?: "" | PaymentStatus;
+      paymentType?: "" | PaymentType;
     }) => {
       const params = new URLSearchParams({
         organizationId,
         offset: String(offset),
         limit: String(TRANSACTIONS_PAGE_DEFAULT_SIZE),
       });
+      if (status) params.set("status", status);
+      if (paymentType) params.set("paymentType", paymentType);
       if (includeMeta) params.set("includeMeta", "1");
 
       const response = await fetch(
@@ -197,7 +212,15 @@ export default function FinancesTransactionsPageShell({
   );
 
   const loadTransactions = useCallback(
-    async ({ append = false }: { append?: boolean } = {}) => {
+    async ({
+      append = false,
+      status = statusFilterRef.current,
+      paymentType = typeFilterRef.current,
+    }: {
+      append?: boolean;
+      status?: "" | PaymentStatus;
+      paymentType?: "" | PaymentType;
+    } = {}) => {
       const requestOffset = append ? loadedRowsLengthRef.current : 0;
 
       if (append) {
@@ -214,6 +237,8 @@ export default function FinancesTransactionsPageShell({
           offset: requestOffset,
           append,
           includeMeta: requestOffset === 0 && !metaRef.current,
+          status,
+          paymentType,
         });
       } catch (loadError) {
         void reportPortalOperationalError(
@@ -250,15 +275,20 @@ export default function FinancesTransactionsPageShell({
     });
   }, [loadTransactions]);
 
-  const filteredRows = useMemo(
-    () =>
-      loadedRows.filter((row) =>
-        matchesPaymentRecordFilters(row, {
-          status: statusFilter,
-          paymentType: typeFilter,
-        }),
-      ),
-    [loadedRows, statusFilter, typeFilter],
+  const applyStatusFilter = useCallback(
+    (status: "" | PaymentStatus) => {
+      setStatusFilter(status);
+      void loadTransactions({ status, paymentType: typeFilterRef.current });
+    },
+    [loadTransactions],
+  );
+
+  const applyTypeFilter = useCallback(
+    (type: "" | PaymentType) => {
+      setTypeFilter(type);
+      void loadTransactions({ status: statusFilterRef.current, paymentType: type });
+    },
+    [loadTransactions],
   );
 
   const summary = meta?.summary ?? {
@@ -302,7 +332,7 @@ export default function FinancesTransactionsPageShell({
         variant: attentionVariant,
         message: `Needs attention: ${summary.failedCount} payment${summary.failedCount === 1 ? "" : "s"} failed and may need follow-up.`,
         cta: "View failed →",
-        onClick: () => setStatusFilter("failed"),
+        onClick: () => applyStatusFilter("failed"),
       };
     }
     if (attentionVariant === "pending") {
@@ -310,11 +340,11 @@ export default function FinancesTransactionsPageShell({
         variant: attentionVariant,
         message: `Needs attention: ${summary.pendingCount} payment${summary.pendingCount === 1 ? " is" : "s are"} still pending.`,
         cta: "View pending →",
-        onClick: () => setStatusFilter("pending"),
+        onClick: () => applyStatusFilter("pending"),
       };
     }
     return null;
-  }, [attentionVariant, summary.failedCount, summary.pendingCount]);
+  }, [applyStatusFilter, attentionVariant, summary.failedCount, summary.pendingCount]);
 
   const showAttentionBanner =
     attentionBanner != null && !dismissedAttention[attentionBanner.variant];
@@ -341,7 +371,7 @@ export default function FinancesTransactionsPageShell({
     <p className="px-5 py-8 text-sm" style={{ color: theme.alert }}>
       {error}
     </p>
-  ) : filteredRows.length === 0 ? (
+  ) : loadedRows.length === 0 ? (
     <div className="flex flex-col items-center px-5 py-16 text-center">
       {metaTotalCount === 0 ? (
         <>
@@ -363,7 +393,7 @@ export default function FinancesTransactionsPageShell({
         </>
       ) : (
         <p className="text-sm" style={{ color: theme.muted }}>
-          {hasFilters && loadedRows.length > 0
+          {hasFilters && metaTotalCount > 0
             ? "No payments match the current filters."
             : "No payments recorded yet."}
         </p>
@@ -395,7 +425,7 @@ export default function FinancesTransactionsPageShell({
           </tr>
         </thead>
         <tbody>
-          {filteredRows.map((row) => (
+          {loadedRows.map((row) => (
             <tr
               key={row.id}
               onMouseEnter={() => setHoveredId(row.id)}
@@ -482,21 +512,21 @@ export default function FinancesTransactionsPageShell({
                   value={pendingValue}
                   label="Pending"
                   accent="gold"
-                  onClick={() => setStatusFilter("pending")}
+                  onClick={() => applyStatusFilter("pending")}
                 />
                 <AdminMetricCard
                   theme={theme}
                   value={String(summary.failedCount)}
                   label="Failed"
                   accent="berry"
-                  onClick={() => setStatusFilter("failed")}
+                  onClick={() => applyStatusFilter("failed")}
                 />
                 <AdminMetricCard
                   theme={theme}
                   value={refundedValue}
                   label="Refunded"
                   accent="sky"
-                  onClick={() => setStatusFilter("refunded")}
+                  onClick={() => applyStatusFilter("refunded")}
                 />
               </div>
 
@@ -549,7 +579,7 @@ export default function FinancesTransactionsPageShell({
                 count={
                   filter.value ? statusCounts[filter.value] : metaTotalCount
                 }
-                onClick={() => setStatusFilter(filter.value)}
+                onClick={() => applyStatusFilter(filter.value)}
                 theme={theme}
               />
             ))}
@@ -564,7 +594,7 @@ export default function FinancesTransactionsPageShell({
                 count={
                   filter.value ? typeCounts[filter.value] : metaTotalCount
                 }
-                onClick={() => setTypeFilter(filter.value)}
+                onClick={() => applyTypeFilter(filter.value)}
                 theme={theme}
               />
             ))}

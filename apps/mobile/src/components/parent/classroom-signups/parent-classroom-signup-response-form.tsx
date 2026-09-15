@@ -17,6 +17,7 @@ import {
   getSlotFillCount,
   isRoleFull,
   isSlotFull,
+  responsesExcludingFamily,
 } from '@/lib/parent/parent-classroom-signups-utils';
 import {
   submitParentClassroomSignupResponse,
@@ -68,11 +69,19 @@ export function ParentClassroomSignupResponseForm({
 
   const hasResponse = existingResponse != null && existingResponse.status === 'confirmed';
 
+  const responsesForCapacityCheck = responsesExcludingFamily(
+    allResponses,
+    existingResponse?.familyId,
+  );
+
   const toggleSlot = (slotId: string) => {
     if (readOnly) return;
     const slot = signup.config.slots?.find((s) => s.id === slotId);
     if (!slot) return;
-    if (isSlotFull(slotId, slot.capacity, allResponses) && !selectedSlotIds.includes(slotId)) {
+    if (
+      isSlotFull(slotId, slot.capacity, responsesForCapacityCheck) &&
+      !selectedSlotIds.includes(slotId)
+    ) {
       return;
     }
 
@@ -92,7 +101,7 @@ export function ParentClassroomSignupResponseForm({
     const role = signup.config.roles?.find((r) => r.id === roleId);
     if (!role) return;
     if (
-      isRoleFull(roleId, role.quantityNeeded, allResponses) &&
+      isRoleFull(roleId, role.quantityNeeded, responsesForCapacityCheck) &&
       !selectedRoleIds.includes(roleId)
     ) {
       return;

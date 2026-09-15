@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
@@ -16,12 +15,13 @@ import {
   listClassroomSignupResponses,
 } from "@/lib/classroom-signups/load-teacher-signups";
 import { getParentVisibleClassroomSignup } from "@/lib/classroom-signups/load-parent-signups";
+import { toParentVisibleSignupResponses } from "@/lib/classroom-signups/parent-response-visibility";
 import {
   upsertClassroomSignupResponse,
   withdrawClassroomSignupResponse,
 } from "@/lib/classroom-signups/mutations";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/classroom-signups/[signupId]";
 
@@ -31,8 +31,7 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { signupId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -102,7 +101,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     return NextResponse.json({
       signup,
-      responses,
+      responses: toParentVisibleSignupResponses(responses, familyId),
       familyResponse,
       studentOptions: studentOptions
         .filter((child) => child.studentId)
@@ -132,8 +131,7 @@ type ResponseBody = {
 
 export async function POST(request: Request, context: RouteContext) {
   const { signupId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -257,8 +255,7 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const { signupId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();

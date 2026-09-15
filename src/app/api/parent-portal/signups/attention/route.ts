@@ -3,8 +3,9 @@ import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { resolveSignupAttentionFamilyId } from "./resolve-family-id";
 
 const ROUTE = "/api/parent-portal/signups/attention";
 
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
-  let familyId = url.searchParams.get("familyId")?.trim() ?? "";
+  const requestedFamilyId = url.searchParams.get("familyId")?.trim() ?? "";
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -47,11 +48,18 @@ export async function GET(request: Request) {
       });
     }
 
-    if (!familyId) {
-      const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-      familyId = familyIds[0] ?? "";
+    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
+    const resolvedFamily = resolveSignupAttentionFamilyId(familyIds, requestedFamilyId);
+    if ("error" in resolvedFamily) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have access to this family.",
+        code: "forbidden",
+      });
     }
 
+    const familyId = resolvedFamily.familyId;
     if (!familyId) {
       return NextResponse.json({ items: [] });
     }

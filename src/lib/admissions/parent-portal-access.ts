@@ -620,6 +620,34 @@ export async function listFamilyPreApplicationVisits(
   return loadFamilyPreApplicationVisits(supabase, organizationId, familyIds);
 }
 
+export async function userHasParentAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const [guardianResult, membershipResult] = await Promise.all([
+    supabase
+      .from("guardians")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    supabase
+      .from("organization_memberships")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("status", "active")
+      .eq("role", "parent")
+      .maybeSingle(),
+  ]);
+
+  if (guardianResult.error) throw guardianResult.error;
+  if (membershipResult.error) throw membershipResult.error;
+
+  return Boolean(guardianResult.data || membershipResult.data);
+}
+
 export async function userHasEnrolledAccess(
   supabase: SupabaseClient,
   userId: string,

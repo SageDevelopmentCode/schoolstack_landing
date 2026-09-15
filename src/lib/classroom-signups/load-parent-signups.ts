@@ -8,7 +8,6 @@ import {
   type ClassroomSignupResponseRow,
   type ClassroomSignupRow,
 } from "./db-mapper";
-import { listClassroomSignupResponsesBySignupIds } from "./load-teacher-signups";
 import type {
   ClassroomSignup,
   ClassroomSignupResponse,
@@ -169,24 +168,9 @@ export async function loadParentClassroomSignupsPageBundle(
     familyId,
   );
 
-  if (items.length === 0) {
-    return {
-      items: [],
-      responsesBySignupId: {},
-      studentOptions,
-    };
-  }
-
-  const signupIds = items.map((item) => item.signup.id);
-  const responsesBySignupId = await listClassroomSignupResponsesBySignupIds(
-    admin,
-    organizationId,
-    signupIds,
-  );
-
   return {
     items,
-    responsesBySignupId,
+    responsesBySignupId: {},
     studentOptions,
   };
 }

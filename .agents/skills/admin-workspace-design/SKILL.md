@@ -195,6 +195,7 @@ useSchoolAdminStoryTheme()
     AdminChip tone="warning" when enabled but no recipients
     Toggle group in nested AdminCard (SettingToggleRow pattern from Schedule permissions)
     Recipients list in nested AdminCard; AdminButton soft "Add email" + committeeStoryInputStyle input
+  AnimatePresence + tabPanelVariants on channel tab panel (fade/slide; respects prefers-reduced-motion)
   Auto-save on toggle/email change; Loader2 + retry AdminCard for load states
 ```
 
