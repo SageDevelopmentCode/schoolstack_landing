@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
 import {
   ScheduleVisitsFilters,
   type TimingFilter,
   type VisitTypeFilter,
 } from '@/components/school-admin/schedule/schedule-visits-filters';
-import { VisitListItem } from '@/components/school-admin/schedule/visit-list-item';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { VisitStoryListItem } from '@/components/school-admin/schedule/visit-story-list-item';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   listOrgScheduledVisits,
   type AdminScheduledVisit,
 } from '@/lib/admissions/admin-scheduled-visits';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleVisitsTabProps = {
   organizationId: string;
@@ -31,9 +34,10 @@ export function ScheduleVisitsTab({
   refreshing,
   onRefresh,
 }: ScheduleVisitsTabProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [visits, setVisits] = useState<AdminScheduledVisit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,12 +52,13 @@ export function ScheduleVisitsTab({
       const rows = await listOrgScheduledVisits(supabase, organizationId);
       setVisits(rows);
     } catch (loadError) {
+      reportError('school_admin_schedule_visits_load', loadError);
       setError(loadError instanceof Error ? loadError.message : 'Failed to load visits.');
       setVisits([]);
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadVisits();
@@ -85,6 +90,9 @@ export function ScheduleVisitsTab({
     return counts;
   }, [visits]);
 
+  const hasFilters = timingFilter !== 'all' || typeFilter !== 'all';
+  const showEmptyFilteredState = filteredVisits.length === 0 && visits.length > 0 && hasFilters;
+
   return (
     <View style={styles.container}>
       <View style={styles.toolbar}>
@@ -96,18 +104,14 @@ export function ScheduleVisitsTab({
           onChangeTiming={setTimingFilter}
           onChangeType={setTypeFilter}
         />
-        {error ? (
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
-          </ThemedText>
-        ) : null}
+        {error ? <StoryErrorBanner message={error} /> : null}
       </View>
 
       <FlatList
         data={filteredVisits}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={AdminListSeparator}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing || loading}
@@ -115,21 +119,24 @@ export function ScheduleVisitsTab({
               onRefresh();
               void loadVisits();
             }}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }
         ListEmptyComponent={
           loading ? null : (
-            <ThemedText type="small" style={{ color: theme.textTertiary, textAlign: 'center' }}>
-              {timingFilter === 'all' && typeFilter === 'all'
-                ? 'No visits have been booked yet.'
-                : 'No visits match the current filters.'}
-            </ThemedText>
+            <StoryCard style={styles.emptyCard}>
+              <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                {showEmptyFilteredState
+                  ? 'No visits match the current filters.'
+                  : 'No visits have been booked yet.'}
+              </Text>
+            </StoryCard>
           )
         }
         renderItem={({ item }) => (
-          <VisitListItem
+          <VisitStoryListItem
             visit={item}
+            showFormTitle
             onPress={
               item.applicationId
                 ? () => router.push(`/school-admin/${slug}/admissions/submissions/${item.applicationId}`)
@@ -147,13 +154,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toolbar: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.three,
     gap: Spacing.two,
   },
   listContent: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.six,
     flexGrow: 1,
+  },
+  separator: {
+    height: Spacing.one,
+  },
+  emptyCard: {
+    padding: StoryCardPadding,
+  },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

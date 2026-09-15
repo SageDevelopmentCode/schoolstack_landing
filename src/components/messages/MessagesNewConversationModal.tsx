@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -11,9 +11,19 @@ import {
   modalPanel,
 } from "@/components/school-admin/committees/committee-motion";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
+import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
+import {
+  countContactsByAudience,
+  filterContactsByAudience,
+  getContactPickerEmptyMessage,
+  type MessageContactAudienceFilter,
+} from "@/lib/messages/contact-filters";
+import {
+  isAdminStoryMessagesVariant,
+  isStoryMessagesVariant,
+} from "@/lib/messages/messages-layout-variant";
 import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
-import { isStoryMessagesVariant } from "@/lib/messages/messages-layout-variant";
 
 export default function MessagesNewConversationModal({
   open,
@@ -37,6 +47,27 @@ export default function MessagesNewConversationModal({
   const panelRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion() ?? false;
   const parentStory = isStoryMessagesVariant(variant) && theme;
+  const adminStory = isAdminStoryMessagesVariant(variant);
+  const [audienceFilter, setAudienceFilter] = useState<MessageContactAudienceFilter>("all");
+
+  const handleClose = useCallback(() => {
+    setAudienceFilter("all");
+    onClose();
+  }, [onClose]);
+
+  const handleSelect = useCallback(
+    (contact: MessageContact) => {
+      setAudienceFilter("all");
+      onSelect(contact);
+    },
+    [onSelect],
+  );
+
+  const audienceCounts = useMemo(() => countContactsByAudience(contacts), [contacts]);
+  const filteredContacts = useMemo(
+    () => (adminStory ? filterContactsByAudience(contacts, audienceFilter) : contacts),
+    [adminStory, audienceFilter, contacts],
+  );
 
   function handleContactRowKeyDown(
     event: KeyboardEvent<HTMLDivElement>,
@@ -44,7 +75,7 @@ export default function MessagesNewConversationModal({
   ) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onSelect(contact);
+      handleSelect(contact);
     }
   }
 
@@ -52,13 +83,13 @@ export default function MessagesNewConversationModal({
     if (!open) return undefined;
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") handleClose();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     panelRef.current?.focus();
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  }, [handleClose, open]);
 
   const surfaceColor = parentStory ? theme.white : C.surface;
   const borderColor = parentStory ? theme.line : C.border;
@@ -81,7 +112,7 @@ export default function MessagesNewConversationModal({
             aria-label="Close"
             className="absolute inset-0 cursor-default"
             style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-            onClick={onClose}
+            onClick={handleClose}
           />
           <motion.div
             ref={panelRef}
@@ -122,7 +153,7 @@ export default function MessagesNewConversationModal({
               )}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="rounded-lg p-1.5 cursor-pointer transition hover:bg-black/[0.04]"
                 aria-label="Close"
               >
@@ -130,22 +161,61 @@ export default function MessagesNewConversationModal({
               </button>
             </div>
 
+            {adminStory && theme ? (
+              <div className="px-5 pb-3 pt-1">
+                <ParentStoryPillNav
+                  theme={theme}
+                  items={[
+                    { key: "all", label: `All · ${audienceCounts.all}` },
+                    { key: "parents", label: `Parents · ${audienceCounts.parents}` },
+                    { key: "staff", label: `Staff · ${audienceCounts.staff}` },
+                  ]}
+                  activeKey={audienceFilter}
+                  onChange={(key) => setAudienceFilter(key as MessageContactAudienceFilter)}
+                  ariaLabel="Contact audience"
+                />
+              </div>
+            ) : null}
+
             <div className="max-h-[min(32rem,85dvh)] overflow-y-auto sm:max-h-[min(24rem,60vh)]">
               {loadingContacts ? (
+                <div className="py-1">
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 px-5 py-3.5"
+                      style={{ borderBottom: `1px solid ${borderColor}` }}
+                    >
+                      <div
+                        className="h-8 w-8 shrink-0 animate-pulse rounded-full"
+                        style={{ backgroundColor: borderColor }}
+                      />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div
+                          className="h-3.5 w-[48%] animate-pulse rounded"
+                          style={{ backgroundColor: borderColor }}
+                        />
+                        <div
+                          className="h-3 w-[32%] animate-pulse rounded"
+                          style={{ backgroundColor: borderColor }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredContacts.length === 0 ? (
                 <p className="px-5 py-8 text-center text-sm" style={{ color: textSecondary }}>
-                  Loading contacts…
-                </p>
-              ) : contacts.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm" style={{ color: textSecondary }}>
-                  No contacts available to message right now.
+                  {adminStory
+                    ? getContactPickerEmptyMessage(audienceFilter, false)
+                    : "No contacts available to message right now."}
                 </p>
               ) : (
-                contacts.map((contact, index) => (
+                filteredContacts.map((contact, index) => (
                   <motion.div
                     key={contact.key}
                     role="button"
                     tabIndex={0}
-                    onClick={() => onSelect(contact)}
+                    onClick={() => handleSelect(contact)}
                     onKeyDown={(event) => handleContactRowKeyDown(event, contact)}
                     className={`flex w-full items-center gap-3 px-5 py-3.5 text-left cursor-pointer transition active:scale-[0.99] ${
                       parentStory ? "" : "hover:bg-black/[0.03]"

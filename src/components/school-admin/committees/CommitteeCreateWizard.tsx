@@ -9,6 +9,8 @@ import {
 } from "@/components/school-admin/admissions/builder-question-card";
 import TuitionWizardStepNav from "@/components/school-admin/tuition/TuitionWizardStepNav";
 import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-styles";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { CUSTOM_COMMITTEE_SLUG } from "@/lib/committees/templates";
 
@@ -127,7 +129,7 @@ function PreloadChecklist({ C }: { C: AdminThemeTokens }) {
 }
 
 export type CommitteeCreateWizardProps = {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   options: CommitteeTemplateOption[];
   initialSelectedSlug?: string;
   onClose: () => void;
@@ -143,7 +145,7 @@ export type CommitteeCreateWizardProps = {
 };
 
 export default function CommitteeCreateWizard({
-  C,
+  theme,
   options,
   initialSelectedSlug,
   onClose,
@@ -151,6 +153,7 @@ export default function CommitteeCreateWizard({
   showPreloadChecklist = false,
   showCreateWorkspaceHint = false,
 }: CommitteeCreateWizardProps) {
+  const C = parentThemeToAdminCompat(theme);
   const initialSlug = initialSelectedSlug ?? options[0]?.slug ?? "";
   const initialOption = options.find((o) => o.slug === initialSlug) ?? options[0];
 

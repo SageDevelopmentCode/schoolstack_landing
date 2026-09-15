@@ -6,102 +6,117 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { StudentListItem } from '@/components/school-admin/student-list-item';
-import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
+import { StudentClassroomAssignPicker } from '@/components/school-admin/students/student-classroom-assign-picker';
+import { StudentStoryListItem } from '@/components/school-admin/students/student-story-list-item';
+import { StudentsMetricRow } from '@/components/school-admin/students/students-metric-row';
+import { StudentsNeedsAttentionBanner } from '@/components/school-admin/students/students-needs-attention-banner';
+import { StudentsRosterFilters } from '@/components/school-admin/students/students-roster-filters';
+import { StudentsStoryHeader } from '@/components/school-admin/students/students-story-header';
 import { StudentsListSkeleton } from '@/components/school-admin/students-list-skeleton';
-import { StudentTeacherAssignPicker } from '@/components/school-admin/student-teacher-assign-picker';
-import { ThemedText } from '@/components/themed-text';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useSchoolAdminStudents } from '@/contexts/school-admin-students-context';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
-  setStudentTeachers,
+  deriveStudentRosterMetrics,
+  filterStudentsByRosterFilter,
+  matchesStudentSearch,
+  type StudentRosterFilter,
+} from '@/lib/school-admin/admin-student-roster-metrics';
+import {
   formatEnrolledStudentName,
-  formatStudentGrade,
   type AdminEnrolledStudentSummary,
 } from '@/lib/school-admin/enrolled-students';
-import { getSupabaseClient } from '@/lib/supabase';
+import type { ClassroomSummary } from '@/lib/school-admin/classrooms';
+import { fetchClassrooms, setStudentClassroomsApi } from '@/lib/school-admin-api';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Radius, Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StudentsListScreenProps = {
   organizationId: string;
   slug: string;
 };
 
-function matchesSearch(student: AdminEnrolledStudentSummary, query: string): boolean {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-
-  const haystack = [
-    formatEnrolledStudentName(student),
-    student.grade ?? '',
-    formatStudentGrade(student.grade) ?? '',
-    student.familyName ?? '',
-    student.assignedTeacherNames ?? '',
-    student.primaryContactName ?? '',
-    student.primaryContactEmail ?? '',
-    student.programNames.join(' '),
-  ]
-    .join(' ')
-    .toLowerCase();
-
-  return haystack.includes(normalized);
-}
-
-function ListSeparator() {
-  return <AdminListSeparator />;
-}
-
 export function StudentsListScreen({ organizationId, slug }: StudentsListScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
-  const supabase = useMemo(() => getSupabaseClient(), []);
-  const {
-    students,
-    staffMembers,
-    isLoading,
-    isRefreshing,
-    error,
-    staffError,
-    refresh,
-  } = useSchoolAdminStudents();
+  const { reportError } = useMobileErrorReporter(organizationId);
+  const { students, isLoading, isRefreshing, error, staffError, refresh } =
+    useSchoolAdminStudents();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [assigningStudentId, setAssigningStudentId] = useState<string | null>(null);
+  const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>('all');
   const [pickerStudent, setPickerStudent] = useState<AdminEnrolledStudentSummary | null>(null);
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
+  const [classroomsLoading, setClassroomsLoading] = useState(false);
+  const [classroomsLoaded, setClassroomsLoaded] = useState(false);
+  const [assigningStudentId, setAssigningStudentId] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
 
-  const activeStaff = useMemo(
-    () => staffMembers.filter((member) => member.employmentStatus === 'active'),
-    [staffMembers],
-  );
+  const metrics = useMemo(() => deriveStudentRosterMetrics(students), [students]);
 
-  const filteredStudents = useMemo(
-    () => students.filter((student) => matchesSearch(student, searchQuery)),
-    [searchQuery, students],
-  );
+  const programCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const student of students) {
+      for (const programName of student.programNames) {
+        counts[programName] = (counts[programName] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [students]);
+
+  const filteredStudents = useMemo(() => {
+    const byFilter = filterStudentsByRosterFilter(students, rosterFilter);
+    return byFilter.filter((student) => matchesStudentSearch(student, searchQuery));
+  }, [rosterFilter, searchQuery, students]);
+
+  const ensureClassroomsLoaded = useCallback(async () => {
+    if (classroomsLoaded || classroomsLoading) return;
+    setClassroomsLoading(true);
+    try {
+      const payload = await fetchClassrooms(slug);
+      setClassrooms(payload.classrooms);
+      setClassroomsLoaded(true);
+    } catch (loadError) {
+      reportError('school_admin_classrooms_load', loadError);
+      setAssignError('Failed to load classrooms.');
+    } finally {
+      setClassroomsLoading(false);
+    }
+  }, [classroomsLoaded, classroomsLoading, reportError, slug]);
 
   const handlePressStudent = (student: AdminEnrolledStudentSummary) => {
     router.push(`/school-admin/${slug}/students/${student.id}`);
   };
 
-  const handleSetTeachers = async (studentId: string, staffMemberIds: string[]) => {
+  const handlePressClassroom = (student: AdminEnrolledStudentSummary) => {
+    void ensureClassroomsLoaded();
+    setPickerStudent(student);
+  };
+
+  const handleAssignClassrooms = async (studentId: string, classroomIds: string[]) => {
     setAssigningStudentId(studentId);
     setAssignError(null);
     try {
-      await setStudentTeachers(supabase, {
-        organizationId,
-        studentId,
-        staffMemberIds,
-      });
+      await setStudentClassroomsApi(slug, studentId, classroomIds);
       await refresh({ silent: true });
     } catch (assignError) {
+      reportError('school_admin_student_classrooms_assign', assignError, {
+        entityType: 'student',
+        entityId: studentId,
+        metadata: { classroomIds },
+      });
       setAssignError(
-        assignError instanceof Error ? assignError.message : 'Failed to assign teachers.',
+        assignError instanceof Error ? assignError.message : 'Failed to assign classrooms.',
       );
+      throw assignError;
     } finally {
       setAssigningStudentId(null);
     }
@@ -111,65 +126,74 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
     void refresh({ silent: true });
   };
 
-  const listHeader = useMemo(
-    () => (
-      <View style={styles.listHeader}>
-        <View
-          style={[
-            styles.searchField,
-            {
-              backgroundColor: theme.input,
-              borderColor: theme.inputBorder,
-            },
-          ]}>
-          <Ionicons name="search" size={18} color={theme.textTertiary} />
-          <TextInput
-            accessibilityLabel="Search students"
-            placeholder="Search students"
-            placeholderTextColor={theme.textTertiary}
-            style={[styles.searchInput, { color: theme.textPrimary }]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      <Animated.View entering={FadeInDown.duration(350)}>
+        <StudentsStoryHeader totalCount={metrics.totalCount} />
+      </Animated.View>
+
+      {students.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+          <StudentsMetricRow
+            totalCount={metrics.totalCount}
+            unassignedCount={metrics.unassignedCount}
+            programCount={metrics.programCount}
+            newEnrollmentCount={metrics.newEnrollmentCount}
           />
-        </View>
+        </Animated.View>
+      ) : null}
 
-        {error ? (
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
-          </ThemedText>
-        ) : null}
+      {metrics.unassignedCount > 0 ? (
+        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+          <StudentsNeedsAttentionBanner
+            unassignedCount={metrics.unassignedCount}
+            onShowUnassigned={() => setRosterFilter('unassigned')}
+          />
+        </Animated.View>
+      ) : null}
 
-        {assignError ? (
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {assignError}
-          </ThemedText>
-        ) : null}
+      {students.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(120).duration(350)}>
+          <StudentsRosterFilters
+            activeFilter={rosterFilter}
+            totalCount={metrics.totalCount}
+            unassignedCount={metrics.unassignedCount}
+            programOptions={metrics.programOptions}
+            programCounts={programCounts}
+            onChange={setRosterFilter}
+          />
+        </Animated.View>
+      ) : null}
 
-        {staffError ? (
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {staffError}
-          </ThemedText>
-        ) : null}
+      <View
+        style={[
+          styles.searchField,
+          {
+            backgroundColor: theme.white,
+            borderColor: Story.line,
+          },
+        ]}>
+        <Ionicons name="search" size={18} color={theme.muted} />
+        <TextInput
+          accessibilityLabel="Search students"
+          placeholder="Search students"
+          placeholderTextColor={theme.muted}
+          style={[styles.searchInput, { color: theme.ink }]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
-    ),
-    [assignError, error, searchQuery, staffError, theme],
+
+      {error ? <StoryErrorBanner message={error} /> : null}
+      {assignError ? <StoryErrorBanner message={assignError} /> : null}
+      {staffError ? (
+        <Text style={[styles.staffError, { color: theme.muted }]}>{staffError}</Text>
+      ) : null}
+    </View>
   );
 
   if (isLoading && students.length === 0) {
     return <StudentsListSkeleton />;
-  }
-
-  if (error && students.length === 0) {
-    return (
-      <View style={styles.container}>
-        {listHeader}
-        <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {error}
-          </ThemedText>
-        </View>
-      </View>
-    );
   }
 
   return (
@@ -178,53 +202,62 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
         data={filteredStudents}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={ListSeparator}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={listHeader}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
               {students.length === 0
                 ? 'No enrolled students yet.'
-                : 'No students match your search.'}
-            </ThemedText>
+                : rosterFilter === 'unassigned'
+                  ? 'No unassigned students right now.'
+                  : 'No students match your search.'}
+            </Text>
             {students.length === 0 ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.replace(`/school-admin/${slug}/admissions/submissions`)}
-                style={({ pressed }) => [styles.emptyLink, pressed && { opacity: 0.7 }]}>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  Go to Admissions
-                </ThemedText>
+                style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+                <Text style={[styles.emptyLink, { color: theme.primary }]}>Go to Admissions →</Text>
               </Pressable>
             ) : null}
           </View>
         }
-        renderItem={({ item }) => (
-          <StudentListItem
-            student={item}
-            onPress={handlePressStudent}
-            onPressTeacher={setPickerStudent}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 180)).duration(220)}>
+            <StudentStoryListItem
+              student={item}
+              onPress={handlePressStudent}
+              onPressClassroom={handlePressClassroom}
+            />
+          </Animated.View>
         )}
       />
 
-      <StudentTeacherAssignPicker
+      <StudentClassroomAssignPicker
         visible={pickerStudent !== null}
         studentName={pickerStudent ? formatEnrolledStudentName(pickerStudent) : ''}
-        assignedTeacherIds={pickerStudent?.assignedTeachers.map((t) => t.id) ?? []}
-        activeStaff={activeStaff}
+        studentProgramNames={pickerStudent?.programNames ?? []}
+        studentProgramIds={pickerStudent?.programIds ?? []}
+        classroomIds={pickerStudent?.classroomIds ?? []}
+        classrooms={classrooms}
+        loading={classroomsLoading || (pickerStudent !== null && !classroomsLoaded)}
         saving={pickerStudent ? assigningStudentId === pickerStudent.id : false}
         onClose={() => setPickerStudent(null)}
-        onSave={async (staffMemberIds) => {
+        onAddClassroom={() => {
+          setPickerStudent(null);
+          router.push(`/school-admin/${slug}/more/classrooms`);
+        }}
+        onSave={async (classroomIds) => {
           if (!pickerStudent) return;
-          await handleSetTeachers(pickerStudent.id, staffMemberIds);
+          await handleAssignClassrooms(pickerStudent.id, classroomIds);
         }}
       />
     </View>
@@ -234,44 +267,54 @@ export function StudentsListScreen({ organizationId, slug }: StudentsListScreenP
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Story.paper,
   },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.four,
-  },
-  listHeader: {
+  headerBlock: {
+    gap: Spacing.four,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
-    gap: Spacing.two,
   },
   searchField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
     borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
     paddingVertical: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.body,
+    fontFamily: StoryFonts.body,
     padding: 0,
   },
+  staffError: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   listContent: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingBottom: Spacing.five,
     flexGrow: 1,
+  },
+  separator: {
+    height: Spacing.two,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.five,
     gap: Spacing.two,
   },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   emptyLink: {
-    marginTop: Spacing.one,
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
   },
 });

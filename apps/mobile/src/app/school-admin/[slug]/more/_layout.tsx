@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Story } from '@/constants/story-theme';
 import { detailStackAnimation } from '@/lib/motion/portal-motion';
 
 export default function MoreLayout() {
@@ -11,7 +12,7 @@ export default function MoreLayout() {
       screenOptions={{
         headerShown: false,
         animation: detailStackAnimation(),
-        contentStyle: { backgroundColor: theme.bg },
+        contentStyle: { backgroundColor: Story.paper },
         headerStyle: { backgroundColor: theme.surface },
         headerTintColor: theme.accent,
         headerTitleStyle: { color: theme.textPrimary },

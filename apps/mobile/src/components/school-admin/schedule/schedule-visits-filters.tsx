@@ -1,8 +1,7 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { AdmissionsFilterPill } from '@/components/school-admin/admissions/admissions-filter-pill';
+import { Spacing } from '@/constants/theme';
 import type { ScheduledVisitTiming } from '@/lib/admissions/admissions-availability';
 import type { PostSubmitActionType } from '@/lib/admissions/post-submit-templates';
 
@@ -32,38 +31,6 @@ const TYPE_FILTERS: Array<{ value: VisitTypeFilter; label: string }> = [
   { value: 'schedule_observation_day', label: 'Shadow' },
 ];
 
-function FilterChip({
-  active,
-  label,
-  count,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  count?: number;
-  onPress: () => void;
-}) {
-  const theme = useAdminTheme();
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={[
-        styles.chip,
-        {
-          backgroundColor: active ? theme.accentLight : theme.surface,
-          borderColor: active ? theme.accent : theme.border,
-        },
-      ]}>
-      <ThemedText type="small" style={{ color: active ? theme.accent : theme.textSecondary }}>
-        {label}
-        {count != null ? ` (${count})` : ''}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 export function ScheduleVisitsFilters({
   activeTiming,
   activeType,
@@ -76,7 +43,7 @@ export function ScheduleVisitsFilters({
     <View style={styles.container}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {TIMING_FILTERS.map((filter) => (
-          <FilterChip
+          <AdmissionsFilterPill
             key={filter.value}
             active={activeTiming === filter.value}
             label={filter.label}
@@ -87,7 +54,7 @@ export function ScheduleVisitsFilters({
       </ScrollView>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {TYPE_FILTERS.map((filter) => (
-          <FilterChip
+          <AdmissionsFilterPill
             key={filter.value}
             active={activeType === filter.value}
             label={filter.label}
@@ -107,11 +74,5 @@ const styles = StyleSheet.create({
   row: {
     gap: Spacing.two,
     paddingRight: Spacing.two,
-  },
-  chip: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
   },
 });

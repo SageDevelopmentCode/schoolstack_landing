@@ -1,11 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Loader2, Mail, Pencil, Plus, Trash2 } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import ParentNotificationSettingsStoryHeader from "@/components/school-parent/notifications/ParentNotificationSettingsStoryHeader";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import ParentButton from "@/components/school-parent/ui/ParentButton";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
+import ParentChip from "@/components/school-parent/ui/ParentChip";
+import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { MAX_FAMILY_NOTIFICATION_EMAILS, getDisplayNotificationEmails } from "@/lib/notifications/family-notification-email-constants";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import {
+  MAX_FAMILY_NOTIFICATION_EMAILS,
+  getDisplayNotificationEmails,
+} from "@/lib/notifications/family-notification-email-constants";
 import { parentToast } from "@/lib/school-parent/parent-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
@@ -56,13 +64,21 @@ function resetEmailEditorState(
   };
 }
 
+function inputStyle(theme: ParentThemeTokens): CSSProperties {
+  return {
+    borderColor: theme.line,
+    backgroundColor: theme.white,
+    color: theme.ink,
+  };
+}
+
 export default function ParentNotificationSettingsPage({
   organizationId,
-  branding,
+  branding: _branding,
   readOnly = false,
   initialSettings,
 }: ParentNotificationSettingsPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme } = useParentTheme();
   const hasInitialData = initialSettings !== undefined;
   const [loading, setLoading] = useState(!hasInitialData);
   const [saving, setSaving] = useState(false);
@@ -263,196 +279,209 @@ export default function ParentNotificationSettingsPage({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: C.accent }} />
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: theme.muted }} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6" data-testid="parent-notification-settings">
-      <div className="mb-6">
-        <h1 className="text-xl font-semibold" style={{ color: C.textPrimary }}>
-          Notification settings
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-          Choose where family emails go for applications, billing, messages, and
-          other parent portal updates. This can differ from the email you use to
-          sign in. School admin alerts are not affected.
-        </p>
-      </div>
+    <div
+      className="mx-auto flex max-w-[1250px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-8 md:px-9"
+      data-testid="parent-notification-settings"
+    >
+      <ParentNotificationSettingsStoryHeader theme={theme} />
 
-      <InfoCard C={C} title="Login email">
-        <p className="text-sm" style={{ color: C.textPrimary }}>
-          {settings?.loginEmail ?? "—"}
-        </p>
-        <p className="mt-1 text-xs" style={{ color: C.textSecondary }}>
-          Used for sign-in codes only.
-        </p>
-      </InfoCard>
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+          <SettingsCard theme={theme} title="Login email">
+            <p className="text-sm" style={{ color: theme.ink }}>
+              {settings?.loginEmail ?? "—"}
+            </p>
+            <p className="mt-1 text-xs" style={{ color: theme.muted }}>
+              Used for sign-in codes only.
+            </p>
+          </SettingsCard>
 
-      <InfoCard C={C} title="Currently sending to" className="mt-4">
-        {settings?.effectiveEmails.length ? (
-          <ul className="space-y-2">
-            {settings.effectiveEmails.map((email, index) => (
-              <li
-                key={email}
-                className="flex items-start gap-2 text-sm"
-                style={{ color: C.textPrimary }}
-              >
-                <Mail className="mt-0.5 h-4 w-4 shrink-0" style={{ color: C.accent }} />
-                <span>
-                  {email}
-                  {settings.sources[index] ? (
-                    <span
-                      className="mt-0.5 block text-xs"
-                      style={{ color: C.textSecondary }}
-                    >
-                      {sourceLabel(settings.sources[index])}
-                    </span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm" style={{ color: C.textSecondary }}>
-            No email address on file yet.
-          </p>
-        )}
-      </InfoCard>
-
-      <InfoCard C={C} title="Notification emails" className="mt-4">
-        <p className="mb-4 text-sm" style={{ color: C.textSecondary }}>
-          Add up to {MAX_FAMILY_NOTIFICATION_EMAILS} addresses for all family
-          notifications. Your login email is included by default — remove it here
-          if you prefer notifications elsewhere.
-        </p>
-
-        <div className="space-y-3">
-          {readOnly ? (
-            emails.length > 0 ? (
-              emails.map((email) => (
-                <NotificationEmailRow
-                  key={email}
-                  C={C}
-                  email={email}
-                  readOnly
-                />
-              ))
+          <SettingsCard theme={theme} title="Currently sending to">
+            {settings?.effectiveEmails.length ? (
+              <ul className="space-y-3">
+                {settings.effectiveEmails.map((email, index) => (
+                  <li key={`${email}-${index}`} className="flex items-start gap-2">
+                    <Mail
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      style={{ color: theme.primary }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm" style={{ color: theme.ink }}>
+                        {email}
+                      </p>
+                      {settings.sources[index] ? (
+                        <ParentChip theme={theme} tone="info" className="mt-1.5">
+                          {sourceLabel(settings.sources[index])}
+                        </ParentChip>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <p className="text-sm" style={{ color: C.textSecondary }}>
-                No notification emails configured.
+              <p className="text-sm" style={{ color: theme.muted }}>
+                No email address on file yet.
               </p>
-            )
-          ) : (
-            <>
-              {emails.map((email, index) =>
-                editingIndex === index ? (
-                  <NotificationEmailInput
-                    key={`edit-${index}`}
-                    C={C}
-                    value={email}
-                    disabled={saving}
-                    testId={`notification-email-input-${index}`}
-                    onChange={(value) => {
-                      const next = [...emails];
-                      next[index] = value;
-                      setEmails(next);
-                    }}
-                  />
-                ) : (
-                  <NotificationEmailRow
-                    key={`${email}-${index}`}
-                    C={C}
-                    email={email}
-                    onEdit={() => handleEdit(index)}
-                    onDelete={() => handleDelete(index)}
-                    disabled={saving}
-                  />
-                ),
-              )}
-
-              {showFirstEmailInput ? (
-                <NotificationEmailInput
-                  C={C}
-                  value={newEmailDraft}
-                  disabled={saving}
-                  testId="notification-email-input-0"
-                  onChange={setNewEmailDraft}
-                />
-              ) : null}
-
-              {addingNew ? (
-                <NotificationEmailInput
-                  C={C}
-                  value={newEmailDraft}
-                  disabled={saving}
-                  testId={`notification-email-input-${emails.length}`}
-                  onChange={setNewEmailDraft}
-                />
-              ) : null}
-            </>
-          )}
+            )}
+          </SettingsCard>
         </div>
 
-        {canAddEmail ? (
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleAdd}
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium disabled:opacity-50"
-            style={{ color: C.accent }}
-            data-testid="add-notification-email"
-          >
-            <Plus className="h-4 w-4" />
-            Add another email
-          </button>
-        ) : null}
+        <SettingsCard theme={theme} title="Notification emails">
+          <p className="mb-4 text-sm" style={{ color: theme.muted }}>
+            Add up to {MAX_FAMILY_NOTIFICATION_EMAILS} addresses for all family
+            notifications. Your login email is included by default — remove it here
+            if you prefer notifications elsewhere.
+          </p>
 
-        {!readOnly ? (
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="space-y-3">
+            {readOnly ? (
+              emails.length > 0 ? (
+                emails.map((email) => (
+                  <NotificationEmailRow
+                    key={email}
+                    theme={theme}
+                    email={email}
+                    readOnly
+                  />
+                ))
+              ) : (
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  No notification emails configured.
+                </p>
+              )
+            ) : (
+              <>
+                {emails.map((email, index) =>
+                  editingIndex === index ? (
+                    <NotificationEmailInput
+                      key={`edit-${index}`}
+                      theme={theme}
+                      value={email}
+                      disabled={saving}
+                      testId={`notification-email-input-${index}`}
+                      onChange={(value) => {
+                        const next = [...emails];
+                        next[index] = value;
+                        setEmails(next);
+                      }}
+                    />
+                  ) : (
+                    <NotificationEmailRow
+                      key={`${email}-${index}`}
+                      theme={theme}
+                      email={email}
+                      onEdit={() => handleEdit(index)}
+                      onDelete={() => handleDelete(index)}
+                      disabled={saving}
+                    />
+                  ),
+                )}
+
+                {showFirstEmailInput ? (
+                  <NotificationEmailInput
+                    theme={theme}
+                    value={newEmailDraft}
+                    disabled={saving}
+                    testId="notification-email-input-0"
+                    onChange={setNewEmailDraft}
+                  />
+                ) : null}
+
+                {addingNew ? (
+                  <NotificationEmailInput
+                    theme={theme}
+                    value={newEmailDraft}
+                    disabled={saving}
+                    testId={`notification-email-input-${emails.length}`}
+                    onChange={setNewEmailDraft}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+
+          {canAddEmail ? (
             <button
               type="button"
               disabled={saving}
-              onClick={() => void handleSave()}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: C.accent }}
-              data-testid="save-notification-settings"
+              onClick={handleAdd}
+              className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ color: theme.primary }}
+              data-testid="add-notification-email"
             >
-              {saving ? "Saving…" : "Save"}
+              <Plus className="h-3.5 w-3.5" />
+              Add another email
             </button>
-            {settings?.configuredEmails.length ? (
-              <button
-                type="button"
+          ) : null}
+
+          {!readOnly ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <ParentButton
+                theme={theme}
                 disabled={saving}
-                onClick={() => void handleClear()}
-                className="rounded-lg border px-4 py-2 text-sm font-medium disabled:opacity-50"
-                style={{
-                  borderColor: C.border,
-                  color: C.textSecondary,
-                  backgroundColor: C.surface,
-                }}
-                data-testid="clear-notification-settings"
+                onClick={() => void handleSave()}
+                data-testid="save-notification-settings"
               >
-                Use defaults
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </InfoCard>
+                {saving ? "Saving…" : "Save"}
+              </ParentButton>
+              {settings?.configuredEmails.length ? (
+                <ParentButton
+                  theme={theme}
+                  variant="outline"
+                  disabled={saving}
+                  onClick={() => void handleClear()}
+                  data-testid="clear-notification-settings"
+                >
+                  Use defaults
+                </ParentButton>
+              ) : null}
+            </div>
+          ) : null}
+        </SettingsCard>
+      </div>
     </div>
   );
 }
 
+function SettingsCard({
+  theme,
+  title,
+  children,
+}: {
+  theme: ParentThemeTokens;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <ParentCard theme={theme} className="!p-5">
+      <ParentDisplayHeading
+        theme={theme}
+        as="h2"
+        size="section"
+        className="!mb-3 !text-lg !tracking-[-0.02em]"
+      >
+        {title}
+      </ParentDisplayHeading>
+      {children}
+    </ParentCard>
+  );
+}
+
 function NotificationEmailRow({
-  C,
+  theme,
   email,
   readOnly = false,
   onEdit,
   onDelete,
   disabled = false,
 }: {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   email: string;
   readOnly?: boolean;
   onEdit?: () => void;
@@ -463,12 +492,12 @@ function NotificationEmailRow({
     <div
       className="flex items-center gap-2 rounded-lg border px-3 py-2"
       style={{
-        borderColor: C.border,
-        backgroundColor: C.surface,
+        borderColor: theme.line,
+        backgroundColor: theme.white,
       }}
     >
-      <Mail className="h-4 w-4 shrink-0" style={{ color: C.accent }} />
-      <span className="min-w-0 flex-1 truncate text-sm" style={{ color: C.textPrimary }}>
+      <Mail className="h-4 w-4 shrink-0" style={{ color: theme.primary }} />
+      <span className="min-w-0 flex-1 truncate text-sm" style={{ color: theme.ink }}>
         {email}
       </span>
       {!readOnly ? (
@@ -480,7 +509,7 @@ function NotificationEmailRow({
             className="rounded-lg p-2 transition-colors hover:bg-black/5 disabled:opacity-50"
             aria-label="Edit email"
           >
-            <Pencil className="h-4 w-4" style={{ color: C.textSecondary }} />
+            <Pencil className="h-4 w-4" style={{ color: theme.muted }} />
           </button>
           <button
             type="button"
@@ -489,7 +518,7 @@ function NotificationEmailRow({
             className="rounded-lg p-2 transition-colors hover:bg-black/5 disabled:opacity-50"
             aria-label="Delete email"
           >
-            <Trash2 className="h-4 w-4" style={{ color: C.textSecondary }} />
+            <Trash2 className="h-4 w-4" style={{ color: theme.muted }} />
           </button>
         </div>
       ) : null}
@@ -498,13 +527,13 @@ function NotificationEmailRow({
 }
 
 function NotificationEmailInput({
-  C,
+  theme,
   value,
   disabled,
   testId,
   onChange,
 }: {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   value: string;
   disabled: boolean;
   testId: string;
@@ -517,37 +546,9 @@ function NotificationEmailInput({
       disabled={disabled}
       onChange={(event) => onChange(event.target.value)}
       placeholder="name@example.com"
-      className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 disabled:opacity-60"
-      style={{
-        borderColor: C.border,
-        color: C.textPrimary,
-        backgroundColor: C.surface,
-      }}
+      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 disabled:opacity-60"
+      style={inputStyle(theme)}
       data-testid={testId}
     />
-  );
-}
-
-function InfoCard({
-  C,
-  title,
-  children,
-  className = "",
-}: {
-  C: AdminThemeTokens;
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={`rounded-xl border p-4 ${className}`}
-      style={{ borderColor: C.border, backgroundColor: C.surface }}
-    >
-      <h2 className="mb-2 text-sm font-semibold" style={{ color: C.textPrimary }}>
-        {title}
-      </h2>
-      {children}
-    </section>
   );
 }

@@ -1,0 +1,10 @@
+appId: com.mudkitchen.schoolstack.mobile
+---
+- runFlow: school-admin-logged-in.yaml
+- tapOn: 'More'
+- tapOn: 'Classrooms'
+- extendedWaitUntil:
+    visible: 'Classrooms'
+    timeout: 30000
+- assertVisible: 'My School workspace'
+- assertVisible: 'Search classrooms'

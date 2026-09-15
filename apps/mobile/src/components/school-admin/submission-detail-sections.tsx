@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { DetailProgressBar } from '@/components/school-admin/detail-progress-bar';
-import { DetailSection } from '@/components/school-admin/detail-section';
 import { AdmissionHistoryTimeline } from '@/components/school-admin/admission-history-timeline';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryProgressBar } from '@/components/story/story-progress-bar';
+import { StoryStepTimeline } from '@/components/story/story-step-timeline';
 import {
   DetailRowListSkeleton,
   DetailTimelineSectionSkeleton,
@@ -12,9 +15,8 @@ import {
   DetailStepTimeline,
   type DetailStepTimelineItem,
 } from '@/components/school-admin/detail-step-timeline';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
 import type { AdminPostSubmitStep } from '@/lib/admissions/admin-post-submit-steps';
 import type { ApplicationDetail } from '@/lib/admissions/application-detail';
 import {
@@ -22,11 +24,7 @@ import {
   computeApplicationFormStepStatuses,
   summarizeApplicationFormProgress,
 } from '@/lib/admissions/application-form-steps';
-import {
-  adminApplicationStatusLabel,
-  applicationStatusBadgeStyle,
-  FEE_STATUS_LABELS,
-} from '@/lib/admissions/application-status-ui';
+import { FEE_STATUS_LABELS } from '@/lib/admissions/application-status-ui';
 import { getApplicationDecisionActions } from '@/lib/admissions/application-status-transitions';
 import type { AdminApplicationSubmission } from '@/lib/admissions/application-submissions';
 import { formatShortDate } from '@/lib/admissions/application-submissions';
@@ -34,6 +32,7 @@ import {
   buildEnrollmentTimelineMeta,
   checklistItemTypeLabel,
   loadEnrollmentChecklistForApplication,
+  resolveChecklistProgress,
   type LoadedEnrollmentChecklist,
 } from '@/lib/admissions/enrollment-checklist';
 import type { FamilyGuardianRecord } from '@/lib/admissions/family-guardians';
@@ -59,34 +58,12 @@ function stepKindLabel(kind: 'section' | 'acknowledgments' | 'fee'): string {
   }
 }
 
-export function SubmissionSummaryStrip({
-  submission,
-}: {
-  submission: AdminApplicationSubmission;
-}) {
-  const theme = useAdminTheme();
-
-  return (
-    <View style={styles.summaryStrip}>
-      <View style={styles.summaryHeader}>
-        <ThemedText type="subtitle" style={{ color: theme.textPrimary, flex: 1 }}>
-          {submission.studentLabel ?? submission.guardianName ?? 'Application'}
-        </ThemedText>
-        <StatusBadge
-          label={adminApplicationStatusLabel(submission.status)}
-          colors={applicationStatusBadgeStyle(submission.status, theme)}
-        />
-      </View>
-    </View>
-  );
-}
-
 export function SubmissionOverviewDetailsSection({
   submission,
 }: {
   submission: AdminApplicationSubmission;
 }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const rows = [
     submission.formTitle ? { label: 'Application', value: submission.formTitle } : null,
     submission.programName ? { label: 'School year', value: submission.programName } : null,
@@ -99,18 +76,14 @@ export function SubmissionOverviewDetailsSection({
   if (rows.length === 0) return null;
 
   return (
-    <DetailSection title="Application details" description="Form and contact information.">
+    <StoryDetailSection title="Application details" description="Form and contact information.">
       {rows.map((row) => (
         <View key={row.label} style={styles.detailsRow}>
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
-            {row.label}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {row.value}
-          </ThemedText>
+          <Text style={[styles.detailLabel, { color: theme.muted }]}>{row.label}</Text>
+          <Text style={[styles.detailValue, { color: theme.ink }]}>{row.value}</Text>
         </View>
       ))}
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -123,47 +96,39 @@ export function SubmissionDecisionSection({
   onAction: (status: string) => void;
   loadingStatus: string | null;
 }) {
-  const theme = useAdminTheme();
   const actions = getApplicationDecisionActions(currentStatus);
   if (actions.length === 0) return null;
 
   return (
-    <DetailSection title="Decision" description="Update this application's review status.">
+    <StoryDetailSection title="Decision" description="Update this application's review status.">
       <View style={styles.actionRow}>
         {actions.map((action) => {
           const loading = loadingStatus === action.status;
-          const backgroundColor =
+          const variant =
             action.variant === 'primary'
-              ? theme.accent
+              ? 'primary'
               : action.variant === 'danger'
-                ? theme.errorBg
-                : theme.elevated;
-          const color =
-            action.variant === 'primary'
-              ? '#FFFFFF'
-              : action.variant === 'danger'
-                ? theme.error
-                : theme.textPrimary;
+                ? 'outline'
+                : 'soft';
 
           return (
-            <Pressable
-              key={action.status}
-              accessibilityRole="button"
-              disabled={loadingStatus != null}
-              onPress={() => onAction(action.status)}
-              style={[styles.actionButton, { backgroundColor, opacity: loading ? 0.7 : 1 }]}>
+            <View key={action.status} style={styles.actionButtonWrap}>
               {loading ? (
-                <ActivityIndicator color={color} size="small" />
+                <ActivityIndicator size="small" />
               ) : (
-                <ThemedText type="smallBold" style={{ color }}>
-                  {action.label}
-                </ThemedText>
+                <StoryButton
+                  label={action.label}
+                  variant={variant}
+                  disabled={loadingStatus != null}
+                  onPress={() => onAction(action.status)}
+                  style={styles.actionButton}
+                />
               )}
-            </Pressable>
+            </View>
           );
         })}
       </View>
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -182,7 +147,6 @@ export function SubmissionEnrollmentActionsSection({
   onMarkEnrolled: () => void;
   loading: boolean;
 }) {
-  const theme = useAdminTheme();
   if (currentStatus !== 'accepted' && currentStatus !== 'enrolling') return null;
 
   const description = (() => {
@@ -202,23 +166,21 @@ export function SubmissionEnrollmentActionsSection({
   })();
 
   return (
-    <DetailSection title="Enrollment" description={description}>
+    <StoryDetailSection title="Enrollment" description={description}>
       {currentStatus === 'enrolling' ? (
-        <Pressable
-          accessibilityRole="button"
-          disabled={loading}
-          onPress={onMarkEnrolled}
-          style={[styles.actionButton, { backgroundColor: theme.accent, alignSelf: 'flex-start' }]}>
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-              Mark enrolled
-            </ThemedText>
-          )}
-        </Pressable>
+        loading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <StoryButton
+            label="Mark enrolled"
+            variant="primary"
+            disabled={loading}
+            onPress={onMarkEnrolled}
+            style={styles.enrollButton}
+          />
+        )
       ) : null}
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -231,6 +193,7 @@ export function SubmissionApplicationStepsSection({
   onItemPress,
   activeItemId,
   timelineRowSpacing,
+  embedded = false,
 }: {
   detail: ApplicationDetail;
   feeStatus: string;
@@ -240,20 +203,24 @@ export function SubmissionApplicationStepsSection({
   onItemPress?: (stepId: string) => void;
   activeItemId?: string;
   timelineRowSpacing?: number;
+  embedded?: boolean;
 }) {
   const subtitleParts: string[] = [];
   if (applicationStatus !== 'draft' && submittedAt) {
     subtitleParts.push(`Submitted ${formatShortDate(submittedAt)}`);
   }
-  if (feeEnabled && feeStatus !== 'not_required') {
-    subtitleParts.push(`Fee ${(FEE_STATUS_LABELS[feeStatus] ?? feeStatus).toLowerCase()}`);
+  const resolvedFeeStatus = feeStatus ?? 'not_required';
+  if (feeEnabled && resolvedFeeStatus !== 'not_required') {
+    const feeLabel =
+      FEE_STATUS_LABELS[resolvedFeeStatus] ?? resolvedFeeStatus.replace(/_/g, ' ');
+    subtitleParts.push(`Fee ${feeLabel.toLowerCase()}`);
   }
 
   const steps = buildApplicationFormSteps(detail.schema, detail.feeConfig);
   const stepsWithStatus = computeApplicationFormStepStatuses(steps, {
     applicationStatus,
     stepIndex: detail.stepIndex,
-    feeStatus,
+    feeStatus: resolvedFeeStatus,
   });
   const progress = summarizeApplicationFormProgress(stepsWithStatus);
 
@@ -265,18 +232,32 @@ export function SubmissionApplicationStepsSection({
   }));
 
   return (
-    <DetailSection
+    <StoryDetailSection
       title={detail.formTitle}
-      description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}>
-      <DetailProgressBar completed={progress.completed} total={progress.total} />
-      <DetailStepTimeline
-        items={items}
-        rowSpacing={timelineRowSpacing}
-        showStatusText={progress.completed < progress.total}
-        onItemPress={onItemPress}
-        activeItemId={activeItemId}
-      />
-    </DetailSection>
+      description={subtitleParts.length ? subtitleParts.join(' · ') : undefined}
+      variant={embedded ? 'embedded' : 'card'}>
+      {embedded ? (
+        <StoryProgressBar completed={progress.completed} total={progress.total} />
+      ) : (
+        <DetailProgressBar completed={progress.completed} total={progress.total} />
+      )}
+      {embedded ? (
+        <StoryStepTimeline
+          items={items}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      ) : (
+        <DetailStepTimeline
+          items={items}
+          rowSpacing={timelineRowSpacing}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      )}
+    </StoryDetailSection>
   );
 }
 
@@ -286,14 +267,16 @@ export function SubmissionEnrollmentStepsSection({
   error,
   onItemPress,
   activeItemId,
+  embedded = false,
 }: {
   checklist: LoadedEnrollmentChecklist | null;
   loading: boolean;
   error: string | null;
   onItemPress?: (itemId: string) => void;
   activeItemId?: string;
+  embedded?: boolean;
 }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const instanceByTemplateId = useMemo(
     () => new Map((checklist?.instances ?? []).map((instance) => [instance.templateItemId, instance])),
     [checklist?.instances],
@@ -301,21 +284,24 @@ export function SubmissionEnrollmentStepsSection({
 
   if (loading) {
     return (
-      <DetailSection title="Enrollment checklist" description="Enrollment checklist progress">
+      <StoryDetailSection
+        title="Enrollment checklist"
+        description="Enrollment checklist progress"
+        variant={embedded ? 'embedded' : 'card'}>
         <DetailTimelineSectionSkeleton />
-      </DetailSection>
+      </StoryDetailSection>
     );
   }
 
   if (error) {
     return (
-      <ThemedText type="small" style={{ color: theme.error }}>
-        {error}
-      </ThemedText>
+      <Text style={[styles.errorText, { color: theme.alert }]}>{error}</Text>
     );
   }
 
   if (!checklist) return null;
+
+  const progress = resolveChecklistProgress(checklist);
 
   const items: DetailStepTimelineItem[] = checklist.items.map((item) => {
     const instance = instanceByTemplateId.get(item.id);
@@ -331,19 +317,32 @@ export function SubmissionEnrollmentStepsSection({
   });
 
   return (
-    <DetailSection title={checklist.title} description="Enrollment checklist progress">
-      <DetailProgressBar
-        completed={checklist.progress.completed}
-        total={checklist.progress.total}
-      />
-      <DetailStepTimeline
-        items={items}
-        rowSpacing={Spacing.five}
-        showStatusText={checklist.progress.completed < checklist.progress.total}
-        onItemPress={onItemPress}
-        activeItemId={activeItemId}
-      />
-    </DetailSection>
+    <StoryDetailSection
+      title={checklist.title}
+      description="Enrollment checklist progress"
+      variant={embedded ? 'embedded' : 'card'}>
+      {embedded ? (
+        <StoryProgressBar completed={progress.completed} total={progress.total} />
+      ) : (
+        <DetailProgressBar completed={progress.completed} total={progress.total} />
+      )}
+      {embedded ? (
+        <StoryStepTimeline
+          items={items}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      ) : (
+        <DetailStepTimeline
+          items={items}
+          rowSpacing={Spacing.five}
+          showStatusText={progress.completed < progress.total}
+          onItemPress={onItemPress}
+          activeItemId={activeItemId}
+        />
+      )}
+    </StoryDetailSection>
   );
 }
 
@@ -365,9 +364,9 @@ export function SubmissionPostSubmitSection({ steps }: { steps: AdminPostSubmitS
   }));
 
   return (
-    <DetailSection title="Post-application" description="Required visits and follow-ups">
+    <StoryDetailSection title="Post-application" description="Required visits and follow-ups">
       <DetailStepTimeline items={items} />
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -378,45 +377,43 @@ export function SubmissionGuardiansSection({
   guardians: FamilyGuardianRecord[];
   loading: boolean;
 }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   if (loading) {
     return (
-      <DetailSection title="Guardians" description="Family contacts for this application.">
+      <StoryDetailSection title="Guardians" description="Family contacts for this application.">
         <DetailRowListSkeleton rowCount={2} />
-      </DetailSection>
+      </StoryDetailSection>
     );
   }
 
   if (guardians.length === 0) {
     return (
-      <DetailSection title="Guardians" description="No linked family contacts yet.">
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+      <StoryDetailSection title="Guardians" description="No linked family contacts yet.">
+        <Text style={[styles.bodyText, { color: theme.muted }]}>
           This application is not linked to a family record.
-        </ThemedText>
-      </DetailSection>
+        </Text>
+      </StoryDetailSection>
     );
   }
 
   return (
-    <DetailSection title="Guardians" description="Family contacts for this application.">
+    <StoryDetailSection title="Guardians" description="Family contacts for this application.">
       {guardians.map((guardian) => {
         const name = [guardian.firstName, guardian.lastName].filter(Boolean).join(' ') || 'Unnamed';
         return (
           <View key={guardian.id} style={styles.guardianRow}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+            <Text style={[styles.bodyTextBold, { color: theme.ink }]}>
               {name}
               {guardian.isPrimary ? ' · Primary' : ''}
-            </ThemedText>
+            </Text>
             {guardian.email ? (
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                {guardian.email}
-              </ThemedText>
+              <Text style={[styles.bodyText, { color: theme.muted }]}>{guardian.email}</Text>
             ) : null}
           </View>
         );
       })}
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -435,30 +432,32 @@ export function SubmissionHistorySection({
   unlinked: boolean;
   onSelectApplication: (applicationId: string) => void;
 }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   if (loading) {
     return (
-      <DetailSection
+      <StoryDetailSection
         title="Admission history"
         description="Timeline of applications and enrollment activity for this family.">
         <DetailRowListSkeleton rowCount={3} />
-      </DetailSection>
+      </StoryDetailSection>
     );
   }
 
   if (unlinked) {
     return (
-      <DetailSection title="Admission history" description="This application is not linked to a family record.">
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
+      <StoryDetailSection
+        title="Admission history"
+        description="This application is not linked to a family record.">
+        <Text style={[styles.bodyText, { color: theme.muted }]}>
           Link a family to see admission history across applications.
-        </ThemedText>
-      </DetailSection>
+        </Text>
+      </StoryDetailSection>
     );
   }
 
   return (
-    <DetailSection
+    <StoryDetailSection
       title="Admission history"
       description="Timeline of applications and enrollment activity for this family.">
       <AdmissionHistoryTimeline
@@ -467,7 +466,7 @@ export function SubmissionHistorySection({
         currentApplicationStatus={currentApplicationStatus}
         onSelect={onSelectApplication}
       />
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -482,32 +481,30 @@ export function SubmissionPaymentsSection({
   onPaymentPress?: (paymentId: string) => void;
   activePaymentId?: string;
 }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   if (loading) {
     return (
-      <DetailSection
+      <StoryDetailSection
         title="Payments"
         description="Application fees and enrollment charges for this application.">
         <DetailRowListSkeleton rowCount={3} />
-      </DetailSection>
+      </StoryDetailSection>
     );
   }
 
   if (payments.length === 0) {
     return (
-      <DetailSection
+      <StoryDetailSection
         title="Payments"
         description="Application fees and enrollment charges for this application.">
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          No payments recorded yet.
-        </ThemedText>
-      </DetailSection>
+        <Text style={[styles.bodyText, { color: theme.muted }]}>No payments recorded yet.</Text>
+      </StoryDetailSection>
     );
   }
 
   return (
-    <DetailSection
+    <StoryDetailSection
       title="Payments"
       description="Application fees and enrollment charges for this application.">
       {payments.map((payment) => {
@@ -515,29 +512,26 @@ export function SubmissionPaymentsSection({
         const row = (
           <>
             <View style={styles.paymentHeader}>
-              <ThemedText type="smallBold" style={{ color: theme.textPrimary, flex: 1 }}>
+              <Text style={[styles.bodyTextBold, { color: theme.ink, flex: 1 }]}>
                 {payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType]}
-              </ThemedText>
-              <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+              </Text>
+              <Text style={[styles.bodyTextBold, { color: theme.ink }]}>
                 {formatPaymentAmount(payment.amountCents)}
-              </ThemedText>
+              </Text>
             </View>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              {PAYMENT_STATUS_LABELS[payment.status]} · {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
-            </ThemedText>
+            <Text style={[styles.bodyText, { color: theme.muted }]}>
+              {PAYMENT_STATUS_LABELS[payment.status]} ·{' '}
+              {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
+            </Text>
             {payment.payerEmail ? (
-              <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                {payment.payerEmail}
-              </ThemedText>
+              <Text style={[styles.bodyText, { color: theme.muted }]}>{payment.payerEmail}</Text>
             ) : null}
           </>
         );
 
         if (!onPaymentPress) {
           return (
-            <View
-              key={payment.id}
-              style={[styles.paymentRow, { borderColor: theme.border }]}>
+            <View key={payment.id} style={[styles.paymentRow, { borderColor: theme.line }]}>
               {row}
             </View>
           );
@@ -551,8 +545,8 @@ export function SubmissionPaymentsSection({
             style={({ pressed }) => [
               styles.paymentRow,
               {
-                borderColor: isActive ? theme.accent : theme.border,
-                backgroundColor: isActive ? theme.accentLight : 'transparent',
+                borderColor: isActive ? theme.primary : theme.line,
+                backgroundColor: isActive ? theme.primarySoft : 'transparent',
                 opacity: pressed ? 0.85 : 1,
               },
             ]}>
@@ -560,7 +554,7 @@ export function SubmissionPaymentsSection({
           </Pressable>
         );
       })}
-    </DetailSection>
+    </StoryDetailSection>
   );
 }
 
@@ -580,30 +574,52 @@ export async function loadPaymentsState(
 }
 
 const styles = StyleSheet.create({
-  summaryStrip: {
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
   detailsRow: {
     gap: 4,
+  },
+  detailLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  detailValue: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  bodyText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  bodyTextBold: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  errorText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
+  actionButtonWrap: {
+    minWidth: 140,
+    flexGrow: 1,
+  },
   actionButton: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minWidth: 120,
-    alignItems: 'center',
+    width: '100%',
+    minHeight: 44,
+  },
+  enrollButton: {
+    alignSelf: 'flex-start',
+    width: 'auto',
+    minWidth: 160,
   },
   guardianRow: {
     gap: 4,

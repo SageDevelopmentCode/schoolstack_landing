@@ -1,13 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { StoryChip } from '@/components/story/story-chip';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import { formatEventTimeRange } from '@/lib/school-events/calendar-time';
-import { getEventDisplayStyle, SCHOOL_EVENT_TYPE_LABELS } from '@/lib/school-events/event-labels';
 import type { OrganizationEvent } from '@/lib/school-events/types';
+import {
+  eventTypeChipTone,
+  formatLongEventDate,
+  SCHOOL_EVENT_TYPE_LABELS,
+} from '@/lib/parent/parent-calendar-agenda-utils';
 
 type ParentEventDetailSheetProps = {
   visible: boolean;
@@ -15,23 +22,11 @@ type ParentEventDetailSheetProps = {
   onClose: () => void;
 };
 
-function formatLongEventDate(date: string): string {
-  const [year, month, day] = date.split('-').map(Number);
-  const parsed = new Date(year, (month ?? 1) - 1, day ?? 1);
-  return parsed.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export function ParentEventDetailSheet({ visible, event, onClose }: ParentEventDetailSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
 
   if (!event) return null;
-  const colors = getEventDisplayStyle(event);
 
   return (
     <Modal
@@ -39,57 +34,42 @@ export function ParentEventDetailSheet({ visible, event, onClose }: ParentEventD
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Close
-            </ThemedText>
-          </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Event details
-          </ThemedText>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
+      <View style={[styles.container, { backgroundColor: theme.white, paddingTop: insets.top }]}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
           <View
             style={[
               styles.hero,
               {
-                backgroundColor: `${colors.text}12`,
-                borderBottomColor: `${colors.text}30`,
+                backgroundColor: theme.primarySoft,
+                borderBottomColor: theme.line,
               },
             ]}>
-            <View style={[styles.typeBadge, { backgroundColor: colors.bg }]}>
-              <ThemedText type="badge" style={{ color: colors.text, fontSize: 10 }}>
-                {SCHOOL_EVENT_TYPE_LABELS[event.type].toUpperCase()}
-              </ThemedText>
+            <View style={styles.heroTop}>
+              <StoryChip
+                tone={eventTypeChipTone(event.type)}
+                label={SCHOOL_EVENT_TYPE_LABELS[event.type]}
+              />
+              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+                <Ionicons name="close" size={22} color={theme.muted} />
+              </Pressable>
             </View>
-            <ThemedText type="title" style={{ color: theme.textPrimary, marginTop: Spacing.two }}>
+            <StoryDisplayHeading size="section" style={styles.title}>
               {event.title}
-            </ThemedText>
+            </StoryDisplayHeading>
           </View>
 
           <View style={styles.details}>
-            <DetailRow
-              icon="calendar-outline"
-              label="Date"
-              value={formatLongEventDate(event.date)}
-            />
-            <DetailRow
-              icon="time-outline"
-              label="Time"
-              value={formatEventTimeRange(event)}
-            />
+            <DetailField theme={theme} label="Date" value={formatLongEventDate(event.date)} />
+            <DetailField theme={theme} label="Time" value={formatEventTimeRange(event)} />
             {event.location ? (
-              <DetailRow icon="location-outline" label="Location" value={event.location} />
+              <DetailField theme={theme} label="Location" value={event.location} icon="location-outline" />
             ) : null}
             {event.description ? (
-              <DetailRow
-                icon="document-text-outline"
-                label="Description"
+              <DetailField
+                theme={theme}
+                label="Details"
                 value={event.description}
+                muted
                 multiline
               />
             ) : null}
@@ -100,32 +80,35 @@ export function ParentEventDetailSheet({ visible, event, onClose }: ParentEventD
   );
 }
 
-function DetailRow({
-  icon,
+function DetailField({
+  theme,
   label,
   value,
+  icon,
   multiline,
+  muted,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  theme: ReturnType<typeof useParentTheme>;
   label: string;
   value: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   multiline?: boolean;
+  muted?: boolean;
 }) {
-  const theme = useAdminTheme();
-
   return (
-    <View style={styles.detailRow}>
-      <View style={styles.detailLabelRow}>
-        <Ionicons name={icon} size={16} color={theme.textTertiary} />
-        <ThemedText type="smallBold" style={{ color: theme.textTertiary }}>
-          {label}
-        </ThemedText>
+    <View style={styles.detailField}>
+      <Text style={[styles.detailKicker, { color: theme.muted }]}>{label}</Text>
+      <View style={styles.detailValueRow}>
+        {icon ? <Ionicons name={icon} size={14} color={theme.muted} style={styles.detailIcon} /> : null}
+        <Text
+          style={[
+            styles.detailValue,
+            multiline ? styles.detailValueMultiline : null,
+            { color: muted ? theme.muted : theme.ink },
+          ]}>
+          {value}
+        </Text>
       </View>
-      <ThemedText
-        type="small"
-        style={{ color: theme.textPrimary, lineHeight: multiline ? 20 : undefined }}>
-        {value}
-      </ThemedText>
     </View>
   );
 }
@@ -134,42 +117,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSpacer: {
-    width: 44,
-  },
-  content: {
+  scrollContent: {
     paddingBottom: Spacing.six,
   },
   hero: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.five,
-    borderBottomWidth: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  typeBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.two,
-    paddingVertical: 4,
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+    marginBottom: Spacing.two,
+  },
+  title: {
+    fontSize: 18,
+    lineHeight: 24,
   },
   details: {
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.five,
     gap: Spacing.four,
   },
-  detailRow: {
-    gap: Spacing.one,
+  detailField: {
+    gap: 6,
   },
-  detailLabelRow: {
+  detailKicker: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  detailValueRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one,
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  detailIcon: {
+    marginTop: 2,
+  },
+  detailValue: {
+    flex: 1,
+    fontFamily: StoryFonts.bodyMedium,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  detailValueMultiline: {
+    fontFamily: StoryFonts.body,
+    lineHeight: 22,
   },
 });

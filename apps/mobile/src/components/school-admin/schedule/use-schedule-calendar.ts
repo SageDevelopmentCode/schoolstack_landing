@@ -8,12 +8,48 @@ import {
   todayMonthYearInTimezone,
 } from '@/lib/admissions/admissions-availability';
 import type { MobileAdminTheme } from '@/lib/organization-settings/build-admin-theme';
+import type { MobileParentTheme } from '@/lib/organization-settings/parent-theme';
+import type { ScheduleMonthCalendarColors } from '@/components/school-admin/schedule/schedule-month-calendar';
+
+type CalendarThemeInput = MobileAdminTheme | MobileParentTheme;
+
+export function parentThemeToCalendarColors(theme: MobileParentTheme): ScheduleMonthCalendarColors {
+  return {
+    accent: theme.primary,
+    accentLight: theme.primarySoft,
+    text: theme.ink,
+    textFaint: theme.muted,
+    textSecondary: theme.muted,
+    border: theme.line,
+    bg: theme.paper,
+    warning: theme.warning,
+    warningBg: theme.warningBg,
+  };
+}
+
+function themeToCalendarColors(theme: CalendarThemeInput): ScheduleMonthCalendarColors {
+  if ('textPrimary' in theme) {
+    return {
+      accent: theme.accent,
+      accentLight: theme.accentLight,
+      text: theme.textPrimary,
+      textFaint: theme.textTertiary,
+      textSecondary: theme.textSecondary,
+      border: theme.border,
+      bg: theme.bg,
+      warning: theme.warning,
+      warningBg: theme.warningBg,
+    };
+  }
+
+  return parentThemeToCalendarColors(theme);
+}
 
 type UseScheduleCalendarOptions = {
   organizationId: string;
   supabase: SupabaseClient;
   timezoneProp?: string;
-  theme: MobileAdminTheme;
+  theme: CalendarThemeInput;
   onMonthChange?: (year: number, month: number) => void;
 };
 
@@ -43,20 +79,7 @@ export function useScheduleCalendar({
     return { start, end };
   }, [viewMonth, viewYear]);
 
-  const calendarColors = useMemo(
-    () => ({
-      accent: theme.accent,
-      accentLight: theme.accentLight,
-      text: theme.textPrimary,
-      textFaint: theme.textTertiary,
-      textSecondary: theme.textSecondary,
-      border: theme.border,
-      bg: theme.bg,
-      warning: theme.warning,
-      warningBg: theme.warningBg,
-    }),
-    [theme],
-  );
+  const calendarColors = useMemo(() => themeToCalendarColors(theme), [theme]);
 
   useEffect(() => {
     if (timezoneProp) {

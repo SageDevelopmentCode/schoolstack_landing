@@ -1,19 +1,17 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getParentCommitteeWorkspace } from "@/lib/committees/parent-committees";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/committees/[committeeId]";
 
 type RouteContext = { params: Promise<{ committeeId: string }> };
 
 export async function GET(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { committeeId } = await context.params;
   const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
 

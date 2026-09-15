@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS, type ActivityAction } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   deactivateStaffPortalAccess,
@@ -10,11 +10,13 @@ import {
   type StaffPortalRole,
 } from "@/lib/staff/staff-members";
 import {
+  getSchoolAdminUserProfile,
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { logSchoolAdminActivity } from "@/lib/school-admin/school-admin-activity";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school/[slug]/staff/[staffMemberId]";
 
@@ -47,8 +49,7 @@ async function resolveOrganizationId(
 
 export async function PATCH(request: Request, context: RouteContext) {
   const { slug, staffMemberId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   try {
     let body: PatchStaffBody;
@@ -75,9 +76,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const actor = getSchoolAdminUserProfile(user);
 
     let staffMember;
+    let action: ActivityAction = ACTIVITY_ACTIONS.STAFF_UPDATED;
+    let summary = "Updated staff member";
 
     if (body.action === "deactivatePortalAccess") {
       staffMember = await deactivateStaffPortalAccess(
@@ -85,12 +89,16 @@ export async function PATCH(request: Request, context: RouteContext) {
         organizationId,
         staffMemberId,
       );
+      action = ACTIVITY_ACTIONS.STAFF_PORTAL_ACCESS_DEACTIVATED;
+      summary = "Deactivated staff portal access";
     } else if (body.action === "reactivatePortalAccess") {
       staffMember = await reactivateStaffPortalAccess(
         admin,
         organizationId,
         staffMemberId,
       );
+      action = ACTIVITY_ACTIONS.STAFF_PORTAL_ACCESS_REACTIVATED;
+      summary = "Reactivated staff portal access";
     } else {
       staffMember = await updateStaffMember(admin, {
         organizationId,
@@ -102,6 +110,22 @@ export async function PATCH(request: Request, context: RouteContext) {
         portalRole: body.portalRole,
       });
     }
+
+    void logSchoolAdminActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: actor.email,
+      actorName: actor.displayName,
+      action,
+      summary,
+      entityType: "staff_member",
+      entityId: staffMemberId,
+      metadata: {
+        staffAction: body.action ?? "update",
+        portalRole: body.portalRole ?? staffMember.portalRole,
+      },
+      request,
+    });
 
     return NextResponse.json({ staffMember });
   } catch (error) {

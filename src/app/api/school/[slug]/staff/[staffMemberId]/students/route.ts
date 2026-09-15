@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import {
   assignStudentsToStaff,
@@ -7,9 +8,11 @@ import {
   unassignStudentFromStaff,
 } from "@/lib/school-admin/enrolled-students";
 import {
+  getSchoolAdminUserProfile,
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { logSchoolAdminActivity } from "@/lib/school-admin/school-admin-activity";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -142,7 +145,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    await requireSchoolAdminUser(supabase, organizationId, request);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const actor = getSchoolAdminUserProfile(user);
 
     const staffExists = await assertStaffMemberInOrg(
       admin,
@@ -173,6 +177,19 @@ export async function PATCH(request: Request, context: RouteContext) {
         studentId: body.studentId,
       });
 
+      void logSchoolAdminActivity(admin, {
+        organizationId,
+        actorUserId: user.id,
+        actorEmail: actor.email,
+        actorName: actor.displayName,
+        action: ACTIVITY_ACTIONS.STAFF_STUDENT_UNASSIGNED,
+        summary: "Unassigned student from staff member",
+        entityType: "staff_member",
+        entityId: staffMemberId,
+        metadata: { studentId: body.studentId },
+        request,
+      });
+
       return NextResponse.json({ ok: true });
     }
 
@@ -194,6 +211,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       organizationId,
       staffMemberId,
       studentIds,
+    });
+
+    void logSchoolAdminActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: actor.email,
+      actorName: actor.displayName,
+      action: ACTIVITY_ACTIONS.STAFF_STUDENTS_ASSIGNED,
+      summary: `Assigned ${studentIds.length} student${studentIds.length === 1 ? "" : "s"} to staff member`,
+      entityType: "staff_member",
+      entityId: staffMemberId,
+      metadata: { studentIds },
+      request,
     });
 
     return NextResponse.json({ ok: true });

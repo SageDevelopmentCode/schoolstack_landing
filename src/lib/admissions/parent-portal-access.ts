@@ -95,6 +95,7 @@ export type ApplicationDetail = {
   formTitle: string;
   schema: ApplicationFormSchema;
   feeConfig: ApplicationFormFeeConfig;
+  feeStatus: string;
   stepIndex: number;
   responses: Record<string, string>;
   acknowledgments: Record<string, boolean>;
@@ -619,6 +620,34 @@ export async function listFamilyPreApplicationVisits(
   return loadFamilyPreApplicationVisits(supabase, organizationId, familyIds);
 }
 
+export async function userHasParentAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const [guardianResult, membershipResult] = await Promise.all([
+    supabase
+      .from("guardians")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    supabase
+      .from("organization_memberships")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("organization_id", organizationId)
+      .eq("status", "active")
+      .eq("role", "parent")
+      .maybeSingle(),
+  ]);
+
+  if (guardianResult.error) throw guardianResult.error;
+  if (membershipResult.error) throw membershipResult.error;
+
+  return Boolean(guardianResult.data || membershipResult.data);
+}
+
 export async function userHasEnrolledAccess(
   supabase: SupabaseClient,
   userId: string,
@@ -755,6 +784,7 @@ export async function loadApplicationDetail(
       id,
       status,
       submitted_at,
+      fee_status,
       student_id,
       responses,
       acknowledgments,
@@ -834,6 +864,7 @@ export async function loadApplicationDetail(
     formTitle: String(form?.title ?? "Application"),
     schema,
     feeConfig,
+    feeStatus: String(data.fee_status ?? "not_required"),
     stepIndex,
     responses: parseStringRecord(data.responses),
     acknowledgments: parseBooleanRecord(data.acknowledgments),

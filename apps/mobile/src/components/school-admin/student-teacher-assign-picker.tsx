@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -13,11 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 import {
   formatStaffMemberName,
   type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
+import { haveSameIds, requestCloseIfClean } from '@/lib/unsaved-changes';
 
 type StudentTeacherAssignPickerProps = {
   visible: boolean;
@@ -61,17 +63,28 @@ export function StudentTeacherAssignPicker({
     );
   };
 
+  const isDirty = useMemo(
+    () => !haveSameIds(selectedIds, assignedTeacherIds),
+    [selectedIds, assignedTeacherIds],
+  );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
+
   const handleSave = async () => {
     await onSave(selectedIds);
     onClose();
   };
 
+  const canSave = isDirty;
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={requestClose}>
       <View style={styles.overlay}>
         <Pressable
           style={styles.backdrop}
-          onPress={onClose}
+          onPress={requestClose}
           accessibilityLabel="Close teacher picker"
         />
         <Animated.View
@@ -143,7 +156,7 @@ export function StudentTeacherAssignPicker({
           <View style={styles.footer}>
             <Pressable
               accessibilityRole="button"
-              onPress={onClose}
+              onPress={requestClose}
               disabled={saving}
               style={({ pressed }) => [
                 styles.footerButton,
@@ -158,13 +171,14 @@ export function StudentTeacherAssignPicker({
             <Pressable
               accessibilityRole="button"
               onPress={() => void handleSave()}
-              disabled={saving}
+              disabled={saving || !canSave}
               style={({ pressed }) => [
                 styles.footerButton,
                 styles.saveButton,
-                { backgroundColor: theme.accent },
-                pressed && { opacity: 0.85 },
-                saving && { opacity: 0.6 },
+                {
+                  backgroundColor: theme.accent,
+                  opacity: pressed && canSave && !saving ? 0.85 : canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+                },
               ]}>
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
@@ -197,7 +211,7 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   header: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -209,7 +223,7 @@ const styles = StyleSheet.create({
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
@@ -224,7 +238,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
   footerButton: {

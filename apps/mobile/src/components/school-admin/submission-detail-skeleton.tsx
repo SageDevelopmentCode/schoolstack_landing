@@ -7,8 +7,11 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { Story } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
+
+const SKELETON_COLOR = '#E4E8E1';
 
 function SkeletonBlock({
   style,
@@ -27,9 +30,7 @@ function SkeletonBlock({
     opacity: opacity.value,
   }));
 
-  return (
-    <Animated.View style={[style, { backgroundColor }, animatedStyle]} />
-  );
+  return <Animated.View style={[style, { backgroundColor }, animatedStyle]} />;
 }
 
 function SkeletonTimelineRow({
@@ -51,15 +52,13 @@ function SkeletonTimelineRow({
 }
 
 export function DetailTimelineSectionSkeleton({ rowCount = 5 }: { rowCount?: number }) {
-  const theme = useAdminTheme();
-
   return (
     <View style={styles.sectionBody}>
-      <SkeletonBlock style={styles.progressTrack} backgroundColor={theme.border} />
+      <SkeletonBlock style={styles.progressTrack} backgroundColor={SKELETON_COLOR} />
       {Array.from({ length: rowCount }, (_, index) => (
         <SkeletonTimelineRow
           key={index}
-          backgroundColor={theme.border}
+          backgroundColor={SKELETON_COLOR}
           rowSpacing={Spacing.five}
         />
       ))}
@@ -68,14 +67,12 @@ export function DetailTimelineSectionSkeleton({ rowCount = 5 }: { rowCount?: num
 }
 
 export function DetailRowListSkeleton({ rowCount = 3 }: { rowCount?: number }) {
-  const theme = useAdminTheme();
-
   return (
     <View style={styles.sectionBody}>
       {Array.from({ length: rowCount }, (_, index) => (
         <View key={index} style={styles.listRow}>
-          <SkeletonBlock style={styles.listTitleBar} backgroundColor={theme.border} />
-          <SkeletonBlock style={styles.listMetaBar} backgroundColor={theme.border} />
+          <SkeletonBlock style={styles.listTitleBar} backgroundColor={SKELETON_COLOR} />
+          <SkeletonBlock style={styles.listMetaBar} backgroundColor={SKELETON_COLOR} />
         </View>
       ))}
     </View>
@@ -83,14 +80,12 @@ export function DetailRowListSkeleton({ rowCount = 3 }: { rowCount?: number }) {
 }
 
 export function DetailMetadataSectionSkeleton() {
-  const theme = useAdminTheme();
-
   return (
     <View style={styles.sectionBody}>
       {Array.from({ length: 4 }, (_, index) => (
         <View key={index} style={styles.metadataRow}>
-          <SkeletonBlock style={styles.metadataLabel} backgroundColor={theme.border} />
-          <SkeletonBlock style={styles.metadataValue} backgroundColor={theme.border} />
+          <SkeletonBlock style={styles.metadataLabel} backgroundColor={SKELETON_COLOR} />
+          <SkeletonBlock style={styles.metadataValue} backgroundColor={SKELETON_COLOR} />
         </View>
       ))}
     </View>
@@ -98,24 +93,21 @@ export function DetailMetadataSectionSkeleton() {
 }
 
 export function SubmissionDetailScreenSkeleton() {
-  const theme = useAdminTheme();
-
   return (
-    <View style={styles.screen}>
-      <View style={styles.summaryStrip}>
-        <SkeletonBlock style={styles.summaryNameBar} backgroundColor={theme.border} />
-        <SkeletonBlock style={styles.summaryBadgeBar} backgroundColor={theme.border} />
+    <View style={[styles.screen, { backgroundColor: Story.paper }]}>
+      <View style={styles.header}>
+        <SkeletonBlock style={styles.backBar} backgroundColor={SKELETON_COLOR} />
+        <SkeletonBlock style={styles.kickerBar} backgroundColor={SKELETON_COLOR} />
+        <SkeletonBlock style={styles.titleBar} backgroundColor={SKELETON_COLOR} />
       </View>
       <View style={styles.tabRow}>
         {Array.from({ length: 4 }, (_, index) => (
-          <SkeletonBlock key={index} style={styles.tabPill} backgroundColor={theme.border} />
+          <SkeletonBlock key={index} style={styles.tabPill} backgroundColor={SKELETON_COLOR} />
         ))}
       </View>
       <View style={styles.overviewBody}>
-        <SkeletonBlock style={styles.sectionTitleBar} backgroundColor={theme.border} />
-        <DetailMetadataSectionSkeleton />
-        <SkeletonBlock style={styles.sectionTitleBar} backgroundColor={theme.border} />
-        <DetailTimelineSectionSkeleton />
+        <SkeletonBlock style={styles.sectionCard} backgroundColor={SKELETON_COLOR} />
+        <SkeletonBlock style={styles.sectionCardTall} backgroundColor={SKELETON_COLOR} />
       </View>
     </View>
   );
@@ -126,47 +118,53 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 0,
   },
-  summaryStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  header: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.two,
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
   },
-  summaryNameBar: {
-    flex: 1,
-    height: 20,
-    borderRadius: Radius.sm,
-    maxWidth: '55%',
-  },
-  summaryBadgeBar: {
-    width: 72,
+  backBar: {
+    width: 24,
     height: 24,
-    borderRadius: Radius.pill,
+    borderRadius: 12,
+  },
+  kickerBar: {
+    width: 120,
+    height: 10,
+    borderRadius: 5,
+  },
+  titleBar: {
+    width: '70%',
+    height: 24,
+    borderRadius: 8,
   },
   tabRow: {
     flexDirection: 'row',
     gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.two,
   },
   tabPill: {
     width: 72,
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 7,
   },
   overviewBody: {
-    padding: Spacing.four,
-    gap: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.four,
+    gap: Spacing.three,
+  },
+  sectionCard: {
+    height: 120,
+    borderRadius: 16,
+  },
+  sectionCardTall: {
+    height: 200,
+    borderRadius: 16,
   },
   sectionBody: {
     gap: Spacing.two,
-  },
-  sectionTitleBar: {
-    width: 120,
-    height: 12,
-    borderRadius: Radius.sm,
   },
   metadataRow: {
     gap: 4,
@@ -174,16 +172,16 @@ const styles = StyleSheet.create({
   metadataLabel: {
     width: 80,
     height: 10,
-    borderRadius: Radius.sm,
+    borderRadius: 5,
   },
   metadataValue: {
     width: '75%',
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 7,
   },
   progressTrack: {
     height: 6,
-    borderRadius: Radius.pill,
+    borderRadius: 999,
     marginBottom: Spacing.two,
   },
   timelineRow: {
@@ -203,12 +201,12 @@ const styles = StyleSheet.create({
   timelineTitleBar: {
     width: '70%',
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 7,
   },
   timelineMetaBar: {
     width: '45%',
     height: 10,
-    borderRadius: Radius.sm,
+    borderRadius: 5,
   },
   listRow: {
     gap: 6,
@@ -217,11 +215,11 @@ const styles = StyleSheet.create({
   listTitleBar: {
     width: '60%',
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 7,
   },
   listMetaBar: {
     width: '40%',
     height: 10,
-    borderRadius: Radius.sm,
+    borderRadius: 5,
   },
 });

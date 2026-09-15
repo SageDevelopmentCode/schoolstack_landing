@@ -7,9 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Story, StoryCardPadding } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -37,45 +36,38 @@ type TransactionsListSkeletonProps = {
 };
 
 export function TransactionsListSkeleton({ rowCount = 5 }: TransactionsListSkeletonProps) {
-  const theme = useAdminTheme();
+  const skeletonColor = '#DCE4DC';
 
   return (
     <View style={styles.container}>
-      <View style={styles.summaryGrid}>
-        {Array.from({ length: 2 }, (_, row) => (
-          <View key={row} style={styles.summaryRow}>
-            {Array.from({ length: 2 }, (_, col) => (
-              <View
-                key={col}
-                style={[
-                  styles.summaryCard,
-                  { backgroundColor: theme.elevated, borderColor: theme.border },
-                ]}>
-                <SkeletonBlock style={styles.summaryLabel} backgroundColor={theme.border} />
-                <SkeletonBlock style={styles.summaryValue} backgroundColor={theme.border} />
-              </View>
-            ))}
+      <SkeletonBlock style={styles.kicker} backgroundColor={skeletonColor} />
+      <SkeletonBlock style={styles.title} backgroundColor={skeletonColor} />
+      <SkeletonBlock style={styles.subtitle} backgroundColor={skeletonColor} />
+
+      <View style={styles.metricGrid}>
+        {Array.from({ length: 4 }, (_, index) => (
+          <View key={index} style={styles.metricCard}>
+            <SkeletonBlock style={styles.metricValue} backgroundColor={skeletonColor} />
+            <SkeletonBlock style={styles.metricLabel} backgroundColor={skeletonColor} />
           </View>
         ))}
       </View>
+
+      <View style={styles.pillRow}>
+        {Array.from({ length: 4 }, (_, index) => (
+          <SkeletonBlock key={index} style={styles.pill} backgroundColor={skeletonColor} />
+        ))}
+      </View>
+
       <View style={styles.list}>
         {Array.from({ length: rowCount }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.cardWrap,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-              },
-              adminCardShadow(theme),
-            ]}>
-            <SkeletonBlock style={styles.titleBar} backgroundColor={theme.border} />
+          <View key={index} style={styles.cardWrap}>
+            <SkeletonBlock style={styles.cardTitle} backgroundColor={skeletonColor} />
             <View style={styles.badgeRow}>
-              <SkeletonBlock style={styles.badgePill} backgroundColor={theme.border} />
-              <SkeletonBlock style={styles.badgePillWide} backgroundColor={theme.border} />
+              <SkeletonBlock style={styles.badgePill} backgroundColor={skeletonColor} />
+              <SkeletonBlock style={styles.badgePillWide} backgroundColor={skeletonColor} />
             </View>
-            <SkeletonBlock style={styles.metaBar} backgroundColor={theme.border} />
+            <SkeletonBlock style={styles.metaBar} backgroundColor={skeletonColor} />
           </View>
         ))}
       </View>
@@ -86,46 +78,75 @@ export function TransactionsListSkeleton({ rowCount = 5 }: TransactionsListSkele
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.two,
-    gap: Spacing.three,
+    backgroundColor: Story.paper,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+    gap: Spacing.four,
   },
-  summaryGrid: {
-    gap: Spacing.two,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  summaryCard: {
-    flex: 1,
-    borderRadius: Radius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.two,
-    gap: 8,
-  },
-  summaryLabel: {
+  kicker: {
     height: 10,
-    width: '70%',
+    width: 120,
     borderRadius: Radius.sm,
   },
-  summaryValue: {
-    height: 16,
+  title: {
+    height: 28,
+    width: '55%',
+    borderRadius: Radius.sm,
+  },
+  subtitle: {
+    height: 14,
+    width: '85%',
+    borderRadius: Radius.sm,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  metricCard: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minWidth: '46%',
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E0E7E0',
+    backgroundColor: '#FFFFFF',
+    padding: StoryCardPadding,
+    gap: Spacing.one,
+  },
+  metricValue: {
+    height: 24,
     width: '50%',
     borderRadius: Radius.sm,
   },
-  list: {
+  metricLabel: {
+    height: 12,
+    width: '70%',
+    borderRadius: Radius.sm,
+  },
+  pillRow: {
+    flexDirection: 'row',
     gap: Spacing.two,
+  },
+  pill: {
+    height: 32,
+    width: 72,
+    borderRadius: 9,
+  },
+  list: {
+    gap: Spacing.three,
   },
   cardWrap: {
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.three,
+    borderColor: '#E0E7E0',
+    backgroundColor: '#FFFFFF',
+    padding: StoryCardPadding,
     gap: Spacing.two,
   },
-  titleBar: {
-    height: 14,
-    width: '60%',
+  cardTitle: {
+    height: 18,
+    width: '65%',
     borderRadius: Radius.sm,
   },
   badgeRow: {
@@ -144,7 +165,7 @@ const styles = StyleSheet.create({
   },
   metaBar: {
     height: 11,
-    width: '45%',
+    width: '75%',
     borderRadius: Radius.sm,
   },
 });

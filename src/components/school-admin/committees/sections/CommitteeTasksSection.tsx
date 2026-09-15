@@ -1,31 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import type { Committee, CommitteeTaskStatus } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
 
 export default function CommitteeTasksSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
   readOnly = false,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
@@ -36,6 +40,7 @@ export default function CommitteeTasksSection({
   const [group, setGroup] = useState("general");
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
 
   const taskGroups = committee.config.taskGroups ?? [{ id: "general", label: "General" }];
 
@@ -81,26 +86,21 @@ export default function CommitteeTasksSection({
   };
 
   const groupLabel = (key: string) =>
-    taskGroups.find((g) => g.id === key)?.label ?? key;
+    taskGroups.find((groupItem) => groupItem.id === key)?.label ?? key;
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
         {!readOnly && (
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer"
-          style={{ backgroundColor: C.accent }}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add task
-        </button>
+          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => setShowAdd(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            Add task
+          </AdminButton>
         )}
       </div>
 
       <motion.div
-        key={committee.tasks.map((t) => t.id).join("-")}
+        key={committee.tasks.map((task) => task.id).join("-")}
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
         variants={staggerContainer(reducedMotion)}
         initial="initial"
@@ -108,54 +108,46 @@ export default function CommitteeTasksSection({
       >
         {COLUMNS.map((status) => (
           <motion.div key={status} variants={staggerItem(reducedMotion)}>
-            <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: C.textSecondary }}>
+            <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: theme.muted }}>
               {TASK_STATUS_LABELS[status]}
             </h4>
             <div className="space-y-2">
               {committee.tasks
-                .filter((t) => t.status === status)
+                .filter((task) => task.status === status)
                 .map((task) => (
-                  <motion.div
-                    key={task.id}
-                    variants={staggerItem(reducedMotion)}
-                    className="p-3 rounded-lg border"
-                    style={{ backgroundColor: C.surface, borderColor: C.border }}
-                  >
-                    <p className="text-sm font-medium mb-1" style={{ color: C.textPrimary }}>
+                  <AdminCard key={task.id} theme={theme} padding="compact">
+                    <p className="text-sm font-medium mb-1" style={{ color: theme.ink }}>
                       {task.title}
                     </p>
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: C.accentLight, color: C.accent }}
-                    >
+                    <AdminChip theme={theme} tone="info">
                       {groupLabel(task.group)}
-                    </span>
+                    </AdminChip>
                     {task.assigneeName && (
-                      <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                      <p className="text-xs mt-2" style={{ color: theme.muted }}>
                         {task.assigneeName}
                       </p>
                     )}
                     {!readOnly ? (
-                    <select
-                      value={task.status}
-                      onChange={(e) =>
-                        handleStatusChange(task.id, e.target.value as CommitteeTaskStatus)
-                      }
-                      className="mt-2 w-full text-xs rounded border px-1 py-1"
-                      style={{ borderColor: C.border }}
-                    >
-                      {COLUMNS.map((s) => (
-                        <option key={s} value={s}>
-                          {TASK_STATUS_LABELS[s]}
-                        </option>
-                      ))}
-                    </select>
+                      <select
+                        value={task.status}
+                        onChange={(e) =>
+                          void handleStatusChange(task.id, e.target.value as CommitteeTaskStatus)
+                        }
+                        className="mt-2 w-full text-xs rounded border px-1 py-1"
+                        style={inputStyle}
+                      >
+                        {COLUMNS.map((columnStatus) => (
+                          <option key={columnStatus} value={columnStatus}>
+                            {TASK_STATUS_LABELS[columnStatus]}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
-                      <p className="text-xs mt-2" style={{ color: C.textTertiary }}>
+                      <p className="text-xs mt-2" style={{ color: theme.muted }}>
                         {TASK_STATUS_LABELS[task.status]}
                       </p>
                     )}
-                  </motion.div>
+                  </AdminCard>
                 ))}
             </div>
           </motion.div>
@@ -163,47 +155,46 @@ export default function CommitteeTasksSection({
       </motion.div>
 
       <AnimatePresence>
-      {showAdd && (
-        <CommitteeModalShell
-          C={C}
-          title="Add task"
-          onClose={() => setShowAdd(false)}
-          footer={
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm cursor-pointer">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={saving || !title.trim()}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
-              >
-                {saving ? "Adding…" : "Add task"}
-              </button>
-            </div>
-          }
-        >
+        {showAdd && (
+          <CommitteeModalShell
+            theme={theme}
+            title="Add task"
+            onClose={() => setShowAdd(false)}
+            footer={
+              <div className="flex justify-end gap-2">
+                <AdminButton theme={theme} variant="soft" onClick={() => setShowAdd(false)}>
+                  Cancel
+                </AdminButton>
+                <AdminButton
+                  theme={theme}
+                  variant="primary"
+                  onClick={() => void handleAdd()}
+                  disabled={saving || !title.trim()}
+                >
+                  {saving ? "Adding…" : "Add task"}
+                </AdminButton>
+              </div>
+            }
+          >
             <input
               placeholder="Task title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-lg border mb-3"
-              style={{ borderColor: C.border }}
+              style={inputStyle}
             />
             <select
               value={group}
               onChange={(e) => setGroup(e.target.value)}
               className="w-full px-3 py-2 text-sm rounded-lg border"
-              style={{ borderColor: C.border }}
+              style={inputStyle}
             >
-              {taskGroups.map((g) => (
-                <option key={g.id} value={g.id}>{g.label}</option>
+              {taskGroups.map((groupItem) => (
+                <option key={groupItem.id} value={groupItem.id}>{groupItem.label}</option>
               ))}
             </select>
-        </CommitteeModalShell>
-      )}
+          </CommitteeModalShell>
+        )}
       </AnimatePresence>
     </div>
   );

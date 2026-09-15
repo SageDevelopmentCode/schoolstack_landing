@@ -1,10 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 
 type CopyableUrlRowProps = {
@@ -12,7 +12,7 @@ type CopyableUrlRowProps = {
 };
 
 export function CopyableUrlRow({ url }: CopyableUrlRowProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -22,33 +22,15 @@ export function CopyableUrlRow({ url }: CopyableUrlRowProps) {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: theme.elevated,
-          borderColor: theme.border,
-        },
-      ]}>
-      <ThemedText
-        type="small"
-        numberOfLines={2}
-        style={[styles.url, { color: theme.textPrimary }]}>
+    <View style={[styles.container, { backgroundColor: Story.white, borderColor: Story.line }]}>
+      <Text numberOfLines={2} style={[styles.url, { color: theme.ink }]}>
         {url}
-      </ThemedText>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Copy sign-in URL"
+      </Text>
+      <StoryTextLink
+        label={copied ? 'Copied' : 'Copy'}
         onPress={() => void handleCopy()}
-        style={({ pressed }) => [styles.copyButton, pressed && { opacity: 0.7 }]}>
-        {copied ? (
-          <ThemedText type="smallBold" style={{ color: theme.success }}>
-            Copied
-          </ThemedText>
-        ) : (
-          <Ionicons name="copy-outline" size={18} color={theme.accent} />
-        )}
-      </Pressable>
+        style={styles.copyLink}
+      />
     </View>
   );
 }
@@ -58,15 +40,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
   url: {
     flex: 1,
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  copyButton: {
-    padding: Spacing.one,
+  copyLink: {
+    alignSelf: 'center',
   },
 });

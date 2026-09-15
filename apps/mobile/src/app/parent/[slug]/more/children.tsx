@@ -4,10 +4,13 @@ import { ParentChildrenScreen } from '@/components/parent/children/parent-childr
 import { useAuth } from '@/contexts/auth-context';
 
 export default function ParentChildrenRoute() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, applicationId } = useLocalSearchParams<{
+    slug: string;
+    applicationId?: string;
+  }>();
   const { selectedSchool } = useAuth();
 
   if (!slug || !selectedSchool) return null;
 
-  return <ParentChildrenScreen slug={slug} />;
+  return <ParentChildrenScreen slug={slug} initialApplicationId={applicationId} />;
 }

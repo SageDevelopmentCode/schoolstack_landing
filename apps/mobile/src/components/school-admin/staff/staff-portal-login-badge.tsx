@@ -1,29 +1,22 @@
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryChip } from '@/components/story/story-chip';
+import type { StoryChipTone } from '@/components/story/story-chip';
 import type { StaffPortalLoginStatus } from '@/lib/school-admin/staff-labels';
-import { StatusBadge } from '@/components/ui/status-badge';
 
 type StaffPortalLoginBadgeProps = {
   status: StaffPortalLoginStatus | null | undefined;
   compact?: boolean;
 };
 
-function resolveBadgeColors(
+function resolveChip(
   status: StaffPortalLoginStatus,
-  theme: ReturnType<typeof useAdminTheme>,
-): { backgroundColor: string; color: string } {
+): { tone: StoryChipTone; label: string } {
   if (!status.accountLinked) {
-    return { backgroundColor: theme.warningBg, color: theme.warning };
+    return { tone: 'warning', label: 'No account' };
   }
   if (!status.hasEverSignedIn) {
-    return { backgroundColor: theme.infoBg, color: theme.info };
+    return { tone: 'info', label: 'Never signed in' };
   }
-  return { backgroundColor: theme.successBg, color: theme.success };
-}
-
-function resolveLabel(status: StaffPortalLoginStatus): string {
-  if (!status.accountLinked) return 'No account';
-  if (!status.hasEverSignedIn) return 'Never signed in';
-  return 'Signed in';
+  return { tone: 'success', label: 'Portal active' };
 }
 
 function formatLastSignIn(value: string): string {
@@ -34,27 +27,24 @@ function formatLastSignIn(value: string): string {
 }
 
 export function StaffPortalLoginBadge({ status, compact = false }: StaffPortalLoginBadgeProps) {
-  const theme = useAdminTheme();
-
   if (!status) {
-    return <StatusBadge label="—" colors={{ backgroundColor: theme.elevated, color: theme.textTertiary }} />;
+    return <StoryChip tone="info" label="—" />;
   }
 
-  const colors = resolveBadgeColors(status, theme);
-  const label = resolveLabel(status);
+  const chip = resolveChip(status);
 
   if (compact) {
-    return <StatusBadge label={label} colors={colors} />;
+    return <StoryChip tone={chip.tone} label={chip.label} />;
   }
 
   if (status.hasEverSignedIn && status.lastSignInAt) {
     return (
-      <StatusBadge
-        label={`${label} · ${formatLastSignIn(status.lastSignInAt)}`}
-        colors={colors}
+      <StoryChip
+        tone={chip.tone}
+        label={`${chip.label} · ${formatLastSignIn(status.lastSignInAt)}`}
       />
     );
   }
 
-  return <StatusBadge label={label} colors={colors} />;
+  return <StoryChip tone={chip.tone} label={chip.label} />;
 }

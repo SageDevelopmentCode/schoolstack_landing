@@ -99,4 +99,25 @@ describe('filterMobileDashboardSummary', () => {
     );
     expect(withoutNative.signal).toBeNull();
   });
+
+  it('passes feature announcements through unchanged', () => {
+    const announcements = [
+      {
+        id: 'waive-tuition-charges',
+        title: 'Waive tuition charges',
+        description: "Remove a charge from a family's schedule when they should not be billed.",
+        ctaLabel: 'Open',
+        feature: 'my_school',
+        href: `/school/${slug}/admin/my_school/tuition`,
+        publishedAt: '2026-09-10',
+      },
+    ];
+
+    const filtered = filterMobileDashboardSummary(
+      slug,
+      baseSummary({ featureAnnouncements: announcements }),
+    );
+
+    expect(filtered.featureAnnouncements).toEqual(announcements);
+  });
 });

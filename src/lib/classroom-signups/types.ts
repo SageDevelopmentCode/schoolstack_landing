@@ -124,6 +124,7 @@ export type ParentClassroomSignupStudentOption = {
 
 export type ParentClassroomSignupsPageBundle = {
   items: ParentClassroomSignupListItem[];
+  /** Deprecated: always empty. Detail responses load per signup. */
   responsesBySignupId: Record<string, ClassroomSignupResponse[]>;
   studentOptions: ParentClassroomSignupStudentOption[];
 };

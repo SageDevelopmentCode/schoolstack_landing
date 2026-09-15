@@ -6,7 +6,7 @@ import { ROOTED_MEADOWS_PORTAL_BRANDING } from "@/data/school-demos/rooted-meado
 import CommitteeCreateWizard, {
   type CommitteeTemplateOption,
 } from "@/components/school-admin/committees/CommitteeCreateWizard";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { CUSTOM_COMMITTEE_TEMPLATE } from "@/lib/committees/templates";
 
 const DEMO_TEMPLATE_OPTIONS: CommitteeTemplateOption[] = [
@@ -37,11 +37,11 @@ export default function CreateCommitteeModal({
   preselectedTemplateId?: string;
   showCreateWorkspaceHint?: boolean;
 }) {
-  const C = useMemo(() => buildAdminThemeTokens(ROOTED_MEADOWS_PORTAL_BRANDING), []);
+  const theme = useMemo(() => buildParentThemeTokens(ROOTED_MEADOWS_PORTAL_BRANDING), []);
 
   return (
     <CommitteeCreateWizard
-      C={C}
+      theme={theme}
       options={DEMO_TEMPLATE_OPTIONS}
       initialSelectedSlug={preselectedTemplateId}
       onClose={onClose}

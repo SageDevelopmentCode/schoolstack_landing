@@ -3,16 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, Loader2, X } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { CommitteeJoinRequest, CommitteeRole } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 type CommitteeJoinRequestsPanelProps = {
   organizationId: string;
   schoolSlug: string;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   committeeId?: string;
   compact?: boolean;
   onChanged?: () => void;
@@ -38,7 +42,7 @@ function formatSubmittedAt(value: string): string {
 export default function CommitteeJoinRequestsPanel({
   organizationId,
   schoolSlug,
-  C,
+  theme,
   committeeId,
   compact = false,
   onChanged,
@@ -48,6 +52,7 @@ export default function CommitteeJoinRequestsPanel({
   const [actingId, setActingId] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, CommitteeRole>>({});
   const reducedMotion = useReducedMotion() ?? false;
+  const inputStyle = committeeStoryInputStyle(theme);
 
   const reloadRequests = useCallback(async () => {
     try {
@@ -169,7 +174,7 @@ export default function CommitteeJoinRequestsPanel({
     return (
       <div
         className="flex items-center gap-2 text-sm py-4"
-        style={{ color: C.textSecondary }}
+        style={{ color: theme.muted }}
       >
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading join requests…
@@ -180,40 +185,37 @@ export default function CommitteeJoinRequestsPanel({
   if (requests.length === 0) {
     if (compact) return null;
     return (
-      <div
-        className="rounded-2xl border p-5"
-        style={{ backgroundColor: C.surface, borderColor: C.border }}
-      >
-        <h3 className="text-sm font-semibold mb-1" style={{ color: C.textPrimary }}>
+      <AdminCard theme={theme} padding="default">
+        <AdminDisplayHeading theme={theme} as="h3" size="section">
           Join requests
-        </h3>
-        <p className="text-xs" style={{ color: C.textSecondary }}>
+        </AdminDisplayHeading>
+        <p className="text-xs mt-1" style={{ color: theme.muted }}>
           No pending requests right now.
         </p>
-      </div>
+      </AdminCard>
     );
   }
 
   return (
-    <div
-      className="rounded-2xl border overflow-hidden"
-      style={{ backgroundColor: C.surface, borderColor: C.border }}
-    >
+    <AdminCard theme={theme} padding="none">
       {!compact && (
-        <div className="px-5 py-4 border-b" style={{ borderColor: C.border }}>
-          <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+        <div
+          className="px-5 py-4 border-b"
+          style={{ borderColor: "#E0E7E0" }}
+        >
+          <AdminDisplayHeading theme={theme} as="h3" size="section">
             Join requests
-          </h3>
-          <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+          </AdminDisplayHeading>
+          <p className="text-xs mt-0.5" style={{ color: theme.muted }}>
             {requests.length} pending request{requests.length !== 1 ? "s" : ""}
           </p>
         </div>
       )}
 
       <motion.div
-        key={requests.map((r) => r.id).join("-")}
+        key={requests.map((request) => request.id).join("-")}
         className="divide-y"
-        style={{ borderColor: C.border }}
+        style={{ borderColor: "#E0E7E0" }}
         variants={staggerContainer(reducedMotion)}
         initial="initial"
         animate="animate"
@@ -228,24 +230,24 @@ export default function CommitteeJoinRequestsPanel({
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                  <p className="text-sm font-semibold" style={{ color: theme.ink }}>
                     {request.guardianName ?? "Parent"}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: C.textSecondary }}>
+                  <p className="text-xs mt-0.5" style={{ color: theme.muted }}>
                     {request.committeeName ?? "Committee"}
                     {request.grade ? ` · ${request.grade}` : ""}
                   </p>
                   {request.preferredDutyRoleTitle && (
-                    <p className="text-xs mt-1" style={{ color: C.textTertiary }}>
+                    <p className="text-xs mt-1" style={{ color: theme.muted }}>
                       Preferred role: {request.preferredDutyRoleTitle}
                     </p>
                   )}
                   {request.note && (
-                    <p className="text-xs mt-2 italic" style={{ color: C.textSecondary }}>
+                    <p className="text-xs mt-2 italic" style={{ color: theme.muted }}>
                       &ldquo;{request.note}&rdquo;
                     </p>
                   )}
-                  <p className="text-[10px] mt-2" style={{ color: C.textTertiary }}>
+                  <p className="text-[10px] mt-2" style={{ color: theme.muted }}>
                     Submitted {formatSubmittedAt(request.createdAt)}
                   </p>
                 </div>
@@ -260,7 +262,7 @@ export default function CommitteeJoinRequestsPanel({
                       }))
                     }
                     className="text-xs rounded-lg border px-2 py-1.5"
-                    style={{ borderColor: C.border, color: C.textPrimary }}
+                    style={inputStyle}
                     disabled={busy}
                   >
                     {ROLE_OPTIONS.map((opt) => (
@@ -269,32 +271,32 @@ export default function CommitteeJoinRequestsPanel({
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(request)}
+                  <AdminButton
+                    theme={theme}
+                    variant="primary"
+                    size="compact"
+                    onClick={() => void handleApprove(request)}
                     disabled={busy}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer disabled:opacity-50"
-                    style={{ backgroundColor: C.success }}
                   >
                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                     Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDecline(request)}
+                  </AdminButton>
+                  <AdminButton
+                    theme={theme}
+                    variant="danger"
+                    size="compact"
+                    onClick={() => void handleDecline(request)}
                     disabled={busy}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border cursor-pointer disabled:opacity-50"
-                    style={{ borderColor: C.border, color: C.error }}
                   >
                     <X className="w-3 h-3" />
                     Decline
-                  </button>
+                  </AdminButton>
                 </div>
               </div>
             </motion.div>
           );
         })}
       </motion.div>
-    </div>
+    </AdminCard>
   );
 }

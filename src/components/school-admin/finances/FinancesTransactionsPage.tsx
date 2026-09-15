@@ -1,8 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-import PaymentsHistoryPanel from "@/components/school-admin/admissions/PaymentsHistoryPanel";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
+import FinancesTransactionsPageShell from "@/components/school-admin/finances/FinancesTransactionsPageShell";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type FinancesTransactionsPageProps = {
@@ -14,21 +12,8 @@ type FinancesTransactionsPageProps = {
 export default function FinancesTransactionsPage({
   organizationId,
   slug,
-  branding,
 }: FinancesTransactionsPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
-
   return (
-    <div
-      className="relative flex h-full min-h-0 flex-col"
-      style={{ backgroundColor: C.surface }}
-    >
-      <PaymentsHistoryPanel
-        organizationId={organizationId}
-        orgSlug={slug}
-        branding={branding}
-        mode="transactions"
-      />
-    </div>
+    <FinancesTransactionsPageShell organizationId={organizationId} slug={slug} />
   );
 }

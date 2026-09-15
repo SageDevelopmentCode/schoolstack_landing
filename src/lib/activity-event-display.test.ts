@@ -37,6 +37,21 @@ function baseEvent(
   };
 }
 
+describe("formatActivityEventNarrative", () => {
+  it("appends a mobile label when metadata.client is mobile", () => {
+    assert.equal(
+      formatActivityEventNarrative(
+        baseEvent({
+          action: ACTIVITY_ACTIONS.AUTH_SIGNED_IN,
+          summary: "Parent signed in on mobile app (mobile)",
+          metadata: { client: "mobile", platform: "ios" },
+        }),
+      ),
+      "A parent signed in for Rooted Meadows Waldorf School (Mobile (ios))",
+    );
+  });
+});
+
 describe("formatActivityActionPhrase", () => {
   it("returns a readable phrase for known actions", () => {
     assert.equal(

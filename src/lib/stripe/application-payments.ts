@@ -44,6 +44,22 @@ export type ListPaymentRecordsFilters = {
   limit?: number;
 };
 
+export type ListPaymentRecordsPaginatedFilters = {
+  organizationId: string;
+  paymentType?: PaymentType;
+  status?: PaymentStatus;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListPaymentRecordsPaginatedResult = {
+  records: PaymentRecord[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
+
 function rowToPayment(row: Record<string, unknown>): PaymentRecord {
   return {
     id: String(row.id),
@@ -231,6 +247,44 @@ export async function getPaymentByChecklistItem(
   if (error) throw error;
   if (!data) return null;
   return rowToPayment(data as Record<string, unknown>);
+}
+
+export async function listPaymentRecordsPaginated(
+  supabase: SupabaseClient,
+  filters: ListPaymentRecordsPaginatedFilters,
+): Promise<ListPaymentRecordsPaginatedResult> {
+  const limit = Math.min(Math.max(filters.limit ?? 50, 1), 100);
+  const offset = Math.max(filters.offset ?? 0, 0);
+
+  let query = supabase
+    .from("application_payments")
+    .select("*", { count: "exact" })
+    .eq("organization_id", filters.organizationId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (filters.paymentType) {
+    query = query.eq("payment_type", filters.paymentType);
+  }
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  }
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  const records = (data ?? []).map((row) =>
+    rowToPayment(row as Record<string, unknown>),
+  );
+  const totalCount = count ?? records.length;
+
+  return {
+    records,
+    totalCount,
+    limit,
+    offset,
+    hasMore: offset + records.length < totalCount,
+  };
 }
 
 export async function listPaymentRecords(

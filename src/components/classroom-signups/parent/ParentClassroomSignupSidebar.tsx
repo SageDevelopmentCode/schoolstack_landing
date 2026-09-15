@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import ParentClassroomSignupResponseForm from "./ParentClassroomSignupResponseForm";
 import type {
   ClassroomSignup,
@@ -13,14 +13,15 @@ import {
   SIGNUP_TYPE_LABELS,
 } from "@/lib/classroom-signups/types";
 import { formatSignupDeadline } from "@/lib/classroom-signups/utils";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentClassroomSignupSidebarProps = {
   theme: ParentThemeTokens;
   open: boolean;
   organizationId: string;
+  signupId: string | null;
   signup: ClassroomSignup | null;
-  initialResponses: ClassroomSignupResponse[];
   initialFamilyResponse: ClassroomSignupResponse | null;
   studentOptions: ParentClassroomSignupStudentOption[];
   readOnly?: boolean;
@@ -28,21 +29,16 @@ type ParentClassroomSignupSidebarProps = {
   onSubmitted: (
     signupId: string,
     response: ClassroomSignupResponse,
-    allResponses: ClassroomSignupResponse[],
   ) => void;
-  onWithdrawn: (
-    signupId: string,
-    familyId: string,
-    allResponses: ClassroomSignupResponse[],
-  ) => void;
+  onWithdrawn: (signupId: string) => void;
 };
 
 export default function ParentClassroomSignupSidebar({
   theme,
   open,
   organizationId,
+  signupId,
   signup,
-  initialResponses,
   initialFamilyResponse,
   studentOptions,
   readOnly = false,
@@ -50,10 +46,14 @@ export default function ParentClassroomSignupSidebar({
   onSubmitted,
   onWithdrawn,
 }: ParentClassroomSignupSidebarProps) {
-  const [responses, setResponses] = useState(initialResponses);
+  const [responses, setResponses] = useState<ClassroomSignupResponse[]>([]);
   const [response, setResponse] = useState<ClassroomSignupResponse | null>(
     initialFamilyResponse,
   );
+  const [detailStudentOptions, setDetailStudentOptions] =
+    useState(studentOptions);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +63,73 @@ export default function ParentClassroomSignupSidebar({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!open || !signupId) return;
+
+    const activeSignupId = signupId;
+    let cancelled = false;
+
+    async function loadDetail() {
+      setIsLoadingDetail(true);
+      setDetailError(null);
+      setResponses([]);
+      setResponse(initialFamilyResponse);
+
+      let fetchResponse: Response | undefined;
+      try {
+        const query = new URLSearchParams({ organizationId }).toString();
+        fetchResponse = await fetch(
+          `/api/parent-portal/classroom-signups/${encodeURIComponent(activeSignupId)}?${query}`,
+        );
+        const payload = (await fetchResponse.json()) as {
+          responses?: ClassroomSignupResponse[];
+          familyResponse?: ClassroomSignupResponse | null;
+          studentOptions?: ParentClassroomSignupStudentOption[];
+          error?: string;
+        };
+
+        if (!fetchResponse.ok) {
+          throw new Error(payload.error ?? "Failed to load signup.");
+        }
+
+        if (cancelled) return;
+
+        setResponses(payload.responses ?? []);
+        setResponse(payload.familyResponse ?? initialFamilyResponse);
+        if (payload.studentOptions?.length) {
+          setDetailStudentOptions(payload.studentOptions);
+        } else {
+          setDetailStudentOptions(studentOptions);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        setDetailError(
+          error instanceof Error ? error.message : "Failed to load signup.",
+        );
+        void reportPortalOperationalError(
+          "parent_portal",
+          {
+            organizationId,
+            operation: "classroom_signups.detail",
+            error: "",
+          },
+          error,
+          fetchResponse?.status,
+        );
+      } finally {
+        if (!cancelled) {
+          setIsLoadingDetail(false);
+        }
+      }
+    }
+
+    void loadDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialFamilyResponse, open, organizationId, signupId, studentOptions]);
 
   const hasConfirmedResponse = response?.status === "confirmed";
   const canViewClosedSignup =
@@ -139,7 +206,19 @@ export default function ParentClassroomSignupSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4">
-              {!canShowContent ? (
+              {isLoadingDetail ? (
+                <div
+                  className="flex items-center justify-center gap-2 py-12 text-sm"
+                  style={{ color: theme.muted }}
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading signup…
+                </div>
+              ) : detailError ? (
+                <p className="text-sm" style={{ color: theme.ink }}>
+                  {detailError}
+                </p>
+              ) : !canShowContent ? (
                 <p className="text-sm" style={{ color: theme.ink }}>
                   This signup is no longer accepting responses.
                 </p>
@@ -171,34 +250,34 @@ export default function ParentClassroomSignupSidebar({
                       {formReadOnly ? "Your signup" : "Your response"}
                     </h3>
                     <ParentClassroomSignupResponseForm
-                    organizationId={organizationId}
-                    signup={signup}
-                    existingResponse={response}
-                    allResponses={responses}
-                    studentOptions={studentOptions}
-                    readOnly={formReadOnly}
-                    onSubmitted={(nextResponse) => {
-                      const nextResponses = [
-                        ...responses.filter(
-                          (entry) => entry.familyId !== nextResponse.familyId,
-                        ),
-                        nextResponse,
-                      ];
-                      setResponse(nextResponse);
-                      setResponses(nextResponses);
-                      onSubmitted(signup.id, nextResponse, nextResponses);
-                    }}
-                    onWithdrawn={() => {
-                      const familyId = response?.familyId;
-                      if (!familyId) return;
-                      const nextResponses = responses.filter(
-                        (entry) => entry.familyId !== familyId,
-                      );
-                      setResponse(null);
-                      setResponses(nextResponses);
-                      onWithdrawn(signup.id, familyId, nextResponses);
-                    }}
-                  />
+                      organizationId={organizationId}
+                      signup={signup}
+                      existingResponse={response}
+                      allResponses={responses}
+                      studentOptions={detailStudentOptions}
+                      readOnly={formReadOnly}
+                      onSubmitted={(nextResponse) => {
+                        const nextResponses = [
+                          ...responses.filter(
+                            (entry) => entry.familyId !== nextResponse.familyId,
+                          ),
+                          nextResponse,
+                        ];
+                        setResponse(nextResponse);
+                        setResponses(nextResponses);
+                        onSubmitted(signup.id, nextResponse);
+                      }}
+                      onWithdrawn={() => {
+                        const familyId = response?.familyId;
+                        if (!familyId) return;
+                        const nextResponses = responses.filter(
+                          (entry) => entry.familyId !== familyId,
+                        );
+                        setResponse(null);
+                        setResponses(nextResponses);
+                        onWithdrawn(signup.id);
+                      }}
+                    />
                   </div>
                 </>
               )}

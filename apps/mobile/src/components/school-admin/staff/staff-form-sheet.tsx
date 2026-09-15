@@ -1,21 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
+  Text,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryChip } from '@/components/story/story-chip';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { StoryTextField } from '@/components/story/story-text-field';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import type { StaffPortalRole } from '@/lib/school-admin-api';
 import { createStaffMember } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 export type StaffFormState = {
   firstName: string;
@@ -43,8 +50,9 @@ type StaffFormSheetProps = {
 const PORTAL_ROLES: StaffPortalRole[] = ['teacher', 'staff'];
 
 export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
+  const { reportError } = useMobileErrorReporter();
   const [form, setForm] = useState<StaffFormState>(EMPTY_STAFF_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,16 +63,32 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
     setError(null);
   }, [visible]);
 
+  const isDirty = useMemo(
+    () =>
+      Boolean(
+        form.firstName.trim() ||
+          form.lastName.trim() ||
+          form.email.trim() ||
+          form.roleTitle.trim(),
+      ),
+    [form],
+  );
+
   const canSave = useMemo(
     () =>
+      isDirty &&
       Boolean(
         form.firstName.trim() &&
           form.lastName.trim() &&
           form.email.trim() &&
           form.roleTitle.trim(),
       ),
-    [form],
+    [form, isDirty],
   );
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -81,6 +105,7 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
       onCreated(member.id);
       onClose();
     } catch (saveError) {
+      reportError('school_admin_staff_create', saveError);
       setError(formatStaffApiError(saveError, 'Failed to add staff member.'));
     } finally {
       setSaving(false);
@@ -88,84 +113,71 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Pressable accessibilityRole="button" onPress={onClose}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Cancel
-            </ThemedText>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
+      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: Story.line }]}>
+          <Pressable accessibilityRole="button" onPress={requestClose}>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Cancel</Text>
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Add staff
-          </ThemedText>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>Add staff</Text>
           <Pressable
             accessibilityRole="button"
             disabled={!canSave || saving}
             onPress={() => void handleSave()}>
             {saving ? (
-              <ActivityIndicator size="small" color={theme.accent} />
+              <ActivityIndicator size="small" color={theme.primary} />
             ) : (
-              <ThemedText
-                type="smallBold"
-                style={{ color: canSave ? theme.accent : theme.textTertiary }}>
+              <Text
+                style={[
+                  styles.headerAction,
+                  { color: canSave ? theme.primary : theme.muted },
+                ]}>
                 Add
-              </ThemedText>
+              </Text>
             )}
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          {error ? (
-            <ThemedText type="small" style={{ color: theme.error }}>
-              {error}
-            </ThemedText>
-          ) : null}
+          <Text style={[styles.description, { color: theme.muted }]}>
+            They can sign in with a one-time code sent to their email.
+          </Text>
 
-          <Field label="First name">
-            <TextInput
-              value={form.firstName}
-              onChangeText={(firstName) => setForm((current) => ({ ...current, firstName }))}
-              placeholder="First name"
-              placeholderTextColor={theme.textTertiary}
-              style={[styles.input, inputStyle(theme)]}
-            />
-          </Field>
+          {error ? <StoryErrorBanner message={error} /> : null}
 
-          <Field label="Last name">
-            <TextInput
-              value={form.lastName}
-              onChangeText={(lastName) => setForm((current) => ({ ...current, lastName }))}
-              placeholder="Last name"
-              placeholderTextColor={theme.textTertiary}
-              style={[styles.input, inputStyle(theme)]}
-            />
-          </Field>
+          <StoryTextField
+            label="First name"
+            value={form.firstName}
+            onChangeText={(firstName) => setForm((current) => ({ ...current, firstName }))}
+            placeholder="First name"
+          />
 
-          <Field label="Email">
-            <TextInput
-              value={form.email}
-              onChangeText={(email) => setForm((current) => ({ ...current, email }))}
-              placeholder="name@school.org"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholderTextColor={theme.textTertiary}
-              style={[styles.input, inputStyle(theme)]}
-            />
-          </Field>
+          <StoryTextField
+            label="Last name"
+            value={form.lastName}
+            onChangeText={(lastName) => setForm((current) => ({ ...current, lastName }))}
+            placeholder="Last name"
+          />
 
-          <Field label="Job title">
-            <TextInput
-              value={form.roleTitle}
-              onChangeText={(roleTitle) => setForm((current) => ({ ...current, roleTitle }))}
-              placeholder="Lead Teacher"
-              placeholderTextColor={theme.textTertiary}
-              style={[styles.input, inputStyle(theme)]}
-            />
-          </Field>
+          <StoryTextField
+            label="Email"
+            value={form.email}
+            onChangeText={(email) => setForm((current) => ({ ...current, email }))}
+            placeholder="name@school.org"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-          <Field label="Portal role">
+          <StoryTextField
+            label="Job title"
+            value={form.roleTitle}
+            onChangeText={(roleTitle) => setForm((current) => ({ ...current, roleTitle }))}
+            placeholder="Lead Teacher"
+          />
+
+          <View style={styles.field}>
+            <Text style={[styles.fieldLabel, { color: theme.muted }]}>Portal role</Text>
             <View style={styles.chipRow}>
               {PORTAL_ROLES.map((role) => {
                 const active = form.portalRole === role;
@@ -173,49 +185,26 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
                   <Pressable
                     key={role}
                     accessibilityRole="button"
-                    onPress={() => setForm((current) => ({ ...current, portalRole: role }))}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active ? theme.accentLight : theme.surface,
-                        borderColor: active ? theme.accent : theme.border,
-                      },
-                    ]}>
-                    <ThemedText
-                      type="small"
-                      style={{ color: active ? theme.accent : theme.textSecondary }}>
-                      {role === 'teacher' ? 'Teacher' : 'Staff'}
-                    </ThemedText>
+                    onPress={() => setForm((current) => ({ ...current, portalRole: role }))}>
+                    <StoryChip
+                      tone={active ? 'success' : 'info'}
+                      label={role === 'teacher' ? 'Teacher' : 'Staff'}
+                    />
                   </Pressable>
                 );
               })}
             </View>
-          </Field>
+          </View>
+
+          <StoryButton
+            label="Add staff"
+            disabled={!canSave || saving}
+            onPress={() => void handleSave()}
+          />
         </ScrollView>
       </View>
     </Modal>
   );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  const theme = useAdminTheme();
-  return (
-    <View style={styles.field}>
-      <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
-        {label}
-      </ThemedText>
-      {children}
-    </View>
-  );
-}
-
-function inputStyle(theme: ReturnType<typeof useAdminTheme>) {
-  return {
-    borderColor: theme.inputBorder,
-    backgroundColor: theme.input,
-    color: theme.textPrimary,
-    fontFamily: Fonts.body,
-  };
 }
 
 const styles = StyleSheet.create({
@@ -226,34 +215,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 16,
+  },
+  headerAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    minWidth: 48,
+    textAlign: 'center',
   },
   content: {
     padding: Spacing.four,
     gap: Spacing.four,
     paddingBottom: Spacing.six,
   },
+  description: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   field: {
     gap: Spacing.two,
   },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    fontSize: 15,
+  fieldLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  chip: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
   },
 });

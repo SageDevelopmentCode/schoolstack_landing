@@ -90,6 +90,14 @@ export function getSignupProgress(
   }
 }
 
+export function responsesExcludingFamily(
+  responses: ClassroomSignupResponse[],
+  familyId: string | undefined,
+): ClassroomSignupResponse[] {
+  if (!familyId) return responses;
+  return responses.filter((response) => response.familyId !== familyId);
+}
+
 export function getSlotFillCount(
   slotId: string,
   responses: ClassroomSignupResponse[],

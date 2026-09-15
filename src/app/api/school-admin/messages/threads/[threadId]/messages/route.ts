@@ -8,6 +8,7 @@ import {
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -66,6 +67,7 @@ export async function POST(request: Request, context: RouteContext) {
       staffMemberId,
       schoolName,
       schoolOfficeLabel: `${schoolName} Office`,
+      activityMetadata: activityClientMetadataFromRequest(request),
     });
 
     return NextResponse.json({ message });

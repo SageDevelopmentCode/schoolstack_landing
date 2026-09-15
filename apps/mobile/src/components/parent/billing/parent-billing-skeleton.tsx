@@ -7,8 +7,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { BILLING_PAGE_GAP } from '@/components/parent/billing/billing-layout';
+import { Story, StoryRadius } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
   style,
@@ -43,31 +45,28 @@ function ChargeRowSkeleton({ backgroundColor }: { backgroundColor: string }) {
 }
 
 export function ParentBillingSkeleton() {
-  const theme = useAdminTheme();
-  const blockColor = theme.border;
+  const blockColor = Story.line;
 
   return (
     <ScrollView
-      style={{ backgroundColor: theme.bg }}
+      style={{ backgroundColor: Story.paper }}
       contentContainerStyle={styles.content}
       scrollEnabled={false}>
-      <View style={styles.pillRow}>
+      <SkeletonBlock style={styles.title} backgroundColor={blockColor} />
+      <SkeletonBlock style={styles.subtitle} backgroundColor={blockColor} />
+
+      <View style={styles.pillTrack}>
         <SkeletonBlock style={styles.pill} backgroundColor={blockColor} />
-        <SkeletonBlock style={styles.pillWide} backgroundColor={blockColor} />
+        <SkeletonBlock style={styles.pill} backgroundColor={blockColor} />
+        <SkeletonBlock style={styles.pill} backgroundColor={blockColor} />
         <SkeletonBlock style={styles.pill} backgroundColor={blockColor} />
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[styles.heroCard, { backgroundColor: '#F2F8EF', borderColor: Story.line }]}>
         <SkeletonBlock style={styles.heroLabel} backgroundColor={blockColor} />
         <SkeletonBlock style={styles.heroAmount} backgroundColor={blockColor} />
         <SkeletonBlock style={styles.heroDue} backgroundColor={blockColor} />
         <SkeletonBlock style={styles.heroButton} backgroundColor={blockColor} />
-      </View>
-
-      <View style={styles.section}>
-        <SkeletonBlock style={styles.sectionTitle} backgroundColor={blockColor} />
-        <ChargeRowSkeleton backgroundColor={blockColor} />
-        <ChargeRowSkeleton backgroundColor={blockColor} />
       </View>
 
       <View style={styles.section}>
@@ -81,13 +80,36 @@ export function ParentBillingSkeleton() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
-    gap: Spacing.five,
+    gap: BILLING_PAGE_GAP,
+  },
+  title: {
+    width: '70%',
+    height: 28,
+    borderRadius: 8,
+  },
+  subtitle: {
+    width: '85%',
+    height: 14,
+    borderRadius: 6,
+  },
+  pillTrack: {
+    flexDirection: 'row',
+    gap: 4,
+    backgroundColor: '#EAF2EB',
+    borderRadius: 12,
+    padding: 4,
+    width: '100%',
+  },
+  pill: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
   },
   heroCard: {
-    borderRadius: Radius.lg,
+    borderRadius: StoryRadius.card,
     borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.five,
     gap: Spacing.three,
@@ -96,45 +118,31 @@ const styles = StyleSheet.create({
   heroLabel: {
     width: 100,
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
   },
   heroAmount: {
     width: 160,
     height: 36,
-    borderRadius: Radius.md,
+    borderRadius: 8,
   },
   heroDue: {
     width: 140,
     height: 12,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
   },
   heroButton: {
     width: '100%',
     height: 48,
-    borderRadius: Radius.lg,
+    borderRadius: StoryRadius.button,
     marginTop: Spacing.two,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  pill: {
-    width: 72,
-    height: 32,
-    borderRadius: Radius.pill,
-  },
-  pillWide: {
-    width: 96,
-    height: 32,
-    borderRadius: Radius.pill,
   },
   section: {
     gap: Spacing.three,
   },
   sectionTitle: {
     width: 140,
-    height: 18,
-    borderRadius: Radius.sm,
+    height: 22,
+    borderRadius: 6,
   },
   chargeRow: {
     flexDirection: 'row',
@@ -150,16 +158,16 @@ const styles = StyleSheet.create({
   chargeLabel: {
     width: '70%',
     height: 14,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
   },
   chargeDue: {
     width: '45%',
     height: 12,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
   },
   chargeAmount: {
     width: 64,
     height: 16,
-    borderRadius: Radius.sm,
+    borderRadius: 6,
   },
 });

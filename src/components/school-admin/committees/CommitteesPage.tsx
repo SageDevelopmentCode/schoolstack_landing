@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   archiveCommittee,
   createCommitteeFromTemplate,
@@ -16,9 +15,19 @@ import type { Committee, CommitteeListItem, CommitteeTemplate } from "@/lib/comm
 import { createClient } from "@/utils/supabase/client";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import {
+  deriveCommitteeRosterMetrics,
+  filterCommitteesByRosterFilter,
+  type CommitteeRosterFilter,
+} from "@/lib/school-admin/admin-committee-roster-metrics";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import CommitteeListView from "./CommitteeListView";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
 import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
+import CommitteesStoryHeader from "./CommitteesStoryHeader";
+import CommitteeStoryFilterPill from "./committee-story-filter-pill";
 import CreateCommitteeModal from "./modals/CreateCommitteeModal";
 import ArchiveCommitteeModal from "./modals/ArchiveCommitteeModal";
 import { parseCommitteeSection } from "./committee-routing";
@@ -36,11 +45,13 @@ export default function CommitteesPage({
   branding,
   slug,
 }: CommitteesPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  void branding;
+  const { theme, C } = useSchoolAdminStoryTheme();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const joinRequestsRef = useRef<HTMLDivElement>(null);
 
   const committeeId = searchParams.get("committee");
   const activeSection = parseCommitteeSection(searchParams.get("section"));
@@ -54,6 +65,7 @@ export default function CommitteesPage({
   const [showArchive, setShowArchive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [rosterFilter, setRosterFilter] = useState<CommitteeRosterFilter>("all");
 
   const loadList = useCallback(async () => {
     const [list, templateList] = await Promise.all([
@@ -167,6 +179,16 @@ export default function CommitteesPage({
   const displayedCommittee =
     committeeId && activeCommittee?.id === committeeId ? activeCommittee : null;
 
+  const metrics = useMemo(
+    () => deriveCommitteeRosterMetrics(committees, pendingRequestCount),
+    [committees, pendingRequestCount],
+  );
+
+  const filteredCommittees = useMemo(
+    () => filterCommitteesByRosterFilter(committees, rosterFilter),
+    [committees, rosterFilter],
+  );
+
   const setUrl = useCallback(
     (nextCommitteeId: string | null, section?: string) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -250,9 +272,13 @@ export default function CommitteesPage({
     }
   };
 
+  const focusJoinRequests = () => {
+    joinRequestsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px]">
         <SchoolAdminSummaryCardsSkeleton C={C} count={3} />
       </div>
     );
@@ -260,7 +286,7 @@ export default function CommitteesPage({
 
   if (error && !committeeId) {
     return (
-      <div className="p-6">
+      <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px]">
         <p className="text-sm" style={{ color: C.error }}>
           {error}
         </p>
@@ -271,7 +297,7 @@ export default function CommitteesPage({
   if (committeeId) {
     if (loadingCommittee || !displayedCommittee) {
       return (
-        <div className="p-6">
+        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px]">
           <SchoolAdminSummaryCardsSkeleton C={C} count={2} />
         </div>
       );
@@ -281,7 +307,7 @@ export default function CommitteesPage({
       <>
         <CommitteeWorkspaceShell
           committee={displayedCommittee}
-          C={C}
+          theme={theme}
           supabase={supabase}
           organizationId={organizationId}
           schoolSlug={slug}
@@ -295,7 +321,7 @@ export default function CommitteesPage({
         <AnimatePresence>
           {showArchive && (
             <ArchiveCommitteeModal
-              C={C}
+              theme={theme}
               committee={displayedCommittee}
               onClose={() => setShowArchive(false)}
               onConfirm={handleArchive}
@@ -306,27 +332,119 @@ export default function CommitteesPage({
     );
   }
 
+  const showMetrics = committees.length > 0;
+
   return (
     <>
-      <div className="h-full overflow-y-auto p-6 space-y-6">
-        <CommitteeListView
-          committees={committees}
-          C={C}
-          pendingRequestCount={pendingRequestCount}
-          onOpenCommittee={handleOpenCommittee}
-          onCreate={() => setShowCreate(true)}
-        />
-        <CommitteeJoinRequestsPanel
-          organizationId={organizationId}
-          schoolSlug={slug}
-          C={C}
-          onChanged={loadPendingRequestCount}
-        />
+      <div className="relative flex h-full min-h-0 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
+            <CommitteesStoryHeader
+              theme={theme}
+              activeCount={metrics.activeCount}
+              pendingRequestCount={metrics.pendingJoinRequests}
+              onCreate={() => setShowCreate(true)}
+            />
+
+            {showMetrics ? (
+              <>
+                <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.activeCount)}
+                    label="Active committees"
+                    accent="forest"
+                  />
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.totalVolunteers)}
+                    label="Total volunteers"
+                    accent="sky"
+                  />
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.pendingJoinRequests)}
+                    label="Pending join requests"
+                    accent="gold"
+                  />
+                  <AdminMetricCard
+                    theme={theme}
+                    value={String(metrics.archivedCount)}
+                    label="Archived committees"
+                    accent="berry"
+                  />
+                </div>
+
+                {metrics.pendingJoinRequests > 0 ? (
+                  <div
+                    className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
+                    style={{
+                      backgroundColor: "#EAF4EB",
+                      borderColor: "#C7DFCB",
+                      color: "#42694F",
+                    }}
+                  >
+                    <span className="text-xs">
+                      <b>Needs attention:</b> {metrics.pendingJoinRequests} parent join request
+                      {metrics.pendingJoinRequests === 1 ? "" : "s"} waiting for review.
+                    </span>
+                    <AdminButton theme={theme} variant="soft" onClick={focusJoinRequests}>
+                      Review requests →
+                    </AdminButton>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+
+            {committees.length > 0 ? (
+              <div className="mb-[15px] flex flex-wrap items-center gap-2">
+                <CommitteeStoryFilterPill
+                  active={rosterFilter === "all"}
+                  label="All"
+                  count={metrics.totalCount}
+                  onClick={() => setRosterFilter("all")}
+                  theme={theme}
+                />
+                <CommitteeStoryFilterPill
+                  active={rosterFilter === "active"}
+                  label="Active"
+                  count={metrics.activeCount}
+                  onClick={() => setRosterFilter("active")}
+                  theme={theme}
+                />
+                <CommitteeStoryFilterPill
+                  active={rosterFilter === "archived"}
+                  label="Archived"
+                  count={metrics.archivedCount}
+                  onClick={() => setRosterFilter("archived")}
+                  theme={theme}
+                />
+              </div>
+            ) : null}
+
+            <div className="mb-6">
+              <CommitteeListView
+                committees={filteredCommittees}
+                theme={theme}
+                onOpenCommittee={handleOpenCommittee}
+              />
+            </div>
+
+            <div ref={joinRequestsRef}>
+              <CommitteeJoinRequestsPanel
+                organizationId={organizationId}
+                schoolSlug={slug}
+                theme={theme}
+                onChanged={loadPendingRequestCount}
+              />
+            </div>
+          </div>
+        </div>
       </div>
       <AnimatePresence>
         {showCreate && (
           <CreateCommitteeModal
-            C={C}
+            theme={theme}
             templates={templates}
             onClose={() => setShowCreate(false)}
             onCreate={handleCreate}

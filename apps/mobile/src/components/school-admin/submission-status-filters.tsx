@@ -1,8 +1,7 @@
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { AdmissionsFilterPill } from '@/components/school-admin/admissions/admissions-filter-pill';
+import { Spacing } from '@/constants/theme';
 
 type SubmissionStatusFiltersProps = {
   activeStatus: string;
@@ -23,7 +22,10 @@ export function SubmissionStatusFilters({
   counts,
   onChange,
 }: SubmissionStatusFiltersProps) {
-  const theme = useAdminTheme();
+  const allCount = Object.entries(counts).reduce((total, [status, value]) => {
+    if (status === 'withdrawn') return total;
+    return total + value;
+  }, 0);
 
   return (
     <ScrollView
@@ -31,34 +33,17 @@ export function SubmissionStatusFilters({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}>
       {FILTER_OPTIONS.map((option) => {
-        const active = activeStatus === option.id;
         const count =
-          option.id === 'all'
-            ? Object.entries(counts).reduce((total, [status, value]) => {
-                if (status === 'withdrawn') return total;
-                return total + value;
-              }, 0)
-            : counts[option.id] ?? 0;
+          option.id === 'all' ? allCount : counts[option.id] ?? 0;
 
         return (
-          <Pressable
+          <AdmissionsFilterPill
             key={option.id}
-            accessibilityRole="button"
+            active={activeStatus === option.id}
+            label={option.label}
+            count={count}
             onPress={() => onChange(option.id)}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: active ? theme.accentLight : theme.surface,
-                borderColor: active ? theme.accent : theme.border,
-              },
-            ]}>
-            <ThemedText
-              type="smallBold"
-              style={{ color: active ? theme.accent : theme.textSecondary }}>
-              {option.label}
-              {count ? ` ${count}` : ''}
-            </ThemedText>
-          </Pressable>
+          />
         );
       })}
     </ScrollView>
@@ -68,12 +53,5 @@ export function SubmissionStatusFilters({
 const styles = StyleSheet.create({
   container: {
     gap: Spacing.two,
-    paddingBottom: Spacing.two,
-  },
-  chip: {
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
 });

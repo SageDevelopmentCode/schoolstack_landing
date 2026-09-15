@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { formatDateOnlyLabel } from '@/lib/admissions/admissions-availability';
 import {
-  createObservationSlot,
-  deleteObservationSlot,
+  createObservationSlotViaApi,
+  deleteObservationSlotViaApi,
+} from '@/lib/school-admin/schedule-api';
+import {
   formatGradeValuesLabel,
   formatObservationSlotLabel,
   formatObservationSlotTimeLabel,
@@ -17,7 +20,9 @@ import {
 } from '@/lib/admissions/admissions-observation-slots';
 import type { ShadowDaySchedulingMode } from '@/lib/admissions/admissions-org-settings';
 import { STUDENT_GRADE_OPTIONS } from '@/lib/admissions/apply-system-fields';
-import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Radius, Spacing } from '@/constants/theme';
 
 type ShadowDaySheetProps = {
   visible: boolean;
@@ -50,9 +55,9 @@ export function ShadowDaySheet({
   onReload,
   onToggleWholeDay,
 }: ShadowDaySheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
-  const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
   const presets = useMemo(() => getShadowDayTimeWindowPresets(), []);
 
   const [gradeValues, setGradeValues] = useState<string[]>([]);
@@ -86,7 +91,8 @@ export function ShadowDaySheet({
     const preset = presets.find((entry) => entry.id === presetId) ?? presets[0];
     setSubmitting(true);
     try {
-      await createObservationSlot(supabase, organizationId, {
+      await createObservationSlotViaApi({
+        organizationId,
         date,
         startTime: includeTime ? preset.startTime : 'ALL_DAY',
         endTime: includeTime ? preset.endTime : null,
@@ -97,6 +103,9 @@ export function ShadowDaySheet({
       setLabel('');
       onReload();
     } catch (error) {
+      reportError('school_admin_schedule_shadow_slot_add', error, {
+        metadata: { date, mode },
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add shadow slot.');
     } finally {
       setSubmitting(false);
@@ -106,9 +115,13 @@ export function ShadowDaySheet({
   const handleDeleteSlot = async (slotId: string) => {
     setDeletingId(slotId);
     try {
-      await deleteObservationSlot(supabase, organizationId, slotId);
+      await deleteObservationSlotViaApi(organizationId, slotId);
       onReload();
     } catch (error) {
+      reportError('school_admin_schedule_shadow_slot_delete', error, {
+        entityType: 'observation_slot',
+        entityId: slotId,
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove shadow slot.');
     } finally {
       setDeletingId(null);
@@ -117,26 +130,19 @@ export function ShadowDaySheet({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
+      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Done
-            </ThemedText>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Done</Text>
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Shadow day
-          </ThemedText>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>Shadow day</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          <ThemedText type="title" style={{ color: theme.textPrimary }}>
-            {formatDateOnlyLabel(date)}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textTertiary }}>
-            {footerText}
-          </ThemedText>
+          <StorySectionKicker style={styles.kicker}>Shadow availability</StorySectionKicker>
+          <StoryDisplayHeading size="section">{formatDateOnlyLabel(date)}</StoryDisplayHeading>
+          <Text style={[styles.helperCopy, { color: theme.muted }]}>{footerText}</Text>
 
           {mode === 'whole_day' ? (
             <Pressable
@@ -146,20 +152,20 @@ export function ShadowDaySheet({
               style={[
                 styles.wholeDayButton,
                 {
-                  backgroundColor: wholeDayOpen ? theme.accentLight : theme.surface,
-                  borderColor: wholeDayBooked ? theme.warning : wholeDayOpen ? theme.accent : theme.border,
+                  backgroundColor: wholeDayOpen ? theme.primarySoft : theme.white,
+                  borderColor: wholeDayBooked ? theme.warning : wholeDayOpen ? theme.primary : theme.line,
                 },
               ]}>
               {togglingWholeDay ? (
-                <ActivityIndicator color={theme.accent} />
+                <ActivityIndicator color={theme.primary} />
               ) : (
-                <ThemedText type="smallBold" style={{ color: wholeDayOpen ? theme.accent : theme.textPrimary }}>
+                <Text style={[styles.wholeDayLabel, { color: wholeDayOpen ? theme.primary : theme.ink }]}>
                   {wholeDayBooked
                     ? 'Booked — cannot change'
                     : wholeDayOpen
                       ? 'Open for shadow visits'
                       : 'Closed — tap to open'}
-                </ThemedText>
+                </Text>
               )}
             </Pressable>
           ) : (
@@ -172,27 +178,27 @@ export function ShadowDaySheet({
                     style={[
                       styles.slotRow,
                       {
-                        borderColor: booked ? theme.warning : theme.border,
-                        backgroundColor: booked ? theme.warningBg : theme.surface,
+                        borderColor: booked ? theme.warning : theme.line,
+                        backgroundColor: booked ? theme.warningBg : theme.white,
                       },
                     ]}>
                     <View style={styles.slotCopy}>
-                      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                      <Text style={[styles.slotTitle, { color: theme.ink }]}>
                         {formatObservationSlotLabel(slot)}
-                      </ThemedText>
-                      <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                      </Text>
+                      <Text style={[styles.slotMeta, { color: theme.muted }]}>
                         {formatObservationSlotTimeLabel(slot)}
                         {slot.gradeValues.length > 0 ? ` · ${formatGradeValuesLabel(slot.gradeValues)}` : ''}
-                      </ThemedText>
+                      </Text>
                     </View>
                     {!readOnly && !booked ? (
                       <Pressable
                         accessibilityRole="button"
                         disabled={deletingId === slot.id}
                         onPress={() => void handleDeleteSlot(slot.id)}>
-                        <ThemedText type="smallBold" style={{ color: theme.error }}>
+                        <Text style={[styles.removeAction, { color: theme.alert }]}>
                           {deletingId === slot.id ? '…' : 'Remove'}
-                        </ThemedText>
+                        </Text>
                       </Pressable>
                     ) : null}
                   </View>
@@ -200,10 +206,8 @@ export function ShadowDaySheet({
               })}
 
               {!readOnly ? (
-                <View style={[styles.formCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    Add slot
-                  </ThemedText>
+                <View style={[styles.formCard, { borderColor: theme.line, backgroundColor: theme.white }]}>
+                  <Text style={[styles.formTitle, { color: theme.ink }]}>Add slot</Text>
                   <View style={styles.chipRow}>
                     {STUDENT_GRADE_OPTIONS.map((option) => {
                       const active = gradeValues.includes(option.value);
@@ -215,13 +219,13 @@ export function ShadowDaySheet({
                           style={[
                             styles.chip,
                             {
-                              backgroundColor: active ? theme.accentLight : theme.elevated,
-                              borderColor: active ? theme.accent : theme.border,
+                              backgroundColor: active ? theme.primarySoft : theme.paper,
+                              borderColor: active ? theme.primary : theme.line,
                             },
                           ]}>
-                          <ThemedText type="small" style={{ color: active ? theme.accent : theme.textSecondary }}>
+                          <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
                             {option.label}
-                          </ThemedText>
+                          </Text>
                         </Pressable>
                       );
                     })}
@@ -239,13 +243,13 @@ export function ShadowDaySheet({
                             style={[
                               styles.chip,
                               {
-                                backgroundColor: active ? theme.accentLight : theme.elevated,
-                                borderColor: active ? theme.accent : theme.border,
+                                backgroundColor: active ? theme.primarySoft : theme.paper,
+                                borderColor: active ? theme.primary : theme.line,
                               },
                             ]}>
-                            <ThemedText type="small" style={{ color: active ? theme.accent : theme.textSecondary }}>
+                            <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
                               {preset.label}
-                            </ThemedText>
+                            </Text>
                           </Pressable>
                         );
                       })}
@@ -256,14 +260,14 @@ export function ShadowDaySheet({
                     value={label}
                     onChangeText={setLabel}
                     placeholder="Optional label"
-                    placeholderTextColor={theme.textTertiary}
+                    placeholderTextColor={theme.muted}
                     style={[
                       styles.input,
                       {
-                        borderColor: theme.inputBorder,
-                        backgroundColor: theme.input,
-                        color: theme.textPrimary,
-                        fontFamily: Fonts.body,
+                        borderColor: theme.line,
+                        backgroundColor: theme.white,
+                        color: theme.ink,
+                        fontFamily: StoryFonts.body,
                       },
                     ]}
                   />
@@ -272,10 +276,8 @@ export function ShadowDaySheet({
                     accessibilityRole="button"
                     disabled={submitting}
                     onPress={() => void handleAddSlot()}
-                    style={[styles.addButton, { backgroundColor: theme.accent }]}>
-                    <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-                      {submitting ? 'Adding…' : 'Add slot'}
-                    </ThemedText>
+                    style={[styles.addButton, { backgroundColor: theme.primary }]}>
+                    <Text style={styles.addButtonLabel}>{submitting ? 'Adding…' : 'Add slot'}</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -295,17 +297,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerSpacer: {
     width: 40,
   },
+  headerAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   content: {
     padding: Spacing.four,
     gap: Spacing.three,
     paddingBottom: Spacing.six,
+  },
+  kicker: {
+    marginBottom: 0,
+  },
+  helperCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   wholeDayButton: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -314,6 +334,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 56,
     justifyContent: 'center',
+  },
+  wholeDayLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   slotRow: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -327,11 +353,31 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  slotTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  slotMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  removeAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   formCard: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
     padding: Spacing.three,
     gap: Spacing.three,
+  },
+  formTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
   },
   chipRow: {
     flexDirection: 'row',
@@ -344,6 +390,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
     paddingVertical: Spacing.one,
   },
+  chipLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: Radius.md,
@@ -355,5 +406,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingVertical: Spacing.two,
     alignItems: 'center',
+  },
+  addButtonLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

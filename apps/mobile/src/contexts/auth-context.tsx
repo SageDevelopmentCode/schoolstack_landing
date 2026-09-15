@@ -26,6 +26,7 @@ import {
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
+import { logMobileAuthSessionRestored, logMobileAuthSignedOut } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -152,7 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
 
         if (initialSession?.user) {
+          const persisted = await readPersistedPortalState();
           await restorePortalState();
+          if (persisted.selectedSchool?.id && persisted.portalType) {
+            void logMobileAuthSessionRestored(
+              persisted.portalType,
+              persisted.selectedSchool.id,
+            );
+          }
         }
       } finally {
         if (!cancelled) {
@@ -165,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
@@ -174,6 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
         void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
+        return;
+      }
+
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        void restorePortalState();
       }
     });
 
@@ -223,12 +236,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    void logMobileAuthSignedOut(portalType, selectedSchool?.id);
     await supabase.auth.signOut();
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
     await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
-  }, [supabase.auth]);
+  }, [portalType, selectedSchool?.id, supabase.auth]);
 
   const value = useMemo(
     () => ({

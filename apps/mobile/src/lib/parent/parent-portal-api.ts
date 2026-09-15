@@ -1,4 +1,21 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import {
+  assertApiAuthenticated,
+  getApiAuthHeaders,
+  throwUnauthorized,
+} from '@/lib/auth/auth-session';
+import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist';
+import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
+import type {
+  Committee,
+  ParentCommitteeBrowseItem,
+  ParentCommitteeListItem,
+} from '@/lib/parent/parent-committees-types';
+import type {
+  ClassroomSignupResponse,
+  ParentClassroomSignupDetail,
+  ParentClassroomSignupsPageBundle,
+  ParentSignupAttentionItem,
+} from '@/lib/parent/parent-classroom-signups-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 
@@ -9,33 +26,40 @@ type FetchParentApiOptions = {
   body?: unknown;
 };
 
-async function getAuthHeaders(includeJson = false): Promise<Record<string, string>> {
-  const supabase = getSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    throw new Error('You must be signed in to continue.');
-  }
-
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
-  };
-}
-
 export async function fetchParentApi<T>(
   path: string,
   options: FetchParentApiOptions = {},
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: await getAuthHeaders(options.body !== undefined),
+    headers: await getApiAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  await assertApiAuthenticated(response);
+  if (!response.ok) {
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+  }
+
+  return payload;
+}
+
+/** Non-critical parent API fetch — 401 throws without signing the user out. */
+export async function fetchParentApiSoft<T>(
+  path: string,
+  options: FetchParentApiOptions = {},
+): Promise<T> {
+  const response = await fetch(`${siteUrl}${path}`, {
+    method: options.method ?? 'GET',
+    headers: await getApiAuthHeaders(options.body !== undefined),
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  if (response.status === 401) {
+    throwUnauthorized();
+  }
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -50,11 +74,12 @@ export async function fetchParentApiFormData<T>(
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method,
-    headers: await getAuthHeaders(false),
+    headers: await getApiAuthHeaders(false),
     body: formData,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -147,10 +172,37 @@ export async function fetchAssignedTeachersForStudent(
   studentId: string,
 ): Promise<ParentAssignedTeacher[]> {
   const query = new URLSearchParams({ organizationId }).toString();
-  const payload = await fetchParentApi<{ teachers: ParentAssignedTeacher[] }>(
+  const payload = await fetchParentApiSoft<{ teachers: ParentAssignedTeacher[] }>(
     `/api/parent-portal/students/${encodeURIComponent(studentId)}/teachers?${query}`,
   );
   return payload.teachers ?? [];
+}
+
+export async function fetchParentChildProfile(
+  applicationId: string,
+  organizationId: string,
+): Promise<ChildProfileData> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ profile: ChildProfileData }>(
+    `/api/parent-portal/children/${encodeURIComponent(applicationId)}/profile?${query}`,
+  );
+  if (!payload.profile?.application) {
+    throw new Error('Could not load this student profile.');
+  }
+  const profile = payload.profile;
+  return {
+    ...profile,
+    application: {
+      ...profile.application,
+      feeStatus: profile.application.feeStatus ?? 'not_required',
+    },
+    checklist: profile.checklist
+      ? {
+          ...profile.checklist,
+          progress: resolveChecklistProgress(profile.checklist),
+        }
+      : null,
+  };
 }
 
 export type ParentCalendarData = ParentCalendarInitialData & {
@@ -249,20 +301,96 @@ export type ParentBillingNextCharge = {
   amountCents: number;
 };
 
+export type TuitionPaymentPlanSummary = {
+  id: string;
+  organizationId: string;
+  ratePlanId: string;
+  name: string;
+  installmentCount: number;
+  installmentAmountCents: number;
+  billingDayOfMonth: number | null;
+  isDefault: boolean;
+};
+
+export type TuitionRateTierSummary = {
+  id: string;
+  label: string;
+  amountCents: number;
+  isDefault: boolean;
+};
+
+export type TuitionFeeComponentSummary = {
+  id: string;
+  label: string;
+  amountCents: number;
+  timing: 'enrollment' | 'first_installment' | 'annual';
+};
+
+export type TuitionEnrollmentAssignmentSummary = {
+  id: string;
+  organizationId: string;
+  enrollmentId: string;
+  familyId: string;
+  ratePlanId: string;
+  rateTierId: string | null;
+  paymentPlanId: string;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  status: string;
+};
+
+export type RatePlanWithDetailsSummary = {
+  id: string;
+  name: string;
+  amountCents: number;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
+  paymentPlans: TuitionPaymentPlanSummary[];
+  feeComponents: TuitionFeeComponentSummary[];
+  tiers: TuitionRateTierSummary[];
+};
+
+export type EnrollmentTuitionSelectionContext = {
+  assignment: TuitionEnrollmentAssignmentSummary;
+  ratePlan: RatePlanWithDetailsSummary;
+};
+
+export type FamilyTuitionSelectionItem = {
+  studentName: string;
+  context: EnrollmentTuitionSelectionContext;
+};
+
+export type TuitionAdjustment = {
+  id: string;
+  organizationId: string;
+  assignmentId: string;
+  scope: string;
+  adjustmentType: string;
+  valuePercent: number | null;
+  valueCents: number | null;
+  reason: string;
+  status: string;
+};
+
 export type ParentBillingChildView = {
   childKey: string;
   studentName: string;
   assignmentId: string | null;
+  annualTuitionCents: number;
   balanceDueCents: number;
   totalRemainingCents: number;
   nextCharge: ParentBillingNextCharge | null;
+  nextChargeId: string | null;
   status: 'needs_schedule' | 'ready' | 'no_assignment';
+  selectionItem: FamilyTuitionSelectionItem | null;
+  paymentPlanLabel: string | null;
 };
 
 export type ParentBillingFamilySummary = {
   balanceDueCents: number;
   totalRemainingCents: number;
   familyTotalRemainingCents: number | null;
+  annualTuitionCents: number;
   nextCharge: ParentBillingNextCharge | null;
   hasPendingSchedule: boolean;
   children: ParentBillingChildView[];
@@ -277,6 +405,7 @@ export type ParentBillingData = {
   charges: TuitionCharge[];
   allFamilyCharges: TuitionCharge[];
   payments: ParentTuitionPaymentRecord[];
+  adjustments: TuitionAdjustment[];
   readiness: FamilyBillingReadiness;
   familySummary: ParentBillingFamilySummary;
   autopayEnabled: boolean;
@@ -285,6 +414,7 @@ export type ParentBillingData = {
   guardianId: string | null;
   hasBillingSplit: boolean;
   initialChildKey: string | null;
+  showTaxCreditPaymentBanner: boolean;
 };
 
 export type CheckoutPaymentMethod = 'card' | 'us_bank_account';
@@ -350,6 +480,16 @@ export async function setAutopayEnabled(input: {
   });
 }
 
+export async function saveEnrollmentPaymentPlan(
+  enrollmentId: string,
+  paymentPlanId: string,
+): Promise<void> {
+  await fetchParentApi(`/api/tuition/enrollments/${enrollmentId}/payment-plan`, {
+    method: 'POST',
+    body: { paymentPlanId },
+  });
+}
+
 export type ParentNotificationSettings = {
   familyId: string;
   loginEmail: string | null;
@@ -374,4 +514,158 @@ export async function updateParentNotificationSettings(
     method: 'PATCH',
     body: { organizationId, emails },
   });
+}
+
+export type {
+  Committee,
+  ParentCommitteeBrowseItem,
+  ParentCommitteeListItem,
+  ParentCommitteesData,
+} from '@/lib/parent/parent-committees-types';
+
+export async function fetchParentCommitteesBrowse(
+  organizationId: string,
+): Promise<ParentCommitteeBrowseItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committees: ParentCommitteeBrowseItem[] }>(
+    `/api/parent-portal/committees/browse?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchParentCommitteesMine(
+  organizationId: string,
+): Promise<ParentCommitteeListItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committees: ParentCommitteeListItem[] }>(
+    `/api/parent-portal/committees/mine?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchParentCommitteeWorkspace(
+  organizationId: string,
+  committeeId: string,
+): Promise<Committee> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committee: Committee }>(
+    `/api/parent-portal/committees/${committeeId}?${query}`,
+  );
+  if (!payload.committee) {
+    throw new Error('Committee not found.');
+  }
+  return payload.committee;
+}
+
+export type SubmitCommitteeJoinRequestInput = {
+  organizationId: string;
+  committeeId: string;
+  schoolSlug: string;
+  schoolName: string;
+  committeeName: string;
+  preferredDutyRoleId?: string | null;
+  grade?: string | null;
+  note?: string | null;
+};
+
+export async function submitCommitteeJoinRequest(
+  input: SubmitCommitteeJoinRequestInput,
+): Promise<void> {
+  await fetchParentApi('/api/parent-portal/committees/join-requests', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function withdrawCommitteeJoinRequest(
+  requestId: string,
+  organizationId: string,
+  committeeName: string,
+  guardianName: string,
+): Promise<void> {
+  const query = new URLSearchParams({
+    organizationId,
+    committeeName,
+    guardianName,
+  }).toString();
+  await fetchParentApi(`/api/parent-portal/committees/join-requests/${requestId}?${query}`, {
+    method: 'DELETE',
+  });
+}
+
+export type {
+  ClassroomSignup,
+  ClassroomSignupResponse,
+  ParentClassroomSignupDetail,
+  ParentClassroomSignupsPageBundle,
+  ParentSignupAttentionItem,
+} from '@/lib/parent/parent-classroom-signups-types';
+
+export async function fetchParentClassroomSignups(
+  organizationId: string,
+): Promise<ParentClassroomSignupsPageBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentClassroomSignupsPageBundle>(
+    `/api/parent-portal/classroom-signups?${query}`,
+  );
+}
+
+export async function fetchParentClassroomSignupDetail(
+  organizationId: string,
+  signupId: string,
+): Promise<ParentClassroomSignupDetail> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentClassroomSignupDetail>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
+  );
+}
+
+export type SubmitParentClassroomSignupInput = {
+  organizationId: string;
+  studentId: string;
+  selectedSlotIds?: string[];
+  selectedRoleIds?: string[];
+  note?: string | null;
+};
+
+export async function submitParentClassroomSignupResponse(
+  signupId: string,
+  input: SubmitParentClassroomSignupInput,
+): Promise<ClassroomSignupResponse> {
+  const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}`,
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+  if (!payload.response) {
+    throw new Error('Failed to submit response.');
+  }
+  return payload.response;
+}
+
+export async function withdrawParentClassroomSignupResponse(
+  organizationId: string,
+  signupId: string,
+): Promise<ClassroomSignupResponse> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
+    { method: 'DELETE' },
+  );
+  if (!payload.response) {
+    throw new Error('Failed to withdraw response.');
+  }
+  return payload.response;
+}
+
+export async function fetchParentSignupAttentionItems(
+  organizationId: string,
+): Promise<ParentSignupAttentionItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApiSoft<{ items: ParentSignupAttentionItem[] }>(
+    `/api/parent-portal/signups/attention?${query}`,
+  );
+  return payload.items ?? [];
 }

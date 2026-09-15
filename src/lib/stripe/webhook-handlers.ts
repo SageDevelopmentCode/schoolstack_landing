@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import type Stripe from "stripe";
+import { activityClientMetadataFromStripeMetadata } from "@/lib/activity-client";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
@@ -510,6 +512,7 @@ async function handleTuitionSetupCheckoutCompleted(
       familyId,
       familyName: familyName ?? null,
       guardianId,
+      ...(activityClientMetadataFromStripeMetadata(metadata) ?? {}),
     },
     context: parentActivityContext({
       id: payerUserId ?? "",
@@ -648,6 +651,9 @@ async function handleTuitionCheckoutCompleted(
       ? metadata.tuition_charge_id
       : payment.tuitionChargeId;
 
+  const activityMetadata =
+    activityClientMetadataFromStripeMetadata(metadata) ?? undefined;
+
   const { newlyRecorded } = await recordTuitionPaymentCompleted(admin, {
     payment,
     organizationId: String(metadata.organization_id),
@@ -655,6 +661,7 @@ async function handleTuitionCheckoutCompleted(
     checkoutSessionId,
     paymentIntentId,
     stripeProviderStatus: inferStripeProviderStatusFromCheckoutSession(session),
+    activityMetadata,
   });
 
   if (paymentIntentId && payment.familyId) {
@@ -793,7 +800,9 @@ async function processApplicationFeePayment(
     return;
   }
 
-  void sendApplicationSubmittedNotifications(admin, payment.applicationId);
+  runAfterResponse(async () => {
+    await sendApplicationSubmittedNotifications(admin, application.id);
+  });
 
   const { data: formRow } = await admin
     .from("application_form_versions")

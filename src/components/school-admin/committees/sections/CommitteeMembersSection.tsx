@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Mail, Phone, UserPlus } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import type { Committee, CommitteeRole } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
 import { memberInitials } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 
 const ROLE_LABELS: Record<CommitteeRole, string> = {
   member: "Member",
@@ -22,14 +26,14 @@ const ROLE_LABELS: Record<CommitteeRole, string> = {
 
 export default function CommitteeMembersSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
   readOnly = false,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
@@ -40,6 +44,7 @@ export default function CommitteeMembersSection({
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<CommitteeRole>("member");
   const [saving, setSaving] = useState(false);
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
 
   const showGrade = committee.config.showGradeColumn;
 
@@ -92,132 +97,121 @@ export default function CommitteeMembersSection({
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
-        <p className="text-sm" style={{ color: C.textSecondary }}>
+        <p className="text-sm" style={{ color: theme.muted }}>
           {committee.members.length} members
         </p>
         {!readOnly && (
-        <button
-          type="button"
-          onClick={() => setShowInvite(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer"
-          style={{ backgroundColor: C.accent }}
-        >
-          <UserPlus className="w-3.5 h-3.5" />
-          Invite member
-        </button>
+          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => setShowInvite(true)}>
+            <UserPlus className="w-3.5 h-3.5" />
+            Invite member
+          </AdminButton>
         )}
       </div>
 
       <div className="space-y-2">
         {committee.members.map((member) => (
-          <div
-            key={member.id}
-            className="flex items-start gap-3 p-4 rounded-xl border"
-            style={{ backgroundColor: C.surface, borderColor: C.border }}
-          >
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
-            >
-              {memberInitials(member.name)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-                  {member.name}
-                </p>
-                <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: C.accentLight, color: C.accent }}
+          <AdminCard key={member.id} theme={theme} padding="default">
+            <div className="flex items-start gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0"
+                style={{ backgroundColor: "#EAF4EB", color: theme.primary }}
+              >
+                {memberInitials(member.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold" style={{ color: theme.ink }}>
+                    {member.name}
+                  </p>
+                  <AdminChip theme={theme} tone="purple">
+                    {ROLE_LABELS[member.role]}
+                  </AdminChip>
+                  {showGrade && member.grade && (
+                    <span className="text-[10px]" style={{ color: theme.muted }}>
+                      {member.grade}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 mt-1 text-xs" style={{ color: theme.muted }}>
+                  {member.email && (
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-3 h-3" />
+                      {member.email}
+                    </span>
+                  )}
+                  {member.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {member.phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {!readOnly && (
+                <AdminButton
+                  theme={theme}
+                  variant="danger"
+                  size="compact"
+                  onClick={() => void handleRemove(member.id)}
                 >
-                  {ROLE_LABELS[member.role]}
-                </span>
-                {showGrade && member.grade && (
-                  <span className="text-[10px]" style={{ color: C.textTertiary }}>
-                    {member.grade}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col gap-1 mt-1 text-xs" style={{ color: C.textTertiary }}>
-                {member.email && (
-                  <span className="flex items-center gap-1">
-                    <Mail className="w-3 h-3" />
-                    {member.email}
-                  </span>
-                )}
-                {member.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {member.phone}
-                  </span>
-                )}
-              </div>
+                  Remove
+                </AdminButton>
+              )}
             </div>
-            {!readOnly && (
-            <button
-              type="button"
-              onClick={() => handleRemove(member.id)}
-              className="text-xs cursor-pointer"
-              style={{ color: C.error }}
-            >
-              Remove
-            </button>
-            )}
-          </div>
+          </AdminCard>
         ))}
       </div>
 
       <AnimatePresence>
         {showInvite && (
           <CommitteeModalShell
-            C={C}
+            theme={theme}
             title="Invite member"
             onClose={() => setShowInvite(false)}
             footer={
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm cursor-pointer">
+                <AdminButton theme={theme} variant="soft" onClick={() => setShowInvite(false)}>
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleInvite}
+                </AdminButton>
+                <AdminButton
+                  theme={theme}
+                  variant="primary"
+                  onClick={() => void handleInvite()}
                   disabled={saving || !name.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                  style={{ backgroundColor: C.accent }}
                 >
                   {saving ? "Inviting…" : "Send invite"}
-                </button>
+                </AdminButton>
               </div>
             }
           >
-              <div className="space-y-3">
-                <input
-                  placeholder="Full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border"
-                  style={{ borderColor: C.border }}
-                />
-                <input
-                  placeholder="Email (optional)"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border"
-                  style={{ borderColor: C.border }}
-                />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as CommitteeRole)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border"
-                  style={{ borderColor: C.border }}
-                >
-                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-3">
+              <input
+                placeholder="Full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border"
+                style={inputStyle}
+              />
+              <input
+                placeholder="Email (optional)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border"
+                style={inputStyle}
+              />
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as CommitteeRole)}
+                className="w-full px-3 py-2 text-sm rounded-lg border"
+                style={inputStyle}
+              >
+                {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </CommitteeModalShell>
         )}
       </AnimatePresence>

@@ -1,18 +1,24 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, CheckSquare, Heart, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
+import ParentCommitteeBrowseList from "./ParentCommitteeBrowseList";
+import ParentCommitteeDetail from "./ParentCommitteeDetail";
+import ParentCommitteeMineList from "./ParentCommitteeMineList";
+import ParentCommitteeWorkspace from "./ParentCommitteeWorkspace";
+import ParentCommitteesStoryHeader, {
+  type ParentCommitteesTab,
+} from "./ParentCommitteesStoryHeader";
+import { parentCommitteesViewTransition } from "./parent-committees-view-transition";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import type {
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
 } from "@/lib/committees/types";
-import ParentCommitteeBrowseList from "./ParentCommitteeBrowseList";
-import ParentCommitteeDetail from "./ParentCommitteeDetail";
-import ParentCommitteeWorkspace from "./ParentCommitteeWorkspace";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 type ParentCommitteesPageProps = {
@@ -25,23 +31,20 @@ type ParentCommitteesPageProps = {
   initialData?: ParentCommitteesInitialData;
 };
 
-type Tab = "explore" | "mine";
+function LoadingSpinner({ label, muted }: { label: string; muted: string }) {
+  return (
+    <div className="flex items-center justify-center gap-2 py-12 text-sm" style={{ color: muted }}>
+      <Loader2 className="h-4 w-4 animate-spin" />
+      {label}
+    </div>
+  );
+}
 
 export default function ParentCommitteesPage(props: ParentCommitteesPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(props.branding), [props.branding]);
+  const { theme } = useParentTheme();
 
   return (
-    <Suspense
-      fallback={
-        <div
-          className="flex items-center justify-center gap-2 py-12 text-sm"
-          style={{ color: C.textSecondary }}
-        >
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Loading committees…
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingSpinner label="Loading committees…" muted={theme.muted} />}>
       <ParentCommitteesPageContent {...props} />
     </Suspense>
   );
@@ -51,18 +54,18 @@ function ParentCommitteesPageContent({
   organizationId,
   schoolSlug,
   schoolName,
-  branding,
+  branding: _branding,
   guardianName,
   previewMode = false,
   initialData,
 }: ParentCommitteesPageProps) {
-  const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
+  const { theme, adminCompat } = useParentTheme();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const hasInitialData = initialData !== undefined;
 
-  const tab = (searchParams.get("tab") === "mine" ? "mine" : "explore") as Tab;
+  const tab = (searchParams.get("tab") === "mine" ? "mine" : "explore") as ParentCommitteesTab;
   const exploreCommitteeId = searchParams.get("explore");
   const workspaceCommitteeId = searchParams.get("committee");
   const activeSection = searchParams.get("section") ?? "home";
@@ -181,13 +184,20 @@ function ParentCommitteesPageContent({
     ? browseCommittees.find((c) => c.id === exploreCommitteeId) ?? null
     : null;
 
+  const handleSelectTab = useCallback(
+    (key: ParentCommitteesTab) => {
+      setUrl({ tab: key, explore: null, committee: null, section: null });
+    },
+    [setUrl],
+  );
+
   if (workspaceCommitteeId) {
     return (
       <ParentCommitteeWorkspace
         key={workspaceCommitteeId}
         committeeId={workspaceCommitteeId}
         organizationId={organizationId}
-        C={C}
+        theme={theme}
         activeSection={activeSection}
         initialCommittee={initialData?.workspacesByCommitteeId[workspaceCommitteeId]}
         onSectionChange={(section) =>
@@ -202,7 +212,7 @@ function ParentCommitteesPageContent({
     return (
       <ParentCommitteeDetail
         committee={selectedBrowseCommittee}
-        C={C}
+        theme={theme}
         organizationId={organizationId}
         schoolSlug={schoolSlug}
         schoolName={schoolName}
@@ -217,155 +227,61 @@ function ParentCommitteesPageContent({
   }
 
   return (
-    <div className="px-6 py-8 max-w-4xl mx-auto w-full space-y-6">
-      <div>
-        <h2 className="text-lg font-heading font-semibold" style={{ color: C.textPrimary }}>
-          Committees
-        </h2>
-        <p className="text-sm mt-1" style={{ color: C.textSecondary }}>
-          Explore volunteer committees and access your approved workspaces.
-        </p>
+    <div className="min-h-full w-full" style={{ backgroundColor: theme.paper }}>
+      <div className="mx-auto flex max-w-[1250px] flex-col gap-6 px-4 py-6 sm:gap-8 sm:py-8 md:px-9">
+        <ParentCommitteesStoryHeader
+          theme={theme}
+          activeTab={tab}
+          exploreCount={browseCommittees.length}
+          myCount={myCommittees.length}
+          onSelectTab={handleSelectTab}
+        />
+
+        {error && (
+          <p className="text-sm" style={{ color: theme.alert }}>
+            {error}
+          </p>
+        )}
+
+        <AnimatePresence mode="wait">
+          <motion.div key={tab} {...parentCommitteesViewTransition}>
+            {tab === "explore" && (
+              <>
+                {loadingBrowse ? (
+                  <LoadingSpinner label="Loading committees…" muted={theme.muted} />
+                ) : (
+                  <ParentCommitteeBrowseList
+                    committees={browseCommittees}
+                    theme={theme}
+                    onOpenCommittee={(id) => setUrl({ explore: id, tab: "explore" })}
+                  />
+                )}
+              </>
+            )}
+
+            {tab === "mine" && (
+              <>
+                {loadingMine ? (
+                  <LoadingSpinner label="Loading your committees…" muted={theme.muted} />
+                ) : (
+                  <ParentCommitteeMineList
+                    committees={myCommittees}
+                    theme={theme}
+                    onOpenCommittee={(id) =>
+                      setUrl({
+                        committee: id,
+                        section: "home",
+                        tab: "mine",
+                        explore: null,
+                      })
+                    }
+                  />
+                )}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
-
-      <div
-        className="inline-flex rounded-xl border p-1 gap-1"
-        style={{ borderColor: C.border, backgroundColor: C.surface }}
-      >
-        {(["explore", "mine"] as const).map((key) => {
-          const active = tab === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setUrl({ tab: key, explore: null, committee: null, section: null })}
-              className="px-4 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors"
-              style={{
-                backgroundColor: active ? C.accentLight : "transparent",
-                color: active ? C.accent : C.textSecondary,
-                fontWeight: active ? 600 : 500,
-              }}
-            >
-              {key === "explore" ? "Explore" : "My committees"}
-            </button>
-          );
-        })}
-      </div>
-
-      {error && (
-        <p className="text-sm" style={{ color: C.error }}>
-          {error}
-        </p>
-      )}
-
-      {tab === "explore" && (
-        <>
-          {loadingBrowse ? (
-            <div
-              className="flex items-center justify-center gap-2 py-12 text-sm"
-              style={{ color: C.textSecondary }}
-            >
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading committees…
-            </div>
-          ) : (
-            <ParentCommitteeBrowseList
-              committees={browseCommittees}
-              C={C}
-              onOpenCommittee={(id) => setUrl({ explore: id, tab: "explore" })}
-            />
-          )}
-        </>
-      )}
-
-      {tab === "mine" && (
-        <>
-          {loadingMine ? (
-            <div
-              className="flex items-center justify-center gap-2 py-12 text-sm"
-              style={{ color: C.textSecondary }}
-            >
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Loading your committees…
-            </div>
-          ) : myCommittees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-6">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                style={{ backgroundColor: C.accentLight }}
-              >
-                <Heart className="w-7 h-7" style={{ color: C.accent }} />
-              </div>
-              <h3 className="font-semibold text-lg mb-2" style={{ color: C.textPrimary }}>
-                No committees yet
-              </h3>
-              <p className="text-sm text-center max-w-xs" style={{ color: C.textSecondary }}>
-                After the school approves your join request, your committee workspace will appear
-                here.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {myCommittees.map((committee) => (
-                <button
-                  key={committee.id}
-                  type="button"
-                  onClick={() =>
-                    setUrl({
-                      committee: committee.id,
-                      section: "home",
-                      tab: "mine",
-                      explore: null,
-                    })
-                  }
-                  className="w-full text-left p-5 rounded-2xl border transition-all cursor-pointer hover:shadow-sm group"
-                  style={{ backgroundColor: C.surface, borderColor: C.border }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base font-semibold" style={{ color: C.textPrimary }}>
-                          {committee.name}
-                        </h3>
-                        <span
-                          className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: C.accentLight, color: C.accent }}
-                        >
-                          {committee.termLabel}
-                        </span>
-                      </div>
-                      <p className="text-sm mt-1 line-clamp-2" style={{ color: C.textSecondary }}>
-                        {committee.description}
-                      </p>
-                      <div
-                        className="flex items-center gap-4 mt-3 text-xs"
-                        style={{ color: C.textTertiary }}
-                      >
-                        {committee.openTaskCount > 0 && (
-                          <span className="flex items-center gap-1">
-                            <CheckSquare className="w-3.5 h-3.5" />
-                            {committee.openTaskCount} open task
-                            {committee.openTaskCount !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                        {committee.nextEventTitle && (
-                          <span className="flex items-center gap-1">
-                            <CalendarDays className="w-3.5 h-3.5" />
-                            Next: {committee.nextEventTitle}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ArrowRight
-                      className="w-5 h-5 shrink-0 mt-1 transition-colors"
-                      style={{ color: C.textTertiary }}
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }

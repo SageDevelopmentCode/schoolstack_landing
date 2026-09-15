@@ -77,4 +77,7 @@ export const Radius = {
   pill: 9999,
 } as const;
 
+/** Filled primary buttons when `disabled` — same hue, visibly inactive */
+export const DISABLED_BUTTON_OPACITY = 0.45;
+
 export const MaxContentWidth = 800;

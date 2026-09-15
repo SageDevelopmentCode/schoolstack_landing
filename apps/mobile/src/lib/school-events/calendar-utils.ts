@@ -29,6 +29,22 @@ export function addWeeks(anchorDate: Date, deltaWeeks: number): Date {
   return d;
 }
 
+export function addDays(anchorDate: Date, deltaDays: number): Date {
+  const d = new Date(anchorDate);
+  d.setDate(d.getDate() + deltaDays);
+  return d;
+}
+
+export function formatDayLabel(dateKeyValue: string): string {
+  const parsed = parseEventDate(dateKeyValue);
+  return parsed.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
   const d = new Date(year, month + delta, 1);
   return { year: d.getFullYear(), month: d.getMonth() };

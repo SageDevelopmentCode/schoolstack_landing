@@ -254,6 +254,7 @@ function buildPreviewChildProfile(input: {
       formTitle: input.formTitle,
       schema: emptyApplicationFormSchema(),
       feeConfig: defaultApplicationFormFeeConfig(),
+      feeStatus: "paid",
       stepIndex: 0,
       responses: {
         student_first_name: input.studentName.split(" ")[0] ?? input.studentName,

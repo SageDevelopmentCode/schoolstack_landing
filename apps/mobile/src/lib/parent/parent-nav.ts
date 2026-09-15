@@ -1,13 +1,15 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 
+import type { ParentChildRecordSection } from '@/lib/parent/parent-children-utils';
+
 export type ParentTab = 'home' | 'billing' | 'messages' | 'calendar' | 'more';
 
 export type ParentMoreMenuItemId =
   | 'attendance'
   | 'children'
   | 'committees'
-  | 'applications'
+  | 'classroom-signups'
   | 'notifications';
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {
@@ -26,15 +28,32 @@ export function parentAccountRoute(slug: string): Href {
   return `/parent/${slug}/more/account` as Href;
 }
 
+export function parentClassroomSignupsRoute(slug: string): Href {
+  return parentMoreRoute(slug, 'classroom-signups');
+}
+
+export function parentClassroomSignupDetailRoute(slug: string, signupId: string): Href {
+  return `/parent/${slug}/more/classroom-signups/${encodeURIComponent(signupId)}` as Href;
+}
+
 export function parentChildrenRoute(slug: string, applicationId?: string): Href {
   if (applicationId) {
-    return parentChildDetailRoute(slug, applicationId);
+    const params = new URLSearchParams({ applicationId });
+    return `/parent/${slug}/more/children?${params.toString()}` as Href;
   }
   return parentMoreRoute(slug, 'children');
 }
 
-export function parentChildDetailRoute(slug: string, applicationId: string): Href {
-  return `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}` as Href;
+export function parentChildDetailRoute(
+  slug: string,
+  applicationId: string,
+  section?: ParentChildRecordSection,
+): Href {
+  const base = `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}`;
+  if (section) {
+    return `${base}?section=${section}` as Href;
+  }
+  return base as Href;
 }
 
 export function isParentChildDetailPath(pathname: string): boolean {
@@ -50,6 +69,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   attendance: (slug) => parentMoreRoute(slug, 'attendance'),
   children: (slug) => parentMoreRoute(slug, 'children'),
   committees: (slug) => parentMoreRoute(slug, 'committees'),
+  classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
 };
 

@@ -121,9 +121,6 @@ function ParentClassroomSignupsPageContent({
   const searchParams = useSearchParams();
 
   const [items, setItems] = useState(initialBundle.items);
-  const [responsesBySignupId, setResponsesBySignupId] = useState(
-    initialBundle.responsesBySignupId,
-  );
   const [filter, setFilter] = useState<FilterStatus>("all");
 
   const signupParam =
@@ -207,16 +204,7 @@ function ParentClassroomSignupsPageContent({
   }, [items, filter]);
 
   const handleSubmitted = useCallback(
-    (
-      signupId: string,
-      response: ClassroomSignupResponse,
-      allResponses: ClassroomSignupResponse[],
-    ) => {
-      setResponsesBySignupId((current) => ({
-        ...current,
-        [signupId]: allResponses,
-      }));
-
+    (signupId: string, response: ClassroomSignupResponse) => {
       setItems((current) => {
         const existing = current.find((item) => item.signup.id === signupId);
         if (!existing) return current;
@@ -235,30 +223,22 @@ function ParentClassroomSignupsPageContent({
     [],
   );
 
-  const handleWithdrawn = useCallback(
-    (signupId: string, _familyId: string, allResponses: ClassroomSignupResponse[]) => {
-      setResponsesBySignupId((current) => ({
-        ...current,
-        [signupId]: allResponses,
-      }));
-
-      setItems((current) => {
-        const existing = current.find((item) => item.signup.id === signupId);
-        if (!existing) return current;
-        const nextItem = classifyParentClassroomSignupListItem(
-          existing.signup,
-          null,
-        );
-        if (!nextItem) {
-          return current.filter((item) => item.signup.id !== signupId);
-        }
-        return current.map((item) =>
-          item.signup.id === signupId ? nextItem : item,
-        );
-      });
-    },
-    [],
-  );
+  const handleWithdrawn = useCallback((signupId: string) => {
+    setItems((current) => {
+      const existing = current.find((item) => item.signup.id === signupId);
+      if (!existing) return current;
+      const nextItem = classifyParentClassroomSignupListItem(
+        existing.signup,
+        null,
+      );
+      if (!nextItem) {
+        return current.filter((item) => item.signup.id !== signupId);
+      }
+      return current.map((item) =>
+        item.signup.id === signupId ? nextItem : item,
+      );
+    });
+  }, []);
 
   const renderCardList = (
     cardItems: ParentClassroomSignupListItem[],
@@ -352,12 +332,8 @@ function ParentClassroomSignupsPageContent({
         theme={theme}
         open={selectedSignupId != null && selectedItem != null}
         organizationId={organizationId}
+        signupId={selectedSignupId}
         signup={selectedItem?.signup ?? null}
-        initialResponses={
-          selectedSignupId
-            ? (responsesBySignupId[selectedSignupId] ?? [])
-            : []
-        }
         initialFamilyResponse={selectedItem?.familyResponse ?? null}
         studentOptions={initialBundle.studentOptions}
         readOnly={readOnly}

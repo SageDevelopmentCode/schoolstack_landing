@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ScheduleMonthCalendarColors } from '@/components/school-admin/schedule/schedule-month-calendar';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 import { DAY_NAMES, dateKey, isToday } from '@/lib/school-events/calendar-utils';
 
@@ -23,10 +23,10 @@ export function ParentCalendarWeekStrip({
   onSelectDate,
   colors,
 }: ParentCalendarWeekStripProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   return (
-    <View style={[styles.container, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+    <View style={styles.container}>
       <View style={styles.row}>
         {weekDates.map((day) => {
           const key = dateKey(day);
@@ -42,21 +42,23 @@ export function ParentCalendarWeekStrip({
               onPress={() => onSelectDate(key)}
               style={[
                 styles.dayCell,
-                selected && { backgroundColor: colors.accentLight },
+                selected && { backgroundColor: theme.primarySoft },
               ]}>
-              <ThemedText type="badge" style={{ color: theme.textTertiary, fontSize: 10 }}>
+              <Text style={[styles.dayName, { color: theme.muted }]}>
                 {DAY_NAMES[day.getDay()]}
-              </ThemedText>
+              </Text>
               <View
                 style={[
                   styles.dayNumberWrap,
                   todayDay && { backgroundColor: colors.accent },
                 ]}>
-                <ThemedText
-                  type="smallBold"
-                  style={{ color: todayDay ? '#FFFFFF' : theme.textPrimary }}>
+                <Text
+                  style={[
+                    styles.dayNumber,
+                    { color: todayDay ? '#FFFFFF' : theme.ink },
+                  ]}>
                   {day.getDate()}
-                </ThemedText>
+                </Text>
               </View>
               {hasEvents ? (
                 <View style={[styles.eventDot, { backgroundColor: colors.accent }]} />
@@ -73,9 +75,7 @@ export function ParentCalendarWeekStrip({
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.lg,
-    padding: Spacing.two,
+    marginTop: Spacing.two,
   },
   row: {
     flexDirection: 'row',
@@ -88,12 +88,24 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     gap: 4,
   },
+  dayName: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
   dayNumberWrap: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dayNumber: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
   },
   eventDot: {
     width: 5,

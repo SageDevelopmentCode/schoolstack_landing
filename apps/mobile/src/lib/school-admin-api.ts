@@ -1,4 +1,14 @@
-import { getSupabaseClient } from '@/lib/supabase';
+import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
+import type {
+  ClassroomDetail,
+  ClassroomStatus,
+  ClassroomStaffRole,
+  ClassroomSummary,
+  ProgramOption,
+  SetStudentClassroomsResult,
+} from '@/lib/school-admin/classrooms';
+import type { StudentHealthProfile } from '@/lib/student-health/types';
+import { emptyStudentHealthProfile } from '@/lib/student-health/types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -7,33 +17,18 @@ type FetchSchoolAdminApiOptions = {
   body?: unknown;
 };
 
-async function getAuthHeaders(includeJson = false): Promise<Record<string, string>> {
-  const supabase = getSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    throw new Error('You must be signed in to continue.');
-  }
-
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
-  };
-}
-
 export async function fetchSchoolAdminApi<T>(
   path: string,
   options: FetchSchoolAdminApiOptions = {},
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: await getAuthHeaders(options.body !== undefined),
+    headers: await getApiAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -48,11 +43,12 @@ export async function fetchSchoolAdminApiFormData<T>(
 ): Promise<T> {
   const response = await fetch(`${siteUrl}${path}`, {
     method,
-    headers: await getAuthHeaders(false),
+    headers: await getApiAuthHeaders(false),
     body: formData,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -122,6 +118,7 @@ export type StaffMemberRecord = {
   isLinked: boolean;
   hasEverSignedIn?: boolean;
   lastSignInAt?: string | null;
+  assignedStudentCount?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -263,11 +260,186 @@ export type AdminEnrolledStudentSummary = {
   primaryContactName: string | null;
   primaryContactEmail: string | null;
   programNames: string[];
+  programIds: string[];
+  classroomNames: string[];
+  classroomIds: string[];
   enrolledAt: string;
   assignedTeachers: AssignedTeacher[];
   assignedTeacherNames: string;
   profilePhotoUrl: string | null;
+  hasStandingHealthItems: boolean;
 };
+
+export class StudentHealthFetchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'StudentHealthFetchError';
+  }
+}
+
+export async function fetchClassrooms(
+  slug: string,
+): Promise<{ classrooms: ClassroomSummary[]; programs: ProgramOption[] }> {
+  const payload = await fetchSchoolAdminApi<{
+    classrooms?: ClassroomSummary[];
+    programs?: ProgramOption[];
+  }>(`/api/school/${slug}/classrooms`);
+  return {
+    classrooms: payload.classrooms ?? [],
+    programs: payload.programs ?? [],
+  };
+}
+
+export async function createClassroomApi(
+  slug: string,
+  input: { name: string; programId?: string | null; status?: ClassroomStatus },
+): Promise<ClassroomSummary> {
+  const payload = await fetchSchoolAdminApi<{ classroom: ClassroomSummary }>(
+    `/api/school/${slug}/classrooms`,
+    { method: 'POST', body: input },
+  );
+  return payload.classroom;
+}
+
+export async function updateClassroomApi(
+  slug: string,
+  classroomId: string,
+  input: { name?: string; programId?: string | null; status?: ClassroomStatus },
+): Promise<ClassroomSummary> {
+  const payload = await fetchSchoolAdminApi<{ classroom: ClassroomSummary }>(
+    `/api/school/${slug}/classrooms/${classroomId}`,
+    { method: 'PATCH', body: input },
+  );
+  return payload.classroom;
+}
+
+export async function deleteClassroomApi(slug: string, classroomId: string): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/classrooms/${classroomId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function fetchClassroomDetailApi(
+  slug: string,
+  classroomId: string,
+): Promise<ClassroomDetail> {
+  const payload = await fetchSchoolAdminApi<{ classroom: ClassroomDetail }>(
+    `/api/school/${slug}/classrooms/${classroomId}`,
+  );
+  return payload.classroom;
+}
+
+export async function fetchClassroomStudentsApi(
+  slug: string,
+  classroomId: string,
+): Promise<AdminEnrolledStudentSummary[]> {
+  const payload = await fetchSchoolAdminApi<{ students?: AdminEnrolledStudentSummary[] }>(
+    `/api/school/${slug}/classrooms/${classroomId}/students`,
+  );
+  return payload.students ?? [];
+}
+
+export async function assignStudentsToClassroomApi(
+  slug: string,
+  classroomId: string,
+  studentIds: string[],
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/classrooms/${classroomId}/students`, {
+    method: 'PATCH',
+    body: { studentIds },
+  });
+}
+
+export async function removeStudentFromClassroomApi(
+  slug: string,
+  classroomId: string,
+  studentId: string,
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/classrooms/${classroomId}/students`, {
+    method: 'PATCH',
+    body: { studentId, action: 'remove' },
+  });
+}
+
+export async function assignStaffToClassroomApi(
+  slug: string,
+  classroomId: string,
+  staffMemberId: string,
+  role: ClassroomStaffRole = 'lead',
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/classrooms/${classroomId}/staff`, {
+    method: 'PATCH',
+    body: { staffMemberId, role },
+  });
+}
+
+export async function removeStaffFromClassroomApi(
+  slug: string,
+  classroomId: string,
+  staffMemberId: string,
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school/${slug}/classrooms/${classroomId}/staff`, {
+    method: 'PATCH',
+    body: { staffMemberId, action: 'remove' },
+  });
+}
+
+export async function setStudentClassroomsApi(
+  slug: string,
+  studentId: string,
+  classroomIds: string[],
+): Promise<SetStudentClassroomsResult> {
+  return fetchSchoolAdminApi<SetStudentClassroomsResult>(
+    `/api/school/${slug}/students/${studentId}/classroom`,
+    { method: 'PATCH', body: { classroomIds } },
+  );
+}
+
+export async function fetchStudentHealthProfileAdmin(
+  slug: string,
+  studentId: string,
+): Promise<StudentHealthProfile> {
+  const payload = await fetchSchoolAdminApi<{ profile?: StudentHealthProfile }>(
+    `/api/school/${slug}/students/${studentId}/health`,
+  );
+  return payload.profile ?? emptyStudentHealthProfile();
+}
+
+export async function createStudentHealthItemAdmin(
+  slug: string,
+  studentId: string,
+  itemType: string,
+  values: Record<string, unknown>,
+): Promise<{ item?: Record<string, unknown> }> {
+  return fetchSchoolAdminApi(`/api/school/${slug}/students/${studentId}/health`, {
+    method: 'POST',
+    body: { itemType, values },
+  });
+}
+
+export async function updateStudentHealthItemAdmin(
+  slug: string,
+  studentId: string,
+  itemId: string,
+  itemType: string,
+  values: Record<string, unknown>,
+): Promise<{ item?: Record<string, unknown> }> {
+  return fetchSchoolAdminApi(
+    `/api/school/${slug}/students/${studentId}/health/${itemId}`,
+    { method: 'PATCH', body: { itemType, values } },
+  );
+}
+
+export async function deleteStudentHealthItemAdmin(
+  slug: string,
+  studentId: string,
+  itemId: string,
+): Promise<void> {
+  await fetchSchoolAdminApi(
+    `/api/school/${slug}/students/${studentId}/health/${itemId}`,
+    { method: 'DELETE' },
+  );
+}
 
 export async function fetchStaffAssignedStudents(
   slug: string,

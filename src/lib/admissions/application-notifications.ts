@@ -192,6 +192,7 @@ export async function sendApplicationSubmittedNotifications(
     const notificationTasks: Promise<unknown>[] = [
       notifyApplicationSubmitted({
         schoolName,
+        schoolSlug,
         email: contact?.email ?? "unknown",
         applicationId,
         formTitle,

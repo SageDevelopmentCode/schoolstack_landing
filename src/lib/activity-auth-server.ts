@@ -59,41 +59,50 @@ export async function organizationExists(
   return Boolean(data);
 }
 
+function authPageLabel(metadata?: AuthActivityMetadata): string {
+  const page = metadata?.page;
+  if (page === "/login") return "login page";
+  if (page === "/forms/apply") return "application form";
+  if (page === "/apply") return "apply dashboard";
+  if (page === "/parent") return "parent portal";
+  if (metadata?.client === "mobile") return "mobile app";
+  return "parent portal";
+}
+
+function authActorLabel(surface: ActivitySurface): string {
+  if (surface === "school_admin") return "School admin";
+  if (surface === "login") return "User";
+  return "Parent";
+}
+
 export function authActivitySummary(
   action: string,
   metadata?: AuthActivityMetadata,
+  surface: ActivitySurface = "parent_portal",
 ): string {
-  const page = metadata?.page;
-  const pageLabel =
-    page === "/login"
-      ? "login page"
-      : page === "/forms/apply"
-        ? "application form"
-        : page === "/apply"
-          ? "apply dashboard"
-          : page === "/parent"
-            ? "parent portal"
-            : "parent portal";
+  const pageLabel = authPageLabel(metadata);
+  const actorLabel = authActorLabel(surface);
+  const mobileSuffix = metadata?.client === "mobile" ? " (mobile)" : "";
 
   switch (action) {
     case ACTIVITY_ACTIONS.AUTH_OTP_REQUESTED:
       return metadata?.resent
-        ? `Verification code resent on ${pageLabel}`
-        : `Verification code sent on ${pageLabel}`;
+        ? `Verification code resent on ${pageLabel}${mobileSuffix}`
+        : `Verification code sent on ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_OTP_VERIFIED:
-      return `Verification code accepted on ${pageLabel}`;
+      return `Verification code accepted on ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_OTP_FAILED:
-      return `Verification code failed on ${pageLabel}`;
+      return `Verification code failed on ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_ACCOUNT_CREATED:
-      return `Parent account created on ${pageLabel}`;
+      return `${actorLabel} account created on ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_SIGNED_IN:
-      return `Parent signed in on ${pageLabel}`;
+      return `${actorLabel} signed in on ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_SIGNED_OUT:
-      return `Parent signed out from ${pageLabel}`;
+      return `${actorLabel} signed out from ${pageLabel}${mobileSuffix}`;
     case ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED:
-      return `Existing session restored on ${pageLabel}`;
+      return `Existing session restored on ${pageLabel}${mobileSuffix}`;
     default:
-      return "Parent auth activity";
+      return `${actorLabel} auth activity${mobileSuffix}`;
   }
 }
 
@@ -103,6 +112,7 @@ export async function recordAuthActivity(
     organizationId?: string | null;
     actorUserId?: string | null;
     actorEmail?: string | null;
+    actorType?: "parent" | "school_admin" | "platform_admin";
     surface: ActivitySurface;
     action: string;
     metadata?: AuthActivityMetadata;
@@ -113,9 +123,10 @@ export async function recordAuthActivity(
     organizationId: input.organizationId,
     actorUserId: input.actorUserId,
     actorEmail: input.actorEmail,
+    actorType: input.actorType ?? (input.surface === "school_admin" ? "school_admin" : "parent"),
     surface: input.surface,
     action: input.action,
-    summary: authActivitySummary(input.action, input.metadata),
+    summary: authActivitySummary(input.action, input.metadata, input.surface),
     metadata: input.metadata,
     severity:
       input.severity ??

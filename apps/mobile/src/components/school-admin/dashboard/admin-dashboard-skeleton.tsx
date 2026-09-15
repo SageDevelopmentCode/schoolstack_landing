@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 
 function SkeletonBlock({
@@ -42,7 +43,6 @@ export function AdminDashboardSkeleton() {
       <SkeletonBlock style={styles.kicker} backgroundColor={blockColor} />
       <SkeletonBlock style={styles.title} backgroundColor={blockColor} />
       <SkeletonBlock style={styles.subtitle} backgroundColor={blockColor} />
-      <SkeletonBlock style={styles.cta} backgroundColor={blockColor} />
 
       <View style={styles.cardRow}>
         <View style={[styles.card, { borderColor: theme.border }]}>
@@ -72,7 +72,9 @@ export function AdminDashboardSkeleton() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
   kicker: {
@@ -90,12 +92,6 @@ const styles = StyleSheet.create({
     width: '95%',
     height: 14,
     borderRadius: Radius.sm,
-    marginTop: Spacing.two,
-  },
-  cta: {
-    width: '100%',
-    height: 44,
-    borderRadius: Radius.md,
     marginTop: Spacing.two,
   },
   cardRow: {

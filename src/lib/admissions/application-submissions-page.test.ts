@@ -3,7 +3,68 @@ import { describe, it } from "node:test";
 import {
   applySubmissionListFilters,
   listOrgApplicationSubmissionsPage,
+  matchesSubmissionListFilters,
 } from "./application-submissions";
+
+const sampleSubmission = {
+  status: "enrolled",
+  formSlug: "apply-kindergarten-co-op",
+  formTitle: "Kindergarten Co-op Application",
+};
+
+describe("matchesSubmissionListFilters", () => {
+  it("excludes withdrawn when status filter is all", () => {
+    assert.equal(
+      matchesSubmissionListFilters(
+        { ...sampleSubmission, status: "withdrawn" },
+        { statusFilter: "all", formKey: "all" },
+      ),
+      false,
+    );
+    assert.equal(
+      matchesSubmissionListFilters(sampleSubmission, { statusFilter: "all", formKey: "all" }),
+      true,
+    );
+  });
+
+  it("filters by explicit status", () => {
+    assert.equal(
+      matchesSubmissionListFilters(sampleSubmission, { statusFilter: "draft", formKey: "all" }),
+      false,
+    );
+    assert.equal(
+      matchesSubmissionListFilters(
+        { ...sampleSubmission, status: "draft" },
+        { statusFilter: "draft", formKey: "all" },
+      ),
+      true,
+    );
+  });
+
+  it("filters by form slug or title", () => {
+    assert.equal(
+      matchesSubmissionListFilters(sampleSubmission, {
+        statusFilter: "all",
+        formKey: "apply-kindergarten-co-op",
+      }),
+      true,
+    );
+    assert.equal(
+      matchesSubmissionListFilters(sampleSubmission, {
+        statusFilter: "all",
+        formKey: "Kindergarten Co-op Application",
+      }),
+      true,
+    );
+    assert.equal(
+      matchesSubmissionListFilters(sampleSubmission, {
+        statusFilter: "all",
+        formKey: "apply",
+      }),
+      false,
+    );
+  });
+});
 
 type QueryCall = {
   method: string;
@@ -21,8 +82,8 @@ function createFilterQueryRecorder() {
       calls.push({ method: "neq", args: [column, value] });
       return query;
     },
-    or(filters: string) {
-      calls.push({ method: "or", args: [filters] });
+    in(column: string, values: string[]) {
+      calls.push({ method: "in", args: [column, values] });
       return query;
     },
   };
@@ -34,7 +95,7 @@ describe("applySubmissionListFilters", () => {
   it("excludes withdrawn when status filter is all", () => {
     const { query, calls } = createFilterQueryRecorder();
 
-    applySubmissionListFilters(query, { statusFilter: "all", formKey: "all" });
+    applySubmissionListFilters(query, { statusFilter: "all" });
 
     assert.deepEqual(calls, [{ method: "neq", args: ["status", "withdrawn"] }]);
   });
@@ -44,37 +105,176 @@ describe("applySubmissionListFilters", () => {
 
     applySubmissionListFilters(query, {
       statusFilter: "submitted",
-      formKey: "all",
     });
 
     assert.deepEqual(calls, [{ method: "eq", args: ["status", "submitted"] }]);
   });
 
-  it("filters by form slug or title", () => {
+  it("filters by resolved form version ids", () => {
     const { query, calls } = createFilterQueryRecorder();
 
     applySubmissionListFilters(query, {
       statusFilter: "all",
-      formKey: "apply-2026",
+      formVersionIds: ["form-version-1"],
     });
 
     assert.deepEqual(calls, [
       { method: "neq", args: ["status", "withdrawn"] },
       {
-        method: "or",
-        args: [
-          "application_form_versions.public_slug.eq.apply-2026,application_form_versions.title.eq.apply-2026",
-        ],
+        method: "in",
+        args: ["form_version_id", ["form-version-1"]],
       },
     ]);
   });
 });
 
+function createApplicationsListQuery(
+  calls: QueryCall[],
+  options: {
+    rows: unknown[];
+    count: number;
+    draftProgressRows?: unknown[];
+  },
+) {
+  const draftProgressRows = options.draftProgressRows ?? [];
+
+  const query = {
+    select(...args: unknown[]) {
+      calls.push({ method: "select", args });
+      return query;
+    },
+    eq(column: string, value: string) {
+      calls.push({ method: "eq", args: [column, value] });
+      return query;
+    },
+    neq(column: string, value: string) {
+      calls.push({ method: "neq", args: [column, value] });
+      return query;
+    },
+    or(filters: string) {
+      calls.push({ method: "or", args: [filters] });
+      return query;
+    },
+    order(column: string, orderOptions: { ascending: boolean }) {
+      calls.push({ method: "order", args: [column, orderOptions] });
+      return query;
+    },
+    range(from: number, to: number) {
+      calls.push({ method: "range", args: [from, to] });
+      return query;
+    },
+    in(column: string, values: string[]) {
+      calls.push({ method: "in", args: [column, values] });
+      if (column === "id" && draftProgressRows.length > 0) {
+        return {
+          then(
+            resolve: (value: { data: unknown[]; error: null }) => void,
+            reject?: (reason: unknown) => void,
+          ) {
+            return Promise.resolve({
+              data: draftProgressRows,
+              error: null,
+            }).then(resolve, reject);
+          },
+        };
+      }
+      return query;
+    },
+    then(
+      resolve: (value: unknown) => void,
+      reject?: (reason: unknown) => void,
+    ) {
+      return Promise.resolve({
+        data: options.rows,
+        count: options.count,
+        error: null,
+      }).then(resolve, reject);
+    },
+  };
+
+  return query;
+}
+
+function createFormVersionsLookupQuery(formVersionIds: string[]) {
+  const query = {
+    select() {
+      return query;
+    },
+    eq() {
+      return query;
+    },
+    or() {
+      return query;
+    },
+    then(
+      resolve: (value: { data: { id: string }[]; error: null }) => void,
+      reject?: (reason: unknown) => void,
+    ) {
+      return Promise.resolve({
+        data: formVersionIds.map((id) => ({ id })),
+        error: null,
+      }).then(resolve, reject);
+    },
+  };
+
+  return query;
+}
+
+function createApplicationsSupabaseMock(
+  listOptions: {
+    rows: unknown[];
+    count: number;
+    draftProgressRows?: unknown[];
+    formVersionIds?: string[];
+  },
+) {
+  const listCalls: QueryCall[] = [];
+  let applicationsFromCall = 0;
+
+  const supabase = {
+    from(table: string) {
+      if (table === "application_form_versions") {
+        return createFormVersionsLookupQuery(listOptions.formVersionIds ?? []);
+      }
+
+      if (table !== "applications") {
+        return {
+          select: () => supabase.from("applications"),
+          eq: () => supabase.from("applications"),
+          neq: () => supabase.from("applications"),
+          or: () => supabase.from("applications"),
+          in: () => supabase.from("applications"),
+          order: () => supabase.from("applications"),
+          limit: () => supabase.from("applications"),
+          maybeSingle: async () => ({ data: null, error: null }),
+          then(
+            resolve: (value: { data: unknown[]; error: null }) => void,
+            reject?: (reason: unknown) => void,
+          ) {
+            return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+          },
+        };
+      }
+
+      applicationsFromCall += 1;
+      if (applicationsFromCall === 1) {
+        return createApplicationsListQuery(listCalls, listOptions);
+      }
+      return createApplicationsListQuery([], {
+        rows: [],
+        count: 0,
+        draftProgressRows: listOptions.draftProgressRows,
+      });
+    },
+    listCalls,
+    applicationsFromCall: () => applicationsFromCall,
+  };
+
+  return supabase;
+}
+
 describe("listOrgApplicationSubmissionsPage", () => {
   it("passes offset, limit, and filters to the list query", async () => {
-    const listCalls: QueryCall[] = [];
-    const countCalls: QueryCall[] = [];
-
     const submittedRow = {
       id: "app-submitted",
       status: "submitted",
@@ -145,103 +345,12 @@ describe("listOrgApplicationSubmissionsPage", () => {
       },
     };
 
-    function createApplicationsQuery(calls: QueryCall[], mode: "list" | "count" | "draft") {
-      const query = {
-        select(...args: unknown[]) {
-          calls.push({ method: "select", args });
-          return query;
-        },
-        eq(column: string, value: string) {
-          calls.push({ method: "eq", args: [column, value] });
-          return query;
-        },
-        neq(column: string, value: string) {
-          calls.push({ method: "neq", args: [column, value] });
-          return query;
-        },
-        or(filters: string) {
-          calls.push({ method: "or", args: [filters] });
-          return query;
-        },
-        order(column: string, options: { ascending: boolean }) {
-          calls.push({ method: "order", args: [column, options] });
-          return query;
-        },
-        range(from: number, to: number) {
-          calls.push({ method: "range", args: [from, to] });
-          return query;
-        },
-        in(column: string, values: string[]) {
-          calls.push({ method: "in", args: [column, values] });
-          if (mode === "draft") {
-            return {
-              then(
-                resolve: (value: { data: unknown[]; error: null }) => void,
-                reject?: (reason: unknown) => void,
-              ) {
-                return Promise.resolve({
-                  data: [draftProgressRow],
-                  error: null,
-                }).then(resolve, reject);
-              },
-            };
-          }
-          return query;
-        },
-        then(
-          resolve: (value: unknown) => void,
-          reject?: (reason: unknown) => void,
-        ) {
-          if (mode === "count") {
-            return Promise.resolve({ count: 2, error: null }).then(resolve, reject);
-          }
-          return Promise.resolve({
-            data: [submittedRow, draftSummaryRow],
-            error: null,
-          }).then(resolve, reject);
-        },
-      };
-
-      return query;
-    }
-
-    function emptyQuery() {
-      const query = {
-        select: () => query,
-        eq: () => query,
-        neq: () => query,
-        or: () => query,
-        in: () => query,
-        order: () => query,
-        limit: () => query,
-        maybeSingle: async () => ({ data: null, error: null }),
-        then(
-          resolve: (value: { data: unknown[]; error: null }) => void,
-          reject?: (reason: unknown) => void,
-        ) {
-          return Promise.resolve({ data: [], error: null }).then(resolve, reject);
-        },
-      };
-      return query;
-    }
-
-    let applicationsFromCall = 0;
-    const supabase = {
-      from(table: string) {
-        if (table !== "applications") {
-          return emptyQuery();
-        }
-
-        applicationsFromCall += 1;
-        if (applicationsFromCall === 1) {
-          return createApplicationsQuery(listCalls, "list");
-        }
-        if (applicationsFromCall === 2) {
-          return createApplicationsQuery(countCalls, "count");
-        }
-        return createApplicationsQuery([], "draft");
-      },
-    };
+    const supabase = createApplicationsSupabaseMock({
+      rows: [submittedRow, draftSummaryRow],
+      count: 2,
+      draftProgressRows: [draftProgressRow],
+      formVersionIds: ["form-version-apply"],
+    });
 
     const page = await listOrgApplicationSubmissionsPage(supabase as never, "org-1", {
       limit: 50,
@@ -250,17 +359,21 @@ describe("listOrgApplicationSubmissionsPage", () => {
       formKey: "apply",
     });
 
+    const listCalls = supabase.listCalls;
+
+    assert.equal(supabase.applicationsFromCall(), 2);
+    const selectCall = listCalls.find((call) => call.method === "select");
+    assert.ok(selectCall);
+    assert.deepEqual(selectCall.args[1], { count: "exact" });
     assert.deepEqual(listCalls.filter((call) => call.method === "range"), [
       { method: "range", args: [100, 149] },
     ]);
     assert.deepEqual(
-      listCalls.filter((call) => call.method === "or"),
+      listCalls.filter((call) => call.method === "in"),
       [
         {
-          method: "or",
-          args: [
-            "application_form_versions.public_slug.eq.apply,application_form_versions.title.eq.apply",
-          ],
+          method: "in",
+          args: ["form_version_id", ["form-version-apply"]],
         },
       ],
     );
@@ -280,5 +393,23 @@ describe("listOrgApplicationSubmissionsPage", () => {
     assert.ok(draft.applicationProgressSummary);
     assert.equal(draft.applicationProgressSummary?.completed, 1);
     assert.equal(draft.totalSteps, 2);
+  });
+
+  it("returns an empty page when the form key resolves to no versions", async () => {
+    const supabase = createApplicationsSupabaseMock({
+      rows: [],
+      count: 0,
+      formVersionIds: [],
+    });
+
+    const page = await listOrgApplicationSubmissionsPage(supabase as never, "org-1", {
+      statusFilter: "draft",
+      formKey: "apply-kindergarten-co-op",
+    });
+
+    assert.equal(page.totalCount, 0);
+    assert.deepEqual(page.submissions, []);
+    assert.equal(supabase.applicationsFromCall(), 0);
+    assert.deepEqual(supabase.listCalls, []);
   });
 });

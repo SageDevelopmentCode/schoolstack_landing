@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, LayoutGrid, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import type { Committee, CommitteeEvent, CommitteeEventType } from "@/lib/committees/types";
 import { createEvent, deleteEvent } from "@/lib/committees/events";
 import { getCommittee } from "@/lib/committees/committees";
@@ -101,19 +105,21 @@ function EventChip({
 
 export default function CommitteeCalendarSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
   readOnly = false,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
 }) {
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
   const [view, setView] = useState<CalendarView>("month");
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState("");
@@ -247,15 +253,10 @@ export default function CommitteeCalendarSection({
           </button>
         </div>
         {!readOnly && (
-          <button
-            type="button"
-            onClick={() => openAddModal()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer"
-            style={{ backgroundColor: C.accent }}
-          >
+          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => openAddModal()}>
             <Plus className="w-3.5 h-3.5" />
             Add event
-          </button>
+          </AdminButton>
         )}
       </div>
 
@@ -484,7 +485,7 @@ export default function CommitteeCalendarSection({
 
       <CommitteeEventDetailPanel
         event={selectedEvent}
-        C={C}
+        theme={theme}
         readOnly={readOnly}
         onClose={() => setSelectedEventId(null)}
         onDelete={readOnly ? undefined : handleDelete}
@@ -493,27 +494,22 @@ export default function CommitteeCalendarSection({
       <AnimatePresence>
       {showAdd && (
         <CommitteeModalShell
-          C={C}
+          theme={theme}
           title="Add event"
           onClose={() => setShowAdd(false)}
           footer={
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAdd(false)}
-                className="px-4 py-2 text-sm cursor-pointer"
-              >
+              <AdminButton theme={theme} variant="soft" onClick={() => setShowAdd(false)}>
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAdd}
+              </AdminButton>
+              <AdminButton
+                theme={theme}
+                variant="primary"
+                onClick={() => void handleAdd()}
                 disabled={saving || !title.trim() || !date}
-                className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-                style={{ backgroundColor: C.accent }}
               >
                 {saving ? "Adding…" : "Add event"}
-              </button>
+              </AdminButton>
             </div>
           }
         >
@@ -523,27 +519,27 @@ export default function CommitteeCalendarSection({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={{ borderColor: C.border }}
+                style={inputStyle}
               />
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={{ borderColor: C.border }}
+                style={inputStyle}
               />
               <input
                 placeholder="Time (optional)"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={{ borderColor: C.border }}
+                style={inputStyle}
               />
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value as CommitteeEventType)}
                 className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={{ borderColor: C.border }}
+                style={inputStyle}
               >
                 <option value="meeting">Meeting</option>
                 <option value="deadline">Deadline</option>
@@ -555,7 +551,7 @@ export default function CommitteeCalendarSection({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={{ borderColor: C.border }}
+                style={inputStyle}
               />
             </div>
         </CommitteeModalShell>

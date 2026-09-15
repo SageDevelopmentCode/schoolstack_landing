@@ -54,6 +54,39 @@ describe("formatActivityNotificationDetail", () => {
     );
   });
 
+  it("formats parent autopay enabled with family label", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.TUITION_AUTOPAY_ENABLED,
+        null,
+        "Autopay enabled",
+        null,
+        null,
+        { guardianLabel: "Smith Family" },
+      ),
+      "Smith Family enabled tuition autopay",
+    );
+  });
+
+  it("formats tuition payment completed with tuition context", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
+        "Maggie T.",
+        "Tuition payment completed",
+        "$500",
+        {
+          subjectLabel: "Maggie T.",
+          chargeLabel: "Tuition",
+          familyName: "Smith Family",
+          studentName: "Maggie Thompson",
+          payerLabel: "Smith Family",
+        },
+      ),
+      "Smith Family paid $500 for Maggie T.",
+    );
+  });
+
   it("falls back when payment amount is missing", () => {
     assert.equal(
       formatActivityNotificationDetail(

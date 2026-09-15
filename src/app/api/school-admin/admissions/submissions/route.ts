@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { messageFromCause } from "@/lib/api/error-serialization";
 import { apiError } from "@/lib/api/route-errors";
+import { parseOperationalError } from "@/lib/operational-errors-client";
 import {
   listOrgApplicationSubmissionsPage,
   ORG_SUBMISSIONS_PAGE_DEFAULT_SIZE,
@@ -92,12 +94,17 @@ export async function GET(request: Request) {
       });
     }
 
+    const parsed = parseOperationalError(err);
+    const errorMessage =
+      parsed.message ||
+      messageFromCause(err) ||
+      "Failed to load submissions.";
+
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        err instanceof Error ? err.message : "Failed to load submissions.",
-      code: "internal_error",
+      error: errorMessage,
+      code: parsed.code ?? "internal_error",
       cause: err,
     });
   }

@@ -47,6 +47,7 @@ export function filterMobileDashboardSummary(
     metrics: summary.metrics,
     recentActivity: summary.recentActivity.filter((item) => isNativeActivityItem(slug, item)),
     quickActions: summary.quickActions.filter((action) => isNativeQuickAction(slug, action)),
+    featureAnnouncements: summary.featureAnnouncements,
     messagesUnreadCount: summary.messagesUnreadCount,
     setupComplete: summary.setupComplete,
   };

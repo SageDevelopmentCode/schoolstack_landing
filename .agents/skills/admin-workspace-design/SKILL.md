@@ -183,7 +183,41 @@ useSchoolAdminStoryTheme()
   Drawers: KPI breakdown, setup readiness, adjust tuition — paper #F8FAF8 + AdminSectionKicker
 ```
 
-Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts), [`admin-staff-roster-metrics.ts`](src/lib/school-admin/admin-staff-roster-metrics.ts). Staff display helpers: [`staff-display.ts`](src/lib/staff/staff-display.ts). Assigned learner counts: [`fetchAssignedStudentCountsByStaffIds`](src/lib/school-admin/enrolled-students.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
+**Alerts (notifications tab):**
+
+```
+useSchoolAdminStoryTheme()
+  AlertsStoryHeader: kicker "Workspace" + Fraunces "Alerts" + school name subtitle + channels-needing-recipients count
+  Sage "Needs attention" banner when any enabled channel has zero recipients → focus first channel
+  AlertsChannelTabBar: forest underline tabs (Applications · Payments received · Visits & scheduling · Committee join requests)
+    amber dot on tabs with needsAction
+  NotificationChannelCard in AdminCard (max-w-3xl inner column):
+    AdminChip tone="warning" when enabled but no recipients
+    Toggle group in nested AdminCard (SettingToggleRow pattern from Schedule permissions)
+    Recipients list in nested AdminCard; AdminButton soft "Add email" + committeeStoryInputStyle input
+  AnimatePresence + tabPanelVariants on channel tab panel (fade/slide; respects prefers-reduced-motion)
+  Auto-save on toggle/email change; Loader2 + retry AdminCard for load states
+```
+
+**Committees (my_school tab):**
+
+```
+useSchoolAdminStoryTheme()
+  CommitteesStoryHeader: kicker "My School" + Fraunces "Committees" + dynamic subtitle + AdminButton "Create committee"
+  AdminMetricCard row (active committees · total volunteers · pending join requests · archived)
+  Sage "Needs attention" banner when pending join requests > 0 → scroll to join requests panel
+  Filter pills: All · Active · Archived
+  CommitteeStoryCard grid in AdminCard
+  CommitteeJoinRequestsPanel in AdminCard with AdminButton approve/decline
+
+Workspace (?committee=id&section=):
+  CommitteeWorkspaceStoryHeader: back link + term kicker + committee name + ParentStoryPillNav sections
+  Section panels on paper canvas; messages tab full-height on #EFF5F0
+  Home: sage welcome AdminCard + AdminMetricCard quick links + upcoming/tasks AdminCards
+  Modals/drawers: CommitteeModalShell paper #F8FAF8 + AdminSectionKicker
+```
+
+Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-student-roster-metrics.ts), [`admin-staff-roster-metrics.ts`](src/lib/school-admin/admin-staff-roster-metrics.ts), [`admin-committee-roster-metrics.ts`](src/lib/school-admin/admin-committee-roster-metrics.ts). Staff display helpers: [`staff-display.ts`](src/lib/staff/staff-display.ts). Assigned learner counts: [`fetchAssignedStudentCountsByStaffIds`](src/lib/school-admin/enrolled-students.ts). Next-step logic: [`admin-submission-next-step.ts`](src/lib/admissions/admin-submission-next-step.ts). Relative time: [`formatRelativeTime`](src/lib/school-admin/activity-notifications.ts). Drawer context: [`SubmissionDetailStoryContext.tsx`](src/components/school-admin/admissions/SubmissionDetailStoryContext.tsx).
 
 ### Scope
 
@@ -206,4 +240,6 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Schedule: [`SchedulePage.tsx`](src/components/school-admin/SchedulePage.tsx), [`ScheduleStoryHeader.tsx`](src/components/school-admin/schedule/ScheduleStoryHeader.tsx), [`ScheduleOverviewTab.tsx`](src/components/school-admin/schedule/ScheduleOverviewTab.tsx)
 - Messages: [`AdminMessagesPage.tsx`](src/components/school-admin/AdminMessagesPage.tsx), [`AdminMessagesInboxHeader.tsx`](src/components/school-admin/messages/AdminMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="admin-story"`
 - Tuition: [`TuitionDashboard.tsx`](src/components/school-admin/tuition/TuitionDashboard.tsx), [`TuitionStoryHeader.tsx`](src/components/school-admin/tuition/TuitionStoryHeader.tsx), [`TuitionFamilyListSidebar.tsx`](src/components/school-admin/tuition/TuitionFamilyListSidebar.tsx)
+- Alerts: [`NotificationsSettingsPage.tsx`](src/components/school-admin/notifications/NotificationsSettingsPage.tsx), [`AlertsStoryHeader.tsx`](src/components/school-admin/notifications/AlertsStoryHeader.tsx), [`AlertsChannelTabBar.tsx`](src/components/school-admin/notifications/AlertsChannelTabBar.tsx), [`NotificationChannelCard.tsx`](src/components/school-admin/notifications/NotificationChannelCard.tsx)
+- Committees: [`CommitteesPage.tsx`](src/components/school-admin/committees/CommitteesPage.tsx), [`CommitteesStoryHeader.tsx`](src/components/school-admin/committees/CommitteesStoryHeader.tsx), [`CommitteeWorkspaceStoryHeader.tsx`](src/components/school-admin/committees/CommitteeWorkspaceStoryHeader.tsx)
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)

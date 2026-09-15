@@ -29,6 +29,39 @@ export const APPLICATION_STATUS_FILTER_ORDER = [
 
 export const APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL = ['withdrawn'] as const;
 
+export const APPLICATION_STATUSES_NEEDING_ADMIN_ACTION = [
+  'submitted',
+  'fee_pending',
+  'under_review',
+  'observation',
+] as const;
+
+export type ApplicationStatusChipTone = 'success' | 'warning' | 'alert' | 'info';
+
+export function applicationSubmissionNeedsAdminAction(status: string): boolean {
+  return (APPLICATION_STATUSES_NEEDING_ADMIN_ACTION as readonly string[]).includes(status);
+}
+
+export function applicationStatusChipTone(status: string): ApplicationStatusChipTone {
+  switch (status) {
+    case 'accepted':
+    case 'enrolled':
+      return 'success';
+    case 'declined':
+    case 'withdrawn':
+      return 'alert';
+    case 'submitted':
+    case 'fee_pending':
+      return 'warning';
+    case 'enrolling':
+    case 'under_review':
+    case 'observation':
+    case 'draft':
+    default:
+      return 'info';
+  }
+}
+
 export const FEE_STATUS_LABELS: Record<string, string> = {
   not_required: '—',
   pending: 'Pending',

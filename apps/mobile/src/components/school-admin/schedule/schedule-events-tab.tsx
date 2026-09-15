@@ -1,29 +1,36 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
 import {
   EMPTY_EVENT_FORM,
+  eventFormsEqual,
   SchoolEventFormSheet,
   type EventFormState,
 } from '@/components/school-admin/schedule/school-event-form-sheet';
 import { SchoolEventDetailSheet } from '@/components/school-admin/schedule/school-event-detail-sheet';
 import { ScheduleMonthCalendar } from '@/components/school-admin/schedule/schedule-month-calendar';
 import { useScheduleCalendar } from '@/components/school-admin/schedule/use-schedule-calendar';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryCard } from '@/components/story/story-card';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { addMinutesToTimeInput, DEFAULT_EVENT_DURATION_MINUTES, toTimeInputValue } from '@/lib/school-events/calendar-time';
 import { getDefaultColorKeyForType } from '@/lib/school-events/event-labels';
 import {
-  createOrganizationEvent,
-  deleteOrganizationEvent,
+  createOrganizationEventViaApi,
+  deleteOrganizationEventViaApi,
+  updateOrganizationEventViaApi,
+} from '@/lib/school-events/event-api';
+import {
   groupOrganizationEventsByDate,
   listEventsForOrg,
-  updateOrganizationEvent,
 } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type ScheduleEventsTabProps = {
   organizationId: string;
@@ -32,8 +39,9 @@ type ScheduleEventsTabProps = {
 };
 
 export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: ScheduleEventsTabProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const supabase = useMemo(() => getSupabaseClient(), []);
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +49,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [form, setForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
+  const [initialForm, setInitialForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -56,11 +65,12 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       const rows = await listEventsForOrg(supabase, organizationId);
       setEvents(rows);
     } catch (error) {
+      reportError('school_admin_schedule_events_load', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to load events.');
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, reportError, supabase]);
 
   useEffect(() => {
     void loadEvents();
@@ -70,11 +80,13 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     setSelectedEventId(null);
     setEditingEventId(null);
     setFormMode('create');
-    setForm({
+    const nextForm = {
       ...EMPTY_EVENT_FORM,
       date: prefillDate ?? calendar.selectedDate ?? '',
       colorKey: getDefaultColorKeyForType(EMPTY_EVENT_FORM.eventType),
-    });
+    };
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setFormOpen(true);
   };
 
@@ -82,7 +94,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     setSelectedEventId(null);
     setEditingEventId(event.id);
     setFormMode('edit');
-    setForm({
+    const nextForm = {
       title: event.title,
       date: event.date,
       time: toTimeInputValue(event.time),
@@ -93,7 +105,9 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       colorManuallySet: Boolean(event.colorKey),
       location: event.location ?? '',
       description: event.description ?? '',
-    });
+    };
+    setForm(nextForm);
+    setInitialForm(nextForm);
     setFormOpen(true);
   };
 
@@ -112,7 +126,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
           : form.endTime;
 
       if (formMode === 'create') {
-        await createOrganizationEvent(supabase, organizationId, {
+        await createOrganizationEventViaApi(organizationId, {
           title: form.title,
           date: form.date,
           time: form.isAllDay ? undefined : form.time,
@@ -124,7 +138,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
           description: form.description,
         });
       } else if (editingEventId) {
-        await updateOrganizationEvent(supabase, editingEventId, {
+        await updateOrganizationEventViaApi(organizationId, editingEventId, {
           title: form.title,
           date: form.date,
           time: form.isAllDay ? null : form.time,
@@ -141,6 +155,11 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
       await loadEvents();
       onRefresh();
     } catch (error) {
+      reportError('school_admin_schedule_event_save', error, {
+        entityType: 'organization_event',
+        entityId: editingEventId ?? undefined,
+        metadata: { mode: formMode },
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save event.');
     } finally {
       setSaving(false);
@@ -151,11 +170,15 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     if (!selectedEvent) return;
     setDeleting(true);
     try {
-      await deleteOrganizationEvent(supabase, selectedEvent.id);
+      await deleteOrganizationEventViaApi(organizationId, selectedEvent.id);
       setSelectedEventId(null);
       await loadEvents();
       onRefresh();
     } catch (error) {
+      reportError('school_admin_schedule_event_delete', error, {
+        entityType: 'organization_event',
+        entityId: selectedEvent.id,
+      });
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
     } finally {
       setDeleting(false);
@@ -178,66 +201,68 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
               onRefresh();
               void loadEvents();
             }}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }>
         <View style={styles.headerRow}>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            School calendar
-          </ThemedText>
+          <View style={styles.headerCopy}>
+            <StorySectionKicker style={styles.kicker}>School events</StorySectionKicker>
+            <Text style={[styles.helperCopy, { color: theme.muted }]}>
+              Manage the calendar families see in the parent portal.
+            </Text>
+          </View>
           <Pressable
             accessibilityRole="button"
             onPress={() => openCreateForm()}
-            style={[styles.addButton, { backgroundColor: theme.accent }]}>
-            <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-              Add event
-            </ThemedText>
+            style={({ pressed }) => [
+              styles.addButton,
+              { backgroundColor: theme.primary, opacity: pressed ? 0.9 : 1 },
+            ]}>
+            <Text style={styles.addButtonLabel}>Add event</Text>
           </Pressable>
         </View>
 
-        <ScheduleMonthCalendar
-          viewYear={calendar.viewYear}
-          viewMonth={calendar.viewMonth}
-          selectedDate={calendar.selectedDate}
-          onSelectDate={calendar.setSelectedDate}
-          eventDates={eventDates}
-          minDate={calendar.today}
-          onPrevMonth={calendar.prevMonth}
-          onNextMonth={calendar.nextMonth}
-          colors={calendar.calendarColors}
-        />
+        <StoryCard style={styles.calendarCard}>
+          <ScheduleMonthCalendar
+            viewYear={calendar.viewYear}
+            viewMonth={calendar.viewMonth}
+            selectedDate={calendar.selectedDate}
+            onSelectDate={calendar.setSelectedDate}
+            eventDates={eventDates}
+            minDate={calendar.today}
+            onPrevMonth={calendar.prevMonth}
+            onNextMonth={calendar.nextMonth}
+            colors={calendar.calendarColors}
+          />
+        </StoryCard>
 
         {calendar.selectedDate ? (
-          <View style={styles.daySection}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              {calendar.selectedDate}
-            </ThemedText>
+          <StoryCard style={styles.daySection}>
+            <Text style={[styles.dayTitle, { color: theme.ink }]}>{calendar.selectedDate}</Text>
             {dayEvents.length === 0 ? (
-              <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                No events on this day.
-              </ThemedText>
+              <Text style={[styles.helperCopy, { color: theme.muted }]}>No events on this day.</Text>
             ) : (
-              dayEvents.map((event) => (
+              dayEvents.map((event, index) => (
                 <Pressable
                   key={event.id}
                   accessibilityRole="button"
                   onPress={() => setSelectedEventId(event.id)}
-                  style={[styles.eventRow, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    {event.title}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
+                  style={[
+                    styles.eventRow,
+                    index > 0 && { borderTopColor: theme.line, borderTopWidth: StyleSheet.hairlineWidth },
+                  ]}>
+                  <Text style={[styles.eventTitle, { color: theme.ink }]}>{event.title}</Text>
+                  <Text style={[styles.eventMeta, { color: theme.muted }]}>
                     {event.isAllDay ? 'All day' : event.time}
-                  </ThemedText>
+                  </Text>
                 </Pressable>
               ))
             )}
-            <Pressable accessibilityRole="button" onPress={() => openCreateForm(calendar.selectedDate ?? undefined)}>
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                Add event on this day
-              </ThemedText>
-            </Pressable>
-          </View>
+            <StoryTextLink
+              label="Add event on this day"
+              onPress={() => openCreateForm(calendar.selectedDate ?? undefined)}
+            />
+          </StoryCard>
         ) : null}
       </ScrollView>
 
@@ -245,6 +270,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
         visible={formOpen}
         mode={formMode}
         form={form}
+        isDirty={!eventFormsEqual(form, initialForm)}
         saving={saving}
         onClose={() => setFormOpen(false)}
         onChange={setForm}
@@ -267,28 +293,67 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.six,
     gap: Spacing.four,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.three,
   },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.one,
+  },
+  kicker: {
+    marginBottom: 0,
+  },
+  helperCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   addButton: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.pill,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingVertical: 8,
+  },
+  addButtonLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  calendarCard: {
+    padding: StoryCardPadding,
   },
   daySection: {
+    padding: StoryCardPadding,
     gap: Spacing.two,
   },
+  dayTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
   eventRow: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    padding: Spacing.three,
+    paddingVertical: Spacing.two,
     gap: 2,
+  },
+  eventTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  eventMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

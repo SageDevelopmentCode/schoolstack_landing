@@ -14,9 +14,13 @@ import { MessagesRealtimeProvider, useMessagesRealtime } from '@/contexts/messag
 import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
 import { ParentBillingProvider } from '@/contexts/parent-billing-context';
 import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
+import { ParentClassroomSignupsProvider } from '@/contexts/parent-classroom-signups-context';
+import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
+import { ParentThemeProvider } from '@/contexts/parent-theme-context';
+import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
@@ -28,6 +32,7 @@ import {
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
+import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
 
 function getActiveTab(pathname: string): ParentTab | null {
@@ -71,13 +76,10 @@ function ParentLayoutContent() {
     void refreshUnreadCount();
   }, [pathname, refreshUnreadCount]);
 
-  useEffect(() => {
-    if (isLoading || !slug) return;
+  useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
-    if (!user) {
-      router.replace('/login');
-      return;
-    }
+  useEffect(() => {
+    if (isLoading || !slug || !user) return;
 
     if (portalType !== 'parent' || selectedSchool?.slug !== slug) {
       router.replace('/portal');
@@ -142,14 +144,14 @@ function ParentLayoutContent() {
 
   if (isLoading || !organization) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: Story.paper }]}>
         <ActivityIndicator color={theme.accent} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Story.paper }]}>
       <StatusBar style="dark" />
       <View
         style={[
@@ -178,7 +180,8 @@ function ParentLayoutContent() {
 }
 
 export default function ParentLayout() {
-  const { selectedSchool } = useAuth();
+  const { selectedSchool, user, isLoading } = useAuth();
+  const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const organization = useMemo(() => {
@@ -187,6 +190,14 @@ export default function ParentLayout() {
   }, [selectedSchool, slug]);
 
   const [loadedOrg, setLoadedOrg] = useState(organization);
+
+  useRecoverableAuthRedirect(!user, isLoading);
+
+  useEffect(() => {
+    if (!user) {
+      setLoadedOrg(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (organization) {
@@ -202,32 +213,40 @@ export default function ParentLayout() {
   if (!loadedOrg) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator color="#2E4A3C" />
+        <ActivityIndicator color={Story.primary} />
       </SafeAreaView>
     );
   }
 
+  const branding = toOrganizationBranding(loadedOrg.branding);
+
   return (
-    <SchoolAdminThemeProvider branding={toOrganizationBranding(loadedOrg.branding)}>
-      <ParentHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-        <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-          <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-            <MessagesRealtimeProvider organizationId={loadedOrg.id}>
-              <ParentMessagesInboxProvider
-                organizationId={loadedOrg.id}
-                schoolName={loadedOrg.name}>
-                <MessagesUnreadProvider
-                  organizationId={loadedOrg.id}
-                  schoolName={loadedOrg.name}
-                  fetchUnreadCount={fetchParentMessagesUnreadCount}>
-                  <ParentMessagesInboxRealtimeBridge />
-                  <ParentLayoutContent />
-                </MessagesUnreadProvider>
-              </ParentMessagesInboxProvider>
-            </MessagesRealtimeProvider>
-          </ParentCalendarProvider>
-        </ParentBillingProvider>
-      </ParentHomeProvider>
+    <SchoolAdminThemeProvider branding={branding}>
+      <ParentThemeProvider branding={branding}>
+        <ParentHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+          <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+            <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+              <ParentClassroomSignupsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                  <MessagesRealtimeProvider organizationId={loadedOrg.id}>
+                    <ParentMessagesInboxProvider
+                      organizationId={loadedOrg.id}
+                      schoolName={loadedOrg.name}>
+                      <MessagesUnreadProvider
+                        organizationId={loadedOrg.id}
+                        schoolName={loadedOrg.name}
+                        fetchUnreadCount={fetchParentMessagesUnreadCount}>
+                        <ParentMessagesInboxRealtimeBridge />
+                        <ParentLayoutContent />
+                      </MessagesUnreadProvider>
+                    </ParentMessagesInboxProvider>
+                  </MessagesRealtimeProvider>
+                </ParentCalendarProvider>
+              </ParentClassroomSignupsProvider>
+            </ParentCommitteesProvider>
+          </ParentBillingProvider>
+        </ParentHomeProvider>
+      </ParentThemeProvider>
     </SchoolAdminThemeProvider>
   );
 }
@@ -240,7 +259,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Story.paper,
   },
   content: {
     flex: 1,

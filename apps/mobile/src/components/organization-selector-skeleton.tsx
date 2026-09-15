@@ -7,7 +7,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Brand, Radius, Spacing } from '@/constants/theme';
+import { StoryCard } from '@/components/story/story-card';
+import { Story } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 
 type OrganizationSelectorSkeletonProps = {
   rowCount?: number;
@@ -25,9 +27,13 @@ function SkeletonRow() {
   }));
 
   return (
-    <Animated.View style={[styles.row, animatedStyle]}>
-      <View style={styles.logoPlaceholder} />
-      <View style={styles.namePlaceholder} />
+    <Animated.View style={animatedStyle}>
+      <StoryCard compact style={styles.rowCard}>
+        <View style={styles.rowInner}>
+          <View style={styles.logoPlaceholder} />
+          <View style={styles.namePlaceholder} />
+        </View>
+      </StoryCard>
     </Animated.View>
   );
 }
@@ -51,28 +57,27 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: 0,
   },
-  row: {
+  rowCard: {
+    padding: 0,
+  },
+  rowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.three,
     paddingVertical: 14,
     paddingHorizontal: 14,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Brand.border,
-    backgroundColor: Brand.surface,
   },
   logoPlaceholder: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Brand.border,
+    backgroundColor: Story.line,
   },
   namePlaceholder: {
     flex: 1,
     height: 14,
     borderRadius: 7,
-    backgroundColor: Brand.border,
+    backgroundColor: Story.line,
     maxWidth: '70%',
   },
   separator: {

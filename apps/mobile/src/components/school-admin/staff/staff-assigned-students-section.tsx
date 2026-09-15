@@ -1,17 +1,22 @@
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { StaffAssignedStudentsSkeleton } from '@/components/school-admin/staff/staff-assigned-students-skeleton';
 import { StaffStudentAssignPicker } from '@/components/school-admin/staff/staff-student-assign-picker';
+import { StudentPhoto } from '@/components/school-admin/student-photo';
+import { StudentProfileSheet } from '@/components/school-admin/students/student-profile-sheet';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import {
   assignStudentsToStaffApi,
   fetchStaffAssignedStudents,
@@ -23,6 +28,7 @@ import {
   formatEnrolledStudentName,
   formatStudentGrade,
 } from '@/lib/school-admin/enrolled-students';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StaffAssignedStudentsSectionProps = {
   slug: string;
@@ -39,8 +45,8 @@ export function StaffAssignedStudentsSection({
   staffMemberName,
   staffIsActive,
 }: StaffAssignedStudentsSectionProps) {
-  const theme = useAdminTheme();
-  const router = useRouter();
+  const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
 
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +54,7 @@ export function StaffAssignedStudentsSection({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const loadStudents = useCallback(async () => {
     setLoading(true);
@@ -56,12 +63,16 @@ export function StaffAssignedStudentsSection({
       const rows = await fetchStaffAssignedStudents(slug, staffMemberId);
       setStudents(rows);
     } catch (loadError) {
+      reportError('school_admin_staff_students_load', loadError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+      });
       setError(formatStaffApiError(loadError, 'Failed to load assigned students.'));
       setStudents([]);
     } finally {
       setLoading(false);
     }
-  }, [slug, staffMemberId]);
+  }, [reportError, slug, staffMemberId]);
 
   useEffect(() => {
     void loadStudents();
@@ -73,6 +84,11 @@ export function StaffAssignedStudentsSection({
       await assignStudentsToStaffApi(slug, staffMemberId, studentIds);
       await loadStudents();
     } catch (assignError) {
+      reportError('school_admin_staff_students_assign', assignError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+        metadata: { studentIds },
+      });
       Alert.alert('Error', formatStaffApiError(assignError, 'Failed to assign students.'));
     } finally {
       setAssigning(false);
@@ -100,6 +116,11 @@ export function StaffAssignedStudentsSection({
       await unassignStudentFromStaffApi(slug, staffMemberId, studentId);
       setStudents((current) => current.filter((row) => row.id !== studentId));
     } catch (unassignError) {
+      reportError('school_admin_staff_students_unassign', unassignError, {
+        entityType: 'staff_member',
+        entityId: staffMemberId,
+        metadata: { studentId },
+      });
       Alert.alert('Error', formatStaffApiError(unassignError, 'Failed to unassign student.'));
     } finally {
       setRemovingStudentId(null);
@@ -109,58 +130,48 @@ export function StaffAssignedStudentsSection({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
+        <Text style={[styles.countLabel, { color: theme.muted }]}>
           {loading ? 'Loading…' : `${students.length} assigned`}
-        </ThemedText>
+        </Text>
         {staffIsActive ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setPickerOpen(true)}
-            style={({ pressed }) => [styles.assignButton, pressed && { opacity: 0.7 }]}>
-            <ThemedText type="smallBold" style={{ color: theme.accent }}>
-              Assign student
-            </ThemedText>
-          </Pressable>
+          <StoryTextLink label="Assign student" onPress={() => setPickerOpen(true)} />
         ) : null}
       </View>
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={theme.accent} />
-        </View>
+        <StaffAssignedStudentsSkeleton />
       ) : error ? (
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          {error}
-        </ThemedText>
+        <Text style={[styles.emptyCopy, { color: theme.muted }]}>{error}</Text>
       ) : students.length === 0 ? (
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
-          No students assigned yet.
-        </ThemedText>
+        <Text style={[styles.emptyCopy, { color: theme.muted }]}>No students assigned yet.</Text>
       ) : (
         <View style={styles.list}>
           {students.map((student) => {
+            const studentName = formatEnrolledStudentName(student);
             const programLabel =
               student.programNames.length > 0 ? student.programNames.join(', ') : '—';
             const gradeLabel = formatStudentGrade(student.grade) ?? '—';
             const isRemoving = removingStudentId === student.id;
 
             return (
-              <View
-                key={student.id}
-                style={[
-                  styles.row,
-                  { borderColor: theme.border, backgroundColor: theme.surface },
-                ]}>
+              <StoryCard key={student.id} compact style={styles.row}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => router.push(`/school-admin/${slug}/students/${student.id}`)}
+                  accessibilityLabel={studentName}
+                  onPress={() => setSelectedStudentId(student.id)}
                   style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.7 }]}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    {formatEnrolledStudentName(student)}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                    {gradeLabel} · {programLabel}
-                  </ThemedText>
+                  <StudentPhoto
+                    name={studentName}
+                    photoUrl={student.profilePhotoUrl}
+                    size="row"
+                    showHealthIndicator={student.hasStandingHealthItems}
+                  />
+                  <View style={styles.rowCopy}>
+                    <Text style={[styles.studentName, { color: theme.ink }]}>{studentName}</Text>
+                    <Text style={[styles.studentMeta, { color: theme.muted }]}>
+                      {gradeLabel} · {programLabel}
+                    </Text>
+                  </View>
                 </Pressable>
                 {staffIsActive ? (
                   <Pressable
@@ -169,24 +180,22 @@ export function StaffAssignedStudentsSection({
                     onPress={() => confirmUnassign(student)}
                     style={({ pressed }) => [styles.removeButton, pressed && { opacity: 0.7 }]}>
                     {isRemoving ? (
-                      <ActivityIndicator color={theme.textSecondary} size="small" />
+                      <ActivityIndicator color={theme.muted} size="small" />
                     ) : (
-                      <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                        Remove
-                      </ThemedText>
+                      <Text style={[styles.removeLabel, { color: theme.muted }]}>Remove</Text>
                     )}
                   </Pressable>
                 ) : null}
-              </View>
+              </StoryCard>
             );
           })}
         </View>
       )}
 
       {!staffIsActive && students.length > 0 ? (
-        <ThemedText type="small" style={{ color: theme.textTertiary }}>
+        <Text style={[styles.emptyCopy, { color: theme.muted }]}>
           Assign and remove are disabled while this staff member is inactive.
-        </ThemedText>
+        </Text>
       ) : null}
 
       <StaffStudentAssignPicker
@@ -198,6 +207,14 @@ export function StaffAssignedStudentsSection({
         saving={assigning}
         onClose={() => setPickerOpen(false)}
         onSave={handleAssign}
+      />
+
+      <StudentProfileSheet
+        visible={selectedStudentId != null}
+        studentId={selectedStudentId}
+        organizationId={organizationId}
+        slug={slug}
+        onClose={() => setSelectedStudentId(null)}
       />
     </View>
   );
@@ -213,13 +230,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  assignButton: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
+  countLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
-  centered: {
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   list: {
     gap: Spacing.two,
@@ -227,20 +246,38 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    overflow: 'hidden',
+    padding: StoryCardPadding,
+    gap: Spacing.two,
   },
   rowMain: {
     flex: 1,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  rowCopy: {
+    flex: 1,
     gap: 2,
+    minWidth: 0,
+  },
+  studentName: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  studentMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   removeButton: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
     minWidth: 72,
     alignItems: 'center',
+  },
+  removeLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
   },
 });

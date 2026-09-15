@@ -1,24 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
-import { TransactionFilters } from '@/components/school-admin/more/transaction-filters';
-import { TransactionListItem } from '@/components/school-admin/more/transaction-list-item';
-import { TransactionSummaryCards } from '@/components/school-admin/more/transaction-summary-cards';
-import { TransactionsListSkeleton } from '@/components/school-admin/more/transactions-list-skeleton';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Spacing } from '@/constants/theme';
 import {
-  listOrganizationPayments,
-  summarizePaymentRows,
-  type PaymentRecordDisplayRow,
-  type PaymentStatus,
-  type PaymentType,
-} from '@/lib/admissions/payment-records';
-import { getSupabaseClient } from '@/lib/supabase';
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+
+import { TransactionStatusFilters } from '@/components/school-admin/more/transaction-status-filters';
+import { TransactionStoryListItem } from '@/components/school-admin/more/transaction-story-list-item';
+import { TransactionsMetricRow } from '@/components/school-admin/more/transactions-metric-row';
+import { TransactionsNeedsAttentionBanner } from '@/components/school-admin/more/transactions-needs-attention-banner';
+import { TransactionsStoryHeader } from '@/components/school-admin/more/transactions-story-header';
+import { TransactionsListSkeleton } from '@/components/school-admin/more/transactions-list-skeleton';
+import { StoryCard } from '@/components/story/story-card';
+import { useSchoolAdminTransactions } from '@/contexts/school-admin-transactions-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
+import type { PaymentRecordDisplayRow } from '@/lib/admissions/payment-records';
+import {
+  clearAttentionDismiss,
+  dismissAttention,
+  readDismissedAttention,
+  type TransactionsAttentionVariant,
+} from '@/lib/school-admin/transactions-attention-dismiss';
 
 type TransactionsListScreenProps = {
   organizationId: string;
@@ -26,68 +36,99 @@ type TransactionsListScreenProps = {
 };
 
 export function TransactionsListScreen({ organizationId, slug }: TransactionsListScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
-  const supabase = useMemo(() => getSupabaseClient(), []);
+  const {
+    rows,
+    meta,
+    statusFilter,
+    typeFilter,
+    isLoading,
+    isRefreshing,
+    isLoadingMore,
+    hasMore,
+    error,
+    setStatusFilter,
+    setTypeFilter,
+    refresh,
+    loadMore,
+  } = useSchoolAdminTransactions();
 
-  const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'' | PaymentStatus>('');
-  const [typeFilter, setTypeFilter] = useState<'' | PaymentType>('');
-
-  const loadRows = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const data = await listOrganizationPayments(supabase, organizationId);
-        setRows(data);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load transactions.');
-        setRows([]);
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [organizationId, supabase],
-  );
+  const [dismissedAttention, setDismissedAttention] = useState<
+    Partial<Record<TransactionsAttentionVariant, boolean>>
+  >({});
 
   useEffect(() => {
-    void loadRows();
-  }, [loadRows]);
+    let cancelled = false;
 
-  const filteredRows = useMemo(
-    () =>
-      rows.filter((row) => {
-        if (statusFilter && row.status !== statusFilter) return false;
-        if (typeFilter && row.paymentType !== typeFilter) return false;
-        return true;
-      }),
-    [rows, statusFilter, typeFilter],
-  );
+    void readDismissedAttention(organizationId).then((dismissed) => {
+      if (!cancelled) {
+        setDismissedAttention(dismissed);
+      }
+    });
 
-  const summary = useMemo(() => summarizePaymentRows(rows), [rows]);
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
-  const statusCounts = useMemo(() => {
-    const counts: Partial<Record<PaymentStatus, number>> = {};
-    for (const row of rows) {
-      counts[row.status] = (counts[row.status] ?? 0) + 1;
+  const summary = meta?.summary ?? {
+    collectedThisMonthCents: 0,
+    collectedYtdCents: 0,
+    pendingCount: 0,
+    pendingCents: 0,
+    failedCount: 0,
+    refundedCount: 0,
+    refundedCents: 0,
+    applicationFeeCents: 0,
+    enrollmentCents: 0,
+    tuitionCents: 0,
+  };
+
+  const metaTotalCount = meta?.totalCount ?? 0;
+  const statusCounts = meta?.statusCounts ?? {};
+  const typeCounts = meta?.typeCounts ?? {};
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (summary.failedCount === 0) {
+      void clearAttentionDismiss(organizationId, 'failed');
+      setDismissedAttention((current) => {
+        if (!current.failed) return current;
+        const next = { ...current };
+        delete next.failed;
+        return next;
+      });
     }
-    return counts;
-  }, [rows]);
+  }, [isLoading, organizationId, summary.failedCount]);
 
-  const typeCounts = useMemo(() => {
-    const counts: Partial<Record<PaymentType, number>> = {};
-    for (const row of rows) {
-      counts[row.paymentType] = (counts[row.paymentType] ?? 0) + 1;
+  useEffect(() => {
+    if (isLoading) return;
+    if (summary.pendingCount === 0) {
+      void clearAttentionDismiss(organizationId, 'pending');
+      setDismissedAttention((current) => {
+        if (!current.pending) return current;
+        const next = { ...current };
+        delete next.pending;
+        return next;
+      });
     }
-    return counts;
-  }, [rows]);
+  }, [isLoading, organizationId, summary.pendingCount]);
+
+  const attentionVariant = useMemo((): TransactionsAttentionVariant | null => {
+    if (summary.failedCount > 0) return 'failed';
+    if (summary.pendingCount > 0) return 'pending';
+    return null;
+  }, [summary.failedCount, summary.pendingCount]);
+
+  const handleDismissAttention = useCallback(() => {
+    if (!attentionVariant) return;
+    void dismissAttention(organizationId, attentionVariant);
+    setDismissedAttention((current) => ({
+      ...current,
+      [attentionVariant]: true,
+    }));
+  }, [attentionVariant, organizationId]);
 
   const handlePressPayment = (payment: PaymentRecordDisplayRow) => {
     if (!payment.applicationId) return;
@@ -95,78 +136,107 @@ export function TransactionsListScreen({ organizationId, slug }: TransactionsLis
   };
 
   const hasFilters = Boolean(statusFilter || typeFilter);
+  const hasAnyPayments = metaTotalCount > 0;
+  const showEmptyFilteredState = rows.length === 0 && hasAnyPayments && hasFilters;
+  const showAttentionBanner =
+    hasAnyPayments &&
+    attentionVariant != null &&
+    !dismissedAttention[attentionVariant];
+
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      <Animated.View entering={FadeInDown.duration(350)}>
+        <TransactionsStoryHeader totalCount={metaTotalCount} />
+      </Animated.View>
+
+      {hasAnyPayments ? (
+        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+          <TransactionsMetricRow summary={summary} onFilterStatus={setStatusFilter} />
+        </Animated.View>
+      ) : null}
+
+      {showAttentionBanner ? (
+        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+          <TransactionsNeedsAttentionBanner
+            summary={summary}
+            onFilterStatus={setStatusFilter}
+            onDismiss={handleDismissAttention}
+          />
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={FadeInDown.delay(120).duration(350)}>
+        <TransactionStatusFilters
+          activeStatus={statusFilter}
+          activeType={typeFilter}
+          statusCounts={statusCounts}
+          typeCounts={typeCounts}
+          totalCount={metaTotalCount}
+          onChangeStatus={setStatusFilter}
+          onChangeType={setTypeFilter}
+        />
+      </Animated.View>
+    </View>
+  );
+
+  if (isLoading && rows.length === 0) {
+    return <TransactionsListSkeleton />;
+  }
+
+  if (error && rows.length === 0) {
+    return (
+      <View style={[styles.centered, { backgroundColor: Story.paper }]}>
+        <Text style={[styles.emptyCopy, { color: theme.muted }]}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={{ color: theme.textPrimary }}>
-          Transactions
-        </ThemedText>
-      </View>
-
-      {loading && rows.length === 0 ? (
-        <TransactionsListSkeleton />
-      ) : (
-        <>
-          <View style={styles.toolbar}>
-            <TransactionSummaryCards summary={summary} />
-            <TransactionFilters
-              activeStatus={statusFilter}
-              activeType={typeFilter}
-              statusCounts={statusCounts}
-              typeCounts={typeCounts}
-              totalCount={rows.length}
-              onChangeStatus={setStatusFilter}
-              onChangeType={setTypeFilter}
-            />
-            {error ? (
-              <ThemedText type="small" style={{ color: theme.error }}>
-                {error}
-              </ThemedText>
-            ) : null}
-          </View>
-          <FlatList
-            data={filteredRows}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={AdminListSeparator}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => {
-                  setRefreshing(true);
-                  void loadRows({ silent: true });
-                }}
-                tintColor={theme.accent}
-              />
-            }
-            ListEmptyComponent={
-              error ? null : (
-                <View style={styles.emptyState}>
-                  <View style={[styles.emptyIcon, { backgroundColor: theme.accentGlow }]}>
-                    <Ionicons name="card-outline" size={24} color={theme.accent} />
-                  </View>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary, textAlign: 'center' }}>
-                    {hasFilters ? 'No payments match the current filters.' : 'No payments yet'}
-                  </ThemedText>
-                  {hasFilters ? null : (
-                    <ThemedText type="small" style={{ color: theme.textTertiary, textAlign: 'center' }}>
-                      When families pay application, enrollment, or tuition fees, they will appear here.
-                    </ThemedText>
-                  )}
-                </View>
-              )
-            }
-            renderItem={({ item }) => (
-              <TransactionListItem
-                payment={item}
-                onPress={item.applicationId ? handlePressPayment : undefined}
-              />
-            )}
+    <View style={[styles.container, { backgroundColor: Story.paper }]}>
+      <FlatList
+        data={rows}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={listHeader}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        onEndReached={() => {
+          if (hasMore) void loadMore();
+        }}
+        onEndReachedThreshold={0.4}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refresh({ silent: true })}
+            tintColor={theme.primary}
           />
-        </>
-      )}
+        }
+        ListFooterComponent={
+          isLoadingMore ? (
+            <View style={styles.footerSpinner}>
+              <ActivityIndicator color={theme.primary} />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          <StoryCard style={styles.emptyCard}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              {showEmptyFilteredState
+                ? 'No payments match the current filters.'
+                : 'No payments yet. When families pay application, enrollment, or tuition fees, they will appear here.'}
+            </Text>
+          </StoryCard>
+        }
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(160 + index * 30).duration(300)}>
+            <TransactionStoryListItem
+              payment={item}
+              onPress={item.applicationId ? handlePressPayment : undefined}
+            />
+          </Animated.View>
+        )}
+      />
     </View>
   );
 }
@@ -175,36 +245,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.three,
-  },
-  toolbar: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.three,
-    gap: Spacing.three,
-  },
-  list: {
-    flex: 1,
+  headerBlock: {
+    gap: Spacing.four,
+    marginBottom: Spacing.three,
   },
   listContent: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
-    flexGrow: 1,
   },
-  emptyState: {
+  separator: {
+    height: Spacing.three,
+  },
+  footerSpinner: {
+    paddingVertical: Spacing.four,
     alignItems: 'center',
-    paddingVertical: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.two,
   },
-  emptyIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  centered: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.one,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingVertical: Spacing.four,
+  },
+  emptyCard: {
+    padding: StoryCardPadding,
+  },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

@@ -3,23 +3,25 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { Committee } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { postMessage } from "@/lib/committees/messages";
 import { getCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 
 export default function CommitteeMessagesSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
   readOnly = false,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
@@ -27,6 +29,7 @@ export default function CommitteeMessagesSection({
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const inputStyle = committeeStoryInputStyle(theme);
 
   const handleSend = async () => {
     if (!text.trim()) return;
@@ -53,7 +56,7 @@ export default function CommitteeMessagesSection({
     <div className="flex flex-col flex-1 min-h-0 h-full">
       <div className="flex-1 overflow-y-auto space-y-3 p-4">
         {committee.messages.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: C.textTertiary }}>
+          <p className="text-sm text-center py-8" style={{ color: theme.muted }}>
             No messages yet. Start the conversation.
           </p>
         ) : (
@@ -61,17 +64,17 @@ export default function CommitteeMessagesSection({
             <div
               key={msg.id}
               className="p-3 rounded-xl border max-w-lg"
-              style={{ backgroundColor: C.surface, borderColor: C.border }}
+              style={{ backgroundColor: theme.white, borderColor: "#DCE4DC" }}
             >
               <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-xs font-semibold" style={{ color: C.textPrimary }}>
+                <p className="text-xs font-semibold" style={{ color: theme.ink }}>
                   {msg.senderName}
                 </p>
-                <p className="text-[10px]" style={{ color: C.textTertiary }}>
+                <p className="text-[10px]" style={{ color: theme.muted }}>
                   {msg.time}
                 </p>
               </div>
-              <p className="text-sm" style={{ color: C.textSecondary }}>
+              <p className="text-sm" style={{ color: theme.muted }}>
                 {msg.text}
               </p>
             </div>
@@ -79,33 +82,32 @@ export default function CommitteeMessagesSection({
         )}
       </div>
       {!readOnly && (
-      <div
-        className="shrink-0 border-t p-4 flex gap-2"
-        style={{ borderColor: C.border, backgroundColor: C.surface }}
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Write a message…"
-          className="flex-1 px-3 py-2 text-sm rounded-lg border"
-          style={{ borderColor: C.border, color: C.textPrimary }}
-        />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sending || !text.trim()}
-          className="px-3 py-2 rounded-lg text-white cursor-pointer disabled:opacity-50"
-          style={{ backgroundColor: C.accent }}
+        <div
+          className="shrink-0 border-t p-4 flex gap-2"
+          style={{ borderColor: "#DCE4DC", backgroundColor: theme.white }}
         >
-          <Send className="w-4 h-4" />
-        </button>
-      </div>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void handleSend();
+              }
+            }}
+            placeholder="Write a message…"
+            className="flex-1 px-3 py-2 text-sm rounded-lg border"
+            style={inputStyle}
+          />
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            onClick={() => void handleSend()}
+            disabled={sending || !text.trim()}
+          >
+            <Send className="w-4 h-4" />
+          </AdminButton>
+        </div>
       )}
     </div>
   );

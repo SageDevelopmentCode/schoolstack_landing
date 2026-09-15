@@ -31,6 +31,7 @@ import {
   expireOpenCheckoutSession,
   pendingCheckoutMatchesRequest,
 } from "@/lib/stripe/pending-checkout-session";
+import { activityClientMetadataForStripeSession } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -275,6 +276,7 @@ export async function POST(request: Request, context: RouteContext) {
       organization_id: charge.organizationId,
       ...(studentName ? { student_name: studentName } : {}),
       payment_kind: isLumpSum ? "lump_sum" : "installment",
+      ...activityClientMetadataForStripeSession(request),
     };
 
     let session;

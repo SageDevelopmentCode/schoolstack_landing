@@ -1,5 +1,5 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { apiError } from "@/lib/api/route-errors";
 import {
   AuthError,
@@ -14,8 +14,8 @@ import {
   parentActivityContext,
   schoolAdminActivityContext,
 } from "@/lib/tuition/tuition-activity";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/tuition/enrollments/[enrollmentId]/payment-plan";
 
@@ -24,8 +24,7 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { enrollmentId } = await context.params;
 
   try {
@@ -119,6 +118,7 @@ export async function POST(request: Request, context: RouteContext) {
         context: isGuardian
           ? parentActivityContext(user)
           : schoolAdminActivityContext(user),
+        activityMetadata: activityClientMetadataFromRequest(request),
       },
     );
 

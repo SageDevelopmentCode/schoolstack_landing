@@ -20,7 +20,9 @@ import {
 import { SchoolAdminStudentsProvider } from '@/contexts/school-admin-students-context';
 import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissions-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
+import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
@@ -30,6 +32,7 @@ function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/students\/[^/]+$/.test(pathname)) return null;
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (/\/more\/staff\/[^/]+$/.test(pathname)) return null;
+  if (/\/more\/classrooms\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
@@ -72,17 +75,14 @@ function SchoolAdminLayoutContent() {
   const activeTab = moreSheetOpen ? 'more' : pathTab;
   const showTabBar = pathTab !== null;
 
+  useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
+
   useEffect(() => {
     void refreshUnreadCount();
   }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
-    if (isLoading || !slug) return;
-
-    if (!user) {
-      router.replace('/login/admin');
-      return;
-    }
+    if (isLoading || !slug || !user) return;
 
     if (portalType !== 'school_admin' || selectedSchool?.slug !== slug) {
       void (async () => {
@@ -133,7 +133,9 @@ function SchoolAdminLayoutContent() {
     router.replace(`/school-admin/${slug}/admissions/submissions`);
   };
 
-  const handleSelectMoreItem = (itemId: 'transactions' | 'schedule' | 'staff') => {
+  const handleSelectMoreItem = (
+    itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin',
+  ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
 
@@ -141,10 +143,13 @@ function SchoolAdminLayoutContent() {
       transactions: `/school-admin/${slug}/more/transactions`,
       schedule: `/school-admin/${slug}/more/schedule`,
       staff: `/school-admin/${slug}/more/staff`,
+      classrooms: `/school-admin/${slug}/more/classrooms`,
+      bulletin: `/school-admin/${slug}/more/bulletin`,
     } as const;
 
     const target = routes[itemId];
-    const pathSegment = itemId === 'staff' ? '/more/staff' : `/more/${itemId}`;
+    const pathSegment =
+      itemId === 'staff' || itemId === 'classrooms' ? `/more/${itemId}` : `/more/${itemId}`;
 
     if (!pathname.includes(pathSegment)) {
       const isMainTab = pathTab !== null && pathTab !== 'more';
@@ -198,13 +203,20 @@ function SchoolAdminLayoutContent() {
 }
 
 export default function SchoolAdminLayout() {
-  const { selectedSchool } = useAuth();
+  const { selectedSchool, user, isLoading } = useAuth();
+  const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const organization = useMemo(() => {
     if (selectedSchool?.slug === slug) return selectedSchool;
     return null;
   }, [selectedSchool, slug]);
+
+  useRecoverableAuthRedirect(!user, isLoading);
+
+  if (!isLoading && !user) {
+    return null;
+  }
 
   if (!organization) {
     return (
@@ -214,25 +226,29 @@ export default function SchoolAdminLayout() {
     );
   }
 
+  const branding = toOrganizationBranding(organization.branding);
+
   return (
-    <SchoolAdminThemeProvider branding={toOrganizationBranding(organization.branding)}>
-      <MessagesRealtimeProvider organizationId={organization.id}>
-        <SchoolAdminSubmissionsProvider organizationId={organization.id}>
-          <SchoolAdminStudentsProvider organizationId={organization.id}>
-            <SchoolAdminMessagesInboxProvider
-              organizationId={organization.id}
-              schoolName={organization.name}>
-              <MessagesUnreadProvider
+    <SchoolAdminThemeProvider branding={branding}>
+      <ParentThemeProvider branding={branding}>
+        <MessagesRealtimeProvider organizationId={organization.id}>
+          <SchoolAdminSubmissionsProvider organizationId={organization.id}>
+            <SchoolAdminStudentsProvider organizationId={organization.id}>
+              <SchoolAdminMessagesInboxProvider
                 organizationId={organization.id}
-                schoolName={organization.name}
-                fetchUnreadCount={fetchMessagesUnreadCount}>
-                <SchoolAdminMessagesInboxRealtimeBridge />
-                <SchoolAdminLayoutContent />
-              </MessagesUnreadProvider>
-            </SchoolAdminMessagesInboxProvider>
-          </SchoolAdminStudentsProvider>
-        </SchoolAdminSubmissionsProvider>
-      </MessagesRealtimeProvider>
+                schoolName={organization.name}>
+                <MessagesUnreadProvider
+                  organizationId={organization.id}
+                  schoolName={organization.name}
+                  fetchUnreadCount={fetchMessagesUnreadCount}>
+                  <SchoolAdminMessagesInboxRealtimeBridge />
+                  <SchoolAdminLayoutContent />
+                </MessagesUnreadProvider>
+              </SchoolAdminMessagesInboxProvider>
+            </SchoolAdminStudentsProvider>
+          </SchoolAdminSubmissionsProvider>
+        </MessagesRealtimeProvider>
+      </ParentThemeProvider>
     </SchoolAdminThemeProvider>
   );
 }

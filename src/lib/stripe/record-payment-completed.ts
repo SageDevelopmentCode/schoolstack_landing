@@ -26,6 +26,7 @@ export type RecordTuitionPaymentCompletedInput = {
   stripeProviderStatus?: string | null;
   skipReceipt?: boolean;
   skipActivity?: boolean;
+  activityMetadata?: Record<string, unknown>;
 };
 
 export type RecordTuitionPaymentCompletedResult = {
@@ -99,6 +100,7 @@ export async function recordTuitionPaymentCompleted(
       payment,
       chargeId,
       charge,
+      activityMetadata: input.activityMetadata,
     });
   }
 
@@ -113,6 +115,7 @@ export async function logTuitionPaymentCompletedActivities(
     payment: PaymentRecord;
     chargeId?: string | null;
     charge?: Awaited<ReturnType<typeof getChargeById>>;
+    activityMetadata?: Record<string, unknown>;
   },
 ): Promise<void> {
   const { organizationId, checkoutSessionId, payment } = input;
@@ -136,6 +139,7 @@ export async function logTuitionPaymentCompletedActivities(
       familyId: payment.familyId ?? charge?.familyId ?? null,
       amountCents: payment.amountCents ?? null,
       chargeLabel: charge?.label ?? payment.label ?? null,
+      ...(input.activityMetadata ?? {}),
     },
   });
 
@@ -155,6 +159,7 @@ export async function logTuitionPaymentCompletedActivities(
       checkoutSessionId: checkoutSessionId ?? null,
       paymentId: payment.id,
       familyId: payment.familyId ?? charge?.familyId ?? null,
+      ...(input.activityMetadata ?? {}),
     },
     context: { actorType: "parent", surface: "parent_portal" },
   });

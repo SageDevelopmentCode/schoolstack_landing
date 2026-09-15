@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { Committee, CommitteeDutyRole } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { memberInitials } from "@/lib/committees/task-utils";
 import {
   createDutyRole,
@@ -19,6 +23,7 @@ import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import EditDutyRoleModal, {
   type DutyRoleFormValue,
 } from "@/components/school-admin/committees/modals/EditDutyRoleModal";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 type EditingDutyRoleState = CommitteeDutyRole | null | undefined;
@@ -26,39 +31,39 @@ type EditingDutyRoleState = CommitteeDutyRole | null | undefined;
 function DutyRoleCard({
   role,
   assigneeName,
-  C,
+  theme,
   readOnly,
   onSelect,
   reducedMotion = false,
 }: {
   role: CommitteeDutyRole;
   assigneeName?: string;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   readOnly: boolean;
   onSelect?: () => void;
   reducedMotion?: boolean;
 }) {
   const content = (
     <>
-      <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+      <p className="text-sm font-semibold" style={{ color: theme.ink }}>
         {role.title}
       </p>
-      <p className="text-xs mt-1 line-clamp-3 leading-relaxed" style={{ color: C.textSecondary }}>
+      <p className="text-xs mt-1 line-clamp-3 leading-relaxed" style={{ color: theme.muted }}>
         {role.description || "No description yet."}
       </p>
       <div
         className="flex items-center gap-2 mt-3 pt-3 border-t"
-        style={{ borderColor: C.border }}
+        style={{ borderColor: "#E0E7E0" }}
       >
         {assigneeName ? (
           <>
             <span
               className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-              style={{ backgroundColor: C.accentLight, color: C.accent }}
+              style={{ backgroundColor: "#EAF4EB", color: theme.primary }}
             >
               {memberInitials(assigneeName)}
             </span>
-            <span className="text-xs font-medium truncate" style={{ color: C.textSecondary }}>
+            <span className="text-xs font-medium truncate" style={{ color: theme.muted }}>
               {assigneeName}
             </span>
           </>
@@ -66,11 +71,11 @@ function DutyRoleCard({
           <>
             <span
               className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-              style={{ backgroundColor: C.accentLight }}
+              style={{ backgroundColor: "#EAF4EB" }}
             >
-              <UserRound className="w-3.5 h-3.5" style={{ color: C.textTertiary }} />
+              <UserRound className="w-3.5 h-3.5" style={{ color: theme.muted }} />
             </span>
-            <span className="text-xs italic" style={{ color: C.textTertiary }}>
+            <span className="text-xs italic" style={{ color: theme.muted }}>
               Unassigned
             </span>
           </>
@@ -85,43 +90,37 @@ function DutyRoleCard({
         type="button"
         variants={staggerItem(reducedMotion)}
         onClick={onSelect}
-        className="p-4 rounded-xl border text-left w-full cursor-pointer transition-all hover:shadow-sm"
-        style={{
-          backgroundColor: C.surface,
-          borderColor: C.border,
-        }}
+        className="w-full cursor-pointer text-left transition-transform hover:-translate-y-px"
       >
-        {content}
+        <AdminCard theme={theme} padding="default">{content}</AdminCard>
       </motion.button>
     );
   }
 
   return (
-    <motion.div
-      variants={staggerItem(reducedMotion)}
-      className="p-4 rounded-xl border"
-      style={{ backgroundColor: C.surface, borderColor: C.border }}
-    >
-      {content}
+    <motion.div variants={staggerItem(reducedMotion)}>
+      <AdminCard theme={theme} padding="default">{content}</AdminCard>
     </motion.div>
   );
 }
 
 export default function CommitteeAboutSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
   readOnly = false,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
 }) {
+  const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
   const [aboutHtml, setAboutHtml] = useState(committee.aboutHtml);
   const [saving, setSaving] = useState(false);
   const [roleSaving, setRoleSaving] = useState(false);
@@ -214,15 +213,12 @@ export default function CommitteeAboutSection({
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="rounded-2xl border p-6" style={{ backgroundColor: C.surface, borderColor: C.border }}>
-        <h3 className="text-sm font-semibold mb-3" style={{ color: C.textPrimary }}>
+      <AdminCard theme={theme} padding="default">
+        <AdminDisplayHeading theme={theme} as="h3" size="section">
           Overview
-        </h3>
+        </AdminDisplayHeading>
         {readOnly ? (
-          <div
-            className="text-sm whitespace-pre-wrap"
-            style={{ color: C.textSecondary }}
-          >
+          <div className="text-sm whitespace-pre-wrap mt-3" style={{ color: theme.muted }}>
             {committee.aboutHtml || "No overview provided yet."}
           </div>
         ) : (
@@ -231,55 +227,50 @@ export default function CommitteeAboutSection({
               value={aboutHtml}
               onChange={(e) => setAboutHtml(e.target.value)}
               rows={6}
-              className="w-full text-sm rounded-lg border p-3"
-              style={{ borderColor: C.border, color: C.textPrimary }}
+              className="w-full text-sm rounded-lg border p-3 mt-3"
+              style={inputStyle}
               placeholder="Describe the committee's role and responsibilities…"
             />
-            <button
-              type="button"
-              onClick={handleSaveAbout}
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              className="mt-3"
+              onClick={() => void handleSaveAbout()}
               disabled={saving || !isAboutDirty}
-              className="mt-3 px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ backgroundColor: C.accent }}
             >
               {saving ? "Saving…" : "Save overview"}
-            </button>
+            </AdminButton>
           </>
         )}
-      </div>
+      </AdminCard>
 
       <div>
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+          <AdminDisplayHeading theme={theme} as="h3" size="section">
             Duty roles
-          </h3>
+          </AdminDisplayHeading>
           {!readOnly && (
-            <button
-              type="button"
-              onClick={() => setEditingRole(null)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer"
-              style={{ backgroundColor: C.accent }}
-            >
+            <AdminButton theme={theme} variant="primary" size="compact" onClick={() => setEditingRole(null)}>
               <Plus className="w-3.5 h-3.5" />
               Add role
-            </button>
+            </AdminButton>
           )}
         </div>
         <motion.div
-          key={committee.dutyRoles.map((r) => r.id).join("-")}
+          key={committee.dutyRoles.map((role) => role.id).join("-")}
           className="grid grid-cols-1 md:grid-cols-2 gap-3"
           variants={staggerContainer(reducedMotion)}
           initial="initial"
           animate="animate"
         >
           {committee.dutyRoles.map((role) => {
-            const assignee = committee.members.find((m) => m.id === role.assigneeId);
+            const assignee = committee.members.find((member) => member.id === role.assigneeId);
             return (
               <DutyRoleCard
                 key={role.id}
                 role={role}
                 assigneeName={assignee?.name}
-                C={C}
+                theme={theme}
                 readOnly={readOnly}
                 reducedMotion={reducedMotion}
                 onSelect={readOnly ? undefined : () => setEditingRole(role)}
@@ -290,21 +281,21 @@ export default function CommitteeAboutSection({
       </div>
 
       <AnimatePresence>
-      {editingRole !== undefined && (
-        <EditDutyRoleModal
-          committee={committee}
-          dutyRole={editingRole}
-          C={C}
-          saving={roleSaving}
-          onClose={() => setEditingRole(undefined)}
-          onSave={handleSaveRole}
-          onDelete={
-            editingRole
-              ? () => setDeleteTarget(editingRole)
-              : undefined
-          }
-        />
-      )}
+        {editingRole !== undefined && (
+          <EditDutyRoleModal
+            committee={committee}
+            dutyRole={editingRole}
+            theme={theme}
+            saving={roleSaving}
+            onClose={() => setEditingRole(undefined)}
+            onSave={handleSaveRole}
+            onDelete={
+              editingRole
+                ? () => setDeleteTarget(editingRole)
+                : undefined
+            }
+          />
+        )}
       </AnimatePresence>
 
       <ConfirmDialog

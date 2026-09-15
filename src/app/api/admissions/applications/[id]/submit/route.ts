@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import {
   AuthError,
   requireAuthenticatedUser,
@@ -117,7 +118,9 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    void sendApplicationSubmittedNotifications(admin, applicationId);
+    runAfterResponse(async () => {
+      await sendApplicationSubmittedNotifications(admin, applicationId);
+    });
 
     const { data: formRow } = await admin
       .from("application_form_versions")

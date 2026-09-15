@@ -1,29 +1,34 @@
-import { Ionicons } from '@expo/vector-icons';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { ParentBillingBalanceHero } from '@/components/parent/billing/parent-billing-balance-hero';
+import { BILLING_PAGE_GAP } from '@/components/parent/billing/billing-layout';
+import { ParentBillingAutopayFailureBanner } from '@/components/parent/billing/parent-billing-autopay-failure-banner';
+import { ParentBillingChildPanel } from '@/components/parent/billing/parent-billing-child-panel';
 import { ParentBillingChargeRow } from '@/components/parent/billing/parent-billing-charge-row';
 import { ParentBillingChargesSheet } from '@/components/parent/billing/parent-billing-charges-sheet';
-import { ParentBillingChildPicker } from '@/components/parent/billing/parent-billing-child-picker';
-import { ParentBillingExpandableSection } from '@/components/parent/billing/parent-billing-expandable-section';
-import { ParentBillingPaymentHistoryRow } from '@/components/parent/billing/parent-billing-payment-history-row';
+import { ParentBillingLateFeeBanner } from '@/components/parent/billing/parent-billing-late-fee-banner';
 import { ParentBillingPaymentReceiptSheet } from '@/components/parent/billing/parent-billing-payment-receipt-sheet';
 import { ParentBillingReadinessBanner } from '@/components/parent/billing/parent-billing-readiness-banner';
-import { ParentBillingSettingsCard } from '@/components/parent/billing/parent-billing-settings-card';
+import { ParentBillingScheduleBanner } from '@/components/parent/billing/parent-billing-schedule-banner';
 import { ParentBillingSkeleton } from '@/components/parent/billing/parent-billing-skeleton';
+import { ParentBillingStoryHeader } from '@/components/parent/billing/parent-billing-story-header';
+import { ParentBillingSummaryPanel } from '@/components/parent/billing/parent-billing-summary-panel';
+import { ParentBillingTaxCreditBanner } from '@/components/parent/billing/parent-billing-tax-credit-banner';
 import { ParentPaymentMethodSheet } from '@/components/parent/billing/parent-payment-method-sheet';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryButton } from '@/components/story/story-button';
 import { useParentBilling } from '@/contexts/parent-billing-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
 import {
@@ -38,6 +43,7 @@ import {
   type CheckoutPaymentMethod,
   type TuitionCharge,
 } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import {
   chargeRemainingCents,
   childFirstNameFromFullName,
@@ -48,41 +54,72 @@ import {
   PARENT_BILLING_SUMMARY_TAB,
   resolveFamilyPayNowLabel,
 } from '@/lib/tuition/billing-helpers';
+import { formatCents } from '@/lib/tuition/format-cents';
+import { formatCentsForInput } from '@/lib/tuition/tuition-pay-amount';
+import { pickRecentLateFeeNotice } from '@/lib/tuition/late-fee-notice';
 import {
   buildTuitionPaymentReceiptDetail,
   resolveRelatedTuitionPayments,
 } from '@/lib/tuition/payment-receipt';
+import { resolveLastPaymentDaySummary } from '@/lib/tuition/payment-summary';
+import type { TuitionPayAmountMode } from '@/lib/tuition/tuition-pay-amount';
 
 type ParentBillingScreenProps = {
   slug: string;
 };
 
 type PendingPayment =
-  | { type: 'single'; charge: TuitionCharge }
+  | { type: 'single'; charge: TuitionCharge; extra?: boolean }
   | { type: 'combined'; charges: TuitionCharge[] };
 
+function resolveNextChargeId(
+  charges: TuitionCharge[],
+  nextCharge: { dueDate: string; label: string } | null,
+): string | null {
+  if (!nextCharge) return null;
+  const match = charges.find(
+    (charge) =>
+      charge.dueDate === nextCharge.dueDate &&
+      charge.label === nextCharge.label &&
+      chargeRemainingCents(charge) > 0,
+  );
+  return match?.id ?? null;
+}
+
 export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const { data, isLoading, isRefreshing, error, refresh } = useParentBilling();
+  const { reportError } = useMobileErrorReporter(data?.organizationId);
 
   const [activeChildKey, setActiveChildKey] = useState(PARENT_BILLING_SUMMARY_TAB);
   const [dismissedAutopayFailure, setDismissedAutopayFailure] = useState(false);
+  const [dismissedLateFeeNotice, setDismissedLateFeeNotice] = useState(false);
+  const [dismissedTaxCreditBanner, setDismissedTaxCreditBanner] = useState(false);
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
+  const [payAmountMode, setPayAmountMode] = useState<TuitionPayAmountMode>('balance');
+  const [payCustomDraft, setPayCustomDraft] = useState('');
   const [payCheckoutLoading, setPayCheckoutLoading] = useState(false);
   const [paymentMethodLoading, setPaymentMethodLoading] = useState(false);
   const [payingChargeId, setPayingChargeId] = useState<string | null>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [chargesSheetOpen, setChargesSheetOpen] = useState(false);
-  const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const pendingPaymentRef = useRef<PendingPayment | null>(null);
   const paymentSheetDismissRef = useRef<(() => void) | null>(null);
   const checkoutBrowserOpenRef = useRef(false);
 
   useEffect(() => {
-    setHistoryExpanded(false);
+    if (!data) return;
+    if (data.familySummary.children.length <= 1) {
+      setActiveChildKey(data.familySummary.children[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB);
+      return;
+    }
+    setActiveChildKey(PARENT_BILLING_SUMMARY_TAB);
+  }, [data?.familyId]);
+
+  useEffect(() => {
     setChargesSheetOpen(false);
   }, [activeChildKey]);
 
@@ -110,35 +147,36 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
   const familyPayNowLabel = resolveFamilyPayNowLabel({ chargesOnEarliestDueDate });
 
   const familySummary = data?.familySummary;
-  const balanceDueCents = isSummaryTab || !hasMultipleChildren
-    ? (familySummary?.balanceDueCents ?? 0)
-    : (activeChild?.balanceDueCents ?? 0);
-  const totalRemainingCents = isSummaryTab || !hasMultipleChildren
-    ? (familySummary?.totalRemainingCents ?? 0)
-    : (activeChild?.totalRemainingCents ?? 0);
-  const nextCharge =
-    isSummaryTab || !hasMultipleChildren
-      ? (familySummary?.nextCharge ?? null)
-      : (activeChild?.nextCharge ?? null);
-
-  const succeededPayments = useMemo(
-    () => (data?.payments ?? []).filter((payment) => payment.status === 'succeeded'),
+  const lateFeeNotice = useMemo(() => pickRecentLateFeeNotice(charges), [charges]);
+  const lastPaymentSummary = useMemo(
+    () => resolveLastPaymentDaySummary(data?.payments ?? []),
     [data?.payments],
   );
 
-  const selectedReceipt = useMemo(() => {
-    if (!selectedPaymentId) return null;
-    const related = resolveRelatedTuitionPayments(data?.payments ?? [], selectedPaymentId);
-    return buildTuitionPaymentReceiptDetail(related);
-  }, [data?.payments, selectedPaymentId]);
+  const totalRemainingCents = isSummaryTab || !hasMultipleChildren
+    ? (familySummary?.totalRemainingCents ?? 0)
+    : (activeChild?.totalRemainingCents ?? 0);
 
-  const pendingPaymentAmount = useMemo(() => {
-    if (!pendingPayment) return 0;
-    if (pendingPayment.type === 'combined') {
-      return pendingPayment.charges.reduce((sum, charge) => sum + chargeRemainingCents(charge), 0);
-    }
-    return chargeRemainingCents(pendingPayment.charge);
-  }, [pendingPayment]);
+  const nextChargeId = isSummaryTab || !hasMultipleChildren
+    ? resolveNextChargeId(charges, familySummary?.nextCharge ?? null) ??
+      familySummary?.children[0]?.nextChargeId ??
+      null
+    : (activeChild?.nextChargeId ??
+      resolveNextChargeId(
+        filterChargesForChild(charges, activeChild?.assignmentId ?? null),
+        activeChild?.nextCharge ?? null,
+      ));
+
+  const showTaxCreditBanner =
+    (data?.showTaxCreditPaymentBanner ?? false) && !dismissedTaxCreditBanner && isSummaryTab;
+
+  const pendingCharge = pendingPayment?.type === 'single' ? pendingPayment.charge : null;
+  const pendingRemainingCents = pendingCharge ? chargeRemainingCents(pendingCharge) : 0;
+  const pendingPayRemainingYearCents = useMemo(() => {
+    if (!pendingCharge || !data) return 0;
+    const child = childViews.find((row) => row.assignmentId === pendingCharge.assignmentId);
+    return child?.totalRemainingCents ?? familySummary?.totalRemainingCents ?? 0;
+  }, [childViews, data, familySummary?.totalRemainingCents, pendingCharge]);
 
   const pendingPaymentLabel = useMemo(() => {
     if (!pendingPayment) return 'Tuition payment';
@@ -154,6 +192,13 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
   const openPaymentSheet = (payment: PendingPayment) => {
     pendingPaymentRef.current = payment;
     setPendingPayment(payment);
+    if (payment.type === 'single' && payment.extra) {
+      setPayAmountMode('custom');
+      setPayCustomDraft(formatCentsForInput(chargeRemainingCents(payment.charge)));
+    } else {
+      setPayAmountMode('balance');
+      setPayCustomDraft('');
+    }
     setPaymentSheetOpen(true);
   };
 
@@ -164,6 +209,8 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
     setPendingPayment(null);
     pendingPaymentRef.current = null;
     setPayingChargeId(null);
+    setPayAmountMode('balance');
+    setPayCustomDraft('');
   };
 
   const waitForPaymentSheetDismiss = useCallback(() => {
@@ -189,13 +236,26 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
     }
   };
 
+  const handleChildPay = () => {
+    if (!activeChild?.nextChargeId) return;
+    const charge = charges.find((row) => row.id === activeChild.nextChargeId);
+    if (!charge || chargeRemainingCents(charge) <= 0) return;
+    openPaymentSheet({ type: 'single', charge });
+  };
+
   const handlePayCharge = (chargeId: string) => {
     const charge = charges.find((row) => row.id === chargeId);
     if (!charge || chargeRemainingCents(charge) <= 0) return;
     openPaymentSheet({ type: 'single', charge });
   };
 
-  const handleConfirmPayment = async (method: CheckoutPaymentMethod) => {
+  const handlePayExtra = (chargeId: string) => {
+    const charge = charges.find((row) => row.id === chargeId);
+    if (!charge || chargeRemainingCents(charge) <= 0) return;
+    openPaymentSheet({ type: 'single', charge, extra: true });
+  };
+
+  const handleConfirmPayment = async (method: CheckoutPaymentMethod, amountCents: number) => {
     const payment = pendingPaymentRef.current;
     if (!data || !payment) {
       Alert.alert('Payment failed', 'Could not start checkout. Please try again.');
@@ -217,9 +277,11 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         checkoutUrl = result.checkoutUrl;
       } else {
         setPayingChargeId(payment.charge.id);
+        const remainingCents = chargeRemainingCents(payment.charge);
         const result = await createTuitionCheckout(payment.charge.id, {
           paymentMethod: method,
           orgSlug: slug,
+          amountCents: amountCents > remainingCents ? amountCents : undefined,
         });
         checkoutUrl = result.checkoutUrl;
       }
@@ -239,6 +301,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         checkoutBrowserOpenRef.current = false;
       }
     } catch (checkoutError) {
+      reportError('parent_billing_checkout', checkoutError);
       Alert.alert(
         'Payment failed',
         checkoutError instanceof Error ? checkoutError.message : 'Failed to start checkout.',
@@ -248,6 +311,8 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
       setPayingChargeId(null);
       setPendingPayment(null);
       pendingPaymentRef.current = null;
+      setPayAmountMode('balance');
+      setPayCustomDraft('');
     }
   };
 
@@ -263,6 +328,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
               : null
             : null
         }
+        autopayEnabled={data?.autopayEnabled ?? false}
         onPay={() => handlePayCharge(charge.id)}
         paying={payingChargeId === charge.id}
       />
@@ -290,6 +356,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
               });
               await refresh();
             } catch (autopayError) {
+              reportError('parent_billing_autopay', autopayError);
               Alert.alert(
                 'Autopay update failed',
                 autopayError instanceof Error
@@ -326,6 +393,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         checkoutBrowserOpenRef.current = false;
       }
     } catch (setupError) {
+      reportError('parent_billing_payment_method_setup', setupError);
       Alert.alert(
         'Could not open card setup',
         setupError instanceof Error ? setupError.message : 'Please try again.',
@@ -343,137 +411,160 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
     });
   };
 
+  const selectedReceipt = useMemo(() => {
+    if (!selectedPaymentId) return null;
+    const related = resolveRelatedTuitionPayments(data?.payments ?? [], selectedPaymentId);
+    return buildTuitionPaymentReceiptDetail(related);
+  }, [data?.payments, selectedPaymentId]);
+
+  const scheduleWarningMessage = familySummary?.hasPendingSchedule
+    ? 'One or more students still need a payment schedule before charges are generated.'
+    : null;
+
   if (isLoading && !data) {
     return <ParentBillingSkeleton />;
   }
 
   if (error && !data) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.bg }]}>
-        <ThemedText style={{ color: theme.textSecondary, textAlign: 'center' }}>
-          {error}
-        </ThemedText>
-        <Pressable onPress={() => void refresh()} style={{ marginTop: Spacing.three }}>
-          <ThemedText style={{ color: theme.accent }}>Try again</ThemedText>
-        </Pressable>
+      <View style={[styles.centered, { backgroundColor: Story.paper }]}>
+        <Text style={{ color: theme.muted, textAlign: 'center' }}>{error}</Text>
+        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }
 
-  if (!data) return null;
+  if (!data || !familySummary) return null;
 
   return (
     <>
       <ScrollView
-        style={{ backgroundColor: theme.bg }}
+        style={{ backgroundColor: Story.paper }}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={() => void refresh()}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }>
-        <ParentBillingChildPicker
-          children={childViews}
-          activeKey={
+        <ParentBillingStoryHeader
+          activeTabKey={
             hasMultipleChildren
               ? activeChildKey
               : (childViews[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB)
           }
-          onChange={setActiveChildKey}
+          childViews={childViews}
+          openChargeCount={openCharges.length}
+          totalRemainingCents={totalRemainingCents}
+          onSelectTab={setActiveChildKey}
         />
 
-        <ParentBillingBalanceHero
-          balanceDueCents={balanceDueCents}
-          totalRemainingCents={totalRemainingCents}
-          familyTotalRemainingCents={familySummary?.familyTotalRemainingCents ?? null}
-          nextCharge={nextCharge}
-          payLabel={familyPayNowLabel}
-          onPay={handleFamilyPay}
-          paying={payCheckoutLoading}
-          disabled={balanceDueCents <= 0}
-        />
+        {scheduleWarningMessage ? (
+          <ParentBillingScheduleBanner message={scheduleWarningMessage} />
+        ) : null}
 
         <ParentBillingReadinessBanner
           readiness={data.readiness}
           hasCharges={charges.length > 0}
-          hasPendingSchedule={familySummary?.hasPendingSchedule ?? false}
+          hasPendingSchedule={familySummary.hasPendingSchedule}
           onOpenEnrollment={handleOpenEnrollment}
         />
 
-        {data.recentAutopayFailure && !dismissedAutopayFailure ? (
-          <View
-            style={[
-              styles.alertBanner,
-              { backgroundColor: theme.errorBg, borderColor: `${theme.error}33` },
-            ]}>
-            <Ionicons name="alert-circle-outline" size={20} color={theme.error} />
-            <View style={styles.alertText}>
-              <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                Autopay failed
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-                {data.recentAutopayFailure.summary}
-              </ThemedText>
-            </View>
-            <Pressable
-              onPress={() => setDismissedAutopayFailure(true)}
-              accessibilityLabel="Dismiss autopay failure">
-              <Ionicons name="close" size={18} color={theme.textSecondary} />
-            </Pressable>
-          </View>
+        {lateFeeNotice && !dismissedLateFeeNotice ? (
+          <ParentBillingLateFeeBanner
+            notice={lateFeeNotice}
+            onDismiss={() => setDismissedLateFeeNotice(true)}
+          />
         ) : null}
 
-        <ParentBillingExpandableSection
-          title="Upcoming charges"
-          items={displayedCharges}
-          onShowAll={() => setChargesSheetOpen(true)}
-          emptyMessage="No open charges"
-          keyExtractor={(charge) => charge.id}
-          renderItem={renderChargeRow}
-        />
+        {data.recentAutopayFailure && !dismissedAutopayFailure ? (
+          <ParentBillingAutopayFailureBanner
+            summary={data.recentAutopayFailure.summary}
+            onDismiss={() => setDismissedAutopayFailure(true)}
+          />
+        ) : null}
 
-        <ParentBillingExpandableSection
-          title="Payment history"
-          items={succeededPayments}
-          expanded={historyExpanded}
-          onToggleExpanded={() => setHistoryExpanded((value) => !value)}
-          emptyMessage="No payments yet"
-          keyExtractor={(payment) => payment.id}
-          renderItem={(payment) => (
-            <ParentBillingPaymentHistoryRow
-              payment={payment}
-              onPress={() => {
-                setSelectedPaymentId(payment.id);
+        {showTaxCreditBanner ? (
+          <ParentBillingTaxCreditBanner
+            chargeId={nextChargeId}
+            onDismiss={() => setDismissedTaxCreditBanner(true)}
+            onApplyTaxCredit={handlePayExtra}
+          />
+        ) : null}
+
+        <Animated.View key={activeChildKey} entering={FadeIn.duration(220)}>
+          {isSummaryTab ? (
+            <ParentBillingSummaryPanel
+              summary={familySummary}
+              childViews={childViews}
+              payments={(data.payments ?? []).filter((payment) => payment.status === 'succeeded')}
+              charges={openCharges}
+              autopayEnabled={data.autopayEnabled}
+              savedPaymentMethod={data.savedPaymentMethod}
+              paymentMethodLoading={paymentMethodLoading}
+              familyPayNowLabel={familyPayNowLabel}
+              nextChargeId={nextChargeId}
+              lastPaymentSummary={lastPaymentSummary}
+              paying={payCheckoutLoading}
+              onPay={handleFamilyPay}
+              onAutopayToggleRequest={handleAutopayToggle}
+              onManagePaymentMethod={() => void handleManagePaymentMethod()}
+              onSelectChild={setActiveChildKey}
+              onPaymentClick={(paymentId) => {
+                setSelectedPaymentId(paymentId);
                 setReceiptOpen(true);
               }}
+              renderChargeRow={renderChargeRow}
+              onShowAllCharges={() => setChargesSheetOpen(true)}
             />
-          )}
-        />
-
-        <View style={styles.section}>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-            Payment settings
-          </ThemedText>
-          <ParentBillingSettingsCard
-            autopayEnabled={data.autopayEnabled}
-            savedPaymentMethod={data.savedPaymentMethod}
-            paymentMethodLoading={paymentMethodLoading}
-            onAutopayToggle={handleAutopayToggle}
-            onManagePaymentMethod={() => void handleManagePaymentMethod()}
-          />
-        </View>
+          ) : activeChild ? (
+            <ParentBillingChildPanel
+              child={activeChild}
+              charges={displayedCharges}
+              payments={(data.payments ?? []).filter((payment) => payment.status === 'succeeded')}
+              autopayEnabled={data.autopayEnabled}
+              savedPaymentMethod={data.savedPaymentMethod}
+              paymentMethodLoading={paymentMethodLoading}
+              payNowLabel={
+                activeChild.balanceDueCents > 0
+                  ? `Pay ${formatCents(activeChild.balanceDueCents)}`
+                  : 'Pay now'
+              }
+              lastPaymentSummary={lastPaymentSummary}
+              paying={payCheckoutLoading}
+              onPay={handleChildPay}
+              onPayExtra={() => {
+                if (activeChild.nextChargeId) {
+                  handlePayExtra(activeChild.nextChargeId);
+                }
+              }}
+              onAutopayToggleRequest={handleAutopayToggle}
+              onManagePaymentMethod={() => void handleManagePaymentMethod()}
+              onScheduleComplete={() => void refresh()}
+              onPaymentClick={(paymentId) => {
+                setSelectedPaymentId(paymentId);
+                setReceiptOpen(true);
+              }}
+              renderChargeRow={renderChargeRow}
+              onShowAllCharges={() => setChargesSheetOpen(true)}
+            />
+          ) : null}
+        </Animated.View>
       </ScrollView>
 
       <ParentPaymentMethodSheet
         visible={paymentSheetOpen}
-        amountCents={pendingPaymentAmount}
         label={pendingPaymentLabel}
         loading={payCheckoutLoading}
+        remainingCents={pendingRemainingCents}
+        payRemainingYearCents={pendingPayRemainingYearCents}
+        amountMode={payAmountMode}
+        customDraft={payCustomDraft}
+        showTaxCreditPreset={data.showTaxCreditPaymentBanner ?? false}
         onClose={closePaymentSheet}
         onDismissed={handlePaymentSheetDismissed}
-        onSelect={(method) => void handleConfirmPayment(method)}
+        onSelect={(method, amountCents) => void handleConfirmPayment(method, amountCents)}
       />
 
       <ParentBillingChargesSheet
@@ -497,13 +588,10 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
 
 const styles = StyleSheet.create({
   content: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
-    gap: Spacing.five,
-  },
-  section: {
-    gap: Spacing.three,
+    gap: BILLING_PAGE_GAP,
   },
   centered: {
     flex: 1,
@@ -511,15 +599,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.five,
   },
-  alertBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.three,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: Spacing.four,
-  },
-  alertText: {
-    flex: 1,
+  retry: {
+    marginTop: Spacing.three,
+    maxWidth: 200,
   },
 });

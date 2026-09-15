@@ -1,30 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { AdminListCard } from '@/components/school-admin/admin-list-card';
-import { ADMIN_LIST_HORIZONTAL_PADDING } from '@/components/school-admin/admin-list-layout';
-import { MessageThreadRow } from '@/components/school-admin/messages/message-thread-row';
+import { AdminMessageThreadRow } from '@/components/school-admin/messages/admin-message-thread-row';
+import { AdminMessagesEmptyState } from '@/components/school-admin/messages/admin-messages-empty-state';
+import { AdminMessagesSectionHeader } from '@/components/school-admin/messages/admin-messages-section-header';
+import { AdminMessagesStoryHeader } from '@/components/school-admin/messages/admin-messages-story-header';
 import { MessagesListSkeleton } from '@/components/school-admin/messages/messages-list-skeleton';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
-import { ThemedText } from '@/components/themed-text';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import { buildAdminSectionedListItems } from '@/lib/messages/admin-thread-sections';
 import { createMessageThread } from '@/lib/messages/api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { AdminConversationListItem } from '@/lib/messages/admin-thread-sections';
-import type { MessageContact } from '@/lib/messages/types';
+import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type MessagesListScreenProps = {
   organizationId: string;
@@ -32,23 +29,52 @@ type MessagesListScreenProps = {
   schoolName: string;
 };
 
+function filterThreadsBySearch(threads: MessageThreadSummary[], query: string): MessageThreadSummary[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return threads;
+  return threads.filter(
+    (thread) =>
+      thread.title.toLowerCase().includes(normalized) ||
+      thread.subtitle?.toLowerCase().includes(normalized) ||
+      thread.lastMessagePreview?.toLowerCase().includes(normalized),
+  );
+}
+
 export function MessagesListScreen({
   organizationId,
   organizationSlug,
   schoolName: _schoolName,
 }: MessagesListScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const { refreshUnreadCount } = useMessagesUnread();
-  const { threads, contacts, isLoading, isRefreshing, error, refresh } =
-    useSchoolAdminMessagesInbox();
+  const { reportError } = useMobileErrorReporter(organizationId);
+  const {
+    threads,
+    contacts,
+    isLoading,
+    isRefreshing,
+    loadingContacts,
+    error,
+    refresh,
+    ensureContactsLoaded,
+  } = useSchoolAdminMessagesInbox();
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [startingConversation, setStartingConversation] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const listItems = useMemo(() => buildAdminSectionedListItems(threads), [threads]);
+  const filteredThreads = useMemo(
+    () => filterThreadsBySearch(threads, searchQuery),
+    [searchQuery, threads],
+  );
+  const listItems = useMemo(
+    () => buildAdminSectionedListItems(filteredThreads),
+    [filteredThreads],
+  );
   const displayError = actionError ?? error;
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const { registerInboxConsumer } = useMessagesRealtime();
 
@@ -76,6 +102,11 @@ export function MessagesListScreen({
     router.push(`/school-admin/${organizationSlug}/messages/${threadId}`);
   };
 
+  const handleNewMessage = () => {
+    setNewConversationOpen(true);
+    void ensureContactsLoaded();
+  };
+
   const handleNewConversationSelect = async (contact: MessageContact) => {
     if (startingConversation) return;
     setStartingConversation(true);
@@ -98,6 +129,10 @@ export function MessagesListScreen({
       await refreshUnreadCount();
       openThread(threadId);
     } catch (selectError) {
+      reportError('school_admin_message_thread_create', selectError, {
+        entityType: 'message_contact',
+        entityId: contact.key,
+      });
       setActionError(
         selectError instanceof Error ? selectError.message : 'Failed to start conversation.',
       );
@@ -108,96 +143,63 @@ export function MessagesListScreen({
 
   const renderItem = ({ item }: { item: AdminConversationListItem }) => {
     if (item.type === 'section') {
-      return (
-        <View>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
-            <ThemedText type="small" style={{ color: theme.textTertiary }}>
-              {item.label}
-            </ThemedText>
-            <View style={[styles.sectionLine, { backgroundColor: theme.border }]} />
-          </View>
-          {item.description ? (
-            <ThemedText
-              type="small"
-              style={[styles.sectionDescription, { color: theme.textTertiary }]}>
-              {item.description}
-            </ThemedText>
-          ) : null}
-        </View>
-      );
+      return <AdminMessagesSectionHeader label={item.label} description={item.description} />;
     }
 
-    return (
-      <AdminListCard>
-        <MessageThreadRow thread={item.thread} onPress={() => openThread(item.thread.id)} />
-      </AdminListCard>
-    );
+    return <AdminMessageThreadRow thread={item.thread} onPress={() => openThread(item.thread.id)} />;
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={{ color: theme.textPrimary }}>
-          Messages
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="New message"
-          disabled={startingConversation}
-          onPress={() => setNewConversationOpen(true)}
-          style={({ pressed }) => [
-            styles.newButton,
-            {
-              backgroundColor: theme.accent,
-              opacity: pressed || startingConversation ? 0.85 : 1,
-            },
-          ]}>
-          <Ionicons name="add" size={18} color="#FFFFFF" />
-          <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-            New
-          </ThemedText>
-        </Pressable>
+    <View style={[styles.container, { backgroundColor: theme.paper }]}>
+      <View style={[styles.inboxSurface, { backgroundColor: theme.white }]}>
+        <Animated.View entering={FadeInDown.duration(280)}>
+          <AdminMessagesStoryHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onNewMessage={handleNewMessage}
+            newMessageDisabled={startingConversation}
+          />
+        </Animated.View>
+
+        {displayError ? (
+          <View style={styles.errorWrap}>
+            <StoryErrorBanner message={displayError} />
+          </View>
+        ) : null}
+
+        {isLoading && threads.length === 0 ? (
+          <MessagesListSkeleton />
+        ) : (
+          <FlatList
+            data={listItems}
+            keyExtractor={(item) => (item.type === 'section' ? item.key : item.thread.id)}
+            renderItem={renderItem}
+            style={styles.list}
+            contentContainerStyle={[
+              styles.listContent,
+              listItems.length === 0 ? styles.listContentEmpty : null,
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={theme.primary}
+              />
+            }
+            ListEmptyComponent={
+              displayError ? null : (
+                <AdminMessagesEmptyState hasSearchQuery={hasSearchQuery} />
+              )
+            }
+          />
+        )}
       </View>
-
-      {displayError ? (
-        <View style={styles.errorWrap}>
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {displayError}
-          </ThemedText>
-        </View>
-      ) : null}
-
-      {isLoading && threads.length === 0 ? (
-        <MessagesListSkeleton />
-      ) : (
-        <FlatList
-          data={listItems}
-          keyExtractor={(item) => (item.type === 'section' ? item.key : item.thread.id)}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={theme.accent}
-            />
-          }
-          ListEmptyComponent={
-            displayError ? null : (
-              <View style={styles.emptyState}>
-                <ThemedText type="default" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-                  No conversations yet. Tap New to start messaging families and staff.
-                </ThemedText>
-              </View>
-            )
-          }
-        />
-      )}
 
       <NewConversationSheet
         visible={newConversationOpen}
         contacts={contacts}
+        loadingContacts={loadingContacts}
+        variant="admin-story"
         onClose={() => setNewConversationOpen(false)}
         onSelect={(contact) => {
           void handleNewConversationSelect(contact);
@@ -211,49 +213,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.three,
+  inboxSurface: {
+    flex: 1,
   },
-  newButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Radius.pill,
+  list: {
+    flex: 1,
   },
   errorWrap: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   listContent: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
     paddingBottom: Spacing.six,
-    gap: Spacing.three,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.one,
-  },
-  sectionLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-  },
-  sectionDescription: {
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingBottom: Spacing.one,
-  },
-  emptyState: {
-    paddingTop: Spacing.six,
-    paddingHorizontal: Spacing.four,
+  listContentEmpty: {
+    flexGrow: 1,
   },
 });

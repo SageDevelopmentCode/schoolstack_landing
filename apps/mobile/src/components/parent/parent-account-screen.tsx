@@ -8,6 +8,7 @@ import { EditableProfilePhoto } from '@/components/parent/children/editable-prof
 import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.five,
     gap: Spacing.five,
   },

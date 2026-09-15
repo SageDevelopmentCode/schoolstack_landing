@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -10,8 +10,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 import { formatCents } from '@/lib/tuition/format-cents';
 import type { TuitionPaymentReceiptDetail } from '@/lib/tuition/payment-receipt';
@@ -31,7 +31,7 @@ export function ParentBillingPaymentReceiptSheet({
   receipt,
   onClose,
 }: ParentBillingPaymentReceiptSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
   const backdropOpacity = useSharedValue(0);
@@ -88,91 +88,73 @@ export function ParentBillingPaymentReceiptSheet({
             styles.sheet,
             sheetAnimatedStyle,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: Story.white,
+              borderColor: theme.line,
               paddingBottom: insets.bottom + Spacing.four,
             },
           ]}>
           <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
+            <View style={[styles.handle, { backgroundColor: theme.line }]} />
           </View>
 
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <ThemedText type="title" style={{ color: theme.textPrimary }}>
-              Payment receipt
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-              {receipt.paidAtLabel}
-            </ThemedText>
+          <View style={[styles.header, { borderBottomColor: theme.line }]}>
+            <Text style={[styles.title, { color: theme.ink }]}>Payment receipt</Text>
+            <Text style={[styles.subtitle, { color: theme.muted }]}>{receipt.paidAtLabel}</Text>
           </View>
 
           <ScrollView contentContainerStyle={styles.content}>
             {receipt.lineItems.map((item, index) => (
               <View
                 key={`${item.chargeLabel}-${index}`}
-                style={[styles.lineItem, { borderBottomColor: theme.border }]}>
+                style={[styles.lineItem, { borderBottomColor: theme.line }]}>
                 <View style={styles.lineText}>
-                  <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                    {item.studentName}
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    {item.chargeLabel}
-                  </ThemedText>
+                  <Text style={[styles.lineTitle, { color: theme.ink }]}>{item.studentName}</Text>
+                  <Text style={[styles.lineMeta, { color: theme.muted }]}>{item.chargeLabel}</Text>
                 </View>
-                <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+                <Text style={[styles.lineAmount, { color: theme.ink }]}>
                   {formatCents(item.amountCents)}
-                </ThemedText>
+                </Text>
               </View>
             ))}
 
             <View style={styles.summaryRow}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                Payment method
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textPrimary }}>
+              <Text style={[styles.lineMeta, { color: theme.muted }]}>Payment method</Text>
+              <Text style={[styles.lineMeta, { color: theme.ink }]}>
                 {receipt.paymentMethodLabel}
-              </ThemedText>
+              </Text>
             </View>
 
             {receipt.processingFeeCents > 0 ? (
               <>
                 <View style={styles.summaryRow}>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Tuition
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textPrimary }}>
+                  <Text style={[styles.lineMeta, { color: theme.muted }]}>Tuition</Text>
+                  <Text style={[styles.lineMeta, { color: theme.ink }]}>
                     {formatCents(receipt.schoolAmountCents)}
-                  </ThemedText>
+                  </Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Processing fee
-                  </ThemedText>
-                  <ThemedText type="small" style={{ color: theme.textPrimary }}>
+                  <Text style={[styles.lineMeta, { color: theme.muted }]}>Processing fee</Text>
+                  <Text style={[styles.lineMeta, { color: theme.ink }]}>
                     {formatCents(receipt.processingFeeCents)}
-                  </ThemedText>
+                  </Text>
                 </View>
               </>
             ) : null}
 
-            <View style={[styles.totalRow, { borderTopColor: theme.border }]}>
-              <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                Total paid
-              </ThemedText>
-              <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+            <View style={[styles.totalRow, { borderTopColor: theme.line }]}>
+              <Text style={[styles.totalLabel, { color: theme.ink }]}>Total paid</Text>
+              <Text style={[styles.totalLabel, { color: theme.ink }]}>
                 {formatCents(receipt.totalPaidCents)}
-              </ThemedText>
+              </Text>
             </View>
           </ScrollView>
 
           <Pressable
             onPress={onClose}
-            style={[styles.closeButton, { backgroundColor: theme.bg }]}
+            style={[styles.closeButton, { backgroundColor: theme.paper }]}
             accessibilityRole="button"
             accessibilityLabel="Close">
-            <ThemedText type="smallBold" style={{ color: theme.accent }}>
-              Done
-            </ThemedText>
+            <Text style={[styles.doneLabel, { color: theme.primary }]}>Done</Text>
           </Pressable>
         </Animated.View>
       </View>
@@ -245,5 +227,39 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     paddingVertical: Spacing.three,
     alignItems: 'center',
+  },
+  title: {
+    fontFamily: StoryFonts.display,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  subtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    marginTop: 4,
+  },
+  lineTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  lineMeta: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+  },
+  lineAmount: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  totalLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  doneLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

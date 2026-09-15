@@ -3,12 +3,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AdminCard } from '@/components/admin/admin-card';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import {
   activityCategoryChipTone,
   activityCategoryLabel,
 } from '@/lib/school-admin/activity-category';
 import type { SchoolAdminActivityNotification } from '@/lib/school-admin/dashboard-summary-types';
+import { formatRelativeTime } from '@/lib/school-admin/format-relative-time';
 
 type AdminActivityFeedCardProps = {
   items: SchoolAdminActivityNotification[];
@@ -57,45 +59,32 @@ export function AdminActivityFeedCard({ items, onPressItem }: AdminActivityFeedC
             const chipStyle = chipColors(tone, theme);
 
             return (
-              <View
+              <Pressable
                 key={item.id}
-                style={[
+                accessibilityRole="button"
+                onPress={() => onPressItem(item)}
+                style={({ pressed }) => [
                   styles.row,
                   index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EDF1ED' },
+                  pressed && { opacity: 0.85 },
                 ]}>
-                <View style={[styles.chip, { backgroundColor: chipStyle.backgroundColor }]}>
-                  <ThemedText type="badge" style={{ color: chipStyle.color, fontSize: 10 }}>
-                    {activityCategoryLabel(item.category)}
-                  </ThemedText>
-                </View>
-                <View style={styles.copy}>
-                  {item.category === 'payments' ? (
-                    <ThemedText type="small" numberOfLines={2} style={{ color: theme.textPrimary }}>
-                      {item.detail}
+                <View style={styles.topRow}>
+                  <View style={[styles.chip, { backgroundColor: chipStyle.backgroundColor }]}>
+                    <ThemedText type="badge" style={{ color: chipStyle.color, fontSize: 10 }}>
+                      {activityCategoryLabel(item.category)}
                     </ThemedText>
-                  ) : (
-                    <>
-                      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-                        {item.title}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        numberOfLines={2}
-                        style={{ color: theme.textSecondary, marginTop: 2 }}>
-                        {item.detail}
-                      </ThemedText>
-                    </>
-                  )}
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => onPressItem(item)}
-                  style={({ pressed }) => [styles.cta, pressed && { opacity: 0.7 }]}>
-                  <ThemedText type="smallBold" style={{ color: theme.accent }}>
+                  </View>
+                  <ThemedText type="smallBold" style={[styles.cta, { color: theme.accent }]}>
                     {item.ctaLabel} →
                   </ThemedText>
-                </Pressable>
-              </View>
+                </View>
+                <ThemedText type="small" numberOfLines={3} style={{ color: theme.textPrimary }}>
+                  {item.detail}
+                </ThemedText>
+                <ThemedText type="small" style={{ color: theme.textTertiary, marginTop: 2 }}>
+                  {formatRelativeTime(item.createdAt)}
+                </ThemedText>
+              </Pressable>
             );
           })}
         </View>
@@ -111,29 +100,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     paddingBottom: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#EDF1ED',
   },
   row: {
+    gap: Spacing.two,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingVertical: Spacing.three,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
   },
   chip: {
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
-  },
-  copy: {
-    flex: 1,
-    minWidth: 0,
+    flexShrink: 1,
   },
   cta: {
-    paddingLeft: Spacing.one,
+    flexShrink: 0,
   },
 });

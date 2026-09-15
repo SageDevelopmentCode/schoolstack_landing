@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
+import { logParentPortalActivity } from "@/lib/parent-portal/parent-portal-activity";
 import { normalizeNotificationEmails } from "@/lib/notifications/family-notification-email-constants";
 import {
   getFamilyNotificationEmailSettings,
@@ -178,6 +180,32 @@ export async function PATCH(request: Request) {
 
   try {
     await updateFamilyNotificationEmails(admin, familyId, normalized.emails);
+
+    const { data: family } = await admin
+      .from("families")
+      .select("name")
+      .eq("id", familyId)
+      .maybeSingle();
+    const familyName =
+      typeof family?.name === "string" ? family.name.trim() : null;
+
+    void logParentPortalActivity(admin, {
+      organizationId,
+      actorUserId: user.id,
+      actorEmail: user.email ?? null,
+      action: ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED,
+      summary: normalized.emails.length === 0
+        ? "Reset notification email settings"
+        : "Updated notification email settings",
+      entityType: "family",
+      entityId: familyId,
+      metadata: {
+        familyId,
+        familyName,
+        emailCount: normalized.emails.length,
+      },
+      request,
+    });
   } catch (error) {
     const message =
       error instanceof Error

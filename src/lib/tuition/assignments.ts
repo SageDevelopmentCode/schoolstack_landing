@@ -689,6 +689,7 @@ export async function finalizeEnrollmentPaymentPlan(
       changeSummary,
       logWhenEmpty: true,
       context: options?.context,
+      metadata: options?.activityMetadata,
     });
   }
 

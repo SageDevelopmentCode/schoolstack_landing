@@ -15,6 +15,7 @@ import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 
 export type ParentMessagesInboxData = {
   threads: MessageThreadSummary[];
@@ -109,6 +110,10 @@ export function ParentMessagesInboxProvider({
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const reportError = useMemo(
+    () => createParentPortalErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const applyInboxData = useCallback((inbox: ParentMessagesInboxData | null) => {
     setThreads(inbox?.threads ?? []);
@@ -144,6 +149,7 @@ export function ParentMessagesInboxProvider({
           applyInboxData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('parent_messages_inbox_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
         } finally {
           setIsLoading(false);
@@ -158,7 +164,7 @@ export function ParentMessagesInboxProvider({
       }
       await promise;
     },
-    [applyInboxData, key, organizationId, schoolName],
+    [applyInboxData, key, organizationId, reportError, schoolName],
   );
 
   const refresh = useCallback(
@@ -198,6 +204,7 @@ export function ParentMessagesInboxProvider({
         setHasLoaded(Boolean(messagesInboxCache.get(key)));
         setError(null);
       } catch (loadError) {
+        reportError('parent_messages_inbox_load', loadError);
         if (!cancelled && !messagesInboxCache.get(key)) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load messages.');
         }
@@ -214,7 +221,7 @@ export function ParentMessagesInboxProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyInboxData, key, organizationId, schoolName]);
+  }, [applyInboxData, key, organizationId, reportError, schoolName]);
 
   const value = useMemo(
     () => ({

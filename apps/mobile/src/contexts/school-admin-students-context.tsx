@@ -16,11 +16,13 @@ import {
   type AdminEnrolledStudentSummary,
   type OrgStaffMemberRecord,
 } from '@/lib/school-admin/enrolled-students';
+import { mergeStudentStandingHealthFlags } from '@/lib/school-admin/merge-student-standing-health-flags';
 import {
   createPortalCache,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
 export type SchoolAdminStudentsData = {
   students: AdminEnrolledStudentSummary[];
@@ -40,7 +42,7 @@ type SchoolAdminStudentsContextValue = {
 
 const SchoolAdminStudentsContext = createContext<SchoolAdminStudentsContextValue | null>(null);
 
-const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v2:');
+const studentsCache = createPortalCache<SchoolAdminStudentsData>('school_admin_students:v4:');
 
 function cacheKey(organizationId: string): string {
   return organizationId;
@@ -52,8 +54,14 @@ async function fetchStudentsData(organizationId: string): Promise<SchoolAdminStu
     listOrgEnrolledStudents(supabase, organizationId),
     listOrgStaffMembers(supabase, organizationId).catch(() => [] as OrgStaffMemberRecord[]),
   ]);
+  const normalizedStudents = normalizeEnrolledStudentSummaries(students);
+  const studentsWithHealth = await mergeStudentStandingHealthFlags(
+    supabase,
+    organizationId,
+    normalizedStudents,
+  );
   return {
-    students: normalizeEnrolledStudentSummaries(students),
+    students: studentsWithHealth,
     staffMembers,
   };
 }
@@ -88,6 +96,10 @@ export function SchoolAdminStudentsProvider({
 }: SchoolAdminStudentsProviderProps) {
   const key = cacheKey(organizationId);
   const cached = studentsCache.get(key);
+  const reportError = useMemo(
+    () => createSchoolAdminErrorReporter(organizationId),
+    [organizationId],
+  );
 
   const [students, setStudents] = useState<AdminEnrolledStudentSummary[]>(
     normalizeEnrolledStudentSummaries(cached?.students ?? []),
@@ -137,6 +149,7 @@ export function SchoolAdminStudentsProvider({
           ]);
 
           if (studentsResult.status === 'rejected') {
+            reportError('school_admin_students_load', studentsResult.reason);
             setError(
               studentsResult.reason instanceof Error
                 ? studentsResult.reason.message
@@ -149,6 +162,7 @@ export function SchoolAdminStudentsProvider({
           const nextStaff =
             staffResult.status === 'fulfilled' ? staffResult.value : [];
           if (staffResult.status === 'rejected') {
+            reportError('school_admin_students_staff_load', staffResult.reason);
             setStaffError(
               staffResult.reason instanceof Error
                 ? staffResult.reason.message
@@ -164,6 +178,7 @@ export function SchoolAdminStudentsProvider({
           applyData(nextData);
           setHasLoaded(true);
         } catch (loadError) {
+          reportError('school_admin_students_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load students.');
         } finally {
           setIsLoading(false);
@@ -178,7 +193,7 @@ export function SchoolAdminStudentsProvider({
       }
       await promise;
     },
-    [applyData, key, organizationId],
+    [applyData, key, organizationId, reportError],
   );
 
   const refresh = useCallback(
@@ -221,6 +236,7 @@ export function SchoolAdminStudentsProvider({
         setStaffError(null);
       } catch (loadError) {
         if (!cancelled && !studentsCache.get(key)) {
+          reportError('school_admin_students_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load students.');
         }
       } finally {
@@ -236,7 +252,7 @@ export function SchoolAdminStudentsProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyData, key, organizationId]);
+  }, [applyData, key, organizationId, reportError]);
 
   const value = useMemo(
     () => ({

@@ -8,6 +8,7 @@ type LogOrganizationEventPostedInput = {
   programId?: string | null;
   actorUserId?: string | null;
   actorName?: string | null;
+  activityMetadata?: Record<string, unknown>;
 };
 
 export async function logOrganizationEventPosted(
@@ -30,6 +31,7 @@ export async function logOrganizationEventPosted(
       eventId: input.eventId,
       title,
       programId: input.programId ?? null,
+      ...(input.activityMetadata ?? {}),
     },
   });
 }

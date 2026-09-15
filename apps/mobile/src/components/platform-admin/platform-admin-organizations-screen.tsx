@@ -19,6 +19,7 @@ import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import type { AdminOrganization, OrganizationStatus } from '@/lib/organizations';
 import { listAllOrganizations } from '@/lib/organizations';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
 
 export function PlatformAdminOrganizationsScreen() {
@@ -35,7 +36,7 @@ export function PlatformAdminOrganizationsScreen() {
 
   useEffect(() => {
     if (!authLoading && (!user || portalType !== 'platform_admin')) {
-      router.replace('/login/admin');
+      router.replace('/');
     }
   }, [authLoading, user, portalType, router]);
 
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.three,
     gap: Spacing.two,
   },
@@ -198,7 +199,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   filters: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.two,
   },
   searchInput: {
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
   },
   listContent: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.four,
   },
   centered: {
@@ -219,10 +220,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.two,
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
   footer: {
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.three,
     paddingTop: Spacing.two,
     borderTopWidth: StyleSheet.hairlineWidth,

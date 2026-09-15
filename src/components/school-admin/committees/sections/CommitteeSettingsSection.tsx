@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Archive } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
+import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { updateCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 
 export default function CommitteeSettingsSection({
   committee,
-  C,
+  theme,
   supabase,
   organizationId,
   onCommitteeChange,
@@ -19,7 +24,7 @@ export default function CommitteeSettingsSection({
   onNavigateToSection,
 }: {
   committee: Committee;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
@@ -33,6 +38,7 @@ export default function CommitteeSettingsSection({
   const [termEnd, setTermEnd] = useState(committee.termEnd);
   const [saving, setSaving] = useState(false);
   const [savingDetails, setSavingDetails] = useState(false);
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
 
   const isDetailsDirty =
     name !== committee.name || description !== committee.description;
@@ -89,111 +95,114 @@ export default function CommitteeSettingsSection({
 
   return (
     <div className="max-w-2xl space-y-6">
-      <section className="rounded-2xl border p-5 space-y-3" style={{ backgroundColor: C.surface, borderColor: C.border }}>
-        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Committee details</h3>
-        <p className="text-xs" style={{ color: C.textSecondary }}>
+      <AdminCard theme={theme} padding="default">
+        <AdminDisplayHeading theme={theme} as="h3" size="section">
+          Committee details
+        </AdminDisplayHeading>
+        <p className="text-xs mt-1" style={{ color: theme.muted }}>
           Short summary shown on the committees list and workspace header.
         </p>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Committee name"
-          className="w-full px-3 py-2 text-sm rounded-lg border"
-          style={{ borderColor: C.border, color: C.textPrimary }}
+          className="w-full mt-3 px-3 py-2 text-sm rounded-lg border"
+          style={inputStyle}
         />
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
           placeholder="Brief description for families and volunteers…"
-          className="w-full px-3 py-2 text-sm rounded-lg border resize-y"
-          style={{ borderColor: C.border, color: C.textPrimary, minHeight: "88px" }}
+          className="w-full mt-3 px-3 py-2 text-sm rounded-lg border resize-y"
+          style={{ ...inputStyle, minHeight: "88px" }}
         />
-        <button
-          type="button"
-          onClick={handleSaveDetails}
+        <AdminButton
+          theme={theme}
+          variant="primary"
+          className="mt-3"
+          onClick={() => void handleSaveDetails()}
           disabled={savingDetails || !isDetailsDirty || !name.trim()}
-          className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: C.accent }}
         >
           {savingDetails ? "Saving…" : "Save details"}
-        </button>
-      </section>
+        </AdminButton>
+      </AdminCard>
 
-      <section className="rounded-2xl border p-5" style={{ backgroundColor: C.surface, borderColor: C.border }}>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: C.textPrimary }}>Membership</h3>
-        <p className="text-sm" style={{ color: C.textSecondary }}>
+      <AdminCard theme={theme} padding="default">
+        <AdminDisplayHeading theme={theme} as="h3" size="section">
+          Membership
+        </AdminDisplayHeading>
+        <p className="text-sm mt-1" style={{ color: theme.muted }}>
           {committee.members.length} members · Term {committee.termLabel}
         </p>
         {onNavigateToSection && (
-          <button
-            type="button"
+          <AdminTextLink
+            theme={theme}
+            className="mt-3"
             onClick={() => onNavigateToSection("members")}
-            className="mt-3 text-sm font-medium cursor-pointer"
-            style={{ color: C.accent }}
           >
-            Manage members in the Members tab
-          </button>
+            Manage members in the Members tab →
+          </AdminTextLink>
         )}
-      </section>
+      </AdminCard>
 
-      <section className="rounded-2xl border p-5 space-y-3" style={{ backgroundColor: C.surface, borderColor: C.border }}>
-        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>Term dates</h3>
+      <AdminCard theme={theme} padding="default">
+        <AdminDisplayHeading theme={theme} as="h3" size="section">
+          Term dates
+        </AdminDisplayHeading>
         <input
           value={termLabel}
           onChange={(e) => setTermLabel(e.target.value)}
           placeholder="Term label"
-          className="w-full px-3 py-2 text-sm rounded-lg border"
-          style={{ borderColor: C.border }}
+          className="w-full mt-3 px-3 py-2 text-sm rounded-lg border"
+          style={inputStyle}
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mt-3">
           <input
             type="date"
             value={termStart}
             onChange={(e) => setTermStart(e.target.value)}
             className="px-3 py-2 text-sm rounded-lg border"
-            style={{ borderColor: C.border }}
+            style={inputStyle}
           />
           <input
             type="date"
             value={termEnd}
             onChange={(e) => setTermEnd(e.target.value)}
             className="px-3 py-2 text-sm rounded-lg border"
-            style={{ borderColor: C.border }}
+            style={inputStyle}
           />
         </div>
-        <button
-          type="button"
-          onClick={handleSaveTerm}
+        <AdminButton
+          theme={theme}
+          variant="primary"
+          className="mt-3"
+          onClick={() => void handleSaveTerm()}
           disabled={saving || !isTermDirty}
-          className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: C.accent }}
         >
           {saving ? "Saving…" : "Save term"}
-        </button>
-      </section>
+        </AdminButton>
+      </AdminCard>
 
       {committee.status === "active" && onArchive && (
-        <section
-          className="rounded-2xl border p-5"
-          style={{ backgroundColor: C.warningBg, borderColor: C.warningBorder }}
+        <AdminCard
+          theme={theme}
+          padding="default"
+          style={{ backgroundColor: "#FFF3DF", borderColor: "#F0D9A8" }}
         >
-          <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: C.textPrimary }}>
-            <Archive className="w-4 h-4" />
-            Archive committee
-          </h3>
-          <p className="text-sm mb-4" style={{ color: C.textSecondary }}>
+          <AdminDisplayHeading theme={theme} as="h3" size="section">
+            <span className="inline-flex items-center gap-2">
+              <Archive className="w-4 h-4" />
+              Archive committee
+            </span>
+          </AdminDisplayHeading>
+          <p className="text-sm mt-2 mb-4" style={{ color: theme.muted }}>
             Mark this workspace as archived at the end of the school year. History is preserved.
           </p>
-          <button
-            type="button"
-            onClick={onArchive}
-            className="px-4 py-2 text-sm font-medium rounded-md cursor-pointer"
-            style={{ backgroundColor: C.warning, color: "#fff" }}
-          >
+          <AdminButton theme={theme} variant="danger" onClick={onArchive}>
             Archive workspace
-          </button>
-        </section>
+          </AdminButton>
+        </AdminCard>
       )}
     </div>
   );

@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { Committee } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
 
 export default function ArchiveCommitteeModal({
-  C,
+  theme,
   committee,
   onClose,
   onConfirm,
 }: {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   committee: Committee;
   onClose: () => void;
   onConfirm: () => Promise<void>;
@@ -30,27 +31,27 @@ export default function ArchiveCommitteeModal({
 
   return (
     <CommitteeModalShell
-      C={C}
+      theme={theme}
       title={`Archive ${committee.name}?`}
+      kicker="Committee settings"
       onClose={onClose}
       footer={
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm cursor-pointer">
+          <AdminButton theme={theme} variant="soft" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="button"
+          </AdminButton>
+          <AdminButton
+            theme={theme}
+            variant="danger"
             onClick={() => void handleConfirm()}
             disabled={saving}
-            className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-            style={{ backgroundColor: C.warning }}
           >
             {saving ? "Archiving…" : "Archive committee"}
-          </button>
+          </AdminButton>
         </div>
       }
     >
-      <p className="text-sm" style={{ color: C.textSecondary }}>
+      <p className="text-sm" style={{ color: theme.muted }}>
         The workspace will be marked archived. Members can no longer make changes,
         but history is preserved.
       </p>

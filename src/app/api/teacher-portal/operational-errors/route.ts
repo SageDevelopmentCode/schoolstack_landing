@@ -6,6 +6,7 @@ import {
   requireTeacherPortalUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/teacher-portal/operational-errors";
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     await reportOperationalError({
-      supabase,
+      supabase: createAdminClient(),
       surface: "teacher_portal",
       organizationId,
       organizationName: organization?.name ?? null,

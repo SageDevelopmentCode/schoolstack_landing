@@ -1,17 +1,23 @@
 import { StyleSheet, View } from 'react-native';
 
+import { Story } from '@/constants/story-theme';
 import { Brand } from '@/constants/theme';
 
 type PageDotsProps = {
   count: number;
   activeIndex: number;
-  variant?: 'light' | 'dark';
+  variant?: 'light' | 'dark' | 'story';
 };
 
 export function PageDots({ count, activeIndex, variant = 'light' }: PageDotsProps) {
-  const activeColor = variant === 'light' ? Brand.white : Brand.accent;
+  const activeColor =
+    variant === 'story' ? Story.primary : variant === 'light' ? Brand.white : Brand.accent;
   const inactiveColor =
-    variant === 'light' ? 'rgba(255,255,255,0.35)' : 'rgba(46,74,60,0.25)';
+    variant === 'story'
+      ? Story.sage
+      : variant === 'light'
+        ? 'rgba(255,255,255,0.35)'
+        : 'rgba(46,74,60,0.25)';
 
   return (
     <View style={styles.container}>

@@ -376,6 +376,7 @@ export async function toggleAdmissionsAvailabilitySlot(
   date: string,
   timeSlot: string,
   open: boolean,
+  extraMetadata?: Record<string, unknown>,
 ): Promise<void> {
   if (open) {
     const { error } = await supabase.from("admissions_availability_slots").insert({
@@ -405,6 +406,7 @@ export async function toggleAdmissionsAvailabilitySlot(
       date,
       timeSlot,
       open,
+      ...(extraMetadata ?? {}),
     },
   });
 }

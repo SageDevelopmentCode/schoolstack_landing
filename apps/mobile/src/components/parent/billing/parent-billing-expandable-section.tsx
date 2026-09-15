@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { Fragment } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BillingListSeparator } from '@/components/parent/billing/parent-billing-list-separator';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
 export const BILLING_VISIBLE_ROW_LIMIT = 3;
@@ -30,7 +31,7 @@ export function ParentBillingExpandableSection<T>({
   keyExtractor,
   renderItem,
 }: ParentBillingExpandableSectionProps<T>) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const shouldCollapse = items.length > BILLING_VISIBLE_ROW_LIMIT;
   const useBottomSheet = Boolean(onShowAll);
   const visibleItems =
@@ -40,22 +41,20 @@ export function ParentBillingExpandableSection<T>({
 
   return (
     <View style={styles.section}>
-      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-        {title}
-      </ThemedText>
+      <StoryDisplayHeading size="section">{title}</StoryDisplayHeading>
 
       {items.length === 0 ? (
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          {emptyMessage}
-        </ThemedText>
+        <Text style={[styles.empty, { color: theme.muted }]}>{emptyMessage}</Text>
       ) : (
         <>
-          {visibleItems.map((item, index) => (
-            <Fragment key={keyExtractor(item)}>
-              {index > 0 ? <BillingListSeparator /> : null}
-              {renderItem(item)}
-            </Fragment>
-          ))}
+          <View style={styles.list}>
+            {visibleItems.map((item, index) => (
+              <Fragment key={keyExtractor(item)}>
+                {index > 0 ? <BillingListSeparator /> : null}
+                {renderItem(item)}
+              </Fragment>
+            ))}
+          </View>
 
           {shouldCollapse ? (
             <Pressable
@@ -65,11 +64,11 @@ export function ParentBillingExpandableSection<T>({
                 useBottomSheet || !expanded ? `Show all ${items.length}` : 'Show less'
               }
               style={({ pressed }) => [styles.toggle, pressed && { opacity: 0.8 }]}>
-              <ThemedText type="small" style={{ color: theme.accent }}>
+              <Text style={[styles.toggleText, { color: theme.primary }]}>
                 {useBottomSheet || !expanded
-                  ? `Show all (${items.length})`
+                  ? `View full schedule (${items.length})`
                   : 'Show less'}
-              </ThemedText>
+              </Text>
             </Pressable>
           ) : null}
         </>
@@ -82,8 +81,21 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
   },
+  list: {
+    gap: Spacing.two,
+  },
+  empty: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   toggle: {
     alignSelf: 'flex-start',
     paddingVertical: Spacing.one,
+  },
+  toggleText: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

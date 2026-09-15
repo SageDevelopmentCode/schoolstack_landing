@@ -4,6 +4,11 @@ import {
   logActivityEvent,
 } from "@/lib/activity-log";
 import {
+  AdmissionsAvailabilityConflictError,
+  OBSERVATION_SLOT_BOOKED_MESSAGE,
+  OBSERVATION_SLOT_DUPLICATE_MESSAGE,
+} from "./admissions-availability-errors";
+import {
   ADMISSIONS_TIME_SLOT_GROUPS,
   type AdmissionsTimeSlotPeriod,
 } from "./admissions-availability";
@@ -303,6 +308,7 @@ export async function createObservationSlot(
   supabase: SupabaseClient,
   organizationId: string,
   input: ObservationSlotInput,
+  extraMetadata?: Record<string, unknown>,
 ): Promise<ObservationSlot> {
   const gradeValues = normalizeGradeValues(input.gradeValues);
   const endTime = input.endTime ?? null;
@@ -321,7 +327,9 @@ export async function createObservationSlot(
 
   if (error) {
     if (error.code === "23505") {
-      throw new Error("A slot with the same date, time, and grade group already exists.");
+      throw new AdmissionsAvailabilityConflictError(OBSERVATION_SLOT_DUPLICATE_MESSAGE, {
+        code: "duplicate_slot",
+      });
     }
     throw error;
   }
@@ -341,6 +349,7 @@ export async function createObservationSlot(
       startTime: input.startTime,
       endTime,
       gradeValues,
+      ...(extraMetadata ?? {}),
     },
   });
 
@@ -371,7 +380,9 @@ export async function updateObservationSlot(
 
   if (error) {
     if (error.code === "23505") {
-      throw new Error("A slot with the same date, time, and grade group already exists.");
+      throw new AdmissionsAvailabilityConflictError(OBSERVATION_SLOT_DUPLICATE_MESSAGE, {
+        code: "duplicate_slot",
+      });
     }
     throw error;
   }
@@ -384,6 +395,7 @@ export async function deleteObservationSlot(
   supabase: SupabaseClient,
   organizationId: string,
   slotId: string,
+  extraMetadata?: Record<string, unknown>,
 ): Promise<void> {
   const { data: booked, error: bookedError } = await supabase
     .from("admissions_scheduled_visit_days")
@@ -394,7 +406,9 @@ export async function deleteObservationSlot(
 
   if (bookedError) throw bookedError;
   if ((booked ?? []).length > 0) {
-    throw new Error("This slot has a booked visit and can't be removed.");
+    throw new AdmissionsAvailabilityConflictError(OBSERVATION_SLOT_BOOKED_MESSAGE, {
+      code: "booked_visit",
+    });
   }
 
   const { data, error } = await supabase
@@ -420,6 +434,7 @@ export async function deleteObservationSlot(
         availabilityType: "observation_slot",
         startTime: String(data.start_time),
         endTime: data.end_time ? String(data.end_time) : null,
+        ...(extraMetadata ?? {}),
       },
     });
   }

@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Radius, Spacing } from '@/constants/theme';
 import {
   getDefaultColorKeyForType,
   SCHOOL_EVENT_COLOR_KEYS,
@@ -12,6 +15,7 @@ import {
   getColorStyle,
 } from '@/lib/school-events/event-labels';
 import type { SchoolEventColorKey, SchoolEventType } from '@/lib/school-events/types';
+import { requestCloseIfClean } from '@/lib/unsaved-changes';
 
 export type EventFormState = {
   title: string;
@@ -39,10 +43,15 @@ export const EMPTY_EVENT_FORM: EventFormState = {
   description: '',
 };
 
+export function eventFormsEqual(left: EventFormState, right: EventFormState): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 type SchoolEventFormSheetProps = {
   visible: boolean;
   mode: 'create' | 'edit';
   form: EventFormState;
+  isDirty: boolean;
   saving: boolean;
   onClose: () => void;
   onChange: (form: EventFormState) => void;
@@ -55,44 +64,57 @@ export function SchoolEventFormSheet({
   visible,
   mode,
   form,
+  isDirty,
   saving,
   onClose,
   onChange,
   onSave,
 }: SchoolEventFormSheetProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
-  const canSave = useMemo(
+  const isValid = useMemo(
     () => Boolean(form.title.trim() && form.date && (form.isAllDay || form.time.trim())),
     [form],
   );
+  const canSave = isDirty && isValid;
+
+  const requestClose = useCallback(() => {
+    requestCloseIfClean({ isDirty, onClose });
+  }, [isDirty, onClose]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <Pressable accessibilityRole="button" onPress={onClose}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Cancel
-            </ThemedText>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
+      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+        <View style={[styles.header, { borderBottomColor: theme.line }]}>
+          <Pressable accessibilityRole="button" onPress={requestClose}>
+            <Text style={[styles.headerAction, { color: theme.primary }]}>Cancel</Text>
           </Pressable>
-          <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>
             {mode === 'create' ? 'Add event' : 'Edit event'}
-          </ThemedText>
+          </Text>
           <Pressable accessibilityRole="button" disabled={!canSave || saving} onPress={onSave}>
-            <ThemedText type="smallBold" style={{ color: canSave && !saving ? theme.accent : theme.textTertiary }}>
+            <Text
+              style={[
+                styles.headerAction,
+                { color: canSave && !saving ? theme.primary : theme.muted },
+              ]}>
               Save
-            </ThemedText>
+            </Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
+          <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
+          <StoryDisplayHeading size="section">
+            {mode === 'create' ? 'New event' : 'Update event'}
+          </StoryDisplayHeading>
+
           <Field label="Title">
             <TextInput
               value={form.title}
               onChangeText={(title) => onChange({ ...form, title })}
               placeholder="Event title"
-              placeholderTextColor={theme.textTertiary}
+              placeholderTextColor={theme.muted}
               style={[styles.input, inputStyle(theme)]}
             />
           </Field>
@@ -103,20 +125,18 @@ export function SchoolEventFormSheet({
               onChangeText={(date) => onChange({ ...form, date })}
               placeholder="2026-08-22"
               autoCapitalize="none"
-              placeholderTextColor={theme.textTertiary}
+              placeholderTextColor={theme.muted}
               style={[styles.input, inputStyle(theme)]}
             />
           </Field>
 
           <View style={styles.switchRow}>
-            <ThemedText type="small" style={{ color: theme.textPrimary }}>
-              All day
-            </ThemedText>
+            <Text style={[styles.fieldLabel, { color: theme.ink }]}>All day</Text>
             <Switch
               value={form.isAllDay}
               onValueChange={(isAllDay) => onChange({ ...form, isAllDay })}
-              trackColor={{ false: theme.border, true: theme.accentLight }}
-              thumbColor={form.isAllDay ? theme.accent : theme.surface}
+              trackColor={{ false: theme.line, true: theme.primarySoft }}
+              thumbColor={form.isAllDay ? theme.primary : theme.white}
             />
           </View>
 
@@ -128,7 +148,7 @@ export function SchoolEventFormSheet({
                   onChangeText={(time) => onChange({ ...form, time })}
                   placeholder="09:00"
                   autoCapitalize="none"
-                  placeholderTextColor={theme.textTertiary}
+                  placeholderTextColor={theme.muted}
                   style={[styles.input, inputStyle(theme)]}
                 />
               </Field>
@@ -138,7 +158,7 @@ export function SchoolEventFormSheet({
                   onChangeText={(endTime) => onChange({ ...form, endTime })}
                   placeholder="10:00"
                   autoCapitalize="none"
-                  placeholderTextColor={theme.textTertiary}
+                  placeholderTextColor={theme.muted}
                   style={[styles.input, inputStyle(theme)]}
                 />
               </Field>
@@ -163,13 +183,13 @@ export function SchoolEventFormSheet({
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: active ? theme.accentLight : theme.surface,
-                        borderColor: active ? theme.accent : theme.border,
+                        backgroundColor: active ? theme.primarySoft : theme.white,
+                        borderColor: active ? theme.primary : theme.line,
                       },
                     ]}>
-                    <ThemedText type="small" style={{ color: active ? theme.accent : theme.textSecondary }}>
+                    <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
                       {SCHOOL_EVENT_TYPE_LABELS[type]}
-                    </ThemedText>
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -190,7 +210,7 @@ export function SchoolEventFormSheet({
                       styles.colorSwatch,
                       {
                         backgroundColor: color.bg,
-                        borderColor: active ? theme.accent : 'transparent',
+                        borderColor: active ? theme.primary : 'transparent',
                       },
                     ]}
                   />
@@ -204,7 +224,7 @@ export function SchoolEventFormSheet({
               value={form.location}
               onChangeText={(location) => onChange({ ...form, location })}
               placeholder="Optional"
-              placeholderTextColor={theme.textTertiary}
+              placeholderTextColor={theme.muted}
               style={[styles.input, inputStyle(theme)]}
             />
           </Field>
@@ -215,7 +235,7 @@ export function SchoolEventFormSheet({
               onChangeText={(description) => onChange({ ...form, description })}
               placeholder="Optional details"
               multiline
-              placeholderTextColor={theme.textTertiary}
+              placeholderTextColor={theme.muted}
               style={[styles.input, styles.textArea, inputStyle(theme)]}
             />
           </Field>
@@ -226,23 +246,21 @@ export function SchoolEventFormSheet({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   return (
     <View style={styles.field}>
-      <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
-        {label}
-      </ThemedText>
+      <Text style={[styles.fieldLabel, { color: theme.muted }]}>{label}</Text>
       {children}
     </View>
   );
 }
 
-function inputStyle(theme: ReturnType<typeof useAdminTheme>) {
+function inputStyle(theme: ReturnType<typeof useParentTheme>) {
   return {
-    borderColor: theme.inputBorder,
-    backgroundColor: theme.input,
-    color: theme.textPrimary,
-    fontFamily: Fonts.body,
+    borderColor: theme.line,
+    backgroundColor: theme.white,
+    color: theme.ink,
+    fontFamily: StoryFonts.body,
   };
 }
 
@@ -254,17 +272,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerAction: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    fontWeight: '700',
   },
   content: {
     padding: Spacing.four,
     gap: Spacing.four,
     paddingBottom: Spacing.six,
   },
+  kicker: {
+    marginBottom: 0,
+  },
   field: {
     gap: Spacing.two,
+  },
+  fieldLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 12,
+    fontWeight: '700',
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -292,6 +328,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.one,
+  },
+  chipLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
   },
   colorSwatch: {
     width: 28,

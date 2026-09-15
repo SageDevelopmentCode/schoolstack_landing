@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { Committee } from "@/lib/committees/types";
 import { parseCommitteeSection } from "@/components/school-admin/committees/committee-routing";
 import ParentCommitteeWorkspaceShell from "@/components/school-parent/committees/ParentCommitteeWorkspaceShell";
@@ -12,7 +12,7 @@ import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 type ParentCommitteeWorkspaceProps = {
   committeeId: string;
   organizationId: string;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   activeSection: string;
   initialCommittee?: Committee;
   onSectionChange: (section: string) => void;
@@ -22,7 +22,7 @@ type ParentCommitteeWorkspaceProps = {
 export default function ParentCommitteeWorkspace({
   committeeId,
   organizationId,
-  C,
+  theme,
   activeSection,
   initialCommittee,
   onSectionChange,
@@ -78,10 +78,10 @@ export default function ParentCommitteeWorkspace({
   if (loading) {
     return (
       <div
-        className="flex items-center justify-center gap-2 p-12 text-sm"
-        style={{ color: C.textSecondary }}
+        className="flex min-h-full items-center justify-center gap-2 p-12 text-sm"
+        style={{ color: theme.muted, backgroundColor: theme.paper }}
       >
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
         Loading committee…
       </div>
     );
@@ -89,8 +89,8 @@ export default function ParentCommitteeWorkspace({
 
   if (error || !committee) {
     return (
-      <div className="p-6">
-        <p className="text-sm" style={{ color: C.error }}>
+      <div className="min-h-full p-6" style={{ backgroundColor: theme.paper }}>
+        <p className="text-sm" style={{ color: theme.alert }}>
           {error ?? "Committee not found."}
         </p>
       </div>
@@ -100,7 +100,7 @@ export default function ParentCommitteeWorkspace({
   return (
     <ParentCommitteeWorkspaceShell
       committee={committee}
-      C={C}
+      theme={theme}
       supabase={supabase}
       organizationId={organizationId}
       activeSection={parseCommitteeSection(activeSection)}

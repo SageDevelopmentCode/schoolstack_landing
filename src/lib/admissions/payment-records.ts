@@ -1,11 +1,25 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   listPaymentRecords,
+  listPaymentRecordsPaginated,
   type ListPaymentRecordsFilters,
+  type ListPaymentRecordsPaginatedFilters,
+  type ListPaymentRecordsPaginatedResult,
   type PaymentRecord,
   type PaymentStatus,
   type PaymentType,
 } from "@/lib/stripe/application-payments";
+
+export const TRANSACTIONS_PAGE_DEFAULT_SIZE = 50;
+export const TRANSACTIONS_PAGE_MAX_SIZE = 100;
+
+export type OrganizationPaymentsPaginatedResult = {
+  rows: PaymentRecordDisplayRow[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
 
 export type { PaymentRecord };
 
@@ -15,6 +29,20 @@ export type PaymentRecordDisplayRow = PaymentRecord & {
   organizationName?: string | null;
   organizationSlug?: string | null;
 };
+
+export type PaymentRecordClientFilterOptions = {
+  status?: PaymentStatus | "";
+  paymentType?: PaymentType | "";
+};
+
+export function matchesPaymentRecordFilters(
+  row: Pick<PaymentRecordDisplayRow, "status" | "paymentType">,
+  filters: PaymentRecordClientFilterOptions,
+): boolean {
+  if (filters.status && row.status !== filters.status) return false;
+  if (filters.paymentType && row.paymentType !== filters.paymentType) return false;
+  return true;
+}
 
 export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   application_fee: "Application fee",
@@ -262,6 +290,32 @@ export async function listOrganizationPayments(
 
   return enrichPaymentDisplayRows(supabase, records);
 }
+
+export async function listOrganizationPaymentsPaginated(
+  supabase: SupabaseClient,
+  organizationId: string,
+  filters: Omit<ListPaymentRecordsPaginatedFilters, "organizationId"> = {},
+): Promise<OrganizationPaymentsPaginatedResult> {
+  const page = await listPaymentRecordsPaginated(supabase, {
+    organizationId,
+    paymentType: filters.paymentType,
+    status: filters.status,
+    limit: filters.limit ?? TRANSACTIONS_PAGE_DEFAULT_SIZE,
+    offset: filters.offset ?? 0,
+  });
+
+  const rows = await enrichPaymentDisplayRows(supabase, page.records);
+
+  return {
+    rows,
+    totalCount: page.totalCount,
+    limit: page.limit,
+    offset: page.offset,
+    hasMore: page.hasMore,
+  };
+}
+
+export type { ListPaymentRecordsPaginatedResult };
 
 export async function listApplicationPayments(
   supabase: SupabaseClient,
