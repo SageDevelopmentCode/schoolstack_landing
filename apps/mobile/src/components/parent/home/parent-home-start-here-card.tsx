@@ -13,6 +13,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 import { getQuickActionIconStyle } from '@/lib/parent/parent-nav';
+import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import type {
   EnrollmentAgreementAmendmentBannerItem,
   EnrollmentAgreementIncompleteBannerItem,
@@ -20,9 +21,11 @@ import type {
 } from '@/lib/parent/parent-portal-api';
 
 type ParentHomeStartHereCardProps = {
+  slug: string;
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  signupAttentionItems?: ParentSignupAttentionItem[];
   onPressAttentionItem: (item: ParentHomeAttentionItem) => void;
   onOpenOnboarding: () => void;
 };
@@ -39,17 +42,21 @@ function AttentionIcon({ item }: { item: ParentHomeAttentionItem }) {
 }
 
 export function ParentHomeStartHereCard({
+  slug,
   onboardingItems,
   enrollmentAmendmentBannerItems,
   enrollmentIncompleteBannerItems,
+  signupAttentionItems = [],
   onPressAttentionItem,
   onOpenOnboarding,
 }: ParentHomeStartHereCardProps) {
   const theme = useParentTheme();
   const attentionItems = buildAttentionItems({
+    slug,
     onboardingItems,
     enrollmentAmendmentBannerItems,
     enrollmentIncompleteBannerItems,
+    signupAttentionItems,
   });
 
   const headline =

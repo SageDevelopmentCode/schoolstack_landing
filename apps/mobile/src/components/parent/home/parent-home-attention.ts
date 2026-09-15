@@ -3,6 +3,8 @@ import type {
   EnrollmentAgreementIncompleteBannerItem,
   ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
+import { parentClassroomSignupDetailRoute } from '@/lib/parent/parent-nav';
 
 export const ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE =
   'Your enrollment agreement still needs your signature. Please finish signing to complete enrollment.';
@@ -18,11 +20,26 @@ export type ParentHomeAttentionItem = {
 };
 
 export function buildAttentionItems(input: {
+  slug: string;
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  signupAttentionItems?: ParentSignupAttentionItem[];
 }): ParentHomeAttentionItem[] {
   const items: ParentHomeAttentionItem[] = [];
+
+  for (const signup of input.signupAttentionItems ?? []) {
+    items.push({
+      key: `signup-${signup.signupId}`,
+      title: 'Help in the classroom',
+      subtitle: `${signup.teacherName} needs help with ${signup.title}${
+        signup.classroomName ? ` (${signup.classroomName})` : ''
+      }`,
+      href: parentClassroomSignupDetailRoute(input.slug, signup.signupId) as string,
+      iconSlug: 'clipboard-list',
+      iconBg: '#E9F2EA',
+    });
+  }
 
   for (const item of input.enrollmentIncompleteBannerItems) {
     items.push({

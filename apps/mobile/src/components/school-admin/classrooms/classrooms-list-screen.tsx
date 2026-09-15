@@ -14,6 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ClassroomFormSheet } from '@/components/school-admin/classrooms/classroom-form-sheet';
 import { ClassroomStoryListItem } from '@/components/school-admin/classrooms/classroom-story-list-item';
+import { ClassroomsListSkeleton } from '@/components/school-admin/classrooms/classrooms-list-skeleton';
 import { ClassroomsStoryHeader } from '@/components/school-admin/classrooms/classrooms-story-header';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
@@ -111,11 +112,7 @@ export function ClassroomsListScreen({ slug }: ClassroomsListScreenProps) {
   );
 
   if (loading && classrooms.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={[styles.loadingCopy, { color: theme.muted }]}>Loading classrooms…</Text>
-      </View>
-    );
+    return <ClassroomsListSkeleton />;
   }
 
   return (
@@ -175,13 +172,6 @@ export function ClassroomsListScreen({ slug }: ClassroomsListScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Story.paper },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Story.paper,
-  },
-  loadingCopy: { fontFamily: StoryFonts.body, fontSize: 14 },
   headerBlock: { gap: Spacing.four, paddingTop: Spacing.two, paddingBottom: Spacing.three },
   searchField: {
     flexDirection: 'row',

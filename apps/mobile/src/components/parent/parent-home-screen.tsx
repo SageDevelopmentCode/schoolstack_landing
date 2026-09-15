@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -30,7 +30,11 @@ import {
   parentChildrenRoute,
   parentTabRoute,
 } from '@/lib/parent/parent-nav';
-import type { ResolvedParentOnboardingItem } from '@/lib/parent/parent-portal-api';
+import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
+import {
+  fetchParentSignupAttentionItems,
+  type ResolvedParentOnboardingItem,
+} from '@/lib/parent/parent-portal-api';
 
 type ParentHomeScreenProps = {
   slug: string;
@@ -41,8 +45,30 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const router = useRouter();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
+    [],
+  );
 
   useAuthRequiredRedirect(error);
+
+  useEffect(() => {
+    if (!data?.organizationId) return;
+
+    let cancelled = false;
+    void fetchParentSignupAttentionItems(data.organizationId)
+      .then((items) => {
+        if (!cancelled) {
+          setSignupAttentionItems(items);
+        }
+      })
+      .catch(() => {
+        // Signup attention is non-blocking.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data?.organizationId]);
 
   const openWebUrl = async (href: string) => {
     await openBrowserAsync(resolveWebUrl(href), {
@@ -52,6 +78,10 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   const handleAttentionItem = async (item: ParentHomeAttentionItem) => {
     if (!item.href) return;
+    if (item.href.startsWith('/parent/')) {
+      router.push(item.href as Href);
+      return;
+    }
     await openWebUrl(item.href);
   };
 
@@ -112,9 +142,11 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
         <Animated.View entering={FadeInDown.delay(40).duration(350)}>
           <ParentHomeStartHereCard
+            slug={slug}
             onboardingItems={data.onboardingItems}
             enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
             enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+            signupAttentionItems={signupAttentionItems}
             onPressAttentionItem={(item) => void handleAttentionItem(item)}
             onOpenOnboarding={() => setOnboardingOpen(true)}
           />

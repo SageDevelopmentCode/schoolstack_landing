@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -12,10 +11,12 @@ import {
 } from 'react-native';
 
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
+import { ClassroomDetailSkeleton } from '@/components/school-admin/classrooms/classroom-detail-skeleton';
 import { ClassroomFormSheet } from '@/components/school-admin/classrooms/classroom-form-sheet';
 import { ClassroomStaffAssignPicker } from '@/components/school-admin/classrooms/classroom-staff-assign-picker';
 import { ClassroomStudentAssignPicker } from '@/components/school-admin/classrooms/classroom-student-assign-picker';
 import { StudentPhoto } from '@/components/school-admin/student-photo';
+import { StudentProfileSheet } from '@/components/school-admin/students/student-profile-sheet';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
@@ -77,6 +78,7 @@ export function ClassroomDetailScreen({
   const [assigningStaff, setAssigningStaff] = useState(false);
   const [assigningStudents, setAssigningStudents] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -243,11 +245,7 @@ export function ClassroomDetailScreen({
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <ClassroomDetailSkeleton />;
   }
 
   if (error || !summary || !detail) {
@@ -328,15 +326,21 @@ export function ClassroomDetailScreen({
               const name = formatEnrolledStudentName(student);
               return (
                 <View key={student.id} style={[styles.row, { borderColor: theme.line }]}>
-                  <StudentPhoto name={name} photoUrl={student.profilePhotoUrl} size="sm" />
-                  <View style={styles.rowCopy}>
-                    <Text style={[styles.rowTitle, { color: theme.ink }]}>{name}</Text>
-                    <Text style={[styles.rowMeta, { color: theme.muted }]}>
-                      {[formatStudentGrade(student.grade), student.programNames[0]]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </Text>
-                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={name}
+                    onPress={() => setSelectedStudentId(student.id)}
+                    style={({ pressed }) => [styles.rowMain, pressed && { opacity: 0.7 }]}>
+                    <StudentPhoto name={name} photoUrl={student.profilePhotoUrl} size="sm" />
+                    <View style={styles.rowCopy}>
+                      <Text style={[styles.rowTitle, { color: theme.ink }]}>{name}</Text>
+                      <Text style={[styles.rowMeta, { color: theme.muted }]}>
+                        {[formatStudentGrade(student.grade), student.programNames[0]]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                    </View>
+                  </Pressable>
                   <Pressable accessibilityRole="button" onPress={() => handleRemoveStudent(student.id, name)}>
                     <Text style={styles.removeLabel}>Remove</Text>
                   </Pressable>
@@ -384,6 +388,14 @@ export function ClassroomDetailScreen({
         onClose={() => setStudentPickerOpen(false)}
         onSave={handleAssignStudents}
       />
+
+      <StudentProfileSheet
+        visible={selectedStudentId != null}
+        studentId={selectedStudentId}
+        organizationId={organizationId}
+        slug={slug}
+        onClose={() => setSelectedStudentId(null)}
+      />
     </View>
   );
 }
@@ -413,6 +425,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: Spacing.three,
     marginBottom: Spacing.two,
+  },
+  rowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
   },
   rowCopy: { flex: 1, gap: 2 },
   rowTitle: { fontFamily: StoryFonts.bodySemiBold, fontSize: 15 },

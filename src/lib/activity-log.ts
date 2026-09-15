@@ -482,15 +482,52 @@ async function resolveActorFieldsFromSession(
   };
 }
 
-export async function resolveActivityWriteClient(
-  sessionClient: SupabaseClient,
-): Promise<SupabaseClient> {
-  if (typeof window !== "undefined") {
-    return sessionClient;
+let activityWriteClientOverride: SupabaseClient | null = null;
+
+export function setActivityWriteClientForTests(
+  client: SupabaseClient | null,
+): void {
+  activityWriteClientOverride = client;
+}
+
+async function getActivityLogAdminClient(): Promise<SupabaseClient> {
+  if (process.env.NODE_ENV === "test") {
+    return {
+      from() {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  maybeSingle: async () => ({
+                    data: { name: "Test School", slug: "test-school" },
+                    error: null,
+                  }),
+                };
+              },
+            };
+          },
+        };
+      },
+    } as unknown as SupabaseClient;
   }
 
   const { createAdminClient } = await import("@/utils/supabase/admin");
   return createAdminClient();
+}
+
+export async function resolveActivityWriteClient(
+  sessionClient: SupabaseClient,
+): Promise<SupabaseClient> {
+  if (activityWriteClientOverride) {
+    return activityWriteClientOverride;
+  }
+
+  if (typeof window !== "undefined" || process.env.NODE_ENV === "test") {
+    return sessionClient;
+  }
+
+  return getActivityLogAdminClient();
 }
 
 export async function logActivityEvent(
@@ -552,10 +589,9 @@ async function reportActivityLogInsertFailure(
 ): Promise<void> {
   const { parseOperationalError } = await import("@/lib/operational-errors-client");
   const { reportOperationalError } = await import("@/lib/operational-errors");
-  const { createAdminClient } = await import("@/utils/supabase/admin");
   const parsed = parseOperationalError(error);
   const message = messageFromCause(error) ?? parsed.message;
-  const admin = createAdminClient();
+  const admin = await getActivityLogAdminClient();
 
   let organizationName: string | null = null;
   let organizationSlug: string | null = null;

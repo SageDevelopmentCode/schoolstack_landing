@@ -57,6 +57,14 @@ const MENU_ITEMS: {
     iconColor: '#DB2777',
   },
   {
+    id: 'classroom-signups',
+    label: 'Classroom signups',
+    subtitle: 'Help teachers with volunteer requests',
+    icon: 'clipboard-outline',
+    iconBg: '#E9F2EA',
+    iconColor: '#3D6B4F',
+  },
+  {
     id: 'notifications',
     label: 'Notification settings',
     subtitle: 'Family email preferences',

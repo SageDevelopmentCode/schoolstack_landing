@@ -10,6 +10,12 @@ import type {
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
 } from '@/lib/parent/parent-committees-types';
+import type {
+  ClassroomSignupResponse,
+  ParentClassroomSignupDetail,
+  ParentClassroomSignupsPageBundle,
+  ParentSignupAttentionItem,
+} from '@/lib/parent/parent-classroom-signups-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 
@@ -585,4 +591,81 @@ export async function withdrawCommitteeJoinRequest(
   await fetchParentApi(`/api/parent-portal/committees/join-requests/${requestId}?${query}`, {
     method: 'DELETE',
   });
+}
+
+export type {
+  ClassroomSignup,
+  ClassroomSignupResponse,
+  ParentClassroomSignupDetail,
+  ParentClassroomSignupsPageBundle,
+  ParentSignupAttentionItem,
+} from '@/lib/parent/parent-classroom-signups-types';
+
+export async function fetchParentClassroomSignups(
+  organizationId: string,
+): Promise<ParentClassroomSignupsPageBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentClassroomSignupsPageBundle>(
+    `/api/parent-portal/classroom-signups?${query}`,
+  );
+}
+
+export async function fetchParentClassroomSignupDetail(
+  organizationId: string,
+  signupId: string,
+): Promise<ParentClassroomSignupDetail> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentClassroomSignupDetail>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
+  );
+}
+
+export type SubmitParentClassroomSignupInput = {
+  organizationId: string;
+  studentId: string;
+  selectedSlotIds?: string[];
+  selectedRoleIds?: string[];
+  note?: string | null;
+};
+
+export async function submitParentClassroomSignupResponse(
+  signupId: string,
+  input: SubmitParentClassroomSignupInput,
+): Promise<ClassroomSignupResponse> {
+  const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}`,
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+  if (!payload.response) {
+    throw new Error('Failed to submit response.');
+  }
+  return payload.response;
+}
+
+export async function withdrawParentClassroomSignupResponse(
+  organizationId: string,
+  signupId: string,
+): Promise<ClassroomSignupResponse> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ response: ClassroomSignupResponse }>(
+    `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
+    { method: 'DELETE' },
+  );
+  if (!payload.response) {
+    throw new Error('Failed to withdraw response.');
+  }
+  return payload.response;
+}
+
+export async function fetchParentSignupAttentionItems(
+  organizationId: string,
+): Promise<ParentSignupAttentionItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApiSoft<{ items: ParentSignupAttentionItem[] }>(
+    `/api/parent-portal/signups/attention?${query}`,
+  );
+  return payload.items ?? [];
 }
