@@ -67,6 +67,7 @@ export default function ParentClassroomSignupSidebar({
   useEffect(() => {
     if (!open || !signupId) return;
 
+    const activeSignupId = signupId;
     let cancelled = false;
 
     async function loadDetail() {
@@ -79,7 +80,7 @@ export default function ParentClassroomSignupSidebar({
       try {
         const query = new URLSearchParams({ organizationId }).toString();
         fetchResponse = await fetch(
-          `/api/parent-portal/classroom-signups/${encodeURIComponent(signupId)}?${query}`,
+          `/api/parent-portal/classroom-signups/${encodeURIComponent(activeSignupId)}?${query}`,
         );
         const payload = (await fetchResponse.json()) as {
           responses?: ClassroomSignupResponse[];
