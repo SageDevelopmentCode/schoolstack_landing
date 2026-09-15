@@ -11,11 +11,17 @@ export type ClientOperationalErrorPayload = {
 };
 
 type SupabaseErrorShape = {
-  message?: string;
-  details?: string;
-  hint?: string;
-  code?: string;
+  message?: unknown;
+  details?: unknown;
+  hint?: unknown;
+  code?: unknown;
 };
+
+function stringField(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
 
 export function parseOperationalError(err: unknown): {
   message: string;
@@ -24,14 +30,18 @@ export function parseOperationalError(err: unknown): {
 } {
   if (err && typeof err === "object") {
     const error = err as SupabaseErrorShape;
-    const parts = [error.message, error.details, error.hint].filter(
-      (part): part is string => Boolean(part && part.trim()),
+    const message = stringField(error.message);
+    const details = stringField(error.details);
+    const hint = stringField(error.hint);
+    const code = stringField(error.code);
+    const parts = [message, details, hint].filter(
+      (part): part is string => Boolean(part),
     );
     if (parts.length > 0) {
       return {
         message: parts.join(" — "),
-        code: error.code,
-        details: error.details,
+        code,
+        details,
       };
     }
   }
@@ -44,6 +54,14 @@ export function parseOperationalError(err: unknown): {
     return { message: err.trim() };
   }
 
+  if (err && typeof err === "object") {
+    try {
+      return { message: JSON.stringify(err) };
+    } catch {
+      return { message: "Unknown error" };
+    }
+  }
+
   return { message: "Unknown error" };
 }
 
@@ -54,10 +72,10 @@ export function isUnexpectedOperationalError(err: unknown): boolean {
 
   if (err && typeof err === "object") {
     const error = err as SupabaseErrorShape;
-    if (error.code || error.details || error.hint) {
+    if (stringField(error.code) || stringField(error.details) || stringField(error.hint)) {
       return true;
     }
-    if (error.message?.trim()) {
+    if (stringField(error.message)) {
       return true;
     }
   }

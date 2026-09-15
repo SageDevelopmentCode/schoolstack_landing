@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
@@ -17,8 +17,12 @@ import StudentEnrolledCell from "./StudentEnrolledCell";
 import StudentIdentityCell from "./StudentIdentityCell";
 import StudentClassroomTeachersCell from "./StudentClassroomTeachersCell";
 import StudentClassroomCell from "./StudentClassroomCell";
-import type { StudentRosterFilter } from "@/lib/school-admin/admin-student-roster-metrics";
-import { isStudentUnassigned } from "@/lib/school-admin/admin-student-roster-metrics";
+import {
+  filterStudentsByRosterFilter,
+  isStudentUnassigned,
+  matchesStudentSearch,
+  type StudentRosterFilter,
+} from "@/lib/school-admin/admin-student-roster-metrics";
 import { adminStudentRowStyle } from "@/lib/school-admin/admin-student-row-style";
 import type { StudentsTableData } from "@/lib/school-admin/load-students-table-data";
 import type { StudentsPageMeta } from "@/lib/school-admin/students-page-meta";
@@ -123,9 +127,20 @@ export default function StudentsPage({
   const [prevInitialTableData, setPrevInitialTableData] = useState(initialTableData);
 
   const studentsLengthRef = useRef(students.length);
+  const totalCountRef = useRef(totalCount);
+  const debouncedSearchRef = useRef(debouncedSearch);
+
   useEffect(() => {
     studentsLengthRef.current = students.length;
   }, [students.length]);
+
+  useEffect(() => {
+    totalCountRef.current = totalCount;
+  }, [totalCount]);
+
+  useEffect(() => {
+    debouncedSearchRef.current = debouncedSearch;
+  }, [debouncedSearch]);
 
   const submissionsPath = schoolAdminPath(slug, "admissions", "submissions");
   const classroomsPath = schoolAdminPath(slug, "my_school", "classrooms");
@@ -170,10 +185,15 @@ export default function StudentsPage({
         organizationId,
         offset: String(offset),
         limit: String(pageSize),
-        filter: rosterFilter,
+        filter: "all",
       });
-      if (debouncedSearch) {
-        params.set("q", debouncedSearch);
+      const search = debouncedSearchRef.current;
+      const useServerSearch =
+        Boolean(search) &&
+        !append &&
+        studentsLengthRef.current < totalCountRef.current;
+      if (useServerSearch) {
+        params.set("q", search);
       }
       if (includeMeta) {
         params.set("includeMeta", "1");
@@ -203,7 +223,7 @@ export default function StudentsPage({
         });
       }
     },
-    [applyTableData, debouncedSearch, organizationId, pageSize, rosterFilter],
+    [applyTableData, organizationId, pageSize],
   );
 
   const loadStudents = useCallback(
@@ -378,18 +398,49 @@ export default function StudentsPage({
     [ensureClassroomsLoaded, organizationId, slug],
   );
 
-  const skipFilterFetchRef = useRef(true);
+  const skipInitialLoadRef = useRef(true);
+  const skipSearchFetchRef = useRef(true);
 
   useEffect(() => {
     if (tableDeferred) return;
-    if (skipFilterFetchRef.current) {
-      skipFilterFetchRef.current = false;
+    if (skipInitialLoadRef.current) {
+      skipInitialLoadRef.current = false;
       if (hasInitialTable) return;
     }
     queueMicrotask(() => {
       void loadStudents({ offset: 0 });
     });
-  }, [debouncedSearch, hasInitialTable, loadStudents, rosterFilter, tableDeferred]);
+  }, [hasInitialTable, loadStudents, tableDeferred]);
+
+  useEffect(() => {
+    if (tableDeferred) return;
+    if (skipSearchFetchRef.current) {
+      skipSearchFetchRef.current = false;
+      return;
+    }
+    if (students.length >= totalCount && totalCount > 0) return;
+    queueMicrotask(() => {
+      void loadStudents({ offset: 0 });
+    });
+  }, [debouncedSearch, loadStudents, students.length, tableDeferred, totalCount]);
+
+  const searchFilteredClientSide =
+    !debouncedSearch || students.length >= totalCount;
+
+  const filteredStudents = useMemo(() => {
+    let result = filterStudentsByRosterFilter(students, rosterFilter);
+    if (debouncedSearch && searchFilteredClientSide) {
+      result = result.filter((student) =>
+        matchesStudentSearch(
+          student,
+          debouncedSearch,
+          formatStudentGrade,
+          formatEnrolledStudentName,
+        ),
+      );
+    }
+    return result;
+  }, [debouncedSearch, rosterFilter, searchFilteredClientSide, students]);
 
   useEffect(() => {
     if (!deepLinkStudentId || initialLoading) return;
@@ -400,7 +451,9 @@ export default function StudentsPage({
   }, [deepLinkStudentId, initialLoading, students]);
 
   const selectedStudent =
-    students.find((row) => row.id === selectedId) ?? null;
+    filteredStudents.find((row) => row.id === selectedId) ??
+    students.find((row) => row.id === selectedId) ??
+    null;
 
   const hasMoreStudents = students.length < totalCount;
 
@@ -429,7 +482,11 @@ export default function StudentsPage({
 
   const showMetrics = metrics.totalCount > 0;
   const showEmptyFilteredState =
-    tableReady && !initialLoading && students.length === 0 && totalCount === 0 && metrics.totalCount > 0;
+    tableReady &&
+    !initialLoading &&
+    filteredStudents.length === 0 &&
+    students.length > 0 &&
+    metrics.totalCount > 0;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -624,7 +681,7 @@ export default function StudentsPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {students.map((student) => {
+                      {filteredStudents.map((student) => {
                         const isSelected = student.id === selectedId;
                         const isHovered = hoveredId === student.id;
                         const rowStyle = adminStudentRowStyle(C, {

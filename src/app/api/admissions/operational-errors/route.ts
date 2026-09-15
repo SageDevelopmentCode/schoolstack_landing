@@ -7,6 +7,7 @@ import {
 } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admissions/operational-errors";
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     await reportOperationalError({
-      supabase,
+      supabase: createAdminClient(),
       surface: "public_apply",
       organizationId,
       organizationName: organization?.name ?? null,

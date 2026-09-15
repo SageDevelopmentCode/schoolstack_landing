@@ -30,6 +30,20 @@ export type PaymentRecordDisplayRow = PaymentRecord & {
   organizationSlug?: string | null;
 };
 
+export type PaymentRecordClientFilterOptions = {
+  status?: PaymentStatus | "";
+  paymentType?: PaymentType | "";
+};
+
+export function matchesPaymentRecordFilters(
+  row: Pick<PaymentRecordDisplayRow, "status" | "paymentType">,
+  filters: PaymentRecordClientFilterOptions,
+): boolean {
+  if (filters.status && row.status !== filters.status) return false;
+  if (filters.paymentType && row.paymentType !== filters.paymentType) return false;
+  return true;
+}
+
 export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   application_fee: "Application fee",
   enrollment_checklist: "Enrollment",

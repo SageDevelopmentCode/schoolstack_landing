@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
@@ -50,11 +50,18 @@ export default function MessagesNewConversationModal({
   const adminStory = isAdminStoryMessagesVariant(variant);
   const [audienceFilter, setAudienceFilter] = useState<MessageContactAudienceFilter>("all");
 
-  useEffect(() => {
-    if (!open) {
+  const handleClose = useCallback(() => {
+    setAudienceFilter("all");
+    onClose();
+  }, [onClose]);
+
+  const handleSelect = useCallback(
+    (contact: MessageContact) => {
       setAudienceFilter("all");
-    }
-  }, [open]);
+      onSelect(contact);
+    },
+    [onSelect],
+  );
 
   const audienceCounts = useMemo(() => countContactsByAudience(contacts), [contacts]);
   const filteredContacts = useMemo(
@@ -68,7 +75,7 @@ export default function MessagesNewConversationModal({
   ) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onSelect(contact);
+      handleSelect(contact);
     }
   }
 
@@ -76,13 +83,13 @@ export default function MessagesNewConversationModal({
     if (!open) return undefined;
 
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") handleClose();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     panelRef.current?.focus();
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  }, [handleClose, open]);
 
   const surfaceColor = parentStory ? theme.white : C.surface;
   const borderColor = parentStory ? theme.line : C.border;
@@ -105,7 +112,7 @@ export default function MessagesNewConversationModal({
             aria-label="Close"
             className="absolute inset-0 cursor-default"
             style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
-            onClick={onClose}
+            onClick={handleClose}
           />
           <motion.div
             ref={panelRef}
@@ -146,7 +153,7 @@ export default function MessagesNewConversationModal({
               )}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="rounded-lg p-1.5 cursor-pointer transition hover:bg-black/[0.04]"
                 aria-label="Close"
               >
@@ -208,7 +215,7 @@ export default function MessagesNewConversationModal({
                     key={contact.key}
                     role="button"
                     tabIndex={0}
-                    onClick={() => onSelect(contact)}
+                    onClick={() => handleSelect(contact)}
                     onKeyDown={(event) => handleContactRowKeyDown(event, contact)}
                     className={`flex w-full items-center gap-3 px-5 py-3.5 text-left cursor-pointer transition active:scale-[0.99] ${
                       parentStory ? "" : "hover:bg-black/[0.03]"

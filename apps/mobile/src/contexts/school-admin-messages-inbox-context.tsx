@@ -15,7 +15,7 @@ import {
   createPortalCache,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
-import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
 export type SchoolAdminMessagesInboxData = {
   threads: MessageThreadSummary[];

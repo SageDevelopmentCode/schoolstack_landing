@@ -48,6 +48,14 @@ type OrganizationEventsCalendarManagerProps = {
   emptyHint?: string;
 };
 
+function sortOrganizationEvents(events: OrganizationEvent[]): OrganizationEvent[] {
+  return [...events].sort((a, b) => {
+    const dateCompare = a.date.localeCompare(b.date);
+    if (dateCompare !== 0) return dateCompare;
+    return a.sortOrder - b.sortOrder;
+  });
+}
+
 function useEventToasts(variant: ToastVariant) {
   return useMemo(
     () =>
@@ -114,10 +122,34 @@ export default function OrganizationEventsCalendarManager({
   const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
   const interactionsDisabled = readOnly;
 
+  const fetchEvents = useCallback(async () => {
+    return listEventsForOrg(supabase, organizationId);
+  }, [organizationId, supabase]);
+
+  const reportReloadError = useCallback(
+    (err: unknown) => {
+      reportCalendarError("school_events.reload", err);
+      toasts.error(
+        err,
+        "Event saved, but the calendar could not refresh. Reload the page if it looks out of date.",
+      );
+    },
+    [reportCalendarError, toasts],
+  );
+
+  const refreshEventsSilently = useCallback(async () => {
+    try {
+      const rows = await fetchEvents();
+      setEvents(rows);
+    } catch (err) {
+      reportReloadError(err);
+    }
+  }, [fetchEvents, reportReloadError]);
+
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await listEventsForOrg(supabase, organizationId);
+      const rows = await fetchEvents();
       setEvents(rows);
     } catch (err) {
       reportCalendarError("school_events.load", err);
@@ -125,7 +157,7 @@ export default function OrganizationEventsCalendarManager({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, reportCalendarError, supabase, toasts]);
+  }, [fetchEvents, reportCalendarError, toasts]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -201,20 +233,20 @@ export default function OrganizationEventsCalendarManager({
     }
 
     setSaving(true);
-    try {
-      const payload = {
-        title: form.title.trim(),
-        date: form.date,
-        time: form.isAllDay ? undefined : form.time || undefined,
-        endTime: form.isAllDay ? undefined : endTime || undefined,
-        isAllDay: form.isAllDay,
-        type: form.eventType,
-        colorKey: form.colorKey,
-        location: form.location || undefined,
-        description: form.description || undefined,
-        programId: form.programId,
-      };
+    const payload = {
+      title: form.title.trim(),
+      date: form.date,
+      time: form.isAllDay ? undefined : form.time || undefined,
+      endTime: form.isAllDay ? undefined : endTime || undefined,
+      isAllDay: form.isAllDay,
+      type: form.eventType,
+      colorKey: form.colorKey,
+      location: form.location || undefined,
+      description: form.description || undefined,
+      programId: form.programId,
+    };
 
+    try {
       if (editingEventId) {
         await updateOrganizationEventViaApi(organizationId, editingEventId, {
           ...payload,
@@ -225,14 +257,38 @@ export default function OrganizationEventsCalendarManager({
           description: form.description || null,
           programId: form.programId,
         });
+        setEvents((prev) =>
+          sortOrganizationEvents(
+            prev.map((event) =>
+              event.id === editingEventId
+                ? {
+                    ...event,
+                    title: payload.title,
+                    date: payload.date,
+                    time: payload.time,
+                    endTime: payload.endTime,
+                    isAllDay: payload.isAllDay,
+                    type: payload.type,
+                    colorKey: payload.colorKey,
+                    location: payload.location,
+                    description: payload.description,
+                    programId: payload.programId ?? undefined,
+                  }
+                : event,
+            ),
+          ),
+        );
         toasts.success("Event updated");
       } else {
-        await createOrganizationEventViaApi(organizationId, payload);
+        const created = await createOrganizationEventViaApi(
+          organizationId,
+          payload,
+        );
+        setEvents((prev) => sortOrganizationEvents([...prev, created]));
         toasts.success("Event added");
       }
 
       setFormOpen(false);
-      await loadEvents();
     } catch (err) {
       reportCalendarError(
         editingEventId ? "school_events.update" : "school_events.create",
@@ -245,19 +301,24 @@ export default function OrganizationEventsCalendarManager({
     } finally {
       setSaving(false);
     }
+
+    void refreshEventsSilently();
   };
 
   const handleDelete = async (eventId: string) => {
     if (interactionsDisabled) return;
     try {
       await deleteOrganizationEventViaApi(organizationId, eventId);
+      setEvents((prev) => prev.filter((event) => event.id !== eventId));
       setSelectedEventId(null);
-      await loadEvents();
       toasts.success("Event deleted");
     } catch (err) {
       reportCalendarError("school_events.delete", err);
       toasts.error(err, "Failed to delete event.");
+      return;
     }
+
+    void refreshEventsSilently();
   };
 
   return (

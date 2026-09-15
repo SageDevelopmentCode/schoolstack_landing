@@ -17,7 +17,7 @@ import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
 } from '@/lib/parent/parent-portal-cache';
-import { createParentPortalErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { createParentPortalErrorReporter } from '@/lib/mobile-error-reporter';
 
 type ParentBillingContextValue = {
   data: ParentBillingData | null;

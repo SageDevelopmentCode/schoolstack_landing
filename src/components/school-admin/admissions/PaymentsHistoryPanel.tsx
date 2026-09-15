@@ -11,6 +11,7 @@ import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   listApplicationPayments,
   listOrganizationPayments,
+  matchesPaymentRecordFilters,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -205,8 +206,6 @@ export default function PaymentsHistoryPanel({
 }: PaymentsHistoryPanelProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = createClient();
-  const useClientSideFilters =
-    Boolean(applicationId) || mode === "revenue" || mode === "transactions";
   const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -224,16 +223,7 @@ export default function PaymentsHistoryPanel({
       if (applicationId) {
         data = await listApplicationPayments(supabase, applicationId);
       } else if (organizationId) {
-        data = await listOrganizationPayments(
-          supabase,
-          organizationId,
-          useClientSideFilters
-            ? {}
-            : {
-                status: statusFilter || undefined,
-                paymentType: typeFilter || undefined,
-              },
-        );
+        data = await listOrganizationPayments(supabase, organizationId, {});
       } else {
         data = [];
       }
@@ -261,15 +251,7 @@ export default function PaymentsHistoryPanel({
     } finally {
       setLoading(false);
     }
-  }, [
-    applicationId,
-    mode,
-    organizationId,
-    supabase,
-    useClientSideFilters,
-    statusFilter,
-    typeFilter,
-  ]);
+  }, [applicationId, mode, organizationId, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -277,16 +259,16 @@ export default function PaymentsHistoryPanel({
     });
   }, [loadRows]);
 
-  const filteredRows = useMemo(() => {
-    if (useClientSideFilters) {
-      return rows.filter((row) => {
-        if (statusFilter && row.status !== statusFilter) return false;
-        if (typeFilter && row.paymentType !== typeFilter) return false;
-        return true;
-      });
-    }
-    return rows;
-  }, [rows, statusFilter, typeFilter, useClientSideFilters]);
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((row) =>
+        matchesPaymentRecordFilters(row, {
+          status: statusFilter,
+          paymentType: typeFilter,
+        }),
+      ),
+    [rows, statusFilter, typeFilter],
+  );
 
   const summary = useMemo(() => summarizePaymentRows(rows), [rows]);
 

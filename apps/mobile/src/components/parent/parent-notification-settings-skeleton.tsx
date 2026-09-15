@@ -1,21 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 
 import { SkeletonPulse } from '@/components/parent/messages/skeleton-pulse';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { Story, StoryCardPadding, StoryRadius } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { Spacing } from '@/constants/theme';
 
 function CardSkeleton({ backgroundColor }: { backgroundColor: string }) {
-  const theme = useAdminTheme();
-
   return (
-    <View
-      style={[
-        styles.card,
-        adminCardShadow(theme),
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}>
+    <View style={[styles.card, { borderColor: Story.line, backgroundColor: Story.white }]}>
       <SkeletonPulse style={styles.titleBar} backgroundColor={backgroundColor} />
       <SkeletonPulse style={styles.line} backgroundColor={backgroundColor} />
       <SkeletonPulse style={styles.lineShort} backgroundColor={backgroundColor} />
@@ -24,66 +16,93 @@ function CardSkeleton({ backgroundColor }: { backgroundColor: string }) {
 }
 
 export function ParentNotificationSettingsSkeleton() {
-  const theme = useAdminTheme();
-  const blockColor = theme.border;
+  const blockColor = Story.line;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.intro}>
-        <SkeletonPulse style={styles.introTitle} backgroundColor={blockColor} />
-        <SkeletonPulse style={styles.introLine} backgroundColor={blockColor} />
-        <SkeletonPulse style={styles.introLineShort} backgroundColor={blockColor} />
+    <View style={styles.container}>
+      <View style={styles.headerBlock}>
+        <SkeletonPulse style={styles.backBar} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.kickerBar} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.titleBar} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.subtitleLine} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.subtitleLineShort} backgroundColor={blockColor} />
       </View>
       <CardSkeleton backgroundColor={blockColor} />
       <CardSkeleton backgroundColor={blockColor} />
-      <CardSkeleton backgroundColor={blockColor} />
+      <View style={[styles.card, styles.editorCard, { borderColor: Story.line, backgroundColor: Story.white }]}>
+        <SkeletonPulse style={styles.titleBar} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.line} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.emailRow} backgroundColor={blockColor} />
+        <SkeletonPulse style={styles.buttonBar} backgroundColor={blockColor} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: Story.paper,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
     gap: Spacing.four,
   },
-  intro: {
+  headerBlock: {
     gap: Spacing.two,
   },
-  introTitle: {
-    height: 24,
-    width: '70%',
-    borderRadius: Radius.sm,
+  backBar: {
+    height: 20,
+    width: 72,
+    borderRadius: StoryRadius.input,
   },
-  introLine: {
-    height: 14,
-    width: '100%',
-    borderRadius: Radius.sm,
-  },
-  introLineShort: {
-    height: 14,
-    width: '85%',
-    borderRadius: Radius.sm,
-  },
-  card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.lg,
-    padding: Spacing.four,
-    gap: Spacing.three,
+  kickerBar: {
+    height: 12,
+    width: '48%',
+    borderRadius: StoryRadius.input,
   },
   titleBar: {
-    height: 16,
-    width: '45%',
-    borderRadius: Radius.sm,
+    height: 28,
+    width: '72%',
+    borderRadius: StoryRadius.input,
+  },
+  subtitleLine: {
+    height: 14,
+    width: '100%',
+    borderRadius: StoryRadius.input,
+  },
+  subtitleLineShort: {
+    height: 14,
+    width: '88%',
+    borderRadius: StoryRadius.input,
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: StoryRadius.cardCompact,
+    padding: StoryCardPadding,
+    gap: Spacing.three,
+  },
+  editorCard: {
+    borderRadius: StoryRadius.card,
+    padding: StoryCardPadding + 4,
   },
   line: {
     height: 14,
     width: '90%',
-    borderRadius: Radius.sm,
+    borderRadius: StoryRadius.input,
   },
   lineShort: {
     height: 14,
     width: '60%',
-    borderRadius: Radius.sm,
+    borderRadius: StoryRadius.input,
+  },
+  emailRow: {
+    height: 48,
+    width: '100%',
+    borderRadius: StoryRadius.input,
+  },
+  buttonBar: {
+    height: 52,
+    width: '100%',
+    borderRadius: StoryRadius.button,
   },
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { CommitteeTemplate } from "@/lib/committees/types";
 import { PLATFORM_COMMITTEE_TEMPLATES, CUSTOM_COMMITTEE_TEMPLATE } from "@/lib/committees/templates";
 import CommitteeCreateWizard, {
@@ -8,23 +8,23 @@ import CommitteeCreateWizard, {
 } from "@/components/school-admin/committees/CommitteeCreateWizard";
 
 function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTemplateOption[] {
-  const dbSlugs = new Set(dbTemplates.map((t) => t.slug));
+  const dbSlugs = new Set(dbTemplates.map((template) => template.slug));
   const platformOptions: CommitteeTemplateOption[] = PLATFORM_COMMITTEE_TEMPLATES.filter(
-    (t) => !dbSlugs.has(t.slug),
-  ).map((t) => ({
+    (template) => !dbSlugs.has(template.slug),
+  ).map((template) => ({
     id: null,
-    slug: t.slug,
-    name: t.name,
-    description: t.description,
-    defaultTermLabel: t.config.defaultTermLabel ?? "",
+    slug: template.slug,
+    name: template.name,
+    description: template.description,
+    defaultTermLabel: template.config.defaultTermLabel ?? "",
   }));
 
-  const dbOptions: CommitteeTemplateOption[] = dbTemplates.map((t) => ({
-    id: t.id,
-    slug: t.slug,
-    name: t.name,
-    description: t.description,
-    defaultTermLabel: t.config.defaultTermLabel ?? "",
+  const dbOptions: CommitteeTemplateOption[] = dbTemplates.map((template) => ({
+    id: template.id,
+    slug: template.slug,
+    name: template.name,
+    description: template.description,
+    defaultTermLabel: template.config.defaultTermLabel ?? "",
   }));
 
   return [...dbOptions, ...platformOptions, {
@@ -37,12 +37,12 @@ function buildTemplateOptions(dbTemplates: CommitteeTemplate[]): CommitteeTempla
 }
 
 export default function CreateCommitteeModal({
-  C,
+  theme,
   templates,
   onClose,
   onCreate,
 }: {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   templates: CommitteeTemplate[];
   onClose: () => void;
   onCreate: (input: {
@@ -57,7 +57,7 @@ export default function CreateCommitteeModal({
 
   return (
     <CommitteeCreateWizard
-      C={C}
+      theme={theme}
       options={options}
       onClose={onClose}
       onCreate={onCreate}

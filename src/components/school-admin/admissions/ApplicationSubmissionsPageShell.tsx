@@ -35,6 +35,7 @@ import { enrollmentProgressBadgeStyle } from "@/lib/admissions/admin-enrollment-
 import { postSubmitSummaryBadgeStyle } from "@/lib/admissions/admin-post-submit-steps";
 import {
   formatShortDate,
+  matchesSubmissionListFilters,
   type AdminApplicationSubmission,
   type ApplicationSubmissionEnrichmentPatch,
 } from "@/lib/admissions/application-submissions";
@@ -139,10 +140,12 @@ export default function ApplicationSubmissionsPageShell({
   const deepLinkApplicationId = searchParams.get("application");
   const hasInitialTable = initialTableData !== undefined;
 
-  const [submissions, setSubmissions] = useState<AdminApplicationSubmission[]>(
+  const [loadedSubmissions, setLoadedSubmissions] = useState<AdminApplicationSubmission[]>(
     initialTableData?.submissions ?? [],
   );
-  const [totalCount, setTotalCount] = useState(initialTableData?.totalCount ?? 0);
+  const [unfilteredTotalCount, setUnfilteredTotalCount] = useState(
+    initialTableData?.totalCount ?? 0,
+  );
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>(
     initialMeta.statusCounts,
   );
@@ -168,14 +171,28 @@ export default function ApplicationSubmissionsPageShell({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tableReady, setTableReady] = useState(hasInitialTable);
-  const submissionsLengthRef = useRef(submissions.length);
+  const loadedSubmissionsLengthRef = useRef(loadedSubmissions.length);
   useEffect(() => {
-    submissionsLengthRef.current = submissions.length;
-  }, [submissions.length]);
+    loadedSubmissionsLengthRef.current = loadedSubmissions.length;
+  }, [loadedSubmissions.length]);
   const enrichedIdsRef = useRef(new Set<string>());
 
+  const filteredSubmissions = useMemo(
+    () =>
+      loadedSubmissions.filter((row) =>
+        matchesSubmissionListFilters(row, {
+          statusFilter,
+          formKey: formFilter,
+        }),
+      ),
+    [formFilter, loadedSubmissions, statusFilter],
+  );
+
   const flowsPath = schoolAdminPath(slug, "admissions", "flows");
-  const showMetrics = activeSubmissionsCount > 0 || totalCount > 0 || Object.keys(statusCounts).length > 0;
+  const showMetrics =
+    activeSubmissionsCount > 0 ||
+    unfilteredTotalCount > 0 ||
+    Object.keys(statusCounts).length > 0;
 
   const loadEnrichment = useCallback(
     async (rows: AdminApplicationSubmission[]) => {
@@ -206,7 +223,7 @@ export default function ApplicationSubmissionsPageShell({
         for (const id of Object.keys(enrichment)) {
           enrichedIdsRef.current.add(id);
         }
-        setSubmissions((prev) => mergeEnrichment(prev, enrichment));
+        setLoadedSubmissions((prev) => mergeEnrichment(prev, enrichment));
       } catch (err) {
         void reportPortalOperationalError("school_admin", {
           organizationId,
@@ -266,7 +283,7 @@ export default function ApplicationSubmissionsPageShell({
 
   const applyTableData = useCallback(
     (tableData: ApplicationSubmissionsTableData, { append = false } = {}) => {
-      setSubmissions((prev) => {
+      setLoadedSubmissions((prev) => {
         const next = append ? [...prev, ...tableData.submissions] : tableData.submissions;
         queueMicrotask(() => {
           void loadEnrichment(append ? tableData.submissions : next);
@@ -274,7 +291,7 @@ export default function ApplicationSubmissionsPageShell({
         });
         return next;
       });
-      setTotalCount(tableData.totalCount);
+      setUnfilteredTotalCount(tableData.totalCount);
       setPageSize(tableData.pageSize);
       setTableReady(true);
       setInitialLoading(false);
@@ -303,8 +320,8 @@ export default function ApplicationSubmissionsPageShell({
         organizationId,
         offset: String(offset),
         limit: String(pageSize),
-        status: statusFilter,
-        formKey: formFilter,
+        status: "all",
+        formKey: "all",
       });
       if (includeMeta) {
         params.set("includeMeta", "1");
@@ -313,11 +330,16 @@ export default function ApplicationSubmissionsPageShell({
       const response = await fetch(
         `/api/school-admin/admissions/submissions?${params.toString()}`,
       );
+      const body = (await response.json()) as ApplicationSubmissionsApiResponse & {
+        error?: string;
+        code?: string;
+      };
       if (!response.ok) {
-        throw new Error("Failed to load submissions.");
+        throw Object.assign(
+          new Error(body.error?.trim() || "Failed to load submissions."),
+          { code: body.code },
+        );
       }
-
-      const body = (await response.json()) as ApplicationSubmissionsApiResponse;
 
       if (body.meta) {
         setStatusCounts(body.meta.statusCounts);
@@ -327,8 +349,8 @@ export default function ApplicationSubmissionsPageShell({
       }
 
       if (append) {
-        setSubmissions((prev) => [...prev, ...body.submissions]);
-        setTotalCount(body.totalCount);
+        setLoadedSubmissions((prev) => [...prev, ...body.submissions]);
+        setUnfilteredTotalCount(body.totalCount);
         setPageSize(body.pageSize);
         void loadEnrichment(body.submissions);
         void loadLoginStatus(body.submissions);
@@ -341,7 +363,7 @@ export default function ApplicationSubmissionsPageShell({
         });
       }
     },
-    [applyTableData, formFilter, loadEnrichment, loadLoginStatus, organizationId, pageSize, statusFilter],
+    [applyTableData, loadEnrichment, loadLoginStatus, organizationId, pageSize],
   );
 
   const loadSubmissions = useCallback(
@@ -349,7 +371,7 @@ export default function ApplicationSubmissionsPageShell({
       append = false,
       offset,
     }: { append?: boolean; offset?: number } = {}) => {
-      const requestOffset = offset ?? (append ? submissionsLengthRef.current : 0);
+      const requestOffset = offset ?? (append ? loadedSubmissionsLengthRef.current : 0);
 
       if (append) {
         setLoadingMore(true);
@@ -389,7 +411,7 @@ export default function ApplicationSubmissionsPageShell({
   const handleSubmissionUpdated = useCallback(
     (update?: { status: AdminApplicationSubmission["status"] }) => {
       if (update && selectedId) {
-        setSubmissions((prev) =>
+        setLoadedSubmissions((prev) =>
           prev.map((row) =>
             row.id === selectedId ? { ...row, status: update.status } : row,
           ),
@@ -411,8 +433,6 @@ export default function ApplicationSubmissionsPageShell({
     setSelectedId(null);
   }
 
-  const skipFilterFetchRef = useRef(true);
-
   useEffect(() => {
     if (hasInitialTable) {
       queueMicrotask(() => {
@@ -423,18 +443,8 @@ export default function ApplicationSubmissionsPageShell({
   }, [hasInitialTable, initialTableData, loadEnrichment, loadLoginStatus]);
 
   useEffect(() => {
-    if (skipFilterFetchRef.current) {
-      skipFilterFetchRef.current = false;
-      return;
-    }
-    queueMicrotask(() => {
-      void loadSubmissions({ offset: 0 });
-    });
-  }, [formFilter, loadSubmissions, statusFilter]);
-
-  useEffect(() => {
     if (!deepLinkApplicationId || initialLoading) return;
-    const match = submissions.find((row) => row.id === deepLinkApplicationId);
+    const match = loadedSubmissions.find((row) => row.id === deepLinkApplicationId);
     if (match) {
       queueMicrotask(() => {
         if (match.status === "withdrawn") {
@@ -443,23 +453,25 @@ export default function ApplicationSubmissionsPageShell({
         setSelectedId(match.id);
       });
     }
-  }, [deepLinkApplicationId, initialLoading, submissions]);
+  }, [deepLinkApplicationId, initialLoading, loadedSubmissions]);
 
   const draftCount = statusCounts.draft ?? 0;
   const submittedCount = statusCounts.submitted ?? 0;
   const enrolledCount = statusCounts.enrolled ?? 0;
 
   const selectedSubmission =
-    submissions.find((row) => row.id === selectedId) ?? null;
+    filteredSubmissions.find((row) => row.id === selectedId) ??
+    loadedSubmissions.find((row) => row.id === selectedId) ??
+    null;
 
-  const hasMoreSubmissions = submissions.length < totalCount;
+  const hasMoreSubmissions = loadedSubmissions.length < unfilteredTotalCount;
 
   const showFormColumn = formOptions.length > 1;
-  const showFeesColumn = submissions.some((row) => submissionHasFeeBadges(row));
+  const showFeesColumn = loadedSubmissions.some((row) => submissionHasFeeBadges(row));
   const showPostSubmitColumn =
-    enrichmentLoading || submissions.some((row) => row.hasPostSubmitActions);
+    enrichmentLoading || loadedSubmissions.some((row) => row.hasPostSubmitActions);
   const showEnrollmentColumn =
-    enrichmentLoading || submissions.some((row) => row.enrollmentSummary !== null);
+    enrichmentLoading || loadedSubmissions.some((row) => row.enrollmentSummary !== null);
 
   const tableColumnCount =
     (showFormColumn ? 1 : 0) +
@@ -491,8 +503,8 @@ export default function ApplicationSubmissionsPageShell({
   const showEmptyFilteredState =
     tableReady &&
     !initialLoading &&
-    submissions.length === 0 &&
-    totalCount === 0 &&
+    filteredSubmissions.length === 0 &&
+    loadedSubmissions.length > 0 &&
     hasAnyApplications &&
     (statusFilter !== "all" || formFilter !== "all");
 
@@ -520,7 +532,7 @@ export default function ApplicationSubmissionsPageShell({
             No submissions match the current filters.
           </p>
         </AdminCard>
-      ) : totalCount === 0 ? (
+      ) : unfilteredTotalCount === 0 ? (
         <AdminCard theme={theme} padding="canvas">
           <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
             No applications yet. Publish an enrollment flow and share your public apply
@@ -574,7 +586,7 @@ export default function ApplicationSubmissionsPageShell({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            {submissions.map((submission) => {
+            {filteredSubmissions.map((submission) => {
               const isSelected = submission.id === selectedId;
               const isHovered = hoveredId === submission.id;
               const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
@@ -712,7 +724,7 @@ export default function ApplicationSubmissionsPageShell({
           >
             {loadingMore
               ? "Loading more..."
-              : `Show more (${totalCount - submissions.length} remaining) →`}
+              : `Show more (${unfilteredTotalCount - loadedSubmissions.length} remaining) →`}
           </button>
         </div>
       ) : null}
@@ -732,7 +744,7 @@ export default function ApplicationSubmissionsPageShell({
           No submissions match the current filters.
         </p>
       </AdminCard>
-    ) : tableReady && totalCount === 0 ? (
+    ) : tableReady && unfilteredTotalCount === 0 ? (
       <AdminCard theme={theme} padding="canvas">
         <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
           No applications yet. Publish an enrollment flow and share your public apply

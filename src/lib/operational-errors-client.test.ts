@@ -38,6 +38,22 @@ describe("parseOperationalError", () => {
   it("normalizes Error messages", () => {
     assert.equal(parseOperationalError(new Error("hello")).message, "hello");
   });
+
+  it("normalizes Supabase PostgrestError-shaped objects", () => {
+    assert.deepEqual(
+      parseOperationalError({
+        message: "new row violates row-level security policy",
+        details: "Failing row contains (uuid).",
+        code: "42501",
+      }),
+      {
+        message:
+          "new row violates row-level security policy — Failing row contains (uuid).",
+        code: "42501",
+        details: "Failing row contains (uuid).",
+      },
+    );
+  });
 });
 
 describe("isBenignPortalErrorCode", () => {

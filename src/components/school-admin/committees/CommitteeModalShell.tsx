@@ -4,12 +4,16 @@ import type { ReactNode } from "react";
 import { useReducedMotion } from "framer-motion";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { ADMIN_RADIUS_CARD } from "@/components/school-admin/ui/story/AdminCard";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { committeeTransition, modalBackdrop, modalPanel } from "./committee-motion";
 
 type CommitteeModalShellProps = {
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   title: string;
+  kicker?: string;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
@@ -24,8 +28,9 @@ const MAX_WIDTH_CLASS = {
 } as const;
 
 export default function CommitteeModalShell({
-  C,
+  theme,
   title,
+  kicker = "Committee",
   onClose,
   children,
   footer,
@@ -50,33 +55,40 @@ export default function CommitteeModalShell({
         animate="animate"
         exit="exit"
         transition={committeeTransition}
-        className={`rounded-2xl shadow-xl w-full ${MAX_WIDTH_CLASS[maxWidth]} overflow-hidden`}
-        style={{ backgroundColor: C.surface }}
+        className={`w-full ${MAX_WIDTH_CLASS[maxWidth]} overflow-hidden shadow-xl`}
+        style={{
+          backgroundColor: "#F8FAF8",
+          borderRadius: ADMIN_RADIUS_CARD,
+          border: "1px solid #DCE4DC",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: C.border }}
+          className="flex items-start justify-between gap-3 border-b px-6 py-4"
+          style={{ borderColor: "#DCE4DC" }}
         >
-          <h2 className="text-lg font-semibold pr-4" style={{ color: C.textPrimary }}>
-            {title}
-          </h2>
+          <div className="min-w-0 pr-4">
+            <AdminSectionKicker theme={theme}>{kicker}</AdminSectionKicker>
+            <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
+              {title}
+            </AdminDisplayHeading>
+          </div>
           {showCloseButton && (
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg cursor-pointer transition-colors hover:bg-black/5"
+              className="cursor-pointer rounded-lg p-1.5 transition-colors hover:bg-black/5"
               aria-label="Close"
             >
-              <X className="w-5 h-5" style={{ color: C.textTertiary }} />
+              <X className="h-5 w-5" style={{ color: theme.muted }} />
             </button>
           )}
         </div>
         <div className="p-6">{children}</div>
         {footer && (
           <div
-            className="px-6 py-4 border-t"
-            style={{ borderColor: C.border }}
+            className="border-t px-6 py-4"
+            style={{ borderColor: "#DCE4DC" }}
           >
             {footer}
           </div>

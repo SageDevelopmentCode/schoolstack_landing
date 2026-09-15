@@ -14,6 +14,7 @@ import { MessagesRealtimeProvider, useMessagesRealtime } from '@/contexts/messag
 import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-unread-context';
 import { ParentBillingProvider } from '@/contexts/parent-billing-context';
 import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
+import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
@@ -223,21 +224,23 @@ export default function ParentLayout() {
       <ParentThemeProvider branding={branding}>
         <ParentHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
           <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-            <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-              <MessagesRealtimeProvider organizationId={loadedOrg.id}>
-                <ParentMessagesInboxProvider
-                  organizationId={loadedOrg.id}
-                  schoolName={loadedOrg.name}>
-                  <MessagesUnreadProvider
+            <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+              <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                <MessagesRealtimeProvider organizationId={loadedOrg.id}>
+                  <ParentMessagesInboxProvider
                     organizationId={loadedOrg.id}
-                    schoolName={loadedOrg.name}
-                    fetchUnreadCount={fetchParentMessagesUnreadCount}>
-                    <ParentMessagesInboxRealtimeBridge />
-                    <ParentLayoutContent />
-                  </MessagesUnreadProvider>
-                </ParentMessagesInboxProvider>
-              </MessagesRealtimeProvider>
-            </ParentCalendarProvider>
+                    schoolName={loadedOrg.name}>
+                    <MessagesUnreadProvider
+                      organizationId={loadedOrg.id}
+                      schoolName={loadedOrg.name}
+                      fetchUnreadCount={fetchParentMessagesUnreadCount}>
+                      <ParentMessagesInboxRealtimeBridge />
+                      <ParentLayoutContent />
+                    </MessagesUnreadProvider>
+                  </ParentMessagesInboxProvider>
+                </MessagesRealtimeProvider>
+              </ParentCalendarProvider>
+            </ParentCommitteesProvider>
           </ParentBillingProvider>
         </ParentHomeProvider>
       </ParentThemeProvider>

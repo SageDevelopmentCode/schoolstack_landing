@@ -1,49 +1,31 @@
 "use client";
 
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import ParentChip, { type ParentChipTone } from "@/components/school-parent/ui/ParentChip";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { CommitteeJoinRequestStatus } from "@/lib/committees/types";
 
 const STATUS_CONFIG: Record<
   CommitteeJoinRequestStatus,
-  { label: string; bg: (C: AdminThemeTokens) => string; color: (C: AdminThemeTokens) => string }
+  { label: string; tone: ParentChipTone }
 > = {
-  pending: {
-    label: "Request pending",
-    bg: (C) => C.warningBg ?? C.accentLight,
-    color: (C) => C.warning ?? C.accent,
-  },
-  approved: {
-    label: "Approved",
-    bg: (C) => C.successBg,
-    color: (C) => C.success,
-  },
-  declined: {
-    label: "Declined",
-    bg: (C) => C.errorBg ?? C.border,
-    color: (C) => C.error,
-  },
-  withdrawn: {
-    label: "Withdrawn",
-    bg: (C) => C.border,
-    color: (C) => C.textSecondary,
-  },
+  pending: { label: "Request pending", tone: "warning" },
+  approved: { label: "Approved", tone: "success" },
+  declined: { label: "Declined", tone: "alert" },
+  withdrawn: { label: "Withdrawn", tone: "info" },
 };
 
 export default function ParentCommitteeRequestStatus({
   status,
-  C,
+  theme,
 }: {
   status: CommitteeJoinRequestStatus;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
 }) {
   const config = STATUS_CONFIG[status];
 
   return (
-    <span
-      className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full"
-      style={{ backgroundColor: config.bg(C), color: config.color(C) }}
-    >
+    <ParentChip theme={theme} tone={config.tone}>
       {config.label}
-    </span>
+    </ParentChip>
   );
 }

@@ -10,19 +10,25 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TextInput,
+  Text,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
 import { ParentNotificationSettingsSkeleton } from '@/components/parent/parent-notification-settings-skeleton';
-import { PrimaryButton } from '@/components/primary-button';
-import { ThemedText } from '@/components/themed-text';
-import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { ParentNotificationSettingsStoryHeader } from '@/components/parent/notifications/parent-notification-settings-story-header';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryCard } from '@/components/story/story-card';
+import { StoryChip } from '@/components/story/story-chip';
+import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StoryTextField } from '@/components/story/story-text-field';
+import { StoryTextLink } from '@/components/story/story-text-link';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { adminCardShadow } from '@/lib/organization-settings/build-admin-theme';
+import { Story, StoryCardPadding, StoryFonts, StoryRadius } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Spacing } from '@/constants/theme';
 import {
   getDisplayNotificationEmails,
   MAX_FAMILY_NOTIFICATION_EMAILS,
@@ -67,26 +73,20 @@ function resetEmailEditorState(
   };
 }
 
-type InfoCardProps = {
+type SettingsCardProps = {
   title: string;
   children: ReactNode;
+  compact?: boolean;
 };
 
-function InfoCard({ title, children }: InfoCardProps) {
-  const theme = useAdminTheme();
-
+function SettingsCard({ title, children, compact = false }: SettingsCardProps) {
   return (
-    <View
-      style={[
-        styles.card,
-        adminCardShadow(theme),
-        { backgroundColor: theme.surface, borderColor: theme.border },
-      ]}>
-      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
+    <StoryCard compact={compact} style={styles.card}>
+      <StoryDisplayHeading size="section" style={styles.cardTitle}>
         {title}
-      </ThemedText>
+      </StoryDisplayHeading>
       {children}
-    </View>
+    </StoryCard>
   );
 }
 
@@ -103,21 +103,14 @@ function NotificationEmailRow({
   onDelete,
   disabled = false,
 }: NotificationEmailRowProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
 
   return (
-    <View
-      style={[
-        styles.emailRow,
-        { borderColor: theme.border, backgroundColor: theme.surface },
-      ]}>
-      <Ionicons name="mail-outline" size={18} color={theme.accent} style={styles.emailIcon} />
-      <ThemedText
-        type="small"
-        numberOfLines={1}
-        style={[styles.emailText, { color: theme.textPrimary }]}>
+    <View style={[styles.emailRow, { borderColor: Story.line, backgroundColor: Story.white }]}>
+      <Ionicons name="mail-outline" size={18} color={theme.primary} style={styles.emailIcon} />
+      <Text numberOfLines={1} style={[styles.emailText, { color: theme.ink }]}>
         {email}
-      </ThemedText>
+      </Text>
       {onEdit || onDelete ? (
         <View style={styles.emailActions}>
           {onEdit ? (
@@ -127,7 +120,7 @@ function NotificationEmailRow({
               disabled={disabled}
               onPress={onEdit}
               style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
-              <Ionicons name="pencil" size={18} color={theme.textSecondary} />
+              <Ionicons name="pencil" size={18} color={theme.muted} />
             </Pressable>
           ) : null}
           {onDelete ? (
@@ -137,7 +130,7 @@ function NotificationEmailRow({
               disabled={disabled}
               onPress={onDelete}
               style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
-              <Ionicons name="trash-outline" size={18} color={theme.textSecondary} />
+              <Ionicons name="trash-outline" size={18} color={theme.muted} />
             </Pressable>
           ) : null}
         </View>
@@ -153,35 +146,24 @@ type NotificationEmailInputProps = {
 };
 
 function NotificationEmailInput({ value, disabled, onChange }: NotificationEmailInputProps) {
-  const theme = useAdminTheme();
-
   return (
-    <TextInput
+    <StoryTextField
       value={value}
       editable={!disabled}
       onChangeText={onChange}
       placeholder="name@example.com"
-      placeholderTextColor={theme.textTertiary}
       keyboardType="email-address"
       autoCapitalize="none"
       autoCorrect={false}
       autoComplete="email"
-      style={[
-        styles.emailInput,
-        {
-          borderColor: theme.inputBorder,
-          backgroundColor: theme.input,
-          color: theme.textPrimary,
-          fontFamily: Fonts.body,
-        },
-      ]}
+      style={styles.emailInput}
     />
   );
 }
 
 export function ParentNotificationSettingsScreen() {
   const router = useRouter();
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const { selectedSchool } = useAuth();
   const organizationId = selectedSchool?.id ?? '';
   const { reportError } = useMobileErrorReporter(organizationId);
@@ -348,44 +330,20 @@ export function ParentNotificationSettingsScreen() {
     }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: theme.border, backgroundColor: theme.surface },
-        ]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
-          <Ionicons name="chevron-back" size={20} color={theme.accent} />
-          <ThemedText type="small" style={{ color: theme.accent }}>
-            More
-          </ThemedText>
-        </Pressable>
-        <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-          Notification settings
-        </ThemedText>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {loading && !settings ? (
+  if (loading && !settings) {
+    return (
+      <View style={styles.container}>
         <ParentNotificationSettingsSkeleton />
-      ) : error && !settings ? (
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {error && !settings ? (
         <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-            {error}
-          </ThemedText>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void loadSettings()}
-            style={{ marginTop: Spacing.three }}>
-            <ThemedText type="small" style={{ color: theme.accent }}>
-              Try again
-            </ThemedText>
-          </Pressable>
+          <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
+          <StoryTextLink label="Try again" onPress={() => void loadSettings()} />
         </View>
       ) : settings ? (
         <KeyboardAvoidingView
@@ -401,70 +359,72 @@ export function ParentNotificationSettingsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={() => void loadSettings(true)}
-                tintColor={theme.accent}
+                tintColor={theme.primary}
               />
             }>
-            <View style={styles.intro}>
-              <ThemedText type="title" style={{ color: theme.textPrimary }}>
-                Notification settings
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                Choose where family emails go for applications, billing, messages, and other parent
-                portal updates. This can differ from the email you use to sign in. School admin
-                alerts are not affected.
-              </ThemedText>
+            <View style={styles.headerBlock}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+                onPress={() => router.back()}
+                style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
+                <Ionicons name="chevron-back" size={20} color={theme.primary} />
+                <Text style={[styles.backLabel, { color: theme.primary }]}>More</Text>
+              </Pressable>
+
+              <Animated.View entering={FadeInDown.duration(350)}>
+                <ParentNotificationSettingsStoryHeader />
+              </Animated.View>
             </View>
 
-            <InfoCard title="Login email">
-              <ThemedText type="small" style={{ color: theme.textPrimary }}>
-                {settings.loginEmail ?? '—'}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-                Used for sign-in codes only.
-              </ThemedText>
-            </InfoCard>
+            <View style={styles.infoCards}>
+              <SettingsCard title="Login email" compact>
+                <Text style={[styles.bodyText, { color: theme.ink }]}>
+                  {settings.loginEmail ?? '—'}
+                </Text>
+                <Text style={[styles.captionText, { color: theme.muted }]}>
+                  Used for sign-in codes only.
+                </Text>
+              </SettingsCard>
 
-            <InfoCard title="Currently sending to">
-              {settings.effectiveEmails.length > 0 ? (
-                <View style={styles.effectiveList}>
-                  {settings.effectiveEmails.map((email, index) => (
-                    <View key={`${email}-${index}`} style={styles.effectiveRow}>
-                      <Ionicons
-                        name="mail-outline"
-                        size={16}
-                        color={theme.accent}
-                        style={styles.effectiveIcon}
-                      />
-                      <View style={styles.effectiveText}>
-                        <ThemedText type="small" style={{ color: theme.textPrimary }}>
-                          {email}
-                        </ThemedText>
-                        {settings.sources[index] ? (
-                          <ThemedText
-                            type="small"
-                            style={{ color: theme.textSecondary, marginTop: 2 }}>
-                            {sourceLabel(settings.sources[index])}
-                          </ThemedText>
-                        ) : null}
+              <SettingsCard title="Currently sending to" compact>
+                {settings.effectiveEmails.length > 0 ? (
+                  <View style={styles.effectiveList}>
+                    {settings.effectiveEmails.map((email, index) => (
+                      <View key={`${email}-${index}`} style={styles.effectiveRow}>
+                        <Ionicons
+                          name="mail-outline"
+                          size={16}
+                          color={theme.primary}
+                          style={styles.effectiveIcon}
+                        />
+                        <View style={styles.effectiveText}>
+                          <Text style={[styles.bodyText, { color: theme.ink }]}>{email}</Text>
+                          {settings.sources[index] ? (
+                            <StoryChip
+                              tone="info"
+                              label={sourceLabel(settings.sources[index])}
+                              style={styles.sourceChip}
+                            />
+                          ) : null}
+                        </View>
                       </View>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                  No email address on file yet.
-                </ThemedText>
-              )}
-            </InfoCard>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={[styles.bodyText, { color: theme.muted }]}>
+                    No email address on file yet.
+                  </Text>
+                )}
+              </SettingsCard>
+            </View>
 
-            <InfoCard title="Notification emails">
-              <ThemedText
-                type="small"
-                style={{ color: theme.textSecondary, marginBottom: Spacing.three }}>
+            <SettingsCard title="Notification emails">
+              <Text style={[styles.bodyText, { color: theme.muted, marginBottom: Spacing.three }]}>
                 Add up to {MAX_FAMILY_NOTIFICATION_EMAILS} addresses for all family notifications.
                 Your login email is included by default — remove it here if you prefer notifications
                 elsewhere.
-              </ThemedText>
+              </Text>
 
               <View style={styles.emailList}>
                 {emails.map((email, index) =>
@@ -513,44 +473,35 @@ export function ParentNotificationSettingsScreen() {
                   disabled={saving}
                   onPress={handleAdd}
                   style={({ pressed }) => [styles.addButton, pressed && { opacity: 0.7 }]}>
-                  <Ionicons name="add" size={18} color={theme.accent} />
-                  <ThemedText type="small" style={{ color: theme.accent }}>
-                    Add another email
-                  </ThemedText>
+                  <Ionicons name="add" size={18} color={theme.primary} />
+                  <Text style={[styles.addLabel, { color: theme.primary }]}>Add another email</Text>
                 </Pressable>
               ) : null}
 
               <View style={styles.actions}>
-                <PrimaryButton
+                <StoryButton
                   label={saving ? 'Saving…' : 'Save'}
                   disabled={saving}
                   onPress={() => void handleSave()}
-                  style={styles.saveButton}
                 />
                 {settings.configuredEmails.length > 0 ? (
-                  <Pressable
-                    accessibilityRole="button"
+                  <StoryButton
+                    label="Use defaults"
+                    variant="outline"
                     disabled={saving}
                     onPress={handleClear}
-                    style={({ pressed }) => [
-                      styles.defaultsButton,
-                      { borderColor: theme.border, backgroundColor: theme.surface },
-                      pressed && { opacity: 0.8 },
-                    ]}>
-                    <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                      Use defaults
-                    </ThemedText>
-                  </Pressable>
+                    style={styles.defaultsButton}
+                  />
                 ) : null}
               </View>
-            </InfoCard>
+            </SettingsCard>
           </ScrollView>
         </KeyboardAvoidingView>
       ) : null}
 
       {saving ? (
         <View style={styles.savingOverlay} pointerEvents="none">
-          <ActivityIndicator color={theme.accent} />
+          <ActivityIndicator color={theme.primary} />
         </View>
       ) : null}
     </View>
@@ -560,40 +511,51 @@ export function ParentNotificationSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Story.paper,
   },
   flex: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  headerBlock: {
+    gap: Spacing.four,
+    paddingTop: Spacing.two,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    minWidth: 80,
+    alignSelf: 'flex-start',
   },
-  headerSpacer: {
-    minWidth: 80,
+  backLabel: {
+    fontFamily: StoryFonts.bodyMedium,
+    fontSize: 15,
   },
   scrollContent: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
     gap: Spacing.four,
   },
-  intro: {
-    gap: Spacing.two,
+  infoCards: {
+    gap: Spacing.four,
   },
   card: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.lg,
-    padding: Spacing.four,
+    padding: StoryCardPadding,
     gap: Spacing.two,
+  },
+  cardTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: Spacing.one,
+  },
+  bodyText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  captionText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
   },
   effectiveList: {
     gap: Spacing.three,
@@ -608,6 +570,10 @@ const styles = StyleSheet.create({
   },
   effectiveText: {
     flex: 1,
+    gap: Spacing.one,
+  },
+  sourceChip: {
+    marginTop: 2,
   },
   emailList: {
     gap: Spacing.three,
@@ -616,7 +582,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
+    borderRadius: StoryRadius.input,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     minHeight: 48,
@@ -626,6 +592,9 @@ const styles = StyleSheet.create({
   },
   emailText: {
     flex: 1,
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
   },
   emailActions: {
     flexDirection: 'row',
@@ -638,12 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emailInput: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
     minHeight: 48,
-    fontSize: 14,
   },
   addButton: {
     flexDirection: 'row',
@@ -653,32 +617,36 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingVertical: Spacing.one,
   },
+  addLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   actions: {
     marginTop: Spacing.four,
     gap: Spacing.three,
   },
-  saveButton: {
-    alignSelf: 'stretch',
-  },
   defaultsButton: {
     alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingVertical: Spacing.two,
-    minHeight: 44,
-    justifyContent: 'center',
+    width: 'auto',
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    gap: Spacing.two,
+  },
+  errorText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   savingOverlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 250, 244, 0.5)',
+    backgroundColor: 'rgba(248, 248, 243, 0.72)',
   },
 });

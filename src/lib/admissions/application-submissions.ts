@@ -463,13 +463,61 @@ function mapApplicationRowToAdminSubmission(
     };
 }
 
+export type SubmissionListFilterOptions = {
+  statusFilter?: SubmissionListStatusFilter;
+  formVersionIds?: string[] | null;
+};
+
+export type SubmissionListClientFilterOptions = {
+  statusFilter?: SubmissionListStatusFilter;
+  formKey?: string | "all";
+};
+
+export function matchesSubmissionListFilters(
+  row: Pick<AdminApplicationSubmission, "status" | "formSlug" | "formTitle">,
+  options: SubmissionListClientFilterOptions,
+): boolean {
+  const statusFilter = options.statusFilter ?? "all";
+  if (statusFilter !== "all") {
+    if (row.status !== statusFilter) return false;
+  } else {
+    for (const excluded of APPLICATION_STATUSES_EXCLUDED_FROM_DEFAULT_ALL) {
+      if (row.status === excluded) return false;
+    }
+  }
+
+  const formKey = options.formKey ?? "all";
+  if (formKey !== "all") {
+    const slug = row.formSlug?.trim() ?? "";
+    const title = row.formTitle?.trim() ?? "";
+    if (slug !== formKey && title !== formKey) return false;
+  }
+
+  return true;
+}
+
+export async function resolveFormVersionIdsForFilter(
+  supabase: SupabaseClient,
+  organizationId: string,
+  formKey: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .or(`public_slug.eq.${formKey},title.eq.${formKey}`);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => String(row.id));
+}
+
 export function applySubmissionListFilters<
   T extends {
     eq: (column: string, value: string) => T;
     neq: (column: string, value: string) => T;
-    or: (filters: string) => T;
+    in: (column: string, values: string[]) => T;
   },
->(query: T, options: Pick<ListOrgApplicationSubmissionsPageOptions, "statusFilter" | "formKey">): T {
+>(query: T, options: SubmissionListFilterOptions): T {
   const statusFilter = options.statusFilter ?? "all";
   if (statusFilter !== "all") {
     query = query.eq("status", statusFilter);
@@ -479,11 +527,9 @@ export function applySubmissionListFilters<
     }
   }
 
-  const formKey = options.formKey ?? "all";
-  if (formKey !== "all") {
-    query = query.or(
-      `application_form_versions.public_slug.eq.${formKey},application_form_versions.title.eq.${formKey}`,
-    );
+  const formVersionIds = options.formVersionIds;
+  if (formVersionIds && formVersionIds.length > 0) {
+    query = query.in("form_version_id", formVersionIds);
   }
 
   return query;
@@ -555,26 +601,6 @@ async function mapApplicationRowsToAdminSubmissionsSummary(
   );
 }
 
-async function countOrgApplicationSubmissions(
-  supabase: SupabaseClient,
-  organizationId: string,
-  options: Pick<ListOrgApplicationSubmissionsPageOptions, "statusFilter" | "formKey">,
-): Promise<number> {
-  let query = supabase
-    .from("applications")
-    .select("id, application_form_versions!inner(public_slug, title)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("organization_id", organizationId);
-
-  query = applySubmissionListFilters(query, options);
-
-  const { count, error } = await query;
-  if (error) throw error;
-  return count ?? 0;
-}
-
 export async function listOrgApplicationSubmissions(
   supabase: SupabaseClient,
   organizationId: string,
@@ -612,27 +638,37 @@ export async function listOrgApplicationSubmissionsPage(
     500,
   );
   const offset = Math.max(options.offset ?? 0, 0);
-  const filterOptions = {
-    statusFilter: options.statusFilter,
-    formKey: options.formKey,
-  };
   const enrichment = options.enrichment ?? "minimal";
+
+  let formVersionIds: string[] | null = null;
+  const formKey = options.formKey ?? "all";
+  if (formKey !== "all") {
+    formVersionIds = await resolveFormVersionIdsForFilter(
+      supabase,
+      organizationId,
+      formKey,
+    );
+    if (formVersionIds.length === 0) {
+      return { submissions: [], totalCount: 0 };
+    }
+  }
 
   let query = supabase
     .from("applications")
-    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT)
+    .select(APPLICATION_SUBMISSION_LIST_SUMMARY_SELECT, { count: "exact" })
     .eq("organization_id", organizationId);
 
-  query = applySubmissionListFilters(query, filterOptions);
+  query = applySubmissionListFilters(query, {
+    statusFilter: options.statusFilter,
+    formVersionIds,
+  });
 
   query = query.order("updated_at", { ascending: false }).range(offset, offset + limit - 1);
 
-  const [{ data, error }, totalCount] = await Promise.all([
-    query,
-    countOrgApplicationSubmissions(supabase, organizationId, filterOptions),
-  ]);
+  const { data, error, count } = await query;
 
   if (error) throw error;
+  const totalCount = count ?? 0;
 
   const submissions = await mapApplicationRowsToAdminSubmissionsSummary(
     supabase,

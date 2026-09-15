@@ -22,7 +22,7 @@ import {
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
-import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
 export type SchoolAdminStudentsData = {
   students: AdminEnrolledStudentSummary[];

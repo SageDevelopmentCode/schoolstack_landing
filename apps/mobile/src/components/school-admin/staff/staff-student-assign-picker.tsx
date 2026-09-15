@@ -5,15 +5,18 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Text,
+  TextInput,
   View,
 } from 'react-native';
 import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StoryButton } from '@/components/story/story-button';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { DISABLED_BUTTON_OPACITY, Radius, Spacing } from '@/constants/theme';
 import {
   formatEnrolledStudentName,
@@ -51,16 +54,18 @@ export function StaffStudentAssignPicker({
   onClose,
   onSave,
 }: StaffStudentAssignPickerProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const insets = useSafeAreaInsets();
 
   const [enrolledStudents, setEnrolledStudents] = useState<AdminEnrolledStudentSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!visible) return;
     setSelectedIds([]);
+    setSearchQuery('');
   }, [visible]);
 
   useEffect(() => {
@@ -92,8 +97,21 @@ export function StaffStudentAssignPicker({
 
   const options = useMemo<PickerOption[]>(() => {
     const assignedSet = new Set(assignedStudentIds);
+    const normalized = searchQuery.trim().toLowerCase();
+
     return enrolledStudents
       .filter((student) => !assignedSet.has(student.id))
+      .filter((student) => {
+        if (!normalized) return true;
+        const haystack = [
+          formatEnrolledStudentName(student),
+          formatStudentGrade(student.grade) ?? '',
+          student.programNames.join(' '),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(normalized);
+      })
       .sort((a, b) =>
         formatEnrolledStudentName(a).localeCompare(formatEnrolledStudentName(b)),
       )
@@ -111,7 +129,7 @@ export function StaffStudentAssignPicker({
               : formatStudentGrade(student.grade),
         };
       });
-  }, [assignedStudentIds, enrolledStudents, staffMemberId]);
+  }, [assignedStudentIds, enrolledStudents, searchQuery, staffMemberId]);
 
   const toggleStudent = (studentId: string) => {
     setSelectedIds((current) =>
@@ -149,29 +167,39 @@ export function StaffStudentAssignPicker({
           style={[
             styles.sheet,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: Story.paper,
+              borderColor: Story.line,
               paddingBottom: insets.bottom + Spacing.four,
             },
           ]}>
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-              Assign students
-            </ThemedText>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              {staffMemberName}
-            </ThemedText>
+          <View style={[styles.header, { borderBottomColor: Story.line }]}>
+            <Text style={[styles.headerTitle, { color: theme.ink }]}>Assign students</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.muted }]}>{staffMemberName}</Text>
+          </View>
+
+          <View style={[styles.searchField, { backgroundColor: theme.white, borderColor: Story.line }]}>
+            <Ionicons name="search" size={18} color={theme.muted} />
+            <TextInput
+              accessibilityLabel="Search students"
+              placeholder="Search students"
+              placeholderTextColor={theme.muted}
+              style={[styles.searchInput, { color: theme.ink }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
           </View>
 
           {loading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator color={theme.accent} />
+              <ActivityIndicator color={theme.primary} />
             </View>
           ) : options.length === 0 ? (
             <View style={styles.emptyState}>
-              <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                All enrolled students are already assigned to this staff member.
-              </ThemedText>
+              <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                {searchQuery.trim()
+                  ? 'No students match your search.'
+                  : 'All enrolled students are already assigned to this staff member.'}
+              </Text>
             </View>
           ) : (
             <FlatList
@@ -187,15 +215,15 @@ export function StaffStudentAssignPicker({
                     onPress={() => toggleStudent(item.id)}
                     style={({ pressed }) => [
                       styles.option,
-                      pressed && { backgroundColor: theme.elevated },
-                      selected && { backgroundColor: theme.accentLight },
+                      pressed && { backgroundColor: Story.primarySoft },
+                      selected && { backgroundColor: Story.primarySoft },
                     ]}>
                     <View
                       style={[
                         styles.checkbox,
                         {
-                          borderColor: selected ? theme.accent : theme.borderStrong,
-                          backgroundColor: selected ? theme.accent : theme.elevated,
+                          borderColor: selected ? theme.primary : Story.line,
+                          backgroundColor: selected ? theme.primary : theme.white,
                         },
                       ]}>
                       {selected ? (
@@ -203,15 +231,17 @@ export function StaffStudentAssignPicker({
                       ) : null}
                     </View>
                     <View style={styles.optionText}>
-                      <ThemedText
-                        type="small"
-                        style={{ color: selected ? theme.accent : theme.textPrimary }}>
+                      <Text
+                        style={[
+                          styles.optionLabel,
+                          { color: selected ? theme.primary : theme.ink },
+                        ]}>
                         {item.label}
-                      </ThemedText>
+                      </Text>
                       {item.subtitle ? (
-                        <ThemedText type="small" style={{ color: theme.textTertiary }}>
+                        <Text style={[styles.optionSubtitle, { color: theme.muted }]}>
                           {item.subtitle}
-                        </ThemedText>
+                        </Text>
                       ) : null}
                     </View>
                   </Pressable>
@@ -221,40 +251,13 @@ export function StaffStudentAssignPicker({
           )}
 
           <View style={styles.footer}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={requestClose}
-              disabled={saving}
-              style={({ pressed }) => [
-                styles.footerButton,
-                styles.cancelButton,
-                { borderColor: theme.border, backgroundColor: theme.bg },
-                pressed && { opacity: 0.85 },
-              ]}>
-              <ThemedText type="smallBold" style={{ color: theme.textSecondary }}>
-                Cancel
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => void handleSave()}
+            <StoryButton label="Cancel" variant="outline" onPress={requestClose} disabled={saving} />
+            <StoryButton
+              label={selectedIds.length > 0 ? `Assign (${selectedIds.length})` : 'Assign'}
               disabled={saving || !canSave}
-              style={({ pressed }) => [
-                styles.footerButton,
-                styles.saveButton,
-                {
-                  backgroundColor: theme.accent,
-                  opacity: pressed && canSave && !saving ? 0.85 : canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
-                },
-              ]}>
-              {saving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <ThemedText type="smallBold" style={{ color: '#FFFFFF' }}>
-                  Assign{selectedIds.length > 0 ? ` (${selectedIds.length})` : ''}
-                </ThemedText>
-              )}
-            </Pressable>
+              onPress={() => void handleSave()}
+              style={!canSave || saving ? { opacity: DISABLED_BUTTON_OPACITY } : undefined}
+            />
           </View>
         </Animated.View>
       </View>
@@ -268,24 +271,56 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheet: {
     borderTopLeftRadius: Radius.lg,
     borderTopRightRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxHeight: '70%',
+    borderWidth: 1,
+    maxHeight: '75%',
   },
   header: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.three,
     gap: 2,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 16,
+  },
+  headerSubtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    marginHorizontal: SCREEN_HORIZONTAL_PADDING,
+    marginTop: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: StoryFonts.body,
+    padding: 0,
   },
   emptyState: {
     padding: Spacing.four,
     alignItems: 'center',
+  },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   option: {
     flexDirection: 'row',
@@ -306,20 +341,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  optionLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  optionSubtitle: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   footer: {
-    flexDirection: 'row',
     gap: Spacing.two,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
-  footerButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.three,
-    borderRadius: Radius.md,
-  },
-  cancelButton: {
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  saveButton: {},
 });

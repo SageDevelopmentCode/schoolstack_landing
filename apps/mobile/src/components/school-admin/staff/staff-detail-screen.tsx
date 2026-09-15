@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -7,19 +6,25 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
+  Text,
   View,
 } from 'react-native';
 
-import { DetailTabBar, type DetailTab } from '@/components/school-admin/detail-tab-bar';
+import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
+import type { DetailTab } from '@/components/school-admin/detail-tab-bar';
 import { StaffAssignedStudentsSection } from '@/components/school-admin/staff/staff-assigned-students-section';
 import { CopyableUrlRow } from '@/components/school-admin/staff/copyable-url-row';
 import { StaffPortalLoginBadge } from '@/components/school-admin/staff/staff-portal-login-badge';
-import { ReadOnlyFieldRow } from '@/components/school-admin/submission-detail/read-only-field-row';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { StaffStoryDetailHeader } from '@/components/school-admin/staff/staff-story-detail-header';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryChip } from '@/components/story/story-chip';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { StoryTextField } from '@/components/story/story-text-field';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import {
   deactivateStaffPortalAccess,
   fetchStaffMembers,
@@ -49,139 +54,21 @@ type StaffDetailScreenProps = {
   staffMemberId: string;
 };
 
-function StaffDetailHeader({
-  isEditing,
-  saveLoading,
-  actionLoading,
-  onBack,
-  onEdit,
-  onCancel,
-  onSave,
-}: {
-  isEditing: boolean;
-  saveLoading: boolean;
-  actionLoading: boolean;
-  onBack: () => void;
-  onEdit: () => void;
-  onCancel: () => void;
-  onSave: () => void;
-}) {
-  const theme = useAdminTheme();
-
-  return (
-    <View
-      style={[
-        styles.headerBar,
-        { borderBottomColor: theme.border, backgroundColor: theme.surface },
-      ]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Back to staff"
-        onPress={onBack}
-        style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
-        <Ionicons name="chevron-back" size={20} color={theme.accent} />
-        <ThemedText type="small" style={{ color: theme.accent }}>
-          Staff
-        </ThemedText>
-      </Pressable>
-      <ThemedText type="smallBold" style={{ color: theme.textPrimary }}>
-        Details
-      </ThemedText>
-      {!isEditing ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Edit staff member"
-          disabled={actionLoading || saveLoading}
-          onPress={onEdit}
-          style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}>
-          <ThemedText type="smallBold" style={{ color: theme.accent }}>
-            Edit
-          </ThemedText>
-        </Pressable>
-      ) : (
-        <View style={styles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Cancel editing"
-            disabled={saveLoading}
-            onPress={onCancel}
-            style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}>
-            <ThemedText type="small" style={{ color: theme.textSecondary }}>
-              Cancel
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save changes"
-            disabled={saveLoading}
-            onPress={onSave}
-            style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}>
-            {saveLoading ? (
-              <ActivityIndicator size="small" color={theme.accent} />
-            ) : (
-              <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                Save
-              </ThemedText>
-            )}
-          </Pressable>
-        </View>
-      )}
-    </View>
-  );
-}
+type StaffDetailTab = 'profile' | 'portal' | 'students' | 'contact';
 
 function DetailField({ label, value }: { label: string; value: string }) {
-  const theme = useAdminTheme();
-  return (
-    <View style={styles.field}>
-      <ThemedText type="small" style={{ color: theme.textTertiary }}>
-        {label}
-      </ThemedText>
-      <ThemedText type="small" style={{ color: theme.textPrimary }}>
-        {value}
-      </ThemedText>
-    </View>
-  );
-}
+  const theme = useParentTheme();
 
-function FormField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder?: string;
-}) {
-  const theme = useAdminTheme();
   return (
     <View style={styles.field}>
-      <ThemedText type="small" style={{ color: theme.textSecondary }}>
-        {label}
-      </ThemedText>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={theme.textTertiary}
-        style={[
-          styles.input,
-          {
-            borderColor: theme.inputBorder,
-            backgroundColor: theme.input,
-            color: theme.textPrimary,
-            fontFamily: Fonts.body,
-          },
-        ]}
-      />
+      <Text style={[styles.fieldLabel, { color: theme.muted }]}>{label}</Text>
+      <Text style={[styles.fieldValue, { color: theme.ink }]}>{value}</Text>
     </View>
   );
 }
 
 export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const { reportError } = useMobileErrorReporter();
 
@@ -197,14 +84,15 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
   const [editRoleTitle, setEditRoleTitle] = useState('');
   const [editPortalRole, setEditPortalRole] = useState<StaffPortalRole>('teacher');
   const [editEmploymentStatus, setEditEmploymentStatus] = useState<StaffEmploymentStatus>('active');
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState<StaffDetailTab>('profile');
+  const [visitedTabs, setVisitedTabs] = useState<Set<StaffDetailTab>>(() => new Set(['profile']));
 
   const tabs = useMemo<DetailTab[]>(
     () => [
-      { id: 'profile', label: 'Profile' },
-      { id: 'portal', label: 'Portal' },
-      { id: 'students', label: 'Students' },
-      { id: 'contact', label: 'Contact' },
+      { id: 'profile', label: 'Profile', icon: 'grid-outline', iconActive: 'grid' },
+      { id: 'portal', label: 'Portal access', icon: 'log-in-outline', iconActive: 'log-in' },
+      { id: 'students', label: 'Learners & groups', icon: 'people-outline', iconActive: 'people' },
+      { id: 'contact', label: 'Contact', icon: 'mail-outline', iconActive: 'mail' },
     ],
     [],
   );
@@ -249,6 +137,15 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
     void loadMember();
   }, [loadMember]);
 
+  useEffect(() => {
+    setVisitedTabs((current) => {
+      if (current.has(activeTab)) return current;
+      const next = new Set(current);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
   const handleSave = async () => {
     if (!member) return;
     setSaveLoading(true);
@@ -289,10 +186,7 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
         entityId: member.id,
         metadata: { action },
       });
-      Alert.alert(
-        'Error',
-        formatStaffApiError(portalError, 'Failed to update portal access.'),
-      );
+      Alert.alert('Error', formatStaffApiError(portalError, 'Failed to update portal access.'));
     } finally {
       setActionLoading(false);
     }
@@ -313,23 +207,22 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
     );
   };
 
-  const showReactivate =
-    member?.membershipStatus === 'disabled' || member?.employmentStatus === 'inactive';
-
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <StaffDetailHeader
+      <View style={styles.container}>
+        <StaffStoryDetailHeader
+          staffName="Staff member"
+          employmentStatus="active"
+          subtitle="Loading…"
           isEditing={false}
           saveLoading={false}
           actionLoading={false}
-          onBack={() => router.back()}
           onEdit={() => {}}
           onCancel={() => {}}
           onSave={() => {}}
         />
         <View style={styles.centered}>
-          <ActivityIndicator color={theme.accent} />
+          <ActivityIndicator color={theme.primary} />
         </View>
       </View>
     );
@@ -337,34 +230,39 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
 
   if (error || !member) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <StaffDetailHeader
+      <View style={styles.container}>
+        <StaffStoryDetailHeader
+          staffName="Staff member"
+          employmentStatus="active"
+          subtitle="—"
           isEditing={false}
           saveLoading={false}
           actionLoading={false}
-          onBack={() => router.back()}
           onEdit={() => {}}
-          onCancel={() => {}}
+          onCancel={() => router.back()}
           onSave={() => {}}
         />
         <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {error ?? 'Staff member not found.'}
-          </ThemedText>
+          <StoryErrorBanner message={error ?? 'Staff member not found.'} />
         </View>
       </View>
     );
   }
 
   const displayName = staffDisplayName(member);
+  const subtitle = `${member.roleTitle || 'No job title'} · ${portalRoleLabel(member.portalRole)}`;
+  const showReactivate =
+    member.membershipStatus === 'disabled' || member.employmentStatus === 'inactive';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <StaffDetailHeader
+    <View style={styles.container}>
+      <StaffStoryDetailHeader
+        staffName={displayName}
+        employmentStatus={member.employmentStatus}
+        subtitle={subtitle}
         isEditing={isEditing}
         saveLoading={saveLoading}
         actionLoading={actionLoading}
-        onBack={() => router.back()}
         onEdit={() => {
           resetEditForm(member);
           setIsEditing(true);
@@ -376,107 +274,79 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
         onSave={() => void handleSave()}
       />
 
+      <SubmissionStoryTabBar
+        tabs={tabs}
+        activeTabId={activeTab}
+        onChange={(tabId) => setActiveTab(tabId as StaffDetailTab)}
+      />
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.summary}>
-          <ThemedText type="title" style={{ color: theme.textPrimary }}>
-            {displayName}
-          </ThemedText>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {member.roleTitle || 'No job title'} · {employmentStatusLabel(member.employmentStatus)}
-          </ThemedText>
-        </View>
-
-        <DetailTabBar tabs={tabs} activeTabId={activeTab} onChange={setActiveTab} />
-
-        {activeTab === 'profile' ? (
-          <View style={styles.tabContent}>
-            {isEditing ? (
-              <View style={styles.sectionBody}>
-                <FormField
-                  label="First name"
-                  value={editFirstName}
-                  onChangeText={setEditFirstName}
-                />
-                <FormField
-                  label="Last name"
-                  value={editLastName}
-                  onChangeText={setEditLastName}
-                />
-                <FormField
-                  label="Job title"
-                  value={editRoleTitle}
-                  onChangeText={setEditRoleTitle}
-                  placeholder="Lead Teacher"
-                />
-                <View style={styles.field}>
-                  <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                    Employment status
-                  </ThemedText>
-                  <View style={styles.chipRow}>
-                    {EMPLOYMENT_STATUSES.map((status) => {
-                      const active = editEmploymentStatus === status;
-                      return (
-                        <Pressable
-                          key={status}
-                          accessibilityRole="button"
-                          onPress={() => setEditEmploymentStatus(status)}
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: active ? theme.accentLight : theme.surface,
-                              borderColor: active ? theme.accent : theme.border,
-                            },
-                          ]}>
-                          <ThemedText
-                            type="small"
-                            style={{ color: active ? theme.accent : theme.textSecondary }}>
-                            {employmentStatusLabel(status)}
-                          </ThemedText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                    To revoke sign-in access, use Deactivate on the Portal tab.
-                  </ThemedText>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.sectionBody}>
-                <DetailField label="Name" value={displayName} />
-                <DetailField label="Job title" value={member.roleTitle || '—'} />
-                <DetailField
-                  label="Employment status"
-                  value={employmentStatusLabel(member.employmentStatus)}
-                />
-              </View>
-            )}
-          </View>
-        ) : null}
-
-        {activeTab === 'contact' ? (
-          <View style={styles.tabContent}>
-            <View style={styles.sectionBody}>
-              <ReadOnlyFieldRow label="Email" value={member.email || '—'} />
+        {visitedTabs.has('profile') ? (
+          <View style={[styles.tabPanel, activeTab !== 'profile' && styles.tabPanelHidden]}>
+            <StoryDetailSection title="Profile">
               {isEditing ? (
-                <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                  Email cannot be changed here.
-                </ThemedText>
-              ) : null}
-            </View>
+                <View style={styles.sectionBody}>
+                  <StoryTextField
+                    label="First name"
+                    value={editFirstName}
+                    onChangeText={setEditFirstName}
+                  />
+                  <StoryTextField
+                    label="Last name"
+                    value={editLastName}
+                    onChangeText={setEditLastName}
+                  />
+                  <StoryTextField
+                    label="Job title"
+                    value={editRoleTitle}
+                    onChangeText={setEditRoleTitle}
+                    placeholder="Lead Teacher"
+                  />
+                  <View style={styles.field}>
+                    <Text style={[styles.fieldLabel, { color: theme.muted }]}>Employment status</Text>
+                    <View style={styles.chipRow}>
+                      {EMPLOYMENT_STATUSES.map((status) => {
+                        const active = editEmploymentStatus === status;
+                        return (
+                          <Pressable
+                            key={status}
+                            accessibilityRole="button"
+                            onPress={() => setEditEmploymentStatus(status)}>
+                            <StoryChip
+                              tone={active ? 'success' : 'info'}
+                              label={employmentStatusLabel(status)}
+                            />
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <Text style={[styles.helperCopy, { color: theme.muted }]}>
+                      To revoke sign-in access, use Deactivate on the Portal access tab.
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.sectionBody}>
+                  <DetailField label="Name" value={displayName} />
+                  <DetailField label="Job title" value={member.roleTitle || '—'} />
+                  <DetailField
+                    label="Employment status"
+                    value={employmentStatusLabel(member.employmentStatus)}
+                  />
+                </View>
+              )}
+            </StoryDetailSection>
           </View>
         ) : null}
 
-        {activeTab === 'portal' ? (
-          <View style={styles.tabContent}>
-            <ThemedText type="small" style={{ color: theme.textTertiary }}>
-              Employment status and portal access are managed separately.
-            </ThemedText>
-            <View style={styles.sectionBody}>
+        {visitedTabs.has('portal') ? (
+          <View style={[styles.tabPanel, activeTab !== 'portal' && styles.tabPanelHidden]}>
+            <StoryDetailSection
+              title="Portal access"
+              description="Employment status and portal access are managed separately.">
+              <View style={styles.sectionBody}>
                 <View style={styles.field}>
-                  <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                    Role
-                  </ThemedText>
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>Role</Text>
                   {isEditing ? (
                     <View style={styles.chipRow}>
                       {PORTAL_ROLES.map((role) => {
@@ -485,99 +355,90 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
                           <Pressable
                             key={role}
                             accessibilityRole="button"
-                            onPress={() => setEditPortalRole(role)}
-                            style={[
-                              styles.chip,
-                              {
-                                backgroundColor: active ? theme.accentLight : theme.surface,
-                                borderColor: active ? theme.accent : theme.border,
-                              },
-                            ]}>
-                            <ThemedText
-                              type="small"
-                              style={{ color: active ? theme.accent : theme.textSecondary }}>
-                              {portalRoleLabel(role)}
-                            </ThemedText>
+                            onPress={() => setEditPortalRole(role)}>
+                            <StoryChip
+                              tone={active ? 'success' : 'info'}
+                              label={portalRoleLabel(role)}
+                            />
                           </Pressable>
                         );
                       })}
                     </View>
                   ) : (
-                    <ThemedText type="small" style={{ color: theme.textPrimary }}>
+                    <Text style={[styles.fieldValue, { color: theme.ink }]}>
                       {portalRoleLabel(member.portalRole)}
-                    </ThemedText>
+                    </Text>
                   )}
                 </View>
 
                 <View style={styles.field}>
-                  <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                    Sign-in status
-                  </ThemedText>
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>Sign-in status</Text>
                   <StaffPortalLoginBadge status={staffPortalLoginStatus(member)} />
                 </View>
 
                 <View style={styles.field}>
-                  <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                    Sign-in URL
-                  </ThemedText>
+                  <Text style={[styles.fieldLabel, { color: theme.muted }]}>Sign-in URL</Text>
                   <CopyableUrlRow url={loginUrl} />
                 </View>
 
                 <View style={styles.portalActions}>
                   {showReactivate ? (
-                    <Pressable
-                      accessibilityRole="button"
+                    <StoryButton
+                      label="Reactivate portal access"
                       disabled={actionLoading}
                       onPress={() => void handlePortalAction('reactivate')}
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        { backgroundColor: theme.accent },
-                        (pressed || actionLoading) && { opacity: 0.85 },
-                      ]}>
-                      {actionLoading ? (
-                        <ActivityIndicator size="small" color={theme.surface} />
-                      ) : (
-                        <ThemedText type="smallBold" style={{ color: theme.surface }}>
-                          Reactivate portal access
-                        </ThemedText>
-                      )}
-                    </Pressable>
+                    />
                   ) : (
                     <Pressable
                       accessibilityRole="button"
                       disabled={actionLoading}
                       onPress={confirmDeactivate}
                       style={({ pressed }) => [
-                        styles.secondaryButton,
-                        {
-                          borderColor: theme.error,
-                          backgroundColor: theme.errorBg,
-                        },
+                        styles.dangerButton,
+                        { borderColor: theme.alert, backgroundColor: theme.alertBg },
                         (pressed || actionLoading) && { opacity: 0.85 },
                       ]}>
                       {actionLoading ? (
-                        <ActivityIndicator size="small" color={theme.error} />
+                        <ActivityIndicator size="small" color={theme.alert} />
                       ) : (
-                        <ThemedText type="smallBold" style={{ color: theme.error }}>
+                        <Text style={[styles.dangerButtonLabel, { color: theme.alert }]}>
                           Deactivate portal access
-                        </ThemedText>
+                        </Text>
                       )}
                     </Pressable>
                   )}
                 </View>
               </View>
+            </StoryDetailSection>
           </View>
         ) : null}
 
-        {activeTab === 'students' ? (
-          <View style={styles.tabContent}>
-            <StaffAssignedStudentsSection
-              slug={slug}
-              staffMemberId={member.id}
-              organizationId={member.organizationId}
-              staffMemberName={displayName}
-              staffIsActive={member.employmentStatus === 'active'}
-            />
+        {visitedTabs.has('students') ? (
+          <View style={[styles.tabPanel, activeTab !== 'students' && styles.tabPanelHidden]}>
+            <StoryDetailSection title="Learners & groups">
+              <StaffAssignedStudentsSection
+                slug={slug}
+                staffMemberId={member.id}
+                organizationId={member.organizationId}
+                staffMemberName={displayName}
+                staffIsActive={member.employmentStatus === 'active'}
+              />
+            </StoryDetailSection>
+          </View>
+        ) : null}
+
+        {visitedTabs.has('contact') ? (
+          <View style={[styles.tabPanel, activeTab !== 'contact' && styles.tabPanelHidden]}>
+            <StoryDetailSection title="Contact">
+              <View style={styles.sectionBody}>
+                <DetailField label="Email" value={member.email || '—'} />
+                {isEditing ? (
+                  <Text style={[styles.helperCopy, { color: theme.muted }]}>
+                    Email cannot be changed here.
+                  </Text>
+                ) : null}
+              </View>
+            </StoryDetailSection>
           </View>
         ) : null}
       </ScrollView>
@@ -588,51 +449,26 @@ export function StaffDetailScreen({ slug, staffMemberId }: StaffDetailScreenProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    minWidth: 72,
-  },
-  headerAction: {
-    minWidth: 40,
-    alignItems: 'flex-end',
-    paddingVertical: Spacing.one,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
+    backgroundColor: Story.paper,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-
     paddingVertical: Spacing.four,
   },
   scrollContent: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
     paddingBottom: Spacing.six,
+    gap: Spacing.four,
   },
-  summary: {
-    gap: Spacing.one,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
+  tabPanel: {
+    gap: Spacing.four,
   },
-  tabContent: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
-    gap: Spacing.five,
+  tabPanelHidden: {
+    display: 'none',
   },
   sectionBody: {
     gap: Spacing.three,
@@ -640,40 +476,42 @@ const styles = StyleSheet.create({
   field: {
     gap: 6,
   },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+  fieldLabel: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  fieldValue: {
+    fontFamily: StoryFonts.body,
     fontSize: 15,
+    lineHeight: 22,
+  },
+  helperCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 13,
+    lineHeight: 18,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  chip: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-  },
   portalActions: {
     paddingTop: Spacing.two,
   },
-  primaryButton: {
+  dangerButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 52,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
   },
-  secondaryButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.three,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+  dangerButtonLabel: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
   },
 });

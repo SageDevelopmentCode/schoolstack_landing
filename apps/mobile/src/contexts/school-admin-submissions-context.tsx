@@ -24,7 +24,7 @@ import {
   type SubmissionPageMeta,
 } from '@/lib/school-admin/submissions-page-meta';
 import { getSupabaseClient } from '@/lib/supabase';
-import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
 export type SchoolAdminSubmissionsData = {
   submissions: AdminApplicationSubmission[];

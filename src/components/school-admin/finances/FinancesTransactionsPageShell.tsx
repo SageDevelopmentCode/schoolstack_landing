@@ -12,6 +12,7 @@ import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard"
 import type { FinancesTransactionsApiResponse } from "@/app/api/school-admin/finances/transactions/route";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
+  matchesPaymentRecordFilters,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -103,7 +104,7 @@ export default function FinancesTransactionsPageShell({
 }: FinancesTransactionsPageShellProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
 
-  const [rows, setRows] = useState<PaymentRecordDisplayRow[]>([]);
+  const [loadedRows, setLoadedRows] = useState<PaymentRecordDisplayRow[]>([]);
   const [meta, setMeta] = useState<TransactionsPageMeta | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -117,12 +118,19 @@ export default function FinancesTransactionsPageShell({
   const [dismissedAttention, setDismissedAttention] = useState<
     Partial<Record<TransactionsAttentionVariant, boolean>>
   >({});
-  const rowsLengthRef = useRef(0);
+  const [trackedOrganizationId, setTrackedOrganizationId] = useState(organizationId);
+  const loadedRowsLengthRef = useRef(0);
   const metaRef = useRef<TransactionsPageMeta | null>(null);
 
+  if (organizationId !== trackedOrganizationId) {
+    setTrackedOrganizationId(organizationId);
+    setDismissedAttention(readDismissedAttention(organizationId));
+    setMeta(null);
+  }
+
   useEffect(() => {
-    rowsLengthRef.current = rows.length;
-  }, [rows.length]);
+    loadedRowsLengthRef.current = loadedRows.length;
+  }, [loadedRows.length]);
 
   useEffect(() => {
     metaRef.current = meta;
@@ -143,8 +151,6 @@ export default function FinancesTransactionsPageShell({
         offset: String(offset),
         limit: String(TRANSACTIONS_PAGE_DEFAULT_SIZE),
       });
-      if (statusFilter) params.set("status", statusFilter);
-      if (typeFilter) params.set("paymentType", typeFilter);
       if (includeMeta) params.set("includeMeta", "1");
 
       const response = await fetch(
@@ -158,26 +164,45 @@ export default function FinancesTransactionsPageShell({
 
       if (body.meta) {
         setMeta(body.meta);
+
+        if (body.meta.summary.failedCount === 0) {
+          clearAttentionDismiss(organizationId, "failed");
+          setDismissedAttention((current) => {
+            if (!current.failed) return current;
+            const next = { ...current };
+            delete next.failed;
+            return next;
+          });
+        }
+        if (body.meta.summary.pendingCount === 0) {
+          clearAttentionDismiss(organizationId, "pending");
+          setDismissedAttention((current) => {
+            if (!current.pending) return current;
+            const next = { ...current };
+            delete next.pending;
+            return next;
+          });
+        }
       }
 
       if (append) {
-        setRows((prev) => [...prev, ...body.rows]);
+        setLoadedRows((prev) => [...prev, ...body.rows]);
       } else {
-        setRows(body.rows);
+        setLoadedRows(body.rows);
       }
       setTotalCount(body.totalCount);
       setHasMore(body.hasMore);
     },
-    [organizationId, statusFilter, typeFilter],
+    [organizationId],
   );
 
   const loadTransactions = useCallback(
     async ({ append = false }: { append?: boolean } = {}) => {
-      const requestOffset = append ? rowsLengthRef.current : 0;
+      const requestOffset = append ? loadedRowsLengthRef.current : 0;
 
       if (append) {
         setLoadingMore(true);
-      } else if (rowsLengthRef.current > 0) {
+      } else if (loadedRowsLengthRef.current > 0) {
         setIsRefetching(true);
       } else {
         setLoading(true);
@@ -206,9 +231,9 @@ export default function FinancesTransactionsPageShell({
           loadError instanceof Error
             ? loadError.message
             : "Failed to load payment history.";
-        if (!append && rowsLengthRef.current === 0) {
+        if (!append && loadedRowsLengthRef.current === 0) {
           setError(message);
-          setRows([]);
+          setLoadedRows([]);
         }
       } finally {
         setLoading(false);
@@ -225,11 +250,16 @@ export default function FinancesTransactionsPageShell({
     });
   }, [loadTransactions]);
 
-  useEffect(() => {
-    setDismissedAttention(readDismissedAttention(organizationId));
-    setMeta(null);
-    metaRef.current = null;
-  }, [organizationId]);
+  const filteredRows = useMemo(
+    () =>
+      loadedRows.filter((row) =>
+        matchesPaymentRecordFilters(row, {
+          status: statusFilter,
+          paymentType: typeFilter,
+        }),
+      ),
+    [loadedRows, statusFilter, typeFilter],
+  );
 
   const summary = meta?.summary ?? {
     collectedThisMonthCents: 0,
@@ -243,32 +273,6 @@ export default function FinancesTransactionsPageShell({
     enrollmentCents: 0,
     tuitionCents: 0,
   };
-
-  useEffect(() => {
-    if (loading) return;
-    if (summary.failedCount === 0) {
-      clearAttentionDismiss(organizationId, "failed");
-      setDismissedAttention((current) => {
-        if (!current.failed) return current;
-        const next = { ...current };
-        delete next.failed;
-        return next;
-      });
-    }
-  }, [loading, organizationId, summary.failedCount]);
-
-  useEffect(() => {
-    if (loading) return;
-    if (summary.pendingCount === 0) {
-      clearAttentionDismiss(organizationId, "pending");
-      setDismissedAttention((current) => {
-        if (!current.pending) return current;
-        const next = { ...current };
-        delete next.pending;
-        return next;
-      });
-    }
-  }, [loading, organizationId, summary.pendingCount]);
 
   const statusCounts = meta?.statusCounts ?? {};
   const typeCounts = meta?.typeCounts ?? {};
@@ -337,7 +341,7 @@ export default function FinancesTransactionsPageShell({
     <p className="px-5 py-8 text-sm" style={{ color: theme.alert }}>
       {error}
     </p>
-  ) : rows.length === 0 ? (
+  ) : filteredRows.length === 0 ? (
     <div className="flex flex-col items-center px-5 py-16 text-center">
       {metaTotalCount === 0 ? (
         <>
@@ -359,7 +363,7 @@ export default function FinancesTransactionsPageShell({
         </>
       ) : (
         <p className="text-sm" style={{ color: theme.muted }}>
-          {hasFilters
+          {hasFilters && loadedRows.length > 0
             ? "No payments match the current filters."
             : "No payments recorded yet."}
         </p>
@@ -391,7 +395,7 @@ export default function FinancesTransactionsPageShell({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {filteredRows.map((row) => (
             <tr
               key={row.id}
               onMouseEnter={() => setHoveredId(row.id)}
@@ -579,7 +583,7 @@ export default function FinancesTransactionsPageShell({
                 >
                   {loadingMore
                     ? "Loading more..."
-                    : `Show more (${totalCount - rows.length} remaining) →`}
+                    : `Show more (${totalCount - loadedRows.length} remaining) →`}
                 </button>
               </div>
             ) : null}

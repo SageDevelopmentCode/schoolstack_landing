@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { after } from "next/server";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import type Stripe from "stripe";
 import { activityClientMetadataFromStripeMetadata } from "@/lib/activity-client";
 import {
@@ -800,7 +800,7 @@ async function processApplicationFeePayment(
     return;
   }
 
-  after(async () => {
+  runAfterResponse(async () => {
     await sendApplicationSubmittedNotifications(admin, payment.applicationId);
   });
 

@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { messageFromCause } from "@/lib/api/error-serialization";
 
 export const ACTIVITY_ACTIONS = {
   APPLICATION_STARTED: "application.started",
@@ -481,6 +482,17 @@ async function resolveActorFieldsFromSession(
   };
 }
 
+export async function resolveActivityWriteClient(
+  sessionClient: SupabaseClient,
+): Promise<SupabaseClient> {
+  if (typeof window !== "undefined") {
+    return sessionClient;
+  }
+
+  const { createAdminClient } = await import("@/utils/supabase/admin");
+  return createAdminClient();
+}
+
 export async function logActivityEvent(
   supabase: SupabaseClient,
   event: ActivityEventInput,
@@ -502,7 +514,8 @@ export async function logActivityEvent(
       actorName = resolved.actorName;
     }
 
-    const { data, error } = await supabase
+    const writeClient = await resolveActivityWriteClient(supabase);
+    const { data, error } = await writeClient
       .from("activity_events")
       .insert({
         organization_id: event.organizationId ?? null,
@@ -522,30 +535,63 @@ export async function logActivityEvent(
       .single();
 
     if (error) {
-      await reportActivityLogInsertFailure(supabase, error, event);
+      await reportActivityLogInsertFailure(error, event);
       return null;
     }
 
     return data?.id ? String(data.id) : null;
   } catch (error) {
-    await reportActivityLogInsertFailure(supabase, error, event);
+    await reportActivityLogInsertFailure(error, event);
     return null;
   }
 }
 
 async function reportActivityLogInsertFailure(
-  supabase: SupabaseClient,
   error: unknown,
   event: ActivityEventInput,
 ): Promise<void> {
+  const { parseOperationalError } = await import("@/lib/operational-errors-client");
   const { reportOperationalError } = await import("@/lib/operational-errors");
+  const { createAdminClient } = await import("@/utils/supabase/admin");
+  const parsed = parseOperationalError(error);
+  const message = messageFromCause(error) ?? parsed.message;
+  const admin = createAdminClient();
+
+  let organizationName: string | null = null;
+  let organizationSlug: string | null = null;
+
+  if (event.organizationId) {
+    const { data: organization } = await admin
+      .from("organizations")
+      .select("name, slug")
+      .eq("id", event.organizationId)
+      .maybeSingle();
+
+    organizationName =
+      typeof organization?.name === "string" ? organization.name : null;
+    organizationSlug =
+      typeof organization?.slug === "string" ? organization.slug : null;
+  }
+
+  const originalEventDetails = [
+    `Original action: ${event.action}`,
+    `Original surface: ${event.surface}`,
+    parsed.details,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
   await reportOperationalError({
-    supabase,
+    supabase: admin,
     surface: "system",
     skipActivityLog: true,
     operation: "activity_log_insert",
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
+    code: parsed.code ?? null,
+    details: originalEventDetails || null,
     organizationId: event.organizationId,
+    organizationName,
+    organizationSlug,
     entityType: event.entityType,
     entityId: event.entityId,
     metadata: {

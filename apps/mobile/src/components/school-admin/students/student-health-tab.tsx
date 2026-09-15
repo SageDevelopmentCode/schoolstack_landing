@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import {
   StudentHealthFormSheet,
   type HealthFormValues,
 } from '@/components/school-admin/students/student-health-form-sheet';
+import { StudentHealthTabSkeleton } from '@/components/school-admin/students/student-health-tab-skeleton';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -66,30 +67,64 @@ export function StudentHealthTab({
 }: StudentHealthTabProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter();
+  const onProfileChangeRef = useRef(onProfileChange);
+  onProfileChangeRef.current = onProfileChange;
+
   const [profile, setProfile] = useState<StudentHealthProfile>(emptyStudentHealthProfile());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formState, setFormState] = useState<FormState>({ mode: 'closed' });
   const [saving, setSaving] = useState(false);
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const refreshProfile = useCallback(async () => {
     try {
       const nextProfile = await fetchStudentHealthProfileAdmin(slug, studentId);
       setProfile(nextProfile);
-      onProfileChange?.(nextProfile);
+      onProfileChangeRef.current?.(nextProfile);
+      return nextProfile;
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load health profile.');
       setProfile(emptyStudentHealthProfile());
+      throw loadError;
+    }
+  }, [slug, studentId]);
+
+  const retryLoad = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await refreshProfile();
+    } catch {
+      // error state set in refreshProfile
     } finally {
       setLoading(false);
     }
-  }, [onProfileChange, slug, studentId]);
+  }, [refreshProfile]);
 
   useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        const nextProfile = await fetchStudentHealthProfileAdmin(slug, studentId);
+        if (cancelled) return;
+        setProfile(nextProfile);
+        onProfileChangeRef.current?.(nextProfile);
+      } catch (loadError) {
+        if (cancelled) return;
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load health profile.');
+        setProfile(emptyStudentHealthProfile());
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, studentId]);
 
   const handleSave = async (values: HealthFormValues) => {
     setSaving(true);
@@ -106,7 +141,7 @@ export function StudentHealthTab({
       } else {
         await createStudentHealthItemAdmin(slug, studentId, values.type, payload);
       }
-      await loadProfile();
+      await refreshProfile();
     } catch (saveError) {
       reportError('school_admin_student_health_save', saveError, {
         entityType: 'student',
@@ -133,7 +168,7 @@ export function StudentHealthTab({
           void (async () => {
             try {
               await deleteStudentHealthItemAdmin(slug, studentId, itemId);
-              await loadProfile();
+              await refreshProfile();
             } catch (deleteError) {
               reportError('school_admin_student_health_delete', deleteError, {
                 entityType: 'student',
@@ -152,18 +187,14 @@ export function StudentHealthTab({
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={theme.primary} />
-      </View>
-    );
+    return <StudentHealthTabSkeleton />;
   }
 
   if (error) {
     return (
       <View style={styles.centered}>
         <Text style={[styles.errorCopy, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" variant="soft" onPress={() => void loadProfile()} />
+        <StoryButton label="Try again" variant="soft" onPress={() => void retryLoad()} />
       </View>
     );
   }

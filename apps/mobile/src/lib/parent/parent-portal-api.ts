@@ -5,6 +5,11 @@ import {
 } from '@/lib/auth/auth-session';
 import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist';
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
+import type {
+  Committee,
+  ParentCommitteeBrowseItem,
+  ParentCommitteeListItem,
+} from '@/lib/parent/parent-committees-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 
@@ -502,5 +507,82 @@ export async function updateParentNotificationSettings(
   return fetchParentApi<ParentNotificationSettings>('/api/parent-portal/notification-settings', {
     method: 'PATCH',
     body: { organizationId, emails },
+  });
+}
+
+export type {
+  Committee,
+  ParentCommitteeBrowseItem,
+  ParentCommitteeListItem,
+  ParentCommitteesData,
+} from '@/lib/parent/parent-committees-types';
+
+export async function fetchParentCommitteesBrowse(
+  organizationId: string,
+): Promise<ParentCommitteeBrowseItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committees: ParentCommitteeBrowseItem[] }>(
+    `/api/parent-portal/committees/browse?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchParentCommitteesMine(
+  organizationId: string,
+): Promise<ParentCommitteeListItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committees: ParentCommitteeListItem[] }>(
+    `/api/parent-portal/committees/mine?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchParentCommitteeWorkspace(
+  organizationId: string,
+  committeeId: string,
+): Promise<Committee> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ committee: Committee }>(
+    `/api/parent-portal/committees/${committeeId}?${query}`,
+  );
+  if (!payload.committee) {
+    throw new Error('Committee not found.');
+  }
+  return payload.committee;
+}
+
+export type SubmitCommitteeJoinRequestInput = {
+  organizationId: string;
+  committeeId: string;
+  schoolSlug: string;
+  schoolName: string;
+  committeeName: string;
+  preferredDutyRoleId?: string | null;
+  grade?: string | null;
+  note?: string | null;
+};
+
+export async function submitCommitteeJoinRequest(
+  input: SubmitCommitteeJoinRequestInput,
+): Promise<void> {
+  await fetchParentApi('/api/parent-portal/committees/join-requests', {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function withdrawCommitteeJoinRequest(
+  requestId: string,
+  organizationId: string,
+  committeeName: string,
+  guardianName: string,
+): Promise<void> {
+  const query = new URLSearchParams({
+    organizationId,
+    committeeName,
+    guardianName,
+  }).toString();
+  await fetchParentApi(`/api/parent-portal/committees/join-requests/${requestId}?${query}`, {
+    method: 'DELETE',
   });
 }

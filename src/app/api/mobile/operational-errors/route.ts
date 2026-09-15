@@ -8,6 +8,7 @@ import {
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/mobile/operational-errors";
 
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
     const clientMetadata = mergeActivityClientMetadata(request, body.metadata);
 
     await reportMobileOperationalError({
-      supabase,
+      supabase: createAdminClient(),
       surface,
       organizationId,
       organizationName: organization?.name ?? null,

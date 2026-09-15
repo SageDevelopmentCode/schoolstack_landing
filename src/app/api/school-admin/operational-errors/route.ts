@@ -6,6 +6,7 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school-admin/operational-errors";
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     await reportOperationalError({
-      supabase,
+      supabase: createAdminClient(),
       surface: "school_admin",
       organizationId,
       organizationName: organization?.name ?? null,

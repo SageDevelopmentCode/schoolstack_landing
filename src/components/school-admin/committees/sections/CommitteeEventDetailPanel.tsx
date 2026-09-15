@@ -3,8 +3,11 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPin, Trash2, X } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import type { CommitteeEvent, CommitteeEventType } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
 
 const TYPE_COLORS: Record<CommitteeEventType, string> = {
@@ -25,13 +28,13 @@ function formatEventDate(date: string) {
 
 export default function CommitteeEventDetailPanel({
   event,
-  C,
+  theme,
   readOnly = false,
   onClose,
   onDelete,
 }: {
   event: CommitteeEvent | null;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   readOnly?: boolean;
   onClose: () => void;
   onDelete?: (eventId: string) => void;
@@ -63,23 +66,23 @@ export default function CommitteeEventDetailPanel({
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
             className="fixed top-0 right-0 bottom-0 w-[380px] z-50 flex flex-col overflow-hidden border-l shadow-xl"
-            style={{ backgroundColor: C.surface, borderColor: C.border }}
+            style={{ backgroundColor: "#F8FAF8", borderColor: "#DCE4DC" }}
           >
             <div
               className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b"
-              style={{ borderColor: C.border, backgroundColor: C.surface }}
+              style={{ borderColor: "#DCE4DC", backgroundColor: "#F8FAF8" }}
             >
-              <h2
-                className="text-base font-semibold pr-4 leading-tight"
-                style={{ color: C.textPrimary }}
-              >
-                {event.title}
-              </h2>
+              <div className="min-w-0 pr-4">
+                <AdminSectionKicker theme={theme}>Event</AdminSectionKicker>
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
+                  {event.title}
+                </AdminDisplayHeading>
+              </div>
               <button
                 type="button"
                 onClick={onClose}
                 className="p-1.5 rounded-md transition-colors cursor-pointer shrink-0"
-                style={{ color: C.textTertiary }}
+                style={{ color: theme.muted }}
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -92,31 +95,31 @@ export default function CommitteeEventDetailPanel({
                 {event.type}
               </span>
               <div>
-                <p className="text-xs mb-0.5" style={{ color: C.textTertiary }}>
+                <p className="text-xs mb-0.5" style={{ color: theme.muted }}>
                   Date
                 </p>
-                <p className="text-sm font-semibold" style={{ color: C.textPrimary }}>
+                <p className="text-sm font-semibold" style={{ color: theme.ink }}>
                   {formatEventDate(event.date)}
                 </p>
               </div>
               {event.time && (
                 <div>
-                  <p className="text-xs mb-0.5" style={{ color: C.textTertiary }}>
+                  <p className="text-xs mb-0.5" style={{ color: theme.muted }}>
                     Time
                   </p>
-                  <p className="text-sm" style={{ color: C.textSecondary }}>
+                  <p className="text-sm" style={{ color: theme.muted }}>
                     {event.time}
                   </p>
                 </div>
               )}
               {event.location && (
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: C.textTertiary }} />
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: theme.muted }} />
                   <div>
-                    <p className="text-xs mb-0.5" style={{ color: C.textTertiary }}>
+                    <p className="text-xs mb-0.5" style={{ color: theme.muted }}>
                       Location
                     </p>
-                    <p className="text-sm" style={{ color: C.textSecondary }}>
+                    <p className="text-sm" style={{ color: theme.muted }}>
                       {event.location}
                     </p>
                   </div>
@@ -126,17 +129,16 @@ export default function CommitteeEventDetailPanel({
             {!readOnly && onDelete && (
               <div
                 className="px-6 py-4 border-t"
-                style={{ borderColor: C.border }}
+                style={{ borderColor: "#DCE4DC" }}
               >
-                <button
-                  type="button"
+                <AdminButton
+                  theme={theme}
+                  variant="danger"
                   onClick={() => onDelete(event.id)}
-                  className="flex items-center gap-2 text-sm font-medium cursor-pointer"
-                  style={{ color: C.error }}
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete event
-                </button>
+                </AdminButton>
               </div>
             )}
           </motion.div>

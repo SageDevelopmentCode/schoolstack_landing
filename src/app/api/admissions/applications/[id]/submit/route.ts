@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { runAfterResponse } from "@/lib/next/run-after-response";
 import {
   AuthError,
   requireAuthenticatedUser,
@@ -117,7 +118,7 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    after(async () => {
+    runAfterResponse(async () => {
       await sendApplicationSubmittedNotifications(admin, applicationId);
     });
 

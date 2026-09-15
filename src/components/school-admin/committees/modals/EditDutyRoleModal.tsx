@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import type { Committee, CommitteeDutyRole } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 
 export type DutyRoleFormValue = {
   title: string;
@@ -15,7 +17,7 @@ export type DutyRoleFormValue = {
 type EditDutyRoleModalProps = {
   committee: Committee;
   dutyRole: CommitteeDutyRole | null;
-  C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   saving?: boolean;
   onClose: () => void;
   onSave: (value: DutyRoleFormValue) => void | Promise<void>;
@@ -25,12 +27,13 @@ type EditDutyRoleModalProps = {
 export default function EditDutyRoleModal({
   committee,
   dutyRole,
-  C,
+  theme,
   saving = false,
   onClose,
   onSave,
   onDelete,
 }: EditDutyRoleModalProps) {
+  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
   const [title, setTitle] = useState(dutyRole?.title ?? "");
   const [description, setDescription] = useState(dutyRole?.description ?? "");
   const [assigneeMemberId, setAssigneeMemberId] = useState(dutyRole?.assigneeId ?? "");
@@ -49,43 +52,32 @@ export default function EditDutyRoleModal({
 
   return (
     <CommitteeModalShell
-      C={C}
+      theme={theme}
       title={isEdit ? "Edit role" : "Add role"}
+      kicker="Duty roles"
       onClose={onClose}
       footer={
         <div className="flex items-center justify-between gap-2">
           <div>
             {isEdit && onDelete && (
-              <button
-                type="button"
-                onClick={onDelete}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md cursor-pointer disabled:opacity-50"
-                style={{ color: C.error }}
-              >
+              <AdminButton theme={theme} variant="danger" size="compact" onClick={onDelete} disabled={saving}>
                 <Trash2 className="w-4 h-4" />
                 Delete role
-              </button>
+              </AdminButton>
             )}
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="px-4 py-2 text-sm cursor-pointer disabled:opacity-50"
-            >
+            <AdminButton theme={theme} variant="soft" onClick={onClose} disabled={saving}>
               Cancel
-            </button>
-            <button
-              type="button"
+            </AdminButton>
+            <AdminButton
+              theme={theme}
+              variant="primary"
               onClick={handleSave}
               disabled={!canSave}
-              className="px-4 py-2 text-sm font-medium text-white rounded-md cursor-pointer disabled:opacity-50"
-              style={{ backgroundColor: C.accent }}
             >
               {saving ? "Saving…" : isEdit ? "Save changes" : "Add role"}
-            </button>
+            </AdminButton>
           </div>
         </div>
       }
@@ -94,7 +86,7 @@ export default function EditDutyRoleModal({
         <div>
           <label
             className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
-            style={{ color: C.textTertiary }}
+            style={{ color: theme.muted }}
           >
             Role title
           </label>
@@ -103,14 +95,14 @@ export default function EditDutyRoleModal({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Fall Service Project Lead"
             className="w-full px-3 py-2 text-sm rounded-lg border"
-            style={{ borderColor: C.border, color: C.textPrimary }}
+            style={inputStyle}
           />
         </div>
 
         <div>
           <label
             className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
-            style={{ color: C.textTertiary }}
+            style={{ color: theme.muted }}
           >
             Description
           </label>
@@ -120,14 +112,14 @@ export default function EditDutyRoleModal({
             placeholder="What does this role involve?"
             rows={4}
             className="w-full px-3 py-2 text-sm rounded-lg border resize-y"
-            style={{ borderColor: C.border, color: C.textPrimary }}
+            style={inputStyle}
           />
         </div>
 
         <div>
           <label
             className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
-            style={{ color: C.textTertiary }}
+            style={{ color: theme.muted }}
           >
             Assign to
           </label>
@@ -135,7 +127,7 @@ export default function EditDutyRoleModal({
             value={assigneeMemberId}
             onChange={(e) => setAssigneeMemberId(e.target.value)}
             className="w-full px-3 py-2 text-sm rounded-lg border"
-            style={{ borderColor: C.border, color: C.textPrimary }}
+            style={inputStyle}
           >
             <option value="">Unassigned</option>
             {committee.members.map((member) => (

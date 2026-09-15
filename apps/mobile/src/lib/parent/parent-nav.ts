@@ -9,7 +9,6 @@ export type ParentMoreMenuItemId =
   | 'attendance'
   | 'children'
   | 'committees'
-  | 'applications'
   | 'notifications';
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {

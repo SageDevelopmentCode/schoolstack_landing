@@ -6,47 +6,41 @@ import {
   Pressable,
   RefreshControl,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ADMIN_LIST_HORIZONTAL_PADDING, AdminListSeparator } from '@/components/school-admin/admin-list-layout';
 import { StaffFormSheet } from '@/components/school-admin/staff/staff-form-sheet';
-import { StaffListItem } from '@/components/school-admin/staff/staff-list-item';
 import { StaffListSkeleton } from '@/components/school-admin/staff/staff-list-skeleton';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { StaffMetricRow } from '@/components/school-admin/staff/staff-metric-row';
+import { StaffNeedsAttentionBanner } from '@/components/school-admin/staff/staff-needs-attention-banner';
+import { StaffRosterFilters } from '@/components/school-admin/staff/staff-roster-filters';
+import { StaffStoryHeader } from '@/components/school-admin/staff/staff-story-header';
+import { StaffStoryListItem } from '@/components/school-admin/staff/staff-story-list-item';
+import { StoryButton } from '@/components/story/story-button';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { useParentTheme } from '@/contexts/parent-theme-context';
+import {
+  deriveStaffRosterMetrics,
+  filterStaffByRosterFilter,
+  matchesStaffSearch,
+  type StaffRosterFilter,
+} from '@/lib/school-admin/admin-staff-roster-metrics';
 import { fetchStaffMembers, type StaffMemberRecord } from '@/lib/school-admin-api';
 import { formatStaffApiError } from '@/lib/school-admin/staff-labels';
+import { Story, StoryFonts } from '@/constants/story-theme';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { Radius, Spacing } from '@/constants/theme';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type StaffListScreenProps = {
   slug: string;
 };
 
-function matchesSearch(member: StaffMemberRecord, query: string): boolean {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-
-  const haystack = [
-    member.firstName,
-    member.lastName,
-    member.email ?? '',
-    member.roleTitle ?? '',
-  ]
-    .join(' ')
-    .toLowerCase();
-
-  return haystack.includes(normalized);
-}
-
-function ListSeparator() {
-  return <AdminListSeparator />;
-}
-
 export function StaffListScreen({ slug }: StaffListScreenProps) {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
   const { reportError } = useMobileErrorReporter();
 
@@ -55,6 +49,7 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [rosterFilter, setRosterFilter] = useState<StaffRosterFilter>('all');
   const [addSheetOpen, setAddSheetOpen] = useState(false);
 
   const loadStaff = useCallback(
@@ -82,10 +77,12 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
     void loadStaff();
   }, [loadStaff]);
 
-  const filteredStaff = useMemo(
-    () => staffMembers.filter((member) => matchesSearch(member, searchQuery)),
-    [searchQuery, staffMembers],
-  );
+  const metrics = useMemo(() => deriveStaffRosterMetrics(staffMembers), [staffMembers]);
+
+  const filteredStaff = useMemo(() => {
+    const byFilter = filterStaffByRosterFilter(staffMembers, rosterFilter);
+    return byFilter.filter((member) => matchesStaffSearch(member, searchQuery));
+  }, [rosterFilter, searchQuery, staffMembers]);
 
   const handlePressMember = (member: StaffMemberRecord) => {
     router.push(`/school-admin/${slug}/more/staff/${member.id}`);
@@ -96,77 +93,74 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
     router.push(`/school-admin/${slug}/more/staff/${staffMemberId}`);
   };
 
-  const listHeader = useMemo(
-    () => (
-      <View style={styles.listHeader}>
-        <ThemedText type="title" style={{ color: theme.textPrimary }}>
-          Staff
-        </ThemedText>
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      <Animated.View entering={FadeInDown.duration(350)}>
+        <StaffStoryHeader totalCount={metrics.totalCount} />
+      </Animated.View>
 
-        <View
-          style={[
-            styles.searchField,
-            {
-              backgroundColor: theme.input,
-              borderColor: theme.inputBorder,
-            },
-          ]}>
-          <Ionicons name="search" size={18} color={theme.textTertiary} />
-          <TextInput
-            accessibilityLabel="Search staff"
-            placeholder="Search staff..."
-            placeholderTextColor={theme.textTertiary}
-            style={[styles.searchInput, { color: theme.textPrimary }]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+      {staffMembers.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+          <StaffMetricRow
+            totalCount={metrics.totalCount}
+            activeCount={metrics.activeCount}
+            portalActiveCount={metrics.portalActiveCount}
+            withLearnersCount={metrics.withLearnersCount}
           />
-        </View>
+        </Animated.View>
+      ) : null}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add staff"
-          onPress={() => setAddSheetOpen(true)}
-          style={({ pressed }) => [
-            styles.addButton,
-            { backgroundColor: theme.accentLight, borderColor: theme.accent },
-            pressed && { opacity: 0.85 },
-          ]}>
-          <Ionicons name="add" size={18} color={theme.accent} />
-          <ThemedText type="smallBold" style={{ color: theme.accent }}>
-            Add staff
-          </ThemedText>
-        </Pressable>
+      {metrics.needsReviewCount > 0 ? (
+        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+          <StaffNeedsAttentionBanner
+            needsReviewCount={metrics.needsReviewCount}
+            onShowReview={() => setRosterFilter('review')}
+          />
+        </Animated.View>
+      ) : null}
 
-        {error ? (
-          <ThemedText type="small" style={{ color: theme.error }}>
-            {error}
-          </ThemedText>
-        ) : null}
+      {staffMembers.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(120).duration(350)}>
+          <StaffRosterFilters
+            activeFilter={rosterFilter}
+            totalCount={metrics.totalCount}
+            teacherCount={metrics.teacherCount}
+            portalActiveCount={metrics.portalActiveCount}
+            needsReviewCount={metrics.needsReviewCount}
+            onChange={setRosterFilter}
+          />
+        </Animated.View>
+      ) : null}
+
+      <StoryButton label="Add staff" onPress={() => setAddSheetOpen(true)} />
+
+      <View style={[styles.searchField, { backgroundColor: theme.white, borderColor: Story.line }]}>
+        <Ionicons name="search" size={18} color={theme.muted} />
+        <TextInput
+          accessibilityLabel="Search staff"
+          placeholder="Search staff"
+          placeholderTextColor={theme.muted}
+          style={[styles.searchInput, { color: theme.ink }]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
-    ),
-    [error, searchQuery, theme],
+
+      {error ? <StoryErrorBanner message={error} /> : null}
+    </View>
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: theme.bg }]}>
-        <View style={styles.titleWrap}>
-          <ThemedText type="title" style={{ color: theme.textPrimary }}>
-            Staff
-          </ThemedText>
-        </View>
-        <StaffListSkeleton />
-      </View>
-    );
+  if (loading && staffMembers.length === 0) {
+    return <StaffListSkeleton />;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={styles.container}>
       <FlatList
         data={filteredStaff}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={ListSeparator}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={listHeader}
         refreshControl={
           <RefreshControl
@@ -175,33 +169,32 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
               setRefreshing(true);
               void loadStaff({ silent: true });
             }}
-            tintColor={theme.accent}
+            tintColor={theme.primary}
           />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
               {staffMembers.length === 0
                 ? 'No staff yet. Add your first team member to give them portal access.'
-                : 'No staff match your search.'}
-            </ThemedText>
+                : rosterFilter === 'review'
+                  ? 'No staff profiles need review right now.'
+                  : 'No staff match your search.'}
+            </Text>
             {staffMembers.length === 0 ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => setAddSheetOpen(true)}
-                style={({ pressed }) => [styles.emptyLink, pressed && { opacity: 0.7 }]}>
-                <ThemedText type="smallBold" style={{ color: theme.accent }}>
-                  Add staff
-                </ThemedText>
+                style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+                <Text style={[styles.emptyLink, { color: theme.primary }]}>Add staff →</Text>
               </Pressable>
             ) : null}
           </View>
         }
-        renderItem={({ item }) => (
-          <StaffListItem
-            member={item}
-            onPress={handlePressMember}
-          />
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 180)).duration(220)}>
+            <StaffStoryListItem member={item} onPress={handlePressMember} />
+          </Animated.View>
         )}
       />
 
@@ -218,52 +211,49 @@ export function StaffListScreen({ slug }: StaffListScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Story.paper,
   },
-  titleWrap: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.two,
-  },
-  listContent: {
-    paddingHorizontal: ADMIN_LIST_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.six,
-    flexGrow: 1,
-  },
-  listHeader: {
-    gap: Spacing.three,
-    paddingTop: Spacing.three,
-    paddingBottom: Spacing.two,
+  headerBlock: {
+    gap: Spacing.four,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
   },
   searchField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
     borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
     paddingVertical: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    fontFamily: Fonts.body,
-    paddingVertical: 0,
+    fontSize: 16,
+    fontFamily: StoryFonts.body,
+    padding: 0,
   },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.one,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: Spacing.two,
+  listContent: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingBottom: Spacing.five,
+    flexGrow: 1,
+  },
+  separator: {
+    height: Spacing.two,
   },
   emptyState: {
-    paddingTop: Spacing.six,
-    gap: Spacing.three,
     alignItems: 'center',
+    paddingVertical: Spacing.five,
+    gap: Spacing.two,
+  },
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   emptyLink: {
-    paddingVertical: Spacing.one,
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
   },
 });

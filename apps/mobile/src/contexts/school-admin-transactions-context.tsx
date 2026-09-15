@@ -18,7 +18,7 @@ import {
   fetchTransactionsPage,
   type TransactionsPageMeta,
 } from '@/lib/school-admin/transactions-api';
-import { createSchoolAdminErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 
 type SchoolAdminTransactionsContextValue = {
   rows: PaymentRecordDisplayRow[];

@@ -57,14 +57,6 @@ const MENU_ITEMS: {
     iconColor: '#DB2777',
   },
   {
-    id: 'applications',
-    label: 'Your applications',
-    subtitle: 'Application dashboard',
-    icon: 'document-text-outline',
-    iconBg: '#E0E7FF',
-    iconColor: '#4F46E5',
-  },
-  {
     id: 'notifications',
     label: 'Notification settings',
     subtitle: 'Family email preferences',
@@ -112,7 +104,7 @@ export function ParentMoreMenuSheet({
       <StoryMoreMenuHeader
         kicker="Family portal"
         title="More"
-        subtitle="Children, applications, and account settings"
+        subtitle="Children and account settings"
       />
 
       <StoryMoreMenuItemsCard>
