@@ -31,12 +31,15 @@ describe('resolveSchoolAdminNativeRoute', () => {
     ).toBe(`/school-admin/${slug}/admissions/submissions/app-2`);
   });
 
-  it('maps messages and schedule', () => {
+  it('maps messages, schedule, and bulletin', () => {
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/messages`)).toBe(
       schoolAdminMessagesRoute(slug),
     );
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/schedule`)).toBe(
       `/school-admin/${slug}/more/schedule`,
+    );
+    expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/bulletin`)).toBe(
+      `/school-admin/${slug}/more/bulletin`,
     );
   });
 

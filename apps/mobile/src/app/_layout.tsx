@@ -80,6 +80,10 @@ export default function RootLayout() {
           name="parent/[slug]"
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="teacher/[slug]"
+          options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
+        />
       </Stack>
     </AuthProvider>
   );

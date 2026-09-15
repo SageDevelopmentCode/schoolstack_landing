@@ -6,6 +6,7 @@ import { resolveAuthRecoveryRoute } from '@/lib/auth/auth-recovery';
 
 const PROTECTED_ROOT_SEGMENTS = new Set([
   'parent',
+  'teacher',
   'school-admin',
   'platform-admin',
   'portal',

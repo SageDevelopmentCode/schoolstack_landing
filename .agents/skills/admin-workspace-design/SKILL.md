@@ -183,6 +183,21 @@ useSchoolAdminStoryTheme()
   Drawers: KPI breakdown, setup readiness, adjust tuition — paper #F8FAF8 + AdminSectionKicker
 ```
 
+**Alerts (notifications tab):**
+
+```
+useSchoolAdminStoryTheme()
+  AlertsStoryHeader: kicker "Workspace" + Fraunces "Alerts" + school name subtitle + channels-needing-recipients count
+  Sage "Needs attention" banner when any enabled channel has zero recipients → focus first channel
+  AlertsChannelTabBar: forest underline tabs (Applications · Payments received · Visits & scheduling · Committee join requests)
+    amber dot on tabs with needsAction
+  NotificationChannelCard in AdminCard (max-w-3xl inner column):
+    AdminChip tone="warning" when enabled but no recipients
+    Toggle group in nested AdminCard (SettingToggleRow pattern from Schedule permissions)
+    Recipients list in nested AdminCard; AdminButton soft "Add email" + committeeStoryInputStyle input
+  Auto-save on toggle/email change; Loader2 + retry AdminCard for load states
+```
+
 **Committees (my_school tab):**
 
 ```
@@ -224,5 +239,6 @@ Roster metrics: [`admin-student-roster-metrics.ts`](src/lib/school-admin/admin-s
 - Schedule: [`SchedulePage.tsx`](src/components/school-admin/SchedulePage.tsx), [`ScheduleStoryHeader.tsx`](src/components/school-admin/schedule/ScheduleStoryHeader.tsx), [`ScheduleOverviewTab.tsx`](src/components/school-admin/schedule/ScheduleOverviewTab.tsx)
 - Messages: [`AdminMessagesPage.tsx`](src/components/school-admin/AdminMessagesPage.tsx), [`AdminMessagesInboxHeader.tsx`](src/components/school-admin/messages/AdminMessagesInboxHeader.tsx), `MessagesInboxLayout` `variant="admin-story"`
 - Tuition: [`TuitionDashboard.tsx`](src/components/school-admin/tuition/TuitionDashboard.tsx), [`TuitionStoryHeader.tsx`](src/components/school-admin/tuition/TuitionStoryHeader.tsx), [`TuitionFamilyListSidebar.tsx`](src/components/school-admin/tuition/TuitionFamilyListSidebar.tsx)
+- Alerts: [`NotificationsSettingsPage.tsx`](src/components/school-admin/notifications/NotificationsSettingsPage.tsx), [`AlertsStoryHeader.tsx`](src/components/school-admin/notifications/AlertsStoryHeader.tsx), [`AlertsChannelTabBar.tsx`](src/components/school-admin/notifications/AlertsChannelTabBar.tsx), [`NotificationChannelCard.tsx`](src/components/school-admin/notifications/NotificationChannelCard.tsx)
 - Committees: [`CommitteesPage.tsx`](src/components/school-admin/committees/CommitteesPage.tsx), [`CommitteesStoryHeader.tsx`](src/components/school-admin/committees/CommitteesStoryHeader.tsx), [`CommitteeWorkspaceStoryHeader.tsx`](src/components/school-admin/committees/CommitteeWorkspaceStoryHeader.tsx)
 - Parent portal parallel: [`.agents/skills/parent-portal-story-design/SKILL.md`](../parent-portal-story-design/SKILL.md)

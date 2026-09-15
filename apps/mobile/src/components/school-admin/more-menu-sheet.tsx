@@ -19,7 +19,7 @@ import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
-export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff' | 'classrooms';
+export type MoreMenuItemId = 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -50,6 +50,14 @@ const MENU_ITEMS: {
     icon: 'calendar-outline',
     iconBg: '#EDE9FE',
     iconColor: '#7C3AED',
+  },
+  {
+    id: 'bulletin',
+    label: 'Bulletin',
+    subtitle: 'Announcements and flyers',
+    icon: 'megaphone-outline',
+    iconBg: '#FEF3C7',
+    iconColor: '#D97706',
   },
   {
     id: 'staff',

@@ -65,6 +65,11 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/more/schedule`;
   }
 
+  const bulletinBase = `/school/${slug}/admin/bulletin`;
+  if (pathname === bulletinBase || pathname.startsWith(`${bulletinBase}/`)) {
+    return `/school-admin/${slug}/more/bulletin`;
+  }
+
   const studentsPaths = [
     `/school/${slug}/admin/students`,
     `/school/${slug}/admin/my_school/students`,

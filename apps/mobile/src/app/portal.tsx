@@ -62,6 +62,11 @@ export default function PortalScreen() {
 
     if (portalType === 'parent' && selectedSchool) {
       router.replace(`/parent/${selectedSchool.slug}/home`);
+      return;
+    }
+
+    if (portalType === 'teacher' && selectedSchool) {
+      router.replace(`/teacher/${selectedSchool.slug}/home`);
     }
   }, [isLoading, portalType, restorePortalState, router, selectedSchool, user]);
 
@@ -77,7 +82,8 @@ export default function PortalScreen() {
     portalType === 'platform_admin' ||
     portalType === 'school_admin' ||
     portalType === 'parent_apply' ||
-    portalType === 'parent'
+    portalType === 'parent' ||
+    portalType === 'teacher'
   ) {
     return (
       <SafeAreaView style={styles.loadingContainer}>

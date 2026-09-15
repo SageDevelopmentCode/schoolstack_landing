@@ -133,7 +133,9 @@ function SchoolAdminLayoutContent() {
     router.replace(`/school-admin/${slug}/admissions/submissions`);
   };
 
-  const handleSelectMoreItem = (itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms') => {
+  const handleSelectMoreItem = (
+    itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin',
+  ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
 
@@ -142,6 +144,7 @@ function SchoolAdminLayoutContent() {
       schedule: `/school-admin/${slug}/more/schedule`,
       staff: `/school-admin/${slug}/more/staff`,
       classrooms: `/school-admin/${slug}/more/classrooms`,
+      bulletin: `/school-admin/${slug}/more/bulletin`,
     } as const;
 
     const target = routes[itemId];

@@ -1,8 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import AlertsStoryHeader from "@/components/school-admin/notifications/AlertsStoryHeader";
 import NotificationChannelCard from "@/components/school-admin/notifications/NotificationChannelCard";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
+import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
+import AlertsChannelTabBar from "@/components/school-admin/notifications/AlertsChannelTabBar";
 import {
   getDefaultNotificationSettings,
   normalizeNotificationEmails,
@@ -10,7 +15,6 @@ import {
   type OrganizationNotificationRecipients,
   type OrganizationNotificationSettings,
 } from "@/lib/notifications/org-notification-settings";
-import { buildAdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -72,10 +76,10 @@ function emptyRecipients(): OrganizationNotificationRecipients {
 
 export default function NotificationsSettingsPage({
   organizationId,
-  branding,
+  branding: _branding,
   schoolName,
 }: NotificationsSettingsPageProps) {
-  const C = buildAdminThemeTokens(branding);
+  const { theme, C } = useSchoolAdminStoryTheme();
   const [settings, setSettings] = useState<OrganizationNotificationSettings>(
     getDefaultNotificationSettings(),
   );
@@ -86,6 +90,26 @@ export default function NotificationsSettingsPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const channelsNeedingAction = useMemo(
+    () =>
+      NOTIFICATION_CHANNELS.filter((channel) => recipients[channel].needsAction),
+    [recipients],
+  );
+
+  const channelsNeedingActionCount = channelsNeedingAction.length;
+
+  const firstChannelNeedingAction = channelsNeedingAction[0] ?? null;
+
+  const alertTabs = useMemo(
+    () =>
+      NOTIFICATION_CHANNELS.map((channel) => ({
+        id: channel,
+        label: CHANNEL_COPY[channel].title,
+        needsAction: recipients[channel].needsAction,
+      })),
+    [recipients],
+  );
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -204,112 +228,100 @@ export default function NotificationsSettingsPage({
     });
   };
 
+  const focusFirstChannelNeedingAction = () => {
+    if (firstChannelNeedingAction) {
+      setActiveChannel(firstChannelNeedingAction);
+    }
+  };
+
   const activeCopy = CHANNEL_COPY[activeChannel];
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <div className="flex items-start gap-3">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl"
-          style={{ backgroundColor: C.accentLight, color: C.accent }}
-        >
-          <Bell className="h-5 w-5" />
-        </div>
-        <div>
-          <h1
-            className="text-2xl font-semibold tracking-tight"
-            style={{ color: C.textPrimary }}
-          >
-            Alerts
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>
-            Manage email alerts for {schoolName}.
-          </p>
-        </div>
-      </div>
+    <div
+      className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px]"
+      data-testid="notifications-settings-page"
+    >
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+        <AlertsStoryHeader
+          theme={theme}
+          schoolName={schoolName}
+          channelsNeedingActionCount={channelsNeedingActionCount}
+        />
 
-      {loading ? (
-        <p className="text-sm" style={{ color: C.textSecondary }}>
-          Loading notification settings…
-        </p>
-      ) : null}
+        {loading ? (
+          <AdminCard theme={theme} className="flex items-center justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.muted }} />
+          </AdminCard>
+        ) : null}
 
-      {loadError ? (
-        <p className="text-sm font-medium" style={{ color: C.error }}>
-          {loadError}
-        </p>
-      ) : null}
+        {loadError ? (
+          <AdminCard theme={theme} className="space-y-4">
+            <p className="text-sm" style={{ color: theme.muted }}>
+              {loadError}
+            </p>
+            <AdminButton theme={theme} variant="outline" onClick={() => void loadSettings()}>
+              Try again
+            </AdminButton>
+          </AdminCard>
+        ) : null}
 
-      {!loading && !loadError ? (
-        <>
-          <div
-            className="overflow-x-auto overflow-y-hidden scrollbar-hide"
-            style={{ borderBottom: `1px solid ${C.border}` }}
-          >
-            <div
-              className="-mb-px flex gap-6"
-              role="tablist"
-              aria-label="Notification channels"
-            >
-              {NOTIFICATION_CHANNELS.map((channel) => {
-                const isActive = activeChannel === channel;
-                const tabId = `notifications-tab-${channel}`;
-                const panelId = `notifications-panel-${channel}`;
-                const needsAction = recipients[channel].needsAction;
+        {!loading && !loadError ? (
+          <>
+            {channelsNeedingActionCount > 0 ? (
+              <div
+                className="flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
+                style={{
+                  backgroundColor: "#EAF4EB",
+                  borderColor: "#C7DFCB",
+                  color: "#42694F",
+                }}
+                data-testid="alerts-needs-attention-banner"
+              >
+                <span className="text-xs">
+                  <b>Needs attention:</b>{" "}
+                  {channelsNeedingActionCount === 1
+                    ? "1 alert channel has no recipients."
+                    : `${channelsNeedingActionCount} alert channels have no recipients.`}
+                </span>
+                <AdminButton theme={theme} variant="soft" onClick={focusFirstChannelNeedingAction}>
+                  Review channels →
+                </AdminButton>
+              </div>
+            ) : null}
 
-                return (
-                  <button
-                    key={channel}
-                    id={tabId}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={panelId}
-                    onClick={() => setActiveChannel(channel)}
-                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors"
-                    style={{
-                      borderBottomColor: isActive ? C.accent : "transparent",
-                      color: isActive ? C.accent : C.textTertiary,
-                    }}
-                  >
-                    {CHANNEL_COPY[channel].title}
-                    {needsAction ? (
-                      <span
-                        className="inline-block h-2 w-2 rounded-full"
-                        style={{ backgroundColor: C.clay }}
-                        aria-label="Action needed"
-                      />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div
-            id={`notifications-panel-${activeChannel}`}
-            role="tabpanel"
-            aria-labelledby={`notifications-tab-${activeChannel}`}
-          >
-            <NotificationChannelCard
-              C={C}
-              title={activeCopy.title}
-              description={activeCopy.description}
-              toggleLabel={activeCopy.toggleLabel}
-              channel={settings[activeChannel]}
-              recipients={recipients[activeChannel]}
-              saving={saving}
-              showTitle={false}
-              onToggle={(enabled) => updateChannel(activeChannel, { enabled })}
-              onToggleIncludeOrgAdmins={(include_org_admins) =>
-                updateChannel(activeChannel, { include_org_admins })
-              }
-              onAddEmail={(email) => handleAddEmail(activeChannel, email)}
-              onRemoveEmail={(email) => handleRemoveEmail(activeChannel, email)}
+            <AlertsChannelTabBar
+              theme={theme}
+              tabs={alertTabs}
+              activeTab={activeChannel}
+              onTabChange={setActiveChannel}
             />
-          </div>
-        </>
-      ) : null}
+
+            <div
+              id={`alerts-panel-${activeChannel}`}
+              role="tabpanel"
+              aria-labelledby={`alerts-tab-${activeChannel}`}
+            >
+              <NotificationChannelCard
+                theme={theme}
+                C={C}
+                title={activeCopy.title}
+                description={activeCopy.description}
+                toggleLabel={activeCopy.toggleLabel}
+                channel={settings[activeChannel]}
+                recipients={recipients[activeChannel]}
+                saving={saving}
+                showTitle={false}
+                onToggle={(enabled) => updateChannel(activeChannel, { enabled })}
+                onToggleIncludeOrgAdmins={(include_org_admins) =>
+                  updateChannel(activeChannel, { include_org_admins })
+                }
+                onAddEmail={(email) => handleAddEmail(activeChannel, email)}
+                onRemoveEmail={(email) => handleRemoveEmail(activeChannel, email)}
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
