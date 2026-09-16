@@ -374,33 +374,43 @@ export default function TeacherFormCreateWizard({
   );
 
   useEffect(() => {
-    if (!previewOpen) {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+
+      if (!previewOpen) {
+        setUploadPreviewUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return null;
+        });
+        return;
+      }
+
+      if (
+        draft.formType === "upload" &&
+        draft.uploadFormat === "pdf" &&
+        draft.uploadFile
+      ) {
+        objectUrl = URL.createObjectURL(draft.uploadFile);
+        setUploadPreviewUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return objectUrl;
+        });
+        return;
+      }
+
       setUploadPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return null;
       });
-      return;
-    }
-
-    if (
-      draft.formType === "upload" &&
-      draft.uploadFormat === "pdf" &&
-      draft.uploadFile
-    ) {
-      const url = URL.createObjectURL(draft.uploadFile);
-      setUploadPreviewUrl((current) => {
-        if (current) URL.revokeObjectURL(current);
-        return url;
-      });
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }
-
-    setUploadPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
     });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [previewOpen, draft.formType, draft.uploadFormat, draft.uploadFile]);
 
   const canProceedStep1 = true;

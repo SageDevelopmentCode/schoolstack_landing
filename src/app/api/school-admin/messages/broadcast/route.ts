@@ -6,15 +6,23 @@ import {
 } from "@/lib/messages/api-helpers";
 import { adminBroadcastSend } from "@/lib/messages/admin-broadcast-send";
 import {
+  buildBroadcastPartialFailureMessage,
+  buildBroadcastTotalFailureBody,
+  summarizeBroadcastFailures,
+} from "@/lib/messages/admin-broadcast-route-response";
+import {
   hasAdminBroadcastAudienceSelection,
   parseAdminBroadcastAudience,
 } from "@/lib/messages/parse-admin-broadcast-audience";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/school-admin/messages/broadcast";
+
+export const maxDuration = 300;
 
 async function parseBroadcastRequest(request: Request): Promise<{
   organizationId: string;
@@ -23,6 +31,7 @@ async function parseBroadcastRequest(request: Request): Promise<{
   body: string;
   files: File[];
   audience: ReturnType<typeof parseAdminBroadcastAudience>;
+  broadcastBatchId: string | null;
 }> {
   const contentType = request.headers.get("content-type") ?? "";
 
@@ -40,6 +49,7 @@ async function parseBroadcastRequest(request: Request): Promise<{
     const files = formData
       .getAll("files")
       .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+    const broadcastBatchId = String(formData.get("broadcastBatchId") ?? "").trim() || null;
 
     return {
       organizationId,
@@ -48,6 +58,7 @@ async function parseBroadcastRequest(request: Request): Promise<{
       body,
       files,
       audience: parseAdminBroadcastAudience(audience),
+      broadcastBatchId,
     };
   }
 
@@ -57,6 +68,7 @@ async function parseBroadcastRequest(request: Request): Promise<{
     schoolName?: string;
     body?: string;
     audience?: unknown;
+    broadcastBatchId?: string;
   };
 
   return {
@@ -66,6 +78,7 @@ async function parseBroadcastRequest(request: Request): Promise<{
     body: json.body?.trim() ?? "",
     files: [],
     audience: parseAdminBroadcastAudience(json.audience),
+    broadcastBatchId: json.broadcastBatchId?.trim() || null,
   };
 }
 
@@ -74,8 +87,15 @@ export async function POST(request: Request) {
 
   try {
     const parsed = await parseBroadcastRequest(request);
-    const { organizationId, organizationSlug, schoolName, body, files, audience } =
-      parsed;
+    const {
+      organizationId,
+      organizationSlug,
+      schoolName,
+      body,
+      files,
+      audience,
+      broadcastBatchId,
+    } = parsed;
 
     if (!organizationId) {
       return apiError(ROUTE, {
@@ -121,16 +141,30 @@ export async function POST(request: Request) {
       audience,
       userId: user.id,
       staffMemberId,
+      broadcastBatchId,
       activityMetadata: activityClientMetadataFromRequest(request),
     });
 
-    if (result.sentCount === 0) {
-      return apiError(ROUTE, {
-        request,
-        status: 500,
-        error: "Unable to send messages to the selected parents.",
-        code: "broadcast_failed",
+    if (result.failedCount > 0) {
+      void reportOperationalError({
+        supabase: admin,
+        surface: "school_admin",
+        organizationId,
+        operation: "school_admin_messages_broadcast_partial_failure",
+        error: buildBroadcastPartialFailureMessage(result),
+        code: result.sentCount === 0 ? "broadcast_failed" : "broadcast_partial_failure",
+        metadata: {
+          sentCount: result.sentCount,
+          failedCount: result.failedCount,
+          failures: summarizeBroadcastFailures(result.failures),
+        },
+        notify: true,
+        actor: { type: "school_admin", userId: user.id, email: user.email },
       });
+    }
+
+    if (result.sentCount === 0) {
+      return NextResponse.json(buildBroadcastTotalFailureBody(result), { status: 500 });
     }
 
     return NextResponse.json(result);

@@ -23,6 +23,34 @@ type FetchTeacherApiOptions = {
   body?: unknown;
 };
 
+type TeacherApiErrorPayload = {
+  error?: string;
+  code?: string;
+};
+
+export class TeacherPortalApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'TeacherPortalApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function throwTeacherApiError(
+  payload: TeacherApiErrorPayload,
+  status: number,
+): never {
+  throw new TeacherPortalApiError(
+    typeof payload.error === 'string' ? payload.error : 'Request failed.',
+    status,
+    typeof payload.code === 'string' ? payload.code : undefined,
+  );
+}
+
 export async function fetchTeacherApi<T>(
   path: string,
   options: FetchTeacherApiOptions = {},
@@ -33,10 +61,10 @@ export async function fetchTeacherApi<T>(
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const payload = (await response.json().catch(() => ({}))) as T & TeacherApiErrorPayload;
   await assertApiAuthenticated(response);
   if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+    throwTeacherApiError(payload, response.status);
   }
 
   return payload;
@@ -53,10 +81,10 @@ export async function fetchTeacherApiFormData<T>(
     body: formData,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const payload = (await response.json().catch(() => ({}))) as T & TeacherApiErrorPayload;
   await assertApiAuthenticated(response);
   if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+    throwTeacherApiError(payload, response.status);
   }
 
   return payload;

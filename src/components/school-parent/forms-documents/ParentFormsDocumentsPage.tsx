@@ -28,6 +28,7 @@ type ParentFormsDocumentsPageProps = {
   initialBundle: ParentFormsDocumentsPageBundle;
   readOnly?: boolean;
   initialFormId?: string;
+  uploadPreviewUrlsByFormId?: Record<string, string>;
 };
 
 const fadeUp = {
@@ -132,6 +133,7 @@ function ParentFormsDocumentsPageContent({
   initialBundle,
   readOnly = false,
   initialFormId,
+  uploadPreviewUrlsByFormId,
 }: ParentFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
   const reducedMotion = useReducedMotion();
@@ -249,6 +251,11 @@ function ParentFormsDocumentsPageContent({
         formId={selectedFormId}
         initialItem={selectedItem}
         readOnly={readOnly}
+        uploadPreviewUrl={
+          selectedFormId
+            ? (uploadPreviewUrlsByFormId?.[selectedFormId] ?? null)
+            : null
+        }
         onClose={closeSidebar}
         onSubmitted={handleSubmitted}
       />

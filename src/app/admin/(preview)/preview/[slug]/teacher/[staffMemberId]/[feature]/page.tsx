@@ -20,6 +20,7 @@ import {
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
+import { mintTeacherFormUploadPreviewUrls } from "@/lib/school-teacher/forms-documents/mint-teacher-form-upload-preview-urls";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -189,6 +190,11 @@ export default async function StaffTeacherPreviewFeaturePage({
       org.id,
       staffMemberId,
     );
+    const uploadPreviewUrlsByFormId = await mintTeacherFormUploadPreviewUrls(
+      admin,
+      org.id,
+      pageData.forms,
+    );
 
     return (
       <TeacherFormsDocumentsPage
@@ -199,6 +205,7 @@ export default async function StaffTeacherPreviewFeaturePage({
         initialResponsesByFormId={pageData.responsesByFormId}
         classroomOptions={pageData.classroomOptions}
         previewMode
+        uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
       />
     );
   }

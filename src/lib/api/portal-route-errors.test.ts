@@ -39,4 +39,44 @@ describe("portalRouteErrorStatus", () => {
     assert.equal(resolved.status, 500);
     assert.equal(resolved.code, "internal_error");
   });
+
+  it("maps form classroom scope errors to 403", () => {
+    const teacherScope = portalRouteErrorStatus(
+      new Error("You can only assign forms to your classrooms."),
+      "Fallback",
+    );
+    assert.equal(teacherScope.status, 403);
+    assert.equal(teacherScope.code, "forbidden");
+
+    const adminScope = portalRouteErrorStatus(
+      new Error("One or more selected classrooms are invalid."),
+      "Fallback",
+    );
+    assert.equal(adminScope.status, 403);
+    assert.equal(adminScope.code, "forbidden");
+  });
+
+  it("maps form validation errors to 400", () => {
+    for (const message of [
+      "Title is required.",
+      "Select at least one classroom.",
+      "Built forms must include a signature field.",
+      "Upload a document before saving.",
+      "Type your full legal name to sign.",
+      '"Emergency contact" is required.',
+    ]) {
+      const resolved = portalRouteErrorStatus(new Error(message), "Fallback");
+      assert.equal(resolved.status, 400, message);
+      assert.equal(resolved.code, "invalid_request", message);
+    }
+  });
+
+  it("maps already signed form to 400 before generic already conflict", () => {
+    const resolved = portalRouteErrorStatus(
+      new Error("This form has already been signed."),
+      "Fallback",
+    );
+    assert.equal(resolved.status, 400);
+    assert.equal(resolved.code, "invalid_request");
+  });
 });

@@ -8,17 +8,19 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { TeacherParentForm } from "@/lib/school-teacher/forms-documents/types";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 
+const PREVIEW_UNAVAILABLE = "Document preview unavailable in preview mode.";
+
 type ParentFormDocumentPreviewProps = {
   theme: ParentThemeTokens;
   form: TeacherParentForm;
   organizationId: string;
   readOnly?: boolean;
+  previewUrl?: string | null;
   localPreviewUrl?: string | null;
   previewHeightClass?: string;
 };
 
 type PreviewState =
-  | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; url: string }
   | { status: "error"; message: string };
@@ -28,22 +30,30 @@ export default function ParentFormDocumentPreview({
   form,
   organizationId,
   readOnly = false,
+  previewUrl = null,
   localPreviewUrl = null,
   previewHeightClass = TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS,
 }: ParentFormDocumentPreviewProps) {
-  const [previewState, setPreviewState] = useState<PreviewState>({ status: "idle" });
+  const [previewState, setPreviewState] = useState<PreviewState>({ status: "loading" });
 
   const loadPreview = useCallback(async () => {
-    if (readOnly) return;
     if (form.uploadFormat === "docx") {
-      setPreviewState({ status: "idle" });
       return;
     }
 
-    if (localPreviewUrl) {
+    const resolvedUrl = previewUrl ?? localPreviewUrl;
+    if (resolvedUrl) {
       setPreviewState({
         status: "ready",
-        url: buildEmbeddedPdfViewerUrl(localPreviewUrl),
+        url: buildEmbeddedPdfViewerUrl(resolvedUrl),
+      });
+      return;
+    }
+
+    if (readOnly) {
+      setPreviewState({
+        status: "error",
+        message: PREVIEW_UNAVAILABLE,
       });
       return;
     }
@@ -61,10 +71,12 @@ export default function ParentFormDocumentPreview({
         message: error instanceof Error ? error.message : "Failed to load preview.",
       });
     }
-  }, [form.id, form.uploadFormat, localPreviewUrl, organizationId, readOnly]);
+  }, [form.id, form.uploadFormat, localPreviewUrl, organizationId, previewUrl, readOnly]);
 
   useEffect(() => {
-    void loadPreview();
+    queueMicrotask(() => {
+      void loadPreview();
+    });
   }, [loadPreview]);
 
   if (form.uploadFormat === "docx") {
@@ -81,7 +93,7 @@ export default function ParentFormDocumentPreview({
     );
   }
 
-  if (previewState.status === "loading" || previewState.status === "idle") {
+  if (previewState.status === "loading") {
     return (
       <div
         className={`${previewHeightClass} w-full animate-pulse rounded-xl`}
@@ -101,9 +113,11 @@ export default function ParentFormDocumentPreview({
         <p className="text-sm" style={{ color: theme.muted }}>
           {previewState.message}
         </p>
-        <ParentButton theme={theme} variant="outline" onClick={() => void loadPreview()}>
-          Try again
-        </ParentButton>
+        {!readOnly ? (
+          <ParentButton theme={theme} variant="outline" onClick={() => void loadPreview()}>
+            Try again
+          </ParentButton>
+        ) : null}
       </div>
     );
   }

@@ -19,21 +19,13 @@ import { Spacing } from '@/constants/theme';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { teacherMessageThreadRoute, teacherNewMessageThreadRoute } from '@/lib/teacher/teacher-nav';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 
 type TeacherMessagesListScreenProps = {
   organizationId: string;
   organizationSlug: string;
   schoolName: string;
 };
-
-function teacherFeatureEnabled(
-  features: { teacher?: Record<string, boolean> } | undefined,
-  key: string,
-): boolean {
-  const teacher = features?.teacher;
-  if (!teacher || typeof teacher !== 'object') return false;
-  return Boolean(teacher[key]);
-}
 
 function sortThreadsByRecency<T extends { lastMessageAt: string | null }>(threads: T[]): T[] {
   return [...threads].sort((a, b) => {
@@ -62,7 +54,7 @@ export function TeacherMessagesListScreen({
   const theme = useParentTheme();
   const router = useRouter();
   const { data: homeData } = useTeacherHome();
-  const messagesEnabled = teacherFeatureEnabled(homeData?.features, 'messages');
+  const messagesEnabled = isTeacherFeatureEnabled(homeData?.features, 'messages');
   const {
     threads,
     contacts,

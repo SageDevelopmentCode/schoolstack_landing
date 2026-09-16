@@ -1,16 +1,37 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ADMIN_BROADCAST_MAX_RECIPIENTS } from "@/lib/messages/admin-broadcast-constants";
+import { logNotificationFailure } from "@/lib/admissions/notification-logging";
+import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
+import {
+  ADMIN_BROADCAST_MAX_RECIPIENTS,
+  ADMIN_BROADCAST_SEND_CONCURRENCY,
+} from "@/lib/messages/admin-broadcast-constants";
+import {
+  loadBroadcastDeliveries,
+  recordBroadcastDelivery,
+} from "@/lib/messages/admin-broadcast-deliveries";
 import {
   findOrCreateThread,
   resolveParticipantsForContact,
 } from "@/lib/messages/api-helpers";
-import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import {
   resolveAdminBroadcastGuardians,
   type AdminBroadcastAudienceInput,
 } from "@/lib/messages/admin-broadcast-audience";
+import { dispatchMessageNotifications } from "@/lib/messages/message-notifications";
+import {
+  deleteMessageAttachmentFiles,
+  type MessageAttachmentMeta,
+  uploadBroadcastStagingAttachments,
+} from "@/lib/messages/message-attachment-storage";
+import { mapWithConcurrency } from "@/lib/messages/map-with-concurrency";
+import {
+  postPortalMessage,
+  postPortalMessageWithStagingAttachments,
+} from "@/lib/messages/messages";
+import { getThreadParticipantKinds, markThreadRead } from "@/lib/messages/threads";
+import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import type { MessageContact } from "@/lib/messages/types";
 
 export type AdminBroadcastFailure = {
@@ -34,6 +55,7 @@ export type AdminBroadcastSendInput = {
   audience: AdminBroadcastAudienceInput;
   userId: string;
   staffMemberId?: string | null;
+  broadcastBatchId?: string | null;
   activityMetadata?: Record<string, unknown>;
 };
 
@@ -73,48 +95,168 @@ export async function adminBroadcastSend(
     );
   }
 
+  const broadcastBatchId = input.broadcastBatchId ?? crypto.randomUUID();
   const schoolOfficeLabel = `${input.schoolName} Office`;
   const failures: AdminBroadcastFailure[] = [];
   let sentCount = 0;
 
-  for (const contact of contacts) {
-    if (contact.kind !== "guardian" || !contact.guardianId) continue;
+  const isAdmin = await userIsOrgAdmin(admin, input.userId, input.organizationId);
+  if (!isAdmin) {
+    throw new Error("Admin access required.");
+  }
 
-    try {
-      const participants = await resolveParticipantsForContact(
+  let senderStaffMemberId = input.staffMemberId ?? null;
+  if (!senderStaffMemberId) {
+    senderStaffMemberId = await getStaffMemberIdForUser(
+      admin,
+      input.userId,
+      input.organizationId,
+    );
+  }
+
+  const files = input.files ?? [];
+  let stagingAttachments: MessageAttachmentMeta[] = [];
+  if (files.length > 0) {
+    stagingAttachments = await uploadBroadcastStagingAttachments(
+      admin,
+      input.organizationId,
+      broadcastBatchId,
+      files,
+    );
+  }
+
+  const existingDeliveries = await loadBroadcastDeliveries(admin, broadcastBatchId);
+
+  const messageContext = {
+    families: new Map(),
+    staffMembers: new Map(),
+    guardians: new Map(),
+    familyPrimaryGuardianIds: new Map(),
+    familyFirstGuardianIds: new Map(),
+    familyEnrolledStudents: new Map(),
+    schoolOfficeLabel,
+    currentUserId: input.userId,
+  };
+
+  const guardianContacts = contacts.filter(
+    (contact): contact is MessageContact & { guardianId: string } =>
+      contact.kind === "guardian" && Boolean(contact.guardianId),
+  );
+
+  try {
+    const recipientResults = await mapWithConcurrency(
+      guardianContacts,
+      ADMIN_BROADCAST_SEND_CONCURRENCY,
+      async (contact) => {
+        if (existingDeliveries.has(contact.guardianId)) {
+          return { status: "sent" as const };
+        }
+
+        try {
+          const participants = await resolveParticipantsForContact(
+            admin,
+            input.organizationId,
+            contact,
+            {
+              staffMemberId: senderStaffMemberId,
+              viewer: "admin",
+            },
+          );
+          const threadId = await findOrCreateThread(
+            admin,
+            input.organizationId,
+            participants,
+          );
+
+          const participantKinds = await getThreadParticipantKinds(admin, threadId);
+          const hasOffice = participantKinds.includes("school_office");
+          const senderKind = hasOffice ? "org_admin" : "staff_member";
+
+          const message =
+            stagingAttachments.length > 0
+              ? await postPortalMessageWithStagingAttachments(
+                  admin,
+                  {
+                    organizationId: input.organizationId,
+                    threadId,
+                    body: input.body,
+                    senderUserId: input.userId,
+                    senderKind,
+                    senderStaffMemberId,
+                  },
+                  messageContext,
+                  stagingAttachments,
+                )
+              : await postPortalMessage(
+                  admin,
+                  {
+                    organizationId: input.organizationId,
+                    threadId,
+                    body: input.body,
+                    senderUserId: input.userId,
+                    senderKind,
+                    senderStaffMemberId,
+                  },
+                  messageContext,
+                );
+
+          await markThreadRead(admin, threadId, input.userId);
+
+          await recordBroadcastDelivery(admin, {
+            broadcastBatchId,
+            organizationId: input.organizationId,
+            guardianId: contact.guardianId,
+            threadId,
+            messageId: message.id,
+          });
+
+          void dispatchMessageNotifications(admin, {
+            organizationId: input.organizationId,
+            organizationSlug: input.organizationSlug,
+            schoolName: input.schoolName,
+            threadId,
+            senderUserId: input.userId,
+            senderName: message.senderName,
+            message,
+            viewer: "admin",
+            activityMetadata: input.activityMetadata,
+          }).catch((err) => {
+            void logNotificationFailure(admin, {
+              organizationId: input.organizationId,
+              operation: "messages.dispatch_notification",
+              error: err,
+              entityType: "message_thread",
+              entityId: threadId,
+            });
+          });
+
+          return { status: "sent" as const };
+        } catch (err) {
+          return {
+            status: "failed" as const,
+            failure: {
+              guardianId: contact.guardianId,
+              name: contact.name,
+              error: err instanceof Error ? err.message : "Failed to send message.",
+            },
+          };
+        }
+      },
+    );
+
+    for (const result of recipientResults) {
+      if (result.status === "sent") {
+        sentCount += 1;
+      } else {
+        failures.push(result.failure);
+      }
+    }
+  } finally {
+    if (stagingAttachments.length > 0) {
+      await deleteMessageAttachmentFiles(
         admin,
-        input.organizationId,
-        contact,
-        {
-          staffMemberId: input.staffMemberId,
-          viewer: "admin",
-        },
-      );
-      const threadId = await findOrCreateThread(
-        admin,
-        input.organizationId,
-        participants,
-      );
-      await sendMessageForViewer(admin, {
-        organizationId: input.organizationId,
-        organizationSlug: input.organizationSlug,
-        threadId,
-        body: input.body,
-        files: input.files,
-        userId: input.userId,
-        viewer: "admin",
-        staffMemberId: input.staffMemberId,
-        schoolName: input.schoolName,
-        schoolOfficeLabel,
-        activityMetadata: input.activityMetadata,
-      });
-      sentCount += 1;
-    } catch (err) {
-      failures.push({
-        guardianId: contact.guardianId,
-        name: contact.name,
-        error: err instanceof Error ? err.message : "Failed to send message.",
-      });
+        stagingAttachments.map((attachment) => attachment.storagePath),
+      ).catch(() => undefined);
     }
   }
 

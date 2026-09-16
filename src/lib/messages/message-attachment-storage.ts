@@ -39,6 +39,16 @@ export function buildMessageAttachmentStoragePath(
   return `${organizationId}/message-threads/${threadId}/${messageId}/${fileId}_${safeName}`;
 }
 
+export function buildBroadcastStagingStoragePath(
+  organizationId: string,
+  broadcastBatchId: string,
+  fileName: string,
+  fileId = crypto.randomUUID(),
+): string {
+  const safeName = fileName.replace(/[/\\]/g, "_");
+  return `${organizationId}/message-broadcasts/${broadcastBatchId}/${fileId}_${safeName}`;
+}
+
 export function validateMessageAttachmentFile(file: File): void {
   if (file.size > MAX_MESSAGE_ATTACHMENT_BYTES) {
     throw new Error(`"${file.name}" exceeds the 10 MB limit.`);
@@ -48,22 +58,27 @@ export function validateMessageAttachmentFile(file: File): void {
   }
 }
 
+async function prepareMessageAttachmentUpload(file: File): Promise<File> {
+  validateMessageAttachmentFile(file);
+
+  if (file.type === "image/jpeg" || file.type === "image/png") {
+    return compressImageForUpload(file, {
+      maxWidth: 2048,
+      maxHeight: 2048,
+      quality: 0.85,
+      skipBelowBytes: 300 * 1024,
+    });
+  }
+
+  return file;
+}
+
 export async function uploadMessageAttachment(
   supabase: SupabaseClient,
   ctx: MessageAttachmentUploadContext,
   file: File,
 ): Promise<MessageAttachmentMeta> {
-  validateMessageAttachmentFile(file);
-
-  const prepared =
-    file.type === "image/jpeg" || file.type === "image/png"
-      ? await compressImageForUpload(file, {
-          maxWidth: 2048,
-          maxHeight: 2048,
-          quality: 0.85,
-          skipBelowBytes: 300 * 1024,
-        })
-      : file;
+  const prepared = await prepareMessageAttachmentUpload(file);
 
   const fileId = crypto.randomUUID();
   const storagePath = buildMessageAttachmentStoragePath(
@@ -90,6 +105,57 @@ export async function uploadMessageAttachment(
     mimeType: prepared.type || null,
     sizeBytes: prepared.size,
   };
+}
+
+export async function uploadBroadcastStagingAttachments(
+  supabase: SupabaseClient,
+  organizationId: string,
+  broadcastBatchId: string,
+  files: File[],
+): Promise<MessageAttachmentMeta[]> {
+  const staged: MessageAttachmentMeta[] = [];
+
+  for (const file of files) {
+    const prepared = await prepareMessageAttachmentUpload(file);
+    const fileId = crypto.randomUUID();
+    const storagePath = buildBroadcastStagingStoragePath(
+      organizationId,
+      broadcastBatchId,
+      prepared.name,
+      fileId,
+    );
+
+    const { error: uploadError } = await supabase.storage
+      .from(PORTAL_MESSAGE_FILES_BUCKET)
+      .upload(storagePath, prepared, {
+        contentType: prepared.type || undefined,
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    staged.push({
+      id: fileId,
+      fileName: prepared.name,
+      storagePath,
+      mimeType: prepared.type || null,
+      sizeBytes: prepared.size,
+    });
+  }
+
+  return staged;
+}
+
+export async function copyMessageAttachment(
+  supabase: SupabaseClient,
+  sourcePath: string,
+  targetPath: string,
+): Promise<void> {
+  const { error: copyError } = await supabase.storage
+    .from(PORTAL_MESSAGE_FILES_BUCKET)
+    .copy(sourcePath, targetPath);
+
+  if (copyError) throw copyError;
 }
 
 export async function insertMessageAttachments(

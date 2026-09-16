@@ -4,6 +4,19 @@ import {
   portalTypeToMobileSurface,
   reportMobileOperationalError,
 } from '@/lib/mobile-activity';
+import { TeacherPortalApiError } from '@/lib/teacher/teacher-portal-api';
+
+function resolveResponseStatus(err: unknown, explicit?: number): number | undefined {
+  if (explicit !== undefined) {
+    return explicit;
+  }
+
+  if (err instanceof TeacherPortalApiError) {
+    return err.status;
+  }
+
+  return undefined;
+}
 
 export type MobileErrorReportOptions = {
   error?: string;
@@ -35,6 +48,7 @@ export function createMobileErrorReporter(
     }
 
     const parsed = parseMobileOperationalError(err);
+    const responseStatus = resolveResponseStatus(err, options.responseStatus);
 
     void reportMobileOperationalError(
       {
@@ -42,7 +56,10 @@ export function createMobileErrorReporter(
         surface,
         operation,
         error: options.error ?? parsed.message,
-        code: options.code ?? parsed.code,
+        code:
+          options.code ??
+          parsed.code ??
+          (err instanceof TeacherPortalApiError ? err.code : undefined),
         details: options.details ?? parsed.details,
         entityType: options.entityType,
         entityId: options.entityId,
@@ -50,7 +67,7 @@ export function createMobileErrorReporter(
         notify: options.notify,
       },
       err,
-      options.responseStatus,
+      responseStatus,
     );
   };
 }

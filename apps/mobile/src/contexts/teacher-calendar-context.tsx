@@ -9,7 +9,9 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useTeacherHome } from '@/contexts/teacher-home-context';
 import { createTeacherPortalErrorReporter } from '@/lib/mobile-error-reporter';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import {
   fetchTeacherCalendarData,
   type TeacherCalendarData,
@@ -62,6 +64,20 @@ export async function hydrateTeacherCalendarFromDisk(
   return calendarCache.hydrateFromDisk(cacheKey(organizationId, slug));
 }
 
+function settleDisabledCalendar(
+  setData: (data: TeacherCalendarData | null) => void,
+  setHasLoaded: (hasLoaded: boolean) => void,
+  setIsLoading: (isLoading: boolean) => void,
+  setIsRefreshing: (isRefreshing: boolean) => void,
+  setError: (error: string | null) => void,
+): void {
+  setData(null);
+  setHasLoaded(true);
+  setIsLoading(false);
+  setIsRefreshing(false);
+  setError(null);
+}
+
 type TeacherCalendarProviderProps = {
   children: ReactNode;
   organizationId: string;
@@ -75,6 +91,8 @@ export function TeacherCalendarProvider({
 }: TeacherCalendarProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = calendarCache.get(key);
+  const { data: homeData, hasLoaded: homeHasLoaded } = useTeacherHome();
+  const calendarEnabled = isTeacherFeatureEnabled(homeData?.features, 'calendar');
 
   const [data, setData] = useState<TeacherCalendarData | null>(cached);
   const [isLoading, setIsLoading] = useState(!cached);
@@ -89,6 +107,15 @@ export function TeacherCalendarProvider({
 
   const load = useCallback(
     async (options?: { refresh?: boolean }) => {
+      if (!homeHasLoaded) {
+        return;
+      }
+
+      if (!calendarEnabled) {
+        settleDisabledCalendar(setData, setHasLoaded, setIsLoading, setIsRefreshing, setError);
+        return;
+      }
+
       const isRefresh = options?.refresh ?? false;
 
       if (fetchPromiseRef.current && !isRefresh) {
@@ -127,7 +154,7 @@ export function TeacherCalendarProvider({
       }
       await promise;
     },
-    [data, key, organizationId, reportError, slug],
+    [calendarEnabled, data, homeHasLoaded, key, organizationId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
@@ -152,6 +179,15 @@ export function TeacherCalendarProvider({
       setHasLoaded(resolved.hasLoaded);
       setIsLoading(resolved.isLoading);
       setError(null);
+
+      if (!homeHasLoaded) {
+        return;
+      }
+
+      if (!calendarEnabled) {
+        settleDisabledCalendar(setData, setHasLoaded, setIsLoading, setIsRefreshing, setError);
+        return;
+      }
 
       if (!resolved.shouldBackgroundRefresh) {
         return;
@@ -186,7 +222,7 @@ export function TeacherCalendarProvider({
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [calendarEnabled, homeHasLoaded, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

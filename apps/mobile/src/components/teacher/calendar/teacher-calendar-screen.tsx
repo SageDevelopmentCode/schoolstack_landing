@@ -15,20 +15,12 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 
 type TeacherCalendarScreenProps = {
   organizationId: string;
   slug: string;
 };
-
-function teacherFeatureEnabled(
-  features: { teacher?: Record<string, boolean> } | undefined,
-  key: string,
-): boolean {
-  const teacher = features?.teacher;
-  if (!teacher || typeof teacher !== 'object') return false;
-  return Boolean(teacher[key]);
-}
 
 export function TeacherCalendarScreen({ organizationId }: TeacherCalendarScreenProps) {
   const theme = useParentTheme();
@@ -40,7 +32,7 @@ export function TeacherCalendarScreen({ organizationId }: TeacherCalendarScreenP
     ensureLoaded();
   }, [ensureHomeLoaded, ensureLoaded]);
 
-  const calendarEnabled = teacherFeatureEnabled(homeData?.features, 'calendar');
+  const calendarEnabled = isTeacherFeatureEnabled(homeData?.features, 'calendar');
 
   if (!calendarEnabled && homeData) {
     return (

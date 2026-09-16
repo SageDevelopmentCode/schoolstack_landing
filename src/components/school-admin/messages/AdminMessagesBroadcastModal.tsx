@@ -31,11 +31,27 @@ type BroadcastPreviewResponse = {
   exceedsLimit: boolean;
 };
 
+type BroadcastFailure = {
+  guardianId: string;
+  name: string;
+  error: string;
+};
+
 type BroadcastSendResponse = {
   sentCount: number;
   failedCount: number;
-  failures: { guardianId: string; name: string; error: string }[];
+  failures: BroadcastFailure[];
 };
+
+class BroadcastSendError extends Error {
+  failures: BroadcastFailure[];
+
+  constructor(message: string, failures: BroadcastFailure[] = []) {
+    super(message);
+    this.name = "BroadcastSendError";
+    this.failures = failures;
+  }
+}
 
 type AdminMessagesBroadcastModalProps = {
   open: boolean;
@@ -72,7 +88,8 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error ?? "Request failed.");
+    const failures = Array.isArray(data.failures) ? data.failures : [];
+    throw new BroadcastSendError(data.error ?? "Request failed.", failures);
   }
   return data as T;
 }
@@ -106,6 +123,8 @@ export default function AdminMessagesBroadcastModal({
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sendFailures, setSendFailures] = useState<BroadcastFailure[]>([]);
+  const [broadcastBatchId, setBroadcastBatchId] = useState<string | null>(null);
 
   const parentContacts = useMemo(
     () => filterContactsByAudience(contacts, "parents"),
@@ -128,6 +147,8 @@ export default function AdminMessagesBroadcastModal({
     setFiles([]);
     setSending(false);
     setConfirmOpen(false);
+    setSendFailures([]);
+    setBroadcastBatchId(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -151,7 +172,7 @@ export default function AdminMessagesBroadcastModal({
     if (!open) return;
 
     let cancelled = false;
-    setLoadingOptions(true);
+    queueMicrotask(() => setLoadingOptions(true));
 
     void fetchJson<{
       programs: AdminBroadcastOptionProgram[];
@@ -181,15 +202,17 @@ export default function AdminMessagesBroadcastModal({
     if (!open) return undefined;
 
     if (!hasAdminBroadcastAudienceSelection(audience)) {
-      setPreviewCount(0);
-      setPreviewRecipientNames([]);
-      setPreviewExceedsLimit(false);
-      setPreviewLoading(false);
+      queueMicrotask(() => {
+        setPreviewCount(0);
+        setPreviewRecipientNames([]);
+        setPreviewExceedsLimit(false);
+        setPreviewLoading(false);
+      });
       return undefined;
     }
 
     let cancelled = false;
-    setPreviewLoading(true);
+    queueMicrotask(() => setPreviewLoading(true));
     const timeout = window.setTimeout(() => {
       void fetchJson<BroadcastPreviewResponse>(
         "/api/school-admin/messages/broadcast/preview",
@@ -234,7 +257,13 @@ export default function AdminMessagesBroadcastModal({
   const handleSend = async () => {
     if (!canSend || sending) return;
 
+    const batchId = broadcastBatchId ?? crypto.randomUUID();
+    if (!broadcastBatchId) {
+      setBroadcastBatchId(batchId);
+    }
+
     setSending(true);
+    setSendFailures([]);
     try {
       const formData = new FormData();
       formData.set("organizationId", organizationId);
@@ -242,6 +271,7 @@ export default function AdminMessagesBroadcastModal({
       formData.set("schoolName", schoolName);
       formData.set("body", messageBody.trim());
       formData.set("audience", JSON.stringify(audience));
+      formData.set("broadcastBatchId", batchId);
       for (const file of files) {
         formData.append("files", file);
       }
@@ -255,18 +285,27 @@ export default function AdminMessagesBroadcastModal({
       );
 
       if (result.failedCount > 0) {
-        adminToast.info(
-          `Sent to ${result.sentCount} parent${result.sentCount === 1 ? "" : "s"}. ${result.failedCount} failed.`,
-        );
-      } else {
-        adminToast.success(
-          `Sent to ${result.sentCount} parent${result.sentCount === 1 ? "" : "s"}.`,
-        );
+        setSendFailures(result.failures);
+        if (result.sentCount > 0) {
+          adminToast.info(
+            `Sent to ${result.sentCount} parent${result.sentCount === 1 ? "" : "s"}. ${result.failedCount} could not be reached.`,
+          );
+          onSent();
+        } else {
+          adminToast.error("Unable to send messages to the selected parents.");
+        }
+        return;
       }
 
+      adminToast.success(
+        `Sent to ${result.sentCount} parent${result.sentCount === 1 ? "" : "s"}.`,
+      );
       onSent();
       handleClose();
     } catch (err) {
+      if (err instanceof BroadcastSendError && err.failures.length > 0) {
+        setSendFailures(err.failures);
+      }
       adminToast.error(formatActionError(err, "Failed to send bulk messages."));
     } finally {
       setSending(false);
@@ -392,6 +431,34 @@ export default function AdminMessagesBroadcastModal({
                     theme={theme}
                     placeholder="Write a message to send to each parent individually…"
                   />
+                  {sendFailures.length > 0 ? (
+                    <div
+                      className="rounded-xl border px-4 py-3 text-sm"
+                      style={{
+                        borderColor: "#F5C2C7",
+                        backgroundColor: "#FFF5F5",
+                        color: theme.ink,
+                      }}
+                    >
+                      <p className="font-semibold">
+                        {sendFailures.length === 1
+                          ? "1 parent could not be reached:"
+                          : `${sendFailures.length} parents could not be reached:`}
+                      </p>
+                      <ul className="mt-2 list-disc space-y-1 pl-5">
+                        {sendFailures.map((failure) => (
+                          <li key={failure.guardianId}>
+                            <span className="font-medium">{failure.name}</span>
+                            {failure.error ? ` — ${failure.error}` : null}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs" style={{ color: theme.muted }}>
+                        Fix any issues, then send again. Parents who already received this
+                        message will not get a duplicate.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

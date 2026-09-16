@@ -78,6 +78,14 @@ function buildStoredResponses(
   };
 }
 
+function isParentFormSignConflict(error: { message?: string; code?: string }): boolean {
+  return (
+    error.code === "P0001" ||
+    (typeof error.message === "string" &&
+      error.message.includes("form_already_signed"))
+  );
+}
+
 export async function submitParentFormResponse(
   admin: SupabaseClient,
   organizationId: string,
@@ -99,40 +107,23 @@ export async function submitParentFormResponse(
   const storedResponses = buildStoredResponses(detail, input);
   const now = new Date().toISOString();
 
-  const { error: responseError } = await admin
-    .from("teacher_parent_form_responses")
-    .update({
-      status: "signed",
-      signed_at: now,
-      responses: storedResponses,
-      updated_at: now,
-    })
-    .eq("organization_id", organizationId)
-    .eq("family_id", familyId)
-    .eq("form_id", formId);
+  const { error: signError } = await admin.rpc(
+    "sign_teacher_parent_form_response_atomic",
+    {
+      p_organization_id: organizationId,
+      p_form_id: formId,
+      p_family_id: familyId,
+      p_responses: storedResponses,
+      p_signed_at: now,
+    },
+  );
 
-  if (responseError) throw responseError;
-
-  const { data: formRow, error: formLoadError } = await admin
-    .from("teacher_parent_forms")
-    .select("signed_families")
-    .eq("organization_id", organizationId)
-    .eq("id", formId)
-    .maybeSingle();
-
-  if (formLoadError) throw formLoadError;
-
-  const signedFamilies = Number(formRow?.signed_families ?? 0) + 1;
-  const { error: formUpdateError } = await admin
-    .from("teacher_parent_forms")
-    .update({
-      signed_families: signedFamilies,
-      updated_at: now,
-    })
-    .eq("organization_id", organizationId)
-    .eq("id", formId);
-
-  if (formUpdateError) throw formUpdateError;
+  if (signError) {
+    if (isParentFormSignConflict(signError)) {
+      throw new Error("This form has already been signed.");
+    }
+    throw signError;
+  }
 
   const updated = await assertParentFormAccess(
     admin,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Archive, Copy, Download, FileText, Pencil, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -31,6 +31,7 @@ type TeacherFormDetailSidebarProps = {
   organizationId: string;
   detailLoading?: boolean;
   previewMode?: boolean;
+  previewUrl?: string | null;
   actionLoading?: boolean;
   onClose: () => void;
   onArchive?: (formId: string) => void;
@@ -60,6 +61,7 @@ export default function TeacherFormDetailSidebar({
   organizationId,
   detailLoading = false,
   previewMode = false,
+  previewUrl = null,
   actionLoading = false,
   onClose,
   onArchive,
@@ -68,13 +70,13 @@ export default function TeacherFormDetailSidebar({
   fetchDownloadUrl,
 }: TeacherFormDetailSidebarProps) {
   const reducedMotion = useReducedMotion() ?? false;
-  const displayedFormRef = useRef<TeacherParentForm | null>(null);
+  const [displayedForm, setDisplayedForm] = useState<TeacherParentForm | null>(form);
 
-  if (form) {
-    displayedFormRef.current = form;
-  }
-
-  const displayedForm = form ?? displayedFormRef.current;
+  useEffect(() => {
+    if (form) {
+      queueMicrotask(() => setDisplayedForm(form));
+    }
+  }, [form]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +104,7 @@ export default function TeacherFormDetailSidebar({
   const panelExit = reducedMotion ? { opacity: 0 } : { x: "100%", opacity: 0 };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => setDisplayedForm(null)}>
       {open ? (
         <motion.div
           className="fixed inset-0 z-[110]"
@@ -283,6 +285,7 @@ export default function TeacherFormDetailSidebar({
                           form={displayedForm}
                           organizationId={organizationId}
                           previewMode={previewMode}
+                          previewUrl={previewUrl}
                           fetchDownloadUrl={fetchDownloadUrl}
                         />
                       </div>

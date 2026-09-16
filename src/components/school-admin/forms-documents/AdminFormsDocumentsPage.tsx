@@ -256,12 +256,10 @@ function AdminFormsDocumentsPageContent({
 
   const formParam = searchParams.get("form") ?? initialFormId ?? null;
 
-  const initialSidebarFormId = useMemo(() => {
+  const selectedFormId = useMemo(() => {
     if (!formParam) return null;
-    return initialForms.some((form) => form.id === formParam) ? formParam : null;
-  }, [formParam, initialForms]);
-
-  const [sidebarFormId, setSidebarFormId] = useState<string | null>(initialSidebarFormId);
+    return forms.some((form) => form.id === formParam) ? formParam : null;
+  }, [formParam, forms]);
 
   const setFormParam = useCallback(
     (formId: string | null) => {
@@ -273,16 +271,6 @@ function AdminFormsDocumentsPageContent({
     },
     [pathname, router, searchParams],
   );
-
-  useEffect(() => {
-    if (!formParam) {
-      setSidebarFormId(null);
-      return;
-    }
-    if (forms.some((form) => form.id === formParam)) {
-      setSidebarFormId(formParam);
-    }
-  }, [formParam, forms]);
 
   const creatorOptions = useMemo(() => {
     const byId = new Map<string, string>();
@@ -302,16 +290,8 @@ function AdminFormsDocumentsPageContent({
   }, [creatorFilter, forms, staffMemberId]);
 
   const selectedForm = useMemo(
-    () => forms.find((form) => form.id === sidebarFormId) ?? null,
-    [forms, sidebarFormId],
-  );
-
-  const openSidebar = useCallback(
-    (formId: string) => {
-      setSidebarFormId(formId);
-      setFormParam(formId);
-    },
-    [setFormParam],
+    () => forms.find((form) => form.id === selectedFormId) ?? null,
+    [forms, selectedFormId],
   );
 
   const metrics = useMemo(() => computeFormMetrics(creatorScopedForms), [creatorScopedForms]);
@@ -346,7 +326,6 @@ function AdminFormsDocumentsPageContent({
         [adminForm.id]: signatureRows,
       }));
       setCreating(false);
-      setSidebarFormId(adminForm.id);
       setFormParam(adminForm.id);
     },
     [setFormParam],
@@ -396,12 +375,25 @@ function AdminFormsDocumentsPageContent({
     [organizationId],
   );
 
+  const openSidebar = useCallback(
+    (formId: string) => {
+      setFormParam(formId);
+      const hasSignatureRows = (signatureRowsByFormId[formId] ?? []).length > 0;
+      if (!hasSignatureRows) {
+        void refreshFormDetail(formId);
+      }
+    },
+    [refreshFormDetail, setFormParam, signatureRowsByFormId],
+  );
+
   useEffect(() => {
-    if (!sidebarFormId) return;
-    const hasSignatureRows = (signatureRowsByFormId[sidebarFormId] ?? []).length > 0;
+    if (!selectedFormId) return;
+    const hasSignatureRows = (signatureRowsByFormId[selectedFormId] ?? []).length > 0;
     if (hasSignatureRows) return;
-    void refreshFormDetail(sidebarFormId);
-  }, [sidebarFormId, refreshFormDetail, signatureRowsByFormId]);
+    queueMicrotask(() => {
+      void refreshFormDetail(selectedFormId);
+    });
+  }, [selectedFormId, refreshFormDetail, signatureRowsByFormId]);
 
   const handleArchive = useCallback(
     async (formId: string) => {
@@ -460,7 +452,6 @@ function AdminFormsDocumentsPageContent({
           throw new Error(payload.error ?? "Failed to duplicate form.");
         }
         setForms((current) => [payload.form!, ...current]);
-        setSidebarFormId(payload.form!.id);
         setFormParam(payload.form!.id);
       } catch (error) {
         void reportClientOperationalError({
@@ -492,7 +483,6 @@ function AdminFormsDocumentsPageContent({
   );
 
   const closeSidebar = useCallback(() => {
-    setSidebarFormId(null);
     setFormParam(null);
   }, [setFormParam]);
 
@@ -638,7 +628,7 @@ function AdminFormsDocumentsPageContent({
                     <FormListRow
                       key={form.id}
                       form={form}
-                      active={form.id === sidebarFormId}
+                      active={form.id === selectedFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -649,7 +639,7 @@ function AdminFormsDocumentsPageContent({
                     <FormListCard
                       key={form.id}
                       form={form}
-                      active={form.id === sidebarFormId}
+                      active={form.id === selectedFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -662,13 +652,13 @@ function AdminFormsDocumentsPageContent({
 
       <TeacherFormDetailSidebar
         theme={theme}
-        open={sidebarFormId != null}
+        open={selectedFormId != null}
         form={selectedForm}
         organizationId={organizationId}
         detailLoading={detailLoading}
         signatureRows={
-          sidebarFormId
-            ? getSignatureRowsForForm(sidebarFormId, signatureRowsByFormId)
+          selectedFormId
+            ? getSignatureRowsForForm(selectedFormId, signatureRowsByFormId)
             : []
         }
         actionLoading={actionLoading}

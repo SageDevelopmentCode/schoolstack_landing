@@ -44,6 +44,7 @@ type TeacherFormsDocumentsPageProps = {
   classroomOptions: TeacherClassroomOption[];
   previewMode?: boolean;
   initialFormId?: string;
+  uploadPreviewUrlsByFormId?: Record<string, string>;
 };
 
 function pageEnterVariants(reducedMotion: boolean): Variants {
@@ -228,6 +229,7 @@ function TeacherFormsDocumentsPageContent({
   classroomOptions,
   previewMode = false,
   initialFormId,
+  uploadPreviewUrlsByFormId,
 }: TeacherFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
   const reducedMotion = useReducedMotion() ?? false;
@@ -246,12 +248,10 @@ function TeacherFormsDocumentsPageContent({
 
   const formParam = searchParams.get("form") ?? initialFormId ?? null;
 
-  const initialSidebarFormId = useMemo(() => {
+  const selectedFormId = useMemo(() => {
     if (!formParam) return null;
-    return initialForms.some((form) => form.id === formParam) ? formParam : null;
-  }, [formParam, initialForms]);
-
-  const [sidebarFormId, setSidebarFormId] = useState<string | null>(initialSidebarFormId);
+    return forms.some((form) => form.id === formParam) ? formParam : null;
+  }, [formParam, forms]);
 
   const setFormParam = useCallback(
     (formId: string | null) => {
@@ -264,27 +264,9 @@ function TeacherFormsDocumentsPageContent({
     [pathname, router, searchParams],
   );
 
-  useEffect(() => {
-    if (!formParam) {
-      setSidebarFormId(null);
-      return;
-    }
-    if (forms.some((form) => form.id === formParam)) {
-      setSidebarFormId(formParam);
-    }
-  }, [formParam, forms]);
-
   const selectedForm = useMemo(
-    () => forms.find((form) => form.id === sidebarFormId) ?? null,
-    [forms, sidebarFormId],
-  );
-
-  const openSidebar = useCallback(
-    (formId: string) => {
-      setSidebarFormId(formId);
-      setFormParam(formId);
-    },
-    [setFormParam],
+    () => forms.find((form) => form.id === selectedFormId) ?? null,
+    [forms, selectedFormId],
   );
 
   const metrics = useMemo(() => computeFormMetrics(forms), [forms]);
@@ -318,7 +300,6 @@ function TeacherFormsDocumentsPageContent({
         [form.id]: signatureRows,
       }));
       setCreating(false);
-      setSidebarFormId(form.id);
       setFormParam(form.id);
     },
     [setFormParam],
@@ -372,12 +353,25 @@ function TeacherFormsDocumentsPageContent({
     [organizationId, previewMode],
   );
 
+  const openSidebar = useCallback(
+    (formId: string) => {
+      setFormParam(formId);
+      const hasSignatureRows = (signatureRowsByFormId[formId] ?? []).length > 0;
+      if (!hasSignatureRows) {
+        void refreshFormDetail(formId);
+      }
+    },
+    [refreshFormDetail, setFormParam, signatureRowsByFormId],
+  );
+
   useEffect(() => {
-    if (!sidebarFormId || previewMode) return;
-    const hasSignatureRows = (signatureRowsByFormId[sidebarFormId] ?? []).length > 0;
+    if (!selectedFormId || previewMode) return;
+    const hasSignatureRows = (signatureRowsByFormId[selectedFormId] ?? []).length > 0;
     if (hasSignatureRows) return;
-    void refreshFormDetail(sidebarFormId);
-  }, [sidebarFormId, previewMode, refreshFormDetail, signatureRowsByFormId]);
+    queueMicrotask(() => {
+      void refreshFormDetail(selectedFormId);
+    });
+  }, [selectedFormId, previewMode, refreshFormDetail, signatureRowsByFormId]);
 
   const handleArchive = useCallback(
     async (formId: string) => {
@@ -440,7 +434,6 @@ function TeacherFormsDocumentsPageContent({
           throw new Error(payload.error ?? "Failed to duplicate form.");
         }
         setForms((current) => [payload.form!, ...current]);
-        setSidebarFormId(payload.form!.id);
         setFormParam(payload.form!.id);
       } catch (error) {
         void reportPortalOperationalError(
@@ -481,7 +474,6 @@ function TeacherFormsDocumentsPageContent({
   );
 
   const closeSidebar = useCallback(() => {
-    setSidebarFormId(null);
     setFormParam(null);
   }, [setFormParam]);
 
@@ -596,7 +588,7 @@ function TeacherFormsDocumentsPageContent({
                     <FormListRow
                       key={form.id}
                       form={form}
-                      active={form.id === sidebarFormId}
+                      active={form.id === selectedFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -607,7 +599,7 @@ function TeacherFormsDocumentsPageContent({
                     <FormListCard
                       key={form.id}
                       form={form}
-                      active={form.id === sidebarFormId}
+                      active={form.id === selectedFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -620,16 +612,21 @@ function TeacherFormsDocumentsPageContent({
 
       <TeacherFormDetailSidebar
         theme={theme}
-        open={sidebarFormId != null}
+        open={selectedFormId != null}
         form={selectedForm}
         organizationId={organizationId}
         detailLoading={detailLoading}
         signatureRows={
-          sidebarFormId
-            ? getSignatureRowsForForm(sidebarFormId, signatureRowsByFormId)
+          selectedFormId
+            ? getSignatureRowsForForm(selectedFormId, signatureRowsByFormId)
             : []
         }
         previewMode={previewMode}
+        previewUrl={
+          selectedFormId
+            ? (uploadPreviewUrlsByFormId?.[selectedFormId] ?? null)
+            : null
+        }
         actionLoading={actionLoading}
         onClose={closeSidebar}
         onArchive={handleArchive}

@@ -14,7 +14,6 @@ import { prefetchParentBilling } from '@/contexts/parent-billing-context';
 import { prefetchParentCalendar } from '@/contexts/parent-calendar-context';
 import { prefetchParentHome } from '@/contexts/parent-home-context';
 import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
-import { prefetchTeacherCalendar } from '@/contexts/teacher-calendar-context';
 import { prefetchTeacherHome } from '@/contexts/teacher-home-context';
 import { prefetchTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-context';
 import { prefetchSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
@@ -72,7 +71,6 @@ function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
 function prefetchTeacherPortalData(school: LiveOrganization): void {
   void Promise.all([
     prefetchTeacherHome(school.id, school.slug),
-    prefetchTeacherCalendar(school.id, school.slug),
     prefetchTeacherMessagesInbox(school.id, school.name),
   ]);
 }

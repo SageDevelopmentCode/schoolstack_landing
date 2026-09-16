@@ -26,7 +26,10 @@ import {
   loadParentClassroomSignupsPageBundle,
   loadParentSignupAttentionItems,
 } from "@/lib/classroom-signups/load-parent-signups";
-import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
+import {
+  loadParentFormsDocumentsPageBundle,
+} from "@/lib/school-parent/forms-documents/load-parent-forms";
+import { mintParentFormUploadPreviewUrls } from "@/lib/school-parent/forms-documents/mint-parent-form-upload-preview-urls";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -271,6 +274,11 @@ export default async function FamilyPreviewParentFeaturePage({
       org.id,
       familyId,
     );
+    const uploadPreviewUrlsByFormId = await mintParentFormUploadPreviewUrls(
+      admin,
+      org.id,
+      initialBundle.items,
+    );
     const initialFormId =
       typeof resolvedSearchParams.form === "string"
         ? resolvedSearchParams.form
@@ -284,6 +292,7 @@ export default async function FamilyPreviewParentFeaturePage({
           initialBundle={initialBundle}
           readOnly
           initialFormId={initialFormId}
+          uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
         />
       </SchoolParentPageShell>
     );

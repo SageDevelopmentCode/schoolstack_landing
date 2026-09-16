@@ -45,20 +45,12 @@ import {
   type TeacherRosterScope,
 } from '@/lib/teacher/teacher-students-utils';
 import { getSupabaseClient } from '@/lib/supabase';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type TeacherMyStudentsScreenProps = {
   slug: string;
 };
-
-function teacherFeatureEnabled(
-  features: { teacher?: Record<string, boolean> } | undefined,
-  key: string,
-): boolean {
-  const teacher = features?.teacher;
-  if (!teacher || typeof teacher !== 'object') return false;
-  return Boolean(teacher[key]);
-}
 
 export function TeacherMyStudentsScreen({ slug: _slug }: TeacherMyStudentsScreenProps) {
   const theme = useParentTheme();
@@ -89,7 +81,7 @@ export function TeacherMyStudentsScreen({ slug: _slug }: TeacherMyStudentsScreen
   const assignedStudents = data?.summary.assignedStudents ?? [];
   const staffClassrooms = data?.summary.staffClassrooms ?? [];
   const staffMemberId = data?.summary.staffMemberId ?? null;
-  const myStudentsEnabled = teacherFeatureEnabled(data?.features, 'my_students');
+  const myStudentsEnabled = isTeacherFeatureEnabled(data?.features, 'my_students');
 
   const students = rosterScope === 'assigned' ? assignedStudents : (schoolStudents ?? []);
   const loading = rosterScope === 'assigned' ? isLoading && !data : loadingSchool;

@@ -8,16 +8,18 @@ import { TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS } from "@/lib/school-teacher
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { TeacherParentForm } from "@/lib/school-teacher/forms-documents/types";
 
+const PREVIEW_UNAVAILABLE = "Document preview unavailable in preview mode.";
+
 type TeacherFormDocumentPreviewProps = {
   theme: ParentThemeTokens;
   form: TeacherParentForm;
   organizationId: string;
   previewMode?: boolean;
+  previewUrl?: string | null;
   fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
 };
 
 type PreviewState =
-  | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; url: string }
   | { status: "error"; message: string };
@@ -27,18 +29,29 @@ export default function TeacherFormDocumentPreview({
   form,
   organizationId,
   previewMode = false,
+  previewUrl = null,
   fetchDownloadUrl,
 }: TeacherFormDocumentPreviewProps) {
-  const [previewState, setPreviewState] = useState<PreviewState>({ status: "idle" });
+  const [previewState, setPreviewState] = useState<PreviewState>({ status: "loading" });
 
   const loadPreview = useCallback(async () => {
-    if (previewMode) return;
-    if (form.status === "draft") {
-      setPreviewState({ status: "idle" });
+    if (form.status === "draft" || form.uploadFormat === "docx") {
       return;
     }
-    if (form.uploadFormat === "docx") {
-      setPreviewState({ status: "idle" });
+
+    if (previewUrl) {
+      setPreviewState({
+        status: "ready",
+        url: buildEmbeddedPdfViewerUrl(previewUrl),
+      });
+      return;
+    }
+
+    if (previewMode) {
+      setPreviewState({
+        status: "error",
+        message: PREVIEW_UNAVAILABLE,
+      });
       return;
     }
 
@@ -53,10 +66,20 @@ export default function TeacherFormDocumentPreview({
         message: error instanceof Error ? error.message : "Failed to load preview.",
       });
     }
-  }, [fetchDownloadUrl, form.id, form.status, form.uploadFormat, organizationId, previewMode]);
+  }, [
+    fetchDownloadUrl,
+    form.id,
+    form.status,
+    form.uploadFormat,
+    organizationId,
+    previewMode,
+    previewUrl,
+  ]);
 
   useEffect(() => {
-    void loadPreview();
+    queueMicrotask(() => {
+      void loadPreview();
+    });
   }, [loadPreview]);
 
   if (form.status === "draft") {
@@ -85,7 +108,7 @@ export default function TeacherFormDocumentPreview({
     );
   }
 
-  if (previewState.status === "loading" || previewState.status === "idle") {
+  if (previewState.status === "loading") {
     return (
       <div
         className={`${TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS} w-full animate-pulse rounded-xl`}
@@ -105,9 +128,16 @@ export default function TeacherFormDocumentPreview({
         <p className="text-sm" style={{ color: theme.muted }}>
           {previewState.message}
         </p>
-        <AdminButton theme={theme} variant="outline" size="compact" onClick={() => void loadPreview()}>
-          Try again
-        </AdminButton>
+        {!previewMode ? (
+          <AdminButton
+            theme={theme}
+            variant="outline"
+            size="compact"
+            onClick={() => void loadPreview()}
+          >
+            Try again
+          </AdminButton>
+        ) : null}
       </div>
     );
   }

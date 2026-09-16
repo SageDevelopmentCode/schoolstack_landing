@@ -22,6 +22,10 @@ import {
 } from "@/components/demo/shared/demo-story-theme";
 import DemoApplicationSubmissionsTab from "@/components/demo/shared/DemoApplicationSubmissionsTab";
 import DemoApplicationSubmissionDetailPanel from "@/components/demo/shared/DemoApplicationSubmissionDetailPanel";
+import {
+  DemoActivityTimelineRow,
+  type DemoActivityTimelineVariant,
+} from "@/components/demo/shared/DemoActivityTimelineRow";
 import { mapDemoLeadToSubmission } from "@/components/demo/shared/demo-submissions-mapper";
 import { fraunces, dmSans } from "@/lib/fonts";
 import {

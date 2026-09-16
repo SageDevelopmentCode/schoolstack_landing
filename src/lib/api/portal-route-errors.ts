@@ -32,6 +32,28 @@ export function portalRouteErrorStatus(
     return { status: 403, message, code: "forbidden" };
   }
 
+  if (
+    /^You can only assign forms to your classrooms\.$/.test(message) ||
+    /^One or more selected classrooms are invalid\.$/.test(message)
+  ) {
+    return { status: 403, message, code: "forbidden" };
+  }
+
+  if (/^This form has already been signed\.$/.test(message)) {
+    return { status: 400, message, code: "invalid_request" };
+  }
+
+  if (
+    /^Title is required\.$/.test(message) ||
+    /^Select at least one classroom\.$/.test(message) ||
+    /^Built forms must include a signature field\.$/.test(message) ||
+    /^Upload a document before saving\.$/.test(message) ||
+    /^Type your full legal name to sign\.$/.test(message) ||
+    /^"[^"]+" is required\.$/.test(message)
+  ) {
+    return { status: 400, message, code: "invalid_request" };
+  }
+
   if (/already/i.test(message)) {
     return { status: 409, message, code: "conflict" };
   }

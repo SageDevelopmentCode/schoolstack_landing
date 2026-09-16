@@ -97,11 +97,29 @@ export default function ParentFormDetailModal({
     if (!open) return;
 
     if (staffPreviewDetail) {
-      setDetail(staffPreviewDetail);
-      setSignerName("");
-      setFieldValues({});
-      setDetailError(null);
-      setIsLoadingDetail(false);
+      queueMicrotask(() => {
+        setDetail(staffPreviewDetail);
+        setSignerName("");
+        setFieldValues({});
+        setDetailError(null);
+        setIsLoadingDetail(false);
+      });
+      return;
+    }
+
+    if (
+      readOnly &&
+      initialItem &&
+      formId &&
+      initialItem.form.id === formId
+    ) {
+      queueMicrotask(() => {
+        setDetail({ form: initialItem.form, response: initialItem.response });
+        setSignerName(parseStoredSignerName(initialItem.response.responses));
+        setFieldValues({});
+        setDetailError(null);
+        setIsLoadingDetail(false);
+      });
       return;
     }
 
@@ -165,12 +183,14 @@ export default function ParentFormDetailModal({
       }
     }
 
-    void loadDetail();
+    queueMicrotask(() => {
+      void loadDetail();
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [formId, initialItem, open, organizationId, staffPreviewDetail]);
+  }, [formId, initialItem, open, organizationId, readOnly, staffPreviewDetail]);
 
   const isSigned = detail?.response.status === "signed";
   const formReadOnly = readOnly || isSigned || isStaffPreview;
@@ -315,7 +335,7 @@ export default function ParentFormDetailModal({
 
   useEffect(() => {
     if (!showSignSection) {
-      setIsSignSectionInView(false);
+      queueMicrotask(() => setIsSignSectionInView(false));
       return;
     }
 
@@ -437,7 +457,8 @@ export default function ParentFormDetailModal({
                     form={detail.form}
                     organizationId={organizationId}
                     readOnly={readOnly}
-                    localPreviewUrl={uploadPreviewUrl}
+                    previewUrl={readOnly ? uploadPreviewUrl : null}
+                    localPreviewUrl={readOnly ? null : uploadPreviewUrl}
                     previewHeightClass={PARENT_FORM_MODAL_PREVIEW_HEIGHT_CLASS}
                   />
                 ) : null}

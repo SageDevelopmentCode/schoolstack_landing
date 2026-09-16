@@ -31,6 +31,7 @@ import {
   teacherTabRoute,
 } from '@/lib/teacher/teacher-nav';
 import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import type { StaffClassroomOption, TeacherDashboardFocusItem } from '@/lib/teacher/teacher-portal-api';
 
 const MAX_STUDENT_CARDS = 6;
@@ -38,15 +39,6 @@ const MAX_STUDENT_CARDS = 6;
 type TeacherHomeScreenProps = {
   slug: string;
 };
-
-function teacherFeatureEnabled(
-  features: { teacher?: Record<string, boolean> } | undefined,
-  key: string,
-): boolean {
-  const teacher = features?.teacher;
-  if (!teacher || typeof teacher !== 'object') return false;
-  return Boolean(teacher[key]);
-}
 
 export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const theme = useParentTheme();
@@ -99,9 +91,9 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   if (!data) return null;
 
   const { summary, features } = data;
-  const myStudentsEnabled = teacherFeatureEnabled(features, 'my_students');
-  const messagesEnabled = teacherFeatureEnabled(features, 'messages');
-  const calendarEnabled = teacherFeatureEnabled(features, 'calendar');
+  const myStudentsEnabled = isTeacherFeatureEnabled(features, 'my_students');
+  const messagesEnabled = isTeacherFeatureEnabled(features, 'messages');
+  const calendarEnabled = isTeacherFeatureEnabled(features, 'calendar');
   const studentCount = summary.assignedStudents.length;
   const visibleStudents = summary.assignedStudents.slice(0, MAX_STUDENT_CARDS);
   const hasMoreStudents = summary.assignedStudents.length > MAX_STUDENT_CARDS;

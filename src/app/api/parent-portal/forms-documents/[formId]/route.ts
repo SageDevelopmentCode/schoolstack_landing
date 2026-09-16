@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import {
   getFamilyUserProfile,
@@ -218,13 +219,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return NextResponse.json(detail);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to submit form.";
-    const status = message.includes("already been signed") ? 400 : 500;
+    const resolved = portalRouteErrorStatus(err, "Failed to submit form.");
     return apiError(ROUTE, {
       request,
-      status,
-      error: message,
-      code: status === 400 ? "invalid_request" : "submit_failed",
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
       cause: err,
     });
   }
