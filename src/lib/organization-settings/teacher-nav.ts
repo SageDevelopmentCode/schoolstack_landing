@@ -27,6 +27,26 @@ const CATALOG_PAGE_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 const PRIMARY_NAV_COUNT = 6;
+const FORMS_DOCUMENTS_PRIMARY_INDEX = 3;
+const MY_HOURS_MORE_INDEX = 6;
+
+export function normalizeTeacherNavOrder(keys: string[]): string[] {
+  const without = keys.filter(
+    (key) => key !== "forms_documents" && key !== "my_hours",
+  );
+  const hasForms = keys.includes("forms_documents");
+  const hasHours = keys.includes("my_hours");
+  const result = [...without];
+
+  if (hasForms) {
+    result.splice(Math.min(FORMS_DOCUMENTS_PRIMARY_INDEX, result.length), 0, "forms_documents");
+  }
+  if (hasHours) {
+    result.splice(Math.min(MY_HOURS_MORE_INDEX, result.length), 0, "my_hours");
+  }
+
+  return result;
+}
 
 function toTeacherFeatureRecord(
   teacherFeatures: TeacherFeatures,
@@ -52,7 +72,9 @@ export function buildTeacherNavItems(
   const record = toTeacherFeatureRecord(teacherFeatures);
   const mergedNav = mergePortalFeatureNav("teacher", portalNav);
   const allKeys = Object.keys(record);
-  const orderedKeys = resolvePortalFeatureOrder("teacher", allKeys, mergedNav);
+  const orderedKeys = normalizeTeacherNavOrder(
+    resolvePortalFeatureOrder("teacher", allKeys, mergedNav),
+  );
   const items: TeacherNavItem[] = [];
 
   for (const key of orderedKeys) {

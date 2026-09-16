@@ -16,12 +16,35 @@ export function teacherAccountRoute(slug: string): Href {
   return `/teacher/${slug}/more/account` as Href;
 }
 
-export function teacherStudentDetailRoute(slug: string, studentId: string): Href {
-  return `/teacher/${slug}/students/${encodeURIComponent(studentId)}` as Href;
+export type TeacherStudentDetailScope = 'assigned' | 'school';
+
+export function teacherStudentDetailRoute(
+  slug: string,
+  studentId: string,
+  options?: { scope?: TeacherStudentDetailScope },
+): Href {
+  const base = `/teacher/${slug}/students/${encodeURIComponent(studentId)}`;
+  if (options?.scope === 'school') {
+    return `${base}?scope=school` as Href;
+  }
+  return base as Href;
 }
 
 export function isTeacherStudentDetailPath(pathname: string): boolean {
   return /\/students\/[^/]+$/.test(pathname);
+}
+
+export function isTeacherMessageThreadPath(pathname: string): boolean {
+  return /\/teacher\/[^/]+\/messages\/[^/]+$/.test(pathname);
+}
+
+export function teacherMessageThreadRoute(slug: string, threadId: string): Href {
+  return `/teacher/${slug}/messages/${encodeURIComponent(threadId)}` as Href;
+}
+
+export function teacherNewMessageThreadRoute(slug: string, contactKey: string): Href {
+  const query = new URLSearchParams({ contactKey }).toString();
+  return `/teacher/${slug}/messages/new?${query}` as Href;
 }
 
 const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {

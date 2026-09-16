@@ -14,6 +14,9 @@ import { prefetchParentBilling } from '@/contexts/parent-billing-context';
 import { prefetchParentCalendar } from '@/contexts/parent-calendar-context';
 import { prefetchParentHome } from '@/contexts/parent-home-context';
 import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
+import { prefetchTeacherCalendar } from '@/contexts/teacher-calendar-context';
+import { prefetchTeacherHome } from '@/contexts/teacher-home-context';
+import { prefetchTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-context';
 import { prefetchSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
 import { prefetchSchoolAdminStudents } from '@/contexts/school-admin-students-context';
 import { prefetchSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
@@ -63,6 +66,14 @@ function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
     prefetchSchoolAdminSubmissions(school.id),
     prefetchSchoolAdminStudents(school.id),
     prefetchSchoolAdminMessagesInbox(school.id, school.name),
+  ]);
+}
+
+function prefetchTeacherPortalData(school: LiveOrganization): void {
+  void Promise.all([
+    prefetchTeacherHome(school.id, school.slug),
+    prefetchTeacherCalendar(school.id, school.slug),
+    prefetchTeacherMessagesInbox(school.id, school.name),
   ]);
 }
 
@@ -135,6 +146,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (persisted.portalType === 'school_admin' && persisted.selectedSchool) {
       prefetchSchoolAdminPortalData(persisted.selectedSchool);
+    }
+
+    if (persisted.portalType === 'teacher' && persisted.selectedSchool) {
+      prefetchTeacherPortalData(persisted.selectedSchool);
     }
   }, []);
 
@@ -209,6 +224,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (portal.portalType === 'school_admin' && portal.school) {
       prefetchSchoolAdminPortalData(portal.school);
+    }
+
+    if (portal.portalType === 'teacher' && portal.school) {
+      prefetchTeacherPortalData(portal.school);
     }
   }, []);
 

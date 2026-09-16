@@ -106,6 +106,20 @@ When adding a school, ensure `{slug}-admin-demo.ts` `colors.accent` matches `{sl
 
 Do **not** import live portal route components from `src/app/school/` — only reuse story UI primitives from `src/components/school-admin/ui/story/` or `src/components/school-parent/ui/` when needed (read-only).
 
+**Admin admissions submissions preview** must match the live school admin submissions list via `DemoApplicationSubmissionsTab` (`src/components/demo/shared/DemoApplicationSubmissionsTab.tsx`) and the detail drawer via `DemoApplicationSubmissionDetailPanel` — not the live Supabase-backed `ApplicationSubmissionDetailPanel`. Map demo leads through `demo-submissions-mapper.ts`.
+
+## Phase 3c — Website story alignment (walkthrough step 1)
+
+The scaled website preview in `/demo/{slug}` uses the shared School Day Story landing system:
+
+- Theme bridge: `buildDemoWebsiteThemeVars()` and `demoWebsiteShellStyle()` in `src/components/demo/shared/demo-story-theme.ts` — merged in `WebsiteDashboardDemo` `getThemeVars()`
+- Shared primitives under `src/components/sections/website-demo/`: `DemoWebsiteSectionKicker`, `DemoWebsiteCard`, `DemoWebsiteButton`, `DemoWebsiteStoryHero`
+- Hero: paper split layout via `DemoWebsiteStoryHero` (no full-viewport dark overlay)
+- **Keep school-specific fonts** in `src/app/demo/{slug}/layout.tsx` (`font-heading` / `font-secondary`) — do not swap website step to Fraunces/DM Sans
+- Form section must stay `id="form"` with `scroll-mt-[72px]` for walkthrough step 2 (`inquire`)
+- `DemoPreviewFrame` website variant outer bg: `#F8F8F3`
+- Signature sections (`website-demo/*Section.tsx`) consume the same story primitives and CSS vars — no per-school website TSX forks
+
 ## Phase 4 — Walkthrough
 
 Append `{camelCase}WalkthroughPlaceholder` (9 steps) to `src/data/school-demos/walkthrough-placeholder.ts`:
@@ -161,6 +175,7 @@ Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide compo
 - [ ] Testimonials render (correct shape, not trust-item shape)
 - [ ] Logo readable on nav/hero background
 - [ ] Admin submissions preview uses story metric strip, sage attention banner, paper table card (not flat gray sidebar + solid blue pills)
+- [ ] Admin submissions list/detail use `DemoApplicationSubmissionsTab` + `DemoApplicationSubmissionDetailPanel` with live-portal columns, filters, and metrics
 - [ ] Parent/teacher previews use paper canvas, Fraunces headings, brand accent via CSS vars (no hardcoded `#336699`)
 - [ ] Mobile slides use paper phone interior (`#F8F8F3`) and rounded story tab pills
 

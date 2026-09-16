@@ -118,6 +118,8 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_ADDED]: "added a co-op teaching week",
   [ACTIVITY_ACTIONS.COOP_TEACHING_WEEK_UPDATED]: "updated a co-op teaching week",
   [ACTIVITY_ACTIONS.COOP_CURRICULUM_UPDATED]: "updated co-op curriculum",
+  [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "published a form for families to sign",
+  [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED]: "signed a teacher form",
 };
 
 const ACTOR_TYPE_LABELS: Record<ActorType, string> = {

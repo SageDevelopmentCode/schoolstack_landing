@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { DemoTheme } from "@/data/school-demos/types";
 import {
   parentThemeCssVars,
   parentThemeToAdminCompat,
@@ -8,6 +9,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 export const DEMO_ADMIN_PAPER_BG = "#F7F9F7";
 export const DEMO_DRAWER_PAPER_BG = "#F8FAF8";
+export const DEMO_WEBSITE_PAPER_BG = "#F8F8F3";
 
 export type DemoStoryAccentInput = {
   accent: string;
@@ -85,5 +87,31 @@ export function demoAdminShellStyle(
     backgroundColor: DEMO_ADMIN_PAPER_BG,
     color: theme.ink,
     fontFamily: theme.fontBody,
+  };
+}
+
+/** Story CSS vars for config-driven school website demos. */
+export function buildDemoWebsiteThemeVars(theme: DemoTheme): CSSProperties {
+  const paper = theme.pageBg ?? DEMO_WEBSITE_PAPER_BG;
+
+  return {
+    "--demo-paper": paper,
+    "--demo-ink": "#283943",
+    "--demo-line": theme.lightBorder,
+    "--demo-cream": "#FFFDF7",
+    "--demo-radius-card": "22px",
+    "--demo-radius-button": "12px",
+    "--demo-shadow-card": "0 3px 10px rgba(50, 72, 61, 0.035)",
+    "--demo-shadow-pill": "0 2px 8px rgba(32, 55, 49, 0.05)",
+    "--demo-primary-soft": `color-mix(in srgb, ${theme.primary} 12%, transparent)`,
+    "--demo-page-bg": paper,
+  } as CSSProperties;
+}
+
+export function demoWebsiteShellStyle(theme: DemoTheme): CSSProperties {
+  return {
+    ...buildDemoWebsiteThemeVars(theme),
+    backgroundColor: "var(--demo-paper)",
+    color: "var(--demo-ink)",
   };
 }

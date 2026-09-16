@@ -149,6 +149,20 @@ export async function fetchTeacherHomeData(
   return fetchTeacherApi<TeacherHomeData>(`/api/teacher-portal/home?${query}`);
 }
 
+export type TeacherCalendarData = {
+  events: OrganizationEvent[];
+  timezone: string;
+  canManageEvents: boolean;
+};
+
+export async function fetchTeacherCalendarData(
+  organizationId: string,
+  slug: string,
+): Promise<TeacherCalendarData> {
+  const query = new URLSearchParams({ organizationId, slug }).toString();
+  return fetchTeacherApi<TeacherCalendarData>(`/api/teacher-portal/calendar?${query}`);
+}
+
 export async function fetchTeacherStudentHealthProfile(
   organizationId: string,
   studentId: string,

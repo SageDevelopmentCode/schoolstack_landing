@@ -10,7 +10,12 @@ import type {
   TeacherParentFormStatus,
 } from "@/lib/school-teacher/forms-documents/types";
 import {
+  fireTeacherParentFormActivityNotification,
+  sendTeacherParentFormPublishedNotifications,
+} from "@/lib/school-teacher/forms-documents/teacher-parent-form-notifications";
+import {
   getStaffMemberIdForUser,
+  getStaffUserProfile,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -223,6 +228,12 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
+    const profile = await getStaffUserProfile(
+      supabase,
+      user.id,
+      organizationId,
+      user,
+    );
     const form = await publishTeacherParentForm(
       admin,
       organizationId,
@@ -230,6 +241,30 @@ export async function POST(request: Request) {
       publishInput,
       uploadFile,
     );
+
+    if (form.status === "active") {
+      fireTeacherParentFormActivityNotification(
+        admin,
+        sendTeacherParentFormPublishedNotifications(admin, {
+          organizationId,
+          form,
+          teacherName: profile.displayName,
+          staffMemberId,
+          actorUserId: user.id,
+          actorName: profile.displayName,
+          actorEmail: profile.email,
+        }),
+        {
+          organizationId,
+          formId: form.id,
+          operation: "teacher_parent_form_published_notification",
+          surface: "teacher_portal",
+          actorType: "teacher",
+          actorUserId: user.id,
+          actorEmail: profile.email,
+        },
+      );
+    }
 
     const signatureRows =
       form.status === "active"

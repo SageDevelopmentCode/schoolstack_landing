@@ -22,18 +22,18 @@ const FLOW_FILTERS: { id: "all" | MobileDemoLeadFlow; label: string }[] = [
 
 const STATUS_FILTERS: { id: "all" | MobileDemoLeadStatus; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "new", label: "New" },
-  { id: "contacted", label: "Contacted" },
-  { id: "emailed", label: "Emailed" },
+  { id: "new", label: "Applying" },
+  { id: "contacted", label: "Under review" },
+  { id: "emailed", label: "Submitted" },
 ];
 
 const STATUS_STYLES: Record<
   MobileDemoLeadStatus,
   { bg: string; text: string; border: string; label: string }
 > = {
-  new: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "New" },
-  contacted: { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", label: "Contacted" },
-  emailed: { bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0", label: "Emailed" },
+  new: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "Applying" },
+  contacted: { bg: "#FFFBEB", text: "#B45309", border: "#FDE68A", label: "Under review" },
+  emailed: { bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0", label: "Submitted" },
 };
 
 function StatusBadge({ status }: { status: MobileDemoLeadStatus }) {

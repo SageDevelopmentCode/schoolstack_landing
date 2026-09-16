@@ -11,6 +11,7 @@ export type ParentStoryPillNavItem = {
   disabled?: boolean;
   ariaBusy?: boolean;
   testId?: string;
+  tourId?: string;
 };
 
 type ParentStoryPillNavProps = {
@@ -59,6 +60,7 @@ export default function ParentStoryPillNav({
               aria-current={active ? "true" : undefined}
               aria-busy={item.ariaBusy || undefined}
               data-testid={item.testId}
+              data-tour-id={item.tourId}
             >
               {item.icon}
               {item.label}

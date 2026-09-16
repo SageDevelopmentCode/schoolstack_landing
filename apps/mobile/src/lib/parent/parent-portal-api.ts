@@ -161,6 +161,31 @@ export type EnrollmentAgreementIncompleteBannerItem = {
   enrollmentHref: string;
 };
 
+export type ParentFormAttentionItem = {
+  formId: string;
+  formTitle: string;
+  studentNames: string[];
+  dueDate: string | null;
+  formsHref: string;
+};
+
+export type ParentFormHomeSnapshotItem = {
+  formId: string;
+  formTitle: string;
+  studentNames: string[];
+  listStatus: 'needs_action' | 'signed';
+  responseStatus: 'pending' | 'overdue' | 'signed';
+  dueDate: string | null;
+  signedAt: string | null;
+  formsHref: string;
+};
+
+export type ParentFormHomeSnapshot = {
+  counts: { all: number; needsAction: number; signed: number };
+  items: ParentFormHomeSnapshotItem[];
+  formsPageHref: string;
+};
+
 export type ParentHomeData = {
   branding: OrganizationBranding;
   schoolSlug: string;
@@ -173,6 +198,8 @@ export type ParentHomeData = {
   upcomingEvents: OrganizationEvent[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
+  formSnapshot?: ParentFormHomeSnapshot | null;
 };
 
 export async function fetchParentHomeData(

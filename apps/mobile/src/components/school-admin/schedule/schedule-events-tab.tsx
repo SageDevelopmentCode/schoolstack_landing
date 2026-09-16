@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import {
-  EMPTY_EVENT_FORM,
-  eventFormsEqual,
-  SchoolEventFormSheet,
-  type EventFormState,
-} from '@/components/school-admin/schedule/school-event-form-sheet';
 import { SchoolEventDetailSheet } from '@/components/school-admin/schedule/school-event-detail-sheet';
+import { SchoolEventFormSheet } from '@/components/school-admin/schedule/school-event-form-sheet';
 import { ScheduleMonthCalendar } from '@/components/school-admin/schedule/schedule-month-calendar';
+import { useOrganizationEventsManager } from '@/components/school-admin/schedule/use-organization-events-manager';
 import { useScheduleCalendar } from '@/components/school-admin/schedule/use-schedule-calendar';
 import { StoryCard } from '@/components/story/story-card';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
@@ -17,17 +13,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
-import { addMinutesToTimeInput, DEFAULT_EVENT_DURATION_MINUTES, toTimeInputValue } from '@/lib/school-events/calendar-time';
-import { getDefaultColorKeyForType } from '@/lib/school-events/event-labels';
-import {
-  createOrganizationEventViaApi,
-  deleteOrganizationEventViaApi,
-  updateOrganizationEventViaApi,
-} from '@/lib/school-events/event-api';
-import {
-  groupOrganizationEventsByDate,
-  listEventsForOrg,
-} from '@/lib/school-events/events';
+import { groupOrganizationEventsByDate, listEventsForOrg } from '@/lib/school-events/events';
 import type { OrganizationEvent } from '@/lib/school-events/types';
 import { getSupabaseClient } from '@/lib/supabase';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
@@ -45,17 +31,8 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
 
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [form, setForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
-  const [initialForm, setInitialForm] = useState<EventFormState>(EMPTY_EVENT_FORM);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const calendar = useScheduleCalendar({ organizationId, supabase, theme });
-  const selectedEvent = events.find((event) => event.id === selectedEventId) ?? null;
   const eventsByDate = useMemo(() => groupOrganizationEventsByDate(events), [events]);
   const eventDates = useMemo(() => new Set(eventsByDate.keys()), [eventsByDate]);
 
@@ -72,118 +49,22 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
     }
   }, [organizationId, reportError, supabase]);
 
+  const onAfterMutate = useCallback(async () => {
+    await loadEvents();
+    onRefresh();
+  }, [loadEvents, onRefresh]);
+
+  const manager = useOrganizationEventsManager({
+    organizationId,
+    events,
+    onAfterMutate,
+    reportError,
+    reportErrorPrefix: 'school_admin_schedule',
+  });
+
   useEffect(() => {
     void loadEvents();
   }, [loadEvents]);
-
-  const openCreateForm = (prefillDate?: string) => {
-    setSelectedEventId(null);
-    setEditingEventId(null);
-    setFormMode('create');
-    const nextForm = {
-      ...EMPTY_EVENT_FORM,
-      date: prefillDate ?? calendar.selectedDate ?? '',
-      colorKey: getDefaultColorKeyForType(EMPTY_EVENT_FORM.eventType),
-    };
-    setForm(nextForm);
-    setInitialForm(nextForm);
-    setFormOpen(true);
-  };
-
-  const openEditForm = (event: OrganizationEvent) => {
-    setSelectedEventId(null);
-    setEditingEventId(event.id);
-    setFormMode('edit');
-    const nextForm = {
-      title: event.title,
-      date: event.date,
-      time: toTimeInputValue(event.time),
-      endTime: toTimeInputValue(event.endTime),
-      isAllDay: event.isAllDay,
-      eventType: event.type,
-      colorKey: event.colorKey ?? getDefaultColorKeyForType(event.type),
-      colorManuallySet: Boolean(event.colorKey),
-      location: event.location ?? '',
-      description: event.description ?? '',
-    };
-    setForm(nextForm);
-    setInitialForm(nextForm);
-    setFormOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.date) return;
-    if (!form.isAllDay && !form.time) {
-      Alert.alert('Missing time', 'Add a start time or mark the event as all day.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const endTime =
-        !form.isAllDay && form.time && !form.endTime
-          ? addMinutesToTimeInput(form.time, DEFAULT_EVENT_DURATION_MINUTES)
-          : form.endTime;
-
-      if (formMode === 'create') {
-        await createOrganizationEventViaApi(organizationId, {
-          title: form.title,
-          date: form.date,
-          time: form.isAllDay ? undefined : form.time,
-          endTime: form.isAllDay ? undefined : endTime,
-          isAllDay: form.isAllDay,
-          type: form.eventType,
-          colorKey: form.colorKey,
-          location: form.location,
-          description: form.description,
-        });
-      } else if (editingEventId) {
-        await updateOrganizationEventViaApi(organizationId, editingEventId, {
-          title: form.title,
-          date: form.date,
-          time: form.isAllDay ? null : form.time,
-          endTime: form.isAllDay ? null : endTime,
-          isAllDay: form.isAllDay,
-          type: form.eventType,
-          colorKey: form.colorKey,
-          location: form.location,
-          description: form.description,
-        });
-      }
-
-      setFormOpen(false);
-      await loadEvents();
-      onRefresh();
-    } catch (error) {
-      reportError('school_admin_schedule_event_save', error, {
-        entityType: 'organization_event',
-        entityId: editingEventId ?? undefined,
-        metadata: { mode: formMode },
-      });
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save event.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!selectedEvent) return;
-    setDeleting(true);
-    try {
-      await deleteOrganizationEventViaApi(organizationId, selectedEvent.id);
-      setSelectedEventId(null);
-      await loadEvents();
-      onRefresh();
-    } catch (error) {
-      reportError('school_admin_schedule_event_delete', error, {
-        entityType: 'organization_event',
-        entityId: selectedEvent.id,
-      });
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to delete event.');
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   const dayEvents =
     calendar.selectedDate && eventsByDate.has(calendar.selectedDate)
@@ -213,7 +94,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
           </View>
           <Pressable
             accessibilityRole="button"
-            onPress={() => openCreateForm()}
+            onPress={() => manager.openCreateForm(calendar.selectedDate ?? undefined)}
             style={({ pressed }) => [
               styles.addButton,
               { backgroundColor: theme.primary, opacity: pressed ? 0.9 : 1 },
@@ -246,7 +127,7 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
                 <Pressable
                   key={event.id}
                   accessibilityRole="button"
-                  onPress={() => setSelectedEventId(event.id)}
+                  onPress={() => manager.setSelectedEventId(event.id)}
                   style={[
                     styles.eventRow,
                     index > 0 && { borderTopColor: theme.line, borderTopWidth: StyleSheet.hairlineWidth },
@@ -260,32 +141,32 @@ export function ScheduleEventsTab({ organizationId, refreshing, onRefresh }: Sch
             )}
             <StoryTextLink
               label="Add event on this day"
-              onPress={() => openCreateForm(calendar.selectedDate ?? undefined)}
+              onPress={() => manager.openCreateForm(calendar.selectedDate ?? undefined)}
             />
           </StoryCard>
         ) : null}
       </ScrollView>
 
       <SchoolEventFormSheet
-        visible={formOpen}
-        mode={formMode}
-        form={form}
-        isDirty={!eventFormsEqual(form, initialForm)}
-        saving={saving}
-        onClose={() => setFormOpen(false)}
-        onChange={setForm}
-        onSave={() => void handleSave()}
+        visible={manager.formOpen}
+        mode={manager.formMode}
+        form={manager.form}
+        isDirty={manager.isFormDirty}
+        saving={manager.saving}
+        onClose={() => manager.setFormOpen(false)}
+        onChange={manager.setForm}
+        onSave={() => void manager.handleSave()}
       />
 
       <SchoolEventDetailSheet
-        visible={Boolean(selectedEvent)}
-        event={selectedEvent}
-        deleting={deleting}
-        onClose={() => setSelectedEventId(null)}
+        visible={Boolean(manager.selectedEvent)}
+        event={manager.selectedEvent}
+        deleting={manager.deleting}
+        onClose={() => manager.setSelectedEventId(null)}
         onEdit={() => {
-          if (selectedEvent) openEditForm(selectedEvent);
+          if (manager.selectedEvent) manager.openEditForm(manager.selectedEvent);
         }}
-        onDelete={() => void handleDelete()}
+        onDelete={() => void manager.handleDelete()}
       />
     </>
   );

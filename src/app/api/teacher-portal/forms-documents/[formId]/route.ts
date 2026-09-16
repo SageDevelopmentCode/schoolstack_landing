@@ -11,7 +11,14 @@ import {
   updateTeacherParentForm,
   type UpdateTeacherParentFormInput,
 } from "@/lib/school-teacher/forms-documents/mutations";
-import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import {
+  fireTeacherParentFormActivityNotification,
+  sendTeacherParentFormPublishedNotifications,
+} from "@/lib/school-teacher/forms-documents/teacher-parent-form-notifications";
+import {
+  getStaffMemberIdForUser,
+  getStaffUserProfile,
+} from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -189,6 +196,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ form });
     }
 
+    const existingForm = await getTeacherParentFormById(
+      admin,
+      organizationId,
+      staffMemberId,
+      formId,
+    );
     const form = await updateTeacherParentForm(
       admin,
       organizationId,
@@ -196,6 +209,38 @@ export async function PATCH(request: Request, context: RouteContext) {
       formId,
       body.update ?? {},
     );
+
+    const wasPublishing =
+      existingForm?.status === "draft" && form.status === "active";
+    if (wasPublishing) {
+      const profile = await getStaffUserProfile(
+        supabase,
+        user.id,
+        organizationId,
+        user,
+      );
+      fireTeacherParentFormActivityNotification(
+        admin,
+        sendTeacherParentFormPublishedNotifications(admin, {
+          organizationId,
+          form,
+          teacherName: profile.displayName,
+          staffMemberId,
+          actorUserId: user.id,
+          actorName: profile.displayName,
+          actorEmail: profile.email,
+        }),
+        {
+          organizationId,
+          formId: form.id,
+          operation: "teacher_parent_form_published_notification",
+          surface: "teacher_portal",
+          actorType: "teacher",
+          actorUserId: user.id,
+          actorEmail: profile.email,
+        },
+      );
+    }
 
     const signatureRows =
       form.status === "active"

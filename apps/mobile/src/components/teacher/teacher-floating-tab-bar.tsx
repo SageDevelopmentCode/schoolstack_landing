@@ -13,6 +13,7 @@ export const TEACHER_FLOATING_TAB_BAR_HEIGHT = 60;
 type TeacherFloatingTabBarProps = {
   activeTab: TeacherTab;
   onChange: (tab: TeacherTab) => void;
+  messagesUnreadCount?: number;
 };
 
 const TABS: {
@@ -48,7 +49,11 @@ const TABS: {
   },
 ];
 
-export function TeacherFloatingTabBar({ activeTab, onChange }: TeacherFloatingTabBarProps) {
+export function TeacherFloatingTabBar({
+  activeTab,
+  onChange,
+  messagesUnreadCount = 0,
+}: TeacherFloatingTabBarProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
 
@@ -57,6 +62,7 @@ export function TeacherFloatingTabBar({ activeTab, onChange }: TeacherFloatingTa
       <View style={styles.pill}>
         {TABS.map((tab) => {
           const active = activeTab === tab.id;
+          const showUnreadBadge = tab.id === 'messages' && messagesUnreadCount > 0;
           return (
             <ScalePressable
               key={tab.id}
@@ -65,11 +71,20 @@ export function TeacherFloatingTabBar({ activeTab, onChange }: TeacherFloatingTa
               pressedScale={0.94}
               onPress={() => onChange(tab.id)}
               style={[styles.tab, active && { backgroundColor: theme.accentLight }]}>
-              <Ionicons
-                name={active ? tab.iconActive : tab.icon}
-                size={20}
-                color={active ? theme.accent : theme.textTertiary}
-              />
+              <View style={styles.iconWrap}>
+                <Ionicons
+                  name={active ? tab.iconActive : tab.icon}
+                  size={20}
+                  color={active ? theme.accent : theme.textTertiary}
+                />
+                {showUnreadBadge ? (
+                  <View style={[styles.unreadDot, { backgroundColor: theme.accent }]}>
+                    <ThemedText type="badge" style={styles.unreadCount}>
+                      {messagesUnreadCount > 9 ? '9+' : String(messagesUnreadCount)}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
               <ThemedText
                 type="smallBold"
                 style={{
@@ -109,5 +124,24 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 2,
     borderRadius: Radius.md,
+  },
+  iconWrap: {
+    position: 'relative',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  unreadCount: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    lineHeight: 10,
   },
 });

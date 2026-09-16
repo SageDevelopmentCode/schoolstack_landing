@@ -49,6 +49,15 @@ describe("getParentActivityNotificationCategory", () => {
       "coop",
     );
   });
+
+  it("maps teacher parent form actions to other", () => {
+    assert.equal(
+      getParentActivityNotificationCategory(
+        ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
+      ),
+      "other",
+    );
+  });
 });
 
 describe("resolveNotificationSince", () => {

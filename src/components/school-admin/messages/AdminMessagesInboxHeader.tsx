@@ -10,7 +10,9 @@ type AdminMessagesInboxHeaderProps = {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onNewMessage: () => void;
+  onMessageGroup?: () => void;
   newMessageDisabled?: boolean;
+  messageGroupDisabled?: boolean;
 };
 
 export default function AdminMessagesInboxHeader({
@@ -18,7 +20,9 @@ export default function AdminMessagesInboxHeader({
   searchQuery,
   onSearchChange,
   onNewMessage,
+  onMessageGroup,
   newMessageDisabled = false,
+  messageGroupDisabled = false,
 }: AdminMessagesInboxHeaderProps) {
   return (
     <div
@@ -37,17 +41,31 @@ export default function AdminMessagesInboxHeader({
             Messages
           </AdminDisplayHeading>
         </div>
-        <AdminButton
-          theme={theme}
-          variant="primary"
-          size="compact"
-          disabled={newMessageDisabled}
-          onClick={onNewMessage}
-          className="shrink-0"
-          data-testid="admin-messages-new-button"
-        >
-          + New
-        </AdminButton>
+        <div className="flex shrink-0 items-center gap-2">
+          {onMessageGroup ? (
+            <AdminButton
+              theme={theme}
+              variant="outline"
+              size="compact"
+              disabled={messageGroupDisabled}
+              onClick={onMessageGroup}
+              data-testid="admin-messages-group-button"
+            >
+              Message group
+            </AdminButton>
+          ) : null}
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            size="compact"
+            disabled={newMessageDisabled}
+            onClick={onNewMessage}
+            className="shrink-0"
+            data-testid="admin-messages-new-button"
+          >
+            + New
+          </AdminButton>
+        </div>
       </div>
 
       <div className="relative mt-3">

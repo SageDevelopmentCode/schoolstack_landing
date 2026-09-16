@@ -42,6 +42,7 @@ const PARENT_MORE_NAV_KEYS = new Set([
   "attendance",
   "enrollment_checklist",
   "classroom_signups",
+  "forms_documents",
 ]);
 
 function toParentFeatureRecord(

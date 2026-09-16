@@ -21,10 +21,12 @@ import {
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
+import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
 import {
   loadParentClassroomSignupsPageBundle,
   loadParentSignupAttentionItems,
 } from "@/lib/classroom-signups/load-parent-signups";
+import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { loadParentMessagesPreviewInbox } from "@/lib/messages/parent-messages";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -258,6 +260,30 @@ export default async function FamilyPreviewParentFeaturePage({
           previewBasePath={previewBasePath}
           readOnly
           initialSignupId={initialSignupId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "forms_documents") {
+    const initialBundle = await loadParentFormsDocumentsPageBundle(
+      admin,
+      org.id,
+      familyId,
+    );
+    const initialFormId =
+      typeof resolvedSearchParams.form === "string"
+        ? resolvedSearchParams.form
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentFormsDocumentsPage
+          organizationId={org.id}
+          slug={slug}
+          initialBundle={initialBundle}
+          readOnly
+          initialFormId={initialFormId}
         />
       </SchoolParentPageShell>
     );

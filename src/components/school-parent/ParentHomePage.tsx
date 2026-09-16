@@ -8,6 +8,7 @@ import {
   CircleAlert,
   ClipboardCheck,
   ClipboardList,
+  FileText,
   Sprout,
 } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
@@ -70,9 +71,15 @@ import ParentHomeHowToGuidesSection from "@/components/school-parent/home/Parent
 import ParentHomeFeatureAnnouncementsSection from "@/components/school-parent/home/ParentHomeFeatureAnnouncementsSection";
 import {
   ParentHomeChildCardsSkeleton,
+  ParentHomeFormsSnapshotSkeleton,
   ParentHomeStartHereSkeleton,
 } from "@/components/school-parent/home/ParentHomeDeferredSkeleton";
+import ParentHomeFormsSnapshotSection from "@/components/school-parent/home/ParentHomeFormsSnapshotSection";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
+import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
+import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { formatFormDueDate } from "@/lib/school-teacher/forms-documents/utils";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -86,6 +93,8 @@ type ParentHomePageProps = {
   upcomingEvents?: OrganizationEvent[];
   enrollmentAmendmentBannerItems?: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
+  formSnapshot?: ParentFormHomeSnapshot | null;
   classroomSignupAttentionItems?: ParentSignupAttentionItem[];
   homeMeta?: ParentPortalHomeMeta | null;
   contentDeferred?: boolean;
@@ -196,11 +205,25 @@ function buildAttentionItems(input: {
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems: ParentFormAttentionItem[];
   classroomSignupAttentionItems: ParentSignupAttentionItem[];
   schoolSlug: string;
   previewBasePath?: string;
 }): AttentionItem[] {
   const items: AttentionItem[] = [];
+
+  for (const form of input.formAttentionItems) {
+    items.push({
+      key: `form-${form.formId}`,
+      title: `Sign ${form.formTitle}`,
+      subtitle: form.dueDate
+        ? `Due ${formatFormDueDate(form.dueDate)}`
+        : "This form needs your signature.",
+      href: form.formsHref,
+      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
+      urgent: true,
+    });
+  }
 
   for (const signup of input.classroomSignupAttentionItems) {
     items.push({
@@ -372,6 +395,8 @@ export default function ParentHomePage({
   upcomingEvents = [],
   enrollmentAmendmentBannerItems = [],
   enrollmentIncompleteBannerItems = [],
+  formAttentionItems = [],
+  formSnapshot = null,
   classroomSignupAttentionItems: initialSignupAttentionItems = [],
   homeMeta = null,
   contentDeferred = false,
@@ -421,6 +446,9 @@ export default function ParentHomePage({
     () => parentThemeToAdminCompat(theme),
     [theme],
   );
+  const formsFeatureEnabled = features
+    ? isParentFeatureEnabled(features, "forms_documents")
+    : false;
 
   const howToGuides = useMemo(() => {
     if (!features) return [];
@@ -477,6 +505,7 @@ export default function ParentHomePage({
     onboardingItems,
     enrollmentAmendmentBannerItems,
     enrollmentIncompleteBannerItems,
+    formAttentionItems,
     classroomSignupAttentionItems,
     schoolSlug,
     previewBasePath,
@@ -719,6 +748,19 @@ export default function ParentHomePage({
             </div>
           )}
         </motion.section>
+
+        {formSnapshot ? (
+          <motion.section
+            custom={4}
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+          >
+            <ParentHomeFormsSnapshotSection theme={theme} snapshot={formSnapshot} />
+          </motion.section>
+        ) : contentDeferred && formsFeatureEnabled ? (
+          <ParentHomeFormsSnapshotSkeleton theme={theme} />
+        ) : null}
 
         {coopModeEnabled && programPortalLabel ? (
           <ParentCoopFamiliesSection

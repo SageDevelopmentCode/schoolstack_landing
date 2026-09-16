@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
+import { ParentHomeFormsSnapshotCard } from '@/components/parent/home/parent-home-forms-snapshot-card';
 import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
@@ -150,6 +151,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             onboardingItems={data.onboardingItems}
             enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
             enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+            formAttentionItems={data.formAttentionItems ?? []}
             signupAttentionItems={signupAttentionItems}
             onPressAttentionItem={(item) => void handleAttentionItem(item)}
             onOpenOnboarding={() => setOnboardingOpen(true)}
@@ -197,6 +199,16 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             </View>
           )}
         </Animated.View>
+
+        {data.formSnapshot ? (
+          <Animated.View entering={FadeInDown.delay(140).duration(350)}>
+            <ParentHomeFormsSnapshotCard
+              snapshot={data.formSnapshot}
+              onOpenForm={(formsHref) => void openWebUrl(formsHref)}
+              onViewAll={() => void openWebUrl(data.formSnapshot!.formsPageHref)}
+            />
+          </Animated.View>
+        ) : null}
 
         <Animated.View entering={FadeInDown.delay(160).duration(350)}>
           <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />

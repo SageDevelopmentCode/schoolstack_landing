@@ -14,7 +14,11 @@ import {
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
+import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 
@@ -113,6 +117,14 @@ export async function GET(request: Request) {
       familyChildren,
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
+    const formsFeatureEnabled = isParentFeatureEnabled(org.features, "forms_documents");
+    const admin = createAdminClient();
+    const [formAttentionItems, formSnapshot] = familyId && formsFeatureEnabled
+      ? await Promise.all([
+          loadParentFormAttentionItems(admin, organizationId, familyId, slug),
+          loadParentFormHomeSnapshot(admin, organizationId, familyId, slug),
+        ])
+      : [[], null];
 
     const quickActions = buildParentQuickActions(slug, org.features);
 
@@ -128,6 +140,8 @@ export async function GET(request: Request) {
       upcomingEvents,
       enrollmentAmendmentBannerItems,
       enrollmentIncompleteBannerItems,
+      formAttentionItems,
+      formSnapshot,
     });
   } catch (err) {
     return apiError(ROUTE, {

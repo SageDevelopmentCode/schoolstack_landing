@@ -90,6 +90,8 @@ export default function ParentHomePageShell({
         onboardingItems={homeContent?.onboardingItems ?? []}
         enrollmentAmendmentBannerItems={homeContent?.enrollmentAmendmentBannerItems ?? []}
         enrollmentIncompleteBannerItems={homeContent?.enrollmentIncompleteBannerItems ?? []}
+        formAttentionItems={homeContent?.formAttentionItems ?? []}
+        formSnapshot={homeContent?.formSnapshot ?? null}
         contentDeferred={!contentHydrated}
         deferSignupAttentionLoad={!previewMode}
         classroomSignupAttentionItems={initialSignupAttentionItems}

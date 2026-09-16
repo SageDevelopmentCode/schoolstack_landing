@@ -26,7 +26,7 @@ export default function TeacherFormsDocumentsStoryHeader({
         >
           Family forms
         </ParentSectionKicker>
-        <ParentDisplayHeading theme={theme}>Forms & documents</ParentDisplayHeading>
+        <ParentDisplayHeading theme={theme}>Forms</ParentDisplayHeading>
         <p className="mt-1 text-sm" style={{ color: theme.muted }}>
           Create forms for families in your classrooms to review and sign.
         </p>

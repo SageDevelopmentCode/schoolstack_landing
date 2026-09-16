@@ -31,6 +31,7 @@ export { formatRelativeTime };
 export const TEACHER_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED,
+  ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED,
@@ -106,6 +107,7 @@ type TeacherNotificationFilterContext = {
 const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.MESSAGES_RECEIVED]: "New message",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
+  [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED]: "Form signed",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health update",
@@ -248,7 +250,10 @@ export function getTeacherActivityNotificationCategory(
   action: string,
 ): TeacherActivityNotificationCategory {
   if (action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) return "messages";
-  if (action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED) {
+  if (
+    action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED ||
+    action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED
+  ) {
     return "signups";
   }
   if (
@@ -273,12 +278,18 @@ function formatTeacherNotificationDetail(
   context?: {
     studentName?: string | null;
     signupTitle?: string | null;
+    formTitle?: string | null;
+    familyName?: string | null;
   },
 ): string {
   switch (action) {
     case ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED:
       return context?.signupTitle
         ? `Response for "${context.signupTitle}"`
+        : summary;
+    case ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED:
+      return context?.formTitle && context?.familyName
+        ? `${context.familyName} signed "${context.formTitle}"`
         : summary;
     case ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED:
     case ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED:
@@ -336,6 +347,16 @@ function resolveTeacherNotificationLink(
     };
   }
 
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED) {
+    const formId = metadataString(event.metadata, "formId") ?? event.entity_id;
+    return {
+      href: formId
+        ? `${teacherBase}/forms_documents?form=${encodeURIComponent(formId)}`
+        : `${teacherBase}/forms_documents`,
+      ctaLabel: "View form",
+    };
+  }
+
   if (
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED ||
@@ -374,6 +395,8 @@ function mapActivityEventToTeacherNotification(
 ): TeacherActivityNotification {
   const signupTitle = metadataString(event.metadata, "signupTitle");
   const studentName = metadataString(event.metadata, "studentName");
+  const formTitle = metadataString(event.metadata, "formTitle");
+  const familyName = metadataString(event.metadata, "familyName");
   const link = resolveTeacherNotificationLink(slug, event.action, event, {
     teacherBasePath: options?.teacherBasePath,
     signupId: metadataString(event.metadata, "signupId") ?? event.entity_id,
@@ -387,6 +410,8 @@ function mapActivityEventToTeacherNotification(
     detail: formatTeacherNotificationDetail(event.action, event.summary, {
       signupTitle,
       studentName,
+      formTitle,
+      familyName,
     }),
     createdAt: event.created_at,
     href: link.href,
@@ -420,7 +445,10 @@ export function isTeacherActivityEventVisible(
     return Boolean(staffIds?.has(context.staffMemberId));
   }
 
-  if (event.action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED) {
+  if (
+    event.action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED ||
+    event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED
+  ) {
     const eventStaffMemberId = metadataString(event.metadata, "staffMemberId");
     return eventStaffMemberId === context.staffMemberId;
   }

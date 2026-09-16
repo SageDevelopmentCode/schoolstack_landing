@@ -17,6 +17,7 @@ describe("splitParentNavForHeader", () => {
       calendar: true,
       children: true,
       classroom_signups: true,
+      forms_documents: true,
       committees: true,
       attendance: true,
     });
@@ -30,6 +31,14 @@ describe("splitParentNavForHeader", () => {
     assert.equal(
       more.some((item) => item.key === "classroom_signups"),
       true,
+    );
+    assert.equal(
+      more.some((item) => item.key === "forms_documents"),
+      true,
+    );
+    assert.equal(
+      primary.some((item) => item.key === "forms_documents"),
+      false,
     );
     assert.equal(primary.some((item) => item.key === "children"), true);
   });

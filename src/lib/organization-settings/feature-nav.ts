@@ -72,6 +72,7 @@ const LEGACY_NAV_ITEM_DEFAULTS: Record<
 > = {
   my_school: { label: "Teacher View", icon: "eye" },
   portal: { label: "Parent portal" },
+  forms_documents: { label: "Forms & documents" },
 };
 
 function applyLegacyNavItemOverrides(
@@ -167,6 +168,7 @@ const PARENT_ICON_DEFAULTS: Record<string, string> = {
   children: "users",
   committees: "heart",
   classroom_signups: "clipboard-list",
+  forms_documents: "file-text",
   curriculum: "book-open",
   supply_list: "clipboard-list",
   teaching_schedule: "calendar-days",

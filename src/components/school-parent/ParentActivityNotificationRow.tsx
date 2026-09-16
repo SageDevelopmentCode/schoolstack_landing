@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ClipboardList,
   CreditCard,
+  FileText,
   GraduationCap,
   Heart,
   Megaphone,
@@ -12,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import NavigationLink from "@/components/school/shared/NavigationLink";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   formatRelativeTime,
   type ParentActivityNotification,
@@ -28,7 +30,16 @@ type NotificationVisual = {
 export function getParentNotificationVisual(
   category: ParentActivityNotificationCategory,
   theme: ParentThemeTokens,
+  action?: string,
 ): NotificationVisual {
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) {
+    return {
+      Icon: FileText,
+      iconBg: theme.warningBg,
+      iconColor: theme.warning,
+    };
+  }
+
   switch (category) {
     case "messages":
       return {
@@ -105,6 +116,7 @@ function NotificationRowContent({
   const { Icon, iconBg, iconColor } = getParentNotificationVisual(
     notification.category,
     theme,
+    notification.action,
   );
 
   return (

@@ -16,6 +16,7 @@ type StudentStorySheetHeaderProps = {
   subtitle: string;
   showHealthIndicator?: boolean;
   onClose: () => void;
+  kicker?: string;
 };
 
 export function StudentStorySheetHeader({
@@ -25,6 +26,7 @@ export function StudentStorySheetHeader({
   subtitle,
   showHealthIndicator = false,
   onClose,
+  kicker = 'Student record',
 }: StudentStorySheetHeaderProps) {
   const theme = useParentTheme();
 
@@ -46,7 +48,7 @@ export function StudentStorySheetHeader({
           showHealthIndicator={showHealthIndicator}
         />
         <View style={styles.heroCopy}>
-          <StorySectionKicker style={styles.kicker}>Student record</StorySectionKicker>
+          <StorySectionKicker style={styles.kicker}>{kicker}</StorySectionKicker>
           <View style={styles.titleRow}>
             <StoryDisplayHeading size="section" style={styles.title}>
               {studentName}

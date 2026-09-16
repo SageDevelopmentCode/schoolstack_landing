@@ -76,6 +76,7 @@ export const PARENT_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
+  ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
 ] as const;
 
 export type ParentActivityNotificationCategory =
@@ -294,6 +295,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee request declined",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup open",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
+  [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "Form to sign",
   [SYNTHETIC_BULLETIN_ACTION]: "New announcement",
   [SYNTHETIC_EVENT_ACTION]: "New calendar event",
   [COOP_SUPPLY_ITEM_ADDED_ACTION]: "New supply list item",
@@ -408,6 +410,9 @@ export function getParentActivityNotificationCategory(
   if (action.startsWith("committee.")) {
     return "committees";
   }
+  if (action.startsWith("teacher_parent_form.")) {
+    return "other";
+  }
   return "other";
 }
 
@@ -436,6 +441,9 @@ function formatParentNotificationDetail(
     studentLabel?: string | null;
     committeeName?: string | null;
     signupTitle?: string | null;
+    formTitle?: string | null;
+    teacherName?: string | null;
+    dueDate?: string | null;
     bulletinTitle?: string | null;
     eventTitle?: string | null;
     amountLabel?: string | null;
@@ -515,6 +523,19 @@ function formatParentNotificationDetail(
       return context?.signupTitle
         ? `"${context.signupTitle}" closed`
         : "A classroom signup closed";
+    case ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED: {
+      const formTitle = context?.formTitle;
+      const teacherName = context?.teacherName;
+      const dueDate = context?.dueDate;
+      if (formTitle && teacherName) {
+        return dueDate
+          ? `"${formTitle}" from ${teacherName} · Due ${dueDate}`
+          : `"${formTitle}" from ${teacherName}`;
+      }
+      return formTitle
+        ? `"${formTitle}" needs your signature`
+        : "A form needs your signature";
+    }
     case SYNTHETIC_BULLETIN_ACTION:
       return context?.bulletinTitle
         ? `New announcement: ${context.bulletinTitle}`
@@ -943,6 +964,16 @@ function resolveParentNotificationLink(
     };
   }
 
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) {
+    const formId = metadataString(event.metadata, "formId") ?? event.entity_id;
+    return {
+      href: formId
+        ? `${parentBase}/forms_documents?form=${encodeURIComponent(formId)}`
+        : `${parentBase}/forms_documents`,
+      ctaLabel: "View form",
+    };
+  }
+
   if (action === SYNTHETIC_BULLETIN_ACTION) {
     return {
       href: parentBase,
@@ -1125,6 +1156,9 @@ function mapActivityEventToParentNotification(
 ): ParentActivityNotification {
   const committeeName = metadataString(event.metadata, "committeeName");
   const signupTitle = metadataString(event.metadata, "signupTitle");
+  const formTitle = metadataString(event.metadata, "formTitle");
+  const teacherName = metadataString(event.metadata, "teacherName");
+  const dueDate = metadataString(event.metadata, "dueDate");
   const amountCents = metadataNumber(event.metadata, "amountCents");
   const amountLabel =
     amountCents != null && amountCents > 0 ? formatCents(amountCents) : null;
@@ -1147,6 +1181,9 @@ function mapActivityEventToParentNotification(
       studentLabel,
       committeeName,
       signupTitle,
+      formTitle,
+      teacherName,
+      dueDate,
       amountLabel,
     }),
     createdAt: event.created_at,
