@@ -174,6 +174,12 @@ export const {PREFIX}_ADMIN_COLORS = {
 } as const;
 ```
 
+**Story alignment:** `accent` / `accentBright` / `accentLight` / `accentDark` feed `buildDemoParentThemeTokens()` in `src/components/demo/shared/demo-story-theme.ts`. Keep the same accent hex in admin, parent (`colors.accent`), and teacher (`accent`) configs.
+
+Portal preview typography: Fraunces + DM Sans (set in shared `School*DashboardDemo.tsx` shells). Website step typography: school fonts in `layout.tsx` only.
+
+Mobile slides: paper interior `#F8F8F3`, story tab pills in `SchoolMobileAppShowcase.tsx`.
+
 ## Teacher program IDs
 
 Define labels and order in `{slug}-teacher-demo.ts`, then pass them through `SchoolTeacherDemoConfig`:

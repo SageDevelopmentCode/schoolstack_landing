@@ -27,11 +27,11 @@ const VARIANT_CONFIG: Record<
   website: {
     label: "Website",
     emoji: "🌐",
-    outerBg: "#F9FAFB",
-    cardBorder: "#E5E7EB",
+    outerBg: "#F8F8F3",
+    cardBorder: "#E8E4DA",
     pillBg: "#FFFFFF",
     pillText: "#374151",
-    pillBorder: "#E5E7EB",
+    pillBorder: "#E8E4DA",
   },
   application: {
     label: "Application",

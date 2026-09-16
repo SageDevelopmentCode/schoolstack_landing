@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ParentPlaceholderScreen } from '@/components/parent/parent-placeholder-screen';
+import { TeacherMyStudentsScreen } from '@/components/teacher/teacher-my-students-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function TeacherMyStudentsRoute() {
@@ -9,12 +9,5 @@ export default function TeacherMyStudentsRoute() {
 
   if (!slug || !selectedSchool) return null;
 
-  return (
-    <ParentPlaceholderScreen
-      slug={slug}
-      schoolName={selectedSchool.name}
-      title="My Students"
-      description={`View and manage your students — coming soon in the ${selectedSchool.name} mobile app.`}
-    />
-  );
+  return <TeacherMyStudentsScreen slug={slug} />;
 }

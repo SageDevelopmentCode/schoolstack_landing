@@ -35,3 +35,7 @@ export type OrganizationEvent = {
 export type ParentCalendarInitialData = {
   events: OrganizationEvent[];
 };
+
+export type TeacherCalendarInitialData = ParentCalendarInitialData & {
+  canManageEvents: boolean;
+};

@@ -54,9 +54,13 @@ import {
 import type { SchoolParentDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import {
   PARENT_DEMO_COPY,
+  PARENT_DEMO_COLORS,
+  PARENT_DEMO_STORY_THEME,
   applyParentDemoRuntime,
   getParentDemoLogo,
 } from "@/components/demo/shared/parent-demo-runtime";
+import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
+import { fraunces, dmSans } from "@/lib/fonts";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -1100,7 +1104,7 @@ function SignatureBlock({
         value={nameInput}
         onChange={(e) => setNameInput(e.target.value)}
         placeholder="Type your full name"
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#336699] mb-3"
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[var(--parent-primary)] mb-3"
       />
       <button
         disabled={!nameInput.trim()}
@@ -1108,7 +1112,7 @@ function SignatureBlock({
           onSign(sectionKey, nameInput.trim());
           setEditing(false);
         }}
-        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[#336699] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
+        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-[var(--parent-primary)] text-white disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-opacity"
       >
         Click to Sign
       </button>
@@ -1121,7 +1125,7 @@ function ProgressBar({ value, max }: { value: number; max: number }) {
   return (
     <div className="w-full bg-gray-100 rounded-full h-2">
       <div
-        className="h-2 rounded-full bg-[#336699] transition-all duration-500"
+        className="h-2 rounded-full bg-[var(--parent-primary)] transition-all duration-500"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -1256,7 +1260,7 @@ function HealthFormModal({
       inline={inline}
     >
       <div className="space-y-5">
-        <div className="bg-[#336699]/5 rounded-xl p-4">
+        <div className="bg-[var(--parent-primary)]/5 rounded-xl p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Emergency Contact
           </p>
@@ -1273,13 +1277,13 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#336699]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--parent-primary)]"
                 />
               </div>
             ))}
           </div>
         </div>
-        <div className="bg-[#336699]/5 rounded-xl p-4">
+        <div className="bg-[var(--parent-primary)]/5 rounded-xl p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
             Physician & Insurance
           </p>
@@ -1299,7 +1303,7 @@ function HealthFormModal({
                 <input
                   value={form[key as keyof typeof form]}
                   onChange={set(key as keyof typeof form)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#336699]"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--parent-primary)]"
                 />
               </div>
             ))}
@@ -1308,7 +1312,7 @@ function HealthFormModal({
         {!saved ? (
           <button
             onClick={onSave}
-            className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             Save Health Form
           </button>
@@ -1409,7 +1413,7 @@ function MedicationPlanModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#336699] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--parent-primary)] bg-white"
                   />
                 </div>
               ))}
@@ -1418,7 +1422,7 @@ function MedicationPlanModal({
         ))}
         <button
           onClick={addMed}
-          className="flex items-center gap-1.5 text-sm text-[#336699] hover:underline cursor-pointer"
+          className="flex items-center gap-1.5 text-sm text-[var(--parent-primary)] hover:underline cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Medication
         </button>
@@ -1426,7 +1430,7 @@ function MedicationPlanModal({
           <button
             onClick={onSave}
             disabled={meds.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1d519d] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             Save Plan
           </button>
@@ -1476,7 +1480,7 @@ function ImmunizationModal({
           <p className="text-sm text-gray-400 mb-3">Drag & drop files here</p>
           <button
             onClick={onUpload}
-            className="px-4 py-2 rounded-lg bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors"
+            className="px-4 py-2 rounded-lg bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             Choose File
           </button>
@@ -1567,7 +1571,7 @@ function PhotoReleaseModal({
             {options.map((o) => (
               <label
                 key={o.value}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected === o.value ? "border-[#336699] bg-[#336699]/5" : "border-gray-100 hover:border-gray-200"}`}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selected === o.value ? "border-[var(--parent-primary)] bg-[var(--parent-primary)]/5" : "border-gray-100 hover:border-gray-200"}`}
               >
                 <input
                   type="radio"
@@ -1578,7 +1582,7 @@ function PhotoReleaseModal({
                     setSelected(o.value);
                     setConsentSaved(false);
                   }}
-                  className="mt-0.5 accent-[#336699]"
+                  className="mt-0.5 accent-[var(--parent-primary)]"
                 />
                 <div>
                   <p className="text-sm font-medium text-gray-700">{o.label}</p>
@@ -1593,7 +1597,7 @@ function PhotoReleaseModal({
                 onConsentSave(selected!);
                 setConsentSaved(true);
               }}
-              className="mt-3 w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors"
+              className="mt-3 w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
             >
               Save Consent Level
             </button>
@@ -1764,7 +1768,7 @@ function AuthorizedPickupModal({
                         e.target.value,
                       )
                     }
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#336699] bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--parent-primary)] bg-white"
                   />
                 </div>
               ))}
@@ -1773,7 +1777,7 @@ function AuthorizedPickupModal({
         ))}
         <button
           onClick={addPerson}
-          className="flex items-center gap-1.5 text-sm text-[#336699] hover:underline cursor-pointer"
+          className="flex items-center gap-1.5 text-sm text-[var(--parent-primary)] hover:underline cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Person
         </button>
@@ -1781,7 +1785,7 @@ function AuthorizedPickupModal({
           <button
             onClick={onSave}
             disabled={persons.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1d519d] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             Save List
           </button>
@@ -1853,7 +1857,7 @@ function HealthStatementModal({
           ].map((o) => (
             <label
               key={o.val}
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selected === o.val ? "border-[#336699] bg-[#336699]/5" : "border-gray-100 hover:border-gray-200"}`}
+              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${selected === o.val ? "border-[var(--parent-primary)] bg-[var(--parent-primary)]/5" : "border-gray-100 hover:border-gray-200"}`}
             >
               <input
                 type="radio"
@@ -1864,7 +1868,7 @@ function HealthStatementModal({
                   setSelected(o.val);
                   setOptionSaved(false);
                 }}
-                className="mt-0.5 accent-[#336699]"
+                className="mt-0.5 accent-[var(--parent-primary)]"
               />
               <div>
                 <p className="text-sm font-medium text-gray-700">{o.title}</p>
@@ -1879,7 +1883,7 @@ function HealthStatementModal({
               onOptionSave(selected!);
               setOptionSaved(true);
             }}
-            className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             Save Selection
           </button>
@@ -1926,8 +1930,8 @@ function RegistrationFeeModal({
   return (
     <ModalShell title="Registration Fee" onClose={onClose} inline={inline}>
       <div className="space-y-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#336699]/5 flex items-center justify-center mx-auto">
-          <CreditCard className="w-7 h-7 text-[#336699]" />
+        <div className="w-16 h-16 rounded-full bg-[var(--parent-primary)]/5 flex items-center justify-center mx-auto">
+          <CreditCard className="w-7 h-7 text-[var(--parent-primary)]" />
         </div>
         {!paid ? (
           <>
@@ -1946,7 +1950,7 @@ function RegistrationFeeModal({
                 setPaid(true);
                 setTimeout(onPay, 800);
               }}
-              className="w-full py-3 rounded-xl bg-[#336699] text-white font-medium cursor-pointer hover:bg-[#1d519d] transition-colors"
+              className="w-full py-3 rounded-xl bg-[var(--parent-primary)] text-white font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
             >
               Pay $75.00
             </button>
@@ -2185,7 +2189,7 @@ function EnrollmentPage({
                     onClick={() => setActiveItem(item.modal)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-[#336699]/8 text-[#336699]"
+                        ? "bg-[var(--parent-primary)]/8 text-[var(--parent-primary)]"
                         : "hover:bg-gray-50 text-gray-700"
                     }`}
                   >
@@ -2194,7 +2198,7 @@ function EnrollmentPage({
                         done
                           ? "bg-emerald-100"
                           : isActive
-                            ? "bg-[#336699]/15"
+                            ? "bg-[var(--parent-primary)]/15"
                             : "bg-gray-100"
                       }`}
                     >
@@ -2202,7 +2206,7 @@ function EnrollmentPage({
                         <Check className="w-3 h-3 text-emerald-600" />
                       ) : (
                         <Icon
-                          className={`w-3 h-3 ${isActive ? "text-[#336699]" : "text-gray-400"}`}
+                          className={`w-3 h-3 ${isActive ? "text-[var(--parent-primary)]" : "text-gray-400"}`}
                         />
                       )}
                     </div>
@@ -2448,7 +2452,7 @@ function ChildrenPage({
           <button
             key={t.id}
             onClick={() => setDetailTab(t.id)}
-            className={`px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${detailTab === t.id ? "text-[#336699] border-b-2 border-[#336699]" : "text-gray-500 hover:text-gray-700"}`}
+            className={`px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${detailTab === t.id ? "text-[var(--parent-primary)] border-b-2 border-[var(--parent-primary)]" : "text-gray-500 hover:text-gray-700"}`}
           >
             {t.label}
           </button>
@@ -2476,11 +2480,11 @@ function ChildrenPage({
                   <div className="flex gap-2 mt-3">
                     <a
                       href={`mailto:${t.email}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#336699]/5 text-[#336699] text-xs font-medium hover:bg-[#336699]/10 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--parent-primary)]/5 text-[var(--parent-primary)] text-xs font-medium hover:bg-[var(--parent-primary)]/10 transition-colors"
                     >
                       <Mail className="w-3.5 h-3.5" /> Email
                     </a>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#336699]/5 text-[#336699] text-xs font-medium hover:bg-[#336699]/10 transition-colors cursor-pointer">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--parent-primary)]/5 text-[var(--parent-primary)] text-xs font-medium hover:bg-[var(--parent-primary)]/10 transition-colors cursor-pointer">
                       <MessageCircle className="w-3.5 h-3.5" /> Message
                     </button>
                   </div>
@@ -2655,8 +2659,8 @@ function HomeschoolDropInPaySidebar({
                             onClick={() => onToggleDay(week.id, day)}
                             className={`min-w-[2.75rem] px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer border ${
                               selected
-                                ? "bg-[#336699] text-white border-[#336699]"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-[#336699]/40 hover:text-[#336699]"
+                                ? "bg-[var(--parent-primary)] text-white border-[var(--parent-primary)]"
+                                : "bg-white text-gray-500 border-gray-200 hover:border-[var(--parent-primary)]/40 hover:text-[var(--parent-primary)]"
                             }`}
                           >
                             {day}
@@ -2683,7 +2687,7 @@ function HomeschoolDropInPaySidebar({
                   setPaid(true);
                   setTimeout(onConfirm, 800);
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {selectionOnly ? "Save selection" : `Pay ${formatMoney(total)}`}
               </button>
@@ -2798,7 +2802,7 @@ function InvoiceSidebar({ onClose }: { onClose: () => void }) {
         <div className="px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium hover:bg-[#1d519d] transition-colors cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium hover:bg-[var(--parent-primary-dark)] transition-colors cursor-pointer"
           >
             Pay Now — $450.00
           </button>
@@ -2907,7 +2911,7 @@ function BillingCheckoutSidebar({
                     onClick={() => setCheckoutPlan("monthly")}
                     className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
                       checkoutPlan === "monthly"
-                        ? "border-l-2 border-l-[#336699] bg-[#336699]/5"
+                        ? "border-l-2 border-l-[var(--parent-primary)] bg-[var(--parent-primary)]/5"
                         : "hover:bg-gray-50/80"
                     }`}
                   >
@@ -2924,7 +2928,7 @@ function BillingCheckoutSidebar({
                     onClick={() => setCheckoutPlan("upfront")}
                     className={`w-full text-left py-3 px-4 transition-colors cursor-pointer ${
                       checkoutPlan === "upfront"
-                        ? "border-l-2 border-l-[#336699] bg-[#336699]/5"
+                        ? "border-l-2 border-l-[var(--parent-primary)] bg-[var(--parent-primary)]/5"
                         : "hover:bg-gray-50/80"
                     }`}
                   >
@@ -2974,7 +2978,7 @@ function BillingCheckoutSidebar({
                             <button
                               type="button"
                               onClick={onOpenHomeschoolPay}
-                              className="mt-2 text-xs font-semibold text-[#336699] hover:underline cursor-pointer"
+                              className="mt-2 text-xs font-semibold text-[var(--parent-primary)] hover:underline cursor-pointer"
                             >
                               Select days
                             </button>
@@ -3013,7 +3017,7 @@ function BillingCheckoutSidebar({
                       onClick={() => setPaymentMethod(id)}
                       className={`flex flex-col items-center gap-1.5 rounded-md border p-3 transition-all cursor-pointer ${
                         paymentMethod === id
-                          ? "border-[#336699] bg-[#336699]/5"
+                          ? "border-[var(--parent-primary)] bg-[var(--parent-primary)]/5"
                           : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
@@ -3075,7 +3079,7 @@ function BillingCheckoutSidebar({
                   setPaid(true);
                   setTimeout(() => onConfirm(checkoutPlan, txIds), 800);
                 }}
-                className="w-full py-2.5 rounded-lg bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-2.5 rounded-lg bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Pay {formatMoney(total)}
               </button>
@@ -3239,7 +3243,7 @@ function BillingPage({
             onClick={() => setChildFilter("all")}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
               childFilter === "all"
-                ? "bg-[#336699]/8 text-gray-800"
+                ? "bg-[var(--parent-primary)]/8 text-gray-800"
                 : "text-gray-500 hover:bg-gray-50"
             }`}
           >
@@ -3263,7 +3267,7 @@ function BillingPage({
                 onClick={() => setChildFilter(cid)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
                   active
-                    ? "bg-[#336699]/8 text-gray-800"
+                    ? "bg-[var(--parent-primary)]/8 text-gray-800"
                     : "text-gray-500 hover:bg-gray-50"
                 }`}
               >
@@ -3310,7 +3314,7 @@ function BillingPage({
             {childFilter === "all" && pending.length > 0 ? (
               <button
                 onClick={() => onOpenCheckout(pending.map((t) => t.id))}
-                className="px-4 py-2 rounded-xl bg-[#336699] text-white text-sm font-semibold hover:bg-[#1d519d] transition-colors cursor-pointer shadow-sm"
+                className="px-4 py-2 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-semibold hover:bg-[var(--parent-primary-dark)] transition-colors cursor-pointer shadow-sm"
               >
                 Pay All
               </button>
@@ -3413,7 +3417,7 @@ function BillingPage({
                           e.stopPropagation();
                           handlePayClick(t);
                         }}
-                        className="px-3.5 py-2 rounded-md bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors shrink-0"
+                        className="px-3.5 py-2 rounded-md bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors shrink-0"
                       >
                         {isHomeschool ? "Select days" : "Pay"}
                       </button>
@@ -3447,7 +3451,7 @@ function BillingPage({
                 title={m.label}
                 onClick={() => setSelectedHistoryMonthId(m.id)}
                 className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border px-3.5 py-3 min-w-[68px] min-h-[64px] cursor-pointer transition-all ${
-                  isSelected ? "ring-2 ring-[#336699] ring-offset-1" : ""
+                  isSelected ? "ring-2 ring-[var(--parent-primary)] ring-offset-1" : ""
                 } ${
                   status === "paid"
                     ? "border-emerald-100 bg-emerald-50"
@@ -3626,7 +3630,7 @@ function MessagesPage({
               key={c.id}
               data-tour-id={`messages-conv-${c.id}`}
               onClick={() => setActiveConv(c.id)}
-              className={`w-full flex items-start gap-3 p-3 text-left transition-colors cursor-pointer ${activeConv === c.id ? "bg-[#336699]/5" : "hover:bg-gray-50"}`}
+              className={`w-full flex items-start gap-3 p-3 text-left transition-colors cursor-pointer ${activeConv === c.id ? "bg-[var(--parent-primary)]/5" : "hover:bg-gray-50"}`}
             >
               <Avatar
                 initials={c.name
@@ -3643,7 +3647,7 @@ function MessagesPage({
                     {c.name}
                   </p>
                   {c.unread > 0 && (
-                    <span className="w-4 h-4 rounded-full bg-[#336699] text-white text-[10px] flex items-center justify-center flex-shrink-0">
+                    <span className="w-4 h-4 rounded-full bg-[var(--parent-primary)] text-white text-[10px] flex items-center justify-center flex-shrink-0">
                       {c.unread}
                     </span>
                   )}
@@ -3682,7 +3686,7 @@ function MessagesPage({
               className={`flex ${m.senderId === "parent" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${m.senderId === "parent" ? "bg-[#336699] text-white rounded-br-sm" : "bg-gray-100 text-gray-700 rounded-bl-sm"}`}
+                className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${m.senderId === "parent" ? "bg-[var(--parent-primary)] text-white rounded-br-sm" : "bg-gray-100 text-gray-700 rounded-bl-sm"}`}
               >
                 <p>{m.text}</p>
                 <p
@@ -3701,12 +3705,12 @@ function MessagesPage({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMsg()}
             placeholder="Type a message..."
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#336699]"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[var(--parent-primary)]"
           />
           <button
             data-tour-id="messages-send"
             onClick={sendMsg}
-            className="p-2 rounded-xl bg-[#336699] text-white cursor-pointer hover:bg-[#1d519d] transition-colors"
+            className="p-2 rounded-xl bg-[var(--parent-primary)] text-white cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -3917,7 +3921,7 @@ function CalendarPage({
               <button
                 key={p.val}
                 onClick={() => setProgram(p.val)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[#336699] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-colors ${program === p.val ? "bg-[var(--parent-primary)] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
               >
                 {p.label}
               </button>
@@ -4032,8 +4036,8 @@ function FormsPage({
 function VolunteerPage() {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className="w-16 h-16 rounded-full bg-[#336699]/5 flex items-center justify-center mb-4">
-        <Heart className="w-7 h-7 text-[#336699]" />
+      <div className="w-16 h-16 rounded-full bg-[var(--parent-primary)]/5 flex items-center justify-center mb-4">
+        <Heart className="w-7 h-7 text-[var(--parent-primary)]" />
       </div>
       <h3 className="font-semibold text-gray-700 text-lg mb-2">
         No openings right now
@@ -4042,7 +4046,7 @@ function VolunteerPage() {
         We&apos;ll notify you when volunteer opportunities become available. Thank
         you for your willingness to support our community!
       </p>
-      <button className="mt-6 px-5 py-2.5 rounded-xl bg-[#336699] text-white text-sm font-medium cursor-pointer hover:bg-[#1d519d] transition-colors">
+      <button className="mt-6 px-5 py-2.5 rounded-xl bg-[var(--parent-primary)] text-white text-sm font-medium cursor-pointer hover:bg-[var(--parent-primary-dark)] transition-colors">
         Notify Me
       </button>
     </div>
@@ -4068,7 +4072,7 @@ function EmergencyContactsPage({ activeChildId }: { activeChildId: ChildId }) {
             {c.label}
           </p>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-[#336699] font-semibold text-sm">
+            <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-[var(--parent-primary)] font-semibold text-sm">
               {c.name[0]}
             </div>
             <div>
@@ -4232,8 +4236,8 @@ function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#336699]/10 flex items-center justify-center flex-shrink-0">
-              <ClipboardCheck className="w-4 h-4 text-[#336699]" />
+            <div className="w-7 h-7 rounded-lg bg-[var(--parent-primary)]/10 flex items-center justify-center flex-shrink-0">
+              <ClipboardCheck className="w-4 h-4 text-[var(--parent-primary)]" />
             </div>
             <p className="text-sm font-semibold text-gray-800">Onboarding Checklist</p>
           </div>
@@ -4293,7 +4297,7 @@ function HomeOnboardingSidebar({ onClose }: { onClose: () => void }) {
         <div className="px-5 py-4 border-t border-gray-100">
           <p className="text-xs text-gray-400 text-center">
             Go to{" "}
-            <span className="text-[#336699] font-medium">Enrollment</span>{" "}
+            <span className="text-[var(--parent-primary)] font-medium">Enrollment</span>{" "}
             to complete remaining steps.
           </p>
         </div>
@@ -4419,7 +4423,7 @@ function HomeDashboard({
                     <button
                       data-tour-id={child.id === "emma" ? "home-attendance-emma" : undefined}
                       onClick={() => setAttendanceChildId(child.id)}
-                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold font-body text-[#336699] bg-[#EEF5EF] rounded-xl hover:bg-[#ddeede] transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold font-body text-[var(--parent-primary)] bg-[#EEF5EF] rounded-xl hover:bg-[#ddeede] transition-colors cursor-pointer"
                     >
                       <ClipboardList className="w-3.5 h-3.5" />
                       Attendance
@@ -4444,13 +4448,13 @@ function HomeDashboard({
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full bg-[#336699]/15 flex items-center justify-center">
-                    <Gift className="w-3.5 h-3.5 text-[#336699]" strokeWidth={1.5} />
+                  <div className="w-7 h-7 rounded-full bg-[var(--parent-primary)]/15 flex items-center justify-center">
+                    <Gift className="w-3.5 h-3.5 text-[var(--parent-primary)]" strokeWidth={1.5} />
                   </div>
                   <h2 className="text-base font-heading font-semibold text-gray-800">
                     Refer a Family
                   </h2>
-                  <span className="bg-[#336699] text-white text-xs font-body px-2 py-0.5 rounded-full font-medium">
+                  <span className="bg-[var(--parent-primary)] text-white text-xs font-body px-2 py-0.5 rounded-full font-medium">
                     $150 gift card
                   </span>
                 </div>
@@ -4484,7 +4488,7 @@ function HomeDashboard({
                   <button
                     onClick={copyReferralLink}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold font-body transition-colors whitespace-nowrap cursor-pointer ${
-                      copied ? "bg-green-600 text-white" : "bg-[#336699] text-white hover:bg-[#3d6b4a]"
+                      copied ? "bg-green-600 text-white" : "bg-[var(--parent-primary)] text-white hover:bg-[#3d6b4a]"
                     }`}
                   >
                     {copied ? (
@@ -4532,20 +4536,20 @@ function HomeDashboard({
             <button
               data-tour-id="home-checklist-prompt"
               onClick={() => setOnboardingOpen(true)}
-              className="w-full flex items-center gap-3 bg-[#336699]/10 hover:bg-[#336699]/15 border border-[#336699]/20 rounded-2xl px-4 py-3 transition-colors text-left cursor-pointer"
+              className="w-full flex items-center gap-3 bg-[var(--parent-primary)]/10 hover:bg-[var(--parent-primary)]/15 border border-[var(--parent-primary)]/20 rounded-2xl px-4 py-3 transition-colors text-left cursor-pointer"
             >
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#336699]/15 flex items-center justify-center">
-                <ClipboardCheck className="w-4 h-4 text-[#336699]" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[var(--parent-primary)]/15 flex items-center justify-center">
+                <ClipboardCheck className="w-4 h-4 text-[var(--parent-primary)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold font-body text-[#336699] leading-snug">
+                <p className="text-sm font-semibold font-body text-[var(--parent-primary)] leading-snug">
                   Complete your onboarding
                 </p>
-                <p className="text-xs font-body text-[#336699]/70 mt-0.5">
+                <p className="text-xs font-body text-[var(--parent-primary)]/70 mt-0.5">
                   Finish setting up your account
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#336699]/60 flex-shrink-0" />
+              <ArrowRight className="w-4 h-4 text-[var(--parent-primary)]/60 flex-shrink-0" />
             </button>
           </section>
 
@@ -4557,7 +4561,7 @@ function HomeDashboard({
               </h2>
               <button
                 onClick={() => onTabChange("calendar")}
-                className="flex items-center gap-1 text-xs font-body text-[#336699] hover:underline cursor-pointer"
+                className="flex items-center gap-1 text-xs font-body text-[var(--parent-primary)] hover:underline cursor-pointer"
               >
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -4611,7 +4615,7 @@ function HomeDashboard({
               </h2>
               <button
                 onClick={() => onTabChange("billing")}
-                className="flex items-center gap-1 text-xs font-body text-[#336699] hover:underline cursor-pointer"
+                className="flex items-center gap-1 text-xs font-body text-[var(--parent-primary)] hover:underline cursor-pointer"
               >
                 View all <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -4638,7 +4642,7 @@ function HomeDashboard({
                   </div>
                   <span
                     className="inline-flex items-center gap-1 self-start px-3 py-1.5 rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: "#336699" }}
+                    style={{ backgroundColor: "var(--parent-primary)" }}
                   >
                     View billing <ArrowRight className="w-3 h-3" />
                   </span>
@@ -4741,7 +4745,13 @@ function DemoHeader({
   }, [moreOpen]);
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center flex-shrink-0">
+    <header
+      className="border-b px-6 py-3 flex items-center flex-shrink-0"
+      style={{
+        backgroundColor: PARENT_DEMO_STORY_THEME.white,
+        borderColor: PARENT_DEMO_STORY_THEME.line,
+      }}
+    >
       {/* Logo — left */}
       <div className="flex items-center gap-2 flex-1">
         <img
@@ -4759,7 +4769,16 @@ function DemoHeader({
             key={id}
             data-tour-id={`nav-${id}`}
             onClick={() => onTabChange(id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap ${activeTab === id ? "text-[#336699] bg-[#336699]/8 font-semibold" : "text-gray-500 hover:text-[#336699] hover:bg-gray-50"}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+            style={
+              activeTab === id
+                ? {
+                    color: PARENT_DEMO_STORY_THEME.primaryDark,
+                    backgroundColor: PARENT_DEMO_STORY_THEME.primaryLight,
+                    fontWeight: 600,
+                  }
+                : { color: PARENT_DEMO_STORY_THEME.muted }
+            }
           >
             <Icon className="w-3.5 h-3.5" />
             {label}
@@ -4768,7 +4787,7 @@ function DemoHeader({
         <div className="relative" ref={moreRef}>
           <button
             onClick={() => setMoreOpen((v) => !v)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[#336699] hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-[var(--parent-primary)] hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
           >
             More{" "}
             <ChevronDown
@@ -4776,7 +4795,7 @@ function DemoHeader({
             />
           </button>
           {moreOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-50 py-1.5">
+            <div className="absolute right-0 z-50 mt-1.5 w-52 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg">
               {MORE_NAV.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -4784,7 +4803,7 @@ function DemoHeader({
                     onTabChange(id);
                     setMoreOpen(false);
                   }}
-                  className={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${activeTab === id ? "text-[#336699] bg-[#336699]/5 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-[#336699]"}`}
+                  className={`flex items-center gap-2 w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${activeTab === id ? "text-[var(--parent-primary)] bg-[var(--parent-primary)]/5 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-[var(--parent-primary)]"}`}
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -4826,7 +4845,7 @@ function ChildTabStrip({
               onClick={() => onSwitch(child.id)}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-sm font-medium transition-colors cursor-pointer ${
                 active
-                  ? "bg-[#336699]/8 text-gray-800"
+                  ? "bg-[var(--parent-primary)]/8 text-gray-800"
                   : "text-gray-500 hover:bg-gray-50"
               }`}
             >
@@ -4840,7 +4859,7 @@ function ChildTabStrip({
             </button>
           );
         })}
-        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#336699] font-medium border border-dashed border-[#336699]/30 hover:bg-[#336699]/5 transition-colors cursor-pointer mt-1">
+        <button className="w-full flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[var(--parent-primary)] font-medium border border-dashed border-[var(--parent-primary)]/30 hover:bg-[var(--parent-primary)]/5 transition-colors cursor-pointer mt-1">
           <Plus className="w-3.5 h-3.5 shrink-0" /> New Application
         </button>
       </aside>
@@ -4865,7 +4884,7 @@ function ChildTabStrip({
           {child.name}
         </button>
       ))}
-      <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[#336699] font-medium border border-dashed border-[#336699]/30 hover:bg-[#336699]/5 transition-colors cursor-pointer">
+      <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm text-[var(--parent-primary)] font-medium border border-dashed border-[var(--parent-primary)]/30 hover:bg-[var(--parent-primary)]/5 transition-colors cursor-pointer">
         <Plus className="w-3.5 h-3.5" /> New Application
       </button>
     </div>
@@ -5479,16 +5498,15 @@ export default function SchoolParentDashboardDemo({
   return (
     <div
       ref={containerRef}
-      className="demo-shell relative flex flex-col h-full min-h-[700px] bg-white"
-      style={{
-        fontFamily: "var(--font-body, system-ui, sans-serif)",
-      }}
+      className={`demo-shell relative flex flex-col h-full min-h-[700px] ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
+      style={demoStoryShellStyle(PARENT_DEMO_STORY_THEME)}
+      data-parent-portal
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
     >
       {!hideNav && <DemoHeader activeTab={activeNavTab} onTabChange={setActiveNavTab} />}
 
-      <main className="flex-1 overflow-y-auto flex flex-col bg-white">
+      <main className="flex-1 overflow-y-auto flex flex-col" style={{ backgroundColor: PARENT_DEMO_STORY_THEME.paper }}>
         {activeNavTab === "messages" || activeNavTab === "calendar" || activeNavTab === "feed" || activeNavTab === "home" || activeNavTab === "enrollment" ? (
           <AnimatePresence mode="wait">
             <motion.div
@@ -5595,7 +5613,7 @@ export default function SchoolParentDashboardDemo({
                       {/* All Posts */}
                       <button
                         onClick={() => { setFeedFilterClassId(null); setFeedFilterTeacherName(null); }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${!feedFilterClassId && !feedFilterTeacherName ? "bg-[#336699]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${!feedFilterClassId && !feedFilterTeacherName ? "bg-[var(--parent-primary)]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                       >
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                           <span className="text-[10px] text-gray-500 font-bold">All</span>
@@ -5610,7 +5628,7 @@ export default function SchoolParentDashboardDemo({
                           <div key={cls.id}>
                             <button
                               onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(null); }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isClassActive ? "bg-[#336699]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${isClassActive ? "bg-[var(--parent-primary)]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                             >
                               <div
                                 className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
@@ -5628,7 +5646,7 @@ export default function SchoolParentDashboardDemo({
                                   <button
                                     key={t.name}
                                     onClick={() => { setFeedFilterClassId(cls.id); setFeedFilterTeacherName(t.name); }}
-                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${isTeacherActive ? "bg-[#336699]/8 text-gray-700" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors cursor-pointer ${isTeacherActive ? "bg-[var(--parent-primary)]/8 text-gray-700" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                                   >
                                     <div
                                       className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
@@ -5649,7 +5667,7 @@ export default function SchoolParentDashboardDemo({
                       <div className="mt-3 pt-3 border-t border-gray-100">
                         <button
                           onClick={() => { setFeedFilterClassId("admin"); setFeedFilterTeacherName(null); }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterClassId === "admin" ? "bg-[#336699]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterClassId === "admin" ? "bg-[var(--parent-primary)]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                         >
                           <div className="w-6 h-6 rounded-full bg-[#4A6354] flex items-center justify-center shrink-0">
                             <span className="text-[9px] text-white font-bold">SF</span>
@@ -5700,7 +5718,7 @@ export default function SchoolParentDashboardDemo({
                                 <button
                                   key={emoji}
                                   onClick={(e) => { e.stopPropagation(); toggleFeedReaction(post.id, emoji); }}
-                                  className={`px-2.5 py-1 rounded-full text-sm cursor-pointer transition-colors border ${active ? "bg-[#336699]/5 border-sage-200" : "border-gray-100 hover:bg-gray-50"}`}
+                                  className={`px-2.5 py-1 rounded-full text-sm cursor-pointer transition-colors border ${active ? "bg-[var(--parent-primary)]/5 border-sage-200" : "border-gray-100 hover:bg-gray-50"}`}
                                 >
                                   {emoji}
                                 </button>
@@ -5787,7 +5805,7 @@ export default function SchoolParentDashboardDemo({
                                 onChange={(e) => setFeedCommentInputs({ ...feedCommentInputs, [feedSelectedPost.id]: e.target.value })}
                                 onKeyDown={(e) => e.key === "Enter" && addFeedComment(feedSelectedPost.id)}
                                 placeholder="Add a comment..."
-                                className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[#336699]"
+                                className="flex-1 border border-gray-200 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-[var(--parent-primary)]"
                               />
                             </div>
                           </div>

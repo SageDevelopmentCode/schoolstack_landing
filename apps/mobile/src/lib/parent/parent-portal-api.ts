@@ -67,6 +67,29 @@ export async function fetchParentApiSoft<T>(
   return payload;
 }
 
+export async function submitParentSupportRequest(
+  input: import('@/lib/support-request').SubmitPortalSupportRequestInput,
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('organizationId', input.organizationId);
+  formData.append('topic', input.topic);
+  formData.append('description', input.description.trim());
+
+  if (input.sourcePagePath?.trim()) {
+    formData.append('sourcePagePath', input.sourcePagePath.trim());
+  }
+
+  for (const file of input.attachments ?? []) {
+    formData.append('attachments', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? 'application/octet-stream',
+    } as unknown as Blob);
+  }
+
+  await fetchParentApiFormData('/api/parent-portal/support-requests', formData);
+}
+
 export async function fetchParentApiFormData<T>(
   path: string,
   formData: FormData,
@@ -138,6 +161,31 @@ export type EnrollmentAgreementIncompleteBannerItem = {
   enrollmentHref: string;
 };
 
+export type ParentFormAttentionItem = {
+  formId: string;
+  formTitle: string;
+  studentNames: string[];
+  dueDate: string | null;
+  formsHref: string;
+};
+
+export type ParentFormHomeSnapshotItem = {
+  formId: string;
+  formTitle: string;
+  studentNames: string[];
+  listStatus: 'needs_action' | 'signed';
+  responseStatus: 'pending' | 'overdue' | 'signed';
+  dueDate: string | null;
+  signedAt: string | null;
+  formsHref: string;
+};
+
+export type ParentFormHomeSnapshot = {
+  counts: { all: number; needsAction: number; signed: number };
+  items: ParentFormHomeSnapshotItem[];
+  formsPageHref: string;
+};
+
 export type ParentHomeData = {
   branding: OrganizationBranding;
   schoolSlug: string;
@@ -150,6 +198,8 @@ export type ParentHomeData = {
   upcomingEvents: OrganizationEvent[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
+  formSnapshot?: ParentFormHomeSnapshot | null;
 };
 
 export async function fetchParentHomeData(

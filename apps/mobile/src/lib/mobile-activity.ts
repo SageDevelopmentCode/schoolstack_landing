@@ -6,7 +6,7 @@ import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
-export type MobilePortalSurface = 'parent_portal' | 'school_admin';
+export type MobilePortalSurface = 'parent_portal' | 'school_admin' | 'teacher_portal';
 
 export type MobileOperationalErrorPayload = {
   organizationId: string;
@@ -151,6 +151,9 @@ export function portalTypeToMobileSurface(
   }
   if (portalType === 'school_admin') {
     return 'school_admin';
+  }
+  if (portalType === 'teacher') {
+    return 'teacher_portal';
   }
   return null;
 }

@@ -21,8 +21,10 @@ import ParentMessagesInboxLoader from "@/components/school-parent/messages/Paren
 import ParentMessagesPageShell from "@/components/school-parent/messages/ParentMessagesPageShell";
 import { getRequestUser } from "@/lib/auth/session";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
+import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentClassroomSignupsPageBundle } from "@/lib/classroom-signups/load-parent-signups";
+import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
 import {
@@ -401,6 +403,46 @@ export async function renderSchoolParentFeaturePage(
           slug={context.slug}
           initialBundle={initialBundle}
           initialSignupId={initialSignupId}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "forms_documents") {
+    if (!familyId) {
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <SchoolParentComingSoon
+            branding={org.branding}
+            schoolSlug={context.slug}
+            schoolName={org.name}
+            organizationId={org.id}
+            featureKey={context.feature}
+            featureLabel={pageName}
+            userProfile={userProfile}
+          />
+        </SchoolParentPageShell>
+      );
+    }
+
+    const admin = createAdminClient();
+    const initialBundle = await loadParentFormsDocumentsPageBundle(
+      admin,
+      org.id,
+      familyId,
+    );
+    const initialFormId =
+      typeof context.searchParams.form === "string"
+        ? context.searchParams.form
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentFormsDocumentsPage
+          organizationId={org.id}
+          slug={context.slug}
+          initialBundle={initialBundle}
+          initialFormId={initialFormId}
         />
       </SchoolParentPageShell>
     );

@@ -3,8 +3,8 @@ import { apiError } from "@/lib/api/route-errors";
 import {
   getStaffMemberIdForUser,
   requireSchoolAdminUser,
-  sendMessageForViewer,
 } from "@/lib/messages/api-helpers";
+import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";

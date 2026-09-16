@@ -35,4 +35,20 @@ describe("mobile bearer auth route wiring", () => {
     );
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
   });
+
+  it("parent portal support-requests route uses bearer-aware auth", () => {
+    const source = readRoute("app/api/parent-portal/support-requests/route.ts");
+
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+    assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+  });
+
+  it("teacher portal support-requests route uses bearer-aware auth", () => {
+    const source = readRoute("app/api/teacher-portal/support-requests/route.ts");
+
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.match(source, /userHasTeacherPortalAccess\(/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+  });
 });

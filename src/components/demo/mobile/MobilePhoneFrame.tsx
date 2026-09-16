@@ -27,7 +27,7 @@ export default function MobilePhoneFrame({ children }: { children: ReactNode }) 
             </span>
           </span>
         </div>
-        <div className="relative h-full w-full bg-white overflow-hidden pt-8">
+        <div className="relative h-full w-full overflow-hidden pt-8" style={{ backgroundColor: "#F8F8F3" }}>
           {children}
         </div>
         <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full bg-gray-900/80 z-20 pointer-events-none" />

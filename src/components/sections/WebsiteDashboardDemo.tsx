@@ -10,7 +10,6 @@ import {
 } from "framer-motion";
 import {
   Star,
-  ChevronDown,
   Share2,
   MessageCircle,
   Sprout,
@@ -29,6 +28,7 @@ import {
   Check,
 } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
+import { buildDemoWebsiteThemeVars } from "@/components/demo/shared/demo-story-theme";
 import { defaultWebsiteDemoConfig } from "@/data/school-demos/default";
 import type {
   DemoIconName,
@@ -37,9 +37,15 @@ import type {
   SchoolWebsiteDemoConfig,
 } from "@/data/school-demos/types";
 import SignatureSection from "@/components/sections/website-demo/SignatureSection";
+import DemoWebsiteButton from "@/components/sections/website-demo/DemoWebsiteButton";
+import DemoWebsiteCard from "@/components/sections/website-demo/DemoWebsiteCard";
+import DemoWebsiteSectionKicker from "@/components/sections/website-demo/DemoWebsiteSectionKicker";
+import DemoWebsiteStoryHero from "@/components/sections/website-demo/DemoWebsiteStoryHero";
 
 const STICKY_NAV_HEIGHT = 72;
 const NAV_SECTION_TARGETS = ["programs", "welcome", "form", "faq"] as const;
+const FORM_FIELD_CLASS =
+  "w-full px-5 py-4 rounded-[var(--demo-radius-button)] border border-[var(--demo-line)] bg-white text-[var(--demo-ink)] placeholder:text-[var(--demo-muted)] font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,6 +71,7 @@ function DemoIcon({ name, className }: { name: DemoIconName; className?: string 
 
 function getThemeVars(theme: DemoTheme): React.CSSProperties {
   return {
+    ...buildDemoWebsiteThemeVars(theme),
     "--demo-primary": theme.primary,
     "--demo-primary-light": `color-mix(in srgb, ${theme.primary} 45%, white)`,
     "--demo-primary-hover": theme.primaryHover,
@@ -75,7 +82,6 @@ function getThemeVars(theme: DemoTheme): React.CSSProperties {
     "--demo-muted": theme.muted,
     "--demo-badge-bg": theme.badgeBg,
     "--demo-accent-text": theme.accentText,
-    "--demo-page-bg": theme.pageBg ?? "#ffffff",
   } as React.CSSProperties;
 }
 
@@ -109,30 +115,50 @@ function TimelineStep({
       className="flex gap-6 relative cursor-pointer group"
     >
       {index < stepCount - 1 && (
-        <div className="absolute left-5 top-10 w-px h-full bg-white/15 z-0" />
+        <div
+          className="absolute left-5 top-10 w-px h-full z-0"
+          style={{ backgroundColor: "var(--demo-line)" }}
+        />
       )}
       <div
-        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold font-secondary text-sm flex-shrink-0 shadow-sm transition-all duration-300 ${
+        className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold font-secondary text-sm flex-shrink-0 transition-all duration-300 ${
           isActive
-            ? "bg-white/20 border-2 border-white/50 text-white scale-110"
-            : "bg-white/10 border-2 border-white/25 text-white/40 group-hover:border-white/50 group-hover:text-white/70"
+            ? "scale-110 border-2"
+            : "border-2 opacity-70 group-hover:opacity-100"
         }`}
+        style={
+          isActive
+            ? {
+                backgroundColor: "var(--demo-primary-soft)",
+                borderColor: "color-mix(in srgb, var(--demo-primary) 35%, transparent)",
+                color: "var(--demo-primary)",
+                boxShadow: "var(--demo-shadow-pill)",
+              }
+            : {
+                backgroundColor: "var(--demo-cream)",
+                borderColor: "var(--demo-line)",
+                color: "var(--demo-muted)",
+              }
+        }
       >
         {index + 1}
       </div>
       <div className="pb-10">
         <p
-          className={`text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300 ${isActive ? "text-[var(--demo-primary)]" : "text-white/35"}`}
+          className="text-xs font-secondary font-semibold uppercase tracking-widest mb-1 transition-colors duration-300"
+          style={{ color: isActive ? "var(--demo-primary)" : "var(--demo-muted)" }}
         >
           {step.time}
         </p>
         <h4
-          className={`text-lg font-bold font-heading mb-1.5 transition-colors duration-300 ${isActive ? "text-white" : "text-white/40"}`}
+          className="text-lg font-bold font-heading mb-1.5 transition-colors duration-300"
+          style={{ color: isActive ? "var(--demo-ink)" : "color-mix(in srgb, var(--demo-ink) 45%, transparent)" }}
         >
           {step.activity}
         </h4>
         <p
-          className={`text-sm font-secondary leading-relaxed transition-all duration-300 ${isActive ? "text-white/70 max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
+          className={`text-sm font-secondary leading-relaxed transition-all duration-300 ${isActive ? "max-h-24 opacity-100" : "text-transparent max-h-0 opacity-0 overflow-hidden"}`}
+          style={{ color: "var(--demo-muted)" }}
         >
           {step.desc}
         </p>
@@ -165,7 +191,7 @@ function WelcomeImages({
       </div>
 
       <motion.div
-        className="absolute -bottom-8 -left-6 w-44 h-52 rounded-2xl overflow-hidden shadow-xl border-4 border-white z-10"
+        className="absolute -bottom-8 -left-6 w-44 h-52 rounded-[var(--demo-radius-card)] overflow-hidden shadow-xl border-4 border-white z-10"
         style={{ rotate: -4 }}
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -176,7 +202,7 @@ function WelcomeImages({
       </motion.div>
 
       {statBadge && (
-        <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-5 py-4 shadow-lg z-10">
+        <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-[var(--demo-radius-card)] px-5 py-4 shadow-lg z-10">
           <p className="text-2xl font-bold text-[var(--demo-dark)] font-heading leading-none">
             {statBadge.value}
           </p>
@@ -187,7 +213,7 @@ function WelcomeImages({
       )}
 
       {floatBadge && (
-        <div className="absolute bottom-5 right-6 bg-white/95 backdrop-blur-sm rounded-xl px-5 py-3.5 shadow-lg z-10 flex items-center gap-3">
+        <div className="absolute bottom-5 right-6 bg-white/95 backdrop-blur-sm rounded-[var(--demo-radius-button)] px-5 py-3.5 shadow-lg z-10 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-[var(--demo-light-bg)] flex items-center justify-center flex-shrink-0">
             <DemoIcon name={floatBadge.icon} className="w-4 h-4 text-[var(--demo-accent-text)]" />
           </div>
@@ -371,16 +397,17 @@ export default function WebsiteDashboardDemo({
             ? "w-full"
             : "h-full overflow-y-auto"
       }
-      style={{ ...getThemeVars(theme), backgroundColor: "var(--demo-page-bg)" }}
+      style={{ ...getThemeVars(theme), backgroundColor: "var(--demo-paper)" }}
     >
-      {showAnnouncementBar && (
-        <div
-          className="relative z-30 w-full py-2.5 px-4 text-center text-[11px] sm:text-xs font-secondary font-semibold uppercase tracking-[0.12em] text-[var(--demo-dark)]"
-          style={{ backgroundColor: "var(--demo-light-bg)" }}
-        >
-          {hero.eyebrow}
-        </div>
-      )}
+      <DemoWebsiteStoryHero
+        config={config}
+        heroSectionRef={heroSectionRef}
+        showAnnouncementBar={Boolean(showAnnouncementBar)}
+        onNavLinkClick={handleNavLinkClick}
+        onDiscoveryCallClick={handleDiscoveryCallClick}
+        onSecondaryCtaClick={handleSecondaryCtaClick}
+        onScrollToTop={scrollToTop}
+      />
 
       <AnimatePresence>
         {showStickyNav && (
@@ -389,8 +416,11 @@ export default function WebsiteDashboardDemo({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -80, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="sticky top-0 z-40 flex items-center justify-between px-6 sm:px-10 py-3 border-b border-[var(--demo-light-border)] backdrop-blur-md"
-            style={{ backgroundColor: "color-mix(in srgb, var(--demo-page-bg) 92%, transparent)" }}
+            className="sticky top-0 z-40 flex items-center justify-between px-6 sm:px-10 py-3 border-b backdrop-blur-md"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--demo-cream) 92%, transparent)",
+              borderColor: "var(--demo-line)",
+            }}
           >
             <button type="button" onClick={scrollToTop} className="cursor-pointer">
               <SchoolDemoWordmark
@@ -404,220 +434,48 @@ export default function WebsiteDashboardDemo({
                   key={item}
                   type="button"
                   onClick={() => handleNavLinkClick(i)}
-                  className="text-[var(--demo-muted)] hover:text-[var(--demo-dark)] font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
+                  className="font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
+                  style={{ color: "var(--demo-muted)" }}
                 >
                   {item}
                 </button>
               ))}
             </nav>
-            <button
-              type="button"
+            <DemoWebsiteButton
+              variant="primary"
+              className="px-4 py-2 text-sm"
               onClick={handleDiscoveryCallClick}
-              className="px-4 py-2 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-md cursor-pointer"
             >
               {hero.navCta}
-            </button>
+            </DemoWebsiteButton>
           </motion.header>
         )}
       </AnimatePresence>
 
-      {/* ─── 1. HERO ───────────────────────────────────────────────────────── */}
-      <section ref={heroSectionRef} className="relative flex h-[620px] flex-col overflow-hidden">
-        <div className="absolute inset-0 scale-[1.05]">
-          <Image
-            src={hero.backgroundImage}
-            fill
-            className="object-cover"
-            alt={hero.imageAlt}
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/30 to-black/80" />
-        </div>
-
-        {hero.floatingImages[0] && (
-          <motion.div
-            className="absolute top-24 right-6 md:right-16 w-40 md:w-52 h-52 md:h-72 rounded-2xl overflow-hidden shadow-2xl hidden sm:block"
-            style={{ rotate: 3 }}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" as const }}
-          >
-            <Image src={hero.floatingImages[0]} fill className="object-cover" alt="" />
-            <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl" />
-          </motion.div>
-        )}
-
-        {hero.floatingImages[1] && (
-          <motion.div
-            className="absolute top-52 right-40 md:right-64 w-28 md:w-36 h-36 md:h-44 rounded-xl overflow-hidden shadow-xl hidden md:block"
-            style={{ rotate: -2 }}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.4, duration: 0.7, ease: "easeOut" as const }}
-          >
-            <Image src={hero.floatingImages[1]} fill className="object-cover" alt="" />
-          </motion.div>
-        )}
-
-        <div className="relative z-20 flex shrink-0 items-center justify-between px-8 sm:px-12 pt-7">
-          <div className="flex items-center gap-2">
-            <SchoolDemoWordmark
-              logo={config.logo}
-              onDark
-              className={`h-12 w-auto object-contain${config.logo.logoOnDarkClassName ? ` ${config.logo.logoOnDarkClassName}` : ""}`}
-            />
-          </div>
-          <nav className="hidden md:flex items-center gap-8">
-            {hero.navLinks.map((item, i) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => handleNavLinkClick(i)}
-                className="text-white/65 hover:text-white font-secondary text-sm font-semibold transition-colors duration-200 cursor-pointer"
-              >
-                {item}
-              </button>
-            ))}
-          </nav>
-          <button
-            type="button"
-            onClick={handleDiscoveryCallClick}
-            className="px-5 py-2.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white text-sm font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg cursor-pointer"
-          >
-            {hero.navCta}
-          </button>
-        </div>
-
-        <div className="relative z-10 mt-auto max-w-2xl px-8 pb-14 sm:px-14">
-          {!showAnnouncementBar && (
-            <motion.span
-              className="inline-block px-5 py-2 bg-white/15 backdrop-blur-sm text-white text-sm font-semibold rounded-full font-secondary mb-6 border border-white/25"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" as const }}
-            >
-              {hero.eyebrow}
-            </motion.span>
-          )}
-
-          <motion.h1
-            className={
-              hero.headlineClassName ??
-              "text-4xl md:text-[3.25rem] font-bold text-white font-heading leading-[1.06] mb-5"
-            }
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.85, ease: "easeOut" as const }}
-          >
-            {hero.headline.map((line, i) => (
-              <span
-                key={line}
-                className={
-                  hero.headlineAccentLine === i
-                    ? (hero.headlineAccentClassName ?? "text-[var(--demo-primary-light)]")
-                    : "text-white"
-                }
-              >
-                {line}
-                {i < hero.headline.length - 1 && <br />}
-              </span>
-            ))}
-          </motion.h1>
-
-          {hero.tagline && (
-            <motion.p
-              className="text-sm font-semibold text-[var(--demo-primary)] font-heading tracking-wide mb-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.65, duration: 0.6 }}
-            >
-              {hero.tagline}
-            </motion.p>
-          )}
-
-          <motion.p
-            className="text-base md:text-lg text-white/70 font-secondary leading-relaxed mb-8 max-w-lg"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.75, duration: 0.7, ease: "easeOut" as const }}
-          >
-            {hero.subheadline}
-          </motion.p>
-
-          <motion.div
-            className="flex items-center gap-4 flex-wrap"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9, duration: 0.7, ease: "easeOut" as const }}
-          >
-            <button
-              type="button"
-              onClick={handleDiscoveryCallClick}
-              className="px-7 py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer"
-            >
-              {hero.primaryCta}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSecondaryCtaClick}
-              className="px-7 py-3.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-lg font-secondary transition-all duration-200 border border-white/25 backdrop-blur-sm cursor-pointer"
-            >
-              {hero.secondaryCta}
-            </button>
-          </motion.div>
-
-          {hero.trustBadges && hero.trustBadges.length > 0 && (
-            <motion.div
-              className="flex flex-wrap items-center gap-2 mt-8"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.05, duration: 0.6 }}
-            >
-              {hero.trustBadges.map((badge) => (
-                <span
-                  key={badge}
-                  className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-white/80 text-xs font-semibold font-secondary backdrop-blur-sm"
-                >
-                  {badge}
-                </span>
-              ))}
-            </motion.div>
-          )}
-        </div>
-
-        <motion.div
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1"
-          animate={{ y: [0, 7, 0] }}
-          transition={{ repeat: Infinity, duration: 1.7 }}
-        >
-          <span className="text-white/40 font-secondary text-xs uppercase tracking-widest">
-            scroll
-          </span>
-          <ChevronDown className="w-5 h-5 text-white/40" />
-        </motion.div>
-      </section>
-
       {/* ─── 2. STAT BAND ─────────────────────────────────────────────────── */}
-      <section
-        ref={statsRef}
-        className="bg-[var(--demo-light-bg)] border-b border-[var(--demo-light-border)] py-12 px-8"
-      >
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4">
+      <section ref={statsRef} className="px-6 sm:px-10 lg:px-14 py-10">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 md:grid-cols-4">
           {config.stats.map((stat, i) => (
             <motion.div
               key={stat.value}
-              className="text-center px-4 md:px-8 border-r border-[var(--demo-light-border)] last:border-0 py-4"
               initial={{ opacity: 0, y: 18 }}
               animate={statsInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.55, delay: i * 0.1, ease: "easeOut" as const }}
             >
-              <p className="text-2xl md:text-3xl font-bold text-[var(--demo-dark)] font-heading mb-1.5">
-                {stat.value}
-              </p>
-              <p className="text-xs font-semibold text-[var(--demo-muted)] font-secondary uppercase tracking-wider">
-                {stat.label}
-              </p>
+              <DemoWebsiteCard className="text-center" padding="compact">
+                <p
+                  className="text-2xl md:text-3xl font-bold font-heading mb-1.5"
+                  style={{ color: "var(--demo-ink)" }}
+                >
+                  {stat.value}
+                </p>
+                <p
+                  className="text-[10px] font-semibold font-secondary uppercase tracking-wider"
+                  style={{ color: "var(--demo-muted)" }}
+                >
+                  {stat.label}
+                </p>
+              </DemoWebsiteCard>
             </motion.div>
           ))}
         </div>
@@ -626,8 +484,8 @@ export default function WebsiteDashboardDemo({
       {/* ─── 3. WELCOME / PARENT FIT ──────────────────────────────────────── */}
       <section
         id="welcome"
-        className="py-24 px-8 sm:px-12 lg:px-16"
-        style={{ backgroundColor: "var(--demo-dark)" }}
+        className="py-20 px-6 sm:px-10 lg:px-14"
+        style={{ backgroundColor: "var(--demo-paper)" }}
       >
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
           {welcome.type === "mission" ? (
@@ -639,10 +497,10 @@ export default function WebsiteDashboardDemo({
                 viewport={{ once: true }}
                 transition={{ duration: 0.7, ease: "easeOut" as const }}
               >
-                <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
-                  {welcome.eyebrow}
-                </span>
-                <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-5 leading-tight">
+                <div className="mb-7">
+                  <DemoWebsiteSectionKicker>{welcome.eyebrow}</DemoWebsiteSectionKicker>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold font-heading mb-5 leading-tight" style={{ color: "var(--demo-ink)" }}>
                   {welcome.heading}
                   <br />
                   <em className="text-[var(--demo-primary)] not-italic">{welcome.headingAccent}</em>
@@ -650,19 +508,20 @@ export default function WebsiteDashboardDemo({
                 {welcome.paragraphs.map((p) => (
                   <p
                     key={p.slice(0, 40)}
-                    className="text-base text-white/70 leading-relaxed font-secondary mb-5 last:mb-8"
+                    className="text-base leading-relaxed font-secondary mb-5 last:mb-8"
+                    style={{ color: "var(--demo-muted)" }}
                   >
                     {p}
                   </p>
                 ))}
-                <div className="p-6 bg-[var(--demo-light-bg)] rounded-2xl border-l-4 border-[var(--demo-primary)]">
-                  <p className="text-sm font-medium text-[var(--demo-dark)] font-secondary leading-relaxed">
+                <DemoWebsiteCard className="border-l-4" style={{ borderLeftColor: "var(--demo-primary)" }} padding="compact">
+                  <p className="text-sm font-medium font-secondary leading-relaxed" style={{ color: "var(--demo-ink)" }}>
                     &ldquo;{welcome.quote}&rdquo;
                   </p>
-                  <p className="text-xs text-[var(--demo-muted)] font-secondary mt-3 uppercase tracking-wider">
+                  <p className="text-xs font-secondary mt-3 uppercase tracking-wider" style={{ color: "var(--demo-muted)" }}>
                     {welcome.quoteAttribution}
                   </p>
-                </div>
+                </DemoWebsiteCard>
               </motion.div>
               <WelcomeImages
                 mainImage={welcome.mainImage}
@@ -680,25 +539,22 @@ export default function WebsiteDashboardDemo({
                 viewport={{ once: true }}
                 transition={{ duration: 0.7, ease: "easeOut" as const }}
               >
-                <span className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider">
-                  {welcome.eyebrow}
-                </span>
-                <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-8 leading-tight">
+                <div className="mb-7">
+                  <DemoWebsiteSectionKicker>{welcome.eyebrow}</DemoWebsiteSectionKicker>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold font-heading mb-8 leading-tight" style={{ color: "var(--demo-ink)" }}>
                   {welcome.heading}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {welcome.cards.map((card) => (
-                    <div
-                      key={card.title}
-                      className="p-5 bg-white/8 rounded-2xl border border-white/15"
-                    >
-                      <h3 className="text-base font-bold text-white font-heading mb-2">
+                    <DemoWebsiteCard key={card.title} padding="compact">
+                      <h3 className="text-base font-bold font-heading mb-2" style={{ color: "var(--demo-ink)" }}>
                         {card.title}
                       </h3>
-                      <p className="text-sm text-white/65 font-secondary leading-relaxed">
+                      <p className="text-sm font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
                         {card.desc}
                       </p>
-                    </div>
+                    </DemoWebsiteCard>
                   ))}
                 </div>
               </motion.div>
@@ -750,8 +606,8 @@ export default function WebsiteDashboardDemo({
       {/* ─── 5. PROGRAMS ──────────────────────────────────────────────────── */}
       <section
         id="programs"
-        className="py-24 px-8 sm:px-12 lg:px-16"
-        style={{ backgroundColor: "var(--demo-page-bg)" }}
+        className="py-20 px-6 sm:px-10 lg:px-14"
+        style={{ backgroundColor: "var(--demo-paper)" }}
       >
         <div className="max-w-7xl mx-auto">
           <motion.div
@@ -761,14 +617,14 @@ export default function WebsiteDashboardDemo({
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
+            <div className="mb-5"><DemoWebsiteSectionKicker>
               {config.programs.eyebrow}
-            </span>
+            </DemoWebsiteSectionKicker></div>
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
+              <h2 className="text-4xl md:text-5xl font-bold font-heading leading-tight" style={{ color: "var(--demo-ink)" }}>
                 {config.programs.heading}
               </h2>
-              <p className="text-gray-500 font-secondary text-base max-w-sm md:text-right">
+              <p className="font-secondary text-base max-w-sm md:text-right" style={{ color: "var(--demo-muted)" }}>
                 {config.programs.subtitle}
               </p>
             </div>
@@ -780,21 +636,21 @@ export default function WebsiteDashboardDemo({
                 <button
                   key={p.title}
                   onClick={() => setActiveProgram(i)}
-                  className={`w-full text-left p-5 rounded-2xl border-2 transition-all duration-250 cursor-pointer ${
+                  className={`w-full text-left p-5 rounded-[var(--demo-radius-card)] border-2 transition-all duration-250 cursor-pointer ${
                     activeProgram === i
                       ? "border-[var(--demo-primary)] bg-[color-mix(in_srgb,var(--demo-primary)_8%,transparent)] shadow-sm"
-                      : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
+                      : "border-[var(--demo-line)] bg-white hover:border-gray-200 hover:shadow-sm"
                   }`}
                 >
                   <span
-                    className={`text-xs font-semibold uppercase tracking-wider font-secondary block mb-2 ${activeProgram === i ? "text-[var(--demo-primary)]" : "text-gray-400"}`}
+                    className={`text-xs font-semibold uppercase tracking-wider font-secondary block mb-2 ${activeProgram === i ? "text-[var(--demo-primary)]" : "text-[var(--demo-muted)]"}`}
                   >
                     {p.badge}
                   </span>
-                  <p className="text-base font-bold text-gray-900 font-heading leading-tight mb-1">
+                  <p className="text-base font-bold text-[var(--demo-ink)] font-heading leading-tight mb-1">
                     {p.title}
                   </p>
-                  <p className="text-xs text-gray-500 font-secondary">{p.teaser}</p>
+                  <p className="text-xs text-[var(--demo-muted)] font-secondary">{p.teaser}</p>
                 </button>
               ))}
             </div>
@@ -808,7 +664,7 @@ export default function WebsiteDashboardDemo({
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.3, ease: "easeOut" as const }}
                 >
-                  <div className="relative h-64 md:h-80 rounded-2xl overflow-hidden mb-7 shadow-lg">
+                  <div className="relative h-64 md:h-80 rounded-[var(--demo-radius-card)] overflow-hidden mb-7 shadow-lg">
                     <Image
                       src={activeProgramData.image}
                       fill
@@ -823,10 +679,10 @@ export default function WebsiteDashboardDemo({
                     </span>
                   </div>
 
-                  <h3 className="text-3xl font-bold text-gray-900 font-heading mb-4">
+                  <h3 className="text-3xl font-bold text-[var(--demo-ink)] font-heading mb-4">
                     {activeProgramData.title}
                   </h3>
-                  <p className="text-base text-gray-600 font-secondary leading-relaxed mb-6">
+                  <p className="text-base text-[var(--demo-muted)] font-secondary leading-relaxed mb-6">
                     {activeProgramData.desc}
                   </p>
 
@@ -834,21 +690,22 @@ export default function WebsiteDashboardDemo({
                     {activeProgramData.details.map((d) => (
                       <span
                         key={d}
-                        className="bg-gray-100 text-gray-700 px-4 py-1.5 rounded-full text-xs font-semibold font-secondary"
+                        className="bg-[var(--demo-cream)] text-[var(--demo-ink)] px-4 py-1.5 rounded-full text-xs font-semibold font-secondary"
                       >
                         {d}
                       </span>
                     ))}
                   </div>
 
-                  <button
+                  <DemoWebsiteButton
                     type="button"
                     onClick={handleDiscoveryCallClick}
-                    className="px-8 py-3.5 bg-[var(--demo-dark)] hover:bg-[var(--demo-dark-hover)] text-white rounded-xl font-semibold font-secondary transition-colors duration-200 flex items-center gap-2 cursor-pointer"
+                    variant="primary"
+                    className="inline-flex items-center gap-2"
                   >
                     {config.programs.ctaLabel}
                     <ArrowRight className="w-4 h-4" />
-                  </button>
+                  </DemoWebsiteButton>
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -858,10 +715,10 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 6. PHOTO MOSAIC ──────────────────────────────────────────────── */}
       {sectionVisibility.showMosaic && (
-      <section className="px-4 pb-4" style={{ backgroundColor: "var(--demo-page-bg)" }}>
+      <section className="px-4 pb-4" style={{ backgroundColor: "var(--demo-paper)" }}>
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 grid-rows-2 gap-3 h-[280px] sm:h-[340px] md:h-[480px]">
           <motion.div
-            className="col-span-1 row-span-2 relative rounded-2xl overflow-hidden"
+            className="col-span-1 row-span-2 relative rounded-[var(--demo-radius-card)] overflow-hidden"
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -875,7 +732,7 @@ export default function WebsiteDashboardDemo({
             />
           </motion.div>
           <motion.div
-            className="col-span-1 md:col-span-2 row-span-1 relative rounded-2xl overflow-hidden"
+            className="col-span-1 md:col-span-2 row-span-1 relative rounded-[var(--demo-radius-card)] overflow-hidden"
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -889,7 +746,7 @@ export default function WebsiteDashboardDemo({
             />
           </motion.div>
           <motion.div
-            className="col-span-1 md:col-span-2 row-span-1 relative rounded-2xl overflow-hidden"
+            className="col-span-1 md:col-span-2 row-span-1 relative rounded-[var(--demo-radius-card)] overflow-hidden"
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -922,7 +779,7 @@ export default function WebsiteDashboardDemo({
             <span className="block text-7xl md:text-8xl text-[color-mix(in_srgb,var(--demo-primary)_25%,transparent)] font-heading leading-none mb-2 select-none">
               &ldquo;
             </span>
-            <blockquote className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-gray-900 leading-tight italic mb-10">
+            <blockquote className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-[var(--demo-ink)] leading-tight italic mb-10">
               {config.quote.text.map((line, i) => (
                 <span key={line}>
                   {line}
@@ -930,7 +787,7 @@ export default function WebsiteDashboardDemo({
                 </span>
               ))}
             </blockquote>
-            <p className="text-sm text-gray-400 font-secondary uppercase tracking-widest mb-8">
+            <p className="text-sm text-[var(--demo-muted)] font-secondary uppercase tracking-widest mb-8">
               {config.quote.attribution}
             </p>
             <div className="mx-auto w-20 h-1 bg-[var(--demo-primary)] rounded-full" />
@@ -957,7 +814,7 @@ export default function WebsiteDashboardDemo({
           {[...config.stripImages, ...config.stripImages].map((src, i) => (
             <motion.div
               key={`${src}-${i}`}
-              className="relative w-48 sm:w-64 h-36 sm:h-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-sm"
+              className="relative w-48 sm:w-64 h-36 sm:h-44 flex-shrink-0 rounded-[var(--demo-radius-card)] overflow-hidden shadow-sm"
               whileHover={{ scale: 1.03 }}
               transition={{ duration: 0.25 }}
             >
@@ -971,23 +828,19 @@ export default function WebsiteDashboardDemo({
       {/* ─── 9. DAY IN LIFE ───────────────────────────────────────────────── */}
       <section
         id="timeline"
-        className="py-24 px-8 sm:px-12 lg:px-16"
-        style={{ backgroundColor: "var(--demo-dark)" }}
+        className="py-20 px-6 sm:px-10 lg:px-14"
+        style={{ backgroundColor: "var(--demo-cream)" }}
       >
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 items-start">
+        <div className="max-w-7xl mx-auto">
+          <DemoWebsiteCard className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start" padding="default">
           <div className="w-full lg:w-7/12">
-            <motion.span
-              className="inline-block px-5 py-2 bg-white/15 text-white text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider"
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: "easeOut" as const }}
-            >
-              {timeline.eyebrow}
-            </motion.span>
+            <div className="mb-7">
+              <DemoWebsiteSectionKicker>{timeline.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
 
             <motion.h2
-              className="text-4xl md:text-5xl font-bold text-white font-heading mb-10 leading-tight"
+              className="text-4xl md:text-5xl font-bold font-heading mb-10 leading-tight"
+              style={{ color: "var(--demo-ink)" }}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -995,7 +848,7 @@ export default function WebsiteDashboardDemo({
             >
               {timeline.heading}
               <br />
-              <span className="text-white/60">{timeline.headingSub}</span>
+              <span style={{ color: "var(--demo-muted)" }}>{timeline.headingSub}</span>
             </motion.h2>
 
             <div className="relative">
@@ -1047,18 +900,20 @@ export default function WebsiteDashboardDemo({
                   onClick={() => setActiveStep(i)}
                   className={`rounded-full transition-all duration-300 cursor-pointer ${
                     activeStep === i
-                      ? "w-6 h-2 bg-white"
-                      : "w-2 h-2 bg-white/30 hover:bg-white/50"
+                      ? "w-6 h-2"
+                      : "w-2 h-2 opacity-40 hover:opacity-70"
                   }`}
+                  style={{ backgroundColor: "var(--demo-primary)" }}
                 />
               ))}
             </div>
           </div>
+          </DemoWebsiteCard>
         </div>
       </section>
 
       {/* ─── 10. TESTIMONIALS / TRUST ──────────────────────────────────────── */}
-      <section className="bg-[var(--demo-light-bg)] py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-cream)" }}>
         <div className="max-w-7xl mx-auto">
           <motion.div
             className="text-center mb-14"
@@ -1067,13 +922,13 @@ export default function WebsiteDashboardDemo({
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              {config.socialProof.eyebrow}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
+            <div className="mb-5">
+              <DemoWebsiteSectionKicker>{config.socialProof.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold font-heading mb-4" style={{ color: "var(--demo-ink)" }}>
               {config.socialProof.heading}
             </h2>
-            <p className="text-gray-500 font-secondary text-lg max-w-lg mx-auto">
+            <p className="font-secondary text-lg max-w-lg mx-auto" style={{ color: "var(--demo-muted)" }}>
               {config.socialProof.subtitle}
             </p>
           </motion.div>
@@ -1083,30 +938,31 @@ export default function WebsiteDashboardDemo({
               {config.socialProof.items.map((t, i) => (
                 <motion.div
                   key={`${t.name}-${i}`}
-                  className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: i * 0.12, ease: "easeOut" as const }}
-                  whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.08)" }}
+                  whileHover={{ y: -4 }}
                 >
-                  <div className="flex gap-1 mb-5">
-                    {Array.from({ length: t.stars }).map((_, j) => (
-                      <Star key={j} className="w-3.5 h-3.5 fill-[var(--demo-primary)] text-[var(--demo-primary)]" />
-                    ))}
-                  </div>
-                  <blockquote className="text-base text-gray-700 font-secondary leading-relaxed italic mb-7 flex-1">
-                    &ldquo;{t.quote}&rdquo;
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-[var(--demo-light-bg)]">
-                      <Image src={t.avatar} fill className="object-cover" alt="" />
+                  <DemoWebsiteCard className="flex h-full flex-col">
+                    <div className="flex gap-1 mb-5">
+                      {Array.from({ length: t.stars }).map((_, j) => (
+                        <Star key={j} className="w-3.5 h-3.5 fill-[var(--demo-primary)] text-[var(--demo-primary)]" />
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 font-heading">{t.name}</p>
-                      <p className="text-xs text-gray-400 font-secondary">{t.detail}</p>
+                    <blockquote className="mb-7 flex-1 text-base font-secondary italic leading-relaxed" style={{ color: "var(--demo-muted)" }}>
+                      &ldquo;{t.quote}&rdquo;
+                    </blockquote>
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-[var(--demo-light-bg)]">
+                        <Image src={t.avatar} fill className="object-cover" alt="" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold font-heading" style={{ color: "var(--demo-ink)" }}>{t.name}</p>
+                        <p className="text-xs font-secondary" style={{ color: "var(--demo-muted)" }}>{t.detail}</p>
+                      </div>
                     </div>
-                  </div>
+                  </DemoWebsiteCard>
                 </motion.div>
               ))}
             </div>
@@ -1115,22 +971,25 @@ export default function WebsiteDashboardDemo({
               {config.socialProof.items.map((item, i) => (
                 <motion.div
                   key={item.title}
-                  className="bg-white rounded-2xl p-7 border border-gray-100 shadow-sm flex flex-col"
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: i * 0.12, ease: "easeOut" as const }}
-                  whileHover={{ y: -4, boxShadow: "0 16px 40px rgba(0,0,0,0.08)" }}
+                  whileHover={{ y: -4 }}
                 >
-                  {item.icon && (
-                    <div className="w-12 h-12 rounded-xl bg-[var(--demo-light-bg)] flex items-center justify-center mb-5">
-                      <DemoIcon name={item.icon} className="w-6 h-6 text-[var(--demo-accent-text)]" />
-                    </div>
-                  )}
-                  <h3 className="text-lg font-bold text-gray-900 font-heading mb-3">{item.title}</h3>
-                  <p className="text-sm text-gray-500 font-secondary leading-relaxed flex-1">
-                    {item.desc}
-                  </p>
+                  <DemoWebsiteCard className="flex h-full flex-col">
+                    {item.icon && (
+                      <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[var(--demo-radius-button)] bg-[var(--demo-cream)]">
+                        <DemoIcon name={item.icon} className="h-6 w-6 text-[var(--demo-accent-text)]" />
+                      </div>
+                    )}
+                    <h3 className="mb-3 text-lg font-bold font-heading" style={{ color: "var(--demo-ink)" }}>
+                      {item.title}
+                    </h3>
+                    <p className="flex-1 text-sm font-secondary leading-relaxed" style={{ color: "var(--demo-muted)" }}>
+                      {item.desc}
+                    </p>
+                  </DemoWebsiteCard>
                 </motion.div>
               ))}
             </div>
@@ -1140,7 +999,7 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 11. FOUNDER ──────────────────────────────────────────────────── */}
       {sectionVisibility.showFounder && (
-      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-page-bg)" }}>
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-paper)" }}>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
           <motion.div
             className="w-full lg:w-5/12"
@@ -1157,11 +1016,11 @@ export default function WebsiteDashboardDemo({
                 alt={config.founder.name}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-              <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg">
-                <p className="text-xs text-gray-400 font-secondary font-semibold uppercase tracking-wider">
+              <div className="absolute top-7 right-7 bg-white/95 backdrop-blur-sm rounded-[var(--demo-radius-card)] px-4 py-3 shadow-lg">
+                <p className="text-xs text-[var(--demo-muted)] font-secondary font-semibold uppercase tracking-wider">
                   {config.founder.imageBadge.label}
                 </p>
-                <p className="text-sm font-bold text-gray-900 font-heading mt-0.5">
+                <p className="text-sm font-bold text-[var(--demo-ink)] font-heading mt-0.5">
                   {config.founder.imageBadge.value}
                 </p>
               </div>
@@ -1179,16 +1038,16 @@ export default function WebsiteDashboardDemo({
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary uppercase tracking-wider">
-              {config.founder.eyebrow}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading leading-tight">
+            <div className="mb-5">
+              <DemoWebsiteSectionKicker>{config.founder.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold font-heading leading-tight" style={{ color: "var(--demo-ink)" }}>
               {config.founder.heading}
               <br />
               <em className="text-[var(--demo-primary)] not-italic">{config.founder.headingAccent}</em>
             </h2>
             {config.founder.paragraphs.map((p) => (
-              <p key={p.slice(0, 40)} className="text-base text-gray-600 leading-relaxed font-secondary">
+              <p key={p.slice(0, 40)} className="text-base text-[var(--demo-muted)] leading-relaxed font-secondary">
                 {p}
               </p>
             ))}
@@ -1202,11 +1061,11 @@ export default function WebsiteDashboardDemo({
                 </span>
               ))}
             </div>
-            <div className="bg-[color-mix(in_srgb,var(--demo-primary)_8%,transparent)] rounded-2xl border-l-4 border-[var(--demo-primary)] p-6">
-              <p className="text-sm text-gray-700 font-secondary leading-relaxed">
+            <div className="bg-[color-mix(in_srgb,var(--demo-primary)_8%,transparent)] rounded-[var(--demo-radius-card)] border-l-4 border-[var(--demo-primary)] p-6">
+              <p className="text-sm text-[var(--demo-ink)] font-secondary leading-relaxed">
                 &ldquo;{config.founder.quote}&rdquo;
               </p>
-              <p className="text-xs text-gray-400 font-secondary mt-2 uppercase tracking-wider">
+              <p className="text-xs text-[var(--demo-muted)] font-secondary mt-2 uppercase tracking-wider">
                 {config.founder.quoteAttribution}
               </p>
             </div>
@@ -1217,59 +1076,63 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 12. FULL-BLEED BAND ──────────────────────────────────────────── */}
       {sectionVisibility.showParallax && (
-      <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 scale-[1.05]">
+      <section
+        className="relative overflow-hidden px-8 py-24 sm:px-12 lg:px-16"
+        style={{ backgroundColor: "var(--demo-primary-soft)" }}
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-30">
           <Image src={config.parallax.backgroundImage} fill className="object-cover" alt="" />
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "color-mix(in srgb, var(--demo-dark) 75%, transparent)" }}
-          />
         </div>
 
         <motion.div
-          className="relative z-10 text-center max-w-4xl mx-auto px-8"
-          initial={{ opacity: 0, scale: 0.94 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          className="relative z-10 mx-auto max-w-4xl text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: "easeOut" as const }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
-          <p className="text-[color-mix(in_srgb,var(--demo-primary)_80%,transparent)] font-semibold text-xs uppercase tracking-widest font-secondary mb-7">
-            {config.parallax.eyebrow}
-          </p>
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-white leading-tight mb-8">
-            {config.parallax.heading.map((line, i) => (
-              <span key={line}>
-                {line}
-                {i < config.parallax.heading.length - 1 && <br />}
-              </span>
-            ))}
-          </h2>
-          <p className="text-lg text-white/55 font-secondary max-w-2xl mx-auto mb-12 leading-relaxed">
-            {config.parallax.subtitle}
-          </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button
-              type="button"
-              onClick={handleDiscoveryCallClick}
-              className="px-8 py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+          <DemoWebsiteCard className="mx-auto max-w-3xl bg-white/90 backdrop-blur-sm">
+            <div className="mb-5">
+              <DemoWebsiteSectionKicker>{config.parallax.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
+            <h2
+              className="mb-6 text-4xl font-bold font-heading leading-tight md:text-5xl lg:text-6xl"
+              style={{ color: "var(--demo-ink)" }}
             >
-              {config.parallax.primaryCta}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSecondaryCtaClick}
-              className="px-8 py-4 bg-white/10 hover:bg-white/18 text-white font-semibold rounded-xl font-secondary transition-all duration-200 border border-white/25 cursor-pointer"
+              {config.parallax.heading.map((line, i) => (
+                <span key={line}>
+                  {line}
+                  {i < config.parallax.heading.length - 1 && <br />}
+                </span>
+              ))}
+            </h2>
+            <p
+              className="mx-auto mb-10 max-w-2xl font-secondary text-lg leading-relaxed"
+              style={{ color: "var(--demo-muted)" }}
             >
-              {config.parallax.secondaryCta}
-            </button>
-          </div>
+              {config.parallax.subtitle}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <DemoWebsiteButton
+                type="button"
+                onClick={handleDiscoveryCallClick}
+                variant="primary"
+                className="inline-flex items-center gap-2"
+              >
+                {config.parallax.primaryCta}
+                <ArrowRight className="w-4 h-4" />
+              </DemoWebsiteButton>
+              <DemoWebsiteButton type="button" onClick={handleSecondaryCtaClick} variant="outline">
+                {config.parallax.secondaryCta}
+              </DemoWebsiteButton>
+            </div>
+          </DemoWebsiteCard>
         </motion.div>
       </section>
       )}
 
       {/* ─── 13. PILLARS ──────────────────────────────────────────────────── */}
-      <section className="bg-[var(--demo-light-bg)] py-24 px-8 sm:px-12 lg:px-16">
+      <section className="py-24 px-8 sm:px-12 lg:px-16" style={{ backgroundColor: "var(--demo-cream)" }}>
         <div className="max-w-5xl mx-auto">
           <motion.div
             className="text-center mb-14"
@@ -1278,13 +1141,13 @@ export default function WebsiteDashboardDemo({
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              {config.pillars.eyebrow}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
+            <div className="mb-5">
+              <DemoWebsiteSectionKicker>{config.pillars.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold font-heading mb-4" style={{ color: "var(--demo-ink)" }}>
               {config.pillars.heading}
             </h2>
-            <p className="text-gray-500 font-secondary text-lg max-w-xl mx-auto">
+            <p className="font-secondary text-lg max-w-xl mx-auto" style={{ color: "var(--demo-muted)" }}>
               {config.pillars.subtitle}
             </p>
           </motion.div>
@@ -1293,18 +1156,18 @@ export default function WebsiteDashboardDemo({
             {config.pillars.items.map((pillar, i) => (
               <motion.div
                 key={pillar.title}
-                className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 group cursor-default"
+                className="bg-white rounded-[var(--demo-radius-card)] p-8 shadow-sm border border-[var(--demo-line)] group cursor-default"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: i * 0.1, ease: "easeOut" as const }}
                 whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.07)" }}
               >
-                <div className="w-12 h-12 rounded-xl bg-[var(--demo-light-bg)] group-hover:bg-[var(--demo-light-border)] transition-colors flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-[var(--demo-radius-button)] bg-[var(--demo-light-bg)] group-hover:bg-[var(--demo-light-border)] transition-colors flex items-center justify-center mb-6">
                   <DemoIcon name={pillar.icon} className="w-6 h-6 text-[var(--demo-accent-text)]" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 font-heading mb-3">{pillar.title}</h3>
-                <p className="text-sm text-gray-500 font-secondary leading-relaxed">{pillar.desc}</p>
+                <h3 className="text-xl font-bold text-[var(--demo-ink)] font-heading mb-3">{pillar.title}</h3>
+                <p className="text-sm text-[var(--demo-muted)] font-secondary leading-relaxed">{pillar.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -1315,170 +1178,193 @@ export default function WebsiteDashboardDemo({
       <section
         id="form"
         ref={formSectionRef}
-        className="py-0 overflow-hidden scroll-mt-[72px]"
-        style={{ backgroundColor: "var(--demo-dark)" }}
+        className="scroll-mt-[72px] px-6 py-16 sm:px-10 lg:px-14"
+        style={{ backgroundColor: "var(--demo-cream)" }}
       >
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-5">
           <motion.div
-            className="hidden lg:block lg:w-1/2 relative min-h-[640px]"
-            initial={{ opacity: 0, x: -20 }}
+            className="hidden lg:block lg:col-span-2"
+            initial={{ opacity: 0, x: -16 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: "easeOut" as const }}
+            transition={{ duration: 0.7, ease: "easeOut" as const }}
           >
-            <Image src={config.form.sidebarImage} fill className="object-cover" alt="" />
-            <div
-              className="absolute inset-0"
-              style={{ backgroundColor: "color-mix(in srgb, var(--demo-dark) 60%, transparent)" }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center p-14">
-              <div className="text-center">
-                <span className="block text-5xl text-[color-mix(in_srgb,var(--demo-primary)_40%,transparent)] font-heading mb-4 select-none">
-                  &ldquo;
-                </span>
-                <p className="text-white text-2xl md:text-3xl font-heading font-bold leading-snug italic">
-                  {config.form.sidebarQuote}
-                </p>
-                <div className="w-12 h-0.5 bg-[color-mix(in_srgb,var(--demo-primary)_50%,transparent)] mx-auto mt-6" />
+            <DemoWebsiteCard className="relative min-h-[520px] overflow-hidden p-0" padding="none">
+              <div className="relative h-full min-h-[520px]">
+                <Image src={config.form.sidebarImage} fill className="object-cover" alt="" />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(to top, color-mix(in srgb, var(--demo-ink) 55%, transparent), transparent 70%)",
+                  }}
+                />
+                <div className="absolute inset-x-0 bottom-0 p-8">
+                  <span
+                    className="mb-3 block font-heading text-4xl select-none"
+                    style={{ color: "color-mix(in srgb, var(--demo-primary) 55%, white)" }}
+                  >
+                    &ldquo;
+                  </span>
+                  <p className="font-heading text-xl font-bold italic leading-snug text-white">
+                    {config.form.sidebarQuote}
+                  </p>
+                </div>
               </div>
-            </div>
+            </DemoWebsiteCard>
           </motion.div>
 
           <motion.div
-            className="w-full lg:w-1/2 px-8 sm:px-12 py-20 flex flex-col justify-center"
-            initial={{ opacity: 0, x: 20 }}
+            className="lg:col-span-3"
+            initial={{ opacity: 0, x: 16 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" as const }}
+            transition={{ duration: 0.7, delay: 0.08, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[color-mix(in_srgb,var(--demo-primary)_20%,transparent)] text-[var(--demo-primary)] text-xs font-semibold rounded-full font-secondary mb-7 uppercase tracking-wider self-start">
-              {config.form.eyebrow}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-white font-heading mb-4 leading-tight">
-              {config.form.heading}
-            </h2>
-            <p className="text-white/55 font-secondary text-base mb-10 leading-relaxed">
-              {config.form.description}
-            </p>
+            <DemoWebsiteCard>
+              <div className="mb-6">
+                <DemoWebsiteSectionKicker>{config.form.eyebrow}</DemoWebsiteSectionKicker>
+              </div>
+              <h2
+                className="mb-3 text-3xl md:text-4xl font-bold font-heading leading-tight"
+                style={{ color: "var(--demo-ink)" }}
+              >
+                {config.form.heading}
+              </h2>
+              <p
+                className="mb-8 font-secondary text-base leading-relaxed"
+                style={{ color: "var(--demo-muted)" }}
+              >
+                {config.form.description}
+              </p>
 
-            <AnimatePresence mode="wait">
-              {formSuccess ? (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="text-center py-10"
-                >
+              <AnimatePresence mode="wait">
+                {formSuccess ? (
                   <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="w-16 h-16 rounded-full bg-[color-mix(in_srgb,var(--demo-primary)_20%,transparent)] flex items-center justify-center mx-auto mb-5"
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="py-8 text-center"
                   >
-                    <Check className="w-8 h-8 text-[var(--demo-primary)]" />
-                  </motion.div>
-                  <p className="text-white text-2xl font-heading font-bold mb-3">
-                    {config.form.successTitle}
-                  </p>
-                  <p className="text-white/50 font-secondary mb-6">{config.form.successMessage}</p>
-                  <button
-                    type="button"
-                    onClick={() => scrollToSection("programs")}
-                    className="text-sm text-[var(--demo-primary)] font-secondary font-semibold hover:underline cursor-pointer"
-                  >
-                    Explore our programs →
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.form
-                  key="form"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-4"
-                  onSubmit={handleSubmit}
-                >
-                  <input
-                    type="text"
-                    placeholder="Parent / Guardian Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                    required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    value={formData.email}
-                    onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                    required
-                    className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
-                  />
-                  {config.form.studentFields && (
-                    <>
-                      <input
-                        type="text"
-                        placeholder={config.form.studentFields.namePlaceholder}
-                        value={formData.studentName}
-                        onChange={(e) =>
-                          setFormData((p) => ({ ...p, studentName: e.target.value }))
-                        }
-                        required
-                        className="w-full px-5 py-4 rounded-xl bg-white/8 border border-white/15 text-white placeholder:text-white/30 font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 text-base"
-                      />
-                      <select
-                        value={formData.grade}
-                        onChange={(e) => setFormData((p) => ({ ...p, grade: e.target.value }))}
-                        required
-                        className="w-full px-5 py-4 rounded-xl border border-white/15 text-white font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 appearance-none cursor-pointer text-base"
-                        style={{ backgroundColor: "var(--demo-dark-hover)" }}
-                      >
-                        <option value="" disabled>
-                          {config.form.studentFields.gradePlaceholder}
-                        </option>
-                        {config.form.studentFields.gradeOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                  <select
-                    value={formData.program}
-                    onChange={(e) => setFormData((p) => ({ ...p, program: e.target.value }))}
-                    required
-                    className="w-full px-5 py-4 rounded-xl border border-white/15 text-white font-secondary focus:outline-none focus:border-[var(--demo-primary)] transition-colors duration-200 appearance-none cursor-pointer text-base"
-                    style={{ backgroundColor: "var(--demo-dark-hover)" }}
-                  >
-                    <option value="" disabled>
-                      Select a program...
-                    </option>
-                    {config.form.programOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="submit"
-                    className="w-full py-4 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-bold rounded-xl font-secondary transition-all duration-200 shadow-xl hover:shadow-2xl text-base cursor-pointer mt-2"
-                  >
-                    {config.form.submitLabel}
-                  </button>
-                  {config.form.trustNote && (
-                    <p className="text-center text-white/40 font-secondary text-xs">
-                      {config.form.trustNote}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full"
+                      style={{ backgroundColor: "var(--demo-primary-soft)" }}
+                    >
+                      <Check className="h-8 w-8 text-[var(--demo-primary)]" />
+                    </motion.div>
+                    <p
+                      className="mb-3 text-2xl font-bold font-heading"
+                      style={{ color: "var(--demo-ink)" }}
+                    >
+                      {config.form.successTitle}
                     </p>
-                  )}
-                  <p className="text-center text-white/25 font-secondary text-xs pt-1">
-                    {config.form.disclaimer}
-                  </p>
-                </motion.form>
-              )}
-            </AnimatePresence>
+                    <p className="mb-6 font-secondary" style={{ color: "var(--demo-muted)" }}>
+                      {config.form.successMessage}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection("programs")}
+                      className="cursor-pointer text-sm font-semibold font-secondary hover:underline"
+                      style={{ color: "var(--demo-primary)" }}
+                    >
+                      Explore our programs →
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-4"
+                    onSubmit={handleSubmit}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Parent / Guardian Name"
+                      value={formData.name}
+                      onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                      required
+                      className={FORM_FIELD_CLASS}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={formData.email}
+                      onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                      required
+                      className={FORM_FIELD_CLASS}
+                    />
+                    {config.form.studentFields && (
+                      <>
+                        <input
+                          type="text"
+                          placeholder={config.form.studentFields.namePlaceholder}
+                          value={formData.studentName}
+                          onChange={(e) =>
+                            setFormData((p) => ({ ...p, studentName: e.target.value }))
+                          }
+                          required
+                          className={FORM_FIELD_CLASS}
+                        />
+                        <select
+                          value={formData.grade}
+                          onChange={(e) => setFormData((p) => ({ ...p, grade: e.target.value }))}
+                          required
+                          className={`${FORM_FIELD_CLASS} cursor-pointer appearance-none`}
+                        >
+                          <option value="" disabled>
+                            {config.form.studentFields.gradePlaceholder}
+                          </option>
+                          {config.form.studentFields.gradeOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                    <select
+                      value={formData.program}
+                      onChange={(e) => setFormData((p) => ({ ...p, program: e.target.value }))}
+                      required
+                      className={`${FORM_FIELD_CLASS} cursor-pointer appearance-none`}
+                    >
+                      <option value="" disabled>
+                        Select a program...
+                      </option>
+                      {config.form.programOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <DemoWebsiteButton type="submit" variant="primary" className="mt-2 w-full py-4 text-base">
+                      {config.form.submitLabel}
+                    </DemoWebsiteButton>
+                    {config.form.trustNote && (
+                      <p
+                        className="text-center text-xs font-secondary"
+                        style={{ color: "var(--demo-muted)" }}
+                      >
+                        {config.form.trustNote}
+                      </p>
+                    )}
+                    <p
+                      className="pt-1 text-center text-xs font-secondary"
+                      style={{ color: "var(--demo-muted)" }}
+                    >
+                      {config.form.disclaimer}
+                    </p>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </DemoWebsiteCard>
           </motion.div>
         </div>
       </section>
@@ -1487,7 +1373,7 @@ export default function WebsiteDashboardDemo({
       <section
         id="faq"
         className="py-24 px-8 sm:px-12 lg:px-16 scroll-mt-[72px]"
-        style={{ backgroundColor: "var(--demo-page-bg)" }}
+        style={{ backgroundColor: "var(--demo-paper)" }}
       >
         <div className="max-w-3xl mx-auto">
           <motion.div
@@ -1497,60 +1383,63 @@ export default function WebsiteDashboardDemo({
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: "easeOut" as const }}
           >
-            <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-5 uppercase tracking-wider">
-              {config.faq.eyebrow}
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-4">
+            <div className="mb-5">
+              <DemoWebsiteSectionKicker>{config.faq.eyebrow}</DemoWebsiteSectionKicker>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold font-heading mb-4" style={{ color: "var(--demo-ink)" }}>
               {config.faq.heading}
             </h2>
-            <p className="text-gray-500 font-secondary text-lg max-w-lg">{config.faq.subtitle}</p>
+            <p className="font-secondary text-lg max-w-lg" style={{ color: "var(--demo-muted)" }}>{config.faq.subtitle}</p>
           </motion.div>
 
-          <div>
+          <div className="space-y-3">
             {config.faq.items.map((faq, i) => (
               <motion.div
                 key={faq.q}
-                className="border-b border-gray-100 last:border-0"
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.07, ease: "easeOut" as const }}
               >
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className={`w-full flex items-center justify-between py-6 text-left group cursor-pointer transition-colors duration-200 ${
-                    openFaq === i
-                      ? "text-[var(--demo-dark)]"
-                      : "text-gray-700 hover:text-[var(--demo-accent-text)]"
-                  }`}
-                >
-                  <span className="text-base md:text-lg font-semibold font-heading pr-6">{faq.q}</span>
-                  <motion.span
-                    animate={{ rotate: openFaq === i ? 45 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={`text-2xl font-light flex-shrink-0 w-7 text-center leading-none transition-colors ${
-                      openFaq === i ? "text-[var(--demo-primary)]" : "text-gray-300"
-                    }`}
+                <DemoWebsiteCard className="overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="flex w-full cursor-pointer items-center justify-between text-left transition-colors duration-200"
+                    style={{ color: openFaq === i ? "var(--demo-primary)" : "var(--demo-ink)" }}
                   >
-                    +
-                  </motion.span>
-                </button>
-
-                <AnimatePresence>
-                  {openFaq === i && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" as const }}
-                      className="overflow-hidden"
+                    <span className="pr-6 text-base font-semibold font-heading md:text-lg">{faq.q}</span>
+                    <motion.span
+                      animate={{ rotate: openFaq === i ? 45 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-2xl font-light leading-none"
+                      style={{
+                        color: openFaq === i ? "var(--demo-primary)" : "var(--demo-muted)",
+                      }}
                     >
-                      <p className="pb-7 text-gray-500 font-secondary text-base leading-relaxed">
-                        {faq.a}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      +
+                    </motion.span>
+                  </button>
+
+                  <AnimatePresence>
+                    {openFaq === i && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" as const }}
+                        className="overflow-hidden"
+                      >
+                        <p
+                          className="pt-4 font-secondary text-base leading-relaxed"
+                          style={{ color: "var(--demo-muted)" }}
+                        >
+                          {faq.a}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </DemoWebsiteCard>
               </motion.div>
             ))}
           </div>
@@ -1559,7 +1448,10 @@ export default function WebsiteDashboardDemo({
 
       {/* ─── 15.5. CLOSING CTA ────────────────────────────────────────────── */}
       {sectionVisibility.showClosingCta && (
-      <section className="bg-[var(--demo-light-bg)] py-20 px-8 sm:px-12 lg:px-16 border-t border-[var(--demo-light-border)]">
+      <section
+        className="border-t px-8 py-20 sm:px-12 lg:px-16"
+        style={{ backgroundColor: "var(--demo-cream)", borderColor: "var(--demo-line)" }}
+      >
         <motion.div
           className="max-w-2xl mx-auto text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -1567,54 +1459,60 @@ export default function WebsiteDashboardDemo({
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" as const }}
         >
-          <span className="inline-block px-5 py-2 bg-[var(--demo-badge-bg)] text-[var(--demo-dark)] text-xs font-semibold rounded-full font-secondary mb-6 uppercase tracking-wider">
-            {config.closingCta.eyebrow}
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 font-heading mb-5 leading-tight">
+          <div className="mb-6">
+            <DemoWebsiteSectionKicker>{config.closingCta.eyebrow}</DemoWebsiteSectionKicker>
+          </div>
+          <h2
+            className="mb-5 text-4xl font-bold font-heading leading-tight md:text-5xl"
+            style={{ color: "var(--demo-ink)" }}
+          >
             {config.closingCta.heading}
             <br />
             <em className="text-[var(--demo-primary)] not-italic">{config.closingCta.headingAccent}</em>
           </h2>
-          <p className="text-base text-gray-500 font-secondary leading-relaxed mb-10 max-w-lg mx-auto">
+          <p
+            className="mx-auto mb-10 max-w-lg font-secondary text-base leading-relaxed"
+            style={{ color: "var(--demo-muted)" }}
+          >
             {config.closingCta.description}
           </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <button
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <DemoWebsiteButton
               type="button"
               onClick={handleDiscoveryCallClick}
-              className="px-8 py-3.5 text-white font-semibold rounded-lg font-secondary transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
-              style={{ backgroundColor: "var(--demo-dark)" }}
+              variant="primary"
+              className="inline-flex items-center gap-2"
             >
               {config.closingCta.primaryCta}
               <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleSecondaryCtaClick}
-              className="px-8 py-3.5 border border-[var(--demo-light-border)] text-[var(--demo-accent-text)] hover:bg-[var(--demo-light-bg)] font-semibold rounded-lg font-secondary transition-all duration-200 cursor-pointer"
-            >
+            </DemoWebsiteButton>
+            <DemoWebsiteButton type="button" onClick={handleSecondaryCtaClick} variant="outline">
               {config.closingCta.secondaryCta}
-            </button>
+            </DemoWebsiteButton>
           </div>
         </motion.div>
       </section>
       )}
 
       {/* ─── 16. FOOTER ───────────────────────────────────────────────────── */}
-      <footer className="py-16 px-8 text-white" style={{ backgroundColor: "var(--demo-dark)" }}>
+      <footer
+        className="border-t px-8 py-14"
+        style={{
+          backgroundColor: "var(--demo-cream)",
+          borderColor: "var(--demo-line)",
+        }}
+      >
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <SchoolDemoWordmark
-                logo={config.logo}
-                onDark
-                className="h-11 w-auto object-contain"
-              />
+              <SchoolDemoWordmark logo={config.logo} className="h-11 w-auto object-contain" />
             </div>
-            <p className="text-white/35 font-secondary text-sm">{config.footer.tagline}</p>
+            <p className="font-secondary text-sm" style={{ color: "var(--demo-muted)" }}>
+              {config.footer.tagline}
+            </p>
           </div>
 
-          <div className="w-14 h-px bg-white/10 mx-auto mb-8" />
+          <div className="mx-auto mb-8 h-px w-14" style={{ backgroundColor: "var(--demo-line)" }} />
 
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-8">
             {config.footer.links.map((link, i) => (
@@ -1622,7 +1520,8 @@ export default function WebsiteDashboardDemo({
                 key={link}
                 type="button"
                 onClick={() => handleNavLinkClick(i)}
-                className="text-white/40 hover:text-white font-secondary text-sm transition-colors duration-200 cursor-pointer"
+                className="font-secondary text-sm transition-colors duration-200 cursor-pointer"
+                style={{ color: "var(--demo-muted)" }}
               >
                 {link}
               </button>
@@ -1630,15 +1529,23 @@ export default function WebsiteDashboardDemo({
           </div>
 
           <div className="flex justify-center gap-5 mb-10">
-            <button className="text-white/30 hover:text-white transition-colors duration-200 cursor-pointer">
+            <button
+              type="button"
+              className="cursor-pointer"
+              style={{ color: "var(--demo-muted)" }}
+            >
               <Share2 className="w-5 h-5" />
             </button>
-            <button className="text-white/30 hover:text-white transition-colors duration-200 cursor-pointer">
+            <button
+              type="button"
+              className="cursor-pointer"
+              style={{ color: "var(--demo-muted)" }}
+            >
               <MessageCircle className="w-5 h-5" />
             </button>
           </div>
 
-          <p className="text-center text-white/20 font-secondary text-xs">
+          <p className="text-center text-xs font-secondary" style={{ color: "var(--demo-muted)" }}>
             {config.footer.copyright} &nbsp;·&nbsp; {config.footer.poweredBy}
           </p>
         </div>
@@ -1652,12 +1559,12 @@ export default function WebsiteDashboardDemo({
             exit={{ y: 80, opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="fixed bottom-0 left-0 right-0 z-50 p-4 md:hidden border-t border-[var(--demo-light-border)] backdrop-blur-md"
-            style={{ backgroundColor: "color-mix(in srgb, var(--demo-page-bg) 95%, transparent)" }}
+            style={{ backgroundColor: "color-mix(in srgb, var(--demo-cream) 95%, transparent)" }}
           >
             <button
               type="button"
               onClick={handleDiscoveryCallClick}
-              className="w-full py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-xl font-secondary shadow-lg cursor-pointer"
+              className="w-full py-3.5 bg-[var(--demo-primary)] hover:bg-[var(--demo-primary-hover)] text-white font-semibold rounded-[var(--demo-radius-button)] font-secondary shadow-lg cursor-pointer"
             >
               {hero.primaryCta}
             </button>

@@ -19,6 +19,11 @@ import {
   type ProgramCoopFamily,
 } from "@/lib/admissions/program-coop-directory";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
+import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
+import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
 import { getRequestUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -28,6 +33,8 @@ export type ParentHomeContentData = {
   onboardingItems: Awaited<ReturnType<typeof loadResolvedParentOnboardingItems>>;
   enrollmentAmendmentBannerItems: ReturnType<typeof buildEnrollmentAgreementAmendmentBannerItems>;
   enrollmentIncompleteBannerItems: ReturnType<typeof buildEnrollmentAgreementIncompleteBannerItems>;
+  formAttentionItems: ParentFormAttentionItem[];
+  formSnapshot: ParentFormHomeSnapshot | null;
   coopFamilies?: ProgramCoopFamily[];
 };
 
@@ -67,6 +74,8 @@ export async function loadParentHomeContentData(input: {
       onboardingItems: [],
       enrollmentAmendmentBannerItems: [],
       enrollmentIncompleteBannerItems: [],
+      formAttentionItems: [],
+      formSnapshot: null,
     };
   }
 
@@ -101,7 +110,9 @@ export async function loadParentHomeContentData(input: {
   });
 
   const applicationIds = familyChildren.map((child) => child.applicationId);
-  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies] =
+  const admin = createAdminClient();
+  const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
+  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies, formAttentionItems, formSnapshot] =
     await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       supabase,
@@ -120,6 +131,24 @@ export async function loadParentHomeContentData(input: {
       coopModeEnabled: input.coopModeEnabled,
       hasProgramAccess,
     }),
+    formsFeatureEnabled
+      ? loadParentFormAttentionItems(
+          admin,
+          input.organizationId,
+          input.familyId,
+          input.slug,
+          input.previewBasePath,
+        )
+      : Promise.resolve([]),
+    formsFeatureEnabled
+      ? loadParentFormHomeSnapshot(
+          admin,
+          input.organizationId,
+          input.familyId,
+          input.slug,
+          input.previewBasePath,
+        )
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -137,6 +166,8 @@ export async function loadParentHomeContentData(input: {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath: input.previewBasePath,
     }),
+    formAttentionItems,
+    formSnapshot,
     coopFamilies,
   };
 }
@@ -192,7 +223,9 @@ export async function loadParentHomePreviewContentData(input: {
   });
 
   const applicationIds = familyChildren.map((child) => child.applicationId);
-  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies] =
+  const admin = createAdminClient();
+  const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
+  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies, formAttentionItems, formSnapshot] =
     await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       input.supabase,
@@ -211,6 +244,24 @@ export async function loadParentHomePreviewContentData(input: {
       coopModeEnabled: input.coopModeEnabled,
       hasProgramAccess,
     }),
+    formsFeatureEnabled
+      ? loadParentFormAttentionItems(
+          admin,
+          input.organizationId,
+          input.familyId,
+          input.slug,
+          input.previewBasePath,
+        )
+      : Promise.resolve([]),
+    formsFeatureEnabled
+      ? loadParentFormHomeSnapshot(
+          admin,
+          input.organizationId,
+          input.familyId,
+          input.slug,
+          input.previewBasePath,
+        )
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -228,6 +279,8 @@ export async function loadParentHomePreviewContentData(input: {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
       previewBasePath: input.previewBasePath,
     }),
+    formAttentionItems,
+    formSnapshot,
     coopFamilies,
   };
 }

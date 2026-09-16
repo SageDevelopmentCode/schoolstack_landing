@@ -22,6 +22,7 @@ const ADMIN_FEATURE_ICON_COLORS: Record<string, string> = {
   insights: "#EAB308",
   transactions: "#6366F1",
   payroll: "#0D9488",
+  forms_documents: "#6366F1",
 };
 
 const DEFAULT_ICON_COLOR = "#64748B";

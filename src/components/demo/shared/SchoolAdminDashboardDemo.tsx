@@ -9,10 +9,25 @@ import type { SchoolAdminDemoConfig } from "@/data/school-demos/demo-dashboard-t
 import {
   ADMIN_DEMO_COLORS,
   ADMIN_DEMO_COPY,
+  ADMIN_DEMO_STORY_COMPAT,
+  ADMIN_DEMO_STORY_THEME,
   applyAdminDemoRuntime,
   getAdminDemoLogo,
   getAdminCompactRows,
 } from "@/components/demo/shared/admin-demo-runtime";
+import {
+  DEMO_ADMIN_PAPER_BG,
+  DEMO_DRAWER_PAPER_BG,
+  demoAdminShellStyle,
+} from "@/components/demo/shared/demo-story-theme";
+import DemoApplicationSubmissionsTab from "@/components/demo/shared/DemoApplicationSubmissionsTab";
+import DemoApplicationSubmissionDetailPanel from "@/components/demo/shared/DemoApplicationSubmissionDetailPanel";
+import {
+  DemoActivityTimelineRow,
+  type DemoActivityTimelineVariant,
+} from "@/components/demo/shared/DemoActivityTimelineRow";
+import { mapDemoLeadToSubmission } from "@/components/demo/shared/demo-submissions-mapper";
+import { fraunces, dmSans } from "@/lib/fonts";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -125,46 +140,47 @@ const C_DARK = {
 };
 
 function buildCLight() {
+  const story = ADMIN_DEMO_STORY_COMPAT;
   return {
-    bg: ADMIN_DEMO_COLORS.bg,
-    surface: "#FFFFFF",
-    elevated: "#FDFCFB",
-    input: "#FAFAFA",
-    inputBorder: "#E4E4E7",
-    border: ADMIN_DEMO_COLORS.border,
-    borderStrong: ADMIN_DEMO_COLORS.borderStrong,
-    accent: ADMIN_DEMO_COLORS.accent,
-    accentBright: ADMIN_DEMO_COLORS.accentBright,
-    accentLight: ADMIN_DEMO_COLORS.accentLight,
-    secondaryBtnBorder: ADMIN_DEMO_COLORS.secondaryBtnBorder,
-    accentGlow: ADMIN_DEMO_COLORS.accentGlow,
-    accentMid: ADMIN_DEMO_COLORS.accentMid,
-    accentDark: ADMIN_DEMO_COLORS.accentDark,
-    clay: ADMIN_DEMO_COLORS.clay,
-    clayBg: ADMIN_DEMO_COLORS.clayBg,
-    clayBorder: ADMIN_DEMO_COLORS.clayBorder,
-    textPrimary: ADMIN_DEMO_COLORS.textPrimary,
-    textSecondary: ADMIN_DEMO_COLORS.textSecondary,
-    textTertiary: "#8A7B6E",
-    textQuaternary: "#B8A898",
-    success: "#16A34A",
-    successBg: "rgba(22, 163, 74, 0.08)",
-    successBorder: "rgba(22, 163, 74, 0.25)",
-    warning: "#D97706",
-    warningBg: "rgba(217, 119, 6, 0.08)",
-    warningBorder: "rgba(217, 119, 6, 0.25)",
-    error: "#DC2626",
-    errorBg: "rgba(220, 38, 38, 0.08)",
-    errorBorder: "rgba(220, 38, 38, 0.25)",
-    info: "#0284C7",
-    infoBg: "rgba(2, 132, 199, 0.08)",
-    infoBorder: "rgba(2, 132, 199, 0.25)",
-    purple: "#7C3AED",
-    purpleBg: "rgba(124, 58, 237, 0.08)",
-    purpleBorder: "rgba(124, 58, 237, 0.25)",
-    shadowCard: "0 1px 3px rgba(43,36,29,0.06), 0 1px 2px rgba(43,36,29,0.04)",
-    shadowMedium: "0 4px 16px rgba(43,36,29,0.08)",
-    r: { sm: "3px", md: "5px", lg: "6px", xl: "8px", full: "9999px" },
+    bg: DEMO_ADMIN_PAPER_BG,
+    surface: story.surface,
+    elevated: story.elevated,
+    input: story.input,
+    inputBorder: story.inputBorder,
+    border: story.border,
+    borderStrong: story.borderStrong,
+    accent: story.accent,
+    accentBright: story.accentBright,
+    accentLight: story.accentLight,
+    secondaryBtnBorder: story.secondaryBtnBorder,
+    accentGlow: story.accentGlow,
+    accentMid: story.accentMid,
+    accentDark: story.accentDark,
+    clay: story.clay,
+    clayBg: story.clayBg,
+    clayBorder: story.clayBorder,
+    textPrimary: story.textPrimary,
+    textSecondary: story.textSecondary,
+    textTertiary: story.textTertiary,
+    textQuaternary: story.textQuaternary,
+    success: story.success,
+    successBg: story.successBg,
+    successBorder: story.success,
+    warning: story.warning,
+    warningBg: story.warningBg,
+    warningBorder: story.warning,
+    error: story.error,
+    errorBg: story.errorBg,
+    errorBorder: story.error,
+    info: story.info,
+    infoBg: story.infoBg,
+    infoBorder: story.info,
+    purple: "#8B5CF6",
+    purpleBg: "rgba(139, 92, 246, 0.08)",
+    purpleBorder: "rgba(139, 92, 246, 0.25)",
+    shadowCard: story.shadowCard,
+    shadowMedium: story.shadowMedium,
+    r: story.r,
   };
 }
 
@@ -210,12 +226,16 @@ function demoSolidPillStyle(
 ): React.CSSProperties {
   return isActive
     ? {
-        backgroundColor: C.accent,
-        color: "#fff",
-        border: `1px solid ${C.accent}`,
+        backgroundColor: ADMIN_DEMO_STORY_THEME.primaryLight,
+        color: ADMIN_DEMO_STORY_THEME.primaryDark,
+        border: `1px solid color-mix(in srgb, ${ADMIN_DEMO_STORY_THEME.primary} 25%, transparent)`,
+        borderRadius: ADMIN_DEMO_STORY_THEME.radiusButton,
         ...extra,
       }
-    : demoInactivePillStyle(extra);
+    : demoInactivePillStyle({
+        borderRadius: ADMIN_DEMO_STORY_THEME.radiusButton,
+        ...extra,
+      });
 }
 
 function demoLightPillStyle(
@@ -3616,8 +3636,8 @@ function Card({
       className={className}
       style={{
         backgroundColor: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: C.r.lg,
+        border: `1px solid #E0E7E0`,
+        borderRadius: "16px",
         boxShadow: C.shadowCard,
         ...style,
       }}
@@ -3690,6 +3710,7 @@ function PageHeader({
   tip,
   action,
   className,
+  kicker,
 }: {
   icon?: string;
   title: string;
@@ -3697,20 +3718,29 @@ function PageHeader({
   tip?: string;
   action?: React.ReactNode;
   className?: string;
+  kicker?: string;
 }) {
   return (
     <div className={`space-y-3 mb-5 ${className ?? ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
+          {kicker && (
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1.5 font-heading"
+              style={{ color: ADMIN_DEMO_STORY_THEME.muted }}
+            >
+              {kicker}
+            </p>
+          )}
           <h1
-            className="text-xl font-semibold tracking-tight flex items-center gap-2"
+            className="text-2xl font-semibold tracking-tight flex items-center gap-2 font-heading"
             style={{ color: C.textPrimary }}
           >
             {icon && <span className="text-lg leading-none">{icon}</span>}
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm mt-1" style={{ color: C.textTertiary }}>
+            <p className="text-sm mt-1.5" style={{ color: C.textSecondary }}>
               {subtitle}
             </p>
           )}
@@ -4237,7 +4267,7 @@ function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon="📊"
+        kicker="Operations"
         title="Dashboard"
         subtitle={ADMIN_DEMO_COPY.locationSubtitle}
         tip="Your morning snapshot — see revenue, enrollment, leads, and upcoming dates all in one place. Numbers update as families apply and pay."
@@ -4364,485 +4394,6 @@ function DashboardPage() {
     </div>
   );
 }
-
-// ─── Admissions page ──────────────────────────────────────────────────────────
-
-const LEAD_FILTERS = [
-  { key: "all", label: "All", count: 17 },
-  { key: "new", label: "New", count: 3 },
-  { key: "contacted", label: "Contacted", count: 2 },
-  { key: "application_sent", label: "App Sent", count: 1 },
-  { key: "enrolled", label: "Enrolled", count: 1 },
-  { key: "lost", label: "Lost", count: 2 },
-];
-
-const LEAD_TAGS = [
-  "Summer 2026",
-  "School Year",
-  "Both",
-  "Financial Aid",
-  "Homeschool",
-  "Tour",
-];
-
-const FLOW_FILTER_OPTIONS = [
-  { id: "all", label: "All Forms" },
-  { id: "flow-5", label: "Schedule a Tour" },
-  { id: "flow-1", label: "Apply Now Form" },
-  { id: "flow-2", label: "Enrollment Checklist" },
-  { id: "flow-3", label: "Waitlist Signup" },
-  { id: "flow-4", label: "Book a Campus Tour" },
-];
-
-const LEAD_CHILD_PHOTOS: Record<string, string> = {
-  "Noah Foster": "/images/people/students/izzy-park-8hBY-30cEqI-unsplash.jpg",
-  "Raj Patel": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
-  "Lily Beaumont": "/images/people/students/patrick-hauth-K6p0llhyvP8-unsplash.jpg",
-  "Tyler Watkins": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
-  "Sofia Mendez": "/images/people/students/cristina-anne-costello-i8n-TbgzSUE-unsplash.jpg",
-  "Marcus Park": "/images/people/students/thomas-park-qnFFfsrxzIk-unsplash.jpg",
-  "Hannah Kim": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
-  "Jordan Cho": "/images/people/students/ibrahim-guetar-NUkjka_RqUE-unsplash.jpg",
-  "Ella Thornton": "/images/people/students/aditya-sethia-y9se00qtzd4-unsplash.jpg",
-  "Chidera Okonkwo": "/images/people/students/ben-mullins-je240KkJIuA-unsplash.jpg",
-  "Alex & Ben Sullivan": "/images/people/students/vitaly-gariev-_z2Ii760I38-unsplash.jpg",
-};
-
-function LeadsFiltersPanel({
-  activeFilter,
-  onChange,
-  onClose,
-}: {
-  activeFilter: string;
-  onChange: (key: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute inset-y-0 right-0 flex w-72 max-w-full flex-col overflow-hidden"
-      style={{
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        boxShadow: C.shadowMedium,
-        zIndex: 12,
-      }}
-    >
-      <div
-        className="flex flex-shrink-0 items-center justify-between px-4 py-3"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <h3 className="text-sm font-semibold" style={{ color: C.textPrimary }}>
-          Filters
-        </h3>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-shrink-0 rounded p-1"
-          style={{ color: C.textTertiary }}
-          aria-label="Close filters"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        <p
-          className="mb-2 text-[10px] font-semibold uppercase tracking-wide"
-          style={{ color: C.textTertiary }}
-        >
-          Status
-        </p>
-        <div className="flex flex-col gap-1.5">
-          {LEAD_FILTERS.map((f) => {
-            const isActive = activeFilter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => onChange(f.key)}
-                className="flex w-full items-center justify-between gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
-                style={demoLightPillStyle(isActive)}
-              >
-                <span>{f.label}</span>
-                <span className="text-[10px] font-bold opacity-70">{f.count}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-const NEW_SUBMISSION_LEAD_ID = "l0";
-
-function LeadTableRow({
-  lead,
-  onSelectLead,
-  initial,
-  animate,
-  transition,
-}: {
-  lead: DemoLead;
-  onSelectLead: (lead: DemoLead) => void;
-  initial?: { opacity: number; x?: number; y?: number };
-  animate?: { opacity: number; x?: number; y?: number; backgroundColor?: string | string[] };
-  transition?: {
-    delay?: number;
-    duration?: number;
-    ease?: [number, number, number, number];
-    backgroundColor?: { duration?: number; ease?: string };
-  };
-}) {
-  const rowProps = {
-    onClick: () => onSelectLead(lead),
-    className: "cursor-pointer transition-colors",
-    style: { borderBottom: `1px solid ${C.border}` },
-    onMouseEnter: (e: { currentTarget: HTMLTableRowElement }) => {
-      e.currentTarget.style.backgroundColor = C.elevated;
-    },
-    onMouseLeave: (e: { currentTarget: HTMLTableRowElement }) => {
-      e.currentTarget.style.backgroundColor = "transparent";
-    },
-  };
-
-  const cells = (
-    <>
-      <td className="px-4 py-3 max-w-[140px]">
-        <p className="text-xs font-medium truncate" style={{ color: C.textPrimary }}>
-          {FLOW_FILTER_OPTIONS.find((f) => f.id === lead.flowId)?.label ?? "—"}
-        </p>
-      </td>
-      <td className="px-4 py-3">
-        <p className="font-medium" style={{ color: C.textPrimary }}>
-          {lead.name}
-        </p>
-      </td>
-      <td className="px-4 py-3">
-        <p style={{ color: C.textSecondary }}>{lead.email}</p>
-        <p className="text-xs" style={{ color: C.textTertiary }}>
-          {lead.phone}
-        </p>
-      </td>
-      <td className="px-4 py-3">
-        {lead.childName ? (
-          <div className="flex min-w-0 items-center gap-2.5">
-            {LEAD_CHILD_PHOTOS[lead.childName] ? (
-              <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full">
-                <Image
-                  src={LEAD_CHILD_PHOTOS[lead.childName]}
-                  alt={lead.childName}
-                  width={32}
-                  height={32}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            ) : (
-              <div
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                style={{
-                  backgroundColor: C.accentLight,
-                  color: C.accent,
-                }}
-              >
-                {lead.childName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p
-                className="truncate text-sm"
-                style={{ color: C.textSecondary }}
-              >
-                {lead.childName}
-              </p>
-              {lead.flowId === "flow-5" &&
-              lead.responses.f33 != null &&
-              String(lead.responses.f33).trim() !== "" ? (
-                <p
-                  className="text-xs"
-                  style={{ color: C.textTertiary }}
-                >
-                  {String(lead.responses.f33)}
-                </p>
-              ) : lead.childAge != null ? (
-                <p
-                  className="text-xs"
-                  style={{ color: C.textTertiary }}
-                >
-                  Age {lead.childAge}
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : (
-          <span style={{ color: C.textTertiary }}>—</span>
-        )}
-      </td>
-      <td className="px-4 py-3 max-w-[180px]">
-        <p
-          className="truncate text-xs"
-          style={{ color: C.textTertiary }}
-        >
-          {lead.message ?? "—"}
-        </p>
-      </td>
-      <td className="px-4 py-3">
-        <StatusBadge status={lead.status} />
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-wrap gap-1">
-          {lead.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-1.5 py-0.5 text-[9px] font-medium rounded-full"
-              style={{
-                backgroundColor: C.accentLight,
-                color: C.accent,
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </td>
-      <td
-        className="px-4 py-3 text-xs"
-        style={{ color: C.textTertiary }}
-      >
-        {lead.date}
-      </td>
-    </>
-  );
-
-  if (initial != null || animate != null || transition != null) {
-    return (
-      <motion.tr
-        key={lead.id}
-        initial={initial}
-        animate={animate}
-        transition={transition}
-        {...rowProps}
-      >
-        {cells}
-      </motion.tr>
-    );
-  }
-
-  return (
-    <tr key={lead.id} {...rowProps}>
-      {cells}
-    </tr>
-  );
-}
-
-function LeadsListTab({
-  onSelectLead,
-  animateNewSubmission = false,
-}: {
-  onSelectLead: (lead: DemoLead) => void;
-  animateNewSubmission?: boolean;
-}) {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [activeFlowFilter, setActiveFlowFilter] = useState("all");
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const [timedReveal, setTimedReveal] = useState(false);
-  const newSubmissionRevealed = !animateNewSubmission || timedReveal;
-
-  useEffect(() => {
-    if (!animateNewSubmission) return;
-    const timer = setTimeout(() => setTimedReveal(true), 700);
-    return () => {
-      clearTimeout(timer);
-      setTimedReveal(false);
-    };
-  }, [animateNewSubmission]);
-
-  const filtered = ACTIVE_DEMO_LEADS.filter((l) => {
-    const statusMatch = activeFilter === "all" || l.status === activeFilter;
-    const flowMatch = activeFlowFilter === "all" || l.flowId === activeFlowFilter;
-    return statusMatch && flowMatch;
-  });
-
-  const newLead = animateNewSubmission
-    ? filtered.find((l) => l.id === NEW_SUBMISSION_LEAD_ID)
-    : undefined;
-  const existingLeads = animateNewSubmission && newLead
-    ? filtered.filter((l) => l.id !== NEW_SUBMISSION_LEAD_ID)
-    : filtered;
-  const useNewSubmissionAnimation = animateNewSubmission && !!newLead;
-
-  const activeStatusLabel =
-    LEAD_FILTERS.find((f) => f.key === activeFilter)?.label ?? "All";
-  const hasActiveStatusFilter = activeFilter !== "all";
-
-  return (
-    <div
-      className="relative flex h-full flex-col"
-      style={{ backgroundColor: C.surface }}
-    >
-      {/* Form toolbar + filter icon */}
-      <div
-        className="flex flex-shrink-0 items-center gap-2 px-6 py-3"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          {FLOW_FILTER_OPTIONS.map((f) => {
-            const isActive = activeFlowFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setActiveFlowFilter(f.id)}
-                className="rounded-sm px-2.5 py-1 text-xs font-medium transition-all"
-                style={demoSolidPillStyle(isActive)}
-              >
-                {f.label}
-                {f.id !== "all" && (
-                  <span className="ml-1 text-[10px] font-bold opacity-70">
-                    {ACTIVE_DEMO_LEADS.filter((l) => l.flowId === f.id).length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          onClick={() => setFilterPanelOpen(true)}
-          className="relative ml-auto flex flex-shrink-0 items-center justify-center rounded-sm p-2 transition-all"
-          style={{
-            backgroundColor: hasActiveStatusFilter ? C.accentLight : C.input,
-            color: hasActiveStatusFilter ? C.accent : C.textSecondary,
-            border: `1px solid ${hasActiveStatusFilter ? C.accent : C.border}`,
-          }}
-          aria-label={
-            hasActiveStatusFilter
-              ? `Filter submissions (${activeStatusLabel})`
-              : "Filter submissions"
-          }
-        >
-          <ListFilter className="h-4 w-4" />
-          {hasActiveStatusFilter && (
-            <span
-              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full"
-              style={{ backgroundColor: C.accent }}
-            />
-          )}
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {filterPanelOpen && (
-          <>
-            <motion.div
-              key="leads-filter-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-              style={{ backgroundColor: "rgba(0,0,0,0.12)", zIndex: 11 }}
-              onClick={() => setFilterPanelOpen(false)}
-            />
-            <LeadsFiltersPanel
-              key="leads-filters-panel"
-              activeFilter={activeFilter}
-              onChange={(key) => {
-                setActiveFilter(key);
-                setFilterPanelOpen(false);
-              }}
-              onClose={() => setFilterPanelOpen(false)}
-            />
-          </>
-        )}
-      </AnimatePresence>
-
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto overflow-x-hidden">
-          <table className="w-full text-sm">
-            <thead
-              className="sticky top-0 z-[1]"
-              style={{ backgroundColor: C.surface }}
-            >
-              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                {[
-                  "Form",
-                  "Name",
-                  "Contact",
-                  "Child",
-                  "Message",
-                  "Status",
-                  "Tags",
-                  "Date",
-                ].map((col) => (
-                  <th
-                    key={col}
-                    className="text-left px-4 py-3 text-xs font-medium"
-                    style={{ color: C.textTertiary }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {useNewSubmissionAnimation ? (
-                <>
-                  <AnimatePresence>
-                    {newSubmissionRevealed && newLead && (
-                      <LeadTableRow
-                        key={newLead.id}
-                        lead={newLead}
-                        onSelectLead={onSelectLead}
-                        initial={{ opacity: 0, x: 56 }}
-                        animate={{
-                          opacity: 1,
-                          x: 0,
-                          backgroundColor: [C.accentLight, "transparent"],
-                        }}
-                        transition={{
-                          duration: 0.65,
-                          ease: [0.22, 1, 0.36, 1],
-                          backgroundColor: { duration: 1.2, ease: "easeOut" },
-                        }}
-                      />
-                    )}
-                  </AnimatePresence>
-                  {existingLeads.map((lead) => (
-                    <LeadTableRow
-                      key={lead.id}
-                      lead={lead}
-                      onSelectLead={onSelectLead}
-                    />
-                  ))}
-                </>
-              ) : (
-                filtered.map((lead, i) => (
-                  <LeadTableRow
-                    key={lead.id}
-                    lead={lead}
-                    onSelectLead={onSelectLead}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 // ─── Enrollment Flow types & demo data ────────────────────────────────────────
 
@@ -5190,719 +4741,6 @@ const INITIAL_DEMO_FLOWS: EnrollmentFlow[] = [
 /** Demo: submissions use the seed flow schema; a real app would load the form definition tied to each submission. */
 function getFlowForLead(flowId: string): EnrollmentFlow | undefined {
   return INITIAL_DEMO_FLOWS.find((f) => f.id === flowId);
-}
-
-function formatSubmissionFieldAnswer(
-  field: FlowField,
-  raw: string | boolean | undefined,
-): string {
-  if (raw === undefined || raw === null) return "—";
-  if (typeof raw === "string" && raw.trim() === "") return "—";
-  if (field.type === "checkbox") {
-    if (typeof raw === "boolean") return raw ? "Yes" : "No";
-    const s = String(raw).toLowerCase();
-    if (s === "true" || s === "yes" || s === "on" || s === "1") return "Yes";
-    return "No";
-  }
-  return String(raw);
-}
-
-const SUBMISSION_STATUS_OPTIONS = [
-  "new",
-  "contacted",
-  "emailed",
-  "application_sent",
-  "enrolled",
-  "lost",
-] as const;
-
-const TOUR_STATUS_OPTIONS = [
-  "requested",
-  "scheduled",
-  "completed",
-  "no_show",
-  "cancelled",
-] as const;
-
-function getStatusOptionsForLead(flowId: string): readonly string[] {
-  if (flowId === "flow-4") return TOUR_STATUS_OPTIONS;
-  return SUBMISSION_STATUS_OPTIONS;
-}
-
-type LeadActivityEntry = {
-  id: string;
-  at: string;
-  actor: string;
-  title: string;
-  summary: string;
-  variant: "mail" | "note" | "action";
-};
-
-type LeadDetailTabId = `step:${string}` | "status" | "notes" | "activity";
-
-type LeadDetailTab = {
-  id: LeadDetailTabId;
-  label: string;
-  kind: "step" | "status" | "notes" | "activity";
-};
-
-type DemoActivityTimelineVariant =
-  | "attendance"
-  | "note"
-  | "event"
-  | "mail"
-  | "action";
-
-const DEMO_ACTIVITY_TIMELINE_ICONS: Record<
-  DemoActivityTimelineVariant,
-  { Icon: typeof Mail; color: string }
-> = {
-  attendance: { Icon: CalendarDays, color: "#38BDF8" },
-  note: { Icon: MessageSquare, color: "#A78BFA" },
-  event: { Icon: Zap, color: "#22C55E" },
-  mail: { Icon: Mail, color: "#0284C7" },
-  action: { Icon: Zap, color: "#16A34A" },
-};
-
-function demoActivityAuthorInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function demoActivityAuthorAvatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++)
-    h = (h + name.charCodeAt(i) * (i + 1)) % 360;
-  return `hsl(${h} 38% 42%)`;
-}
-
-function DemoActivityAuthorLine({ author }: { author: string }) {
-  if (!author) return null;
-  const initials = demoActivityAuthorInitials(author);
-  const color = demoActivityAuthorAvatarColor(author);
-  return (
-    <div className="mt-1 flex items-center gap-1.5">
-      <div
-        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[8px] font-bold leading-none"
-        style={{ backgroundColor: `${color}22`, color }}
-        aria-hidden
-      >
-        {initials}
-      </div>
-      <p className="text-[9px]" style={{ color: C.textTertiary }}>
-        — {author}
-      </p>
-    </div>
-  );
-}
-
-function DemoActivityTimelineRow({
-  variant,
-  title,
-  date,
-  detail,
-  author,
-  showConnectorBelow,
-}: {
-  variant: DemoActivityTimelineVariant;
-  title: string;
-  date: string;
-  detail: string;
-  author?: string;
-  showConnectorBelow: boolean;
-}) {
-  const { Icon, color } = DEMO_ACTIVITY_TIMELINE_ICONS[variant];
-  return (
-    <div className="flex gap-2.5">
-      <div className="flex flex-col items-center flex-shrink-0">
-        <div
-          className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: color + "20" }}
-        >
-          <Icon className="h-3 w-3" style={{ color }} />
-        </div>
-        {showConnectorBelow && (
-          <div
-            className="my-0.5 min-h-[16px] w-px flex-1"
-            style={{ backgroundColor: C.border }}
-          />
-        )}
-      </div>
-      <div className="min-w-0 flex-1 pb-4">
-        <div className="mb-0.5 flex items-baseline gap-2">
-          <p
-            className="text-[11px] font-semibold"
-            style={{ color: C.textPrimary }}
-          >
-            {title}
-          </p>
-          <span
-            className="flex-shrink-0 text-[9px]"
-            style={{ color: C.textTertiary }}
-          >
-            {date}
-          </span>
-        </div>
-        <p
-          className="text-[10px] leading-relaxed"
-          style={{ color: C.textSecondary }}
-        >
-          {detail}
-        </p>
-        {author ? <DemoActivityAuthorLine author={author} /> : null}
-      </div>
-    </div>
-  );
-}
-
-function buildLeadActivity(lead: DemoLead): LeadActivityEntry[] {
-  const statusLabel = STATUS_COLORS[lead.status]?.label ?? lead.status;
-  const initial: LeadActivityEntry[] = [
-    {
-      id: `${lead.id}-a0`,
-      at: `${lead.date} · 9:02 AM`,
-      actor: "System",
-      title: "Submission received",
-      summary: "Form submission received and queued for review.",
-      variant: "mail",
-    },
-    {
-      id: `${lead.id}-a1`,
-      at: `${lead.date} · 9:03 AM`,
-      actor: "Automation",
-      title: "Confirmation sent",
-      summary: `Confirmation email sent to ${lead.email}.`,
-      variant: "mail",
-    },
-  ];
-  if (lead.tags.length > 0) {
-    initial.push({
-      id: `${lead.id}-a2`,
-      at: `${lead.date} · 10:15 AM`,
-      actor: "Jordan M.",
-      title: "Tags updated",
-      summary: `Added tags: ${lead.tags.join(", ")}.`,
-      variant: "note",
-    });
-  }
-  if (lead.status !== "new") {
-    initial.push({
-      id: `${lead.id}-a3`,
-      at: `${lead.date} · 2:40 PM`,
-      actor: "Jordan M.",
-      title: "Status updated",
-      summary: `Status set to ${statusLabel}.`,
-      variant: "action",
-    });
-  }
-  return initial;
-}
-
-function LeadDetailPanel({
-  lead,
-  onClose,
-  autoSendEnrollmentLink = false,
-}: {
-  lead: DemoLead;
-  onClose: () => void;
-  autoSendEnrollmentLink?: boolean;
-}) {
-  const flow = getFlowForLead(lead.flowId);
-  const responseMap = lead.responses as unknown as Record<string, string | boolean>;
-
-  const tabs = useMemo<LeadDetailTab[]>(
-    () => [
-      ...(flow?.steps.map((s) => ({
-        id: `step:${s.id}` as LeadDetailTabId,
-        label: s.title,
-        kind: "step" as const,
-      })) ?? []),
-      { id: "status", label: "Status & Tags", kind: "status" },
-      { id: "notes", label: "Notes", kind: "notes" },
-      { id: "activity", label: "Activity Log", kind: "activity" },
-    ],
-    [flow],
-  );
-
-  const defaultTab = useMemo<LeadDetailTabId>(
-    () => (flow?.steps[0]?.id ? `step:${flow.steps[0].id}` : "status"),
-    [flow],
-  );
-
-  const [activeTab, setActiveTab] = useState<LeadDetailTabId>(defaultTab);
-  const [leadStatus, setLeadStatus] = useState(lead.status);
-  const [leadTags, setLeadTags] = useState<string[]>(() => [...lead.tags]);
-  const [tagDraft, setTagDraft] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
-  const [activity, setActivity] = useState<LeadActivityEntry[]>(() => buildLeadActivity(lead));
-  const [linkSentDelayed, setLinkSentDelayed] = useState(false);
-  const enrollmentLinkSent = !autoSendEnrollmentLink || linkSentDelayed;
-
-  useEffect(() => {
-    if (!autoSendEnrollmentLink) return;
-    const timer = setTimeout(() => setLinkSentDelayed(true), 1000);
-    return () => {
-      clearTimeout(timer);
-      setLinkSentDelayed(false);
-    };
-  }, [autoSendEnrollmentLink, lead.id]);
-
-  const activeStep =
-    activeTab.startsWith("step:") && flow
-      ? flow.steps.find((s) => `step:${s.id}` === activeTab)
-      : undefined;
-
-  const showInquiryOnActiveTab =
-    Boolean(lead.message) &&
-    flow &&
-    flow.steps[0] &&
-    activeTab === (`step:${flow.steps[0].id}` as LeadDetailTabId);
-
-  const activityNow = () =>
-    new Date().toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-  const onStatusChange = (next: string) => {
-    if (next === leadStatus) return;
-    const prevLabel = STATUS_COLORS[leadStatus]?.label ?? leadStatus;
-    const nextLabel = STATUS_COLORS[next]?.label ?? next;
-    setLeadStatus(next);
-    setActivity((prev) => [
-      ...prev,
-      {
-        id: `${lead.id}-st-${Date.now()}`,
-        at: activityNow(),
-        actor: "You",
-        title: "Status updated",
-        summary: `Changed status from ${prevLabel} to ${nextLabel}.`,
-        variant: "action",
-      },
-    ]);
-  };
-
-  const addTagValue = (t: string) => {
-    const trimmed = t.trim();
-    if (!trimmed || leadTags.includes(trimmed)) return;
-    setLeadTags((prev) => [...prev, trimmed]);
-    setActivity((prev) => [
-      ...prev,
-      {
-        id: `${lead.id}-tg-${Date.now()}`,
-        at: activityNow(),
-        actor: "You",
-        title: "Tag added",
-        summary: `Added tag “${trimmed}”.`,
-        variant: "note",
-      },
-    ]);
-  };
-
-  const addTag = () => {
-    const t = tagDraft.trim();
-    if (!t || leadTags.includes(t)) return;
-    addTagValue(t);
-    setTagDraft("");
-  };
-
-  const suggestedTags = LEAD_TAGS.filter((t) => !leadTags.includes(t));
-
-  const removeTag = (t: string) => {
-    setLeadTags((prev) => prev.filter((x) => x !== t));
-    setActivity((prev) => [
-      ...prev,
-      {
-        id: `${lead.id}-tr-${Date.now()}`,
-        at: activityNow(),
-        actor: "You",
-        title: "Tag removed",
-        summary: `Removed tag “${t}”.`,
-        variant: "note",
-      },
-    ]);
-  };
-
-  return (
-    <motion.div
-      initial={{ x: "100%", opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: "100%", opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 300 }}
-      className="absolute inset-y-0 right-0 flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden rounded-none"
-      style={{
-        backgroundColor: C.surface,
-        borderLeft: `1px solid ${C.border}`,
-        boxShadow: C.shadowMedium,
-        zIndex: 15,
-      }}
-    >
-      <div
-        className="flex flex-shrink-0 items-center justify-between px-4 py-3 sm:px-5"
-        style={{ borderBottom: `1px solid ${C.border}` }}
-      >
-        <div className="min-w-0 pr-3">
-          <h3
-            className="truncate text-sm font-semibold"
-            style={{ color: C.textPrimary }}
-          >
-            {lead.name}
-          </h3>
-          <p className="mt-0.5 truncate text-xs" style={{ color: C.textTertiary }}>
-            {flow?.name ?? "Form submission"}
-            <span className="mx-1.5 opacity-50">·</span>
-            Submitted {lead.date}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-shrink-0 rounded p-1"
-          style={{ color: C.textTertiary }}
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
-        {tabs.length > 0 && (
-          <nav
-            className="flex w-28 flex-shrink-0 flex-col overflow-y-auto border-r py-2 sm:w-36"
-            style={{
-              borderColor: C.border,
-              backgroundColor: C.bg,
-            }}
-            aria-label="Submission views"
-          >
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className="w-full py-2 pl-2 pr-1.5 text-left text-[11px] font-medium leading-snug transition-colors sm:pl-3 sm:pr-2 sm:text-xs"
-                  style={{
-                    color: isActive ? C.accent : C.textSecondary,
-                    backgroundColor: isActive ? C.accentLight : "transparent",
-                    borderLeft: isActive ? `3px solid ${C.accent}` : "3px solid transparent",
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        )}
-
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 pt-3 sm:px-5">
-            {activeTab === "status" && (
-              <div className="flex flex-col gap-5 pb-3">
-                <div>
-                  <p
-                    className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Status
-                  </p>
-                  <div className="flex flex-col gap-1.5" role="listbox" aria-label="Lead status">
-                    {getStatusOptionsForLead(lead.flowId).map((key) => {
-                      const isActive = leadStatus === key;
-                      const statusStyle = STATUS_COLORS[key] ?? {
-                        bg: C.elevated,
-                        border: C.border,
-                        text: C.textTertiary,
-                        label: key,
-                      };
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          role="option"
-                          aria-selected={isActive}
-                          onClick={() => onStatusChange(key)}
-                          className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-medium transition-all"
-                          style={
-                            isActive
-                              ? {
-                                  backgroundColor: statusStyle.bg,
-                                  color: statusStyle.text,
-                                  border: `1px solid ${statusStyle.border}`,
-                                }
-                              : demoInactivePillStyle()
-                          }
-                        >
-                          <span
-                            className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                            style={{ backgroundColor: statusStyle.text }}
-                            aria-hidden
-                          />
-                          <span>{statusStyle.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <p
-                    className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                    style={{ color: C.textTertiary }}
-                  >
-                    Tags
-                  </p>
-                  <div
-                    className="flex min-h-[36px] flex-wrap items-center gap-1.5 rounded-sm border px-2 py-1.5"
-                    style={{
-                      backgroundColor: C.input,
-                      borderColor: C.inputBorder,
-                    }}
-                  >
-                    {leadTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-0.5 rounded-sm py-0.5 pl-1.5 pr-0.5 text-[11px] font-medium"
-                        style={{
-                          backgroundColor: C.accentLight,
-                          color: C.accent,
-                        }}
-                      >
-                        {tag}
-                        <button
-                          type="button"
-                          className="rounded-sm p-0.5 opacity-60 transition-opacity hover:opacity-100"
-                          style={{ color: C.accent }}
-                          title={`Remove ${tag}`}
-                          aria-label={`Remove tag ${tag}`}
-                          onClick={() => removeTag(tag)}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      type="text"
-                      value={tagDraft}
-                      onChange={(e) => setTagDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addTag();
-                        }
-                      }}
-                      placeholder={leadTags.length === 0 ? "Type a tag, press Enter" : "Add another…"}
-                      className="min-w-[7rem] flex-1 border-0 bg-transparent py-0.5 text-xs outline-none"
-                      style={{ color: C.textPrimary }}
-                    />
-                  </div>
-                  {suggestedTags.length > 0 && (
-                    <p className="mt-2 text-[11px] leading-relaxed" style={{ color: C.textTertiary }}>
-                      <span style={{ color: C.textQuaternary }}>Suggested </span>
-                      {suggestedTags.map((tag, i) => (
-                        <span key={tag}>
-                          {i > 0 && (
-                            <span className="mx-1" style={{ color: C.textQuaternary }}>
-                              ·
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            className="font-medium transition-opacity hover:opacity-70"
-                            style={{ color: C.accent }}
-                            onClick={() => addTagValue(tag)}
-                          >
-                            {tag}
-                          </button>
-                        </span>
-                      ))}
-                    </p>
-                  )}
-
-                </div>
-              </div>
-            )}
-            {activeTab.startsWith("step:") && !flow && (
-              <p className="text-sm" style={{ color: C.textTertiary }}>
-                Form definition not found for this submission.
-              </p>
-            )}
-
-            {activeTab.startsWith("step:") && activeStep && (
-              <section className="pb-3">
-                <div className="mb-3">
-                  <p
-                    className="text-xs font-semibold"
-                    style={{ color: C.textPrimary }}
-                  >
-                    {activeStep.title}
-                  </p>
-                  <div
-                    className="mt-1 h-px w-8 rounded-full"
-                    style={{ backgroundColor: C.accent }}
-                  />
-                </div>
-                <div className="flex flex-col gap-3">
-                  {activeStep.fields.map((field) => {
-                    const raw = responseMap[field.id];
-                    const answer = formatSubmissionFieldAnswer(field, raw);
-                    const multiline =
-                      field.type === "text" && answer.length > 80;
-                    return (
-                      <div
-                        key={field.id}
-                        className="rounded-sm px-3 py-2.5 sm:px-4 sm:py-3"
-                        style={{
-                          backgroundColor: C.surface,
-                          border: `1px solid ${C.border}`,
-                          boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                        }}
-                      >
-                        <p
-                          className="mb-1 text-[10px] font-semibold uppercase tracking-widest"
-                          style={{ color: C.textTertiary }}
-                        >
-                          {field.label}
-                          {field.required ? (
-                            <span style={{ color: C.textQuaternary }}> *</span>
-                          ) : null}
-                        </p>
-                        <p
-                          className={`text-sm font-medium ${
-                            multiline ? "whitespace-pre-wrap leading-relaxed" : ""
-                          }`}
-                          style={{ color: C.textPrimary }}
-                        >
-                          {answer}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-                {showInquiryOnActiveTab && (
-                  <div className="mt-4">
-                    <p
-                      className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                      style={{ color: C.textTertiary }}
-                    >
-                      Message (inquiry)
-                    </p>
-                    <div
-                      className="rounded-sm border px-3 py-2.5 text-sm leading-relaxed sm:px-4 sm:py-3"
-                      style={{
-                        backgroundColor: C.surface,
-                        borderColor: C.border,
-                        color: C.textSecondary,
-                        whiteSpace: "pre-wrap",
-                        boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                      }}
-                    >
-                      {lead.message}
-                    </div>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {activeTab === "notes" && (
-              <div className="pb-3 pt-1">
-                <p
-                  className="mb-2 text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: C.textTertiary }}
-                >
-                  Admin Notes
-                </p>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  rows={6}
-                  placeholder="Add a note…"
-                  className="w-full resize-y rounded-sm px-3 py-2.5 text-sm outline-none"
-                  style={demoInputStyle({
-                    borderRadius: C.r.sm,
-                    boxShadow: "0 1px 2px rgba(17,28,22,0.04)",
-                  })}
-                />
-              </div>
-            )}
-
-            {activeTab === "activity" && (
-              <div className="pb-6 pt-1">
-                <p
-                  className="mb-3 text-[10px] font-semibold uppercase tracking-widest"
-                  style={{ color: C.textTertiary }}
-                >
-                  Activity log
-                </p>
-                <div className="space-y-0">
-                  {activity.map((row, i) => (
-                    <DemoActivityTimelineRow
-                      key={row.id}
-                      variant={row.variant}
-                      title={row.title}
-                      date={row.at}
-                      detail={row.summary}
-                      author={row.actor}
-                      showConnectorBelow={i < activity.length - 1}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="flex-shrink-0 px-4 py-3 sm:px-5"
-        style={{ borderTop: `1px solid ${C.border}` }}
-      >
-        <motion.button
-          type="button"
-          disabled={enrollmentLinkSent}
-          className="w-full rounded-sm py-2 text-sm font-semibold"
-          animate={{
-            backgroundColor: enrollmentLinkSent ? C.successBg : C.accentLight,
-            color: enrollmentLinkSent ? C.success : C.accent,
-          }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            cursor: enrollmentLinkSent ? "default" : "pointer",
-          }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {enrollmentLinkSent ? (
-              <motion.span
-                key="sent"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="h-4 w-4" aria-hidden />
-                Sent
-              </motion.span>
-            ) : (
-              <motion.span
-                key="send"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                Send Enrollment Link
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-    </motion.div>
-  );
 }
 
 type PostSubmitActionMeta = {
@@ -7605,6 +6443,8 @@ function EnrollmentFlowsTab({
 
 type AdmissionsTab = "flows" | "submissions";
 
+// ─── Admissions page ──────────────────────────────────────────────────────────
+
 function AdmissionsPage({
   activeTab,
   initialLeadId,
@@ -7642,8 +6482,10 @@ function AdmissionsPage({
         )}
         {activeTab === "submissions" && (
           <motion.div key="submissions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="h-full">
-            <LeadsListTab
+            <DemoApplicationSubmissionsTab
+              leads={ACTIVE_DEMO_LEADS}
               onSelectLead={setSelectedLead}
+              selectedLeadId={selectedLead?.id ?? null}
               animateNewSubmission={animateNewSubmission}
             />
           </motion.div>
@@ -7651,9 +6493,11 @@ function AdmissionsPage({
       </AnimatePresence>
       <AnimatePresence>
         {activeTab === "submissions" && selectedLead && (
-          <LeadDetailPanel
+          <DemoApplicationSubmissionDetailPanel
             key={selectedLead.id}
             lead={selectedLead}
+            submission={mapDemoLeadToSubmission(selectedLead)}
+            flow={getFlowForLead(selectedLead.flowId) ?? null}
             onClose={() => setSelectedLead(null)}
             autoSendEnrollmentLink={autoSendEnrollmentLink}
           />
@@ -23628,10 +22472,10 @@ function Sidebar({
   const [mySchoolOpen, setMySchoolOpen] = useState(false);
   return (
     <motion.aside
-      animate={{ width: isExpanded ? 185 : 52 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
+      animate={{ width: isExpanded ? 220 : 52 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col h-full flex-shrink-0 overflow-hidden"
-      style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}`, zIndex: 1, position: "relative" }}
+      style={{ backgroundColor: ADMIN_DEMO_STORY_THEME.paper, borderRight: `1px solid ${C.border}`, zIndex: 1, position: "relative" }}
     >
       {/* Logo */}
       <div
@@ -23725,21 +22569,18 @@ function Sidebar({
                         if (item.key === "myschool") setMySchoolOpen(true);
                       }}
                       title={!isExpanded ? item.name : undefined}
-                      className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
+                      className="w-full flex items-center gap-2.5 text-sm font-medium transition-all duration-150 relative"
                       style={{
                         padding: isExpanded ? "8px 12px" : "8px",
                         justifyContent: isExpanded ? "flex-start" : "center",
-                        backgroundColor: active ? C.accentLight : "transparent",
+                        backgroundColor: active ? ADMIN_DEMO_STORY_THEME.primaryLight : "transparent",
                         color: active
-                          ? C.accent
+                          ? ADMIN_DEMO_STORY_THEME.primaryDark
                           : item.phase1
-                            ? C.textTertiary
-                            : C.textQuaternary,
-                        borderLeft: isExpanded
-                          ? active
-                            ? `2px solid ${C.accent}`
-                            : "2px solid transparent"
-                          : "none",
+                            ? C.textSecondary
+                            : C.textTertiary,
+                        borderRadius: active ? "12px" : "8px",
+                        borderLeft: "none",
                         opacity: item.phase1 || active ? 1 : 0.5,
                       }}
                     >
@@ -24415,11 +23256,11 @@ export default function SchoolAdminDashboardDemo({
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className="flex h-full overflow-hidden relative"
+      className={`flex h-full overflow-hidden relative ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
       style={{
-        backgroundColor: C.bg,
-        fontFamily: "Inter, system-ui, sans-serif",
+        ...demoAdminShellStyle(ADMIN_DEMO_STORY_THEME),
       }}
+      data-admin-workspace-story
     >
       <AnimatePresence>
         {backdropClose && (

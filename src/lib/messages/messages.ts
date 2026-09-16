@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildMessageAttachmentStoragePath,
+  copyMessageAttachment,
   deleteMessageAttachmentFiles,
   insertMessageAttachments,
   type MessageAttachmentMeta,
@@ -58,6 +60,80 @@ export async function postPortalMessage(
         messageId,
       }, file);
       uploaded.push(meta);
+    }
+
+    await insertMessageAttachments(
+      admin,
+      input.organizationId,
+      input.threadId,
+      messageId,
+      uploaded,
+    );
+  } catch (uploadError) {
+    await admin.from("portal_messages").delete().eq("id", messageId);
+    await deleteMessageAttachmentFiles(
+      admin,
+      uploaded.map((item) => item.storagePath),
+    );
+    throw uploadError;
+  }
+
+  const message = mapMessageRow(data as PortalMessageRow, context);
+  message.attachments = uploaded.map((item) => ({
+    id: item.id,
+    fileName: item.fileName,
+    mimeType: item.mimeType,
+    sizeBytes: item.sizeBytes,
+  }));
+
+  return message;
+}
+
+export async function postPortalMessageWithStagingAttachments(
+  admin: SupabaseClient,
+  input: PostMessageInput,
+  context: ParticipantDisplayContext,
+  stagingAttachments: MessageAttachmentMeta[],
+): Promise<PortalMessage> {
+  const body = input.body.trim();
+
+  if (!body && stagingAttachments.length === 0) {
+    throw new Error("Message cannot be empty.");
+  }
+
+  const { data, error } = await admin
+    .from("portal_messages")
+    .insert({
+      thread_id: input.threadId,
+      organization_id: input.organizationId,
+      body: body || "",
+      sender_user_id: input.senderUserId,
+      sender_kind: input.senderKind,
+      sender_guardian_id: input.senderGuardianId ?? null,
+      sender_staff_member_id: input.senderStaffMemberId ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const messageId = String(data.id);
+  const uploaded: MessageAttachmentMeta[] = [];
+
+  try {
+    for (const stagingAttachment of stagingAttachments) {
+      const targetPath = buildMessageAttachmentStoragePath(
+        input.organizationId,
+        input.threadId,
+        messageId,
+        stagingAttachment.fileName,
+        stagingAttachment.id,
+      );
+      await copyMessageAttachment(admin, stagingAttachment.storagePath, targetPath);
+      uploaded.push({
+        ...stagingAttachment,
+        storagePath: targetPath,
+      });
     }
 
     await insertMessageAttachments(

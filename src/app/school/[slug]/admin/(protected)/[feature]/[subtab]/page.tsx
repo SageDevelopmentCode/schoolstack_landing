@@ -20,6 +20,11 @@ import StudentsTableLoader from "@/components/school-admin/students/StudentsTabl
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { parseProgramParentPortalOrgConfig } from "@/lib/admissions/program-parent-portal-governance";
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
+import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
+import { getRequestUser } from "@/lib/auth/session";
+import { loadAdminFormsDocumentsPageData } from "@/lib/school-admin/forms-documents/load-forms-documents-page-data";
+import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
 const ProgramsPage = nextDynamic(
@@ -50,6 +55,10 @@ const StaffPage = nextDynamic(
 const ClassroomsPage = nextDynamic(
   () => import("@/components/school-admin/classrooms/ClassroomsPage"),
   { loading: () => <AdminPageSkeleton label="Loading classrooms" /> },
+);
+const AdminFormsDocumentsPage = nextDynamic(
+  () => import("@/components/school-admin/forms-documents/AdminFormsDocumentsPage"),
+  { loading: () => <AdminPageSkeleton label="Loading forms" /> },
 );
 
 export const dynamic = "force-dynamic";
@@ -254,6 +263,28 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           slug={slug}
         />
       </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "forms_documents") {
+    const user = await getRequestUser();
+    const staffMemberId = user
+      ? await getStaffMemberIdForUser(supabase, user.id, org.id)
+      : null;
+    const admin = createAdminClient();
+    const pageData = await loadAdminFormsDocumentsPageData(admin, org.id);
+
+    return (
+      <ParentThemeProvider branding={org.branding}>
+        <AdminFormsDocumentsPage
+          organizationId={org.id}
+          slug={slug}
+          staffMemberId={staffMemberId}
+          initialForms={pageData.forms}
+          initialResponsesByFormId={pageData.responsesByFormId}
+          classroomOptions={pageData.classroomOptions}
+        />
+      </ParentThemeProvider>
     );
   }
 

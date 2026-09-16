@@ -34,7 +34,10 @@ export async function clearAllPersistedPortalCaches(): Promise<void> {
 
   const keys = await AsyncStorage.getAllKeys();
   const portalKeys = keys.filter(
-    (key) => key.startsWith('parent_') || key.startsWith('school_admin_'),
+    (key) =>
+      key.startsWith('parent_') ||
+      key.startsWith('school_admin_') ||
+      key.startsWith('teacher_'),
   );
   if (portalKeys.length > 0) {
     await AsyncStorage.multiRemove(portalKeys);

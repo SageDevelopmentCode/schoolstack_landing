@@ -61,6 +61,15 @@ const CRM: Record<CrmStatus, { label: string; dot: string; pill: string }> = {
 
 const CRM_STATUSES = Object.keys(CRM) as CrmStatus[];
 
+const FILTER_CHIP_ACTIVE =
+  "bg-admin-accent text-white border-admin-accent shadow-sm";
+const FILTER_CHIP_INACTIVE =
+  "border-admin-border text-admin-muted bg-admin-surface hover:border-admin-border hover:text-admin-text";
+
+function crmStatusLabel(status: CrmStatus) {
+  return CRM[status].label.replace(" 🎉", "").replace(" ❤️", "");
+}
+
 const P_PILL: Record<number, string> = {
   5: "bg-emerald-100 text-emerald-700",
   4: "bg-blue-100 text-blue-700",
@@ -1056,6 +1065,24 @@ export default function ResearchPage() {
     [schools]
   );
 
+  const hasActiveFilters = demoFilter || statusFilter !== "";
+
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (demoFilter) labels.push("Demos created");
+    if (statusFilter) labels.push(crmStatusLabel(statusFilter));
+    return labels;
+  }, [demoFilter, statusFilter]);
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilter("");
+    setDemoFilter(false);
+  }, []);
+
+  const resultsCountText = activeFilterLabels.length > 0
+    ? `${filtered.length} of ${schools.length} schools · ${activeFilterLabels.join(" · ")}`
+    : `${filtered.length} of ${schools.length} schools`;
+
   return (
     <div className="h-[calc(100vh-3rem)] flex flex-col overflow-hidden bg-admin-surface" style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif" }}>
 
@@ -1069,10 +1096,10 @@ export default function ResearchPage() {
                 key={s}
                 onClick={() => setStatusFilter(statusFilter === s ? "" : s)}
                 className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-admin-md border transition-all ${
-                  statusFilter === s ? CRM[s].pill + " shadow-sm" : "border-admin-border text-admin-muted hover:border-admin-border"
+                  statusFilter === s ? FILTER_CHIP_ACTIVE : FILTER_CHIP_INACTIVE
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-admin-md ${CRM[s].dot}`} />
+                <span className={`w-1.5 h-1.5 rounded-admin-md ${statusFilter === s ? "bg-white/80" : CRM[s].dot}`} />
                 {pipelineCounts[s]}
               </button>
             ))}
@@ -1118,15 +1145,48 @@ export default function ResearchPage() {
               />
             </div>
 
-            <p className="text-[10px] text-admin-faint">{filtered.length} of {schools.length} schools</p>
+            <p className="text-[10px] text-admin-faint">{resultsCountText}</p>
+
+            {hasActiveFilters && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {demoFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setDemoFilter(false)}
+                    className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-admin-md border border-admin-accent/30 bg-admin-accent/10 text-admin-accent hover:bg-admin-accent/15 transition-colors"
+                  >
+                    Demos created
+                    <span className="text-admin-accent/60" aria-hidden>×</span>
+                  </button>
+                )}
+                {statusFilter && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("")}
+                    className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-admin-md border border-admin-accent/30 bg-admin-accent/10 text-admin-accent hover:bg-admin-accent/15 transition-colors"
+                  >
+                    {crmStatusLabel(statusFilter)}
+                    <span className="text-admin-accent/60" aria-hidden>×</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="text-[10px] font-medium text-admin-faint hover:text-admin-muted transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Status filter tabs */}
-          <div className="shrink-0 flex flex-wrap border-b border-admin-border px-3 py-1 gap-x-4 gap-y-1">
+          {/* Filter chips */}
+          <div className="shrink-0 flex flex-wrap border-b border-admin-border px-3 py-2 gap-1.5">
             <button
+              type="button"
               onClick={() => setStatusFilter("")}
-              className={`text-[11px] font-medium py-2 border-b-2 transition-all ${
-                statusFilter === "" ? "border-admin-accent text-admin-accent" : "border-transparent text-admin-faint hover:text-admin-muted"
+              className={`text-[11px] font-medium px-2 py-1 rounded-admin-md border transition-all ${
+                statusFilter === "" ? FILTER_CHIP_ACTIVE : FILTER_CHIP_INACTIVE
               }`}
             >
               All
@@ -1134,19 +1194,21 @@ export default function ResearchPage() {
             {CRM_STATUSES.map((s) => (
               <button
                 key={s}
+                type="button"
                 onClick={() => setStatusFilter(statusFilter === s ? "" : s)}
-                className={`text-[11px] font-medium py-2 border-b-2 transition-all flex items-center gap-1 ${
-                  statusFilter === s ? "border-admin-accent text-admin-accent" : "border-transparent text-admin-faint hover:text-admin-muted"
+                className={`text-[11px] font-medium px-2 py-1 rounded-admin-md border transition-all inline-flex items-center gap-1 ${
+                  statusFilter === s ? FILTER_CHIP_ACTIVE : FILTER_CHIP_INACTIVE
                 }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-admin-md ${CRM[s].dot}`} />
-                {CRM[s].label.replace(" 🎉", "")}
+                <span className={`w-1.5 h-1.5 rounded-admin-md shrink-0 ${statusFilter === s ? "bg-white/80" : CRM[s].dot}`} />
+                {crmStatusLabel(s)}
               </button>
             ))}
             <button
+              type="button"
               onClick={() => setDemoFilter((v) => !v)}
-              className={`text-[11px] font-medium py-2 border-b-2 transition-all flex items-center gap-1 ${
-                demoFilter ? "border-admin-accent text-admin-accent" : "border-transparent text-admin-faint hover:text-admin-muted"
+              className={`text-[11px] font-medium px-2 py-1 rounded-admin-md border transition-all inline-flex items-center gap-1 ${
+                demoFilter ? FILTER_CHIP_ACTIVE : FILTER_CHIP_INACTIVE
               }`}
             >
               <DemoMonitorIcon title="Demos created" />

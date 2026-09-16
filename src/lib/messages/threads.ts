@@ -458,6 +458,19 @@ export async function getTotalUnreadCount(
   return threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
 }
 
+export async function getThreadParticipantKinds(
+  admin: SupabaseClient,
+  threadId: string,
+): Promise<string[]> {
+  const { data, error } = await admin
+    .from("message_thread_participants")
+    .select("participant_kind")
+    .eq("thread_id", threadId);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => String(row.participant_kind));
+}
+
 export async function findOrCreateThread(
   admin: SupabaseClient,
   organizationId: string,

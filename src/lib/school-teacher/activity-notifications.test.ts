@@ -34,6 +34,15 @@ describe("getTeacherActivityNotificationCategory", () => {
     );
   });
 
+  it("maps teacher parent form responses to signups", () => {
+    assert.equal(
+      getTeacherActivityNotificationCategory(
+        ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
+      ),
+      "signups",
+    );
+  });
+
   it("maps health actions to health", () => {
     assert.equal(
       getTeacherActivityNotificationCategory(
@@ -133,6 +142,46 @@ describe("isTeacherActivityEventVisible", () => {
         entity_type: "classroom_signup",
         entity_id: "signup-1",
         summary: "Smith family signed up",
+        metadata: {
+          staffMemberId: "staff-2",
+        },
+        created_at: "2026-09-10T12:00:00.000Z",
+      },
+      baseContext(),
+    );
+
+    assert.equal(visible, false);
+  });
+
+  it("includes teacher parent form responses for the assigned teacher", () => {
+    const visible = isTeacherActivityEventVisible(
+      {
+        id: "event-form-1",
+        action: ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
+        entity_type: "teacher_parent_form",
+        entity_id: "form-1",
+        summary: "Smith family signed Field Trip form",
+        metadata: {
+          staffMemberId: "staff-1",
+          formTitle: "Field Trip form",
+          familyName: "Smith family",
+        },
+        created_at: "2026-09-10T12:00:00.000Z",
+      },
+      baseContext(),
+    );
+
+    assert.equal(visible, true);
+  });
+
+  it("excludes teacher parent form responses for other teachers", () => {
+    const visible = isTeacherActivityEventVisible(
+      {
+        id: "event-form-2",
+        action: ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
+        entity_type: "teacher_parent_form",
+        entity_id: "form-1",
+        summary: "Smith family signed Field Trip form",
         metadata: {
           staffMemberId: "staff-2",
         },

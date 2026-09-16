@@ -40,12 +40,16 @@ import {
 } from "lucide-react";
 import type { SchoolTeacherDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import {
+  TEACHER_DEMO_ACCENT,
   TEACHER_DEMO_COPY,
   TEACHER_DEMO_PROGRAM_LABELS,
   TEACHER_DEMO_PROGRAM_ORDER,
+  TEACHER_DEMO_STORY_THEME,
   applyTeacherDemoRuntime,
   getTeacherDemoLogo,
 } from "@/components/demo/shared/teacher-demo-runtime";
+import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
+import { fraunces, dmSans } from "@/lib/fonts";
 
 // ─── Demo Data ────────────────────────────────────────────────────────────────
 
@@ -97,7 +101,7 @@ const DEMO_EVENTS: DemoCalendarEvent[] = [
     is_all_day: false,
     start_time: "08:30",
     end_time: "09:15",
-    color: "#769a61",
+    color: "var(--parent-primary)",
     category: "Staff",
     description:
       "Weekly all-staff check-in in the main hall. Please bring your weekly progress notes.",
@@ -927,7 +931,7 @@ function MyStudentsSection() {
               onClick={() => setActiveProgram(p)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium font-body transition-colors cursor-pointer ${
                 activeProgram === p
-                  ? "bg-[#769a61] text-white"
+                  ? "bg-[var(--parent-primary)] text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -958,8 +962,8 @@ function MyStudentsSection() {
               {s.classroom}
             </span>
             {s.attendance_status === "checked_in" && (
-              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#769a61]/10 text-[#769a61] shrink-0 font-body">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#769a61] animate-pulse" />
+              <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--parent-primary)]/10 text-[var(--parent-primary)] shrink-0 font-body">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--parent-primary)] animate-pulse" />
                 Checked In
               </span>
             )}
@@ -1032,7 +1036,7 @@ function StudentsPage() {
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
                     isActive
-                      ? "bg-[#769a61]/8 text-gray-800"
+                      ? "bg-[var(--parent-primary)]/8 text-gray-800"
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                   }`}
                 >
@@ -1042,7 +1046,7 @@ function StudentsPage() {
                   <span
                     className={`text-xs font-semibold font-body px-2 py-0.5 rounded-full ${
                       isActive
-                        ? "bg-[#769a61]/15 text-[#769a61]"
+                        ? "bg-[var(--parent-primary)]/15 text-[var(--parent-primary)]"
                         : "bg-gray-100 text-gray-400"
                     }`}
                   >
@@ -1061,10 +1065,10 @@ function StudentsPage() {
           <div className="flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#769a61]" />
+                <span className="w-2 h-2 rounded-full bg-[var(--parent-primary)]" />
                 <span className="text-xs text-gray-600 font-body">Checked In</span>
               </div>
-              <span className="text-xs font-semibold text-[#769a61] font-body">
+              <span className="text-xs font-semibold text-[var(--parent-primary)] font-body">
                 {checkedInCount}
               </span>
             </div>
@@ -1137,8 +1141,8 @@ function StudentsPage() {
                     {s.classroom}
                   </span>
                   {s.attendance_status === "checked_in" && (
-                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#769a61]/10 text-[#769a61] shrink-0 font-body">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#769a61] animate-pulse" />
+                    <span className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--parent-primary)]/10 text-[var(--parent-primary)] shrink-0 font-body">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--parent-primary)] animate-pulse" />
                       Checked In
                     </span>
                   )}
@@ -1290,7 +1294,7 @@ function SessionRow({
             {session.clockOutAt && <> &ndash; {fmt12(session.clockOutAt)}</>}
           </span>
           {session.clockOutAt && (
-            <span className="text-xs font-semibold text-[#769a61] bg-[#769a61]/8 px-2 py-0.5 rounded-full font-body">
+            <span className="text-xs font-semibold text-[var(--parent-primary)] bg-[var(--parent-primary)]/8 px-2 py-0.5 rounded-full font-body">
               {formatDuration(hours)}
             </span>
           )}
@@ -1307,7 +1311,7 @@ function SessionRow({
               }}
               autoFocus
               placeholder="Add a note..."
-              className="w-full text-xs text-gray-500 font-body bg-transparent border-b border-gray-200 focus:outline-none focus:border-[#769a61] py-0.5"
+              className="w-full text-xs text-gray-500 font-body bg-transparent border-b border-gray-200 focus:outline-none focus:border-[var(--parent-primary)] py-0.5"
             />
           ) : (
             <button
@@ -1385,9 +1389,9 @@ function DayView({
               </span>
             )}
             {dayTotalHours > 0 && (
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-[#769a61]/8 rounded-full">
-                <Clock className="w-3.5 h-3.5 text-[#769a61]" />
-                <span className="text-sm font-semibold text-[#769a61] font-body tabular-nums">
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--parent-primary)]/8 rounded-full">
+                <Clock className="w-3.5 h-3.5 text-[var(--parent-primary)]" />
+                <span className="text-sm font-semibold text-[var(--parent-primary)] font-body tabular-nums">
                   {formatDuration(dayTotalHours)}
                 </span>
               </span>
@@ -1402,14 +1406,14 @@ function DayView({
           <div
             className={`flex items-center justify-between px-6 py-5 rounded-xl border ${
               isActiveDay
-                ? "bg-[#769a61]/5 border-[#769a61]/20"
+                ? "bg-[var(--parent-primary)]/5 border-[var(--parent-primary)]/20"
                 : "bg-gray-50 border-gray-100"
             }`}
           >
             <div>
               {isActiveDay ? (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-[#769a61] font-body mb-1">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[var(--parent-primary)] font-body mb-1">
                     Clocked In
                   </p>
                   <p className="text-2xl font-bold font-heading text-gray-800 tabular-nums leading-none">
@@ -1443,7 +1447,7 @@ function DayView({
             ) : (
               <button
                 onClick={onClockIn}
-                className="flex items-center gap-2 px-5 py-3 bg-[#769a61] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
+                className="flex items-center gap-2 px-5 py-3 bg-[var(--parent-primary)] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 Clock In
@@ -1559,9 +1563,9 @@ function WeekView({
               className={`flex items-center gap-5 px-5 py-4 rounded-xl border cursor-pointer transition-all duration-150 group
                 ${
                   isLogged || isActiveDay
-                    ? "border-l-[3px] border-l-[#769a61] border-t-gray-100 border-r-gray-100 border-b-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm"
+                    ? "border-l-[3px] border-l-[var(--parent-primary)] border-t-gray-100 border-r-gray-100 border-b-gray-100 bg-gray-50 hover:bg-white hover:shadow-sm"
                     : isToday
-                      ? "border border-[#769a61]/20 bg-[#769a61]/5 hover:shadow-sm"
+                      ? "border border-[var(--parent-primary)]/20 bg-[var(--parent-primary)]/5 hover:shadow-sm"
                       : key > currentTodayKey
                         ? "border border-gray-50 bg-gray-50/50 opacity-50"
                         : "border border-gray-100 hover:bg-gray-50 hover:shadow-sm"
@@ -1580,12 +1584,12 @@ function WeekView({
               </div>
               <div className="shrink-0">
                 {isActiveDay ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[#769a61]/10 text-[#769a61]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#769a61] animate-pulse" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[var(--parent-primary)]/10 text-[var(--parent-primary)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--parent-primary)] animate-pulse" />
                     Active
                   </span>
                 ) : isLogged ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[#769a61]/10 text-[#769a61]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium font-body bg-[var(--parent-primary)]/10 text-[var(--parent-primary)]">
                     Logged
                   </span>
                 ) : isToday ? (
@@ -1604,7 +1608,7 @@ function WeekView({
               </div>
               <div className="flex-1 min-w-0">
                 {hours > 0 && (
-                  <span className="text-xs text-[#769a61] font-semibold font-body bg-[#769a61]/8 px-2.5 py-1 rounded-full">
+                  <span className="text-xs text-[var(--parent-primary)] font-semibold font-body bg-[var(--parent-primary)]/8 px-2.5 py-1 rounded-full">
                     {formatDuration(hours)}
                   </span>
                 )}
@@ -1732,13 +1736,13 @@ function MonthView({
               disabled={isWeekend}
               className={`relative flex flex-col items-center justify-start rounded-xl py-2 px-1 transition-all group
                 ${isWeekend ? "cursor-default opacity-30" : "cursor-pointer"}
-                ${isLogged && !isWeekend ? "bg-[#769a61]/8 hover:bg-[#769a61]/15" : isToday ? "ring-2 ring-[#769a61]/30 hover:bg-gray-50" : !isWeekend ? "hover:bg-gray-50" : ""}`}
+                ${isLogged && !isWeekend ? "bg-[var(--parent-primary)]/8 hover:bg-[var(--parent-primary)]/15" : isToday ? "ring-2 ring-[var(--parent-primary)]/30 hover:bg-gray-50" : !isWeekend ? "hover:bg-gray-50" : ""}`}
             >
               <span
                 className={`text-sm font-medium font-body leading-none mb-1.5
                 ${
                   isToday
-                    ? "w-6 h-6 flex items-center justify-center rounded-full bg-[#769a61] text-white text-xs"
+                    ? "w-6 h-6 flex items-center justify-center rounded-full bg-[var(--parent-primary)] text-white text-xs"
                     : isLogged
                       ? "text-gray-800"
                       : isFuture
@@ -1749,7 +1753,7 @@ function MonthView({
                 {d.getDate()}
               </span>
               {isLogged && (
-                <span className="text-[10px] font-semibold text-[#769a61] font-body tabular-nums leading-none">
+                <span className="text-[10px] font-semibold text-[var(--parent-primary)] font-body tabular-nums leading-none">
                   {formatDuration(hours)}
                 </span>
               )}
@@ -1760,11 +1764,11 @@ function MonthView({
 
       <div className="flex items-center gap-4 mt-5 pt-4 border-t border-gray-100">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-[#769a61]/15" />
+          <div className="w-3 h-3 rounded bg-[var(--parent-primary)]/15" />
           <span className="text-xs text-gray-400 font-body">Logged</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded ring-2 ring-[#769a61]/30" />
+          <div className="w-3 h-3 rounded ring-2 ring-[var(--parent-primary)]/30" />
           <span className="text-xs text-gray-400 font-body">Today</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -1836,7 +1840,7 @@ function SummaryPanel({
             initial={{ width: 0 }}
             animate={{ width: `${weekPct * 100}%` }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            className="h-full bg-[#769a61] rounded-full"
+            className="h-full bg-[var(--parent-primary)] rounded-full"
           />
         </div>
         <div className="flex items-center justify-between">
@@ -1851,7 +1855,7 @@ function SummaryPanel({
               to go
             </span>
           ) : (
-            <span className="text-xs font-semibold text-[#769a61] font-body">
+            <span className="text-xs font-semibold text-[var(--parent-primary)] font-body">
               Goal reached!
             </span>
           )}
@@ -1865,8 +1869,8 @@ function SummaryPanel({
           </p>
           {activeSession ? (
             <>
-              <p className="text-[11px] font-semibold text-[#769a61] font-body mb-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#769a61] animate-pulse inline-block" />
+              <p className="text-[11px] font-semibold text-[var(--parent-primary)] font-body mb-1 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--parent-primary)] animate-pulse inline-block" />
                 Clocked in
               </p>
               <p className="text-xl font-bold font-heading text-gray-800 tabular-nums leading-none">
@@ -1946,7 +1950,7 @@ function SummaryPanel({
                       {sessionCount} session{sessionCount !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-[#769a61] font-body tabular-nums shrink-0">
+                  <span className="text-xs font-semibold text-[var(--parent-primary)] font-body tabular-nums shrink-0">
                     {formatDuration(hours)}
                   </span>
                 </div>
@@ -2004,7 +2008,7 @@ const DEMO_CONVOS: DemoConvo[] = [
     id: "c4",
     name: TEACHER_DEMO_COPY.officeName,
     role: "Admin",
-    color: "#769a61",
+    color: "var(--parent-primary)",
     lastMsg: "PD day reminder: May 2nd, no students.",
     lastTime: "Apr 17",
     unread: 0,
@@ -2197,7 +2201,7 @@ function MessagesPage({
               className="w-full pl-9 pr-3 py-2 text-sm font-body bg-gray-50 border border-gray-100 rounded-lg focus:outline-none text-gray-800 placeholder:text-gray-400"
             />
           </div>
-          <button className="w-full flex items-center justify-center gap-2 bg-[#769a61] hover:bg-[#3d6b4a] text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer">
+          <button className="w-full flex items-center justify-center gap-2 bg-[var(--parent-primary)] hover:bg-[#3d6b4a] text-white text-sm font-medium py-2 rounded-lg transition-colors cursor-pointer">
             <SquarePen className="w-4 h-4" />
             New Message
           </button>
@@ -2208,7 +2212,7 @@ function MessagesPage({
               key={c.id}
               data-tour-id={`messages-conv-${c.id}`}
               onClick={() => openConvo(c.id)}
-              className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer ${c.id === activeId ? "bg-[#769a61]/5 border-r-2 border-[#769a61]" : "hover:bg-gray-50"}`}
+              className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors cursor-pointer ${c.id === activeId ? "bg-[var(--parent-primary)]/5 border-r-2 border-[var(--parent-primary)]" : "hover:bg-gray-50"}`}
             >
               <div
                 className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold font-body"
@@ -2231,7 +2235,7 @@ function MessagesPage({
                     {c.lastMsg}
                   </p>
                   {c.unread > 0 && (
-                    <span className="bg-[#769a61] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                    <span className="bg-[var(--parent-primary)] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
                       {c.unread}
                     </span>
                   )}
@@ -2278,7 +2282,7 @@ function MessagesPage({
                   className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm font-body leading-relaxed ${msg.from === "me" ? "bg-[#769a61] text-white rounded-br-md" : "bg-gray-100 text-gray-800 rounded-bl-md"}`}
+                    className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm font-body leading-relaxed ${msg.from === "me" ? "bg-[var(--parent-primary)] text-white rounded-br-md" : "bg-gray-100 text-gray-800 rounded-bl-md"}`}
                   >
                     <p>{msg.body}</p>
                     <p
@@ -2310,7 +2314,7 @@ function MessagesPage({
                 data-tour-id="messages-send"
                 onClick={sendMsg}
                 disabled={!draft.trim()}
-                className="w-10 h-10 rounded-xl bg-[#769a61] hover:bg-[#3d6b4a] disabled:opacity-40 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-xl bg-[var(--parent-primary)] hover:bg-[#3d6b4a] disabled:opacity-40 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -2530,7 +2534,7 @@ function CalendarPage() {
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                 return (
                   <div key={key} className={`p-1.5 ${isWeekend ? "bg-gray-50/60" : "bg-white"}`}>
-                    <div className={`text-xs font-semibold font-body mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isTodayCell ? "bg-[#769a61] text-white" : "text-gray-500"}`}>
+                    <div className={`text-xs font-semibold font-body mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isTodayCell ? "bg-[var(--parent-primary)] text-white" : "text-gray-500"}`}>
                       {d.getDate()}
                     </div>
                     <div className="flex flex-col gap-0.5">
@@ -2540,7 +2544,7 @@ function CalendarPage() {
                           data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
                           onClick={() => setSelectedEvent(ev)}
                           className="w-full text-left text-[10px] font-semibold font-body px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity"
-                          style={{ backgroundColor: (ev.color ?? "#769a61") + "22", color: ev.color ?? "#769a61" }}
+                          style={{ backgroundColor: (ev.color ?? "var(--parent-primary)") + "22", color: ev.color ?? "var(--parent-primary)" }}
                         >
                           {ev.title}
                         </button>
@@ -2571,7 +2575,7 @@ function CalendarPage() {
                     className="py-2 text-center"
                     style={{
                       borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
-                      backgroundColor: todayCol ? "#769a6118" : "transparent",
+                      backgroundColor: todayCol ? "var(--parent-primary)18" : "transparent",
                     }}
                   >
                     <div className="text-[9px] font-semibold uppercase tracking-widest text-gray-400">
@@ -2581,7 +2585,7 @@ function CalendarPage() {
                       className="text-sm font-bold mt-0.5 w-7 h-7 mx-auto flex items-center justify-center rounded-full"
                       style={{
                         color: todayCol ? "#fff" : "#1f2937",
-                        backgroundColor: todayCol ? "#769a61" : "transparent",
+                        backgroundColor: todayCol ? "var(--parent-primary)" : "transparent",
                       }}
                     >
                       {d.getDate()}
@@ -2611,7 +2615,7 @@ function CalendarPage() {
                       className="px-0.5 py-0.5 flex flex-col gap-0.5"
                       style={{
                         borderRight: i < 6 ? "1px solid #f3f4f6" : "none",
-                        backgroundColor: isTodayDate(d) ? "#769a6118" : "transparent",
+                        backgroundColor: isTodayDate(d) ? "var(--parent-primary)18" : "transparent",
                       }}
                     >
                       {allDayEvs.map((ev) => (
@@ -2620,7 +2624,7 @@ function CalendarPage() {
                           data-tour-id={ev.id === "e4" ? "calendar-event-e4" : undefined}
                           onClick={() => setSelectedEvent(ev)}
                           className="w-full text-left px-1 py-0.5 rounded text-[9px] font-semibold truncate hover:opacity-80 cursor-pointer"
-                          style={{ backgroundColor: (ev.color ?? "#769a61") + "30", color: ev.color ?? "#769a61" }}
+                          style={{ backgroundColor: (ev.color ?? "var(--parent-primary)") + "30", color: ev.color ?? "var(--parent-primary)" }}
                         >
                           {ev.title}
                         </button>
@@ -2665,7 +2669,7 @@ function CalendarPage() {
                       className="relative"
                       style={{
                         borderRight: colIdx < 6 ? "1px solid #f3f4f6" : "none",
-                        backgroundColor: todayCol ? "#769a610a" : "transparent",
+                        backgroundColor: todayCol ? "var(--parent-primary)0a" : "transparent",
                       }}
                     >
                       {/* Hour grid lines */}
@@ -2694,15 +2698,15 @@ function CalendarPage() {
                             style={{
                               top,
                               height,
-                              backgroundColor: (ev.color ?? "#769a61") + "28",
-                              borderLeft: `3px solid ${ev.color ?? "#769a61"}`,
+                              backgroundColor: (ev.color ?? "var(--parent-primary)") + "28",
+                              borderLeft: `3px solid ${ev.color ?? "var(--parent-primary)"}`,
                               zIndex: 5,
                             }}
                           >
                             <div className="px-1 pt-0.5">
-                              <div className="text-[9px] font-bold truncate" style={{ color: ev.color ?? "#769a61" }}>{ev.title}</div>
+                              <div className="text-[9px] font-bold truncate" style={{ color: ev.color ?? "var(--parent-primary)" }}>{ev.title}</div>
                               {height > 28 && (
-                                <div className="text-[8px]" style={{ color: (ev.color ?? "#769a61") + "cc" }}>{ev.start_time} \u2013 {ev.end_time}</div>
+                                <div className="text-[8px]" style={{ color: (ev.color ?? "var(--parent-primary)") + "cc" }}>{ev.start_time} \u2013 {ev.end_time}</div>
                               )}
                             </div>
                           </button>
@@ -2724,7 +2728,7 @@ function CalendarPage() {
               const ev = CALENDAR_EVENTS.find((e) => e.category === cat)!;
               return (
                 <div key={cat} className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ev.color ?? "#769a61" }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ev.color ?? "var(--parent-primary)" }} />
                   <span className="text-[11px] text-gray-500 font-body">{cat}</span>
                 </div>
               );
@@ -2744,7 +2748,7 @@ function CalendarPage() {
               onClick={() => setSelectedEvent(ev)}
               className="w-full text-left relative rounded-md border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
             >
-              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: ev.color ?? "#769a61" }} />
+              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: ev.color ?? "var(--parent-primary)" }} />
               <div className="pl-4 pr-3 py-2.5">
                 <p className="text-[11px] text-gray-400 font-body">{formatEventDate(ev)}</p>
                 <p className="text-xs font-semibold text-gray-800 font-body leading-snug">{ev.title}</p>
@@ -2775,7 +2779,7 @@ function CalendarPage() {
             >
               <div className="sticky top-0 z-10 px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-white">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: selectedEvent.color ?? "#769a61" }} />
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: selectedEvent.color ?? "var(--parent-primary)" }} />
                   <h2 className="text-base font-semibold text-gray-800 font-body">{selectedEvent.title}</h2>
                 </div>
                 <button
@@ -2790,7 +2794,7 @@ function CalendarPage() {
                 {selectedEvent.category && (
                   <span
                     className="inline-block text-xs font-semibold font-body px-2.5 py-1 rounded-full w-fit"
-                    style={{ backgroundColor: (selectedEvent.color ?? "#769a61") + "22", color: selectedEvent.color ?? "#769a61" }}
+                    style={{ backgroundColor: (selectedEvent.color ?? "var(--parent-primary)") + "22", color: selectedEvent.color ?? "var(--parent-primary)" }}
                   >
                     {selectedEvent.category}
                   </span>
@@ -2856,7 +2860,7 @@ type DemoFeedPost = {
 };
 
 const DEMO_TEACHERS_FEED = [
-  { id: "t1", name: "Jordan Taylor", color: "#769a61" },
+  { id: "t1", name: "Jordan Taylor", color: "var(--parent-primary)" },
   { id: "t2", name: "Ms. Paige Sun", color: "#c9a96e" },
   { id: "t3", name: "Ms. Nicole Park", color: "#7FA888" },
 ];
@@ -2866,7 +2870,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     id: "p1",
     authorName: "Jordan Taylor",
     authorId: "t1",
-    authorColor: "#769a61",
+    authorColor: "var(--parent-primary)",
     body: "What a wonderful morning in Room 3B! The students dove headfirst into our new watercolor unit today. Emma and Marcus were especially focused — watching them mix colors and experiment was such a joy. 🎨",
     createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
     attachments: [{ type: "image", src: "/images/stock/ImageThree.jpg" }],
@@ -2908,7 +2912,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
       {
         id: "cm3",
         authorName: "Jordan Taylor",
-        authorColor: "#769a61",
+        authorColor: "var(--parent-primary)",
         body: "That's such a big milestone! Way to go Aisha.",
         time: "Yesterday",
       },
@@ -2928,7 +2932,7 @@ const INITIAL_POSTS: DemoFeedPost[] = [
     id: "p4",
     authorName: "Jordan Taylor",
     authorId: "t1",
-    authorColor: "#769a61",
+    authorColor: "var(--parent-primary)",
     body: "Parent-teacher conferences are next Monday, April 28th. I've sent individual time slot confirmations via Messages. Looking forward to connecting with each family and sharing how much your students have grown this semester.",
     createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
     reactions: [
@@ -3182,7 +3186,7 @@ function PayrollPage() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
-            className={`rounded-xl border p-5 ${accent ? "bg-[#769a61]/5 border-[#769a61]/15" : "bg-white border-gray-100 shadow-sm"}`}
+            className={`rounded-xl border p-5 ${accent ? "bg-[var(--parent-primary)]/5 border-[var(--parent-primary)]/15" : "bg-white border-gray-100 shadow-sm"}`}
           >
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 font-body mb-2">
               {label}
@@ -3218,10 +3222,10 @@ function PayrollPage() {
                 <button
                   key={s.id}
                   onClick={() => setSelectedId(s.id)}
-                  className={`w-full text-left flex items-center gap-3 px-5 py-4 border-b border-gray-50 transition-all cursor-pointer relative ${isSelected ? "bg-[#769a61]/5" : "hover:bg-gray-50"}`}
+                  className={`w-full text-left flex items-center gap-3 px-5 py-4 border-b border-gray-50 transition-all cursor-pointer relative ${isSelected ? "bg-[var(--parent-primary)]/5" : "hover:bg-gray-50"}`}
                 >
                   {isSelected && (
-                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#769a61]" />
+                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--parent-primary)]" />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-gray-700 font-body">
@@ -3237,7 +3241,7 @@ function PayrollPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p
-                      className={`text-sm font-semibold font-body ${isSelected ? "text-[#769a61]" : "text-gray-700"}`}
+                      className={`text-sm font-semibold font-body ${isSelected ? "text-[var(--parent-primary)]" : "text-gray-700"}`}
                     >
                       {fmtUSD(netPay(s))}
                     </p>
@@ -3278,7 +3282,7 @@ function PayrollPage() {
               ({ label, value, amount, positive, bold, highlight }) => (
                 <div
                   key={label}
-                  className={`flex items-center justify-between px-5 py-3 border-b border-gray-50 last:border-0 ${highlight ? "bg-[#769a61]/5" : bold ? "bg-gray-50/60" : ""}`}
+                  className={`flex items-center justify-between px-5 py-3 border-b border-gray-50 last:border-0 ${highlight ? "bg-[var(--parent-primary)]/5" : bold ? "bg-gray-50/60" : ""}`}
                 >
                   <div>
                     <p
@@ -3291,7 +3295,7 @@ function PayrollPage() {
                     )}
                   </div>
                   <p
-                    className={`text-sm tabular-nums font-body ${bold ? "font-bold" : ""} ${highlight ? "text-[#769a61] text-base" : positive ? "text-gray-800" : "text-gray-500"}`}
+                    className={`text-sm tabular-nums font-body ${bold ? "font-bold" : ""} ${highlight ? "text-[var(--parent-primary)] text-base" : positive ? "text-gray-800" : "text-gray-500"}`}
                   >
                     {amount < 0
                       ? `(${fmtUSD(Math.abs(amount))})`
@@ -3526,7 +3530,7 @@ function FormsPage() {
             Required Forms
           </h2>
           <span
-            className={`text-xs font-semibold font-body px-2.5 py-1 rounded-full ${completed === forms.length ? "bg-[#769a61]/10 text-[#769a61]" : "bg-amber-50 text-amber-500 border border-amber-100"}`}
+            className={`text-xs font-semibold font-body px-2.5 py-1 rounded-full ${completed === forms.length ? "bg-[var(--parent-primary)]/10 text-[var(--parent-primary)]" : "bg-amber-50 text-amber-500 border border-amber-100"}`}
           >
             {completed} of {forms.length} complete
           </span>
@@ -3538,7 +3542,7 @@ function FormsPage() {
               className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-gray-100 bg-gray-50"
             >
               <div
-                className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 ${form.completed ? "bg-[#769a61] border-[#769a61]" : "border-gray-300"}`}
+                className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center border-2 ${form.completed ? "bg-[var(--parent-primary)] border-[var(--parent-primary)]" : "border-gray-300"}`}
               >
                 {form.completed && (
                   <svg
@@ -3566,7 +3570,7 @@ function FormsPage() {
               </div>
               <div className="shrink-0">
                 {form.completed ? (
-                  <span className="flex items-center gap-1 text-xs font-semibold font-body text-[#769a61] bg-[#769a61]/8 px-2.5 py-1 rounded-full">
+                  <span className="flex items-center gap-1 text-xs font-semibold font-body text-[var(--parent-primary)] bg-[var(--parent-primary)]/8 px-2.5 py-1 rounded-full">
                     Signed {form.signedDate}
                   </span>
                 ) : (
@@ -3575,7 +3579,7 @@ function FormsPage() {
                       setSigningId(form.id);
                       setNameInput("");
                     }}
-                    className="px-3.5 py-1.5 bg-[#769a61] text-white text-xs font-semibold font-body rounded-lg hover:bg-[#3d6b4a] transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 bg-[var(--parent-primary)] text-white text-xs font-semibold font-body rounded-lg hover:bg-[#3d6b4a] transition-colors cursor-pointer"
                   >
                     Complete
                   </button>
@@ -3612,7 +3616,7 @@ function FormsPage() {
                 <p className="text-xs text-gray-400 font-body mt-0.5">
                   {doc.category} · PDF · {doc.size}
                 </p>
-                <button className="mt-2 text-xs font-semibold font-body text-[#769a61] hover:text-[#3d6b4a] transition-colors cursor-pointer">
+                <button className="mt-2 text-xs font-semibold font-body text-[var(--parent-primary)] hover:text-[#3d6b4a] transition-colors cursor-pointer">
                   Download
                 </button>
               </div>
@@ -3680,7 +3684,7 @@ function FormsPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") sign();
                   }}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-body text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#769a61]/40 mb-4"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-body text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[var(--parent-primary)]/40 mb-4"
                 />
                 <div className="flex items-center gap-3">
                   <button
@@ -3692,7 +3696,7 @@ function FormsPage() {
                   <button
                     onClick={sign}
                     disabled={!nameInput.trim()}
-                    className="flex-1 px-4 py-2.5 bg-[#769a61] text-white rounded-xl text-sm font-semibold font-body hover:bg-[#3d6b4a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2.5 bg-[var(--parent-primary)] text-white rounded-xl text-sm font-semibold font-body hover:bg-[#3d6b4a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Sign & Submit
                   </button>
@@ -3790,9 +3794,9 @@ function AttendanceTab() {
 
           <div className="flex items-center gap-3">
             {/* Drop-in legend */}
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#769a61]/8 border border-[#769a61]/15">
-              <Home className="w-3 h-3 text-[#769a61]" />
-              <span className="text-[11px] font-semibold font-body text-[#769a61]">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--parent-primary)]/8 border border-[var(--parent-primary)]/15">
+              <Home className="w-3 h-3 text-[var(--parent-primary)]" />
+              <span className="text-[11px] font-semibold font-body text-[var(--parent-primary)]">
                 Homeschool drop-in
               </span>
             </div>
@@ -3844,26 +3848,26 @@ function AttendanceTab() {
             return (
               <div
                 key={date}
-                className={`flex flex-col min-w-0 ${isToday ? "bg-[#769a61]/[0.03]" : ""}`}
+                className={`flex flex-col min-w-0 ${isToday ? "bg-[var(--parent-primary)]/[0.03]" : ""}`}
               >
                 {/* Day column header */}
                 <div
                   className={`px-3 py-3 border-b shrink-0 ${
                     isToday
-                      ? "border-[#769a61]/20 bg-[#f7faf8]"
+                      ? "border-[var(--parent-primary)]/20 bg-[#f7faf8]"
                       : "border-gray-100 bg-[#fafaf9]"
                   }`}
                 >
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <p
                       className={`text-sm font-bold font-body ${
-                        isToday ? "text-[#769a61]" : "text-gray-800"
+                        isToday ? "text-[var(--parent-primary)]" : "text-gray-800"
                       }`}
                     >
                       {ATTENDANCE_DAY_LABELS[di]}
                     </p>
                     {isToday && (
-                      <span className="text-[9px] font-bold font-body text-white bg-[#769a61] px-1.5 py-0.5 rounded-full leading-none">
+                      <span className="text-[9px] font-bold font-body text-white bg-[var(--parent-primary)] px-1.5 py-0.5 rounded-full leading-none">
                         Today
                       </span>
                     )}
@@ -3878,7 +3882,7 @@ function AttendanceTab() {
                     <span className="text-gray-200">&middot;</span>
                     <span
                       className={`text-[10px] font-semibold font-body ${
-                        present > 0 ? "text-[#769a61]" : "text-gray-400"
+                        present > 0 ? "text-[var(--parent-primary)]" : "text-gray-400"
                       }`}
                     >
                       {present} present
@@ -3896,7 +3900,7 @@ function AttendanceTab() {
                       <div
                         key={student.id}
                         className={`flex items-center gap-2 px-2.5 py-2 transition-colors ${
-                          isPresent ? "bg-[#769a61]/[0.04]" : "hover:bg-gray-50/80"
+                          isPresent ? "bg-[var(--parent-primary)]/[0.04]" : "hover:bg-gray-50/80"
                         }`}
                       >
                         {/* Avatar */}
@@ -3918,14 +3922,14 @@ function AttendanceTab() {
                             </span>
                             {student.homeschoolDropIn && (
                               <span title="Homeschool drop-in">
-                                <Home className="w-3 h-3 text-[#769a61] shrink-0" />
+                                <Home className="w-3 h-3 text-[var(--parent-primary)] shrink-0" />
                               </span>
                             )}
                           </div>
                           {/* Paid badge inline under name */}
                           <span
                             className={`text-[9px] font-semibold font-body ${
-                              isPaid ? "text-[#769a61]" : "text-gray-400"
+                              isPaid ? "text-[var(--parent-primary)]" : "text-gray-400"
                             }`}
                           >
                             {isPaid ? "Paid" : "Unpaid"}
@@ -3942,8 +3946,8 @@ function AttendanceTab() {
                           onClick={() => togglePresent(student.id, date)}
                           className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all cursor-pointer ${
                             isPresent
-                              ? "bg-[#769a61] border-[#769a61] shadow-sm"
-                              : "border-gray-300 hover:border-[#769a61]/60 bg-white"
+                              ? "bg-[var(--parent-primary)] border-[var(--parent-primary)] shadow-sm"
+                              : "border-gray-300 hover:border-[var(--parent-primary)]/60 bg-white"
                           }`}
                         >
                           {isPresent && (
@@ -4059,13 +4063,13 @@ function ClockWidget({
         <span
           className={`flex items-center gap-1.5 text-xs font-semibold font-body px-2.5 py-1 rounded-full ${
             activeSession
-              ? "bg-[#769a61]/10 text-[#769a61]"
+              ? "bg-[var(--parent-primary)]/10 text-[var(--parent-primary)]"
               : "bg-gray-100 text-gray-400"
           }`}
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              activeSession ? "bg-[#769a61] animate-pulse" : "bg-gray-300"
+              activeSession ? "bg-[var(--parent-primary)] animate-pulse" : "bg-gray-300"
             }`}
           />
           {activeSession ? "Clocked In" : "Not Clocked In"}
@@ -4075,7 +4079,7 @@ function ClockWidget({
       <div
         className={`rounded-xl px-5 py-4 ${
           activeSession
-            ? "bg-[#769a61]/5 border border-[#769a61]/15"
+            ? "bg-[var(--parent-primary)]/5 border border-[var(--parent-primary)]/15"
             : "bg-gray-50 border border-gray-100"
         }`}
       >
@@ -4120,7 +4124,7 @@ function ClockWidget({
       ) : (
         <button
           onClick={onClockIn}
-          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#769a61] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-[var(--parent-primary)] text-white font-semibold font-body text-sm rounded-xl hover:bg-[#3d6b4a] transition-colors shadow-sm cursor-pointer"
         >
           <LogIn className="w-4 h-4" />
           Clock In
@@ -4171,7 +4175,7 @@ function UpcomingEventsCard({
 
       <div className="flex flex-col gap-2">
         {events.map((event, idx) => {
-          const accent = event.color ?? "#769a61";
+          const accent = event.color ?? "var(--parent-primary)";
           const isExpanded = expandedId === event.id;
           return (
             <div
@@ -4314,9 +4318,9 @@ function WeeklyHoursChart({
                 <div
                   className={`w-full rounded-t-md transition-all duration-500 min-h-[4px] ${
                     isToday
-                      ? "bg-[#769a61]"
+                      ? "bg-[var(--parent-primary)]"
                       : !isFuture && hours > 0
-                        ? "bg-[#769a61]/40"
+                        ? "bg-[var(--parent-primary)]/40"
                         : "bg-gray-100"
                   }`}
                   style={{ height: `${Math.max(pct, 4)}%` }}
@@ -4324,13 +4328,13 @@ function WeeklyHoursChart({
               </div>
               <p
                 className={`text-[11px] font-semibold font-body ${
-                  isToday ? "text-[#769a61]" : "text-gray-400"
+                  isToday ? "text-[var(--parent-primary)]" : "text-gray-400"
                 }`}
               >
                 {date.toLocaleDateString("en-US", { weekday: "short" })}
               </p>
               {isToday && (
-                <span className="w-1 h-1 rounded-full bg-[#769a61]" />
+                <span className="w-1 h-1 rounded-full bg-[var(--parent-primary)]" />
               )}
             </div>
           );
@@ -4358,7 +4362,7 @@ function PayrollCard() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="flex-1 rounded-xl bg-[#769a61]/5 border border-[#769a61]/10 px-4 py-3.5">
+        <div className="flex-1 rounded-xl bg-[var(--parent-primary)]/5 border border-[var(--parent-primary)]/10 px-4 py-3.5">
           <p className="text-[11px] text-gray-400 font-body mb-1">
             Next Payroll
           </p>
@@ -4444,11 +4448,16 @@ function TeacherNav({
             key={tab}
             data-tour-id={`nav-${tab}`}
             onClick={() => onTabChange(tab)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-body rounded-md transition-colors whitespace-nowrap cursor-pointer ${
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-xl transition-colors whitespace-nowrap cursor-pointer"
+            style={
               isActive
-                ? "text-[#769a61] bg-[#769a61]/8 font-semibold"
-                : "text-gray-600 hover:text-[#769a61] hover:bg-gray-50"
-            }`}
+                ? {
+                    color: TEACHER_DEMO_STORY_THEME.primaryDark,
+                    backgroundColor: TEACHER_DEMO_STORY_THEME.primaryLight,
+                    fontWeight: 600,
+                  }
+                : { color: TEACHER_DEMO_STORY_THEME.muted }
+            }
           >
             <Icon className="w-4 h-4 pointer-events-none" />
             {label}
@@ -4461,7 +4470,7 @@ function TeacherNav({
           ref={btnRef}
           data-tour-id="nav-more"
           onClick={openMore}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm font-body text-gray-600 hover:text-[#769a61] hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+          className="flex items-center gap-1 px-3 py-1.5 text-sm font-body text-gray-600 hover:text-[var(--parent-primary)] hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
         >
           More
           <ChevronDown
@@ -4472,7 +4481,7 @@ function TeacherNav({
 
         {moreOpen && (
           <div
-            className="fixed w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-[9999] py-1.5 -translate-x-1/2"
+            className="fixed w-52 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg z-[9999] -translate-x-1/2"
             style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
             {MORE_NAV.map(({ label, icon: Icon, tab }) => (
@@ -4483,7 +4492,7 @@ function TeacherNav({
                   onTabChange(tab);
                   setMoreOpen(false);
                 }}
-                className="flex items-center gap-1.5 w-full text-left px-4 py-2 text-sm font-body text-gray-700 hover:bg-gray-50 hover:text-[#769a61] transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 w-full text-left px-4 py-2 text-sm font-body text-gray-700 hover:bg-gray-50 hover:text-[var(--parent-primary)] transition-colors cursor-pointer"
               >
                 <Icon className="w-4 h-4" />
                 {label}
@@ -4698,7 +4707,7 @@ export default function SchoolTeacherDashboardDemo({
     const newComment: DemoComment = {
       id: `c-${Date.now()}`,
       authorName: DEMO_TEACHER.name,
-      authorColor: "#769a61",
+      authorColor: "var(--parent-primary)",
       body,
       time: "Just now",
     };
@@ -4716,7 +4725,7 @@ export default function SchoolTeacherDashboardDemo({
       id: `p-${Date.now()}`,
       authorName: DEMO_TEACHER.name,
       authorId: "t1",
-      authorColor: "#769a61",
+      authorColor: "var(--parent-primary)",
       body,
       createdAt: new Date().toISOString(),
       reactions: [],
@@ -5065,7 +5074,9 @@ export default function SchoolTeacherDashboardDemo({
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className="h-full relative flex flex-col bg-[#fafaf9] font-body"
+      className={`h-full relative flex flex-col ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
+      style={demoStoryShellStyle(TEACHER_DEMO_STORY_THEME)}
+      data-teacher-portal
     >
       {/* Tour cursor */}
       {cursorVisible && (
@@ -5078,10 +5089,10 @@ export default function SchoolTeacherDashboardDemo({
           <motion.div
             animate={cursorClicking ? { scale: 0.7 } : { scale: 1 }}
             transition={{ duration: 0.15 }}
-            className="w-5 h-5 rounded-full bg-[#769a61]"
+            className="w-5 h-5 rounded-full"
             style={{
-              boxShadow:
-                "0 0 0 3px rgba(74,124,89,0.25), 0 2px 8px rgba(74,124,89,0.4)",
+              backgroundColor: TEACHER_DEMO_ACCENT,
+              boxShadow: `0 0 0 3px color-mix(in srgb, ${TEACHER_DEMO_ACCENT} 25%, transparent), 0 2px 8px color-mix(in srgb, ${TEACHER_DEMO_ACCENT} 40%, transparent)`,
             }}
           />
         </motion.div>
@@ -5089,7 +5100,13 @@ export default function SchoolTeacherDashboardDemo({
 
       {/* Header */}
       {!hideNav && (
-        <header className="shrink-0 z-40 bg-white border-b border-gray-100">
+        <header
+          className="shrink-0 z-40 border-b"
+          style={{
+            backgroundColor: TEACHER_DEMO_STORY_THEME.white,
+            borderColor: TEACHER_DEMO_STORY_THEME.line,
+          }}
+        >
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
             {/* Logo */}
             <div className="shrink-0">
@@ -5108,7 +5125,10 @@ export default function SchoolTeacherDashboardDemo({
             </div>
 
             {/* Profile avatar */}
-            <div className="shrink-0 w-8 h-8 rounded-full bg-[#769a61] flex items-center justify-center cursor-pointer">
+            <div
+              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+              style={{ backgroundColor: TEACHER_DEMO_ACCENT }}
+            >
               <span className="text-white text-xs font-semibold font-body">
                 {DEMO_TEACHER.initials}
               </span>
@@ -5362,7 +5382,7 @@ export default function SchoolTeacherDashboardDemo({
               </p>
               <button
                 onClick={() => setFeedFilterTeacher(null)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === null ? "bg-[#769a61]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === null ? "bg-[var(--parent-primary)]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
               >
                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                   <span className="text-[10px] text-gray-500 font-bold">All</span>
@@ -5377,7 +5397,7 @@ export default function SchoolTeacherDashboardDemo({
                   onClick={() =>
                     setFeedFilterTeacher(feedFilterTeacher === t.id ? null : t.id)
                   }
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === t.id ? "bg-[#769a61]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${feedFilterTeacher === t.id ? "bg-[var(--parent-primary)]/8 text-gray-800" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"}`}
                 >
                   <div
                     className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
@@ -5396,7 +5416,7 @@ export default function SchoolTeacherDashboardDemo({
             <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
               {/* Compose bar */}
               <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-[#769a61] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
+                  <div className="w-9 h-9 rounded-full bg-[var(--parent-primary)] flex items-center justify-center text-white text-xs font-semibold font-body shrink-0 mt-0.5">
                     {initialsFrom(DEMO_TEACHER.name)}
                   </div>
                   <div className="flex-1">
@@ -5415,7 +5435,7 @@ export default function SchoolTeacherDashboardDemo({
                           onChange={(e) => setFeedDraftBody(e.target.value)}
                           placeholder="What's happening in the classroom today?"
                           rows={3}
-                          className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 text-sm font-body text-gray-700 placeholder-gray-400 outline-none resize-none focus:border-[#769a61]/40 transition-colors"
+                          className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-200 text-sm font-body text-gray-700 placeholder-gray-400 outline-none resize-none focus:border-[var(--parent-primary)]/40 transition-colors"
                         />
                         <div className="flex items-center justify-end gap-2 pt-2">
                           <button
@@ -5430,7 +5450,7 @@ export default function SchoolTeacherDashboardDemo({
                           <button
                             onClick={submitFeedPost}
                             disabled={!feedDraftBody.trim()}
-                            className="px-4 py-1.5 bg-[#769a61] text-white text-sm font-semibold font-body rounded-full hover:bg-[#3d6b4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            className="px-4 py-1.5 bg-[var(--parent-primary)] text-white text-sm font-semibold font-body rounded-full hover:bg-[#3d6b4a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             Post
                           </button>
@@ -5501,7 +5521,7 @@ export default function SchoolTeacherDashboardDemo({
                                   e.stopPropagation();
                                   toggleFeedReaction(post.id, emoji);
                                 }}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#769a61]/10 border-[#769a61]/30 text-[#769a61]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[var(--parent-primary)]/10 border-[var(--parent-primary)]/30 text-[var(--parent-primary)]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
                               >
                                 <span>{emoji}</span>
                                 {r && r.count > 0 && (
@@ -5518,7 +5538,7 @@ export default function SchoolTeacherDashboardDemo({
                             e.stopPropagation();
                             setFeedSelectedPost(post);
                           }}
-                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#769a61] transition-colors font-body ml-3 shrink-0 cursor-pointer"
+                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[var(--parent-primary)] transition-colors font-body ml-3 shrink-0 cursor-pointer"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                           {post.comments.length}
@@ -5586,7 +5606,7 @@ export default function SchoolTeacherDashboardDemo({
                           <button
                             key={emoji}
                             onClick={() => toggleFeedReaction(feedLivePost.id, emoji)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[#769a61]/10 border-[#769a61]/30 text-[#769a61]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors cursor-pointer ${r?.mine ? "bg-[var(--parent-primary)]/10 border-[var(--parent-primary)]/30 text-[var(--parent-primary)]" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}
                           >
                             <span>{emoji}</span>
                             {r && r.count > 0 && (
@@ -5639,7 +5659,7 @@ export default function SchoolTeacherDashboardDemo({
 
                   {/* Comment input */}
                   <div className="border-t border-gray-100 pt-4 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#769a61] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[var(--parent-primary)] flex items-center justify-center text-white text-[9px] font-bold font-body shrink-0">
                       {initialsFrom(DEMO_TEACHER.name)}
                     </div>
                     <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3.5 py-2">
@@ -5662,7 +5682,7 @@ export default function SchoolTeacherDashboardDemo({
                           setFeedCommentDraft("");
                         }}
                         disabled={!feedCommentDraft.trim()}
-                        className="text-[#769a61] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
+                        className="text-[var(--parent-primary)] hover:text-[#3d6b4a] transition-colors shrink-0 disabled:opacity-40 cursor-pointer"
                       >
                         <Send className="w-4 h-4" />
                       </button>

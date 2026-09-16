@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,13 +8,16 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
-import {
-  MAX_MESSAGE_ATTACHMENTS,
-  MAX_MESSAGE_ATTACHMENT_BYTES,
-  MESSAGE_ATTACHMENT_MIME_TYPES,
-} from '@/lib/messages/constants';
+import { MAX_MESSAGE_ATTACHMENTS } from '@/lib/messages/constants';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
 import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
+import {
+  appendStagedMessageFiles,
+  pickDocumentsFromLibrary,
+  pickPhotosFromLibrary,
+  promptMessageAttachmentSource,
+  remainingAttachmentSlots,
+} from '@/lib/messages/pick-message-attachments';
 import type { StagedMessageFile } from '@/lib/messages/types';
 
 type MessageComposeBarProps = {
@@ -62,30 +64,21 @@ export function MessageComposeBar({
   const textTertiary = parentStory ? parentTheme.muted : theme.textTertiary;
   const chipBg = parentStory ? parentTheme.paper : theme.bg;
 
-  const handlePickFiles = async () => {
+  const handlePickAttachment = () => {
     if (disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS) return;
 
-    const result = await DocumentPicker.getDocumentAsync({
-      multiple: true,
-      copyToCacheDirectory: true,
-      type: [...MESSAGE_ATTACHMENT_MIME_TYPES],
+    promptMessageAttachmentSource(async (source) => {
+      const slots = remainingAttachmentSlots(files.length);
+      if (slots <= 0) return;
+
+      const picked =
+        source === 'photos'
+          ? await pickPhotosFromLibrary(slots)
+          : await pickDocumentsFromLibrary(slots);
+
+      if (picked.length === 0) return;
+      onFilesChange(appendStagedMessageFiles(files, picked));
     });
-
-    if (result.canceled) return;
-
-    const next = [...files];
-    for (const asset of result.assets) {
-      if (next.length >= MAX_MESSAGE_ATTACHMENTS) break;
-      const size = asset.size ?? null;
-      if (size != null && size > MAX_MESSAGE_ATTACHMENT_BYTES) continue;
-      next.push({
-        uri: asset.uri,
-        name: asset.name,
-        mimeType: asset.mimeType ?? null,
-        size,
-      });
-    }
-    onFilesChange(next);
   };
 
   return (
@@ -128,11 +121,9 @@ export function MessageComposeBar({
         ]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Attach files"
+          accessibilityLabel="Attach photo or file"
           disabled={disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
-          onPress={() => {
-            void handlePickFiles();
-          }}
+          onPress={handlePickAttachment}
           style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
           <Ionicons name="attach" size={22} color={textSecondary} />
         </Pressable>

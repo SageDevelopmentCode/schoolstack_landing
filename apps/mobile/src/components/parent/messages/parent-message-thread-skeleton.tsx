@@ -14,27 +14,33 @@ const BUBBLE_LAYOUT = [
   { align: 'left' as const, width: '50%' },
 ];
 
-export function ParentMessageThreadSkeleton() {
+type ParentMessageThreadSkeletonProps = {
+  showHeader?: boolean;
+};
+
+export function ParentMessageThreadSkeleton({ showHeader = true }: ParentMessageThreadSkeletonProps) {
   const theme = useParentTheme();
   const blockColor = Story.line;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.paper }]}>
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: theme.line, backgroundColor: theme.paper },
-        ]}>
-        <SkeletonPulse style={styles.backBar} backgroundColor={blockColor} />
-        <View style={styles.headerCenter}>
-          <SkeletonPulse style={styles.headerAvatar} backgroundColor={blockColor} />
-          <View style={styles.headerText}>
-            <SkeletonPulse style={styles.headerTitle} backgroundColor={blockColor} />
-            <SkeletonPulse style={styles.headerSubtitle} backgroundColor={blockColor} />
+      {showHeader ? (
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: theme.line, backgroundColor: theme.paper },
+          ]}>
+          <SkeletonPulse style={styles.backBar} backgroundColor={blockColor} />
+          <View style={styles.headerCenter}>
+            <SkeletonPulse style={styles.headerAvatar} backgroundColor={blockColor} />
+            <View style={styles.headerText}>
+              <SkeletonPulse style={styles.headerTitle} backgroundColor={blockColor} />
+              <SkeletonPulse style={styles.headerSubtitle} backgroundColor={blockColor} />
+            </View>
           </View>
+          <View style={styles.headerSpacer} />
         </View>
-        <View style={styles.headerSpacer} />
-      </View>
+      ) : null}
 
       <View style={styles.messagesArea}>
         {BUBBLE_LAYOUT.map((bubble, index) => (

@@ -46,6 +46,7 @@ const ALL_PARENT_FEATURES_ENABLED: OrganizationFeatures = {
     children: true,
     committees: true,
     classroom_signups: true,
+    forms_documents: true,
     curriculum: true,
     supply_list: true,
     teaching_schedule: true,

@@ -3,9 +3,9 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import {
   assertParentCanAccessThread,
-  sendMessageForViewer,
   userHasEnrolledAccess,
 } from "@/lib/messages/api-helpers";
+import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";

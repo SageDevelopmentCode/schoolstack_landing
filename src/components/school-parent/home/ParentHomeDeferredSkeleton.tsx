@@ -99,3 +99,37 @@ export function ParentHomeCoopFamiliesSkeleton({ theme }: SkeletonThemeProps) {
     </div>
   );
 }
+
+function FormRowSkeleton({ theme }: SkeletonThemeProps) {
+  return (
+    <ParentCard theme={theme} className="!p-3">
+      <div className="flex items-start gap-3">
+        <ParentSkeletonBlock theme={theme} className="h-9 w-9 shrink-0 rounded-xl" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ParentSkeletonBlock theme={theme} className="h-3.5 w-[45%]" />
+            <ParentSkeletonBlock theme={theme} className="h-5 w-20 rounded-full" />
+          </div>
+          <ParentSkeletonBlock theme={theme} className="h-3 w-[60%]" />
+        </div>
+      </div>
+    </ParentCard>
+  );
+}
+
+export function ParentHomeFormsSnapshotSkeleton({ theme }: SkeletonThemeProps) {
+  return (
+    <ParentCard theme={theme} className="p-5 sm:p-6" aria-busy="true" aria-label="Loading forms">
+      <ParentSkeletonBlock theme={theme} className="h-3 w-28" />
+      <ParentSkeletonBlock theme={theme} className="mt-2 h-5 w-44" />
+      <div className="mt-3 flex gap-2">
+        <ParentSkeletonBlock theme={theme} className="h-6 w-28 rounded-full" />
+        <ParentSkeletonBlock theme={theme} className="h-6 w-20 rounded-full" />
+      </div>
+      <div className="mt-4 space-y-2">
+        <FormRowSkeleton theme={theme} />
+        <FormRowSkeleton theme={theme} />
+      </div>
+    </ParentCard>
+  );
+}

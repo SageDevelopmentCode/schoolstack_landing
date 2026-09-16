@@ -84,7 +84,7 @@ export default function TeacherAttendanceSlide({ accentColor }: Props) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col" style={{ backgroundColor: "#F8F8F3" }}>
       <div className="px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
         <h1 className="text-base font-bold text-gray-800">Attendance</h1>
         <p className="text-xs text-gray-400 mt-0.5">

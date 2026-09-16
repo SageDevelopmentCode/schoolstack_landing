@@ -1,6 +1,7 @@
 import type {
   EnrollmentAgreementAmendmentBannerItem,
   EnrollmentAgreementIncompleteBannerItem,
+  ParentFormAttentionItem,
   ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
@@ -19,14 +20,38 @@ export type ParentHomeAttentionItem = {
   urgent?: boolean;
 };
 
+function formatFormDueDate(dueDate: string): string {
+  const parsed = new Date(`${dueDate}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return dueDate;
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function buildAttentionItems(input: {
   slug: string;
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
   signupAttentionItems?: ParentSignupAttentionItem[];
 }): ParentHomeAttentionItem[] {
   const items: ParentHomeAttentionItem[] = [];
+
+  for (const form of input.formAttentionItems ?? []) {
+    items.push({
+      key: `form-${form.formId}`,
+      title: `Sign ${form.formTitle}`,
+      subtitle: form.dueDate
+        ? `Due ${formatFormDueDate(form.dueDate)}`
+        : 'This form needs your signature.',
+      href: form.formsHref,
+      iconSlug: 'document-text-outline',
+      urgent: true,
+    });
+  }
 
   for (const signup of input.signupAttentionItems ?? []) {
     items.push({

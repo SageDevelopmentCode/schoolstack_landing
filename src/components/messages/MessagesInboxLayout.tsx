@@ -34,6 +34,7 @@ import type { MessagesLayoutVariant } from "./MessagesAvatar";
 import SkeletonBlock from "@/components/school-admin/skeletons/SkeletonBlock";
 import ParentMessagesInboxHeader from "@/components/school-parent/messages/ParentMessagesInboxHeader";
 import AdminMessagesInboxHeader from "@/components/school-admin/messages/AdminMessagesInboxHeader";
+import AdminMessagesBroadcastModal from "@/components/school-admin/messages/AdminMessagesBroadcastModal";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   isAdminStoryMessagesVariant,
@@ -223,6 +224,7 @@ export default function MessagesInboxLayout({
   const [error, setError] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [newConversationOpen, setNewConversationOpen] = useState(false);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [pushPromptDismissed, setPushPromptDismissed] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<AdminEnrolledStudentSummary | null>(
     null,
@@ -309,6 +311,13 @@ export default function MessagesInboxLayout({
       await loadContacts();
     }
     setNewConversationOpen(true);
+  }, [deferContactsLoad, loadContacts]);
+
+  const handleOpenBroadcast = useCallback(async () => {
+    if (deferContactsLoad) {
+      await loadContacts();
+    }
+    setBroadcastOpen(true);
   }, [deferContactsLoad, loadContacts]);
 
   const clearThreadUnread = useCallback((threadId: string) => {
@@ -917,7 +926,11 @@ export default function MessagesInboxLayout({
               onNewMessage={() => {
                 void handleOpenNewConversation();
               }}
+              onMessageGroup={() => {
+                void handleOpenBroadcast();
+              }}
               newMessageDisabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
+              messageGroupDisabled={deferContactsLoad ? loadingContacts : contacts.length === 0}
             />
           ) : splitPane ? (
             <div
@@ -1034,6 +1047,23 @@ export default function MessagesInboxLayout({
           C={C}
           theme={theme}
           variant={variant}
+        />
+      ) : null}
+
+      {adminStory && theme ? (
+        <AdminMessagesBroadcastModal
+          open={broadcastOpen}
+          onClose={() => setBroadcastOpen(false)}
+          onSent={() => {
+            void loadInbox({ silent: true });
+          }}
+          organizationId={api.organizationId}
+          organizationSlug={api.organizationSlug}
+          schoolName={api.schoolName}
+          contacts={contacts}
+          loadingContacts={loadingContacts}
+          C={C}
+          theme={theme}
         />
       ) : null}
 

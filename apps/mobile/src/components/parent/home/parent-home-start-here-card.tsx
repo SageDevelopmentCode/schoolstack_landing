@@ -17,6 +17,7 @@ import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-si
 import type {
   EnrollmentAgreementAmendmentBannerItem,
   EnrollmentAgreementIncompleteBannerItem,
+  ParentFormAttentionItem,
   ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 
@@ -25,6 +26,7 @@ type ParentHomeStartHereCardProps = {
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
   signupAttentionItems?: ParentSignupAttentionItem[];
   onPressAttentionItem: (item: ParentHomeAttentionItem) => void;
   onOpenOnboarding: () => void;
@@ -46,6 +48,7 @@ export function ParentHomeStartHereCard({
   onboardingItems,
   enrollmentAmendmentBannerItems,
   enrollmentIncompleteBannerItems,
+  formAttentionItems = [],
   signupAttentionItems = [],
   onPressAttentionItem,
   onOpenOnboarding,
@@ -56,6 +59,7 @@ export function ParentHomeStartHereCard({
     onboardingItems,
     enrollmentAmendmentBannerItems,
     enrollmentIncompleteBannerItems,
+    formAttentionItems,
     signupAttentionItems,
   });
 
