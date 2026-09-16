@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, CheckCircle, Clock, Plus } from "lucide-react";
 import {
   PARENT_DEMO_COPY,
-  PARENT_DEMO_STORY_COMPAT,
   PARENT_DEMO_STORY_THEME,
 } from "@/components/demo/shared/parent-demo-runtime";
 import type {
@@ -66,7 +65,6 @@ export default function DemoParentEnrollmentPage({
   renderDetailPanel,
 }: DemoParentEnrollmentPageProps) {
   const theme = PARENT_DEMO_STORY_THEME;
-  const C = PARENT_DEMO_STORY_COMPAT;
   const [activeItem, setActiveItem] = useState<DemoParentModalId>(
     checklistItems[0]?.modal ?? "contract-1",
   );
@@ -178,8 +176,8 @@ export default function DemoParentEnrollmentPage({
                       <div
                         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
                         style={{
-                          backgroundColor: done ? theme.successBg : C.accentGlow,
-                          color: done ? theme.success : C.accent,
+                          backgroundColor: done ? theme.successBg : theme.primarySoft,
+                          color: done ? theme.success : theme.primary,
                         }}
                       >
                         {done ? (

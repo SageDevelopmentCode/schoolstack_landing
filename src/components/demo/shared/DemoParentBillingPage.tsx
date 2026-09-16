@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle, Download } from "lucide-react";
-import {
-  PARENT_DEMO_STORY_COMPAT,
-  PARENT_DEMO_STORY_THEME,
-} from "@/components/demo/shared/parent-demo-runtime";
+import { PARENT_DEMO_STORY_THEME } from "@/components/demo/shared/parent-demo-runtime";
 import type { DemoParentChildId } from "@/components/demo/shared/demo-parent-types";
 import {
   DEMO_PARENT_CHILD_BILLING_META,
