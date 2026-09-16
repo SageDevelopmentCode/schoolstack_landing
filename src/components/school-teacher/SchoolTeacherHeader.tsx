@@ -289,7 +289,7 @@ export default function SchoolTeacherHeader({
               </button>
               {moreOpen ? (
                 <div
-                  className="absolute right-0 z-[100] mt-1.5 w-52 rounded-xl py-1.5 shadow-lg"
+                  className="absolute right-0 z-[100] mt-1.5 w-52 overflow-hidden rounded-lg py-1.5 shadow-lg"
                   style={{
                     border: `1px solid ${theme.line}`,
                     backgroundColor: theme.white,

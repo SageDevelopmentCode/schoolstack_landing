@@ -89,9 +89,22 @@ Per school, export `*DemoConfig` from `{slug}-admin-demo.ts`, `{slug}-parent-dem
 
 Component folder still needs `{Brand}WebsiteDashboardDemo.tsx` and `{Brand}MobileAppShowcase.tsx` only.
 
-**Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM.
+**Do not** fork admin/parent/teacher dashboard TSX — per-school forks caused Vercel build OOM. Shared components implement the **School Day Story** look (see Phase 3b).
 
 Naming conventions: [reference.md](reference.md#naming-conventions).
+
+## Phase 3b — Story alignment (portal previews)
+
+All config-driven portal demos share the School Day Story system used in live MudKitchen portals:
+
+- Theme bridge: `src/components/demo/shared/demo-story-theme.ts` — `buildDemoParentThemeTokens()` from admin/parent/teacher accent colors
+- Runtime exports: `ADMIN_DEMO_STORY_THEME`, `PARENT_DEMO_STORY_THEME`, `TEACHER_DEMO_STORY_THEME` (set in `*-demo-runtime.ts` on `apply*DemoRuntime`)
+- Portal previews use **Fraunces + DM Sans** (`fraunces`, `dmSans` from `@/lib/fonts`) and paper canvas `#F8F8F3` / admin `#F7F9F7`
+- Website walkthrough step keeps **school-specific fonts** from `src/app/demo/{slug}/layout.tsx`
+
+When adding a school, ensure `{slug}-admin-demo.ts` `colors.accent` matches `{slug}-parent-demo.ts` and `{slug}-teacher-demo.ts` accent values so story tokens stay consistent across previews.
+
+Do **not** import live portal route components from `src/app/school/` — only reuse story UI primitives from `src/components/school-admin/ui/story/` or `src/components/school-parent/ui/` when needed (read-only).
 
 ## Phase 4 — Walkthrough
 
@@ -147,6 +160,9 @@ Shared data lives in `src/components/demo/mobile/mobileDemoData.ts`. Slide compo
 - [ ] Teacher program tabs match `{slug}-teacher-demo.ts` labels
 - [ ] Testimonials render (correct shape, not trust-item shape)
 - [ ] Logo readable on nav/hero background
+- [ ] Admin submissions preview uses story metric strip, sage attention banner, paper table card (not flat gray sidebar + solid blue pills)
+- [ ] Parent/teacher previews use paper canvas, Fraunces headings, brand accent via CSS vars (no hardcoded `#336699`)
+- [ ] Mobile slides use paper phone interior (`#F8F8F3`) and rounded story tab pills
 
 ## Usage example
 

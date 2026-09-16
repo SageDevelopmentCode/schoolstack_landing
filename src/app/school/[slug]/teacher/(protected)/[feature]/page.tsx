@@ -14,6 +14,7 @@ import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-stud
 import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
+import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
@@ -31,6 +32,13 @@ const TeacherClassroomSignupsPage = nextDynamic(
   () =>
     import(
       "@/components/classroom-signups/teacher/TeacherClassroomSignupsPage"
+    ),
+);
+
+const TeacherFormsDocumentsPage = nextDynamic(
+  () =>
+    import(
+      "@/components/school-teacher/forms-documents/TeacherFormsDocumentsPage"
     ),
 );
 
@@ -191,6 +199,31 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         branding={org.branding}
         initialData={initialData}
         organizationId={org.id}
+      />
+    );
+  }
+
+  if (feature === "forms_documents") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      user.id,
+      org.id,
+    );
+    const admin = createAdminClient();
+    const pageData =
+      staffMemberId != null
+        ? await loadTeacherFormsDocumentsPageData(admin, org.id, staffMemberId)
+        : { forms: [], responsesByFormId: {}, classroomOptions: [] };
+
+    return (
+      <TeacherFormsDocumentsPage
+        organizationId={org.id}
+        slug={slug}
+        staffMemberId={staffMemberId}
+        initialForms={pageData.forms}
+        initialResponsesByFormId={pageData.responsesByFormId}
+        classroomOptions={pageData.classroomOptions}
       />
     );
   }

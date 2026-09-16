@@ -4,6 +4,12 @@ import type {
   SchoolAdminDemoCopy,
   SchoolAdminDemoLogo,
 } from "@/data/school-demos/demo-dashboard-types";
+import {
+  buildDemoAdminCompat,
+  buildDemoParentThemeTokens,
+} from "@/components/demo/shared/demo-story-theme";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 export let ADMIN_DEMO_COLORS: SchoolAdminDemoColors = {
   bg: "#f7fafc",
@@ -40,6 +46,16 @@ let adminLogo: SchoolAdminDemoLogo = {
 
 let adminCompactRows = 5;
 
+export let ADMIN_DEMO_STORY_THEME: ParentThemeTokens = buildDemoParentThemeTokens({
+  accent: ADMIN_DEMO_COLORS.accent,
+  accentHover: ADMIN_DEMO_COLORS.accentBright,
+  accentLight: ADMIN_DEMO_COLORS.accentLight,
+  accentDark: ADMIN_DEMO_COLORS.accentDark,
+});
+
+export let ADMIN_DEMO_STORY_COMPAT: AdminThemeTokens =
+  buildDemoAdminCompat(ADMIN_DEMO_STORY_THEME);
+
 export function getAdminDemoLogo(): SchoolAdminDemoLogo {
   return adminLogo;
 }
@@ -53,4 +69,11 @@ export function applyAdminDemoRuntime(config: SchoolAdminDemoConfig): void {
   ADMIN_DEMO_COPY = config.copy;
   adminLogo = config.logo;
   adminCompactRows = config.compactRows;
+  ADMIN_DEMO_STORY_THEME = buildDemoParentThemeTokens({
+    accent: config.colors.accent,
+    accentHover: config.colors.accentBright,
+    accentLight: config.colors.accentLight,
+    accentDark: config.colors.accentDark,
+  });
+  ADMIN_DEMO_STORY_COMPAT = buildDemoAdminCompat(ADMIN_DEMO_STORY_THEME);
 }

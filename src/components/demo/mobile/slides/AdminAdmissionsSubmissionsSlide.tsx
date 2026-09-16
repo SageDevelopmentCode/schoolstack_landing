@@ -218,7 +218,7 @@ export default function AdminAdmissionsSubmissionsSlide({
   const newCount = MOBILE_DEMO_LEADS.filter((l) => l.status === "new").length;
 
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col" style={{ backgroundColor: "#F8F8F3" }}>
       <div className="border-b border-gray-100 px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div>

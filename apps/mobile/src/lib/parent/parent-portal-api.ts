@@ -67,6 +67,29 @@ export async function fetchParentApiSoft<T>(
   return payload;
 }
 
+export async function submitParentSupportRequest(
+  input: import('@/lib/support-request').SubmitPortalSupportRequestInput,
+): Promise<void> {
+  const formData = new FormData();
+  formData.append('organizationId', input.organizationId);
+  formData.append('topic', input.topic);
+  formData.append('description', input.description.trim());
+
+  if (input.sourcePagePath?.trim()) {
+    formData.append('sourcePagePath', input.sourcePagePath.trim());
+  }
+
+  for (const file of input.attachments ?? []) {
+    formData.append('attachments', {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType ?? 'application/octet-stream',
+    } as unknown as Blob);
+  }
+
+  await fetchParentApiFormData('/api/parent-portal/support-requests', formData);
+}
+
 export async function fetchParentApiFormData<T>(
   path: string,
   formData: FormData,

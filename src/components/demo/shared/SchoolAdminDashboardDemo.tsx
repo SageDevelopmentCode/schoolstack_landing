@@ -9,10 +9,18 @@ import type { SchoolAdminDemoConfig } from "@/data/school-demos/demo-dashboard-t
 import {
   ADMIN_DEMO_COLORS,
   ADMIN_DEMO_COPY,
+  ADMIN_DEMO_STORY_COMPAT,
+  ADMIN_DEMO_STORY_THEME,
   applyAdminDemoRuntime,
   getAdminDemoLogo,
   getAdminCompactRows,
 } from "@/components/demo/shared/admin-demo-runtime";
+import {
+  DEMO_ADMIN_PAPER_BG,
+  DEMO_DRAWER_PAPER_BG,
+  demoAdminShellStyle,
+} from "@/components/demo/shared/demo-story-theme";
+import { fraunces, dmSans } from "@/lib/fonts";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -125,46 +133,47 @@ const C_DARK = {
 };
 
 function buildCLight() {
+  const story = ADMIN_DEMO_STORY_COMPAT;
   return {
-    bg: ADMIN_DEMO_COLORS.bg,
-    surface: "#FFFFFF",
-    elevated: "#FDFCFB",
-    input: "#FAFAFA",
-    inputBorder: "#E4E4E7",
-    border: ADMIN_DEMO_COLORS.border,
-    borderStrong: ADMIN_DEMO_COLORS.borderStrong,
-    accent: ADMIN_DEMO_COLORS.accent,
-    accentBright: ADMIN_DEMO_COLORS.accentBright,
-    accentLight: ADMIN_DEMO_COLORS.accentLight,
-    secondaryBtnBorder: ADMIN_DEMO_COLORS.secondaryBtnBorder,
-    accentGlow: ADMIN_DEMO_COLORS.accentGlow,
-    accentMid: ADMIN_DEMO_COLORS.accentMid,
-    accentDark: ADMIN_DEMO_COLORS.accentDark,
-    clay: ADMIN_DEMO_COLORS.clay,
-    clayBg: ADMIN_DEMO_COLORS.clayBg,
-    clayBorder: ADMIN_DEMO_COLORS.clayBorder,
-    textPrimary: ADMIN_DEMO_COLORS.textPrimary,
-    textSecondary: ADMIN_DEMO_COLORS.textSecondary,
-    textTertiary: "#8A7B6E",
-    textQuaternary: "#B8A898",
-    success: "#16A34A",
-    successBg: "rgba(22, 163, 74, 0.08)",
-    successBorder: "rgba(22, 163, 74, 0.25)",
-    warning: "#D97706",
-    warningBg: "rgba(217, 119, 6, 0.08)",
-    warningBorder: "rgba(217, 119, 6, 0.25)",
-    error: "#DC2626",
-    errorBg: "rgba(220, 38, 38, 0.08)",
-    errorBorder: "rgba(220, 38, 38, 0.25)",
-    info: "#0284C7",
-    infoBg: "rgba(2, 132, 199, 0.08)",
-    infoBorder: "rgba(2, 132, 199, 0.25)",
-    purple: "#7C3AED",
-    purpleBg: "rgba(124, 58, 237, 0.08)",
-    purpleBorder: "rgba(124, 58, 237, 0.25)",
-    shadowCard: "0 1px 3px rgba(43,36,29,0.06), 0 1px 2px rgba(43,36,29,0.04)",
-    shadowMedium: "0 4px 16px rgba(43,36,29,0.08)",
-    r: { sm: "3px", md: "5px", lg: "6px", xl: "8px", full: "9999px" },
+    bg: DEMO_ADMIN_PAPER_BG,
+    surface: story.surface,
+    elevated: story.elevated,
+    input: story.input,
+    inputBorder: story.inputBorder,
+    border: story.border,
+    borderStrong: story.borderStrong,
+    accent: story.accent,
+    accentBright: story.accentBright,
+    accentLight: story.accentLight,
+    secondaryBtnBorder: story.secondaryBtnBorder,
+    accentGlow: story.accentGlow,
+    accentMid: story.accentMid,
+    accentDark: story.accentDark,
+    clay: story.clay,
+    clayBg: story.clayBg,
+    clayBorder: story.clayBorder,
+    textPrimary: story.textPrimary,
+    textSecondary: story.textSecondary,
+    textTertiary: story.textTertiary,
+    textQuaternary: story.textQuaternary,
+    success: story.success,
+    successBg: story.successBg,
+    successBorder: story.success,
+    warning: story.warning,
+    warningBg: story.warningBg,
+    warningBorder: story.warning,
+    error: story.error,
+    errorBg: story.errorBg,
+    errorBorder: story.error,
+    info: story.info,
+    infoBg: story.infoBg,
+    infoBorder: story.info,
+    purple: "#8B5CF6",
+    purpleBg: "rgba(139, 92, 246, 0.08)",
+    purpleBorder: "rgba(139, 92, 246, 0.25)",
+    shadowCard: story.shadowCard,
+    shadowMedium: story.shadowMedium,
+    r: story.r,
   };
 }
 
@@ -210,12 +219,16 @@ function demoSolidPillStyle(
 ): React.CSSProperties {
   return isActive
     ? {
-        backgroundColor: C.accent,
-        color: "#fff",
-        border: `1px solid ${C.accent}`,
+        backgroundColor: ADMIN_DEMO_STORY_THEME.primaryLight,
+        color: ADMIN_DEMO_STORY_THEME.primaryDark,
+        border: `1px solid color-mix(in srgb, ${ADMIN_DEMO_STORY_THEME.primary} 25%, transparent)`,
+        borderRadius: ADMIN_DEMO_STORY_THEME.radiusButton,
         ...extra,
       }
-    : demoInactivePillStyle(extra);
+    : demoInactivePillStyle({
+        borderRadius: ADMIN_DEMO_STORY_THEME.radiusButton,
+        ...extra,
+      });
 }
 
 function demoLightPillStyle(
@@ -3616,8 +3629,8 @@ function Card({
       className={className}
       style={{
         backgroundColor: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: C.r.lg,
+        border: `1px solid #E0E7E0`,
+        borderRadius: "16px",
         boxShadow: C.shadowCard,
         ...style,
       }}
@@ -3690,6 +3703,7 @@ function PageHeader({
   tip,
   action,
   className,
+  kicker,
 }: {
   icon?: string;
   title: string;
@@ -3697,20 +3711,29 @@ function PageHeader({
   tip?: string;
   action?: React.ReactNode;
   className?: string;
+  kicker?: string;
 }) {
   return (
     <div className={`space-y-3 mb-5 ${className ?? ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
+          {kicker && (
+            <p
+              className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-1.5 font-heading"
+              style={{ color: ADMIN_DEMO_STORY_THEME.muted }}
+            >
+              {kicker}
+            </p>
+          )}
           <h1
-            className="text-xl font-semibold tracking-tight flex items-center gap-2"
+            className="text-2xl font-semibold tracking-tight flex items-center gap-2 font-heading"
             style={{ color: C.textPrimary }}
           >
             {icon && <span className="text-lg leading-none">{icon}</span>}
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm mt-1" style={{ color: C.textTertiary }}>
+            <p className="text-sm mt-1.5" style={{ color: C.textSecondary }}>
               {subtitle}
             </p>
           )}
@@ -4237,7 +4260,7 @@ function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon="📊"
+        kicker="Operations"
         title="Dashboard"
         subtitle={ADMIN_DEMO_COPY.locationSubtitle}
         tip="Your morning snapshot — see revenue, enrollment, leads, and upcoming dates all in one place. Numbers update as families apply and pay."
@@ -4685,8 +4708,64 @@ function LeadsListTab({
   return (
     <div
       className="relative flex h-full flex-col"
-      style={{ backgroundColor: C.surface }}
+      style={{ backgroundColor: DEMO_ADMIN_PAPER_BG }}
     >
+      {/* Story metric strip */}
+      <div
+        className="grid grid-cols-2 gap-3 px-6 py-4 lg:grid-cols-4"
+        style={{ borderBottom: `1px solid ${C.border}` }}
+      >
+        {[
+          { label: "All submissions", value: ACTIVE_DEMO_LEADS.length },
+          {
+            label: "In progress",
+            value: ACTIVE_DEMO_LEADS.filter((l) =>
+              ["new", "contacted", "emailed"].includes(l.status),
+            ).length,
+          },
+          {
+            label: "Ready to review",
+            value: ACTIVE_DEMO_LEADS.filter((l) => l.status === "applied").length,
+          },
+          {
+            label: "Enrolled",
+            value: ACTIVE_DEMO_LEADS.filter((l) => l.status === "enrolled").length,
+          },
+        ].map((metric) => (
+          <div
+            key={metric.label}
+            className="rounded-2xl border bg-white px-4 py-3"
+            style={{
+              borderColor: "#E0E7E0",
+              boxShadow: C.shadowCard,
+            }}
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.textSecondary }}>
+              {metric.label}
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums font-heading" style={{ color: C.textPrimary }}>
+              {metric.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Needs attention banner */}
+      {ACTIVE_DEMO_LEADS.some((l) => l.status === "new") && (
+        <div
+          className="mx-6 mt-4 rounded-2xl border px-4 py-3"
+          style={{
+            backgroundColor: ADMIN_DEMO_STORY_THEME.primaryLight,
+            borderColor: `color-mix(in srgb, ${ADMIN_DEMO_STORY_THEME.primary} 20%, transparent)`,
+          }}
+        >
+          <p className="text-sm font-medium" style={{ color: ADMIN_DEMO_STORY_THEME.primaryDark }}>
+            Needs attention — {ACTIVE_DEMO_LEADS.filter((l) => l.status === "new").length} new submission
+            {ACTIVE_DEMO_LEADS.filter((l) => l.status === "new").length === 1 ? "" : "s"} waiting for follow-up.
+          </p>
+        </div>
+      )}
+
       {/* Form toolbar + filter icon */}
       <div
         className="flex flex-shrink-0 items-center gap-2 px-6 py-3"
@@ -4764,7 +4843,11 @@ function LeadsListTab({
         )}
       </AnimatePresence>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden px-6 pb-6 pt-4">
+        <div
+          className="h-full overflow-hidden rounded-2xl border bg-white"
+          style={{ borderColor: "#E0E7E0", boxShadow: C.shadowCard }}
+        >
         <div className="h-full overflow-y-auto overflow-x-hidden">
           <table className="w-full text-sm">
             <thead
@@ -4837,6 +4920,7 @@ function LeadsListTab({
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>
@@ -5535,7 +5619,7 @@ function LeadDetailPanel({
       transition={{ type: "spring", damping: 28, stiffness: 300 }}
       className="absolute inset-y-0 right-0 flex w-[min(100%,44rem)] max-w-full flex-col overflow-hidden rounded-none"
       style={{
-        backgroundColor: C.surface,
+        backgroundColor: DEMO_DRAWER_PAPER_BG,
         borderLeft: `1px solid ${C.border}`,
         boxShadow: C.shadowMedium,
         zIndex: 15,
@@ -5546,8 +5630,14 @@ function LeadDetailPanel({
         style={{ borderBottom: `1px solid ${C.border}` }}
       >
         <div className="min-w-0 pr-3">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-[0.14em] mb-1 font-heading"
+            style={{ color: C.textSecondary }}
+          >
+            Application review
+          </p>
           <h3
-            className="truncate text-sm font-semibold"
+            className="truncate text-lg font-semibold font-heading"
             style={{ color: C.textPrimary }}
           >
             {lead.name}
@@ -23628,10 +23718,10 @@ function Sidebar({
   const [mySchoolOpen, setMySchoolOpen] = useState(false);
   return (
     <motion.aside
-      animate={{ width: isExpanded ? 185 : 52 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
+      animate={{ width: isExpanded ? 220 : 52 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="flex flex-col h-full flex-shrink-0 overflow-hidden"
-      style={{ backgroundColor: C.surface, borderRight: `1px solid ${C.border}`, zIndex: 1, position: "relative" }}
+      style={{ backgroundColor: ADMIN_DEMO_STORY_THEME.paper, borderRight: `1px solid ${C.border}`, zIndex: 1, position: "relative" }}
     >
       {/* Logo */}
       <div
@@ -23725,21 +23815,18 @@ function Sidebar({
                         if (item.key === "myschool") setMySchoolOpen(true);
                       }}
                       title={!isExpanded ? item.name : undefined}
-                      className="w-full flex items-center gap-2.5 rounded-sm text-sm font-medium transition-all duration-150 relative"
+                      className="w-full flex items-center gap-2.5 text-sm font-medium transition-all duration-150 relative"
                       style={{
                         padding: isExpanded ? "8px 12px" : "8px",
                         justifyContent: isExpanded ? "flex-start" : "center",
-                        backgroundColor: active ? C.accentLight : "transparent",
+                        backgroundColor: active ? ADMIN_DEMO_STORY_THEME.primaryLight : "transparent",
                         color: active
-                          ? C.accent
+                          ? ADMIN_DEMO_STORY_THEME.primaryDark
                           : item.phase1
-                            ? C.textTertiary
-                            : C.textQuaternary,
-                        borderLeft: isExpanded
-                          ? active
-                            ? `2px solid ${C.accent}`
-                            : "2px solid transparent"
-                          : "none",
+                            ? C.textSecondary
+                            : C.textTertiary,
+                        borderRadius: active ? "12px" : "8px",
+                        borderLeft: "none",
                         opacity: item.phase1 || active ? 1 : 0.5,
                       }}
                     >
@@ -24415,11 +24502,11 @@ export default function SchoolAdminDashboardDemo({
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className="flex h-full overflow-hidden relative"
+      className={`flex h-full overflow-hidden relative ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
       style={{
-        backgroundColor: C.bg,
-        fontFamily: "Inter, system-ui, sans-serif",
+        ...demoAdminShellStyle(ADMIN_DEMO_STORY_THEME),
       }}
+      data-admin-workspace-story
     >
       <AnimatePresence>
         {backdropClose && (

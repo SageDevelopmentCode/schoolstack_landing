@@ -54,9 +54,12 @@ export default function ParentTuitionSlide({ accentColor }: Props) {
   const gradientEnd = darkenHex(accentColor);
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="border-b border-gray-100 px-4 py-3 shrink-0">
-        <p className="text-base font-semibold text-gray-800">Tuition &amp; Billing</p>
+    <div className="flex h-full flex-col" style={{ backgroundColor: "#F8F8F3" }}>
+      <div className="border-b px-4 py-3 shrink-0" style={{ borderColor: "#E4E8E1", backgroundColor: "#FFFFFF" }}>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#65777F] mb-0.5">
+          Parent portal
+        </p>
+        <p className="text-base font-semibold font-heading text-[#283943]">Tuition &amp; Billing</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">

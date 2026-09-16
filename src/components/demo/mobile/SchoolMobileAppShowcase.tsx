@@ -40,15 +40,18 @@ export default function SchoolMobileAppShowcase({ accentColor, slides }: Props) 
                 onClick={() => setActiveSlide(index)}
                 aria-label={`Show ${item.label}`}
                 aria-current={activeSlide === index ? "true" : undefined}
-                className={`flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 min-h-[52px] rounded-xl px-1.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                className={`flex flex-1 min-w-0 flex-col items-center justify-center gap-0.5 min-h-[52px] rounded-2xl px-1.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
                   activeSlide === index
                     ? "text-white shadow-sm"
-                    : "bg-white text-gray-600 border border-gray-200 hover:text-gray-800"
+                    : "text-gray-600 border hover:text-gray-800"
                 }`}
                 style={
                   activeSlide === index
                     ? { backgroundColor: accentColor }
-                    : { borderColor: `${accentColor}30` }
+                    : {
+                        borderColor: `${accentColor}30`,
+                        backgroundColor: "#F8F8F3",
+                      }
                 }
               >
                 <span className="flex items-center gap-1">

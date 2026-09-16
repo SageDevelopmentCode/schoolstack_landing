@@ -4771,7 +4771,7 @@ function DemoHeader({
             />
           </button>
           {moreOpen && (
-            <div className="absolute right-0 mt-1.5 w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-50 py-1.5">
+            <div className="absolute right-0 z-50 mt-1.5 w-52 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg">
               {MORE_NAV.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}

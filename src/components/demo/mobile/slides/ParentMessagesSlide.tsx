@@ -23,8 +23,11 @@ export default function ParentMessagesSlide({
   const initials = getInitials(teacherName);
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-3 shrink-0">
+    <div className="flex h-full flex-col" style={{ backgroundColor: "#F8F8F3" }}>
+      <div
+        className="flex items-center gap-3 border-b px-4 py-3 shrink-0"
+        style={{ borderColor: "#E4E8E1", backgroundColor: "#FFFFFF" }}
+      >
         <div className="relative">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white"

@@ -39,7 +39,7 @@ export default function TeacherStudentsSlide({ accentColor }: Props) {
   }, [search]);
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col" style={{ backgroundColor: "#F8F8F3" }}>
       <div className="border-b border-gray-100 px-4 py-3 shrink-0">
         <p className="text-base font-semibold text-gray-800">My Students</p>
         <p className="text-xs text-gray-500 mt-0.5">

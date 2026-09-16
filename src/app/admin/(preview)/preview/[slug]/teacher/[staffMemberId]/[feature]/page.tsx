@@ -19,6 +19,7 @@ import {
 } from "@/lib/staff/staff-preview-access";
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
+import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -31,6 +32,13 @@ const TeacherClassroomSignupsPage = nextDynamic(
   () =>
     import(
       "@/components/classroom-signups/teacher/TeacherClassroomSignupsPage"
+    ),
+);
+
+const TeacherFormsDocumentsPage = nextDynamic(
+  () =>
+    import(
+      "@/components/school-teacher/forms-documents/TeacherFormsDocumentsPage"
     ),
 );
 
@@ -170,6 +178,26 @@ export default async function StaffTeacherPreviewFeaturePage({
         branding={org.branding}
         initialData={initialData}
         organizationId={org.id}
+        previewMode
+      />
+    );
+  }
+
+  if (feature === "forms_documents") {
+    const pageData = await loadTeacherFormsDocumentsPageData(
+      admin,
+      org.id,
+      staffMemberId,
+    );
+
+    return (
+      <TeacherFormsDocumentsPage
+        organizationId={org.id}
+        slug={slug}
+        staffMemberId={staffMemberId}
+        initialForms={pageData.forms}
+        initialResponsesByFormId={pageData.responsesByFormId}
+        classroomOptions={pageData.classroomOptions}
         previewMode
       />
     );

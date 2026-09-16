@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
@@ -15,8 +14,8 @@ import {
   uploadSupportRequestFile,
   type SupportRequestAttachmentMeta,
 } from "@/lib/school-admin/support-request-storage";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/parent-portal/support-requests";
 const MAX_DESCRIPTION_LENGTH = 5000;
@@ -41,8 +40,7 @@ function isAllowedAttachment(file: File): boolean {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },

@@ -7,12 +7,13 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/mobile/operational-errors";
 
-type MobilePortalSurface = "parent_portal" | "school_admin";
+type MobilePortalSurface = "parent_portal" | "school_admin" | "teacher_portal";
 
 type OperationalErrorBody = {
   surface?: MobilePortalSurface;
@@ -47,7 +48,12 @@ export async function POST(request: Request) {
   const operation = body.operation?.trim();
   const error = body.error?.trim();
 
-  if (!surface || (surface !== "parent_portal" && surface !== "school_admin")) {
+  if (
+    !surface ||
+    (surface !== "parent_portal" &&
+      surface !== "school_admin" &&
+      surface !== "teacher_portal")
+  ) {
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -94,6 +100,21 @@ export async function POST(request: Request) {
           code: "forbidden",
         });
       }
+    } else if (surface === "teacher_portal") {
+      const allowed = await userHasTeacherPortalAccess(
+        supabase,
+        user.id,
+        organizationId,
+      );
+
+      if (!allowed) {
+        return apiError(ROUTE, {
+          request,
+          status: 403,
+          error: "You do not have teacher portal access to this school.",
+          code: "forbidden",
+        });
+      }
     } else {
       await requireSchoolAdminUser(supabase, organizationId);
     }
@@ -121,7 +142,12 @@ export async function POST(request: Request) {
       metadata: clientMetadata,
       notify: body.notify ?? true,
       actor: {
-        type: surface === "school_admin" ? "school_admin" : "parent",
+        type:
+          surface === "school_admin"
+            ? "school_admin"
+            : surface === "teacher_portal"
+              ? "teacher"
+              : "parent",
         userId: user.id,
         email: user.email ?? null,
       },

@@ -5561,7 +5561,7 @@ function TeacherNav({
 
         {moreOpen && (
           <div
-            className="fixed w-52 bg-white border border-gray-100 rounded-xl shadow-lg z-[9999] py-1.5 -translate-x-1/2"
+            className="fixed w-52 overflow-hidden rounded-lg border border-gray-100 bg-white py-1.5 shadow-lg z-[9999] -translate-x-1/2"
             style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
             {MORE_NAV.map(({ label, icon: Icon, tab }) => (

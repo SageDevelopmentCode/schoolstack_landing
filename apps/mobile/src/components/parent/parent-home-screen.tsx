@@ -11,6 +11,8 @@ import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
 import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
+import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
+import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
@@ -33,6 +35,7 @@ import {
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import {
   fetchParentSignupAttentionItems,
+  submitParentSupportRequest,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 
@@ -45,6 +48,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const router = useRouter();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
   );
@@ -193,7 +197,21 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             </View>
           )}
         </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(160).duration(350)}>
+          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+        </Animated.View>
       </ScrollView>
+
+      <PortalSupportRequestSheet
+        visible={supportSheetOpen}
+        onClose={() => setSupportSheetOpen(false)}
+        organizationId={data.organizationId}
+        userEmail={data.userProfile.email}
+        sourcePagePath={`/parent/${slug}/home`}
+        errorOperation="parent_portal_support_request_submit"
+        onSubmit={submitParentSupportRequest}
+      />
 
       <ParentOnboardingSheet
         visible={onboardingOpen}

@@ -66,3 +66,9 @@ export function createSchoolAdminErrorReporter(
 ): MobileErrorReporter {
   return createMobileErrorReporter('school_admin', organizationId);
 }
+
+export function createTeacherPortalErrorReporter(
+  organizationId: string | null | undefined,
+): MobileErrorReporter {
+  return createMobileErrorReporter('teacher', organizationId);
+}

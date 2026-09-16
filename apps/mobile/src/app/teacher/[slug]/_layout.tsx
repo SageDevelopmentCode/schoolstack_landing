@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { TeacherMoreMenuSheet } from '@/components/teacher/teacher-more-menu-sheet';
+import { TeacherHomeProvider } from '@/contexts/teacher-home-context';
 import {
   TEACHER_FLOATING_TAB_BAR_HEIGHT,
   TeacherFloatingTabBar,
@@ -17,6 +18,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
+  isTeacherStudentDetailPath,
   teacherAccountRoute,
   teacherMoreRoute,
   teacherTabRoute,
@@ -26,6 +28,7 @@ import {
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 
 function getActiveTab(pathname: string): TeacherTab | null {
+  if (isTeacherStudentDetailPath(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/calendar')) return 'calendar';
@@ -176,7 +179,9 @@ export default function TeacherLayout() {
   return (
     <SchoolAdminThemeProvider branding={branding}>
       <ParentThemeProvider branding={branding}>
-        <TeacherLayoutContent />
+        <TeacherHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+          <TeacherLayoutContent />
+        </TeacherHomeProvider>
       </ParentThemeProvider>
     </SchoolAdminThemeProvider>
   );
