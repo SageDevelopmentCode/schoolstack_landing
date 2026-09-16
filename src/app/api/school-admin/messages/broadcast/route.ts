@@ -170,7 +170,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to send group messages.",
+      error: err instanceof Error ? err.message : "Failed to send bulk messages.",
       code: "internal_error",
       cause: err,
     });

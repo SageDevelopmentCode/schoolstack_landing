@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Transition, Variants } from "framer-motion";
 import { ArrowLeft, FileUp, PenLine } from "lucide-react";
@@ -13,6 +13,7 @@ import SignupDatePicker from "@/components/classroom-signups/shared/SignupDatePi
 import TeacherFormBuilderCanvas from "./TeacherFormBuilderCanvas";
 import TeacherFormBuilderOutline from "./TeacherFormBuilderOutline";
 import TeacherFormSettingToggle from "./TeacherFormSettingToggle";
+import ParentFormDetailModal from "@/components/school-parent/forms-documents/ParentFormDetailModal";
 import TeacherFormUploadStep from "./TeacherFormUploadStep";
 import type { TeacherClassroomOption } from "@/lib/classroom-signups/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -26,6 +27,7 @@ import {
 } from "@/lib/school-teacher/forms-documents/types";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
+  buildStaffPreviewDetailFromDraft,
   createEmptyFormDraft,
   formatUploadFileSize,
   mergeReorderedFormFields,
@@ -36,6 +38,9 @@ type WizardStep = 1 | 2;
 type TeacherFormCreateWizardProps = {
   organizationId: string;
   classroomOptions: TeacherClassroomOption[];
+  apiBasePath?: string;
+  allowSelectAllClassrooms?: boolean;
+  operationalErrorSurface?: "teacher_portal" | "school_admin";
   onCancel: () => void;
   onPublished: (
     form: TeacherParentForm,
@@ -178,11 +183,13 @@ function SharedConfigFields({
   theme,
   draft,
   classroomOptions,
+  allowSelectAllClassrooms = false,
   onUpdate,
 }: {
   theme: ParentThemeTokens;
   draft: TeacherFormDraft;
   classroomOptions: TeacherClassroomOption[];
+  allowSelectAllClassrooms?: boolean;
   onUpdate: (patch: Partial<TeacherFormDraft>) => void;
 }) {
   const toggleClassroom = (classroomId: string) => {
@@ -190,6 +197,10 @@ function SharedConfigFields({
       ? draft.classroomIds.filter((id) => id !== classroomId)
       : [...draft.classroomIds, classroomId];
     onUpdate({ classroomIds: next });
+  };
+
+  const selectAllClassrooms = () => {
+    onUpdate({ classroomIds: classroomOptions.map((classroom) => classroom.id) });
   };
 
   return (
@@ -253,9 +264,21 @@ function SharedConfigFields({
       </div>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs font-medium" style={{ color: theme.muted }}>
-          Assign to classrooms *
-        </p>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium" style={{ color: theme.muted }}>
+            Assign to classrooms *
+          </p>
+          {allowSelectAllClassrooms && classroomOptions.length > 1 ? (
+            <button
+              type="button"
+              onClick={selectAllClassrooms}
+              className="cursor-pointer text-xs font-semibold"
+              style={{ color: theme.primary }}
+            >
+              Select all classrooms
+            </button>
+          ) : null}
+        </div>
         {classroomOptions.length === 0 ? (
           <p className="text-sm" style={{ color: theme.muted }}>
             No assigned classrooms available.
@@ -322,6 +345,9 @@ function addFieldToDraft(
 export default function TeacherFormCreateWizard({
   organizationId,
   classroomOptions,
+  apiBasePath = "/api/teacher-portal/forms-documents",
+  allowSelectAllClassrooms = false,
+  operationalErrorSurface = "teacher_portal",
   onCancel,
   onPublished,
   onSaveDraft,
@@ -338,6 +364,44 @@ export default function TeacherFormCreateWizard({
   );
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
+
+  const staffPreviewDetail = useMemo(
+    () =>
+      previewOpen ? buildStaffPreviewDetailFromDraft(draft, classroomOptions) : null,
+    [previewOpen, draft, classroomOptions],
+  );
+
+  useEffect(() => {
+    if (!previewOpen) {
+      setUploadPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      return;
+    }
+
+    if (
+      draft.formType === "upload" &&
+      draft.uploadFormat === "pdf" &&
+      draft.uploadFile
+    ) {
+      const url = URL.createObjectURL(draft.uploadFile);
+      setUploadPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return url;
+      });
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+
+    setUploadPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+  }, [previewOpen, draft.formType, draft.uploadFormat, draft.uploadFile]);
 
   const canProceedStep1 = true;
   const canSave =
@@ -382,12 +446,12 @@ export default function TeacherFormCreateWizard({
         formData.set("status", status);
         formData.set("file", draft.uploadFile);
 
-        response = await fetch("/api/teacher-portal/forms-documents", {
+        response = await fetch(apiBasePath, {
           method: "POST",
           body: formData,
         });
       } else {
-        response = await fetch("/api/teacher-portal/forms-documents", {
+        response = await fetch(apiBasePath, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -422,7 +486,7 @@ export default function TeacherFormCreateWizard({
       }
     } catch (error) {
       void reportPortalOperationalError(
-        "teacher_portal",
+        operationalErrorSurface,
         {
           organizationId,
           operation: "forms_documents.publish",
@@ -516,6 +580,7 @@ export default function TeacherFormCreateWizard({
               theme={theme}
               draft={draft}
               classroomOptions={classroomOptions}
+              allowSelectAllClassrooms={allowSelectAllClassrooms}
               onUpdate={updateDraft}
             />
 
@@ -612,6 +677,15 @@ export default function TeacherFormCreateWizard({
               </AdminButton>
               <AdminButton
                 theme={theme}
+                variant="outline"
+                disabled={!canSave || publishing}
+                onClick={() => setPreviewOpen(true)}
+                className="w-full sm:w-auto"
+              >
+                Preview
+              </AdminButton>
+              <AdminButton
+                theme={theme}
                 variant="soft"
                 disabled={!canSave || publishing}
                 onClick={() => void handlePublish("draft")}
@@ -632,6 +706,18 @@ export default function TeacherFormCreateWizard({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ParentFormDetailModal
+        theme={theme}
+        open={previewOpen}
+        organizationId={organizationId}
+        formId={staffPreviewDetail?.form.id ?? null}
+        initialItem={null}
+        staffPreviewDetail={staffPreviewDetail}
+        uploadPreviewUrl={uploadPreviewUrl}
+        onClose={() => setPreviewOpen(false)}
+        onSubmitted={() => undefined}
+      />
     </div>
   );
 }

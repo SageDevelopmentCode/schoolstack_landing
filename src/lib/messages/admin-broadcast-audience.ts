@@ -25,10 +25,8 @@ export type AdminBroadcastAudienceInput = {
 
 export type AdminBroadcastAudiencePreview = {
   count: number;
-  sampleNames: string[];
+  recipientNames: string[];
 };
-
-export const ADMIN_BROADCAST_SAMPLE_NAME_LIMIT = 5;
 
 function uniqueStrings(values?: string[]): string[] {
   return [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))];
@@ -294,8 +292,6 @@ export function previewAdminBroadcastAudience(
 ): AdminBroadcastAudiencePreview {
   return {
     count: contacts.length,
-    sampleNames: contacts
-      .slice(0, ADMIN_BROADCAST_SAMPLE_NAME_LIMIT)
-      .map((contact) => contact.name),
+    recipientNames: contacts.map((contact) => contact.name),
   };
 }

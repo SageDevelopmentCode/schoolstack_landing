@@ -4,7 +4,7 @@ import {
   previewAdminBroadcastAudience,
   resolveAdminBroadcastGuardians,
 } from "@/lib/messages/admin-broadcast-audience";
-import { ADMIN_BROADCAST_MAX_RECIPIENTS } from "@/lib/messages/admin-broadcast-send";
+import { ADMIN_BROADCAST_MAX_RECIPIENTS } from "@/lib/messages/admin-broadcast-constants";
 import { requireSchoolAdminUser } from "@/lib/messages/api-helpers";
 import {
   hasAdminBroadcastAudienceSelection,
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (!hasAdminBroadcastAudienceSelection(audience)) {
       return NextResponse.json({
         count: 0,
-        sampleNames: [],
+        recipientNames: [],
         exceedsLimit: false,
       });
     }

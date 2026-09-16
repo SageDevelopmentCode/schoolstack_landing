@@ -5,15 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
-import MessagesComposeBar from "@/components/messages/MessagesComposeBar";
+import AdminMessagesBroadcastCompose from "./AdminMessagesBroadcastCompose";
 import {
   committeeTransition,
   modalPanel,
 } from "@/components/school-admin/committees/committee-motion";
-import {
-  ADMIN_BROADCAST_CONFIRM_THRESHOLD,
-} from "@/lib/messages/admin-broadcast-send";
+import { ADMIN_BROADCAST_CONFIRM_THRESHOLD } from "@/lib/messages/admin-broadcast-constants";
 import { filterContactsByAudience } from "@/lib/messages/contact-filters";
+import { formatBroadcastRecipientSummary } from "@/lib/messages/format-broadcast-recipients";
 import type { MessageContact } from "@/lib/messages/types";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -28,7 +27,7 @@ import AdminMessagesAudiencePicker, {
 
 type BroadcastPreviewResponse = {
   count: number;
-  sampleNames: string[];
+  recipientNames: string[];
   exceedsLimit: boolean;
 };
 
@@ -52,6 +51,22 @@ type AdminMessagesBroadcastModalProps = {
 };
 
 type Step = "recipients" | "compose";
+
+function continueRecipientsLabel(
+  audience: AdminBroadcastAudienceState,
+  previewCount: number,
+  previewExceedsLimit: boolean,
+): string {
+  if (previewCount === 0 && !hasAdminBroadcastAudienceSelection(audience)) {
+    return "Continue";
+  }
+
+  const countLabel = previewExceedsLimit
+    ? `${previewCount} parents selected (limit is 200)`
+    : `${previewCount} parent${previewCount === 1 ? "" : "s"} selected`;
+
+  return `${countLabel} • Continue`;
+}
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -84,7 +99,7 @@ export default function AdminMessagesBroadcastModal({
   const [classrooms, setClassrooms] = useState<AdminBroadcastOptionClassroom[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [previewCount, setPreviewCount] = useState(0);
-  const [previewSampleNames, setPreviewSampleNames] = useState<string[]>([]);
+  const [previewRecipientNames, setPreviewRecipientNames] = useState<string[]>([]);
   const [previewExceedsLimit, setPreviewExceedsLimit] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [messageBody, setMessageBody] = useState("");
@@ -97,11 +112,16 @@ export default function AdminMessagesBroadcastModal({
     [contacts],
   );
 
+  const formattedRecipientNames = useMemo(
+    () => formatBroadcastRecipientSummary(previewRecipientNames),
+    [previewRecipientNames],
+  );
+
   const resetState = useCallback(() => {
     setStep("recipients");
     setAudience(emptyAdminBroadcastAudience());
     setPreviewCount(0);
-    setPreviewSampleNames([]);
+    setPreviewRecipientNames([]);
     setPreviewExceedsLimit(false);
     setPreviewLoading(false);
     setMessageBody("");
@@ -146,7 +166,7 @@ export default function AdminMessagesBroadcastModal({
       })
       .catch((err) => {
         if (cancelled) return;
-        adminToast.error(formatActionError(err, "Failed to load group options."));
+        adminToast.error(formatActionError(err, "Failed to load bulk message options."));
       })
       .finally(() => {
         if (!cancelled) setLoadingOptions(false);
@@ -162,7 +182,7 @@ export default function AdminMessagesBroadcastModal({
 
     if (!hasAdminBroadcastAudienceSelection(audience)) {
       setPreviewCount(0);
-      setPreviewSampleNames([]);
+      setPreviewRecipientNames([]);
       setPreviewExceedsLimit(false);
       setPreviewLoading(false);
       return undefined;
@@ -182,7 +202,7 @@ export default function AdminMessagesBroadcastModal({
         .then((data) => {
           if (cancelled) return;
           setPreviewCount(data.count);
-          setPreviewSampleNames(data.sampleNames);
+          setPreviewRecipientNames(data.recipientNames);
           setPreviewExceedsLimit(data.exceedsLimit);
         })
         .catch((err) => {
@@ -247,12 +267,19 @@ export default function AdminMessagesBroadcastModal({
       onSent();
       handleClose();
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to send group messages."));
+      adminToast.error(formatActionError(err, "Failed to send bulk messages."));
     } finally {
       setSending(false);
       setConfirmOpen(false);
     }
   };
+
+  const sendButtonLabel =
+    previewCount > 0 && previewCount <= 3 && formattedRecipientNames
+      ? `Send to ${formattedRecipientNames}`
+      : previewCount > 0
+        ? `Send to ${previewCount}`
+        : "Send bulk message";
 
   const handleComposeClick = () => {
     if (previewCount > ADMIN_BROADCAST_CONFIRM_THRESHOLD) {
@@ -306,7 +333,7 @@ export default function AdminMessagesBroadcastModal({
                 size="section"
                 className="!text-lg"
               >
-                {step === "recipients" ? "Message a group" : "Write your message"}
+                {step === "recipients" ? "Bulk message" : "Write your message"}
               </AdminDisplayHeading>
               <button
                 type="button"
@@ -334,39 +361,35 @@ export default function AdminMessagesBroadcastModal({
                     programs={programs}
                     classrooms={classrooms}
                     parentContacts={parentContacts}
-                    previewCount={previewCount}
-                    previewSampleNames={previewSampleNames}
-                    previewLoading={previewLoading}
-                    previewExceedsLimit={previewExceedsLimit}
                   />
                 )
               ) : (
                 <div className="space-y-4">
                   <div
-                    className="rounded-xl border px-4 py-3 text-sm"
+                    className="rounded-xl border px-4 py-3 text-sm line-clamp-2"
                     style={{ borderColor: theme.line, backgroundColor: "#F4F7F5" }}
                   >
-                    Sending individually to{" "}
-                    <span className="font-semibold">{previewCount}</span> parent
-                    {previewCount === 1 ? "" : "s"}.
+                    {formattedRecipientNames ? (
+                      <>
+                        Sending individually to{" "}
+                        <span className="font-semibold">{formattedRecipientNames}</span>.
+                      </>
+                    ) : (
+                      <>
+                        Sending individually to{" "}
+                        <span className="font-semibold">{previewCount}</span> parent
+                        {previewCount === 1 ? "" : "s"}.
+                      </>
+                    )}
                   </div>
-                  <MessagesComposeBar
+                  <AdminMessagesBroadcastCompose
                     value={messageBody}
                     onChange={setMessageBody}
                     files={files}
                     onFilesChange={setFiles}
-                    onSend={() => {
-                      if (previewCount > ADMIN_BROADCAST_CONFIRM_THRESHOLD) {
-                        setConfirmOpen(true);
-                        return;
-                      }
-                      void handleSend();
-                    }}
-                    sending={sending}
-                    disabled={!canSend || sending}
+                    disabled={sending}
                     C={C}
                     theme={theme}
-                    variant="admin-story"
                     placeholder="Write a message to send to each parent individually…"
                   />
                 </div>
@@ -374,7 +397,9 @@ export default function AdminMessagesBroadcastModal({
             </div>
 
             <div
-              className="flex items-center justify-between gap-3 border-t px-5 py-4"
+              className={`flex items-center gap-3 border-t px-5 py-4 ${
+                step === "recipients" ? "justify-end" : "justify-between"
+              }`}
               style={{ borderColor: theme.line }}
             >
               {step === "compose" ? (
@@ -386,19 +411,20 @@ export default function AdminMessagesBroadcastModal({
                 >
                   Back
                 </AdminButton>
-              ) : (
-                <span className="text-xs" style={{ color: theme.muted }}>
-                  Each parent gets their own thread.
-                </span>
-              )}
+              ) : null}
 
               {step === "recipients" ? (
                 <AdminButton
                   theme={theme}
                   disabled={!canContinueRecipients}
                   onClick={() => setStep("compose")}
+                  aria-busy={previewLoading}
+                  className="inline-flex items-center gap-2"
                 >
-                  Continue
+                  {previewLoading && hasAdminBroadcastAudienceSelection(audience) ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : null}
+                  {continueRecipientsLabel(audience, previewCount, previewExceedsLimit)}
                 </AdminButton>
               ) : (
                 <AdminButton
@@ -406,7 +432,7 @@ export default function AdminMessagesBroadcastModal({
                   disabled={!canSend || sending}
                   onClick={handleComposeClick}
                 >
-                  {sending ? "Sending…" : `Send to ${previewCount}`}
+                  {sending ? "Sending…" : sendButtonLabel}
                 </AdminButton>
               )}
             </div>
@@ -418,7 +444,9 @@ export default function AdminMessagesBroadcastModal({
                   style={{ backgroundColor: theme.white, borderColor: theme.line }}
                 >
                   <p className="text-base font-semibold" style={{ color: theme.ink }}>
-                    Send to {previewCount} parents?
+                    {formattedRecipientNames
+                      ? `Send bulk message to ${formattedRecipientNames}?`
+                      : `Send bulk message to ${previewCount} parents?`}
                   </p>
                   <p className="mt-2 text-sm" style={{ color: theme.muted }}>
                     MudKitchen will send this message individually to each parent&apos;s school

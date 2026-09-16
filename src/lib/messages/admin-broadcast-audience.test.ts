@@ -47,7 +47,7 @@ test("dedupeBroadcastGuardianContacts dedupes duplicate guardian ids", () => {
   assert.equal(contacts[0]?.guardianId, "g1");
 });
 
-test("previewAdminBroadcastAudience returns count and sample names", () => {
+test("previewAdminBroadcastAudience returns count and recipient names", () => {
   const preview = previewAdminBroadcastAudience([
     guardianContact("g1", "family-1", "Alex Parent"),
     guardianContact("g2", "family-2", "Sam Parent"),
@@ -55,7 +55,7 @@ test("previewAdminBroadcastAudience returns count and sample names", () => {
   ]);
 
   assert.equal(preview.count, 3);
-  assert.deepEqual(preview.sampleNames, [
+  assert.deepEqual(preview.recipientNames, [
     "Alex Parent",
     "Sam Parent",
     "Taylor Parent",

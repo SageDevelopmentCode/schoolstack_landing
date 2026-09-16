@@ -1,3 +1,5 @@
+import type { TeacherClassroomOption } from "@/lib/classroom-signups/types";
+import type { ParentFormDetail } from "@/lib/school-parent/forms-documents/types";
 import type {
   TeacherFormDraft,
   TeacherFormField,
@@ -92,6 +94,29 @@ export function createEmptyFormDraft(): TeacherFormDraft {
     uploadFileName: null,
     uploadFileSize: null,
     fields: createDefaultBuilderFields(),
+  };
+}
+
+export function buildStaffPreviewDetailFromDraft(
+  draft: TeacherFormDraft,
+  classroomOptions: TeacherClassroomOption[],
+): ParentFormDetail {
+  const classroomNames = draft.classroomIds.map((classroomId) => {
+    const classroom = classroomOptions.find((option) => option.id === classroomId);
+    return classroom?.name ?? "Classroom";
+  });
+  const form = createFormFromDraft(draft, classroomNames);
+
+  return {
+    form,
+    response: {
+      id: "staff-preview-response",
+      formId: form.id,
+      status: "pending",
+      signedAt: null,
+      studentNames: [],
+      responses: {},
+    },
   };
 }
 

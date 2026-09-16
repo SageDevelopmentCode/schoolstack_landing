@@ -1,17 +1,17 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ADMIN_BROADCAST_MAX_RECIPIENTS } from "@/lib/messages/admin-broadcast-constants";
 import {
   findOrCreateThread,
   resolveParticipantsForContact,
-  sendMessageForViewer,
 } from "@/lib/messages/api-helpers";
+import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import {
   resolveAdminBroadcastGuardians,
   type AdminBroadcastAudienceInput,
 } from "@/lib/messages/admin-broadcast-audience";
 import type { MessageContact } from "@/lib/messages/types";
-
-export const ADMIN_BROADCAST_MAX_RECIPIENTS = 200;
-export const ADMIN_BROADCAST_CONFIRM_THRESHOLD = 10;
 
 export type AdminBroadcastFailure = {
   guardianId: string;

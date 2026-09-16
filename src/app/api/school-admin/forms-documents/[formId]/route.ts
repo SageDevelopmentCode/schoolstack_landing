@@ -1,28 +1,25 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
-  getTeacherParentFormById,
-  listFormResponsesForForm,
-} from "@/lib/school-teacher/forms-documents/load-teacher-forms";
+  getOrgParentFormById,
+  listOrgFormResponsesForForm,
+} from "@/lib/school-admin/forms-documents/load-admin-forms";
 import {
-  archiveTeacherParentForm,
-  duplicateTeacherParentForm,
-  updateTeacherParentForm,
-  type UpdateTeacherParentFormInput,
-} from "@/lib/school-teacher/forms-documents/mutations";
+  archiveAdminParentForm,
+  duplicateAdminParentForm,
+  updateAdminParentForm,
+  type UpdateAdminParentFormInput,
+} from "@/lib/school-admin/forms-documents/mutations";
+import { requireSchoolAdminUser, SchoolAdminAuthError } from "@/lib/school-admin/access";
 import {
   fireTeacherParentFormActivityNotification,
   sendTeacherParentFormPublishedNotifications,
 } from "@/lib/school-teacher/forms-documents/teacher-parent-form-notifications";
-import {
-  getStaffMemberIdForUser,
-  getStaffUserProfile,
-} from "@/lib/staff/teacher-portal-access";
+import { ensureStaffMemberIdForSchoolAdminPublisher } from "@/lib/school-admin/forms-documents/ensure-admin-publisher-staff";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 
-const ROUTE = "/api/teacher-portal/forms-documents/[formId]";
+const ROUTE = "/api/school-admin/forms-documents/[formId]";
 
 type RouteContext = {
   params: Promise<{ formId: string }>;
@@ -30,22 +27,9 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { formId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: "You must be signed in.",
-      code: "unauthorized",
-    });
-  }
-
+  const supabase = await createClientFromRequest(request);
   const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
+
   if (!organizationId) {
     return apiError(ROUTE, {
       request,
@@ -56,27 +40,9 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      user.id,
-      organizationId,
-    );
-    if (!staffMemberId) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have permission to view this form.",
-        code: "forbidden",
-      });
-    }
-
+    await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
-    const form = await getTeacherParentFormById(
-      admin,
-      organizationId,
-      staffMemberId,
-      formId,
-    );
+    const form = await getOrgParentFormById(admin, organizationId, formId);
     if (!form) {
       return apiError(ROUTE, {
         request,
@@ -86,7 +52,7 @@ export async function GET(request: Request, context: RouteContext) {
       });
     }
 
-    const signatureRows = await listFormResponsesForForm(
+    const signatureRows = await listOrgFormResponsesForForm(
       admin,
       organizationId,
       formId,
@@ -95,6 +61,15 @@ export async function GET(request: Request, context: RouteContext) {
 
     return NextResponse.json({ form, signatureRows });
   } catch (error) {
+    if (error instanceof SchoolAdminAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
     return apiError(ROUTE, {
       request,
       status: 500,
@@ -108,25 +83,12 @@ export async function GET(request: Request, context: RouteContext) {
 type PatchBody = {
   organizationId?: string;
   action?: "archive" | "duplicate";
-  update?: UpdateTeacherParentFormInput;
+  update?: UpdateAdminParentFormInput;
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
   const { formId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return apiError(ROUTE, {
-      request,
-      status: 401,
-      error: "You must be signed in.",
-      code: "unauthorized",
-    });
-  }
+  const supabase = await createClientFromRequest(request);
 
   let body: PatchBody;
   try {
@@ -160,34 +122,21 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const staffMemberId = await getStaffMemberIdForUser(
-      supabase,
-      user.id,
-      organizationId,
-    );
-    if (!staffMemberId) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have permission to update this form.",
-        code: "forbidden",
-      });
-    }
-
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
 
     if (body.action === "archive") {
-      const form = await archiveTeacherParentForm(
-        admin,
-        organizationId,
-        staffMemberId,
-        formId,
-      );
+      const form = await archiveAdminParentForm(admin, organizationId, formId);
       return NextResponse.json({ form });
     }
 
     if (body.action === "duplicate") {
-      const form = await duplicateTeacherParentForm(
+      const staffMemberId = await ensureStaffMemberIdForSchoolAdminPublisher(
+        admin,
+        user,
+        organizationId,
+      );
+      const form = await duplicateAdminParentForm(
         admin,
         organizationId,
         staffMemberId,
@@ -196,16 +145,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ form });
     }
 
-    const existingForm = await getTeacherParentFormById(
+    const existingForm = await getOrgParentFormById(admin, organizationId, formId);
+    const form = await updateAdminParentForm(
       admin,
       organizationId,
-      staffMemberId,
-      formId,
-    );
-    const form = await updateTeacherParentForm(
-      admin,
-      organizationId,
-      staffMemberId,
       formId,
       body.update ?? {},
     );
@@ -213,42 +156,58 @@ export async function PATCH(request: Request, context: RouteContext) {
     const wasPublishing =
       existingForm?.status === "draft" && form.status === "active";
     if (wasPublishing) {
-      const profile = await getStaffUserProfile(
-        supabase,
-        user.id,
-        organizationId,
+      const staffMemberId = await ensureStaffMemberIdForSchoolAdminPublisher(
+        admin,
         user,
+        organizationId,
       );
+      const publisherName =
+        user.user_metadata?.full_name?.trim() ||
+        user.user_metadata?.name?.trim() ||
+        user.email?.split("@")[0] ||
+        "School admin";
+
       fireTeacherParentFormActivityNotification(
         admin,
         sendTeacherParentFormPublishedNotifications(admin, {
           organizationId,
           form,
-          publisherName: profile.displayName,
+          publisherName,
           staffMemberId,
           actorUserId: user.id,
-          actorName: profile.displayName,
-          actorEmail: profile.email,
+          actorName: publisherName,
+          actorEmail: user.email ?? "",
+          actorType: "school_admin",
+          surface: "school_admin",
         }),
         {
           organizationId,
           formId: form.id,
-          operation: "teacher_parent_form_published_notification",
-          surface: "teacher_portal",
-          actorType: "teacher",
+          operation: "admin_parent_form_published_notification",
+          surface: "school_admin",
+          actorType: "school_admin",
           actorUserId: user.id,
-          actorEmail: profile.email,
+          actorEmail: user.email ?? "",
         },
       );
     }
 
     const signatureRows =
       form.status === "active"
-        ? await listFormResponsesForForm(admin, organizationId, form.id, form.dueDate)
+        ? await listOrgFormResponsesForForm(admin, organizationId, form.id, form.dueDate)
         : [];
 
     return NextResponse.json({ form, signatureRows });
   } catch (error) {
+    if (error instanceof SchoolAdminAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
     return apiError(ROUTE, {
       request,
       status: 500,

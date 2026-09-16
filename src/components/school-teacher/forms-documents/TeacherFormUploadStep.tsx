@@ -133,22 +133,6 @@ export default function TeacherFormUploadStep({
           </div>
         ) : null}
       </AdminCard>
-
-      <AdminCard theme={theme} padding="canvas">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.muted }}>
-          Preview
-        </p>
-        <div
-          className="flex min-h-[180px] items-center justify-center rounded-xl border border-dashed"
-          style={{ borderColor: theme.line, backgroundColor: "#F3F6F3" }}
-        >
-          <p className="text-sm" style={{ color: theme.muted }}>
-            {uploadFileName
-              ? "Preview available after publish"
-              : "Upload a file to see a preview placeholder"}
-          </p>
-        </div>
-      </AdminCard>
     </div>
   );
 }

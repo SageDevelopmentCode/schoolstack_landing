@@ -248,7 +248,7 @@ export async function POST(request: Request) {
         sendTeacherParentFormPublishedNotifications(admin, {
           organizationId,
           form,
-          teacherName: profile.displayName,
+          publisherName: profile.displayName,
           staffMemberId,
           actorUserId: user.id,
           actorName: profile.displayName,

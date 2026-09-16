@@ -13,6 +13,7 @@ type TeacherFormDocumentPreviewProps = {
   form: TeacherParentForm;
   organizationId: string;
   previewMode?: boolean;
+  fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
 };
 
 type PreviewState =
@@ -26,6 +27,7 @@ export default function TeacherFormDocumentPreview({
   form,
   organizationId,
   previewMode = false,
+  fetchDownloadUrl,
 }: TeacherFormDocumentPreviewProps) {
   const [previewState, setPreviewState] = useState<PreviewState>({ status: "idle" });
 
@@ -42,7 +44,8 @@ export default function TeacherFormDocumentPreview({
 
     setPreviewState({ status: "loading" });
     try {
-      const signedUrl = await fetchTeacherFormDownloadUrl(form.id, organizationId);
+      const resolveDownloadUrl = fetchDownloadUrl ?? fetchTeacherFormDownloadUrl;
+      const signedUrl = await resolveDownloadUrl(form.id, organizationId);
       setPreviewState({ status: "ready", url: buildEmbeddedPdfViewerUrl(signedUrl) });
     } catch (error) {
       setPreviewState({
@@ -50,7 +53,7 @@ export default function TeacherFormDocumentPreview({
         message: error instanceof Error ? error.message : "Failed to load preview.",
       });
     }
-  }, [form.id, form.status, form.uploadFormat, organizationId, previewMode]);
+  }, [fetchDownloadUrl, form.id, form.status, form.uploadFormat, organizationId, previewMode]);
 
   useEffect(() => {
     void loadPreview();

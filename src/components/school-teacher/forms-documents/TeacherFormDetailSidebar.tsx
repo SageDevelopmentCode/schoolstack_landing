@@ -36,6 +36,7 @@ type TeacherFormDetailSidebarProps = {
   onArchive?: (formId: string) => void;
   onDuplicate?: (formId: string) => void;
   onDownload?: (formId: string) => void;
+  fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
 };
 
 function statusChipVariant(
@@ -64,6 +65,7 @@ export default function TeacherFormDetailSidebar({
   onArchive,
   onDuplicate,
   onDownload,
+  fetchDownloadUrl,
 }: TeacherFormDetailSidebarProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const displayedFormRef = useRef<TeacherParentForm | null>(null);
@@ -281,6 +283,7 @@ export default function TeacherFormDetailSidebar({
                           form={displayedForm}
                           organizationId={organizationId}
                           previewMode={previewMode}
+                          fetchDownloadUrl={fetchDownloadUrl}
                         />
                       </div>
                     </AdminCard>

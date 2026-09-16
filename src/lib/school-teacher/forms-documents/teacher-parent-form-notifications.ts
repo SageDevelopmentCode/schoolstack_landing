@@ -3,6 +3,7 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
   type ActivitySurface,
+  type ActorType,
 } from "@/lib/activity-log";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { resolveFormAudienceFamilies } from "./audience";
@@ -11,11 +12,13 @@ import type { TeacherParentForm } from "./types";
 type TeacherParentFormPublishedNotificationInput = {
   organizationId: string;
   form: TeacherParentForm;
-  teacherName: string;
+  publisherName: string;
   staffMemberId: string;
   actorUserId: string;
   actorName: string;
   actorEmail: string;
+  actorType?: ActorType;
+  surface?: ActivitySurface;
 };
 
 type TeacherParentFormResponseSignedNotificationInput = {
@@ -42,24 +45,27 @@ export async function sendTeacherParentFormPublishedNotifications(
 
   if (families.length === 0) return;
 
+  const actorType = input.actorType ?? "teacher";
+  const surface = input.surface ?? "teacher_portal";
+
   await Promise.all(
     families.map((family) =>
       logActivityEvent(supabase, {
         organizationId: input.organizationId,
-        actorType: "teacher",
+        actorType,
         actorUserId: input.actorUserId,
         actorEmail: input.actorEmail,
         actorName: input.actorName,
-        surface: "teacher_portal",
+        surface,
         action: ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
         entityType: "teacher_parent_form",
         entityId: input.form.id,
-        summary: `${input.teacherName} posted "${input.form.title}" for your family to sign`,
+        summary: `${input.publisherName} posted "${input.form.title}" for your family to sign`,
         metadata: {
           familyId: family.familyId,
           formId: input.form.id,
           formTitle: input.form.title,
-          teacherName: input.teacherName,
+          teacherName: input.publisherName,
           staffMemberId: input.staffMemberId,
           dueDate: input.form.dueDate,
         },
@@ -101,7 +107,7 @@ export function fireTeacherParentFormActivityNotification(
     formId: string;
     operation: string;
     surface: ActivitySurface;
-    actorType: "parent" | "teacher";
+    actorType: ActorType;
     actorUserId: string;
     actorEmail: string;
   },

@@ -1,65 +1,67 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadTeacherClassroomOptions } from "@/lib/classroom-signups/load-teacher-classrooms";
+import { listClassrooms } from "@/lib/school-admin/classrooms";
 import {
   fetchClassroomNames,
   materializeFormResponses,
   publishParentFormCore,
-} from "./publish-parent-form-core";
+} from "@/lib/school-teacher/forms-documents/publish-parent-form-core";
 import {
   mapTeacherParentFormRow,
   TEACHER_PARENT_FORM_SELECT,
   type TeacherParentFormRow,
-} from "./db-mapper";
+} from "@/lib/school-teacher/forms-documents/db-mapper";
 import type {
   PublishTeacherParentFormInput,
   TeacherFormConfig,
   TeacherParentForm,
   TeacherParentFormStatus,
-} from "./types";
+} from "@/lib/school-teacher/forms-documents/types";
 import {
   buildTeacherFormStoragePath,
   copyTeacherFormFile,
-} from "./teacher-form-file-storage";
-import { countFormAudienceFamilies } from "./audience";
+} from "@/lib/school-teacher/forms-documents/teacher-form-file-storage";
+import { countFormAudienceFamilies } from "@/lib/school-teacher/forms-documents/audience";
+import { getOrgParentFormById } from "./load-admin-forms";
+import type { AdminParentForm } from "./types";
 
-async function assertTeacherClassroomAccess(
+async function assertOrgClassroomAccess(
   admin: SupabaseClient,
   organizationId: string,
-  staffMemberId: string,
   classroomIds: string[],
 ): Promise<void> {
-  const options = await loadTeacherClassroomOptions(admin, organizationId, staffMemberId);
-  const allowedIds = new Set(options.map((option) => option.id));
+  const classrooms = await listClassrooms(admin, organizationId);
+  const allowedIds = new Set(
+    classrooms
+      .filter((classroom) => classroom.status !== "inactive")
+      .map((classroom) => classroom.id),
+  );
   const invalid = classroomIds.filter((id) => !allowedIds.has(id));
   if (invalid.length > 0) {
-    throw new Error("You can only assign forms to your classrooms.");
+    throw new Error("One or more selected classrooms are invalid.");
   }
 }
 
-export async function publishTeacherParentForm(
+export async function publishAdminParentForm(
   admin: SupabaseClient,
   organizationId: string,
   staffMemberId: string,
   input: PublishTeacherParentFormInput,
   uploadFile?: File | null,
-): Promise<TeacherParentForm> {
-  await assertTeacherClassroomAccess(
-    admin,
-    organizationId,
-    staffMemberId,
-    input.classroomIds,
-  );
-
-  return publishParentFormCore(
+): Promise<AdminParentForm> {
+  await assertOrgClassroomAccess(admin, organizationId, input.classroomIds);
+  const form = await publishParentFormCore(
     admin,
     organizationId,
     staffMemberId,
     input,
     uploadFile,
   );
+  const mapped = await getOrgParentFormById(admin, organizationId, form.id);
+  if (!mapped) throw new Error("Failed to load published form.");
+  return mapped;
 }
 
-export type UpdateTeacherParentFormInput = {
+export type UpdateAdminParentFormInput = {
   title?: string;
   description?: string;
   dueDate?: string | null;
@@ -69,18 +71,19 @@ export type UpdateTeacherParentFormInput = {
   status?: TeacherParentFormStatus;
 };
 
-export async function updateTeacherParentForm(
+export async function updateAdminParentForm(
   admin: SupabaseClient,
   organizationId: string,
-  staffMemberId: string,
   formId: string,
-  input: UpdateTeacherParentFormInput,
-): Promise<TeacherParentForm> {
+  input: UpdateAdminParentFormInput,
+): Promise<AdminParentForm> {
+  const existingForm = await getOrgParentFormById(admin, organizationId, formId);
+  if (!existingForm) throw new Error("Form not found.");
+
   const { data: existingRow, error: loadError } = await admin
     .from("teacher_parent_forms")
     .select(TEACHER_PARENT_FORM_SELECT)
     .eq("organization_id", organizationId)
-    .eq("created_by_staff_member_id", staffMemberId)
     .eq("id", formId)
     .maybeSingle();
 
@@ -91,12 +94,7 @@ export async function updateTeacherParentForm(
   const now = new Date().toISOString();
 
   if (input.classroomIds) {
-    await assertTeacherClassroomAccess(
-      admin,
-      organizationId,
-      staffMemberId,
-      input.classroomIds,
-    );
+    await assertOrgClassroomAccess(admin, organizationId, input.classroomIds);
   }
 
   const nextClassroomIds = input.classroomIds ?? existing.classroomIds;
@@ -145,7 +143,6 @@ export async function updateTeacherParentForm(
       updated_at: now,
     })
     .eq("organization_id", organizationId)
-    .eq("created_by_staff_member_id", staffMemberId)
     .eq("id", formId)
     .select(TEACHER_PARENT_FORM_SELECT)
     .single();
@@ -161,17 +158,18 @@ export async function updateTeacherParentForm(
     );
   }
 
-  return mapTeacherParentFormRow(data as TeacherParentFormRow);
+  const updated = await getOrgParentFormById(admin, organizationId, formId);
+  if (!updated) throw new Error("Failed to load updated form.");
+  return updated;
 }
 
-export async function archiveTeacherParentForm(
+export async function archiveAdminParentForm(
   admin: SupabaseClient,
   organizationId: string,
-  staffMemberId: string,
   formId: string,
-): Promise<TeacherParentForm> {
+): Promise<AdminParentForm> {
   const now = new Date().toISOString();
-  const { data, error } = await admin
+  const { error } = await admin
     .from("teacher_parent_forms")
     .update({
       status: "archived",
@@ -179,26 +177,25 @@ export async function archiveTeacherParentForm(
       updated_at: now,
     })
     .eq("organization_id", organizationId)
-    .eq("created_by_staff_member_id", staffMemberId)
-    .eq("id", formId)
-    .select(TEACHER_PARENT_FORM_SELECT)
-    .single();
+    .eq("id", formId);
 
   if (error) throw error;
-  return mapTeacherParentFormRow(data as TeacherParentFormRow);
+
+  const form = await getOrgParentFormById(admin, organizationId, formId);
+  if (!form) throw new Error("Form not found.");
+  return form;
 }
 
-export async function duplicateTeacherParentForm(
+export async function duplicateAdminParentForm(
   admin: SupabaseClient,
   organizationId: string,
   staffMemberId: string,
   formId: string,
-): Promise<TeacherParentForm> {
+): Promise<AdminParentForm> {
   const { data: existingRow, error: loadError } = await admin
     .from("teacher_parent_forms")
     .select(TEACHER_PARENT_FORM_SELECT)
     .eq("organization_id", organizationId)
-    .eq("created_by_staff_member_id", staffMemberId)
     .eq("id", formId)
     .maybeSingle();
 
@@ -222,28 +219,27 @@ export async function duplicateTeacherParentForm(
     };
   }
 
-  const { data, error } = await admin
-    .from("teacher_parent_forms")
-    .insert({
-      id: newFormId,
-      organization_id: organizationId,
-      created_by_staff_member_id: staffMemberId,
-      title: `${existing.title} (copy)`.trim(),
-      description: existing.description,
-      form_type: existing.form_type,
-      status: "draft",
-      classroom_ids: existing.classroom_ids ?? [],
-      due_date: existing.due_date,
-      require_signature: existing.require_signature,
-      config,
-      total_families: 0,
-      signed_families: 0,
-      published_at: null,
-      archived_at: null,
-    })
-    .select(TEACHER_PARENT_FORM_SELECT)
-    .single();
+  const { error } = await admin.from("teacher_parent_forms").insert({
+    id: newFormId,
+    organization_id: organizationId,
+    created_by_staff_member_id: staffMemberId,
+    title: `${existing.title} (copy)`.trim(),
+    description: existing.description,
+    form_type: existing.form_type,
+    status: "draft",
+    classroom_ids: existing.classroom_ids ?? [],
+    due_date: existing.due_date,
+    require_signature: existing.require_signature,
+    config,
+    total_families: 0,
+    signed_families: 0,
+    published_at: null,
+    archived_at: null,
+  });
 
   if (error) throw error;
-  return mapTeacherParentFormRow(data as TeacherParentFormRow);
+
+  const form = await getOrgParentFormById(admin, organizationId, newFormId);
+  if (!form) throw new Error("Failed to load duplicated form.");
+  return form;
 }

@@ -5,8 +5,8 @@ import {
   assertTeacherCanAccessThread,
   getStaffMemberIdForUser,
   requireTeacherPortalUser,
-  sendMessageForViewer,
 } from "@/lib/messages/api-helpers";
+import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";

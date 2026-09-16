@@ -51,7 +51,7 @@ export default function AdminMessagesInboxHeader({
               onClick={onMessageGroup}
               data-testid="admin-messages-group-button"
             >
-              Message group
+              Bulk message
             </AdminButton>
           ) : null}
           <AdminButton

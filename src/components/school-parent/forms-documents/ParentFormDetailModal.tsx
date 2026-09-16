@@ -29,6 +29,8 @@ type ParentFormDetailModalProps = {
   formId: string | null;
   initialItem: ParentFormListItem | null;
   readOnly?: boolean;
+  staffPreviewDetail?: ParentFormDetail | null;
+  uploadPreviewUrl?: string | null;
   onClose: () => void;
   onSubmitted: (detail: ParentFormDetail) => void;
 };
@@ -69,9 +71,12 @@ export default function ParentFormDetailModal({
   formId,
   initialItem,
   readOnly = false,
+  staffPreviewDetail = null,
+  uploadPreviewUrl = null,
   onClose,
   onSubmitted,
 }: ParentFormDetailModalProps) {
+  const isStaffPreview = staffPreviewDetail != null;
   const [detail, setDetail] = useState<ParentFormDetail | null>(
     initialItem
       ? { form: initialItem.form, response: initialItem.response }
@@ -89,7 +94,18 @@ export default function ParentFormDetailModal({
   const signSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open || !formId) return;
+    if (!open) return;
+
+    if (staffPreviewDetail) {
+      setDetail(staffPreviewDetail);
+      setSignerName("");
+      setFieldValues({});
+      setDetailError(null);
+      setIsLoadingDetail(false);
+      return;
+    }
+
+    if (!formId) return;
 
     const activeFormId = formId;
     let cancelled = false;
@@ -154,10 +170,10 @@ export default function ParentFormDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [formId, initialItem, open, organizationId]);
+  }, [formId, initialItem, open, organizationId, staffPreviewDetail]);
 
   const isSigned = detail?.response.status === "signed";
-  const formReadOnly = readOnly || isSigned;
+  const formReadOnly = readOnly || isSigned || isStaffPreview;
 
   const builderFields = detail?.form.fields ?? [];
   const { bodyBuilderFields, bodySignatureFields } = useMemo(() => {
@@ -261,15 +277,17 @@ export default function ParentFormDetailModal({
     }
   }
 
-  const statusChipVariant =
-    detail?.response.status === "signed"
+  const statusChipVariant = isStaffPreview
+    ? "info"
+    : detail?.response.status === "signed"
       ? "success"
       : detail?.response.status === "overdue"
         ? "alert"
         : "warning";
 
-  const statusLabel =
-    detail?.response.status === "signed"
+  const statusLabel = isStaffPreview
+    ? "Preview"
+    : detail?.response.status === "signed"
       ? "Signed"
       : detail?.response.status === "overdue"
         ? "Overdue"
@@ -279,14 +297,17 @@ export default function ParentFormDetailModal({
     detail &&
       !isLoadingDetail &&
       !detailError &&
-      (formReadOnly
-        ? isSigned
-        : detail.form.formType === "upload" ||
-          (detail.form.formType === "builder" && bodySignatureField != null)),
+      (isStaffPreview
+        ? detail.form.formType === "upload" ||
+          (detail.form.formType === "builder" && bodySignatureField != null)
+        : formReadOnly
+          ? isSigned
+          : detail.form.formType === "upload" ||
+            (detail.form.formType === "builder" && bodySignatureField != null)),
   );
 
   const showHeaderGoToSign =
-    !formReadOnly && showSignSection && !isSignSectionInView;
+    showSignSection && !isSignSectionInView && (isStaffPreview || !formReadOnly);
 
   const scrollToSignSection = useCallback(() => {
     signSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -313,7 +334,7 @@ export default function ParentFormDetailModal({
     return () => observer.disconnect();
   }, [showSignSection, isLoadingDetail, open, formId]);
 
-  const showModal = open && Boolean(detail);
+  const showModal = open && Boolean(detail ?? staffPreviewDetail);
 
   return (
     <SchoolAdminModalShell
@@ -416,13 +437,14 @@ export default function ParentFormDetailModal({
                     form={detail.form}
                     organizationId={organizationId}
                     readOnly={readOnly}
+                    localPreviewUrl={uploadPreviewUrl}
                     previewHeightClass={PARENT_FORM_MODAL_PREVIEW_HEIGHT_CLASS}
                   />
                 ) : null}
 
                 {detail.form.formType === "builder" ? (
                   <div>
-                    {formReadOnly ? (
+                    {formReadOnly && !isStaffPreview ? (
                       bodyBuilderFields.length > 0 ? (
                         <>
                           <h3
@@ -466,9 +488,33 @@ export default function ParentFormDetailModal({
                   <SignSection
                     theme={theme}
                     sectionRef={signSectionRef}
-                    title={formReadOnly ? "Your signature" : "Complete and sign"}
+                    title={
+                      isStaffPreview
+                        ? "Complete and sign"
+                        : formReadOnly
+                          ? "Your signature"
+                          : "Complete and sign"
+                    }
                   >
-                    {formReadOnly ? (
+                    {isStaffPreview ? (
+                      <>
+                        {detail.form.formType === "upload" &&
+                        !detail.form.requireSignature ? (
+                          <p className="text-sm" style={{ color: theme.muted }}>
+                            Review the document above, then acknowledge below.
+                          </p>
+                        ) : null}
+                        <ParentFormSignatureField
+                          theme={theme}
+                          value=""
+                          onChange={() => undefined}
+                          disabled
+                        />
+                        <p className="mt-3 text-sm" style={{ color: theme.muted }}>
+                          Preview only — families can sign after you publish.
+                        </p>
+                      </>
+                    ) : formReadOnly ? (
                       <>
                         <ParentFormSignatureField
                           theme={theme}

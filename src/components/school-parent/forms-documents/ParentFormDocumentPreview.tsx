@@ -13,6 +13,7 @@ type ParentFormDocumentPreviewProps = {
   form: TeacherParentForm;
   organizationId: string;
   readOnly?: boolean;
+  localPreviewUrl?: string | null;
   previewHeightClass?: string;
 };
 
@@ -27,6 +28,7 @@ export default function ParentFormDocumentPreview({
   form,
   organizationId,
   readOnly = false,
+  localPreviewUrl = null,
   previewHeightClass = TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS,
 }: ParentFormDocumentPreviewProps) {
   const [previewState, setPreviewState] = useState<PreviewState>({ status: "idle" });
@@ -35,6 +37,14 @@ export default function ParentFormDocumentPreview({
     if (readOnly) return;
     if (form.uploadFormat === "docx") {
       setPreviewState({ status: "idle" });
+      return;
+    }
+
+    if (localPreviewUrl) {
+      setPreviewState({
+        status: "ready",
+        url: buildEmbeddedPdfViewerUrl(localPreviewUrl),
+      });
       return;
     }
 
@@ -51,7 +61,7 @@ export default function ParentFormDocumentPreview({
         message: error instanceof Error ? error.message : "Failed to load preview.",
       });
     }
-  }, [form.id, form.uploadFormat, organizationId, readOnly]);
+  }, [form.id, form.uploadFormat, localPreviewUrl, organizationId, readOnly]);
 
   useEffect(() => {
     void loadPreview();
