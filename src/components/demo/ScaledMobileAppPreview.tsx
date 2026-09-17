@@ -20,6 +20,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/kinderacademyprep/KinderAcademyPrepSchoolMobileAppShowcase"
     ),
+  "naples-microschools": () =>
+    import(
+      "@/components/demo/naplesmicroschool/NaplesMicroschoolsMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({

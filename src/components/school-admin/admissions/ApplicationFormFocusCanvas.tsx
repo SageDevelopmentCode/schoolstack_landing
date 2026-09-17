@@ -14,9 +14,6 @@ import {
 import type { EnrollmentChecklistTemplate } from "@/lib/admissions/enrollment-checklist-templates";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
-  DRAFT_REMINDER_DELAY_PRESETS,
-  normalizeApplicationFormNotificationConfig,
-  validateSubmissionNotifyEmails,
   type ApplicationField,
   type ApplicationFormFeeConfig,
   type ApplicationFormNotificationConfig,
@@ -79,8 +76,10 @@ type ApplicationFormFocusCanvasProps = {
   ) => void;
   onDeleteStep: (stepId: string) => void;
   sourceForms?: ApplicationFormVersion[];
+  loadedFormIds?: ReadonlySet<string>;
   programNameById?: Map<string, string>;
   onReuseStep?: (targetStepId: string, sourceSection: ApplicationSection) => void;
+  onReuseDialogOpen?: () => void;
   programEnrollmentChecklist?: EnrollmentChecklistTemplate | null;
   onOpenEnrollmentChecklist?: (checklistId: string) => void;
 };
@@ -161,12 +160,6 @@ function SetupView({
   const slugInputRef = useRef<HTMLInputElement>(null);
   const slugHighlighted = !lockApplySlug && setupHighlight === "publicSlug";
 
-  const notifyEmails = editable.notificationConfig.submission_notify_emails;
-  const draftReminders = editable.notificationConfig.draft_reminders;
-  const [draftContactEmailError, setDraftContactEmailError] = useState<string | null>(
-    null,
-  );
-
   useEffect(() => {
     if (!slugHighlighted) return;
     const input = slugInputRef.current;
@@ -174,55 +167,6 @@ function SetupView({
     input.focus();
     input.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [slugHighlighted]);
-
-  const updateNotificationConfig = (
-    patch: Partial<ApplicationFormNotificationConfig>,
-  ) => {
-    onEditableChange({
-      notificationConfig: normalizeApplicationFormNotificationConfig({
-        ...editable.notificationConfig,
-        ...patch,
-      }),
-    });
-  };
-
-  const handleToggleDraftReminders = (enabled: boolean) => {
-    const nextContactEmail =
-      draftReminders.contact_email ??
-      (enabled ? notifyEmails[0] ?? null : null);
-
-    updateNotificationConfig({
-      draft_reminders: {
-        ...draftReminders,
-        enabled,
-        contact_email: nextContactEmail,
-      },
-    });
-    if (!enabled) {
-      setDraftContactEmailError(null);
-    }
-  };
-
-  const handleDraftReminderDelayChange = (delayHours: number) => {
-    updateNotificationConfig({
-      draft_reminders: {
-        ...draftReminders,
-        delay_hours: delayHours,
-      },
-    });
-  };
-
-  const handleDraftContactEmailChange = (contactEmail: string) => {
-    updateNotificationConfig({
-      draft_reminders: {
-        ...draftReminders,
-        contact_email: contactEmail.trim().toLowerCase() || null,
-      },
-    });
-    if (draftContactEmailError) {
-      setDraftContactEmailError(null);
-    }
-  };
 
   return (
     <div className="w-full max-w-3xl space-y-5">
@@ -424,71 +368,16 @@ function SetupView({
       <BuilderQuestionCard
         C={C}
         tone="info"
-        question="Want to send reminders to families who haven't finished their application?"
-        helper="We'll send one friendly email if a draft hasn't been updated after the delay you choose."
+        question="Need to nudge families who haven't finished applying or enrolling?"
+        helper="MudKitchen automatically sends up to two reminder emails when a family has an unfinished draft application or enrollment checklist — first after 72 hours of inactivity, then again 7 days later. The school contact shown in those emails comes from your Notifications settings."
       >
-        <div className="space-y-3">
-          <label
-            className="inline-flex items-center gap-2 text-sm font-medium"
-            style={{ color: C.textPrimary }}
-          >
-            <input
-              type="checkbox"
-              checked={draftReminders.enabled}
-              disabled={readOnly}
-              onChange={(e) => handleToggleDraftReminders(e.target.checked)}
-              className="h-4 w-4 rounded"
-              style={{ accentColor: C.accent }}
-            />
-            Yes, send draft application reminders
-          </label>
-
-          {draftReminders.enabled ? (
-            <div className="space-y-3 border-t pt-3" style={{ borderColor: C.border }}>
-              <div className="space-y-2">
-                <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  When should we send the reminder?
-                </p>
-                <SchoolAdminSelect
-                  C={C}
-                  value={String(draftReminders.delay_hours)}
-                  disabled={readOnly}
-                  onChange={(value) => handleDraftReminderDelayChange(Number(value))}
-                  options={DRAFT_REMINDER_DELAY_PRESETS.map((preset) => ({
-                    value: String(preset.hours),
-                    label: `After ${preset.label} of inactivity`,
-                  }))}
-                  placeholder="Choose a delay"
-                  ariaLabel="Draft reminder delay"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-medium" style={{ color: C.textSecondary }}>
-                  Who should families reach out to with questions?
-                </p>
-                <input
-                  type="email"
-                  value={draftReminders.contact_email ?? ""}
-                  disabled={readOnly}
-                  onChange={(e) => handleDraftContactEmailChange(e.target.value)}
-                  placeholder="admissions@school.com"
-                  style={inputStyle(C)}
-                />
-                <p className="text-xs" style={{ color: C.textTertiary }}>
-                  This email appears in the reminder so families can ask questions or
-                  request a call with someone from your team.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {draftContactEmailError ? (
-            <p className="text-xs font-medium" style={{ color: C.error }}>
-              {draftContactEmailError}
-            </p>
-          ) : null}
-        </div>
+        <Link
+          href={schoolAdminPath(orgSlug, "notifications")}
+          className="inline-flex items-center gap-1 text-sm font-medium"
+          style={{ color: C.accent }}
+        >
+          Manage admissions notification emails
+        </Link>
       </BuilderQuestionCard>
     </div>
   );
@@ -802,8 +691,10 @@ export default function ApplicationFormFocusCanvas({
   onUpdateSchema,
   onDeleteStep,
   sourceForms = [],
+  loadedFormIds = new Set(),
   programNameById = new Map(),
   onReuseStep,
+  onReuseDialogOpen,
   programEnrollmentChecklist = null,
   onOpenEnrollmentChecklist,
 }: ApplicationFormFocusCanvasProps) {
@@ -960,6 +851,7 @@ export default function ApplicationFormFocusCanvas({
                 canReuseStep={sourceForms.length > 0 && Boolean(onReuseStep)}
                 onRequestReuseStep={() => {
                   setReuseTargetStepId(step.id);
+                  onReuseDialogOpen?.();
                   setReuseDialogOpen(true);
                 }}
                 onAddField={(newField) => addField(step.id, newField)}
@@ -1098,6 +990,7 @@ export default function ApplicationFormFocusCanvas({
       theme={theme}
       open={reuseDialogOpen}
       sourceForms={sourceForms}
+      loadedFormIds={loadedFormIds}
       programNameById={programNameById}
       onClose={() => {
         setReuseDialogOpen(false);

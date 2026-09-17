@@ -1,11 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  logSettledNotificationFailures,
+} from "@/lib/admissions/notification-logging";
+import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
   type ActivitySurface,
   type ActorType,
 } from "@/lib/activity-log";
+import {
+  sendTeacherParentFormPublishedEmail,
+  sendTeacherParentFormResponseSignedEmail,
+} from "@/lib/emails";
+import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
+import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
+import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import { reportOperationalError } from "@/lib/operational-errors";
+import { SITE_URL } from "@/lib/site";
 import { resolveFormAudienceFamilies } from "./audience";
 import type { TeacherParentForm } from "./types";
 
@@ -33,11 +44,88 @@ type TeacherParentFormResponseSignedNotificationInput = {
   actorEmail: string;
 };
 
+type OrganizationNotificationContext = {
+  schoolName: string;
+  schoolSlug: string;
+};
+
+export type TeacherParentFormNotificationDeps = {
+  resolveFormAudienceFamilies?: typeof resolveFormAudienceFamilies;
+  loadOrganizationContext?: (
+    supabase: SupabaseClient,
+    organizationId: string,
+  ) => Promise<OrganizationNotificationContext | null>;
+  loadFamilyNotificationEmails?: typeof loadFamilyNotificationEmails;
+  loadStaffNotificationEmail?: (
+    supabase: SupabaseClient,
+    staffMemberId: string,
+  ) => Promise<string | null>;
+  sendPublishedEmail?: typeof sendTeacherParentFormPublishedEmail;
+  sendSignedEmail?: typeof sendTeacherParentFormResponseSignedEmail;
+  logSettledNotificationFailures?: typeof logSettledNotificationFailures;
+};
+
+async function loadOrganizationNotificationContext(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<OrganizationNotificationContext | null> {
+  const { data: org, error } = await supabase
+    .from("organizations")
+    .select("name, slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!org?.slug) return null;
+
+  return {
+    schoolName: String(org.name ?? "Your school"),
+    schoolSlug: String(org.slug),
+  };
+}
+
+async function loadStaffNotificationEmail(
+  supabase: SupabaseClient,
+  staffMemberId: string,
+): Promise<string | null> {
+  const { data: staff, error } = await supabase
+    .from("staff_members")
+    .select("email, user_id")
+    .eq("id", staffMemberId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  const staffEmail =
+    typeof staff?.email === "string" ? staff.email.trim().toLowerCase() : "";
+  if (staffEmail) return staffEmail;
+
+  const userId = staff?.user_id ? String(staff.user_id) : null;
+  if (!userId) return null;
+
+  const { data, error: authError } = await supabase.auth.admin.getUserById(userId);
+  if (authError || !data.user?.email) return null;
+
+  return data.user.email.trim().toLowerCase();
+}
+
 export async function sendTeacherParentFormPublishedNotifications(
   supabase: SupabaseClient,
   input: TeacherParentFormPublishedNotificationInput,
+  deps: TeacherParentFormNotificationDeps = {},
 ): Promise<void> {
-  const families = await resolveFormAudienceFamilies(
+  const resolveFamilies =
+    deps.resolveFormAudienceFamilies ?? resolveFormAudienceFamilies;
+  const loadOrganizationContext =
+    deps.loadOrganizationContext ?? loadOrganizationNotificationContext;
+  const loadFamilyEmails =
+    deps.loadFamilyNotificationEmails ?? loadFamilyNotificationEmails;
+  const sendPublishedEmail =
+    deps.sendPublishedEmail ?? sendTeacherParentFormPublishedEmail;
+  const logFailures =
+    deps.logSettledNotificationFailures ?? logSettledNotificationFailures;
+
+  const families = await resolveFamilies(
     supabase,
     input.organizationId,
     input.form.classroomIds,
@@ -72,12 +160,59 @@ export async function sendTeacherParentFormPublishedNotifications(
       }),
     ),
   );
+
+  const org = await loadOrganizationContext(supabase, input.organizationId);
+  if (!org) return;
+
+  const formUrl = `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
+  const emailSendPromises: Promise<unknown>[] = [];
+
+  for (const family of families) {
+    const emails = await loadFamilyEmails(supabase, family.familyId);
+    for (const email of emails) {
+      emailSendPromises.push(
+        sendPublishedEmail({
+          to: email,
+          schoolName: org.schoolName,
+          publisherName: input.publisherName,
+          formTitle: input.form.title,
+          dueDate: input.form.dueDate,
+          studentNames: family.studentNames,
+          formUrl,
+        }),
+      );
+    }
+  }
+
+  if (emailSendPromises.length === 0) return;
+
+  const emailResults = await Promise.allSettled(emailSendPromises);
+  await logFailures(
+    supabase,
+    {
+      organizationId: input.organizationId,
+      operation: "teacher_parent_form_published_email",
+      entityType: "teacher_parent_form",
+      entityId: input.form.id,
+    },
+    emailResults,
+  );
 }
 
 export async function sendTeacherParentFormResponseSignedNotification(
   supabase: SupabaseClient,
   input: TeacherParentFormResponseSignedNotificationInput,
+  deps: TeacherParentFormNotificationDeps = {},
 ): Promise<void> {
+  const loadOrganizationContext =
+    deps.loadOrganizationContext ?? loadOrganizationNotificationContext;
+  const loadStaffEmail =
+    deps.loadStaffNotificationEmail ?? loadStaffNotificationEmail;
+  const sendSignedEmail =
+    deps.sendSignedEmail ?? sendTeacherParentFormResponseSignedEmail;
+  const logFailures =
+    deps.logSettledNotificationFailures ?? logSettledNotificationFailures;
+
   await logActivityEvent(supabase, {
     organizationId: input.organizationId,
     actorType: "parent",
@@ -97,6 +232,38 @@ export async function sendTeacherParentFormResponseSignedNotification(
       familyName: input.familyName,
     },
   });
+
+  const org = await loadOrganizationContext(supabase, input.organizationId);
+  if (!org) return;
+
+  const teacherEmail = await loadStaffEmail(supabase, input.staffMemberId);
+  if (!teacherEmail) return;
+
+  const formUrl = `${SITE_URL}${schoolTeacherPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.formId)}`;
+  const emailResults = await Promise.allSettled([
+    sendSignedEmail({
+      to: teacherEmail,
+      schoolName: org.schoolName,
+      familyName: input.familyName,
+      formTitle: input.formTitle,
+      formUrl,
+    }),
+  ]);
+
+  await logFailures(
+    supabase,
+    {
+      organizationId: input.organizationId,
+      operation: "teacher_parent_form_response_signed_email",
+      entityType: "teacher_parent_form",
+      entityId: input.formId,
+      metadata: {
+        staffMemberId: input.staffMemberId,
+        familyId: input.familyId,
+      },
+    },
+    emailResults,
+  );
 }
 
 export function fireTeacherParentFormActivityNotification(

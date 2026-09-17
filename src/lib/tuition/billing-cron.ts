@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendDraftApplicationReminders } from "@/lib/admissions/draft-reminders";
+import { sendIncompleteAdmissionsReminders } from "@/lib/admissions/incomplete-admissions-reminders";
 import { notifyTuitionBillingCronSummary } from "@/lib/discord";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
@@ -27,7 +27,7 @@ export type TuitionBillingCronSummary = {
   organizations: number;
   overdueCount: number;
   remindersSent: number;
-  draftRemindersSent: number;
+  incompleteAdmissionsRemindersSent: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -44,7 +44,7 @@ export type TuitionBillingCronDeps = {
   getTuitionOrgSettings?: typeof getTuitionOrgSettings;
   markOverdueCharges?: typeof markOverdueCharges;
   sendTuitionDueReminders?: typeof sendTuitionDueReminders;
-  sendDraftApplicationReminders?: typeof sendDraftApplicationReminders;
+  sendIncompleteAdmissionsReminders?: typeof sendIncompleteAdmissionsReminders;
   applyLateFeesForOrganization?: typeof applyLateFeesForOrganization;
   evaluateRulesForOrganization?: typeof evaluateRulesForOrganization;
   processAutopayForOrganization?: typeof processAutopayForOrganization;
@@ -79,8 +79,8 @@ export async function runTuitionBillingCron(
   const loadSettings = deps.getTuitionOrgSettings ?? getTuitionOrgSettings;
   const markOverdue = deps.markOverdueCharges ?? markOverdueCharges;
   const sendReminders = deps.sendTuitionDueReminders ?? sendTuitionDueReminders;
-  const sendDraftReminders =
-    deps.sendDraftApplicationReminders ?? sendDraftApplicationReminders;
+  const sendIncompleteAdmissionsRemindersFn =
+    deps.sendIncompleteAdmissionsReminders ?? sendIncompleteAdmissionsReminders;
   const applyLateFees =
     deps.applyLateFeesForOrganization ?? applyLateFeesForOrganization;
   const evaluateRules = deps.evaluateRulesForOrganization ?? evaluateRulesForOrganization;
@@ -91,7 +91,7 @@ export async function runTuitionBillingCron(
 
   let overdueCount = 0;
   let remindersSent = 0;
-  let draftRemindersSent = 0;
+  let incompleteAdmissionsRemindersSent = 0;
   let rulesEvaluated = 0;
   let lateFeesApplied = 0;
   let lateFeesNotified = 0;
@@ -117,8 +117,9 @@ export async function runTuitionBillingCron(
       remindersSent += sent;
     }
 
-    const orgDraftReminders = await sendDraftReminders(admin, organizationId);
-    draftRemindersSent += orgDraftReminders;
+    const orgIncompleteAdmissionsReminders =
+      await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
+    incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
 
     const orgRules = await evaluateRules(admin, organizationId);
     rulesEvaluated += orgRules;
@@ -180,7 +181,7 @@ export async function runTuitionBillingCron(
     organizations: organizationIds.length,
     overdueCount,
     remindersSent,
-    draftRemindersSent,
+    incompleteAdmissionsRemindersSent,
     rulesEvaluated,
     lateFeesApplied,
     lateFeesNotified,

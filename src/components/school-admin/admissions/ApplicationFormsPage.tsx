@@ -459,6 +459,21 @@ export default function ApplicationFormsPage({
   const isApplyDirtyRef = useRef(false);
   const isChecklistDirtyRef = useRef(false);
   const loadedFullFormIdsRef = useRef(new Set<string>());
+  const [loadedFormIds, setLoadedFormIds] = useState<Set<string>>(() => new Set());
+
+  const markFormsLoaded = useCallback((ids: Iterable<string>) => {
+    const next = new Set(loadedFullFormIdsRef.current);
+    for (const id of ids) {
+      next.add(id);
+    }
+    loadedFullFormIdsRef.current = next;
+    setLoadedFormIds(new Set(next));
+  }, []);
+
+  const resetLoadedFormIds = useCallback(() => {
+    loadedFullFormIdsRef.current = new Set();
+    setLoadedFormIds(new Set());
+  }, []);
 
   const selectedForm =
     selection?.kind === "apply"
@@ -600,7 +615,7 @@ export default function ApplicationFormsPage({
         listPrograms(supabase, organizationId),
         orgPaymentsReadyForFees(supabase, organizationId),
       ]);
-      loadedFullFormIdsRef.current = new Set();
+      resetLoadedFormIds();
       setForms(formRows);
       setChecklists(checklistRows);
       setPrograms(programRows);
@@ -618,7 +633,37 @@ export default function ApplicationFormsPage({
     } finally {
       setLoading(false);
     }
-  }, [flowParam, organizationId, supabase]);
+  }, [flowParam, organizationId, resetLoadedFormIds, supabase]);
+
+  const ensureFormsLoaded = useCallback(
+    async (formIds: string[]) => {
+      const pending = formIds.filter((id) => !loadedFullFormIdsRef.current.has(id));
+      if (pending.length === 0) return;
+
+      try {
+        const results = await Promise.all(
+          pending.map((id) => getApplicationForm(supabase, id)),
+        );
+        const loaded = results.filter(
+          (form): form is ApplicationFormVersion => form !== null,
+        );
+        if (loaded.length === 0) return;
+
+        markFormsLoaded(loaded.map((form) => form.id));
+        setForms((prev) => {
+          const byId = new Map(loaded.map((form) => [form.id, form]));
+          return prev.map((row) => byId.get(row.id) ?? row);
+        });
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "forms.load_detail",
+          error: "",
+        }, err);
+      }
+    },
+    [markFormsLoaded, organizationId, supabase],
+  );
 
   useEffect(() => {
     if (hasInitialList || listDeferred) return;
@@ -656,7 +701,7 @@ export default function ApplicationFormsPage({
       try {
         const full = await getApplicationForm(supabase, formId);
         if (cancelled || !full) return;
-        loadedFullFormIdsRef.current.add(full.id);
+        markFormsLoaded([full.id]);
         setForms((prev) => prev.map((row) => (row.id === full.id ? full : row)));
         if (!cancelled) {
           setSelectedApplyFormHydrated(true);
@@ -676,7 +721,7 @@ export default function ApplicationFormsPage({
     return () => {
       cancelled = true;
     };
-  }, [selectedApplyFormId, supabase]);
+  }, [markFormsLoaded, selectedApplyFormId, supabase]);
 
   const selectedChecklistId =
     selection?.kind === "checklist" ? selection.id : null;
@@ -893,7 +938,7 @@ export default function ApplicationFormsPage({
         programId,
         programName,
       });
-      loadedFullFormIdsRef.current.add(created.id);
+      markFormsLoaded([created.id]);
       setForms((prev) => [created, ...prev]);
       setSelection({ kind: "apply", id: created.id });
       setSelectedApplyFormHydrated(true);
@@ -975,7 +1020,7 @@ export default function ApplicationFormsPage({
     setError(null);
     try {
       const copy = await duplicateForm(supabase, selectedForm.id);
-      loadedFullFormIdsRef.current.add(copy.id);
+      markFormsLoaded([copy.id]);
       setForms((prev) => [copy, ...prev]);
       setSelection({ kind: "apply", id: copy.id });
       setSelectedApplyFormHydrated(true);
@@ -1528,6 +1573,10 @@ export default function ApplicationFormsPage({
     [forms, selectedForm],
   );
 
+  const hydrateSourceFormsForReuse = useCallback(() => {
+    void ensureFormsLoaded(sourceFormsForReuse.map((form) => form.id));
+  }, [ensureFormsLoaded, sourceFormsForReuse]);
+
   const reorderSteps = (sections: ApplicationFormSchema["sections"]) => {
     if (isApplyFormSelected) {
       const systemStep = sections.find(isSystemSection);
@@ -1841,8 +1890,10 @@ export default function ApplicationFormsPage({
               onUpdateSchema={updateSchema}
               onDeleteStep={deleteStep}
               sourceForms={sourceFormsForReuse}
+              loadedFormIds={loadedFormIds}
               programNameById={programNameById}
               onReuseStep={reuseStep}
+              onReuseDialogOpen={hydrateSourceFormsForReuse}
               programEnrollmentChecklist={selectedProgramEnrollmentChecklist}
               onOpenEnrollmentChecklist={(checklistId) => {
                 setSelection({ kind: "checklist", id: checklistId });

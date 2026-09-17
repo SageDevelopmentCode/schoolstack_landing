@@ -6,6 +6,7 @@ import {
   buildApplicationSubmittedOwnerNotificationHtml,
   buildCommitteeJoinRequestAdminNotificationHtml,
   buildDraftApplicationReminderHtml,
+  buildIncompleteAdmissionsReminderHtml,
   buildDemoBookingConfirmationHtml,
   buildDemoFeedbackConfirmationHtml,
   buildEnrollmentCompletedConfirmationHtml,
@@ -14,6 +15,8 @@ import {
   buildPaymentReceiptConfirmationHtml,
   buildPaymentReceivedAdminNotificationHtml,
   buildPostSubmitVisitOwnerNotificationHtml,
+  buildTeacherParentFormPublishedEmailHtml,
+  buildTeacherParentFormResponseSignedEmailHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
   buildTuitionPaymentReceiptHtml,
@@ -146,6 +149,90 @@ const previews = [
       "We're excited you're applying",
       "Continue your application",
       "admissions@rootedmeadows.com",
+      "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "incomplete-admissions-reminder-application.html",
+    html: buildIncompleteAdmissionsReminderHtml({
+      name: "Maria Lopez",
+      schoolName: "Rooted Meadows",
+      contactEmail: "admissions@rootedmeadows.com",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      draftApplications: [
+        {
+          formTitle: "2026–27 Enrollment Application",
+          applyUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+        },
+      ],
+      incompleteEnrollments: [],
+    }),
+    checks: [
+      "Friendly Reminder",
+      "Applications in progress",
+      "Continue your application",
+      "admissions@rootedmeadows.com",
+      "Rooted Meadows",
+      "2026–27 Enrollment Application",
+    ],
+  },
+  {
+    filename: "incomplete-admissions-reminder-enrollment.html",
+    html: buildIncompleteAdmissionsReminderHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows",
+      contactEmail: "admissions@rootedmeadows.com",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      draftApplications: [],
+      incompleteEnrollments: [
+        {
+          label: "Autumn Evensen — Grade 1",
+          progressLabel: "3/8 complete",
+          enrollmentUrl:
+            "https://trymudkitchen.com/school/rooted-meadows/apply/700bd103-0daa-47d2-8cd9-810029e4db8c/enrollment",
+        },
+      ],
+    }),
+    checks: [
+      "Friendly Reminder",
+      "Enrollment checklist",
+      "Complete enrollment",
+      "Autumn Evensen — Grade 1",
+      "3/8 complete",
+      "admissions@rootedmeadows.com",
+      "Rooted Meadows",
+    ],
+  },
+  {
+    filename: "incomplete-admissions-reminder-both.html",
+    html: buildIncompleteAdmissionsReminderHtml({
+      name: "Maria Lopez",
+      schoolName: "Rooted Meadows",
+      contactEmail: "admissions@rootedmeadows.com",
+      applyDashboardUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+      draftApplications: [
+        {
+          formTitle: "2026–27 Enrollment Application",
+          applyUrl: "https://trymudkitchen.com/school/rooted-meadows/apply",
+        },
+      ],
+      incompleteEnrollments: [
+        {
+          label: "Sofia Lopez — Kindergarten",
+          progressLabel: "1/6 complete",
+          enrollmentUrl:
+            "https://trymudkitchen.com/school/rooted-meadows/apply/a1b2c3d4-e5f6-7890-abcd-ef1234567890/enrollment",
+        },
+      ],
+    }),
+    checks: [
+      "Friendly Reminder",
+      "Applications in progress",
+      "Enrollment checklist",
+      "Continue your application",
+      "Complete enrollment",
+      "2026–27 Enrollment Application",
+      "Sofia Lopez — Kindergarten",
       "Rooted Meadows",
     ],
   },
@@ -441,6 +528,43 @@ const previews = [
       "parent@example.com",
       "Student Evensen",
       "View submission",
+    ],
+  },
+  {
+    filename: "teacher-parent-form-published.html",
+    html: buildTeacherParentFormPublishedEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      publisherName: "Ms. Taylor Reyes",
+      formTitle: "Field Trip Permission Slip",
+      dueDate: "2026-09-30",
+      studentNames: ["Olivia Sparhawk", "Noah Sparhawk"],
+      formUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/forms_documents?form=form-1",
+    }),
+    checks: [
+      "Form to Sign",
+      "Ms. Taylor Reyes",
+      "Field Trip Permission Slip",
+      "Olivia Sparhawk",
+      "Sign form",
+      "forms_documents?form=form-1",
+    ],
+  },
+  {
+    filename: "teacher-parent-form-response-signed.html",
+    html: buildTeacherParentFormResponseSignedEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      familyName: "Sparhawk Family",
+      formTitle: "Field Trip Permission Slip",
+      formUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/teacher/forms_documents?form=form-1",
+    }),
+    checks: [
+      "Form Signed",
+      "Sparhawk Family",
+      "Field Trip Permission Slip",
+      "View form",
+      "teacher/forms_documents?form=form-1",
     ],
   },
   {

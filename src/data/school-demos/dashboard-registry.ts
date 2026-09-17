@@ -15,6 +15,7 @@ import { lighthouseHomeschoolAdminDemoConfig } from "./lighthouse-admin-demo";
 import { luffLearningAdminDemoConfig } from "./luff-learning-admin-demo";
 import { micahsMissionSchoolAdminDemoConfig } from "./micahmission-admin-demo";
 import { monarchHillsEducationAdminDemoConfig } from "./monarchhills-admin-demo";
+import { naplesMicroschoolsAdminDemoConfig } from "./naples-microschools-admin-demo";
 import { naturesSchoolhouseAdminDemoConfig } from "./natures-schoolhouse-admin-demo";
 import { oneAcreFarmAdminDemoConfig } from "./oneacrefarm-admin-demo";
 import { paradiseEarthAcademyAdminDemoConfig } from "./paradise-earth-academy-admin-demo";
@@ -43,6 +44,7 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "luff-learning": luffLearningAdminDemoConfig,
   "micahs-mission-school": micahsMissionSchoolAdminDemoConfig,
   "monarch-hills-education": monarchHillsEducationAdminDemoConfig,
+  "naples-microschools": naplesMicroschoolsAdminDemoConfig,
   "natures-schoolhouse": naturesSchoolhouseAdminDemoConfig,
   "one-acre-farm": oneAcreFarmAdminDemoConfig,
   "paradise-earth-academy": paradiseEarthAcademyAdminDemoConfig,
@@ -72,6 +74,7 @@ import { lighthouseHomeschoolParentDemoConfig } from "./lighthouse-parent-demo";
 import { luffLearningParentDemoConfig } from "./luff-learning-parent-demo";
 import { micahsMissionSchoolParentDemoConfig } from "./micahmission-parent-demo";
 import { monarchHillsEducationParentDemoConfig } from "./monarchhills-parent-demo";
+import { naplesMicroschoolsParentDemoConfig } from "./naples-microschools-parent-demo";
 import { naturesSchoolhouseParentDemoConfig } from "./natures-schoolhouse-parent-demo";
 import { oneAcreFarmParentDemoConfig } from "./oneacrefarm-parent-demo";
 import { paradiseEarthAcademyParentDemoConfig } from "./paradise-earth-academy-parent-demo";
@@ -100,6 +103,7 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "luff-learning": luffLearningParentDemoConfig,
   "micahs-mission-school": micahsMissionSchoolParentDemoConfig,
   "monarch-hills-education": monarchHillsEducationParentDemoConfig,
+  "naples-microschools": naplesMicroschoolsParentDemoConfig,
   "natures-schoolhouse": naturesSchoolhouseParentDemoConfig,
   "one-acre-farm": oneAcreFarmParentDemoConfig,
   "paradise-earth-academy": paradiseEarthAcademyParentDemoConfig,
@@ -128,6 +132,7 @@ import { lighthouseHomeschoolTeacherDemoConfig } from "./lighthouse-teacher-demo
 import { luffLearningTeacherDemoConfig } from "./luff-learning-teacher-demo";
 import { micahsMissionSchoolTeacherDemoConfig } from "./micahmission-teacher-demo";
 import { monarchHillsEducationTeacherDemoConfig } from "./monarchhills-teacher-demo";
+import { naplesMicroschoolsTeacherDemoConfig } from "./naples-microschools-teacher-demo";
 import { naturesSchoolhouseTeacherDemoConfig } from "./natures-schoolhouse-teacher-demo";
 import { oneAcreFarmTeacherDemoConfig } from "./oneacrefarm-teacher-demo";
 import { paradiseEarthAcademyTeacherDemoConfig } from "./paradise-earth-academy-teacher-demo";
@@ -156,6 +161,7 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "luff-learning": luffLearningTeacherDemoConfig,
   "micahs-mission-school": micahsMissionSchoolTeacherDemoConfig,
   "monarch-hills-education": monarchHillsEducationTeacherDemoConfig,
+  "naples-microschools": naplesMicroschoolsTeacherDemoConfig,
   "natures-schoolhouse": naturesSchoolhouseTeacherDemoConfig,
   "one-acre-farm": oneAcreFarmTeacherDemoConfig,
   "paradise-earth-academy": paradiseEarthAcademyTeacherDemoConfig,

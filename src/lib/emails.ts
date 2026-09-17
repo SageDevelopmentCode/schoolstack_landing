@@ -376,6 +376,128 @@ export async function sendDraftApplicationReminderEmail(payload: {
   return { ok: true };
 }
 
+export function buildIncompleteAdmissionsReminderSubject(payload: {
+  schoolName: string;
+  hasDraftApplications: boolean;
+  hasIncompleteEnrollments: boolean;
+}): string {
+  if (payload.hasDraftApplications && payload.hasIncompleteEnrollments) {
+    return `Reminder: finish your admissions steps — ${payload.schoolName}`;
+  }
+  if (payload.hasIncompleteEnrollments) {
+    return `Reminder: complete your enrollment — ${payload.schoolName}`;
+  }
+  return `Reminder: finish your application — ${payload.schoolName}`;
+}
+
+export function buildIncompleteAdmissionsReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  contactEmail: string;
+  applyDashboardUrl: string;
+  draftApplications: Array<{ formTitle: string; applyUrl: string }>;
+  incompleteEnrollments: Array<{
+    label: string;
+    progressLabel: string;
+    enrollmentUrl: string;
+  }>;
+}): string {
+  const hasDrafts = payload.draftApplications.length > 0;
+  const hasEnrollments = payload.incompleteEnrollments.length > 0;
+  const contactMailto = payload.contactEmail
+    ? `mailto:${encodeURIComponent(payload.contactEmail)}`
+    : null;
+
+  const draftSection = hasDrafts
+    ? `
+      ${emailHeading("Applications in progress")}
+      ${emailParagraph(
+        "You started an application but have not submitted it yet. Your progress is saved — pick up where you left off whenever you are ready.",
+      )}
+      ${emailBulletList(
+        payload.draftApplications.map(
+          (application) => `${application.formTitle}`,
+        ),
+      )}
+      ${emailCta({
+        label: "Continue your application",
+        href: payload.draftApplications[0]?.applyUrl ?? payload.applyDashboardUrl,
+      })}
+    `
+    : "";
+
+  const enrollmentSection = hasEnrollments
+    ? `
+      ${emailHeading("Enrollment checklist")}
+      ${emailParagraph(
+        "Your enrollment checklist still has steps to complete before your student can be fully enrolled.",
+      )}
+      ${emailBulletList(
+        payload.incompleteEnrollments.map(
+          (enrollment) => `${enrollment.label} (${enrollment.progressLabel})`,
+        ),
+      )}
+      ${emailCta({
+        label: "Complete enrollment",
+        href:
+          payload.incompleteEnrollments[0]?.enrollmentUrl ??
+          payload.applyDashboardUrl,
+      })}
+    `
+    : "";
+
+  const contactSection = payload.contactEmail && contactMailto
+    ? emailParagraph(
+        `Questions? Reach out to the ${escapeHtml(payload.schoolName)} team at <a href="${contactMailto}" style="color:inherit;">${escapeHtml(payload.contactEmail)}</a>.`,
+      )
+    : "";
+
+  const preheader = hasDrafts && hasEnrollments
+    ? `${payload.schoolName} — finish your application and enrollment steps.`
+    : hasEnrollments
+      ? `${payload.schoolName} — complete your enrollment checklist.`
+      : `${payload.schoolName} would love to see you finish your application.`;
+
+  return composeEmail({
+    preheader,
+    contentHtml: `
+      ${emailBadge("Friendly Reminder")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(
+        `This is a friendly reminder from ${escapeHtml(payload.schoolName)} about outstanding admissions steps for your family.`,
+      )}
+      ${draftSection}
+      ${enrollmentSection}
+      ${contactSection}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendIncompleteAdmissionsReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  subject: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: payload.subject,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Incomplete admissions reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildEnrollmentCompletedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -1353,6 +1475,133 @@ export async function sendNewMessageEmail(payload: {
 
   if (!result.success) {
     console.error("New message email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export function buildTeacherParentFormPublishedEmailHtml(payload: {
+  schoolName: string;
+  publisherName: string;
+  formTitle: string;
+  dueDate?: string | null;
+  studentNames?: string[];
+  formUrl: string;
+}): string {
+  const absoluteUrl = payload.formUrl.startsWith("http")
+    ? payload.formUrl
+    : `${SITE_URL}${payload.formUrl}`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "Form", value: payload.formTitle },
+    { label: "From", value: payload.publisherName },
+  ];
+
+  if (payload.dueDate) {
+    details.push({ label: "Due", value: formatSelectedDate(payload.dueDate) });
+  }
+
+  if (payload.studentNames && payload.studentNames.length > 0) {
+    details.push({
+      label: "Students",
+      value: payload.studentNames.join(", "),
+    });
+  }
+
+  return composeEmail({
+    preheader: `${payload.publisherName} posted a form for you to sign`,
+    contentHtml: `
+      ${emailBadge("Form to Sign")}
+      ${emailHeading(`A form is ready to sign at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.publisherName)}</strong> posted <strong>${escapeHtml(payload.formTitle)}</strong> for your family to review and sign.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Sign form", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTeacherParentFormPublishedEmail(payload: {
+  to: string;
+  schoolName: string;
+  publisherName: string;
+  formTitle: string;
+  dueDate?: string | null;
+  studentNames?: string[];
+  formUrl: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildTeacherParentFormPublishedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Form to sign — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("Teacher parent form published email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export function buildTeacherParentFormResponseSignedEmailHtml(payload: {
+  schoolName: string;
+  familyName: string;
+  formTitle: string;
+  formUrl: string;
+}): string {
+  const absoluteUrl = payload.formUrl.startsWith("http")
+    ? payload.formUrl
+    : `${SITE_URL}${payload.formUrl}`;
+
+  return composeEmail({
+    preheader: `${payload.familyName} signed ${payload.formTitle}`,
+    contentHtml: `
+      ${emailBadge("Form Signed")}
+      ${emailHeading(`A family signed your form at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.familyName)}</strong> signed <strong>${escapeHtml(payload.formTitle)}</strong>.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Family", value: payload.familyName },
+        { label: "Form", value: payload.formTitle },
+      ])}
+      ${emailCta({ label: "View form", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTeacherParentFormResponseSignedEmail(payload: {
+  to: string;
+  schoolName: string;
+  familyName: string;
+  formTitle: string;
+  formUrl: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildTeacherParentFormResponseSignedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Form signed — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("Teacher parent form response signed email failed:", result.error);
     return { ok: false };
   }
 

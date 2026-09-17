@@ -53,6 +53,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import("@/components/demo/micahmission/MicahMissionWebsiteDashboardDemo"),
   "monarch-hills-education": () =>
     import("@/components/demo/monarchhills/MonarchHillsWebsiteDashboardDemo"),
+  "naples-microschools": () =>
+    import(
+      "@/components/demo/naplesmicroschool/NaplesMicroschoolsWebsiteDashboardDemo"
+    ),
   "natures-schoolhouse": () =>
     import(
       "@/components/demo/natureschoolhouse/NaturesSchoolhouseWebsiteDashboardDemo"
