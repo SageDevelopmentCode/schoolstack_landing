@@ -24,6 +24,18 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/naplesmicroschool/NaplesMicroschoolsMobileAppShowcase"
     ),
+  "the-focus-academy": () =>
+    import(
+      "@/components/demo/thefocusacademy/TheFocusAcademyMobileAppShowcase"
+    ),
+  "piedmont-forest-school": () =>
+    import(
+      "@/components/demo/piedmontforestschool/PiedmontForestSchoolMobileAppShowcase"
+    ),
+  "little-sprigs-tampa": () =>
+    import(
+      "@/components/demo/littlesprigstampa/LittleSprigsTampaMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({

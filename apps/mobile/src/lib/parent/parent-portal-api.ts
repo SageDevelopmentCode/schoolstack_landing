@@ -18,6 +18,7 @@ import type {
 } from '@/lib/parent/parent-classroom-signups-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
+import type { BulletinPost } from '@/lib/school-bulletin/types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -200,6 +201,8 @@ export type ParentHomeData = {
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   formAttentionItems?: ParentFormAttentionItem[];
   formSnapshot?: ParentFormHomeSnapshot | null;
+  bulletinEnabled: boolean;
+  bulletinPosts: BulletinPost[];
 };
 
 export async function fetchParentHomeData(

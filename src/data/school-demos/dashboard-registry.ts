@@ -21,6 +21,9 @@ import { oneAcreFarmAdminDemoConfig } from "./oneacrefarm-admin-demo";
 import { paradiseEarthAcademyAdminDemoConfig } from "./paradise-earth-academy-admin-demo";
 import { prestigeHomeschoolAcademyAdminDemoConfig } from "./prestigehomeschoolacademy-admin-demo";
 import { springRiverSchoolAdminDemoConfig } from "./springriverschool-admin-demo";
+import { theFocusAcademyAdminDemoConfig } from "./the-focus-academy-admin-demo";
+import { piedmontForestSchoolAdminDemoConfig } from "./piedmont-forest-school-admin-demo";
+import { littleSprigsTampaAdminDemoConfig } from "./little-sprigs-tampa-admin-demo";
 import { theWoodlandsMicroschoolAdminDemoConfig } from "./the-woodlands-admin-demo";
 import { trueNorthAdminDemoConfig } from "./truenorth-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
@@ -50,6 +53,9 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "paradise-earth-academy": paradiseEarthAcademyAdminDemoConfig,
   "prestige-homeschool-academy": prestigeHomeschoolAcademyAdminDemoConfig,
   "spring-river-school": springRiverSchoolAdminDemoConfig,
+  "the-focus-academy": theFocusAcademyAdminDemoConfig,
+  "piedmont-forest-school": piedmontForestSchoolAdminDemoConfig,
+  "little-sprigs-tampa": littleSprigsTampaAdminDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolAdminDemoConfig,
   "true-north": trueNorthAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
@@ -80,6 +86,9 @@ import { oneAcreFarmParentDemoConfig } from "./oneacrefarm-parent-demo";
 import { paradiseEarthAcademyParentDemoConfig } from "./paradise-earth-academy-parent-demo";
 import { prestigeHomeschoolAcademyParentDemoConfig } from "./prestigehomeschoolacademy-parent-demo";
 import { springRiverSchoolParentDemoConfig } from "./springriverschool-parent-demo";
+import { theFocusAcademyParentDemoConfig } from "./the-focus-academy-parent-demo";
+import { piedmontForestSchoolParentDemoConfig } from "./piedmont-forest-school-parent-demo";
+import { littleSprigsTampaParentDemoConfig } from "./little-sprigs-tampa-parent-demo";
 import { theWoodlandsMicroschoolParentDemoConfig } from "./the-woodlands-parent-demo";
 import { trueNorthParentDemoConfig } from "./truenorth-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
@@ -109,6 +118,9 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "paradise-earth-academy": paradiseEarthAcademyParentDemoConfig,
   "prestige-homeschool-academy": prestigeHomeschoolAcademyParentDemoConfig,
   "spring-river-school": springRiverSchoolParentDemoConfig,
+  "the-focus-academy": theFocusAcademyParentDemoConfig,
+  "piedmont-forest-school": piedmontForestSchoolParentDemoConfig,
+  "little-sprigs-tampa": littleSprigsTampaParentDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolParentDemoConfig,
   "true-north": trueNorthParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
@@ -138,6 +150,9 @@ import { oneAcreFarmTeacherDemoConfig } from "./oneacrefarm-teacher-demo";
 import { paradiseEarthAcademyTeacherDemoConfig } from "./paradise-earth-academy-teacher-demo";
 import { prestigeHomeschoolAcademyTeacherDemoConfig } from "./prestigehomeschoolacademy-teacher-demo";
 import { springRiverSchoolTeacherDemoConfig } from "./springriverschool-teacher-demo";
+import { theFocusAcademyTeacherDemoConfig } from "./the-focus-academy-teacher-demo";
+import { piedmontForestSchoolTeacherDemoConfig } from "./piedmont-forest-school-teacher-demo";
+import { littleSprigsTampaTeacherDemoConfig } from "./little-sprigs-tampa-teacher-demo";
 import { theWoodlandsMicroschoolTeacherDemoConfig } from "./the-woodlands-teacher-demo";
 import { trueNorthTeacherDemoConfig } from "./truenorth-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
@@ -167,6 +182,9 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "paradise-earth-academy": paradiseEarthAcademyTeacherDemoConfig,
   "prestige-homeschool-academy": prestigeHomeschoolAcademyTeacherDemoConfig,
   "spring-river-school": springRiverSchoolTeacherDemoConfig,
+  "the-focus-academy": theFocusAcademyTeacherDemoConfig,
+  "piedmont-forest-school": piedmontForestSchoolTeacherDemoConfig,
+  "little-sprigs-tampa": littleSprigsTampaTeacherDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolTeacherDemoConfig,
   "true-north": trueNorthTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,

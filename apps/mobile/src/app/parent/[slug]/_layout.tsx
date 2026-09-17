@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
+  isParentBulletinDetailPath,
   isParentChildDetailPath,
   parentAccountRoute,
   parentMoreRoute,
@@ -37,6 +38,7 @@ import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
 
 function getActiveTab(pathname: string): ParentTab | null {
   if (isParentChildDetailPath(pathname)) return null;
+  if (isParentBulletinDetailPath(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/messages')) return 'messages';

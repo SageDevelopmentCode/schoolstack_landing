@@ -56,6 +56,14 @@ import {
   PORTAL_LABELS,
 } from "@/lib/organization-settings/catalog";
 import {
+  COOP_AUTO_ENABLED_TOGGLE_TOOLTIP,
+  COOP_ONLY_PARENT_FEATURE_BADGE,
+  getCoopParentFeatureAdminHint,
+  isCoopAutoEnabledParentFeature,
+  isCoopOnlyParentFeature,
+  resolveCoopAutoEnabledOrgParentFlags,
+} from "@/lib/organization-settings/coop-parent-features";
+import {
   getDefaultSettings,
   mergeBranding,
   mergeFeatures,
@@ -513,10 +521,20 @@ export default function OrganizationSettingsEditor({
       }
     }
 
+    const hasCoopModePrograms = portalProgramSummary.coopModePrograms.length > 0;
+    const normalizedParentFeatures = resolveCoopAutoEnabledOrgParentFlags(
+      features.parent ?? DEFAULT_FEATURES.parent,
+      hasCoopModePrograms,
+    );
+    const normalizedFeatures = {
+      ...features,
+      parent: normalizedParentFeatures,
+    };
+
     const payload = {
       organization_id: organizationId,
       branding: branding as unknown as Record<string, unknown>,
-      features: features as unknown as Record<string, unknown>,
+      features: normalizedFeatures as unknown as Record<string, unknown>,
       admissions,
     };
 
@@ -620,6 +638,10 @@ export default function OrganizationSettingsEditor({
       }
     }
 
+    if (hasCoopModePrograms) {
+      setFeatures(normalizedFeatures);
+    }
+
     setHasRow(true);
     setSavedSnapshot(
       serializeSettings(
@@ -638,6 +660,7 @@ export default function OrganizationSettingsEditor({
     onSaved,
     organizationId,
     orgPrograms,
+    portalProgramSummary.coopModePrograms.length,
     programPortalConfig.enabled,
     programPortalEditors,
     savedAdmissionsSnapshot,
@@ -1071,7 +1094,7 @@ export default function OrganizationSettingsEditor({
               const rowKey = `${portal}-${key}`;
               const catalogDef = defsByKey.get(key);
               if (catalogDef) {
-                const enabled =
+                const rawEnabled =
                   portal === "additional"
                     ? Boolean(features[catalogDef.key])
                     : Boolean(
@@ -1082,6 +1105,13 @@ export default function OrganizationSettingsEditor({
                           >
                         )?.[catalogDef.key],
                       );
+                const isCoopOnly =
+                  portal === "parent" && isCoopOnlyParentFeature(catalogDef.key);
+                const isCoopAutoEnabled =
+                  isCoopOnly &&
+                  isCoopAutoEnabledParentFeature(catalogDef.key) &&
+                  portalProgramSummary.coopModePrograms.length > 0;
+                const enabled = isCoopAutoEnabled ? true : rawEnabled;
                 const navItem =
                   isNavPortal && portalNav
                     ? resolveFeatureNavItem(portal, catalogDef.key, portalNav)
@@ -1106,9 +1136,19 @@ export default function OrganizationSettingsEditor({
                     sortable={sortable}
                     reorderValue={sortable ? key : undefined}
                     title={navItem?.label ?? catalogDef.label}
-                    subtitle={catalogDef.description}
+                    badge={isCoopOnly ? COOP_ONLY_PARENT_FEATURE_BADGE : undefined}
+                    subtitle={
+                      isCoopOnly
+                        ? getCoopParentFeatureAdminHint(catalogDef.key)
+                        : catalogDef.description
+                    }
                     enabled={enabled}
+                    toggleDisabled={isCoopAutoEnabled}
+                    toggleTooltip={
+                      isCoopAutoEnabled ? COOP_AUTO_ENABLED_TOGGLE_TOOLTIP : undefined
+                    }
                     onToggle={(checked) => {
+                      if (isCoopAutoEnabled) return;
                       if (portal === "additional") {
                         setAdditionalFeature(catalogDef.key, checked);
                       } else {
@@ -1632,6 +1672,13 @@ export default function OrganizationSettingsEditor({
                     this program&apos;s threads plus the school office. Billing and
                     feed stay org-wide for now.
                   </p>
+                  {portalProgramSummary.coopModePrograms.length > 0 ? (
+                    <p className="text-xs text-admin-muted font-secondary">
+                      Co-op features (curriculum, supply list, teaching schedule)
+                      appear only in isolated co-op program portals, not the main
+                      parent portal.
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -1962,10 +2009,13 @@ function FeatureSubtabRow({
 
 function FeatureSettingsRow({
   title,
+  badge,
   subtitle,
   subtitleMono = false,
   enabled,
   onToggle,
+  toggleDisabled = false,
+  toggleTooltip,
   toggleLabel,
   showNavControls = false,
   navGroups,
@@ -1984,10 +2034,13 @@ function FeatureSettingsRow({
   subtabsFooter,
 }: {
   title: string;
+  badge?: string;
   subtitle?: string;
   subtitleMono?: boolean;
   enabled: boolean;
   onToggle: (checked: boolean) => void;
+  toggleDisabled?: boolean;
+  toggleTooltip?: string;
   toggleLabel: string;
   showNavControls?: boolean;
   navGroups?: string[];
@@ -2057,7 +2110,17 @@ function FeatureSettingsRow({
               className={`w-full ${fieldClass}`}
             />
           ) : (
-            <p className="text-sm text-admin-text font-secondary">{title}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="text-sm text-admin-text font-secondary">{title}</p>
+              {badge ? (
+                <span
+                  className="rounded border border-admin-border bg-admin-bg px-1.5 py-0.5 text-[10px] font-medium text-admin-muted"
+                  title={toggleTooltip ?? undefined}
+                >
+                  {badge}
+                </span>
+              ) : null}
+            </div>
           )}
         </div>
       </div>
@@ -2105,8 +2168,16 @@ function FeatureSettingsRow({
     ) : null;
 
   const toggleBlock = (
-    <div className="flex items-center gap-2 shrink-0 justify-end">
-      <Toggle checked={enabled} onChange={onToggle} label={toggleLabel} />
+    <div
+      className="flex items-center gap-2 shrink-0 justify-end"
+      title={toggleDisabled ? toggleTooltip : undefined}
+    >
+      <Toggle
+        checked={enabled}
+        onChange={onToggle}
+        label={toggleLabel}
+        disabled={toggleDisabled}
+      />
       {onDelete ? (
         <button
           type="button"
@@ -2556,21 +2627,26 @@ function Toggle({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-disabled={disabled}
       aria-label={label}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
       className={`relative w-10 h-5 rounded-admin-md transition-colors shrink-0 ${
         checked ? "bg-accent" : "bg-border"
-      }`}
+      } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
     >
       <span
         className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-admin-md bg-admin-surface shadow transition-transform ${

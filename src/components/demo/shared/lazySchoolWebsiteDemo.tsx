@@ -67,6 +67,14 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/paradiseearthacademy/ParadiseEarthAcademyWebsiteDashboardDemo"
     ),
+  "piedmont-forest-school": () =>
+    import(
+      "@/components/demo/piedmontforestschool/PiedmontForestSchoolWebsiteDashboardDemo"
+    ),
+  "little-sprigs-tampa": () =>
+    import(
+      "@/components/demo/littlesprigstampa/LittleSprigsTampaWebsiteDashboardDemo"
+    ),
   "prestige-homeschool-academy": () =>
     import(
       "@/components/demo/prestigehomeschoolacademy/PrestigeHomeschoolAcademyWebsiteDashboardDemo"
@@ -78,6 +86,10 @@ const WEBSITE_DEMO_LOADERS: Record<
   "spring-river-school": () =>
     import(
       "@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo"
+    ),
+  "the-focus-academy": () =>
+    import(
+      "@/components/demo/thefocusacademy/TheFocusAcademyWebsiteDashboardDemo"
     ),
   "the-woodlands-microschool": () =>
     import(

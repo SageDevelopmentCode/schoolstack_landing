@@ -28,6 +28,9 @@ export { austinMicroSchoolConfig } from "./austin-micro-school";
 export { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
 export { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
 export { naplesMicroschoolsConfig } from "./naples-microschools";
+export { theFocusAcademyConfig } from "./the-focus-academy";
+export { piedmontForestSchoolConfig } from "./piedmont-forest-school";
+export { littleSprigsTampaConfig } from "./little-sprigs-tampa";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -58,6 +61,9 @@ import { austinMicroSchoolConfig } from "./austin-micro-school";
 import { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
 import { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
 import { naplesMicroschoolsConfig } from "./naples-microschools";
+import { theFocusAcademyConfig } from "./the-focus-academy";
+import { piedmontForestSchoolConfig } from "./piedmont-forest-school";
+import { littleSprigsTampaConfig } from "./little-sprigs-tampa";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -88,6 +94,9 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "kats-community-microschool": katsCommunityMicroschoolConfig,
   "kinder-academy-prep-school": kinderAcademyPrepSchoolConfig,
   "naples-microschools": naplesMicroschoolsConfig,
+  "the-focus-academy": theFocusAcademyConfig,
+  "piedmont-forest-school": piedmontForestSchoolConfig,
+  "little-sprigs-tampa": littleSprigsTampaConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

@@ -27,6 +27,7 @@ import type { AdminEnrolledStudentSummary } from '@/lib/school-admin/enrolled-st
 import { filterStudentsByClassroomName } from '@/lib/teacher/teacher-home-utils';
 import {
   resolveTeacherFocusHref,
+  teacherBulletinDetailRoute,
   teacherStudentDetailRoute,
   teacherTabRoute,
 } from '@/lib/teacher/teacher-nav';
@@ -213,6 +214,10 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
         visible={bulletinOpen}
         posts={summary.bulletinPosts}
         onClose={() => setBulletinOpen(false)}
+        onOpenPost={(postId) => {
+          setBulletinOpen(false);
+          router.push(teacherBulletinDetailRoute(slug, postId));
+        }}
       />
 
       <PortalSupportRequestSheet

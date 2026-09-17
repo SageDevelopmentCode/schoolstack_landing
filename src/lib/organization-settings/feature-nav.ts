@@ -37,6 +37,12 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
     { key: "classrooms", label: "Classrooms", icon: "home" },
     { key: "forms_documents", label: "Forms & documents", icon: "file-text" },
     { key: "tuition", label: "Tuition", icon: "dollar-sign" },
+    {
+      key: "friday_branch",
+      label: "Friday Branch",
+      icon: "calendar-days",
+      enabled: false,
+    },
   ],
   admissions: [
     { key: "programs", label: "Programs", icon: "book-open" },
@@ -173,6 +179,7 @@ const PARENT_ICON_DEFAULTS: Record<string, string> = {
   curriculum: "book-open",
   supply_list: "clipboard-list",
   teaching_schedule: "calendar-days",
+  friday_branch: "calendar-days",
 };
 
 function getCatalogEntriesForPortal(portal: Portal): PortalNavCatalogEntry[] {
