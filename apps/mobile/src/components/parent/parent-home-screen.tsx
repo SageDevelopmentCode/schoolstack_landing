@@ -131,6 +131,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   const nextEvent = data.upcomingEvents[0] ?? null;
   const enrollmentIncompleteBannerItems = data.enrollmentIncompleteBannerItems ?? [];
+  const bulletinEnabled = data.bulletinEnabled ?? false;
+  const bulletinPosts = data.bulletinPosts ?? [];
 
   return (
     <>
@@ -147,8 +149,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
         <Animated.View entering={FadeInDown.duration(350)}>
           <ParentHomeHeader
             displayName={data.userProfile.displayName}
-            bulletinEnabled={data.bulletinEnabled}
-            bulletinPostCount={data.bulletinPosts.length}
+            bulletinEnabled={bulletinEnabled}
+            bulletinPostCount={bulletinPosts.length}
             onOpenBulletin={() => setBulletinOpen(true)}
           />
         </Animated.View>
@@ -225,7 +227,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
       <HomeBulletinSheet
         visible={bulletinOpen}
-        posts={data.bulletinPosts}
+        posts={bulletinPosts}
         onClose={() => setBulletinOpen(false)}
         onOpenPost={(postId) => {
           setBulletinOpen(false);

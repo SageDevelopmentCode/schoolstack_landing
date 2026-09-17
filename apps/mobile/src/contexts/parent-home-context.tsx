@@ -11,6 +11,7 @@ import {
 
 import {
   fetchParentHomeData,
+  normalizeParentHomeData,
   type ParentHomeData,
 } from '@/lib/parent/parent-portal-api';
 import {
@@ -56,7 +57,8 @@ export async function hydrateParentHomeFromDisk(
   organizationId: string,
   slug: string,
 ): Promise<ParentHomeData | null> {
-  return homeCache.hydrateFromDisk(cacheKey(organizationId, slug));
+  const data = await homeCache.hydrateFromDisk(cacheKey(organizationId, slug));
+  return data ? normalizeParentHomeData(data) : null;
 }
 
 export async function clearPersistedParentHomeCache(): Promise<void> {
@@ -72,12 +74,13 @@ type ParentHomeProviderProps = {
 export function ParentHomeProvider({ children, organizationId, slug }: ParentHomeProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = homeCache.get(key);
+  const normalizedCached = cached ? normalizeParentHomeData(cached) : null;
 
-  const [data, setData] = useState<ParentHomeData | null>(cached);
-  const [isLoading, setIsLoading] = useState(!cached);
+  const [data, setData] = useState<ParentHomeData | null>(normalizedCached);
+  const [isLoading, setIsLoading] = useState(!normalizedCached);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
+  const [hasLoaded, setHasLoaded] = useState(Boolean(normalizedCached));
   const fetchPromiseRef = useRef<Promise<void> | null>(null);
   const reportError = useMemo(
     () => createParentPortalErrorReporter(organizationId),
@@ -104,7 +107,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
 
         try {
           const nextData = await fetchAndCacheParentHome(organizationId, slug, { refresh: isRefresh });
-          setData(nextData);
+          setData(normalizeParentHomeData(nextData));
           setHasLoaded(true);
         } catch (loadError) {
           reportError('parent_home_load', loadError);
@@ -143,7 +146,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
       );
       if (cancelled) return;
 
-      setData(resolved.data);
+      setData(resolved.data ? normalizeParentHomeData(resolved.data) : null);
       setHasLoaded(resolved.hasLoaded);
       setIsLoading(resolved.isLoading);
       setError(null);
@@ -160,8 +163,9 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
         await fetchAndCacheParentHome(organizationId, slug);
         if (cancelled) return;
 
-        setData(homeCache.get(key));
-        setHasLoaded(Boolean(homeCache.get(key)));
+        const refreshed = homeCache.get(key);
+        setData(refreshed ? normalizeParentHomeData(refreshed) : null);
+        setHasLoaded(Boolean(refreshed));
         setError(null);
       } catch (loadError) {
         reportError('parent_home_load', loadError);

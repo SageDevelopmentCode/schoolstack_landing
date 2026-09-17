@@ -1,15 +1,35 @@
 "use client";
 
-import { BadgePercent, CalendarDays, ClipboardCheck, ClipboardList, CreditCard, GitBranch, Globe, Heart, LayoutDashboard, Link2, MessageCircle, MousePointerClick, Smartphone, Users } from "lucide-react";
+import {
+  BadgePercent,
+  CalendarDays,
+  Check,
+  ClipboardCheck,
+  ClipboardList,
+  CreditCard,
+  GitBranch,
+  Globe,
+  Heart,
+  LayoutDashboard,
+  Link2,
+  MessageCircle,
+  MousePointerClick,
+  Smartphone,
+  Users,
+} from "lucide-react";
 import Image from "next/image";
-import type { ComponentType, CSSProperties } from "react";
+import type { ComponentType } from "react";
 import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
+import { outlineActiveRowStyle } from "@/components/school-admin/admissions/outline-item-styles";
+import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { ADMIN_RADIUS_CARD } from "@/components/school-admin/ui/story/AdminCard";
 import type {
   DemoWalkthroughIcon,
   DemoWalkthroughStep,
 } from "@/data/school-demos/walkthrough-placeholder";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 const STEP_ICONS: Record<DemoWalkthroughIcon, ComponentType<{ className?: string }>> = {
   globe: Globe,
@@ -32,21 +52,95 @@ interface Props {
   schoolLogo: SchoolDemoLogo;
   steps: DemoWalkthroughStep[];
   activeStep?: number;
+  storyTheme: ParentThemeTokens;
   onStepSelect: (index: number) => void;
 }
 
-function getStepStyleVars(theme: DemoWalkthroughStep["theme"]): CSSProperties {
-  return {
-    "--step-bg": theme.bg,
-    "--step-bg-hover": theme.bgHover,
-    "--step-bg-active": theme.bgActive,
-    "--step-border": theme.border,
-    "--step-icon-bg": theme.iconBg,
-    "--step-icon-color": theme.iconColor,
-    "--step-title-color": theme.titleColor,
-    "--step-desc-color": theme.descColor,
-    "--step-connector": theme.connector,
-  } as CSSProperties;
+function DemoWalkthroughHeader({
+  schoolName,
+  schoolLogo,
+  theme,
+}: {
+  schoolName: string;
+  schoolLogo: SchoolDemoLogo;
+  theme: ParentThemeTokens;
+}) {
+  return (
+    <header className="mb-5">
+      <AdminSectionKicker theme={theme}>Concept walkthrough</AdminSectionKicker>
+      <h1
+        className="mt-1.5 font-heading text-[clamp(1.25rem,2.5vw,1.5rem)] font-semibold leading-tight tracking-[-0.03em]"
+        style={{ fontFamily: theme.fontDisplay, color: theme.ink }}
+      >
+        {schoolName}
+      </h1>
+      <div
+        className="mt-4 flex items-center gap-3 rounded-2xl border px-3 py-2.5"
+        style={{
+          backgroundColor: theme.cream,
+          borderColor: theme.line,
+        }}
+      >
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
+          <Image
+            src="/images/Logo.png"
+            alt="MudKitchen"
+            width={24}
+            height={24}
+            className="h-6 w-auto shrink-0 object-contain"
+          />
+          <span
+            className="text-center text-[10px] font-bold leading-tight"
+            style={{ color: theme.coral }}
+          >
+            MudKitchen
+          </span>
+        </div>
+        <div
+          className="w-px shrink-0 self-stretch"
+          style={{ backgroundColor: theme.line }}
+          aria-hidden
+        />
+        <div className="flex min-w-0 flex-1 items-center justify-center">
+          <SchoolDemoWordmark
+            logo={schoolLogo}
+            className="h-8 w-auto max-w-[140px] object-contain text-center"
+          />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function DemoWalkthroughHint({ theme }: { theme: ParentThemeTokens }) {
+  return (
+    <div
+      className="mb-5 flex items-start gap-2.5 border p-3"
+      style={{
+        backgroundColor: theme.primarySoft,
+        borderColor: theme.sage,
+        borderRadius: ADMIN_RADIUS_CARD,
+        boxShadow: theme.shadowCard,
+      }}
+    >
+      <span
+        className="grid h-[31px] w-[31px] shrink-0 place-items-center rounded-[10px]"
+        style={{ backgroundColor: theme.cream }}
+      >
+        <MousePointerClick
+          className="h-4 w-4"
+          style={{ color: theme.primary }}
+          aria-hidden
+        />
+      </span>
+      <p
+        className="text-xs leading-relaxed"
+        style={{ color: theme.muted, fontFamily: theme.fontBody }}
+      >
+        Click each step below to walk through the flow.
+      </p>
+    </div>
+  );
 }
 
 export default function DemoWalkthroughPanel({
@@ -54,84 +148,62 @@ export default function DemoWalkthroughPanel({
   schoolLogo,
   steps,
   activeStep = 0,
+  storyTheme: theme,
   onStepSelect,
 }: Props) {
   return (
-    <aside className="hidden lg:flex flex-col h-screen w-[20%] min-w-[280px] shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
-      <div className="flex flex-col flex-1 px-6 py-8">
-        <div className="mb-5 flex items-stretch gap-4 border-b border-gray-100 pb-5">
-          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
-            <Image
-              src="/images/Logo.png"
-              alt="MudKitchen"
-              width={28}
-              height={28}
-              className="h-7 w-auto shrink-0 object-contain"
-            />
-            <span className="text-center font-display text-xs font-semibold leading-tight text-clay">
-              MudKitchen
-            </span>
-          </div>
-          <div className="w-px shrink-0 self-stretch bg-gray-200" aria-hidden />
-          <div className="flex min-w-0 flex-1 items-center justify-center">
-            <SchoolDemoWordmark
-              logo={schoolLogo}
-              className="h-10 w-auto max-w-[180px] object-contain text-center"
-            />
-          </div>
-        </div>
+    <aside
+      className="hidden h-screen w-[20%] min-w-[280px] shrink-0 flex-col overflow-y-auto border-r lg:flex"
+      style={{
+        backgroundColor: theme.paper,
+        borderColor: theme.line,
+      }}
+    >
+      <div className="flex flex-1 flex-col px-5 py-7">
+        <DemoWalkthroughHeader
+          schoolName={schoolName}
+          schoolLogo={schoolLogo}
+          theme={theme}
+        />
 
-        <div className="mb-5">
-          <h1 className="font-display text-xl font-medium leading-snug text-gray-900">
-            {schoolName}
-          </h1>
-        </div>
-
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2.5">
-          <MousePointerClick
-            className="h-4 w-4 shrink-0 text-clay"
-            aria-hidden
-          />
-          <p className="text-xs font-secondary leading-snug text-gray-600">
-            Click each step below to walk through the flow.
-          </p>
-        </div>
+        <DemoWalkthroughHint theme={theme} />
 
         <nav className="flex-1" aria-label="Walkthrough steps">
-          <ol className="space-y-0">
+          <ol className="space-y-2">
             {steps.map((step, i) => {
               const isActive = i === activeStep;
               const isPast = i < activeStep;
-              const { theme } = step;
+              const activeRowStyle = outlineActiveRowStyle(isActive, theme);
               const Icon = STEP_ICONS[step.icon];
               const stepNum = i + 1;
 
               return (
-                <li key={step.id} className="flex gap-2">
-                  <div className="flex w-7 shrink-0 flex-col items-center pt-1">
+                <li key={step.id} className="flex gap-2.5">
+                  <div className="flex w-8 shrink-0 flex-col items-center pt-3">
                     <div
-                      className={`relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-2 ring-white transition-transform duration-200 ${
-                        isActive ? "scale-105" : ""
-                      }`}
+                      className="relative z-10 grid h-[31px] w-[31px] shrink-0 place-items-center rounded-[10px] transition-transform duration-200"
                       style={{
-                        backgroundColor: theme.iconBg,
-                        color: theme.iconColor,
+                        backgroundColor: isPast
+                          ? theme.primary
+                          : isActive
+                            ? theme.primarySoft
+                            : theme.cream,
+                        color: isPast ? theme.white : theme.primary,
+                        boxShadow: isActive ? theme.shadowPill : undefined,
+                        transform: isActive ? "scale(1.05)" : undefined,
                       }}
                     >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      {isPast ? (
+                        <Check className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <Icon className="h-4 w-4" aria-hidden />
+                      )}
                     </div>
-                    <span
-                      className="mt-0.5 text-[9px] font-bold font-secondary leading-none"
-                      style={{ color: theme.iconBg }}
-                      aria-hidden
-                    >
-                      {stepNum}
-                    </span>
                     {i < steps.length - 1 && (
                       <div
-                        className="mt-2 w-0.5 flex-1 min-h-4"
+                        className="mt-2 w-0.5 flex-1 min-h-3"
                         style={{
-                          backgroundColor: isPast ? theme.connector : "#E5E7EB",
+                          backgroundColor: isPast ? theme.primary : "#E9EFEA",
                         }}
                         aria-hidden
                       />
@@ -142,58 +214,53 @@ export default function DemoWalkthroughPanel({
                     type="button"
                     onClick={() => onStepSelect(i)}
                     aria-current={isActive ? "step" : undefined}
-                    data-active={isActive}
-                    style={getStepStyleVars(theme)}
-                    className="group mb-4 flex-1 rounded-md border px-3.5 py-3 text-left transition-all duration-200 cursor-pointer
-                      bg-[var(--step-bg)] border-[color-mix(in_srgb,var(--step-border)_55%,transparent)]
-                      hover:-translate-y-0.5 hover:border-[var(--step-border)] hover:bg-[var(--step-bg-hover)] hover:shadow-md
-                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--step-border)] focus-visible:ring-offset-2
-                      data-[active=true]:border-[var(--step-border)] data-[active=true]:bg-[var(--step-bg-active)] data-[active=true]:shadow-sm"
+                    className="group mb-1 flex-1 cursor-pointer border px-3.5 py-3 text-left transition-all duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{
+                      borderRadius: ADMIN_RADIUS_CARD,
+                      boxShadow: isActive ? theme.shadowCard : theme.shadowPill,
+                      border: `1px solid ${
+                        isActive
+                          ? (activeRowStyle.borderColor ?? theme.sage)
+                          : "#E0E7E0"
+                      }`,
+                      backgroundColor: isActive
+                        ? activeRowStyle.backgroundColor
+                        : theme.white,
+                    }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p
-                          className="text-[10px] font-semibold uppercase tracking-wider"
-                          style={{ color: theme.descColor }}
-                        >
-                          Step {stepNum}
-                        </p>
-                        <p
-                          className="mt-0.5 text-sm font-semibold font-secondary leading-snug"
-                          style={{ color: theme.titleColor }}
-                        >
-                          {step.title}
-                        </p>
-                      </div>
-                      {isActive ? (
-                        <span
-                          className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold font-secondary uppercase tracking-wide"
-                          style={{
-                            backgroundColor: theme.iconBg,
-                            color: theme.iconColor,
-                          }}
-                        >
-                          Viewing
-                        </span>
-                      ) : (
-                        <span className="flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white/80 px-2 py-0.5 text-[10px] font-semibold font-secondary text-gray-500 transition-colors group-hover:border-gray-300 group-hover:text-gray-700">
-                          <MousePointerClick className="h-3 w-3" aria-hidden />
-                          View
-                        </span>
-                      )}
-                    </div>
+                    <p
+                      className="text-[10px] font-extrabold uppercase tracking-[0.13em]"
+                      style={{ color: "#729077" }}
+                    >
+                      Step {stepNum}
+                    </p>
+                    <p
+                      className="mt-0.5 text-sm font-semibold leading-snug"
+                      style={{
+                        fontFamily: theme.fontBody,
+                        color: theme.ink,
+                      }}
+                    >
+                      {step.title}
+                    </p>
                     {isActive && (
                       <p
-                        className="mt-1.5 text-xs font-secondary leading-relaxed"
-                        style={{ color: theme.descColor }}
+                        className="mt-2 text-xs leading-relaxed"
+                        style={{
+                          fontFamily: theme.fontBody,
+                          color: theme.muted,
+                        }}
                       >
                         {step.description}
                       </p>
                     )}
                     {isActive && step.talkingPoint && (
                       <p
-                        className="mt-2 text-xs font-secondary leading-relaxed italic"
-                        style={{ color: theme.descColor }}
+                        className="mt-2 text-xs leading-relaxed italic"
+                        style={{
+                          fontFamily: theme.fontBody,
+                          color: theme.muted,
+                        }}
                       >
                         &ldquo;{step.talkingPoint}&rdquo;
                       </p>

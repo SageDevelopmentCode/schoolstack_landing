@@ -205,12 +205,21 @@ export type ParentHomeData = {
   bulletinPosts: BulletinPost[];
 };
 
+export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
+  return {
+    ...data,
+    bulletinEnabled: data.bulletinEnabled ?? false,
+    bulletinPosts: data.bulletinPosts ?? [],
+  };
+}
+
 export async function fetchParentHomeData(
   organizationId: string,
   slug: string,
 ): Promise<ParentHomeData> {
   const query = new URLSearchParams({ organizationId, slug }).toString();
-  return fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
+  const payload = await fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
+  return normalizeParentHomeData(payload);
 }
 
 export type ParentAssignedTeacher = {

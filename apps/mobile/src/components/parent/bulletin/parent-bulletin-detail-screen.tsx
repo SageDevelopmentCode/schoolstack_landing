@@ -45,7 +45,7 @@ export function ParentBulletinDetailScreen({ postId }: ParentBulletinDetailScree
   const [viewerState, setViewerState] = useState<BulletinAttachmentViewerState | null>(null);
 
   const post = useMemo(
-    () => data?.bulletinPosts.find((item) => item.id === postId) ?? null,
+    () => (data?.bulletinPosts ?? []).find((item) => item.id === postId) ?? null,
     [data?.bulletinPosts, postId],
   );
 
