@@ -22,8 +22,10 @@ import ParentMessagesPageShell from "@/components/school-parent/messages/ParentM
 import { getRequestUser } from "@/lib/auth/session";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
+import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentClassroomSignupsPageBundle } from "@/lib/classroom-signups/load-parent-signups";
+import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -586,6 +588,66 @@ export async function renderSchoolParentFeaturePage(
           currentFamilyId={enrolledFamily.familyId}
           currentFamilyLabel={enrolledFamily.familyName}
           familyNameMap={Object.fromEntries(familyNameMap)}
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "friday_branch") {
+    if (!familyId) {
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <SchoolParentComingSoon
+            branding={org.branding}
+            schoolSlug={context.slug}
+            schoolName={org.name}
+            organizationId={org.id}
+            featureKey={context.feature}
+            featureLabel={pageName}
+            userProfile={userProfile}
+          />
+        </SchoolParentPageShell>
+      );
+    }
+
+    const allFamilyChildren = await listFamilyChildrenForHome(
+      supabase,
+      org.id,
+      user.id,
+    );
+    const familyChildren = programId
+      ? filterFamilyChildrenForProgramPortal(allFamilyChildren, programId)
+      : allFamilyChildren;
+    const studentOptions = familyChildren
+      .filter((child) => child.studentId)
+      .map((child) => ({
+        id: child.studentId!,
+        name: child.studentName,
+      }));
+
+    const admin = createAdminClient();
+    const initialBundle = await loadParentFridayBranchPageBundle(
+      admin,
+      org.id,
+      familyId,
+      studentOptions,
+    );
+    const initialClassId =
+      typeof context.searchParams.class === "string"
+        ? context.searchParams.class
+        : undefined;
+    const childrenPath = context.programSlug
+      ? schoolProgramParentPath(context.slug, context.programSlug, "children")
+      : schoolParentPath(context.slug, "children");
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentFridayBranchPage
+          organizationId={org.id}
+          slug={context.slug}
+          initialBundle={initialBundle}
+          initialClassId={initialClassId}
+          childrenPath={childrenPath}
         />
       </SchoolParentPageShell>
     );

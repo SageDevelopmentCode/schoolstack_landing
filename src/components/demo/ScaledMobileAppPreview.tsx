@@ -36,6 +36,14 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/littlesprigstampa/LittleSprigsTampaMobileAppShowcase"
     ),
+  "acton-academy-pittsburgh": () =>
+    import(
+      "@/components/demo/actonacademy/ActonAcademyPittsburghMobileAppShowcase"
+    ),
+  "acton-academy-placer": () =>
+    import(
+      "@/components/demo/actonacademyplacer/ActonAcademyPlacerMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({

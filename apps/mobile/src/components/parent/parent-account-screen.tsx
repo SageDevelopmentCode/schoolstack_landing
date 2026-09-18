@@ -13,6 +13,8 @@ import { Spacing } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useParentHome } from '@/contexts/parent-home-context';
+import { goBackOrReplace } from '@/lib/navigation';
+import { parentTabRoute } from '@/lib/parent/parent-nav';
 import {
   GuardianProfilePhotoUploadError,
   uploadGuardianProfilePhotoFromParent,
@@ -88,6 +90,12 @@ export function ParentAccountScreen() {
     router.replace('/login');
   };
 
+  const handleBack = () => {
+    const slug = selectedSchool?.slug;
+    if (!slug) return;
+    goBackOrReplace(router, parentTabRoute(slug, 'home'));
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View
@@ -98,7 +106,7 @@ export function ParentAccountScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
           <Ionicons name="chevron-back" size={20} color={theme.accent} />
           <ThemedText type="small" style={{ color: theme.accent }}>

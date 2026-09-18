@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -12,6 +12,8 @@ import { Spacing } from '@/constants/theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
+import { goBackOrReplace } from '@/lib/navigation';
+import { teacherTabRoute } from '@/lib/teacher/teacher-nav';
 
 function getDisplayName(user: User): string {
   const fullName = user.user_metadata?.full_name;
@@ -27,6 +29,7 @@ function getDisplayName(user: User): string {
 
 export function TeacherAccountScreen() {
   const router = useRouter();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
   const theme = useAdminTheme();
   const { user, signOut } = useAuth();
 
@@ -36,6 +39,11 @@ export function TeacherAccountScreen() {
   const handleSignOut = async () => {
     await signOut();
     router.replace('/login');
+  };
+
+  const handleBack = () => {
+    if (!slug) return;
+    goBackOrReplace(router, teacherTabRoute(slug, 'home'));
   };
 
   return (
@@ -48,7 +56,7 @@ export function TeacherAccountScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={({ pressed }) => [styles.backButton, pressed && { opacity: 0.7 }]}>
           <Ionicons name="chevron-back" size={20} color={theme.accent} />
           <ThemedText type="small" style={{ color: theme.accent }}>

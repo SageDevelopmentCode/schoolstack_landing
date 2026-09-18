@@ -2,12 +2,10 @@
 
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
-  formatBlockStats,
-  formatBlockStripLabel,
-  getBlockStatusTag,
+  formatBlockTabDateRange,
+  getBlockDisplayLabel,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
-import FridayBranchStatusTag from "./FridayBranchStatusTag";
 
 type FridayBranchBlockStripProps = {
   theme: ParentThemeTokens;
@@ -28,30 +26,28 @@ export default function FridayBranchBlockStrip({
     <div className="flex gap-[9px] overflow-x-auto pb-1">
       {blocks.map((block, index) => {
         const active = block.id === selectedId;
-        const statusTag = getBlockStatusTag(block, index);
+        const dateRange = formatBlockTabDateRange(block.startDate, block.endDate);
 
         return (
           <button
             key={block.id}
             type="button"
             onClick={() => onSelect(block.id)}
-            className="min-w-[205px] shrink-0 rounded-[13px] border p-[13px] text-left transition-colors"
+            className="min-w-[120px] shrink-0 rounded-[13px] border p-[13px] text-left transition-colors"
             style={{
               backgroundColor: active ? "#EDF6EE" : "#fff",
               borderColor: active ? "#98BDA2" : "#DDE6DE",
             }}
           >
-            <b className="block text-xs" style={{ color: theme.ink }}>
-              {formatBlockStripLabel(block)}
+            <b className="block text-sm font-semibold" style={{ color: theme.ink }}>
+              {getBlockDisplayLabel(block, index)}
             </b>
-            <span className="mt-0.5 block text-[10px]" style={{ color: theme.muted }}>
-              {formatBlockStats(block)}
+            <span
+              className="mt-2 block text-[11px] font-medium"
+              style={{ color: theme.muted }}
+            >
+              {dateRange}
             </span>
-            <FridayBranchStatusTag
-              label={statusTag.label}
-              variant={statusTag.variant}
-              className="mt-[7px]"
-            />
           </button>
         );
       })}
@@ -59,13 +55,10 @@ export default function FridayBranchBlockStrip({
       <button
         type="button"
         onClick={onAddBlock}
-        className="min-w-[205px] shrink-0 rounded-[13px] border border-dashed p-[13px] text-left transition-colors hover:bg-[#F8FCF8]"
+        className="min-w-[140px] shrink-0 rounded-[13px] border border-dashed p-[13px] text-left transition-colors hover:bg-[#F8FCF8]"
         style={{ borderColor: "#A9C4AF", color: theme.primary }}
       >
-        <b className="block text-xs">+ Add a new block</b>
-        <span className="mt-0.5 block text-[10px]" style={{ color: theme.muted }}>
-          Set dates and begin planning
-        </span>
+        <b className="block text-sm font-semibold">+ Add block</b>
       </button>
     </div>
   );

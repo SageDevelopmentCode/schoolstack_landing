@@ -1,25 +1,25 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
+import { FridayBranchPageSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
+import { reportClientOperationalError } from "@/lib/operational-errors-client";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import {
-  cloneDemoBlocks,
   createEmptyBlock,
-  DEMO_FRIDAY_BRANCH_BLOCKS,
   duplicateBlock,
   getScheduleGaps,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
-import FridayBranchBlockHero from "./FridayBranchBlockHero";
+import FridayBranchBlockContext from "./FridayBranchBlockContext";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
-import FridayBranchFocusStrip from "./FridayBranchFocusStrip";
-import FridayBranchMetrics from "./FridayBranchMetrics";
-import FridayBranchPlanningPanels from "./FridayBranchPlanningPanels";
 import FridayBranchScheduleCard from "./FridayBranchScheduleCard";
 
 type FridayBranchPageProps = {
@@ -28,31 +28,76 @@ type FridayBranchPageProps = {
   slug: string;
 };
 
+function cloneBlocks(blocks: FridayBranchBlock[]): FridayBranchBlock[] {
+  return JSON.parse(JSON.stringify(blocks)) as FridayBranchBlock[];
+}
+
 export default function FridayBranchPage({
   organizationId,
   branding,
   slug,
 }: FridayBranchPageProps) {
-  void organizationId;
   void branding;
   void slug;
 
   const { theme, C } = useSchoolAdminStoryTheme();
   const reduceMotion = useReducedMotion();
   const scheduleRef = useRef<HTMLDivElement>(null);
-  const [blocks, setBlocks] = useState<FridayBranchBlock[]>(cloneDemoBlocks);
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(
-    DEMO_FRIDAY_BRANCH_BLOCKS[0]?.id ?? null,
-  );
+  const [blocks, setBlocks] = useState<FridayBranchBlock[]>([]);
+  const [savedBlocks, setSavedBlocks] = useState<FridayBranchBlock[]>([]);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [highlightClassId, setHighlightClassId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? null,
     [blocks, selectedBlockId],
   );
 
+  const isDirty = useMemo(
+    () => JSON.stringify(blocks) !== JSON.stringify(savedBlocks),
+    [blocks, savedBlocks],
+  );
+
+  const { dialogOpen: leaveDialogOpen, confirmLeave, cancelLeave } =
+    useUnsavedChangesGuard({ isDirty, enabled: !loading });
+
+  const loadSchedule = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/school-admin/friday-branch/schedule?organizationId=${encodeURIComponent(organizationId)}`,
+      );
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Failed to load Friday Branch schedule.");
+      }
+
+      const payload = (await response.json()) as { blocks: FridayBranchBlock[] };
+      const nextBlocks = payload.blocks ?? [];
+      setBlocks(cloneBlocks(nextBlocks));
+      setSavedBlocks(cloneBlocks(nextBlocks));
+      setSelectedBlockId(nextBlocks[0]?.id ?? null);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to load Friday Branch schedule."));
+      void reportClientOperationalError({
+        organizationId,
+        operation: "friday_branch.schedule.load",
+        error: formatActionError(err, "Failed to load Friday Branch schedule."),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    void loadSchedule();
+  }, [loadSchedule]);
+
   const handleAddBlock = () => {
-    const nextBlock = createEmptyBlock(blocks.length + 3);
+    const nextBlock = createEmptyBlock(blocks.length + 1);
     setBlocks((current) => [...current, nextBlock]);
     setSelectedBlockId(nextBlock.id);
   };
@@ -79,108 +124,153 @@ export default function FridayBranchPage({
     window.setTimeout(() => setHighlightClassId(null), 3000);
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/school-admin/friday-branch/schedule", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId, blocks }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Failed to save Friday Branch schedule.");
+      }
+
+      const payload = (await response.json()) as { blocks: FridayBranchBlock[] };
+      const nextBlocks = payload.blocks ?? [];
+      setBlocks(cloneBlocks(nextBlocks));
+      setSavedBlocks(cloneBlocks(nextBlocks));
+      setSelectedBlockId((current) => {
+        if (current && nextBlocks.some((block) => block.id === current)) {
+          return current;
+        }
+        return nextBlocks[0]?.id ?? null;
+      });
+      adminToast.success("Friday Branch schedule saved");
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to save Friday Branch schedule."));
+      void reportClientOperationalError({
+        organizationId,
+        operation: "friday_branch.schedule.save",
+        error: formatActionError(err, "Failed to save Friday Branch schedule."),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const transition = reduceMotion
     ? { duration: 0 }
     : { duration: 0.15, ease: "easeOut" as const };
 
   return (
     <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-[21px] flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <AdminSectionKicker theme={theme}>Friday Branch · program schedule</AdminSectionKicker>
+          <AdminSectionKicker theme={theme}>Friday Branch</AdminSectionKicker>
           <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1.5">
-            Make Fridays feel thoughtfully held.
+            Program schedule
           </AdminDisplayHeading>
           <p className="mt-2 text-[13px]" style={{ color: theme.muted }}>
-            Build each date-range block, then shape a clear rhythm of classes, places, and age groups.
+            Pick a block, then build its Friday classes by time.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <AdminButton theme={theme} variant="primary" type="button" onClick={handleAddBlock}>
-            + Add program block
-          </AdminButton>
-          <AdminButton theme={theme} variant="outline" type="button" onClick={handleDuplicateBlock} disabled={!selectedBlock}>
+          {isDirty && !saving ? (
+            <span className="text-xs" style={{ color: theme.muted }}>
+              Unsaved changes
+            </span>
+          ) : null}
+          <AdminButton
+            theme={theme}
+            variant="outline"
+            type="button"
+            onClick={handleDuplicateBlock}
+            disabled={loading || !selectedBlock || saving}
+          >
             Duplicate block
           </AdminButton>
-          <AdminButton theme={theme} variant="primary" type="button" disabled title="Saving coming soon">
-            Save schedule
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            type="button"
+            onClick={handleSave}
+            disabled={loading || !isDirty || saving}
+          >
+            {saving ? "Saving…" : "Save schedule"}
           </AdminButton>
         </div>
       </div>
 
-      <FridayBranchMetrics theme={theme} blocks={blocks} selectedBlock={selectedBlock} />
-
-      {selectedBlock ? (
-        <div className="mt-[19px]">
-          <FridayBranchFocusStrip
+      {loading ? (
+        <FridayBranchPageSkeleton C={C} />
+      ) : (
+        <>
+          <FridayBranchBlockStrip
             theme={theme}
-            block={selectedBlock}
-            onReviewGaps={handleReviewGaps}
+            blocks={blocks}
+            selectedId={selectedBlockId}
+            onSelect={setSelectedBlockId}
+            onAddBlock={handleAddBlock}
           />
-        </div>
-      ) : null}
 
-      <div className="mt-[18px]">
-        <FridayBranchBlockStrip
-          theme={theme}
-          blocks={blocks}
-          selectedId={selectedBlockId}
-          onSelect={setSelectedBlockId}
-          onAddBlock={handleAddBlock}
-        />
-      </div>
+          <AnimatePresence mode="wait">
+            {selectedBlock ? (
+              <motion.div
+                key={selectedBlock.id}
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
+                transition={transition}
+              >
+                <FridayBranchBlockContext
+                  C={C}
+                  theme={theme}
+                  block={selectedBlock}
+                  onChange={handleUpdateBlock}
+                />
 
-      <AnimatePresence mode="wait">
-        {selectedBlock ? (
-          <motion.div
-            key={selectedBlock.id}
-            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0 }}
-            transition={transition}
-          >
-            <div className="mt-[17px]">
-              <FridayBranchBlockHero
-                C={C}
-                theme={theme}
-                block={selectedBlock}
-                onChange={handleUpdateBlock}
-              />
-            </div>
+                <div ref={scheduleRef}>
+                  <FridayBranchScheduleCard
+                    C={C}
+                    theme={theme}
+                    organizationId={organizationId}
+                    block={selectedBlock}
+                    onChange={handleUpdateBlock}
+                    highlightClassId={highlightClassId}
+                    onReviewGaps={handleReviewGaps}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-8 py-16 text-center"
+              >
+                <p className="text-sm" style={{ color: theme.muted }}>
+                  Add a block to start building your Friday Branch schedule.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
 
-            <div ref={scheduleRef}>
-              <FridayBranchScheduleCard
-                C={C}
-                theme={theme}
-                block={selectedBlock}
-                onChange={handleUpdateBlock}
-                highlightClassId={highlightClassId}
-              />
-            </div>
-
-            <FridayBranchPlanningPanels
-              theme={theme}
-              block={selectedBlock}
-              onReviewGaps={handleReviewGaps}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="empty"
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-8 py-16 text-center"
-          >
-            <p className="text-sm" style={{ color: theme.muted }}>
-              Add a block to start building your Friday Branch schedule.
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <p className="mt-6 text-[11px]" style={{ color: theme.muted }}>
-        Preview mode — changes reset on refresh. Saving coming soon.
-      </p>
+      <ConfirmDialog
+        C={C}
+        open={leaveDialogOpen}
+        title="Unsaved changes"
+        description="You have unsaved changes. If you leave now, your changes will be lost."
+        confirmLabel="Leave without saving"
+        cancelLabel="Keep editing"
+        variant="destructive"
+        onConfirm={confirmLeave}
+        onClose={cancelLeave}
+      />
     </div>
   );
 }

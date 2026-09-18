@@ -24,6 +24,8 @@ import { springRiverSchoolAdminDemoConfig } from "./springriverschool-admin-demo
 import { theFocusAcademyAdminDemoConfig } from "./the-focus-academy-admin-demo";
 import { piedmontForestSchoolAdminDemoConfig } from "./piedmont-forest-school-admin-demo";
 import { littleSprigsTampaAdminDemoConfig } from "./little-sprigs-tampa-admin-demo";
+import { actonAcademyPittsburghAdminDemoConfig } from "./acton-academy-pittsburgh-admin-demo";
+import { actonAcademyPlacerAdminDemoConfig } from "./acton-academy-placer-admin-demo";
 import { theWoodlandsMicroschoolAdminDemoConfig } from "./the-woodlands-admin-demo";
 import { trueNorthAdminDemoConfig } from "./truenorth-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
@@ -56,6 +58,8 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "the-focus-academy": theFocusAcademyAdminDemoConfig,
   "piedmont-forest-school": piedmontForestSchoolAdminDemoConfig,
   "little-sprigs-tampa": littleSprigsTampaAdminDemoConfig,
+  "acton-academy-pittsburgh": actonAcademyPittsburghAdminDemoConfig,
+  "acton-academy-placer": actonAcademyPlacerAdminDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolAdminDemoConfig,
   "true-north": trueNorthAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
@@ -89,6 +93,8 @@ import { springRiverSchoolParentDemoConfig } from "./springriverschool-parent-de
 import { theFocusAcademyParentDemoConfig } from "./the-focus-academy-parent-demo";
 import { piedmontForestSchoolParentDemoConfig } from "./piedmont-forest-school-parent-demo";
 import { littleSprigsTampaParentDemoConfig } from "./little-sprigs-tampa-parent-demo";
+import { actonAcademyPittsburghParentDemoConfig } from "./acton-academy-pittsburgh-parent-demo";
+import { actonAcademyPlacerParentDemoConfig } from "./acton-academy-placer-parent-demo";
 import { theWoodlandsMicroschoolParentDemoConfig } from "./the-woodlands-parent-demo";
 import { trueNorthParentDemoConfig } from "./truenorth-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
@@ -121,6 +127,8 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "the-focus-academy": theFocusAcademyParentDemoConfig,
   "piedmont-forest-school": piedmontForestSchoolParentDemoConfig,
   "little-sprigs-tampa": littleSprigsTampaParentDemoConfig,
+  "acton-academy-pittsburgh": actonAcademyPittsburghParentDemoConfig,
+  "acton-academy-placer": actonAcademyPlacerParentDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolParentDemoConfig,
   "true-north": trueNorthParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
@@ -153,6 +161,8 @@ import { springRiverSchoolTeacherDemoConfig } from "./springriverschool-teacher-
 import { theFocusAcademyTeacherDemoConfig } from "./the-focus-academy-teacher-demo";
 import { piedmontForestSchoolTeacherDemoConfig } from "./piedmont-forest-school-teacher-demo";
 import { littleSprigsTampaTeacherDemoConfig } from "./little-sprigs-tampa-teacher-demo";
+import { actonAcademyPittsburghTeacherDemoConfig } from "./acton-academy-pittsburgh-teacher-demo";
+import { actonAcademyPlacerTeacherDemoConfig } from "./acton-academy-placer-teacher-demo";
 import { theWoodlandsMicroschoolTeacherDemoConfig } from "./the-woodlands-teacher-demo";
 import { trueNorthTeacherDemoConfig } from "./truenorth-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
@@ -185,6 +195,8 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "the-focus-academy": theFocusAcademyTeacherDemoConfig,
   "piedmont-forest-school": piedmontForestSchoolTeacherDemoConfig,
   "little-sprigs-tampa": littleSprigsTampaTeacherDemoConfig,
+  "acton-academy-pittsburgh": actonAcademyPittsburghTeacherDemoConfig,
+  "acton-academy-placer": actonAcademyPlacerTeacherDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolTeacherDemoConfig,
   "true-north": trueNorthTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,

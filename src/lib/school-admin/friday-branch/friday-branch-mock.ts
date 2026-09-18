@@ -1,4 +1,5 @@
-import { newAdmissionsId } from "@/lib/admissions/application-form-schema";
+import { newFridayBranchId } from "@/lib/school-admin/friday-branch/friday-branch-storage";
+import { parseTimeToMinutes } from "@/lib/school-events/calendar-time";
 import type {
   FridayBranchBlock,
   FridayBranchBlockAccent,
@@ -11,11 +12,9 @@ import type {
 
 const BLOCK_ACCENTS: FridayBranchBlockAccent[] = ["sky", "berry", "sage", "sun"];
 
-export const MOCK_FRIDAY_BRANCH_LEARNERS = 37;
-
 export function createEmptyClass(): FridayBranchClass {
   return {
-    id: newAdmissionsId(),
+    id: newFridayBranchId(),
     name: "",
     location: "",
     ageGroup: "",
@@ -24,20 +23,139 @@ export function createEmptyClass(): FridayBranchClass {
   };
 }
 
+export const COMMON_SLOT_TIMES = ["9:00", "10:00", "11:00", "12:00", "1:00"];
+
 export function createEmptySlot(time = "9:00"): FridayBranchTimeSlot {
   return {
-    id: newAdmissionsId(),
+    id: newFridayBranchId(),
     time,
     classes: [createEmptyClass()],
   };
+}
+
+export type FridayBranchFirstClassSeed = {
+  name?: string;
+  location?: string;
+  ageGroup?: string;
+  teacher?: string;
+};
+
+export function fridayBranchTimeToPickerValue(time: string): string {
+  const minutes = parseTimeToMinutes(time);
+  if (minutes === null) return "";
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+export function pickerValueToFridayBranchTime(value: string): string {
+  const minutes = parseTimeToMinutes(value);
+  if (minutes === null) return value.trim();
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour}:${String(minute).padStart(2, "0")}`;
+}
+
+export function createSlotWithTime(
+  time: string,
+  firstClass?: FridayBranchFirstClassSeed,
+): FridayBranchTimeSlot {
+  const slot = createEmptySlot(pickerValueToFridayBranchTime(time));
+  if (firstClass) {
+    slot.classes[0] = {
+      ...slot.classes[0],
+      ...(firstClass.name?.trim() ? { name: firstClass.name.trim() } : {}),
+      ...(firstClass.location ? { location: firstClass.location } : {}),
+      ...(firstClass.ageGroup ? { ageGroup: firstClass.ageGroup } : {}),
+      ...(firstClass.teacher ? { teacher: firstClass.teacher } : {}),
+    };
+  }
+  return slot;
+}
+
+export function removeClassFromBlock(
+  block: FridayBranchBlock,
+  slotId: string,
+  classId: string,
+): FridayBranchBlock {
+  const slots = block.slots
+    .map((slot) => {
+      if (slot.id !== slotId) return slot;
+      const classes = slot.classes.filter((entry) => entry.id !== classId);
+      return { ...slot, classes };
+    })
+    .filter((slot) => slot.classes.length > 0);
+
+  return { ...block, slots };
+}
+
+export function removeSlotFromBlock(
+  block: FridayBranchBlock,
+  slotId: string,
+): FridayBranchBlock {
+  return {
+    ...block,
+    slots: block.slots.filter((slot) => slot.id !== slotId),
+  };
+}
+
+function parseSimpleSlotTime(time: string): { hour: number; minute: number } | null {
+  const trimmed = time.trim();
+  const match = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return null;
+
+  let hour = Number.parseInt(match[1], 10);
+  const minute = match[2] ? Number.parseInt(match[2], 10) : 0;
+  const meridiem = match[3]?.toUpperCase();
+
+  if (meridiem === "PM" && hour < 12) hour += 12;
+  if (meridiem === "AM" && hour === 12) hour = 0;
+  if (!meridiem && hour >= 1 && hour <= 7) hour += 12;
+
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+function formatSimpleSlotTime(hour: number, minute: number): string {
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour}:${String(minute).padStart(2, "0")}`;
+}
+
+export function suggestNextSlotTime(slots: FridayBranchTimeSlot[]): string {
+  if (slots.length === 0) return "9:00";
+
+  const lastSlot = slots[slots.length - 1];
+  const parsed = parseSimpleSlotTime(lastSlot.time);
+  if (!parsed) return "9:00";
+
+  const totalMinutes = parsed.hour * 60 + parsed.minute + 60;
+  const nextHour = Math.floor(totalMinutes / 60) % 24;
+  const nextMinute = totalMinutes % 60;
+  return formatSimpleSlotTime(nextHour, nextMinute);
+}
+
+export function getAvailableQuickPickTimes(slots: FridayBranchTimeSlot[]): string[] {
+  const used = new Set(slots.map((slot) => slot.time.trim().toLowerCase()));
+  return COMMON_SLOT_TIMES.filter((time) => !used.has(time.toLowerCase()));
+}
+
+export function slotTimeExists(slots: FridayBranchTimeSlot[], time: string): boolean {
+  const normalized = time.trim().toLowerCase();
+  return slots.some((slot) => slot.time.trim().toLowerCase() === normalized);
+}
+
+export function getBlockDisplayLabel(block: FridayBranchBlock, index: number): string {
+  const trimmed = block.label.trim();
+  return trimmed || `Block ${index + 1}`;
 }
 
 export function createEmptyBlock(blockNumber: number): FridayBranchBlock {
   const accent = BLOCK_ACCENTS[(blockNumber - 1) % BLOCK_ACCENTS.length] ?? "sky";
 
   return {
-    id: newAdmissionsId(),
-    label: `Block ${blockNumber}`,
+    id: newFridayBranchId(),
+    label: "",
     startDate: "",
     endDate: "",
     accent,
@@ -61,15 +179,15 @@ export function duplicateBlock(block: FridayBranchBlock): FridayBranchBlock {
   const copyNumber = block.label.match(/\d+/)?.[0] ?? "";
   return {
     ...block,
-    id: newAdmissionsId(),
+    id: newFridayBranchId(),
     label: copyNumber ? `Block ${copyNumber} (copy)` : `${block.label} (copy)`,
     status: "draft",
     slots: block.slots.map((slot) => ({
       ...slot,
-      id: newAdmissionsId(),
+      id: newFridayBranchId(),
       classes: slot.classes.map((classEntry) => ({
         ...classEntry,
-        id: newAdmissionsId(),
+        id: newFridayBranchId(),
       })),
     })),
   };
@@ -99,14 +217,6 @@ export function formatBlockTabDateRange(startDate: string, endDate: string): str
 
 export function formatBlockStripLabel(block: FridayBranchBlock): string {
   return `${block.label} · ${formatBlockTabDateRange(block.startDate, block.endDate)}`;
-}
-
-export function formatFridayDateLong(iso: string): string {
-  const date = parseIsoDate(iso);
-  if (!date) return "Date not set";
-  const weekday = date.toLocaleString("en-US", { weekday: "long" });
-  const month = date.toLocaleString("en-US", { month: "long" });
-  return `${weekday}, ${month} ${date.getDate()}`;
 }
 
 const BLOCK_ACCENT_COLORS: Record<FridayBranchBlockAccent, string> = {
@@ -183,29 +293,21 @@ export function getScheduleGaps(block: FridayBranchBlock): FridayBranchScheduleG
   return gaps;
 }
 
-export function getBlockSummaryTitle(block: FridayBranchBlock): string {
-  const classes = countBlockClasses(block);
-  const slots = block.slots.length;
-  if (slots === 0) return "Begin with time slots.";
-  if (classes === 0) return "Add classes to each time slot.";
-  if (getScheduleGaps(block).length > 0) return "A few details still need attention.";
-  return "A full Friday takes shape.";
+export function formatGapReviewLabel(gapCount: number): string {
+  if (gapCount === 1) return "Review 1 open item →";
+  return `Review ${gapCount} open items →`;
 }
 
-export function getBlockSummaryText(block: FridayBranchBlock): string {
-  const classes = countBlockClasses(block);
-  const slots = block.slots.length;
-  if (slots === 0) {
-    return "Begin with time slots, then add classes that give learners a rich and balanced Friday.";
+export function formatBlockCompletionStatus(block: FridayBranchBlock): string {
+  const gaps = getScheduleGaps(block);
+  const incompleteClasses = new Set(gaps.map((gap) => gap.classId)).size;
+
+  if (incompleteClasses === 0) {
+    if (block.slots.length === 0) return "Ready to plan";
+    return "Schedule complete";
   }
-  if (classes === 0) {
-    return "Add classes with locations and age groups so families can browse the block schedule.";
-  }
-  const gapCount = getScheduleGaps(block).length;
-  if (gapCount > 0) {
-    return `${classes} classes span ${slots} time slots. ${gapCount} still need location or age group details.`;
-  }
-  return `${classes} classes span ${slots} time slots, with a good mix of indoor studio, meadow learning, and off-site exploration.`;
+  if (incompleteClasses === 1) return "1 class incomplete";
+  return `${incompleteClasses} classes incomplete`;
 }
 
 function parseIsoDate(value: string): Date | null {
@@ -232,7 +334,7 @@ function classEntry(
   teacher = "",
 ): FridayBranchClass {
   return {
-    id: newAdmissionsId(),
+    id: newFridayBranchId(),
     name,
     location,
     ageGroup,
