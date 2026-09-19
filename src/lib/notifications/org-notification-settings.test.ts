@@ -300,8 +300,11 @@ describe("maybeMigrateIncompleteAdmissionsReminders", () => {
     );
 
     assert.equal(migrated.parent_reminders.incomplete_admissions.enabled, true);
+    if (persisted === null) {
+      assert.fail("Expected migration to persist settings");
+    }
     assert.equal(
-      (persisted?.notifications as { parent_reminders: { incomplete_admissions: { enabled: boolean } } })
+      (persisted["notifications"] as { parent_reminders: { incomplete_admissions: { enabled: boolean } } })
         .parent_reminders.incomplete_admissions.enabled,
       true,
     );

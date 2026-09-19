@@ -390,14 +390,20 @@ type FridayBranchClassDetailRow = {
   teacher: string;
   family_visible: boolean;
   capacity: number | null;
-  friday_branch_time_slots: {
-    time: string;
-    friday_branch_blocks: {
-      label: string;
-      start_date: string | null;
-      end_date: string | null;
-    };
-  };
+  friday_branch_time_slots:
+    | {
+        time: string;
+        friday_branch_blocks:
+          | { label: string; start_date: string | null; end_date: string | null }
+          | { label: string; start_date: string | null; end_date: string | null }[];
+      }
+    | {
+        time: string;
+        friday_branch_blocks:
+          | { label: string; start_date: string | null; end_date: string | null }
+          | { label: string; start_date: string | null; end_date: string | null }[];
+      }[]
+    | null;
 };
 
 type FridayBranchEnrollmentRow = {
@@ -578,22 +584,23 @@ export async function loadFridayBranchClassRosterForEmail(
   const rows: FridayBranchRosterEmailRow[] = (
     (enrollmentRows ?? []) as FridayBranchRosterEnrollmentRow[]
   )
-    .map((enrollment) => {
+    .flatMap((enrollment) => {
       const student = relationOne(enrollment.students);
       const family = relationOne(enrollment.families);
       const status = parseEnrollmentStatus(enrollment.status);
-      if (status === "withdrawn") return null;
+      if (status === "withdrawn") return [];
 
-      return {
-        studentName: formatPersonName(student?.first_name, student?.last_name),
-        familyName: family?.name?.trim() || "Family",
-        grade: student?.grade?.trim() || "—",
-        status,
-        familyEmail: family?.primary_email?.trim() || "—",
-        familyPhone: family?.primary_phone?.trim() || "—",
-      };
+      return [
+        {
+          studentName: formatPersonName(student?.first_name, student?.last_name),
+          familyName: family?.name?.trim() || "Family",
+          grade: student?.grade?.trim() || "—",
+          status,
+          familyEmail: family?.primary_email?.trim() || "—",
+          familyPhone: family?.primary_phone?.trim() || "—",
+        },
+      ];
     })
-    .filter((row): row is FridayBranchRosterEmailRow => row !== null)
     .sort((left, right) => {
       const statusDiff =
         rosterStatusSortOrder(left.status) - rosterStatusSortOrder(right.status);

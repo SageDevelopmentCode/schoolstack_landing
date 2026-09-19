@@ -528,7 +528,10 @@ export default function OrganizationSettingsEditor({
     );
     const normalizedFeatures = {
       ...features,
-      parent: normalizedParentFeatures,
+      parent: {
+        ...(features.parent ?? DEFAULT_FEATURES.parent),
+        ...normalizedParentFeatures,
+      },
     };
 
     const payload = {
@@ -1138,7 +1141,7 @@ export default function OrganizationSettingsEditor({
                     title={navItem?.label ?? catalogDef.label}
                     badge={isCoopOnly ? COOP_ONLY_PARENT_FEATURE_BADGE : undefined}
                     subtitle={
-                      isCoopOnly
+                      portal === "parent" && isCoopOnlyParentFeature(catalogDef.key)
                         ? getCoopParentFeatureAdminHint(catalogDef.key)
                         : catalogDef.description
                     }

@@ -184,6 +184,7 @@ export async function POST(request: Request, context: RouteContext) {
         organizationId,
         entityType: "friday_branch_class_enrollment",
         entityId: result.enrollmentId,
+        actor: { type: "parent", userId: user.id, email: user.email },
         cause: error,
       }),
     );
@@ -314,6 +315,7 @@ export async function DELETE(request: Request, context: RouteContext) {
           organizationId,
           entityType: "friday_branch_class_enrollment",
           entityId: enrollmentId,
+          actor: { type: "parent", userId: user.id, email: user.email },
           cause: error,
         }),
       );
