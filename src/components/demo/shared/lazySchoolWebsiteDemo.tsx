@@ -103,6 +103,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo"
     ),
+  "tapestry-academy": () =>
+    import(
+      "@/components/demo/tapestryacademy/TapestryAcademyWebsiteDashboardDemo"
+    ),
   "the-focus-academy": () =>
     import(
       "@/components/demo/thefocusacademy/TheFocusAcademyWebsiteDashboardDemo"

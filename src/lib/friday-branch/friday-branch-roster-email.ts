@@ -1,13 +1,110 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
-import { sendFridayBranchClassRosterEmail } from "@/lib/emails";
+import {
+  buildFridayBranchClassRosterEmailHtml,
+  sendFridayBranchClassRosterEmail,
+} from "@/lib/emails";
+import { wrapEmailHtmlForAdminPreview } from "@/lib/email-layout";
 import { MAX_ROSTER_RECIPIENTS } from "@/lib/friday-branch/friday-branch-roster-constants";
+import type { FridayBranchClassRosterForEmail } from "@/lib/school-admin/friday-branch/friday-branch-types";
 import {
   formatRosterStatusLabel,
   loadFridayBranchClassRosterForEmail,
 } from "@/lib/school-admin/friday-branch/friday-branch-storage";
 
 export { MAX_ROSTER_RECIPIENTS };
+
+export type FridayBranchClassRosterEmailPayload = {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  sentAtLabel: string;
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[];
+};
+
+function formatRosterSentAtLabel(date = new Date()): string {
+  return date.toLocaleString("en-US", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+}
+
+export function buildFridayBranchClassRosterEmailSubject(
+  className: string,
+  slotTime: string,
+): string {
+  return `Friday Branch roster — ${className} (${slotTime})`;
+}
+
+export function buildFridayBranchClassRosterEmailPayload(
+  roster: FridayBranchClassRosterForEmail,
+  sentAt = new Date(),
+): FridayBranchClassRosterEmailPayload {
+  return {
+    schoolName: roster.schoolName,
+    className: roster.className,
+    slotTime: roster.slotTime,
+    location: roster.location,
+    ageGroup: roster.ageGroup,
+    teacher: roster.teacher,
+    blockLabel: roster.blockLabel,
+    blockDateRange: roster.blockDateRange,
+    sentAtLabel: formatRosterSentAtLabel(sentAt),
+    rows: roster.rows.map((row) => ({
+      studentName: row.studentName,
+      familyName: row.familyName,
+      grade: row.grade,
+      statusLabel: formatRosterStatusLabel(row.status),
+      familyEmail: row.familyEmail,
+      familyPhone: row.familyPhone,
+    })),
+  };
+}
+
+export function buildFridayBranchClassRosterEmailPreview(
+  roster: FridayBranchClassRosterForEmail,
+  sentAt = new Date(),
+): { subject: string; html: string } {
+  const payload = buildFridayBranchClassRosterEmailPayload(roster, sentAt);
+
+  return {
+    subject: buildFridayBranchClassRosterEmailSubject(
+      payload.className,
+      payload.slotTime,
+    ),
+    html: wrapEmailHtmlForAdminPreview(
+      buildFridayBranchClassRosterEmailHtml(payload),
+    ),
+  };
+}
+
+export async function loadFridayBranchClassRosterEmailPreview(
+  supabase: SupabaseClient,
+  organizationId: string,
+  classId: string,
+): Promise<{ subject: string; html: string } | null> {
+  const roster = await loadFridayBranchClassRosterForEmail(
+    supabase,
+    organizationId,
+    classId,
+  );
+
+  if (!roster) return null;
+
+  return buildFridayBranchClassRosterEmailPreview(roster);
+}
 
 export async function sendFridayBranchClassRosterEmails(
   supabase: SupabaseClient,
@@ -31,34 +128,13 @@ export async function sendFridayBranchClassRosterEmails(
     throw new Error("No students signed up yet.");
   }
 
-  const sentAtLabel = new Date().toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
-
-  const emailRows = roster.rows.map((row) => ({
-    studentName: row.studentName,
-    familyName: row.familyName,
-    grade: row.grade,
-    statusLabel: formatRosterStatusLabel(row.status),
-    familyEmail: row.familyEmail,
-    familyPhone: row.familyPhone,
-  }));
+  const payload = buildFridayBranchClassRosterEmailPayload(roster);
 
   const results = await Promise.allSettled(
     input.emails.map((email) =>
       sendFridayBranchClassRosterEmail({
         email,
-        schoolName: roster.schoolName,
-        className: roster.className,
-        slotTime: roster.slotTime,
-        location: roster.location,
-        ageGroup: roster.ageGroup,
-        teacher: roster.teacher,
-        blockLabel: roster.blockLabel,
-        blockDateRange: roster.blockDateRange,
-        sentAtLabel,
-        rows: emailRows,
+        ...payload,
       }),
     ),
   );

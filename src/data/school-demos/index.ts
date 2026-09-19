@@ -35,6 +35,7 @@ export { littleSprigsTampaConfig } from "./little-sprigs-tampa";
 export { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
 export { actonAcademyPlacerConfig } from "./acton-academy-placer";
 export { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
+export { tapestryAcademyConfig } from "./tapestry-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -72,6 +73,7 @@ import { littleSprigsTampaConfig } from "./little-sprigs-tampa";
 import { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
 import { actonAcademyPlacerConfig } from "./acton-academy-placer";
 import { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
+import { tapestryAcademyConfig } from "./tapestry-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -109,6 +111,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "acton-academy-pittsburgh": actonAcademyPittsburghConfig,
   "acton-academy-placer": actonAcademyPlacerConfig,
   "asheboro-hybrid-academy": asheboroHybridAcademyConfig,
+  "tapestry-academy": tapestryAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

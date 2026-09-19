@@ -52,6 +52,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyMobileAppShowcase"
     ),
+  "tapestry-academy": () =>
+    import(
+      "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({

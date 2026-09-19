@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
+import FridayBranchRosterEmailPreviewDialog from "@/components/school-admin/friday-branch/FridayBranchRosterEmailPreviewDialog";
 import SchoolAdminSlideOverShell from "@/components/school-admin/ui/SchoolAdminSlideOverShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
@@ -27,6 +28,11 @@ type FridayBranchSendRosterSheetProps = {
   C: AdminThemeTokens;
 };
 
+type RosterEmailPreview = {
+  subject: string;
+  html: string;
+};
+
 export default function FridayBranchSendRosterSheet({
   open,
   onClose,
@@ -41,16 +47,72 @@ export default function FridayBranchSendRosterSheet({
   const [recipients, setRecipients] = useState<string[]>([]);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<RosterEmailPreview | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setPreviewDialogOpen(false);
+      setPreviewLoading(false);
+      setPreviewError(null);
+      setPreview(null);
+      return;
+    }
+
     setEmailDraft("");
     setRecipients([]);
     setEmailError(null);
     setSending(false);
+    setPreviewDialogOpen(false);
+    setPreviewLoading(false);
+    setPreviewError(null);
+    setPreview(null);
   }, [open, classId]);
 
   const fieldInputStyle = fridayBranchFieldInputStyle(theme, C);
+
+  const loadPreview = useCallback(async () => {
+    if (!classId) return;
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+
+    try {
+      const response = await fetch(
+        `/api/school-admin/friday-branch/classes/${encodeURIComponent(classId)}/roster-email-preview?organizationId=${encodeURIComponent(organizationId)}`,
+      );
+
+      const payload = (await response.json().catch(() => null)) as
+        | RosterEmailPreview
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload && "error" in payload ? payload.error : "Failed to load preview.");
+      }
+
+      setPreview(payload as RosterEmailPreview);
+    } catch (err) {
+      const message = formatActionError(err, "Failed to load roster email preview.");
+      setPreviewError(message);
+      void reportClientOperationalError({
+        organizationId,
+        operation: "friday_branch.class.roster.preview",
+        error: message,
+      });
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [classId, organizationId]);
+
+  const handleOpenPreview = () => {
+    setPreviewDialogOpen(true);
+    setPreview(null);
+    setPreviewError(null);
+    void loadPreview();
+  };
 
   const handleAddEmail = () => {
     const nextEmails = normalizeNotificationEmails([
@@ -125,6 +187,7 @@ export default function FridayBranchSendRosterSheet({
   const subtitle = [className, slotTime].filter(Boolean).join(" · ");
 
   return (
+    <>
     <SchoolAdminSlideOverShell
       open={open}
       onClose={onClose}
@@ -142,6 +205,15 @@ export default function FridayBranchSendRosterSheet({
           >
             Cancel
           </button>
+          <AdminButton
+            theme={theme}
+            variant="soft"
+            type="button"
+            onClick={handleOpenPreview}
+            disabled={sending || !classId}
+          >
+            Preview email
+          </AdminButton>
           <AdminButton
             theme={theme}
             variant="primary"
@@ -234,5 +306,19 @@ export default function FridayBranchSendRosterSheet({
         </p>
       </div>
     </SchoolAdminSlideOverShell>
+
+    <FridayBranchRosterEmailPreviewDialog
+      open={previewDialogOpen}
+      onClose={() => setPreviewDialogOpen(false)}
+      C={C}
+      theme={theme}
+      className={className}
+      slotTime={slotTime}
+      loading={previewLoading}
+      error={previewError}
+      subject={preview?.subject ?? null}
+      html={preview?.html ?? null}
+    />
+    </>
   );
 }
