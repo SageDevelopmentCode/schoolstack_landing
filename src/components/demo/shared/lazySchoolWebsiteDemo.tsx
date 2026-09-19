@@ -33,6 +33,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/creationacres/CreationAcresWebsiteDashboardDemo"
     ),
+  "gathered-oak-farm": () =>
+    import(
+      "@/components/demo/gatheredoakfarm/GatheredOakFarmWebsiteDashboardDemo"
+    ),
   "hilton-horizons-academy": () =>
     import(
       "@/components/demo/hiltonhorizon/HiltonHorizonWebsiteDashboardDemo"

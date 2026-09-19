@@ -15,6 +15,7 @@ export default function ParentMessagesPage() {
     <ParentMessagesListScreen
       organizationId={selectedSchool.id}
       organizationSlug={selectedSchool.slug}
+      schoolName={selectedSchool.name}
     />
   );
 }

@@ -20,6 +20,7 @@ export { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 export { luffLearningConfig } from "./luff-learning";
 export { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 export { creationAcresConfig } from "./creation-acres";
+export { gatheredOakFarmConfig } from "./gathered-oak-farm";
 export { trueNorthConfig } from "./true-north";
 export { oneAcreFarmConfig } from "./one-acre-farm";
 export { labLearningConfig } from "./lab-learning";
@@ -55,6 +56,7 @@ import { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 import { luffLearningConfig } from "./luff-learning";
 import { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 import { creationAcresConfig } from "./creation-acres";
+import { gatheredOakFarmConfig } from "./gathered-oak-farm";
 import { trueNorthConfig } from "./true-north";
 import { oneAcreFarmConfig } from "./one-acre-farm";
 import { labLearningConfig } from "./lab-learning";
@@ -90,6 +92,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "luff-learning": luffLearningConfig,
   "paradise-earth-academy": paradiseEarthAcademyConfig,
   "creation-acres": creationAcresConfig,
+  "gathered-oak-farm": gatheredOakFarmConfig,
   "true-north": trueNorthConfig,
   "one-acre-farm": oneAcreFarmConfig,
   "lab-learning": labLearningConfig,

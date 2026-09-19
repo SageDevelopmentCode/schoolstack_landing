@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -14,6 +14,10 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import {
+  prefetchParentMessageThread,
+  prefetchRecentParentMessageThreads,
+} from '@/lib/messages/message-thread-cache';
 import { createParentMessageThread } from '@/lib/messages/parent-api';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
@@ -22,6 +26,7 @@ import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types'
 type ParentMessagesListScreenProps = {
   organizationId: string;
   organizationSlug: string;
+  schoolName: string;
 };
 
 function sortThreadsByRecency<T extends { lastMessageAt: string | null }>(threads: T[]): T[] {
@@ -46,6 +51,7 @@ function filterThreadsBySearch(threads: MessageThreadSummary[], query: string): 
 export function ParentMessagesListScreen({
   organizationId,
   organizationSlug,
+  schoolName,
 }: ParentMessagesListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
@@ -93,9 +99,32 @@ export function ParentMessagesListScreen({
     void refresh({ silent: true });
   };
 
+  const prefetchedThreadIdsRef = useRef<string>('');
+
+  const prefetchThread = useCallback(
+    (threadId: string) => {
+      void prefetchParentMessageThread(organizationId, schoolName, threadId);
+    },
+    [organizationId, schoolName],
+  );
+
   const openThread = (threadId: string) => {
     router.push(`/parent/${organizationSlug}/messages/${threadId}`);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (sortedThreads.length === 0) return;
+      const threadIds = sortedThreads.map((thread) => thread.id).join(',');
+      if (prefetchedThreadIdsRef.current === threadIds) return;
+      prefetchedThreadIdsRef.current = threadIds;
+      prefetchRecentParentMessageThreads(
+        organizationId,
+        schoolName,
+        sortedThreads.map((thread) => thread.id),
+      );
+    }, [organizationId, schoolName, sortedThreads]),
+  );
 
   const handleNewConversationSelect = async (contact: MessageContact) => {
     if (startingConversation) return;
@@ -152,7 +181,11 @@ export function ParentMessagesListScreen({
             data={filteredThreads}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <ParentMessageThreadRow thread={item} onPress={() => openThread(item.id)} />
+              <ParentMessageThreadRow
+                thread={item}
+                onPress={() => openThread(item.id)}
+                onPressIn={() => prefetchThread(item.id)}
+              />
             )}
             style={styles.list}
             contentContainerStyle={[

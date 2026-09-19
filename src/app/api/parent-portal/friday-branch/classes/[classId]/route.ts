@@ -11,6 +11,11 @@ import {
   ParentFridayBranchAuthError,
   requireParentFridayBranchAccess,
 } from "@/lib/parent-portal/friday-branch/parent-friday-branch-auth";
+import {
+  notifyFridayBranchEnrollmentFromParentPortal,
+  notifyFridayBranchWithdrawalFromParentPortal,
+} from "@/lib/friday-branch/friday-branch-admin-notifications";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -157,6 +162,32 @@ export async function POST(request: Request, context: RouteContext) {
       studentOptions,
     );
 
+    const studentName =
+      studentOptions.find((student) => student.id === studentId)?.name ?? "Student";
+
+    void notifyFridayBranchEnrollmentFromParentPortal(admin, {
+      organizationId,
+      familyId,
+      enrollmentId: result.enrollmentId,
+      classId: classId.trim(),
+      studentId,
+      studentName,
+      status: result.status,
+      detail: result.detail,
+      actor: user,
+    }).catch((error) =>
+      reportOperationalError({
+        supabase: admin,
+        surface: "parent_portal",
+        operation: "friday_branch.class.enroll.notify",
+        error: "Failed to notify admins of Friday Branch sign-up.",
+        organizationId,
+        entityType: "friday_branch_class_enrollment",
+        entityId: result.enrollmentId,
+        cause: error,
+      }),
+    );
+
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ParentFridayBranchAuthError) {
@@ -239,6 +270,17 @@ export async function DELETE(request: Request, context: RouteContext) {
     );
 
     const admin = createAdminClient();
+
+    const { data: existingEnrollment } = await admin
+      .from("friday_branch_class_enrollments")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("family_id", familyId)
+      .eq("class_id", classId.trim())
+      .eq("student_id", studentId)
+      .in("status", ["confirmed", "waitlisted"])
+      .maybeSingle();
+
     const detail = await withdrawStudentFromFridayBranchClass(
       admin,
       organizationId,
@@ -247,6 +289,35 @@ export async function DELETE(request: Request, context: RouteContext) {
       studentId,
       studentOptions,
     );
+
+    const enrollmentId = existingEnrollment
+      ? String((existingEnrollment as { id: string }).id)
+      : null;
+    const studentName =
+      studentOptions.find((student) => student.id === studentId)?.name ?? "Student";
+
+    if (enrollmentId) {
+      void notifyFridayBranchWithdrawalFromParentPortal(admin, {
+        organizationId,
+        familyId,
+        enrollmentId,
+        classId: classId.trim(),
+        studentName,
+        detail,
+        actor: user,
+      }).catch((error) =>
+        reportOperationalError({
+          supabase: admin,
+          surface: "parent_portal",
+          operation: "friday_branch.class.withdraw.notify",
+          error: "Failed to log Friday Branch withdrawal activity.",
+          organizationId,
+          entityType: "friday_branch_class_enrollment",
+          entityId: enrollmentId,
+          cause: error,
+        }),
+      );
+    }
 
     return NextResponse.json({ detail });
   } catch (err) {

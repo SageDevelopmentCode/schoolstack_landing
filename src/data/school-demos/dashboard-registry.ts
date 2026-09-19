@@ -5,6 +5,7 @@ import { ascendMicroSchoolAdminDemoConfig } from "./ascendmicroschool-admin-demo
 import { athenaMicroacademyAdminDemoConfig } from "./athena-admin-demo";
 import { austinMicroSchoolAdminDemoConfig } from "./austin-micro-school-admin-demo";
 import { creationAcresAdminDemoConfig } from "./creationacres-admin-demo";
+import { gatheredOakFarmAdminDemoConfig } from "./gathered-oak-farm-admin-demo";
 import { hiltonHorizonsAcademyAdminDemoConfig } from "./hiltonhorizon-admin-demo";
 import { homeworkHubAdminDemoConfig } from "./homeworkhub-admin-demo";
 import { katsCommunityMicroschoolAdminDemoConfig } from "./kats-community-microschool-admin-demo";
@@ -39,6 +40,7 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "athena-microacademy": athenaMicroacademyAdminDemoConfig,
   "austin-micro-school": austinMicroSchoolAdminDemoConfig,
   "creation-acres": creationAcresAdminDemoConfig,
+  "gathered-oak-farm": gatheredOakFarmAdminDemoConfig,
   "hilton-horizons-academy": hiltonHorizonsAcademyAdminDemoConfig,
   "homework-hub": homeworkHubAdminDemoConfig,
   "kats-community-microschool": katsCommunityMicroschoolAdminDemoConfig,
@@ -74,6 +76,7 @@ import { ascendMicroSchoolParentDemoConfig } from "./ascendmicroschool-parent-de
 import { athenaMicroacademyParentDemoConfig } from "./athena-parent-demo";
 import { austinMicroSchoolParentDemoConfig } from "./austin-micro-school-parent-demo";
 import { creationAcresParentDemoConfig } from "./creationacres-parent-demo";
+import { gatheredOakFarmParentDemoConfig } from "./gathered-oak-farm-parent-demo";
 import { hiltonHorizonsAcademyParentDemoConfig } from "./hiltonhorizon-parent-demo";
 import { homeworkHubParentDemoConfig } from "./homeworkhub-parent-demo";
 import { katsCommunityMicroschoolParentDemoConfig } from "./kats-community-microschool-parent-demo";
@@ -108,6 +111,7 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "athena-microacademy": athenaMicroacademyParentDemoConfig,
   "austin-micro-school": austinMicroSchoolParentDemoConfig,
   "creation-acres": creationAcresParentDemoConfig,
+  "gathered-oak-farm": gatheredOakFarmParentDemoConfig,
   "hilton-horizons-academy": hiltonHorizonsAcademyParentDemoConfig,
   "homework-hub": homeworkHubParentDemoConfig,
   "kats-community-microschool": katsCommunityMicroschoolParentDemoConfig,
@@ -142,6 +146,7 @@ import { ascendMicroSchoolTeacherDemoConfig } from "./ascendmicroschool-teacher-
 import { athenaMicroacademyTeacherDemoConfig } from "./athena-teacher-demo";
 import { austinMicroSchoolTeacherDemoConfig } from "./austin-micro-school-teacher-demo";
 import { creationAcresTeacherDemoConfig } from "./creationacres-teacher-demo";
+import { gatheredOakFarmTeacherDemoConfig } from "./gathered-oak-farm-teacher-demo";
 import { hiltonHorizonsAcademyTeacherDemoConfig } from "./hiltonhorizon-teacher-demo";
 import { homeworkHubTeacherDemoConfig } from "./homeworkhub-teacher-demo";
 import { katsCommunityMicroschoolTeacherDemoConfig } from "./kats-community-microschool-teacher-demo";
@@ -176,6 +181,7 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "athena-microacademy": athenaMicroacademyTeacherDemoConfig,
   "austin-micro-school": austinMicroSchoolTeacherDemoConfig,
   "creation-acres": creationAcresTeacherDemoConfig,
+  "gathered-oak-farm": gatheredOakFarmTeacherDemoConfig,
   "hilton-horizons-academy": hiltonHorizonsAcademyTeacherDemoConfig,
   "homework-hub": homeworkHubTeacherDemoConfig,
   "kats-community-microschool": katsCommunityMicroschoolTeacherDemoConfig,

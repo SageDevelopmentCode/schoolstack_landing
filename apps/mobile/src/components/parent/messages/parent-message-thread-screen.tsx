@@ -16,14 +16,24 @@ import { MessageThreadHeader } from '@/components/school-admin/messages/message-
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { useAuth } from '@/contexts/auth-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
+import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import {
-  loadParentMessageThread,
-  mergeMessages,
-  sendParentMessage,
-} from '@/lib/messages/parent-api';
+  fetchAndCacheParentMessageThread,
+  getCachedParentMessageThread,
+  hydrateParentMessageThreadFromDisk,
+  isParentMessageThreadStale,
+} from '@/lib/messages/message-thread-cache';
+import {
+  buildOptimisticPortalMessage,
+  confirmOptimisticMessage,
+  displayNameFromAuthMetadata,
+  resolveOwnMessageSenderIdentity,
+} from '@/lib/messages/optimistic-message';
+import { mergeMessages, sendParentMessage } from '@/lib/messages/parent-api';
 import { buildMessageRenderItems } from '@/lib/messages/format-chat';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { RenderMessageItem } from '@/lib/messages/format-chat';
@@ -44,8 +54,26 @@ export function ParentMessageThreadScreen({
   schoolName,
 }: ParentMessageThreadScreenProps) {
   const theme = useParentTheme();
+  const { user } = useAuth();
+  const { data: homeData } = useParentHome();
   const { reportError } = useMobileErrorReporter(organizationId);
   const { refreshUnreadCount } = useMessagesUnread();
+
+  const ownSenderFallback = useMemo(
+    () => ({
+      senderUserId: user?.id ?? 'self',
+      senderName:
+        homeData?.userProfile.displayName?.trim() ||
+        displayNameFromAuthMetadata(
+          typeof user?.user_metadata?.full_name === 'string'
+            ? user.user_metadata.full_name
+            : undefined,
+          user?.email,
+        ),
+      profilePhotoUrl: homeData?.userProfile.profilePhotoUrl ?? null,
+    }),
+    [homeData?.userProfile.displayName, homeData?.userProfile.profilePhotoUrl, user],
+  );
 
   const [thread, setThread] = useState<MessageThreadDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,34 +84,66 @@ export function ParentMessageThreadScreen({
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
   const pendingOptimisticIds = useRef(new Set<string>());
 
+  const applyThreadDetail = useCallback((detail: MessageThreadDetail) => {
+    setThread((prev) => {
+      if (!prev) return detail;
+      const optimistic = prev.messages.filter((message) => message.pending);
+      return {
+        ...detail,
+        messages: mergeMessages(detail.messages, optimistic),
+      };
+    });
+  }, []);
+
   const loadThread = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) {
+    async (options?: { silent?: boolean; refresh?: boolean }) => {
+      const cached =
+        getCachedParentMessageThread(organizationId, schoolName, threadId) ??
+        (await hydrateParentMessageThreadFromDisk(organizationId, schoolName, threadId));
+
+      const hasCached = Boolean(cached);
+      const isStale = hasCached
+        ? isParentMessageThreadStale(organizationId, schoolName, threadId)
+        : false;
+      const needsNetwork = options?.refresh || !hasCached || isStale;
+
+      if (hasCached && !options?.refresh) {
+        applyThreadDetail(cached!);
+        setLoading(false);
+      } else if (!hasCached && !options?.silent) {
         setLoading(true);
       }
+
+      if (!needsNetwork) {
+        if (!options?.silent) {
+          await refreshUnreadCount();
+        }
+        return;
+      }
+
       setError(null);
       try {
-        const detail = await loadParentMessageThread(threadId, organizationId, schoolName);
-        setThread((prev) => {
-          if (!prev) return detail;
-          const optimistic = prev.messages.filter((message) => message.pending);
-          return {
-            ...detail,
-            messages: mergeMessages(detail.messages, optimistic),
-          };
-        });
-        await refreshUnreadCount({ force: true });
+        const detail = await fetchAndCacheParentMessageThread(
+          organizationId,
+          schoolName,
+          threadId,
+          options?.refresh || isStale ? { refresh: true } : undefined,
+        );
+        applyThreadDetail(detail);
+        await refreshUnreadCount();
       } catch (loadError) {
-        reportError('parent_message_thread_load', loadError, {
-          entityType: 'message_thread',
-          entityId: threadId,
-        });
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
+        if (!hasCached) {
+          reportError('parent_message_thread_load', loadError, {
+            entityType: 'message_thread',
+            entityId: threadId,
+          });
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
+        }
       } finally {
         setLoading(false);
       }
     },
-    [organizationId, refreshUnreadCount, reportError, schoolName, threadId],
+    [applyThreadDetail, organizationId, refreshUnreadCount, reportError, schoolName, threadId],
   );
 
   useEffect(() => {
@@ -100,7 +160,7 @@ export function ParentMessageThreadScreen({
       },
       onThreadMessage: (incomingThreadId) => {
         if (incomingThreadId === threadId) {
-          void loadThread({ silent: true });
+          void loadThread({ silent: true, refresh: true });
         }
       },
     });
@@ -123,25 +183,14 @@ export function ParentMessageThreadScreen({
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
-    const optimisticId = `pending-${Date.now()}`;
-    const optimisticMessage: PortalMessage = {
-      id: optimisticId,
+    const optimisticMessage = buildOptimisticPortalMessage({
       threadId,
       body,
-      senderUserId: 'self',
+      files: stagedFiles,
       senderKind: 'guardian',
-      senderName: 'You',
-      isOwn: true,
-      createdAt: new Date().toISOString(),
-      timeLabel: 'Now',
-      attachments: stagedFiles.map((file, index) => ({
-        id: `pending-file-${index}`,
-        fileName: file.name,
-        mimeType: file.mimeType,
-        sizeBytes: file.size,
-      })),
-      pending: true,
-    };
+      senderIdentity: resolveOwnMessageSenderIdentity(thread.messages, ownSenderFallback),
+    });
+    const optimisticId = optimisticMessage.id;
 
     pendingOptimisticIds.current.add(optimisticId);
     setThread((prev) =>
@@ -168,10 +217,11 @@ export function ParentMessageThreadScreen({
         const withoutPending = prev.messages.filter((message) => message.id !== optimisticId);
         return {
           ...prev,
-          messages: mergeMessages(withoutPending, [serverMessage]),
+          messages: mergeMessages(withoutPending, [
+            confirmOptimisticMessage(optimisticMessage, serverMessage),
+          ]),
         };
       });
-      await loadThread({ silent: true });
     } catch (sendError) {
       reportError('parent_message_send', sendError, {
         entityType: 'message_thread',

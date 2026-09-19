@@ -17,13 +17,26 @@ import { TeacherMessageThreadHeader } from '@/components/teacher/messages/teache
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
+import { useAuth } from '@/contexts/auth-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useTeacherHome } from '@/contexts/teacher-home-context';
 import { useTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-context';
 import { Radius, Spacing } from '@/constants/theme';
 import {
+  fetchAndCacheTeacherMessageThread,
+  getCachedTeacherMessageThread,
+  hydrateTeacherMessageThreadFromDisk,
+  isTeacherMessageThreadStale,
+} from '@/lib/messages/message-thread-cache';
+import {
+  buildOptimisticPortalMessage,
+  confirmOptimisticMessage,
+  displayNameFromAuthMetadata,
+  resolveOwnMessageSenderIdentity,
+} from '@/lib/messages/optimistic-message';
+import {
   createTeacherMessageThread,
-  loadTeacherMessageThread,
   mergeMessages,
   sendTeacherMessage,
 } from '@/lib/messages/teacher-api';
@@ -72,9 +85,27 @@ export function TeacherMessageThreadScreen({
 }: TeacherMessageThreadScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const { data: homeData } = useTeacherHome();
   const { reportError } = useMobileErrorReporter(organizationId);
   const { refreshUnreadCount } = useMessagesUnread();
   const { contacts, refresh: refreshInbox } = useTeacherMessagesInbox();
+
+  const ownSenderFallback = useMemo(
+    () => ({
+      senderUserId: user?.id ?? 'self',
+      senderName:
+        homeData?.userProfile.displayName?.trim() ||
+        displayNameFromAuthMetadata(
+          typeof user?.user_metadata?.full_name === 'string'
+            ? user.user_metadata.full_name
+            : undefined,
+          user?.email,
+        ),
+      profilePhotoUrl: homeData?.userProfile.profilePhotoUrl ?? null,
+    }),
+    [homeData?.userProfile.displayName, homeData?.userProfile.profilePhotoUrl, user],
+  );
   const isPendingNewThread = threadId === 'new';
 
   const [thread, setThread] = useState<MessageThreadDetail | null>(null);
@@ -92,36 +123,76 @@ export function TeacherMessageThreadScreen({
     return contacts.find((contact) => contact.key === pendingContactKey) ?? null;
   }, [contacts, isPendingNewThread, pendingContactKey]);
 
+  const applyThreadDetail = useCallback((detail: MessageThreadDetail) => {
+    setThread((prev) => {
+      if (!prev) return detail;
+      const optimistic = prev.messages.filter((message) => message.pending);
+      return {
+        ...detail,
+        messages: mergeMessages(detail.messages, optimistic),
+      };
+    });
+  }, []);
+
   const loadThread = useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: { silent?: boolean; refresh?: boolean }) => {
       if (isPendingNewThread) return;
 
-      if (!options?.silent) {
+      const cached =
+        getCachedTeacherMessageThread(organizationId, schoolName, threadId) ??
+        (await hydrateTeacherMessageThreadFromDisk(organizationId, schoolName, threadId));
+
+      const hasCached = Boolean(cached);
+      const isStale = hasCached
+        ? isTeacherMessageThreadStale(organizationId, schoolName, threadId)
+        : false;
+      const needsNetwork = options?.refresh || !hasCached || isStale;
+
+      if (hasCached && !options?.refresh) {
+        applyThreadDetail(cached!);
+        setLoading(false);
+      } else if (!hasCached && !options?.silent) {
         setLoading(true);
       }
+
+      if (!needsNetwork) {
+        if (!options?.silent) {
+          await refreshUnreadCount();
+        }
+        return;
+      }
+
       setError(null);
       try {
-        const detail = await loadTeacherMessageThread(threadId, organizationId, schoolName);
-        setThread((prev) => {
-          if (!prev) return detail;
-          const optimistic = prev.messages.filter((message) => message.pending);
-          return {
-            ...detail,
-            messages: mergeMessages(detail.messages, optimistic),
-          };
-        });
-        await refreshUnreadCount({ force: true });
+        const detail = await fetchAndCacheTeacherMessageThread(
+          organizationId,
+          schoolName,
+          threadId,
+          options?.refresh || isStale ? { refresh: true } : undefined,
+        );
+        applyThreadDetail(detail);
+        await refreshUnreadCount();
       } catch (loadError) {
-        reportError('teacher_message_thread_load', loadError, {
-          entityType: 'message_thread',
-          entityId: threadId,
-        });
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
+        if (!hasCached) {
+          reportError('teacher_message_thread_load', loadError, {
+            entityType: 'message_thread',
+            entityId: threadId,
+          });
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load conversation.');
+        }
       } finally {
         setLoading(false);
       }
     },
-    [isPendingNewThread, organizationId, refreshUnreadCount, reportError, schoolName, threadId],
+    [
+      applyThreadDetail,
+      isPendingNewThread,
+      organizationId,
+      refreshUnreadCount,
+      reportError,
+      schoolName,
+      threadId,
+    ],
   );
 
   useEffect(() => {
@@ -203,7 +274,7 @@ export function TeacherMessageThreadScreen({
       },
       onThreadMessage: (incomingThreadId) => {
         if (incomingThreadId === threadId) {
-          void loadThread({ silent: true });
+          void loadThread({ silent: true, refresh: true });
         }
       },
     });
@@ -226,25 +297,14 @@ export function TeacherMessageThreadScreen({
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
-    const optimisticId = `pending-${Date.now()}`;
-    const optimisticMessage: PortalMessage = {
-      id: optimisticId,
+    const optimisticMessage = buildOptimisticPortalMessage({
       threadId,
       body,
-      senderUserId: 'self',
+      files: stagedFiles,
       senderKind: 'staff_member',
-      senderName: 'You',
-      isOwn: true,
-      createdAt: new Date().toISOString(),
-      timeLabel: 'Now',
-      attachments: stagedFiles.map((file, index) => ({
-        id: `pending-file-${index}`,
-        fileName: file.name,
-        mimeType: file.mimeType,
-        sizeBytes: file.size,
-      })),
-      pending: true,
-    };
+      senderIdentity: resolveOwnMessageSenderIdentity(thread.messages, ownSenderFallback),
+    });
+    const optimisticId = optimisticMessage.id;
 
     pendingOptimisticIds.current.add(optimisticId);
     setThread((prev) =>
@@ -271,10 +331,11 @@ export function TeacherMessageThreadScreen({
         const withoutPending = prev.messages.filter((message) => message.id !== optimisticId);
         return {
           ...prev,
-          messages: mergeMessages(withoutPending, [serverMessage]),
+          messages: mergeMessages(withoutPending, [
+            confirmOptimisticMessage(optimisticMessage, serverMessage),
+          ]),
         };
       });
-      await loadThread({ silent: true });
     } catch (sendError) {
       reportError('teacher_message_send', sendError, {
         entityType: 'message_thread',

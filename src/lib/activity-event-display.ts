@@ -3,6 +3,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Bell,
+  CalendarDays,
   ClipboardList,
   CreditCard,
   GraduationCap,
@@ -111,6 +112,8 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "approved a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "declined a committee join request",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN]: "withdrew a committee join request",
+  [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED]: "signed up for a Friday Branch class",
+  [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN]: "withdrew from a Friday Branch class",
   [ACTIVITY_ACTIONS.BULLETIN_POST_PUBLISHED]: "published a bulletin post",
   [ACTIVITY_ACTIONS.CALENDAR_EVENT_POSTED]: "posted a calendar event",
   [ACTIVITY_ACTIONS.COOP_SUPPLY_ITEM_ADDED]: "added a co-op supply item",
@@ -176,6 +179,10 @@ const CATEGORY_VISUALS: Record<
   committees: {
     Icon: Heart,
     className: "bg-rose-50 text-rose-700 border-rose-200",
+  },
+  program_signups: {
+    Icon: CalendarDays,
+    className: "bg-violet-50 text-violet-700 border-violet-200",
   },
   other: {
     Icon: Bell,

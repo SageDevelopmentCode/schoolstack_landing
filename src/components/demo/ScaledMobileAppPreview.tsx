@@ -32,6 +32,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/piedmontforestschool/PiedmontForestSchoolMobileAppShowcase"
     ),
+  "gathered-oak-farm": () =>
+    import(
+      "@/components/demo/gatheredoakfarm/GatheredOakFarmMobileAppShowcase"
+    ),
   "little-sprigs-tampa": () =>
     import(
       "@/components/demo/littlesprigstampa/LittleSprigsTampaMobileAppShowcase"

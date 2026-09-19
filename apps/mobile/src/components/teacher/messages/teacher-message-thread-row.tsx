@@ -18,6 +18,7 @@ type TeacherMessageThreadRowProps = {
   thread: MessageThreadSummary;
   organizationSlug: string;
   onPress: () => void;
+  onPressIn?: () => void;
 };
 
 function shouldShowPlainSubtitle(thread: MessageThreadSummary): boolean {
@@ -30,6 +31,7 @@ export function TeacherMessageThreadRow({
   thread,
   organizationSlug,
   onPress,
+  onPressIn,
 }: TeacherMessageThreadRowProps) {
   const theme = useParentTheme();
   const router = useRouter();
@@ -44,6 +46,7 @@ export function TeacherMessageThreadRow({
     <ScalePressable
       accessibilityRole="button"
       onPress={onPress}
+      onPressIn={onPressIn}
       style={[
         styles.rowPressable,
         {

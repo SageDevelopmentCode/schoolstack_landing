@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -33,6 +33,8 @@ type FridayBranchScheduleCardProps = {
   block: FridayBranchBlock;
   onChange: (block: FridayBranchBlock) => void;
   highlightClassId?: string | null;
+  requestedClassId?: string | null;
+  onRequestedClassHandled?: () => void;
   onReviewGaps?: () => void;
 };
 
@@ -73,6 +75,8 @@ export default function FridayBranchScheduleCard({
   block,
   onChange,
   highlightClassId,
+  requestedClassId,
+  onRequestedClassHandled,
   onReviewGaps,
 }: FridayBranchScheduleCardProps) {
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
@@ -82,6 +86,24 @@ export default function FridayBranchScheduleCard({
 
   const effectiveHighlightClassId = highlightClassId ?? localHighlightClassId;
   const gaps = getScheduleGaps(block);
+
+  useEffect(() => {
+    if (!requestedClassId) return;
+
+    for (const slot of block.slots) {
+      const classEntry = slot.classes.find((entry) => entry.id === requestedClassId);
+      if (!classEntry) continue;
+
+      setDetailTarget({
+        classId: classEntry.id,
+        slotId: slot.id,
+        classEntry,
+        slotTime: slot.time,
+      });
+      onRequestedClassHandled?.();
+      return;
+    }
+  }, [block, onRequestedClassHandled, requestedClassId]);
 
   const updateBlock = (nextBlock: FridayBranchBlock) => onChange(nextBlock);
 

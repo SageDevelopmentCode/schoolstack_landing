@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -16,6 +16,10 @@ import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import {
+  prefetchRecentTeacherMessageThreads,
+  prefetchTeacherMessageThread,
+} from '@/lib/messages/message-thread-cache';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { teacherMessageThreadRoute, teacherNewMessageThreadRoute } from '@/lib/teacher/teacher-nav';
 import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
@@ -98,9 +102,32 @@ export function TeacherMessagesListScreen({
     void refresh({ silent: true });
   };
 
+  const prefetchedThreadIdsRef = useRef<string>('');
+
+  const prefetchThread = useCallback(
+    (threadId: string) => {
+      void prefetchTeacherMessageThread(organizationId, schoolName, threadId);
+    },
+    [organizationId, schoolName],
+  );
+
   const openThread = (threadId: string) => {
     router.push(teacherMessageThreadRoute(organizationSlug, threadId));
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!messagesEnabled || sortedThreads.length === 0) return;
+      const threadIds = sortedThreads.map((thread) => thread.id).join(',');
+      if (prefetchedThreadIdsRef.current === threadIds) return;
+      prefetchedThreadIdsRef.current = threadIds;
+      prefetchRecentTeacherMessageThreads(
+        organizationId,
+        schoolName,
+        sortedThreads.map((thread) => thread.id),
+      );
+    }, [messagesEnabled, organizationId, schoolName, sortedThreads]),
+  );
 
   const handleNewConversationSelect = (contact: MessageContact) => {
     setNewConversationOpen(false);
@@ -160,6 +187,7 @@ export function TeacherMessagesListScreen({
                 thread={item}
                 organizationSlug={organizationSlug}
                 onPress={() => openThread(item.id)}
+                onPressIn={() => prefetchThread(item.id)}
               />
             )}
             style={styles.list}

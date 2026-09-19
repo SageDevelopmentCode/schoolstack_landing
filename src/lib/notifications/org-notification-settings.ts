@@ -13,7 +13,8 @@ export type NotificationChannel =
   | "applications"
   | "payments"
   | "visits"
-  | "committees";
+  | "committees"
+  | "program_signups";
 
 export type NotificationChannelSettings = {
   enabled: boolean;
@@ -26,6 +27,7 @@ export type OrganizationNotificationSettings = {
   payments: NotificationChannelSettings;
   visits: NotificationChannelSettings;
   committees: NotificationChannelSettings;
+  program_signups: NotificationChannelSettings;
 };
 
 export type RecipientSummary = {
@@ -77,6 +79,11 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       include_org_admins: true,
       additional_emails: [],
     },
+    program_signups: {
+      enabled: true,
+      include_org_admins: true,
+      additional_emails: [],
+    },
   };
 }
 
@@ -124,12 +131,17 @@ export function parseOrganizationNotificationSettings(
     stored.committees && typeof stored.committees === "object"
       ? (stored.committees as Record<string, unknown>)
       : undefined;
+  const programSignupsRaw =
+    stored.program_signups && typeof stored.program_signups === "object"
+      ? (stored.program_signups as Record<string, unknown>)
+      : undefined;
 
   return {
     applications: parseChannelSettings(applicationsRaw, defaults.applications),
     payments: parseChannelSettings(paymentsRaw, defaults.payments),
     visits: parseChannelSettings(visitsRaw, defaults.visits),
     committees: parseChannelSettings(committeesRaw, defaults.committees),
+    program_signups: parseChannelSettings(programSignupsRaw, defaults.program_signups),
   };
 }
 
@@ -160,7 +172,8 @@ export function validateOrganizationNotificationSettings(
     ) ??
     validateChannelEmails(settings.payments.additional_emails, "payment") ??
     validateChannelEmails(settings.visits.additional_emails, "visit") ??
-    validateChannelEmails(settings.committees.additional_emails, "committee")
+    validateChannelEmails(settings.committees.additional_emails, "committee") ??
+    validateChannelEmails(settings.program_signups.additional_emails, "program sign-up")
   );
 }
 
@@ -204,6 +217,10 @@ export function buildOrganizationNotificationRecipients(
     payments: computeNotificationRecipients(settings.payments, orgAdminEmails),
     visits: computeNotificationRecipients(settings.visits, orgAdminEmails),
     committees: computeNotificationRecipients(settings.committees, orgAdminEmails),
+    program_signups: computeNotificationRecipients(
+      settings.program_signups,
+      orgAdminEmails,
+    ),
   };
 }
 
@@ -372,4 +389,11 @@ export async function resolveCommitteeNotificationEmails(
   organizationId: string,
 ): Promise<string[]> {
   return resolveChannelNotificationEmails(admin, organizationId, "committees");
+}
+
+export async function resolveProgramSignupNotificationEmails(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<string[]> {
+  return resolveChannelNotificationEmails(admin, organizationId, "program_signups");
 }

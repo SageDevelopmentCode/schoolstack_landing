@@ -20,6 +20,7 @@ import {
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
 import FridayBranchBlockContext from "./FridayBranchBlockContext";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
+import FridayBranchRecentActivity from "./FridayBranchRecentActivity";
 import FridayBranchScheduleCard from "./FridayBranchScheduleCard";
 
 type FridayBranchPageProps = {
@@ -47,6 +48,7 @@ export default function FridayBranchPage({
   const [savedBlocks, setSavedBlocks] = useState<FridayBranchBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [highlightClassId, setHighlightClassId] = useState<string | null>(null);
+  const [requestedClassId, setRequestedClassId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -113,6 +115,14 @@ export default function FridayBranchPage({
     setBlocks((current) =>
       current.map((block) => (block.id === nextBlock.id ? nextBlock : block)),
     );
+  };
+
+  const handleOpenClass = (classId: string, blockId: string) => {
+    setSelectedBlockId(blockId);
+    setRequestedClassId(classId);
+    setHighlightClassId(classId);
+    scheduleRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => setHighlightClassId(null), 3000);
   };
 
   const handleReviewGaps = () => {
@@ -240,9 +250,18 @@ export default function FridayBranchPage({
                     block={selectedBlock}
                     onChange={handleUpdateBlock}
                     highlightClassId={highlightClassId}
+                    requestedClassId={requestedClassId}
+                    onRequestedClassHandled={() => setRequestedClassId(null)}
                     onReviewGaps={handleReviewGaps}
                   />
                 </div>
+
+                <FridayBranchRecentActivity
+                  C={C}
+                  theme={theme}
+                  organizationId={organizationId}
+                  onOpenClass={handleOpenClass}
+                />
               </motion.div>
             ) : (
               <motion.div

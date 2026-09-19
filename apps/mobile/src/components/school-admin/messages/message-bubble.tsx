@@ -16,6 +16,43 @@ import type { PortalMessage } from '@/lib/messages/types';
 
 const BUBBLE_RADIUS = Radius.lg;
 const BUBBLE_TAIL_RADIUS = 4;
+const SENT_CHECK_COLOR = 'rgba(134, 239, 172, 0.85)';
+
+type MessageTimeFooterProps = {
+  timeLabel: string;
+  timeColor: string;
+  showSentCheck: boolean;
+  variant: 'story' | 'default';
+};
+
+function MessageTimeFooter({
+  timeLabel,
+  timeColor,
+  showSentCheck,
+  variant,
+}: MessageTimeFooterProps) {
+  if (variant === 'story') {
+    return (
+      <View style={styles.timeFooter}>
+        <Text style={[styles.storyTime, { color: timeColor }]}>{timeLabel}</Text>
+        {showSentCheck ? (
+          <Ionicons name="checkmark" size={10} color={SENT_CHECK_COLOR} />
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.timeFooter}>
+      <ThemedText type="small" color={timeColor} style={styles.time}>
+        {timeLabel}
+      </ThemedText>
+      {showSentCheck ? (
+        <Ionicons name="checkmark" size={10} color={SENT_CHECK_COLOR} />
+      ) : null}
+    </View>
+  );
+}
 
 type MessageBubbleProps = {
   message: PortalMessage;
@@ -34,6 +71,7 @@ export function MessageBubble({
   const parentTheme = useOptionalParentTheme();
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const isOwn = message.isOwn;
+  const showSentCheck = isOwn && !message.pending;
 
   if (parentStory) {
     const displaySenderName = true;
@@ -59,7 +97,6 @@ export function MessageBubble({
               backgroundColor: isOwn ? parentTheme.primary : parentTheme.white,
               borderColor: isOwn ? 'transparent' : parentTheme.line,
               borderWidth: isOwn ? 0 : StyleSheet.hairlineWidth,
-              opacity: message.pending ? 0.75 : 1,
             },
           ]}>
           {displaySenderName ? (
@@ -93,13 +130,12 @@ export function MessageBubble({
               ))}
             </View>
           ) : null}
-          <Text
-            style={[
-              styles.storyTime,
-              { color: isOwn ? 'rgba(255,255,255,0.7)' : parentTheme.muted },
-            ]}>
-            {message.pending ? 'Sending…' : message.timeLabel}
-          </Text>
+          <MessageTimeFooter
+            timeLabel={message.timeLabel}
+            timeColor={isOwn ? 'rgba(255,255,255,0.7)' : parentTheme.muted}
+            showSentCheck={showSentCheck}
+            variant="story"
+          />
         </View>
       </View>
     );
@@ -139,7 +175,6 @@ export function MessageBubble({
           styles.bubble,
           styles.bubbleShadow,
           bubbleStyle,
-          { opacity: message.pending ? 0.75 : 1 },
         ]}>
         {showSenderName ? (
           <ThemedText type="smallBold" color={theme.accent} style={styles.senderName}>
@@ -164,9 +199,12 @@ export function MessageBubble({
             ))}
           </View>
         ) : null}
-        <ThemedText type="small" color={timeColor} style={styles.time}>
-          {message.pending ? 'Sending…' : message.timeLabel}
-        </ThemedText>
+        <MessageTimeFooter
+          timeLabel={message.timeLabel}
+          timeColor={timeColor}
+          showSentCheck={showSentCheck}
+          variant="default"
+        />
       </View>
     </View>
   );
@@ -259,12 +297,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  timeFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    gap: 4,
+    marginTop: 4,
+  },
   storyTime: {
     fontFamily: StoryFonts.body,
     fontSize: 10,
     lineHeight: 14,
-    marginTop: 4,
-    alignSelf: 'flex-end',
   },
   bubble: {
     maxWidth: '75%',
@@ -291,8 +334,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   time: {
-    marginTop: 4,
-    alignSelf: 'flex-end',
     fontSize: 10,
     lineHeight: 14,
   },

@@ -44,6 +44,8 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
+  ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED,
+  ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -51,6 +53,7 @@ export type ActivityNotificationCategory =
   | "payments"
   | "enrollment"
   | "committees"
+  | "program_signups"
   | "other";
 
 export type SchoolAdminActivityNotification = {
@@ -129,6 +132,8 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "Teacher form published",
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED]: "Teacher form signed",
+  [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED]: "Program sign-up",
+  [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN]: "Program withdrawal",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -269,6 +274,9 @@ export function getActivityNotificationCategory(
   if (action.startsWith("committee.")) {
     return "committees";
   }
+  if (action.startsWith("friday_branch.")) {
+    return "program_signups";
+  }
   return "other";
 }
 
@@ -346,6 +354,19 @@ function isClassroomSignupNotificationAction(action: string): boolean {
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED ||
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED
   );
+}
+
+function isFridayBranchNotificationAction(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED ||
+    action === ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN
+  );
+}
+
+function fridayBranchAdminHref(slug: string, classId?: string | null): string {
+  const base = schoolAdminPath(slug, "my_school", "friday_branch");
+  if (!classId) return base;
+  return `${base}?class=${encodeURIComponent(classId)}`;
 }
 
 function classroomSignupPreviewHref(
@@ -1186,6 +1207,14 @@ export async function resolveActivityNotificationLink(
     };
   }
 
+  if (isFridayBranchNotificationAction(event.action)) {
+    const classId = metadataString(event.metadata, "classId") ?? event.entity_id;
+    return {
+      href: fridayBranchAdminHref(slug, classId),
+      ctaLabel: "View Friday Branch",
+    };
+  }
+
   if (applicationId) {
     const category = getActivityNotificationCategory(event.action);
     if (category === "enrollment") {
@@ -1244,6 +1273,17 @@ export function mapActivityEventToNotification(
     const studentName = metadataString(event.metadata, "studentName");
     if (studentName) {
       subjectLabel = shortenSubjectLabel(studentName);
+    }
+  }
+
+  if (isFridayBranchNotificationAction(event.action)) {
+    const studentName = metadataString(event.metadata, "studentName");
+    if (studentName) {
+      subjectLabel = shortenSubjectLabel(studentName);
+    }
+    const familyName = metadataString(event.metadata, "familyName");
+    if (familyName) {
+      guardianLabel = familyName;
     }
   }
 

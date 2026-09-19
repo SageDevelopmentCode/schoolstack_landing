@@ -10,7 +10,11 @@ import {
 } from 'react';
 
 import { loadMessagesContacts, loadMessagesInbox } from '@/lib/messages/api';
-import type { MessageContact, MessageThreadSummary } from '@/lib/messages/types';
+import type {
+  MessageContact,
+  MessagesViewerContext,
+  MessageThreadSummary,
+} from '@/lib/messages/types';
 import {
   createPortalCache,
   resolvePortalProviderInit,
@@ -20,11 +24,13 @@ import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
 export type SchoolAdminMessagesInboxData = {
   threads: MessageThreadSummary[];
   contacts: MessageContact[];
+  viewerContext?: MessagesViewerContext;
 };
 
 type SchoolAdminMessagesInboxContextValue = {
   threads: MessageThreadSummary[];
   contacts: MessageContact[];
+  staffDisplayName: string | null;
   isLoading: boolean;
   isRefreshing: boolean;
   loadingContacts: boolean;
@@ -53,6 +59,7 @@ async function fetchMessagesInboxData(
   return {
     threads: inbox.threads,
     contacts: inbox.contacts,
+    viewerContext: inbox.viewerContext,
   };
 }
 
@@ -106,6 +113,9 @@ export function SchoolAdminMessagesInboxProvider({
 
   const [threads, setThreads] = useState<MessageThreadSummary[]>(cached?.threads ?? []);
   const [contacts, setContacts] = useState<MessageContact[]>(cached?.contacts ?? []);
+  const [viewerContext, setViewerContext] = useState<MessagesViewerContext | null>(
+    cached?.viewerContext ?? null,
+  );
   const [isLoading, setIsLoading] = useState(!cached);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
@@ -117,8 +127,11 @@ export function SchoolAdminMessagesInboxProvider({
   const applyInboxData = useCallback((inbox: SchoolAdminMessagesInboxData | null) => {
     setThreads(inbox?.threads ?? []);
     // Threads API excludes contacts; only overwrite when contacts were loaded.
-    if ((inbox?.contacts?.length ?? 0) > 0) {
+    if (inbox && inbox.contacts.length > 0) {
       setContacts(inbox.contacts);
+    }
+    if (inbox?.viewerContext) {
+      setViewerContext(inbox.viewerContext);
     }
   }, []);
 
@@ -255,6 +268,7 @@ export function SchoolAdminMessagesInboxProvider({
     () => ({
       threads,
       contacts,
+      staffDisplayName: viewerContext?.staffDisplayName ?? null,
       isLoading,
       isRefreshing,
       loadingContacts,
@@ -273,6 +287,7 @@ export function SchoolAdminMessagesInboxProvider({
       loadingContacts,
       refresh,
       threads,
+      viewerContext?.staffDisplayName,
     ],
   );
 

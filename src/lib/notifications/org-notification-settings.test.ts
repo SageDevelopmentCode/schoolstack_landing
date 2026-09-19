@@ -32,6 +32,11 @@ describe("parseOrganizationNotificationSettings", () => {
         include_org_admins: true,
         additional_emails: [],
       },
+      program_signups: {
+        enabled: true,
+        include_org_admins: true,
+        additional_emails: [],
+      },
     });
   });
 
@@ -55,6 +60,10 @@ describe("parseOrganizationNotificationSettings", () => {
           enabled: false,
           additional_emails: ["volunteer@school.com"],
         },
+        program_signups: {
+          enabled: true,
+          additional_emails: ["programs@school.com"],
+        },
       }),
       {
         applications: {
@@ -77,6 +86,11 @@ describe("parseOrganizationNotificationSettings", () => {
           include_org_admins: true,
           additional_emails: ["volunteer@school.com"],
         },
+        program_signups: {
+          enabled: true,
+          include_org_admins: true,
+          additional_emails: ["programs@school.com"],
+        },
       },
     );
   });
@@ -95,6 +109,7 @@ describe("parseOrganizationNotificationSettings", () => {
     assert.equal(parsed.applications.enabled, true);
     assert.equal(parsed.visits.enabled, true);
     assert.equal(parsed.committees.enabled, true);
+    assert.equal(parsed.program_signups.enabled, true);
   });
 });
 
@@ -194,11 +209,13 @@ describe("buildOrganizationNotificationRecipients", () => {
     assert.equal(recipients.applications.needsAction, false);
     assert.equal(recipients.payments.needsAction, false);
     assert.equal(recipients.committees.needsAction, false);
+    assert.equal(recipients.program_signups.needsAction, false);
     assert.deepEqual(recipients.payments.allRecipients, [
       "admin@school.com",
       "billing@school.com",
     ]);
     assert.deepEqual(recipients.committees.allRecipients, ["admin@school.com"]);
+    assert.deepEqual(recipients.program_signups.allRecipients, ["admin@school.com"]);
   });
 });
 

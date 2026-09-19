@@ -1190,6 +1190,84 @@ export function buildCommitteeJoinRequestAdminNotificationHtml(payload: {
   });
 }
 
+export function buildFridayBranchEnrollmentAdminNotificationHtml(payload: {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  blockLabel: string;
+  blockDateRange?: string;
+  studentName: string;
+  familyName: string;
+  guardianName: string;
+  guardianEmail: string;
+  statusLabel: string;
+  submittedAtLabel: string;
+  fridayBranchAdminUrl: string;
+}): string {
+  const scheduleLabel = payload.blockDateRange
+    ? `${payload.blockLabel} (${payload.blockDateRange})`
+    : payload.blockLabel;
+
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Class", value: payload.className },
+    { label: "Time", value: payload.slotTime },
+    { label: "Block", value: scheduleLabel },
+    { label: "Student", value: payload.studentName },
+    { label: "Family", value: payload.familyName },
+    { label: "Parent", value: payload.guardianName },
+    { label: "Email", value: payload.guardianEmail },
+    { label: "Status", value: payload.statusLabel },
+    { label: "Submitted", value: payload.submittedAtLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.studentName} signed up for ${payload.className}.`,
+    contentHtml: `
+      ${emailBadge("Program Sign-up")}
+      ${emailHeading("A parent signed up for a program class")}
+      ${emailParagraph(
+        `${escapeHtml(payload.guardianName)} signed up ${escapeHtml(payload.studentName)} for ${escapeHtml(payload.className)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View Friday Branch", href: payload.fridayBranchAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendFridayBranchEnrollmentAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  blockLabel: string;
+  blockDateRange?: string;
+  studentName: string;
+  familyName: string;
+  guardianName: string;
+  guardianEmail: string;
+  statusLabel: string;
+  submittedAtLabel: string;
+  fridayBranchAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildFridayBranchEnrollmentAdminNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Program sign-up — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error(
+      "Friday Branch enrollment admin notification email failed:",
+      result.error,
+    );
+  }
+}
+
 export async function sendCommitteeJoinRequestAdminNotification(payload: {
   email: string;
   schoolName: string;

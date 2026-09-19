@@ -376,6 +376,8 @@ export function activityCategoryChipTone(
       return "info";
     case "committees":
       return "purple";
+    case "program_signups":
+      return "warning";
     default:
       return "info";
   }
@@ -393,6 +395,8 @@ export function activityCategoryLabel(
       return "Enrollment";
     case "committees":
       return "Community";
+    case "program_signups":
+      return "Program sign-ups";
     default:
       return "School";
   }
