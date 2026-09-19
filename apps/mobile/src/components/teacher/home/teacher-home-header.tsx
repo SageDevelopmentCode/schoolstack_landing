@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
@@ -53,14 +54,24 @@ export function TeacherHomeHeader({
           </Text>
         </View>
         {bulletinEnabled && onOpenBulletin ? (
-          <View style={styles.bulletinAction}>
-            <Text
-              accessibilityRole="button"
-              onPress={onOpenBulletin}
-              style={[styles.bulletinButton, { color: theme.primary }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`School bulletin${bulletinPostCount > 0 ? `, ${bulletinPostCount} posts` : ''}`}
+            onPress={onOpenBulletin}
+            style={({ pressed }) => [
+              styles.bulletinButton,
+              {
+                backgroundColor: theme.info,
+                shadowColor: theme.info,
+              },
+              pressed && styles.bulletinButtonPressed,
+            ]}>
+            <Ionicons name="megaphone-outline" size={16} color={theme.white} />
+            <Text style={[styles.bulletinButtonLabel, { color: theme.white }]}>
               School bulletin{bulletinPostCount > 0 ? ` (${bulletinPostCount})` : ''}
             </Text>
-          </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.white} />
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -91,12 +102,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  bulletinAction: {
-    alignSelf: 'flex-start',
-  },
   bulletinButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  bulletinButtonPressed: {
+    opacity: 0.9,
+  },
+  bulletinButtonLabel: {
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

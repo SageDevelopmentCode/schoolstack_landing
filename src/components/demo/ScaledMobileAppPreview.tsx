@@ -20,6 +20,42 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/kinderacademyprep/KinderAcademyPrepSchoolMobileAppShowcase"
     ),
+  "naples-microschools": () =>
+    import(
+      "@/components/demo/naplesmicroschool/NaplesMicroschoolsMobileAppShowcase"
+    ),
+  "the-focus-academy": () =>
+    import(
+      "@/components/demo/thefocusacademy/TheFocusAcademyMobileAppShowcase"
+    ),
+  "piedmont-forest-school": () =>
+    import(
+      "@/components/demo/piedmontforestschool/PiedmontForestSchoolMobileAppShowcase"
+    ),
+  "gathered-oak-farm": () =>
+    import(
+      "@/components/demo/gatheredoakfarm/GatheredOakFarmMobileAppShowcase"
+    ),
+  "little-sprigs-tampa": () =>
+    import(
+      "@/components/demo/littlesprigstampa/LittleSprigsTampaMobileAppShowcase"
+    ),
+  "acton-academy-pittsburgh": () =>
+    import(
+      "@/components/demo/actonacademy/ActonAcademyPittsburghMobileAppShowcase"
+    ),
+  "acton-academy-placer": () =>
+    import(
+      "@/components/demo/actonacademyplacer/ActonAcademyPlacerMobileAppShowcase"
+    ),
+  "asheboro-hybrid-academy": () =>
+    import(
+      "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyMobileAppShowcase"
+    ),
+  "tapestry-academy": () =>
+    import(
+      "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({

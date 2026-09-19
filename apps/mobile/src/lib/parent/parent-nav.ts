@@ -60,6 +60,14 @@ export function isParentChildDetailPath(pathname: string): boolean {
   return /\/more\/children\/[^/]+$/.test(pathname);
 }
 
+export function parentBulletinDetailRoute(slug: string, postId: string): Href {
+  return `/parent/${slug}/bulletin/${encodeURIComponent(postId)}` as Href;
+}
+
+export function isParentBulletinDetailPath(pathname: string): boolean {
+  return /\/bulletin\/[^/]+$/.test(pathname);
+}
+
 const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   portal: (slug) => parentTabRoute(slug, 'home'),
   home: (slug) => parentTabRoute(slug, 'home'),

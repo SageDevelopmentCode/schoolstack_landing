@@ -18,6 +18,7 @@ import type {
 } from '@/lib/parent/parent-classroom-signups-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
+import type { BulletinPost } from '@/lib/school-bulletin/types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -200,14 +201,25 @@ export type ParentHomeData = {
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   formAttentionItems?: ParentFormAttentionItem[];
   formSnapshot?: ParentFormHomeSnapshot | null;
+  bulletinEnabled: boolean;
+  bulletinPosts: BulletinPost[];
 };
+
+export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
+  return {
+    ...data,
+    bulletinEnabled: data.bulletinEnabled ?? false,
+    bulletinPosts: data.bulletinPosts ?? [],
+  };
+}
 
 export async function fetchParentHomeData(
   organizationId: string,
   slug: string,
 ): Promise<ParentHomeData> {
   const query = new URLSearchParams({ organizationId, slug }).toString();
-  return fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
+  const payload = await fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
+  return normalizeParentHomeData(payload);
 }
 
 export type ParentAssignedTeacher = {

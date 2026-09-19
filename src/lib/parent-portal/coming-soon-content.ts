@@ -46,6 +46,11 @@ const FEATURE_VISUALS: Record<string, ParentPortalFeatureVisual> = {
     heroImage: "/images/stock/ImageTen.webp",
     accentIllustration: "/images/illustrations/Basket.webp",
   },
+  friday_branch: {
+    tagline: "Friday enrichment and community programming.",
+    heroImage: "/images/stock/ImageSix.webp",
+    accentIllustration: "/images/illustrations/Plant.webp",
+  },
 };
 
 export function getParentPortalFeatureVisual(

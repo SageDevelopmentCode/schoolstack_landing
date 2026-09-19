@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -134,7 +134,7 @@ export function MessageComposeBar({
           placeholder="Write a message..."
           placeholderTextColor={textTertiary}
           multiline
-          editable={!disabled && !sending}
+          editable={!disabled}
           style={[
             styles.input,
             {
@@ -152,15 +152,11 @@ export function MessageComposeBar({
           style={({ pressed }) => [
             styles.sendButton,
             {
-              backgroundColor: canSend && !disabled ? accentColor : borderColor,
+              backgroundColor: canSend && !disabled && !sending ? accentColor : borderColor,
               opacity: pressed ? 0.85 : 1,
             },
           ]}>
-          {sending ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons name="send" size={18} color="#FFFFFF" />
-          )}
+          <Ionicons name="send" size={18} color="#FFFFFF" />
         </Pressable>
       </View>
     </View>

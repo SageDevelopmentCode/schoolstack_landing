@@ -28,6 +28,7 @@ import {
   fetchTeacherMessagesUnreadCount,
 } from '@/lib/teacher/teacher-portal-api';
 import {
+  isTeacherBulletinDetailPath,
   isTeacherStudentDetailPath,
   teacherAccountRoute,
   teacherMoreRoute,
@@ -39,6 +40,7 @@ import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redi
 
 function getActiveTab(pathname: string): TeacherTab | null {
   if (isTeacherStudentDetailPath(pathname)) return null;
+  if (isTeacherBulletinDetailPath(pathname)) return null;
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';

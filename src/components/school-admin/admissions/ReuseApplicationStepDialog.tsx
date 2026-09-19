@@ -18,6 +18,7 @@ type ReuseApplicationStepDialogProps = {
   theme?: ParentThemeTokens;
   open: boolean;
   sourceForms: ApplicationFormVersion[];
+  loadedFormIds: ReadonlySet<string>;
   programNameById: Map<string, string>;
   onClose: () => void;
   onConfirm: (sourceSection: ApplicationSection) => void;
@@ -32,6 +33,7 @@ export default function ReuseApplicationStepDialog({
   theme,
   open,
   sourceForms,
+  loadedFormIds,
   programNameById,
   onClose,
   onConfirm,
@@ -44,7 +46,11 @@ export default function ReuseApplicationStepDialog({
     [selectedFormId, sourceForms],
   );
 
-  const steps = selectedForm ? reusableSections(selectedForm) : [];
+  const selectedFormLoaded = selectedForm
+    ? loadedFormIds.has(selectedForm.id)
+    : false;
+  const steps =
+    selectedForm && selectedFormLoaded ? reusableSections(selectedForm) : [];
 
   useEffect(() => {
     if (!open) return;
@@ -127,31 +133,45 @@ export default function ReuseApplicationStepDialog({
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {sourceForms.map((form) => (
-                      <li key={form.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedFormId(form.id);
-                            setSelectedStepId(null);
-                          }}
-                          className="flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm"
-                          style={{
-                            borderColor: theme?.line ?? C.border,
-                            backgroundColor: theme?.paper ?? C.bg,
-                            color: C.textPrimary,
-                          }}
-                        >
-                          <span className="font-semibold">{formLabel(form)}</span>
-                          <span className="text-xs" style={{ color: C.textTertiary }}>
-                            {reusableSections(form).length} step
-                            {reusableSections(form).length === 1 ? "" : "s"}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
+                    {sourceForms.map((form) => {
+                      const formLoaded = loadedFormIds.has(form.id);
+                      const reusableStepCount = formLoaded
+                        ? reusableSections(form).length
+                        : null;
+
+                      return (
+                        <li key={form.id}>
+                          <button
+                            type="button"
+                            disabled={!formLoaded}
+                            onClick={() => {
+                              if (!formLoaded) return;
+                              setSelectedFormId(form.id);
+                              setSelectedStepId(null);
+                            }}
+                            className="flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm disabled:cursor-wait disabled:opacity-70"
+                            style={{
+                              borderColor: theme?.line ?? C.border,
+                              backgroundColor: theme?.paper ?? C.bg,
+                              color: C.textPrimary,
+                            }}
+                          >
+                            <span className="font-semibold">{formLabel(form)}</span>
+                            <span className="text-xs" style={{ color: C.textTertiary }}>
+                              {reusableStepCount === null
+                                ? "Loading…"
+                                : `${reusableStepCount} step${reusableStepCount === 1 ? "" : "s"}`}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )
+              ) : !selectedFormLoaded ? (
+                <p className="text-sm" style={{ color: C.textTertiary }}>
+                  Loading steps…
+                </p>
               ) : steps.length === 0 ? (
                 <p className="text-sm" style={{ color: C.textTertiary }}>
                   No reusable steps in this application.

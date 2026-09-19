@@ -59,6 +59,9 @@ const FIELD_LABELS: Record<string, string> = {
   "School contact": "✉️ School contact",
   Delay: "⏱️ Delay",
   "Reminder sent": "📨 Reminder sent",
+  Family: "👨‍👩‍👧 Family",
+  Reminder: "🔔 Reminder",
+  About: "📌 About",
   "Rules evaluated": "📏 Rules evaluated",
   "Autopay charged": "✅ Autopay charged",
   "Autopay failed": "❌ Autopay failed",
@@ -320,9 +323,11 @@ export async function sendPerformanceChecksDiscordEmbed(
 
 export async function notifyTuitionBillingCronSummary(payload: {
   organizations: number;
+  organizationFailures?: number;
+  failedOrganizationIds?: string[];
   overdueCount: number;
   remindersSent: number;
-  draftRemindersSent?: number;
+  incompleteAdmissionsRemindersSent?: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
   lateFeesNotified: number;
@@ -338,8 +343,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
     embedField(
-      "Draft app reminders",
-      String(payload.draftRemindersSent ?? 0),
+      "Incomplete admissions reminders",
+      String(payload.incompleteAdmissionsRemindersSent ?? 0),
       true,
     ),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
@@ -350,6 +355,16 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Autopay failed", String(payload.autopayFailed), true),
     embedField("Autopay skipped", String(payload.autopaySkipped), true),
   ];
+
+  if ((payload.organizationFailures ?? 0) > 0) {
+    const failedIds = payload.failedOrganizationIds ?? [];
+    const failedDetail =
+      failedIds.length > 0 ? failedIds.join(", ") : "See activity_events";
+    fields.push(
+      embedField("Organization failures", String(payload.organizationFailures), true),
+      embedField("Failed organization IDs", truncate(failedDetail)),
+    );
+  }
 
   const chargedDetail = formatAutopayLineItems(payload.autopayLines, "charged");
   if (chargedDetail) {
@@ -749,6 +764,99 @@ export async function notifyDraftApplicationReminderSent(payload: {
 
   await sendAdmissionsDiscordEmbed({
     title: "📨 Draft application reminder sent",
+    description: `**${payload.schoolName}** · ${contactLabel}`,
+    color: DISCORD_EMBED_COLORS.admissions,
+    fields,
+    timestamp: payload.sentAt,
+  });
+}
+
+export function formatIncompleteAdmissionsReminderLabel(
+  reminderNumber: number,
+): string {
+  if (reminderNumber === 1) return "1st reminder";
+  if (reminderNumber === 2) return "2nd reminder";
+  return `${reminderNumber}th reminder`;
+}
+
+export function formatIncompleteAdmissionsReminderAboutType(
+  draftApplicationCount: number,
+  incompleteEnrollmentCount: number,
+): string {
+  const hasDrafts = draftApplicationCount > 0;
+  const hasEnrollments = incompleteEnrollmentCount > 0;
+  if (hasDrafts && hasEnrollments) return "Application + Enrollment";
+  if (hasEnrollments) return "Enrollment";
+  return "Application";
+}
+
+export function formatIncompleteAdmissionsReminderDetails(
+  draftApplicationTitles: string[],
+  incompleteEnrollmentItems: string[],
+): string {
+  const lines = [
+    ...draftApplicationTitles.map((title) => `• ${title}`),
+    ...incompleteEnrollmentItems.map((item) => `• ${item}`),
+  ];
+  return lines.length > 0 ? truncate(lines.join("\n")) : "—";
+}
+
+export async function notifyIncompleteAdmissionsReminderSent(payload: {
+  schoolName: string;
+  schoolSlug?: string;
+  familyId: string;
+  reminderNumber: number;
+  contactName?: string;
+  recipientEmails: string[];
+  schoolContactEmail: string;
+  draftApplicationTitles: string[];
+  incompleteEnrollmentItems: string[];
+  sentAt: string;
+}) {
+  const contactLabel = payload.contactName?.trim() || "Family";
+  const schoolLabel = payload.schoolSlug
+    ? `${payload.schoolName} (${payload.schoolSlug})`
+    : payload.schoolName;
+  const primaryEmail = payload.recipientEmails[0] ?? "";
+  const familyValue = payload.contactName?.trim()
+    ? truncate(`${payload.contactName.trim()} · ${primaryEmail}`)
+    : truncate(primaryEmail || "—");
+
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(schoolLabel), true),
+    embedField("Family", familyValue, true),
+    embedField(
+      "Reminder",
+      formatIncompleteAdmissionsReminderLabel(payload.reminderNumber),
+      true,
+    ),
+    embedField(
+      "About",
+      formatIncompleteAdmissionsReminderAboutType(
+        payload.draftApplicationTitles.length,
+        payload.incompleteEnrollmentItems.length,
+      ),
+      true,
+    ),
+    embedField(
+      "Details",
+      formatIncompleteAdmissionsReminderDetails(
+        payload.draftApplicationTitles,
+        payload.incompleteEnrollmentItems,
+      ),
+    ),
+    embedField(
+      "Recipients",
+      truncate(payload.recipientEmails.join(", ")),
+      true,
+    ),
+    embedField("Family ID", formatId(payload.familyId), true),
+    embedField("School contact", truncate(payload.schoolContactEmail), true),
+    embedField("Reminder sent", formatDateTime(payload.sentAt), true),
+  ];
+
+  await sendAdmissionsDiscordEmbed({
+    title: "📨 Incomplete admissions reminder sent",
     description: `**${payload.schoolName}** · ${contactLabel}`,
     color: DISCORD_EMBED_COLORS.admissions,
     fields,

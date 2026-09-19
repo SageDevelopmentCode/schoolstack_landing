@@ -1,0 +1,207 @@
+/** Admin content overrides for piedmont-forest-school. */
+
+export const demoEvents = [
+  {
+    id: "c1",
+    title: "Site Tour — Little Creek Park Basecamp",
+    date: "2026-04-18",
+    type: "event",
+  },
+  {
+    id: "c2",
+    title: "PFS Brunch Run Fundraiser",
+    date: "2026-06-06",
+    type: "event",
+  },
+  {
+    id: "c3",
+    title: "2026–27 Enrollment Inquiry Review",
+    date: "2026-04-11",
+    type: "internal",
+  },
+  {
+    id: "c4",
+    title: "Agile Learning Center Info Session",
+    date: "2026-05-01",
+    type: "deadline",
+  },
+  {
+    id: "c5",
+    title: "Enrollment Follow-Up Block — Jessica",
+    date: "2026-04-16",
+    type: "event",
+  },
+];
+
+export const demoLeads = [
+  {
+    id: "l0",
+    type: "contact",
+    name: "Emily Hartwell",
+    email: "ehartwell@email.com",
+    phone: "(336) 555-0142",
+    childName: "Oliver Hartwell",
+    childAge: null,
+    status: "new",
+    tags: ["Forest Kindergarten", "2026–27 Enrollment", "Enrollment Inquiry"],
+    date: "12 minutes ago",
+    message:
+      "Interested in Forest Kindergarten for our 4-year-old — we'd love to tour the Little Creek Park basecamp and learn about the child-led approach.",
+    flowId: "flow-5",
+    responses: {
+      f29: "Emily Hartwell",
+      f30: "ehartwell@email.com",
+      f31: "Forest Kindergarten / Nature Preschool",
+      f32: "Oliver Hartwell",
+      f33: "Age 4",
+    },
+  },
+  {
+    id: "l1",
+    type: "contact",
+    name: "Marcus Rivera",
+    email: "mrivera@email.com",
+    phone: "(336) 555-0198",
+    childName: "Sofia Rivera",
+    childAge: 8,
+    status: "new",
+    tags: ["Agile Learning Center", "2026–27 Enrollment"],
+    date: "45 minutes ago",
+    message:
+      "Looking into the new Agile Learning Center for our 2nd grader — interested in the full-day program at Little Creek Park.",
+    flowId: "flow-3",
+    responses: {
+      f16: "Marcus Rivera",
+      f17: "mrivera@email.com",
+      f18: "Sofia Rivera",
+      f19: false,
+    },
+  },
+  {
+    id: "l2",
+    type: "contact",
+    name: "Jennifer Park",
+    email: "jpark@email.com",
+    phone: "(336) 555-0218",
+    childName: null,
+    childAge: null,
+    status: "contacted",
+    tags: ["Nature Explorers", "ESA+"],
+    date: "3 hours ago",
+    message:
+      "Homeschooling family interested in Nature Explorers — also wondering about ESA+ scholarship options.",
+    flowId: "flow-1",
+    responses: {
+      f1: "Jennifer",
+      f2: "Park",
+      f3: "jpark@email.com",
+      f4: "(336) 555-0218",
+      f5: "Liam Park",
+      f6: "2017-08-22",
+      f7: "2nd",
+      f8: "Nature Explorers",
+      f9: "2026-08-01",
+      f10: true,
+    },
+  },
+  {
+    id: "l3",
+    type: "contact",
+    name: "Amanda Brooks",
+    email: "abrooks@email.com",
+    phone: "(336) 555-0391",
+    childName: "Tyler Brooks",
+    childAge: 10,
+    status: "scheduled",
+    tags: ["Site Tour", "Nature Explorers"],
+    date: "Yesterday",
+    message: "Enrollment inquiry follow-up — site tour scheduled for next week at Little Creek Park.",
+    flowId: "flow-4",
+    responses: {
+      f20: "Amanda Brooks",
+      f21: "abrooks@email.com",
+      f22: "(336) 555-0391",
+      f23: "Tyler Brooks",
+      f24: "10",
+      f25: "2026-04-18",
+      f26: "10:00 AM",
+      f27: "Nature Explorers 2026–27",
+      f28: "Site tour scheduled for next week at Little Creek Park.",
+    },
+  },
+  {
+    id: "l4",
+    type: "contact",
+    name: "Rachel Nguyen",
+    email: "rnguyen@email.com",
+    phone: "(336) 555-0477",
+    childName: null,
+    childAge: null,
+    status: "new",
+    tags: ["Summer Camps", "Summer 2026"],
+    date: "2 hours ago",
+    message: "Looking for summer camp options for rising kindergartener and 3rd grader.",
+    flowId: "flow-3",
+    responses: {
+      f16: "Rachel Nguyen",
+      f17: "rnguyen@email.com",
+      f18: "Mia Nguyen",
+      f19: false,
+    },
+  },
+];
+
+export const demoEmails = [
+  {
+    id: "em1",
+    to: "All Forest Kindergarten Families",
+    from: "admin@mudkitchen.co",
+    subject: "Little Creek Park Move — 2026–27 School Year",
+    preview:
+      "We're excited to share that PFS is returning to Little Creek Park for the 2026–27 school year. Here's what families need to know...",
+    date: "2 days ago",
+    body: `<p>Dear PFS Families,</p><p>We're thrilled to announce that Piedmont Forest School is returning to <strong>Little Creek Park</strong> for the 2026–27 school year — the very first home of our forest school community.</p><p>Basecamp details, drop-off procedures, and the Agile Learning Center launch timeline will be shared at our upcoming info session.</p><p>Warm regards,<br/>Piedmont Forest School Team</p>`,
+    attachments: ["little_creek_park_overview.pdf"],
+  },
+  {
+    id: "em2",
+    to: "ehartwell@email.com",
+    from: "admin@mudkitchen.co",
+    subject: "Re: Enrollment Inquiry — Forest Kindergarten for Oliver",
+    preview:
+      "Thank you for your interest in Forest Kindergarten! We'd love to connect about your enrollment inquiry...",
+    date: "1 hour ago",
+    body: `<p>Hi Emily,</p><p>Thank you for reaching out about Forest Kindergarten for Oliver. Our enrollment and billing coordinator aims to follow up within 72 business hours — and we'd love to schedule a site tour at Little Creek Park so you can see our basecamp in action.</p><p>Please reply with a few times that work, or let us know your preferred tour timing from the inquiry form.</p><p>Best,<br/>Piedmont Forest School Admissions</p>`,
+    attachments: [],
+  },
+  {
+    id: "em3",
+    to: "All Enrolled Families",
+    from: "admin@mudkitchen.co",
+    subject: "April Newsletter — Spring in the Woods & Upcoming Events",
+    preview:
+      "Rain or shine updates, Brunch Run registration, and Agile Learning Center enrollment details...",
+    date: "1 week ago",
+    body: `<p>Dear PFS Families,</p><h3>🌿 Forest Highlights</h3><ul><li>Spring creek exploration and nature journaling in full swing</li><li>Mud kitchen and loose-parts play thriving after recent rains</li><li>Agile Learning Center info session — May 1</li></ul><h3>📅 Important Dates</h3><ul><li>April 18 — Site tour day for inquiry families</li><li>June 6 — PFS Brunch Run fundraiser at Little Creek Park</li><li>May 1 — Agile Learning Center info session</li></ul><p>Thank you for being part of our forest school community!</p>`,
+    attachments: ["april_newsletter.pdf"],
+  },
+  {
+    id: "em4",
+    to: "All Staff",
+    from: "admin@mudkitchen.co",
+    subject: "Staff Planning — Enrollment Inquiry Follow-Up Protocol",
+    preview:
+      "Reminder on enrollment inquiry follow-up and site tour scheduling for prospective families...",
+    date: "2 weeks ago",
+    body: `<p>Team,</p><p>Quick reminder on our enrollment flow:</p><ol><li>Respond to inquiries within 72 business hours</li><li>Schedule site tour / basecamp visit for interested families</li><li>Confirm program availability and share Brightwheel paperwork</li><li>Establish billing upon enrollment confirmation</li></ol><p>Agile Learning Center inquiries — route to dedicated ALC info session signup. Do not collect sensitive student information on the general form.</p>`,
+    attachments: [],
+  },
+];
+
+export const adminContentOverrides = {
+  demoEvents,
+  demoLeads,
+  demoEmails,
+  admissionsSubtitle:
+    "Enrollment inquiries and site tours for families exploring Forest Kindergarten, Nature Explorers, the Agile Learning Center, and summer programs.",
+};

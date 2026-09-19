@@ -43,6 +43,23 @@ describe("splitParentNavForHeader", () => {
     assert.equal(primary.some((item) => item.key === "children"), true);
   });
 
+  it("routes friday_branch to More instead of primary nav", () => {
+    const items = buildParentNavItems("rooted-meadows-demo", {
+      ...DEFAULT_FEATURES.parent,
+      portal: true,
+      billing: true,
+      messages: true,
+      calendar: true,
+      children: true,
+      friday_branch: true,
+    });
+
+    const { primary, more } = splitParentNavForHeader(items);
+
+    assert.equal(primary.some((item) => item.key === "friday_branch"), false);
+    assert.equal(more.some((item) => item.key === "friday_branch"), true);
+  });
+
   it("omits curriculum from main portal nav when org flag is enabled", () => {
     const orgWithCurriculum = resolveMainParentOrganizationFeatures({
       ...DEFAULT_FEATURES,

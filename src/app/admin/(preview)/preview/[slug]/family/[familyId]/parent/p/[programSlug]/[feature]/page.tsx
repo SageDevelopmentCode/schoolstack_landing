@@ -44,7 +44,9 @@ import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curricu
 import { buildProgramCoopFamilyNameMap } from "@/lib/admissions/program-coop-family-assignments";
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
+import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
+import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -92,8 +94,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function FamilyPreviewProgramParentFeaturePage({
   params,
+  searchParams,
 }: PageProps) {
   const { slug, familyId, programSlug, feature } = await params;
+  const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -402,6 +406,55 @@ export default async function FamilyPreviewProgramParentFeaturePage({
           currentFamilyLabel={currentFamilyLabel}
           familyNameMap={Object.fromEntries(familyNameMap)}
           previewMode
+        />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "friday_branch") {
+    const allFamilyChildren = await listFamilyChildrenForHomeByFamilyId(
+      admin,
+      org.id,
+      familyId,
+    );
+    const familyChildren = filterFamilyChildrenForProgramPortal(
+      allFamilyChildren,
+      programContext.programId,
+    );
+    const studentOptions = familyChildren
+      .filter((child) => child.studentId)
+      .map((child) => ({
+        id: child.studentId!,
+        name: child.studentName,
+      }));
+
+    const initialBundle = await loadParentFridayBranchPageBundle(
+      admin,
+      org.id,
+      familyId,
+      studentOptions,
+    );
+    const initialClassId =
+      typeof resolvedSearchParams.class === "string"
+        ? resolvedSearchParams.class
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentFridayBranchPage
+          organizationId={org.id}
+          slug={slug}
+          initialBundle={initialBundle}
+          previewBasePath={previewBasePath}
+          readOnly
+          previewFamilyId={familyId}
+          initialClassId={initialClassId}
+          childrenPath={familyPreviewProgramParentPath(
+            slug,
+            familyId,
+            programSlug,
+            "children",
+          )}
         />
       </SchoolParentPageShell>
     );

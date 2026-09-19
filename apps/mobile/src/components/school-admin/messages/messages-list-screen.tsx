@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -16,6 +16,10 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { buildAdminSectionedListItems } from '@/lib/messages/admin-thread-sections';
+import {
+  prefetchRecentSchoolAdminMessageThreads,
+  prefetchSchoolAdminMessageThread,
+} from '@/lib/messages/message-thread-cache';
 import { createMessageThread } from '@/lib/messages/api';
 import { contactKeyForThread } from '@/lib/messages/participants-from-contact';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
@@ -43,7 +47,7 @@ function filterThreadsBySearch(threads: MessageThreadSummary[], query: string): 
 export function MessagesListScreen({
   organizationId,
   organizationSlug,
-  schoolName: _schoolName,
+  schoolName,
 }: MessagesListScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
@@ -98,9 +102,35 @@ export function MessagesListScreen({
     void refreshUnreadCount();
   };
 
+  const prefetchedThreadIdsRef = useRef<string>('');
+
+  const prefetchThread = useCallback(
+    (threadId: string) => {
+      void prefetchSchoolAdminMessageThread(organizationId, schoolName, threadId);
+    },
+    [organizationId, schoolName],
+  );
+
   const openThread = (threadId: string) => {
     router.push(`/school-admin/${organizationSlug}/messages/${threadId}`);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (threads.length === 0) return;
+      const sortedThreadIds = [...threads]
+        .sort((a, b) => {
+          const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+          const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+          return bTime - aTime;
+        })
+        .map((thread) => thread.id);
+      const threadIds = sortedThreadIds.join(',');
+      if (prefetchedThreadIdsRef.current === threadIds) return;
+      prefetchedThreadIdsRef.current = threadIds;
+      prefetchRecentSchoolAdminMessageThreads(organizationId, schoolName, sortedThreadIds);
+    }, [organizationId, schoolName, threads]),
+  );
 
   const handleNewMessage = () => {
     setNewConversationOpen(true);
@@ -146,7 +176,13 @@ export function MessagesListScreen({
       return <AdminMessagesSectionHeader label={item.label} description={item.description} />;
     }
 
-    return <AdminMessageThreadRow thread={item.thread} onPress={() => openThread(item.thread.id)} />;
+    return (
+      <AdminMessageThreadRow
+        thread={item.thread}
+        onPress={() => openThread(item.thread.id)}
+        onPressIn={() => prefetchThread(item.thread.id)}
+      />
+    );
   };
 
   return (

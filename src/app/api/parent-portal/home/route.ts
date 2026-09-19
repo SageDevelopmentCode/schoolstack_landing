@@ -18,6 +18,7 @@ import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-route
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -118,13 +119,24 @@ export async function GET(request: Request) {
       incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
     });
     const formsFeatureEnabled = isParentFeatureEnabled(org.features, "forms_documents");
+    const bulletinEnabled = Boolean(org.features.admin?.bulletin);
     const admin = createAdminClient();
-    const [formAttentionItems, formSnapshot] = familyId && formsFeatureEnabled
-      ? await Promise.all([
-          loadParentFormAttentionItems(admin, organizationId, familyId, slug),
-          loadParentFormHomeSnapshot(admin, organizationId, familyId, slug),
-        ])
-      : [[], null];
+    const [formAttentionItems, formSnapshot, bulletinPosts] = await Promise.all([
+      familyId && formsFeatureEnabled
+        ? loadParentFormAttentionItems(admin, organizationId, familyId, slug)
+        : Promise.resolve([]),
+      familyId && formsFeatureEnabled
+        ? loadParentFormHomeSnapshot(admin, organizationId, familyId, slug)
+        : Promise.resolve(null),
+      loadHomeBulletinPosts({
+        supabase,
+        signedUrlClient: admin,
+        organizationId: org.id,
+        bulletinEnabled,
+        viewer: "parent",
+        limit: 25,
+      }),
+    ]);
 
     const quickActions = buildParentQuickActions(slug, org.features);
 
@@ -142,6 +154,8 @@ export async function GET(request: Request) {
       enrollmentIncompleteBannerItems,
       formAttentionItems,
       formSnapshot,
+      bulletinEnabled,
+      bulletinPosts,
     });
   } catch (err) {
     return apiError(ROUTE, {

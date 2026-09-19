@@ -18,10 +18,12 @@ import {
   familyPreviewParentPath,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
+import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import {
   loadParentClassroomSignupsPageBundle,
   loadParentSignupAttentionItems,
@@ -349,6 +351,45 @@ export default async function FamilyPreviewParentFeaturePage({
             <ParentCalendarPreviewEventsLoader organizationId={org.id} />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "friday_branch") {
+    const familyChildren = await listFamilyChildrenForHomeByFamilyId(
+      supabase,
+      org.id,
+      familyId,
+    );
+    const studentOptions = familyChildren
+      .filter((child) => child.studentId)
+      .map((child) => ({
+        id: child.studentId!,
+        name: child.studentName,
+      }));
+    const initialBundle = await loadParentFridayBranchPageBundle(
+      admin,
+      org.id,
+      familyId,
+      studentOptions,
+    );
+    const initialClassId =
+      typeof resolvedSearchParams.class === "string"
+        ? resolvedSearchParams.class
+        : undefined;
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentFridayBranchPage
+          organizationId={org.id}
+          slug={slug}
+          initialBundle={initialBundle}
+          previewBasePath={previewBasePath}
+          readOnly
+          previewFamilyId={familyId}
+          initialClassId={initialClassId}
+          childrenPath={familyPreviewParentPath(slug, familyId, "children")}
+        />
       </SchoolParentPageShell>
     );
   }

@@ -9,3 +9,4 @@ export { default as SchoolAdminTimelineSkeleton } from "./SchoolAdminTimelineSke
 export { default as SchoolAdminModalListSkeleton } from "./SchoolAdminModalListSkeleton";
 export { default as SchoolAdminCanvasSkeleton } from "./SchoolAdminCanvasSkeleton";
 export { default as SchoolAdminEnrollmentStatusSkeleton } from "./SchoolAdminEnrollmentStatusSkeleton";
+export { default as FridayBranchPageSkeleton } from "./FridayBranchPageSkeleton";

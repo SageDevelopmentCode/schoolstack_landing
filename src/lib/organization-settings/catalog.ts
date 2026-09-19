@@ -88,6 +88,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     curriculum: false,
     supply_list: false,
     teaching_schedule: false,
+    friday_branch: false,
   },
   observation_booking: true,
   homeschool_drop_in: false,
@@ -174,9 +175,32 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "parent", key: "classroom_signups", label: "Classroom signups", description: "Respond to teacher volunteer requests" },
   { portal: "parent", key: "forms_documents", label: "Forms & Documents", description: "View and sign forms from your child's teachers" },
   { portal: "parent", key: "committees", label: "Committees", description: "Volunteer committee participation" },
-  { portal: "parent", key: "curriculum", label: "Curriculum", description: "Co-op curriculum guide (PDF)" },
-  { portal: "parent", key: "supply_list", label: "Supply list", description: "Co-op shared supply list and sign-ups" },
-  { portal: "parent", key: "teaching_schedule", label: "Teaching schedule", description: "Co-op teaching week schedule and volunteer sign-ups" },
+  {
+    portal: "parent",
+    key: "curriculum",
+    label: "Curriculum",
+    description: "Co-op program portal only — curriculum guide (PDF)",
+  },
+  {
+    portal: "parent",
+    key: "supply_list",
+    label: "Supply list",
+    description:
+      "Co-op program portal only — shared supply list and sign-ups (auto-enabled with co-op mode)",
+  },
+  {
+    portal: "parent",
+    key: "teaching_schedule",
+    label: "Teaching schedule",
+    description:
+      "Co-op program portal only — teaching week schedule and volunteer sign-ups (auto-enabled with co-op mode)",
+  },
+  {
+    portal: "parent",
+    key: "friday_branch",
+    label: "Friday Branch",
+    description: "Friday BRANCH enrichment program — school-wide parent portal tab",
+  },
   { portal: "additional", key: "observation_booking", label: "Observation booking", description: "Schedule classroom observation visits" },
   { portal: "additional", key: "homeschool_drop_in", label: "Homeschool drop-in", description: "Homeschool drop-in program module" },
 ];

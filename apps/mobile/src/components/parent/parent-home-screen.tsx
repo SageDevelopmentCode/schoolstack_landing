@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
 import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
@@ -30,6 +31,7 @@ import {
 } from '@/lib/admissions/school-apply-url';
 import {
   getOnboardingItemRoute,
+  parentBulletinDetailRoute,
   parentChildrenRoute,
   parentTabRoute,
 } from '@/lib/parent/parent-nav';
@@ -50,6 +52,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [bulletinOpen, setBulletinOpen] = useState(false);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
   );
@@ -128,6 +131,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   const nextEvent = data.upcomingEvents[0] ?? null;
   const enrollmentIncompleteBannerItems = data.enrollmentIncompleteBannerItems ?? [];
+  const bulletinEnabled = data.bulletinEnabled ?? false;
+  const bulletinPosts = data.bulletinPosts ?? [];
 
   return (
     <>
@@ -142,7 +147,12 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           />
         }>
         <Animated.View entering={FadeInDown.duration(350)}>
-          <ParentHomeHeader displayName={data.userProfile.displayName} />
+          <ParentHomeHeader
+            displayName={data.userProfile.displayName}
+            bulletinEnabled={bulletinEnabled}
+            bulletinPostCount={bulletinPosts.length}
+            onOpenBulletin={() => setBulletinOpen(true)}
+          />
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(40).duration(350)}>
@@ -214,6 +224,16 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
         </Animated.View>
       </ScrollView>
+
+      <HomeBulletinSheet
+        visible={bulletinOpen}
+        posts={bulletinPosts}
+        onClose={() => setBulletinOpen(false)}
+        onOpenPost={(postId) => {
+          setBulletinOpen(false);
+          router.push(parentBulletinDetailRoute(slug, postId));
+        }}
+      />
 
       <PortalSupportRequestSheet
         visible={supportSheetOpen}

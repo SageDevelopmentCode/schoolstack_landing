@@ -149,6 +149,7 @@ export function getProgramPortalFeatureScopeBadgeLabel(
     case "children":
     case "curriculum":
     case "supply_list":
+    case "teaching_schedule":
       return "This program only";
     case "messages":
       return "This program + school office";
@@ -187,6 +188,12 @@ export function getProgramPortalFeatureScopeTooltip(
         variant: "isolation",
         content:
           "Co-op supply list and parent sign-ups — included automatically for co-op programs.",
+      };
+    case "teaching_schedule":
+      return {
+        variant: "isolation",
+        content:
+          "Co-op teaching week schedule and volunteer sign-ups — included automatically for co-op programs.",
       };
     case "billing":
       return {

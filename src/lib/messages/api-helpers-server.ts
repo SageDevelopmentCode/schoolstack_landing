@@ -9,8 +9,97 @@ import {
   getGuardianIdForUser,
   postPortalMessage,
 } from "@/lib/messages/messages";
+import type { ParticipantDisplayContext } from "@/lib/messages/mappers";
 import { getThreadDetail, markThreadRead } from "@/lib/messages/threads";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
+
+async function loadSenderDisplayContext(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    userId: string;
+    schoolOfficeLabel: string;
+    senderGuardianId: string | null;
+    senderStaffMemberId: string | null;
+  },
+): Promise<ParticipantDisplayContext> {
+  const guardians = new Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      familyId?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >();
+  const staffMembers = new Map<
+    string,
+    {
+      firstName: string;
+      lastName: string;
+      roleTitle?: string | null;
+      profilePhotoUrl?: string | null;
+    }
+  >();
+
+  if (input.senderGuardianId) {
+    const { data, error } = await admin
+      .from("guardians")
+      .select("id, first_name, last_name, family_id, profile_photo_url")
+      .eq("organization_id", input.organizationId)
+      .eq("id", input.senderGuardianId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+
+    if (data) {
+      guardians.set(String(data.id), {
+        firstName: String(data.first_name ?? ""),
+        lastName: String(data.last_name ?? ""),
+        familyId: data.family_id ? String(data.family_id) : null,
+        profilePhotoUrl:
+          typeof data.profile_photo_url === "string" && data.profile_photo_url.trim()
+            ? data.profile_photo_url.trim()
+            : null,
+      });
+    }
+  }
+
+  if (input.senderStaffMemberId) {
+    const { data, error } = await admin
+      .from("staff_members")
+      .select("id, first_name, last_name, role_title, profile_photo_url")
+      .eq("organization_id", input.organizationId)
+      .eq("id", input.senderStaffMemberId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+
+    if (data) {
+      staffMembers.set(String(data.id), {
+        firstName: String(data.first_name ?? ""),
+        lastName: String(data.last_name ?? ""),
+        roleTitle: typeof data.role_title === "string" ? data.role_title : null,
+        profilePhotoUrl:
+          typeof data.profile_photo_url === "string" && data.profile_photo_url.trim()
+            ? data.profile_photo_url.trim()
+            : null,
+      });
+    }
+  }
+
+  return {
+    families: new Map(),
+    staffMembers,
+    guardians,
+    familyPrimaryGuardianIds: new Map(),
+    familyFirstGuardianIds: new Map(),
+    familyEnrolledStudents: new Map(),
+    schoolOfficeLabel: input.schoolOfficeLabel,
+    currentUserId: input.userId,
+    viewerGuardianId: input.senderGuardianId,
+  };
+}
 
 export async function sendMessageForViewer(
   admin: SupabaseClient,
@@ -70,6 +159,14 @@ export async function sendMessageForViewer(
     }
   }
 
+  const displayContext = await loadSenderDisplayContext(admin, {
+    organizationId: input.organizationId,
+    userId: input.userId,
+    schoolOfficeLabel: input.schoolOfficeLabel,
+    senderGuardianId,
+    senderStaffMemberId,
+  });
+
   const message = await postPortalMessage(
     admin,
     {
@@ -82,16 +179,7 @@ export async function sendMessageForViewer(
       senderGuardianId,
       senderStaffMemberId,
     },
-    {
-      families: new Map(),
-      staffMembers: new Map(),
-      guardians: new Map(),
-      familyPrimaryGuardianIds: new Map(),
-      familyFirstGuardianIds: new Map(),
-      familyEnrolledStudents: new Map(),
-      schoolOfficeLabel: input.schoolOfficeLabel,
-      currentUserId: input.userId,
-    },
+    displayContext,
   );
 
   await markThreadRead(admin, input.threadId, input.userId);

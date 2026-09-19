@@ -20,6 +20,7 @@ export { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 export { luffLearningConfig } from "./luff-learning";
 export { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 export { creationAcresConfig } from "./creation-acres";
+export { gatheredOakFarmConfig } from "./gathered-oak-farm";
 export { trueNorthConfig } from "./true-north";
 export { oneAcreFarmConfig } from "./one-acre-farm";
 export { labLearningConfig } from "./lab-learning";
@@ -27,6 +28,14 @@ export { kineoSchoolConfig } from "./kineo-school";
 export { austinMicroSchoolConfig } from "./austin-micro-school";
 export { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
 export { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
+export { naplesMicroschoolsConfig } from "./naples-microschools";
+export { theFocusAcademyConfig } from "./the-focus-academy";
+export { piedmontForestSchoolConfig } from "./piedmont-forest-school";
+export { littleSprigsTampaConfig } from "./little-sprigs-tampa";
+export { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
+export { actonAcademyPlacerConfig } from "./acton-academy-placer";
+export { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
+export { tapestryAcademyConfig } from "./tapestry-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -49,6 +58,7 @@ import { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 import { luffLearningConfig } from "./luff-learning";
 import { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 import { creationAcresConfig } from "./creation-acres";
+import { gatheredOakFarmConfig } from "./gathered-oak-farm";
 import { trueNorthConfig } from "./true-north";
 import { oneAcreFarmConfig } from "./one-acre-farm";
 import { labLearningConfig } from "./lab-learning";
@@ -56,6 +66,14 @@ import { kineoSchoolConfig } from "./kineo-school";
 import { austinMicroSchoolConfig } from "./austin-micro-school";
 import { katsCommunityMicroschoolConfig } from "./kats-community-microschool";
 import { kinderAcademyPrepSchoolConfig } from "./kinder-academy-prep-school";
+import { naplesMicroschoolsConfig } from "./naples-microschools";
+import { theFocusAcademyConfig } from "./the-focus-academy";
+import { piedmontForestSchoolConfig } from "./piedmont-forest-school";
+import { littleSprigsTampaConfig } from "./little-sprigs-tampa";
+import { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
+import { actonAcademyPlacerConfig } from "./acton-academy-placer";
+import { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
+import { tapestryAcademyConfig } from "./tapestry-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -78,6 +96,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "luff-learning": luffLearningConfig,
   "paradise-earth-academy": paradiseEarthAcademyConfig,
   "creation-acres": creationAcresConfig,
+  "gathered-oak-farm": gatheredOakFarmConfig,
   "true-north": trueNorthConfig,
   "one-acre-farm": oneAcreFarmConfig,
   "lab-learning": labLearningConfig,
@@ -85,6 +104,14 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "austin-micro-school": austinMicroSchoolConfig,
   "kats-community-microschool": katsCommunityMicroschoolConfig,
   "kinder-academy-prep-school": kinderAcademyPrepSchoolConfig,
+  "naples-microschools": naplesMicroschoolsConfig,
+  "the-focus-academy": theFocusAcademyConfig,
+  "piedmont-forest-school": piedmontForestSchoolConfig,
+  "little-sprigs-tampa": littleSprigsTampaConfig,
+  "acton-academy-pittsburgh": actonAcademyPittsburghConfig,
+  "acton-academy-placer": actonAcademyPlacerConfig,
+  "asheboro-hybrid-academy": asheboroHybridAcademyConfig,
+  "tapestry-academy": tapestryAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

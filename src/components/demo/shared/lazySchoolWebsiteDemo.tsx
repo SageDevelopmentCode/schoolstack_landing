@@ -11,6 +11,18 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyWebsiteDashboardDemo"
     ),
+  "asheboro-hybrid-academy": () =>
+    import(
+      "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyWebsiteDashboardDemo"
+    ),
+  "acton-academy-pittsburgh": () =>
+    import(
+      "@/components/demo/actonacademy/ActonAcademyPittsburghWebsiteDashboardDemo"
+    ),
+  "acton-academy-placer": () =>
+    import(
+      "@/components/demo/actonacademyplacer/ActonAcademyPlacerWebsiteDashboardDemo"
+    ),
   "ascend-micro-school": () =>
     import(
       "@/components/demo/ascendmicroschool/AscendMicroschoolWebsiteDashboardDemo"
@@ -24,6 +36,10 @@ const WEBSITE_DEMO_LOADERS: Record<
   "creation-acres": () =>
     import(
       "@/components/demo/creationacres/CreationAcresWebsiteDashboardDemo"
+    ),
+  "gathered-oak-farm": () =>
+    import(
+      "@/components/demo/gatheredoakfarm/GatheredOakFarmWebsiteDashboardDemo"
     ),
   "hilton-horizons-academy": () =>
     import(
@@ -53,6 +69,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import("@/components/demo/micahmission/MicahMissionWebsiteDashboardDemo"),
   "monarch-hills-education": () =>
     import("@/components/demo/monarchhills/MonarchHillsWebsiteDashboardDemo"),
+  "naples-microschools": () =>
+    import(
+      "@/components/demo/naplesmicroschool/NaplesMicroschoolsWebsiteDashboardDemo"
+    ),
   "natures-schoolhouse": () =>
     import(
       "@/components/demo/natureschoolhouse/NaturesSchoolhouseWebsiteDashboardDemo"
@@ -62,6 +82,14 @@ const WEBSITE_DEMO_LOADERS: Record<
   "paradise-earth-academy": () =>
     import(
       "@/components/demo/paradiseearthacademy/ParadiseEarthAcademyWebsiteDashboardDemo"
+    ),
+  "piedmont-forest-school": () =>
+    import(
+      "@/components/demo/piedmontforestschool/PiedmontForestSchoolWebsiteDashboardDemo"
+    ),
+  "little-sprigs-tampa": () =>
+    import(
+      "@/components/demo/littlesprigstampa/LittleSprigsTampaWebsiteDashboardDemo"
     ),
   "prestige-homeschool-academy": () =>
     import(
@@ -74,6 +102,14 @@ const WEBSITE_DEMO_LOADERS: Record<
   "spring-river-school": () =>
     import(
       "@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo"
+    ),
+  "tapestry-academy": () =>
+    import(
+      "@/components/demo/tapestryacademy/TapestryAcademyWebsiteDashboardDemo"
+    ),
+  "the-focus-academy": () =>
+    import(
+      "@/components/demo/thefocusacademy/TheFocusAcademyWebsiteDashboardDemo"
     ),
   "the-woodlands-microschool": () =>
     import(

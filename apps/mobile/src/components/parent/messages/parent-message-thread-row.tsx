@@ -14,6 +14,7 @@ import type { MessageThreadSummary } from '@/lib/messages/types';
 type ParentMessageThreadRowProps = {
   thread: MessageThreadSummary;
   onPress: () => void;
+  onPressIn?: () => void;
 };
 
 function shouldShowSubtitle(thread: MessageThreadSummary): boolean {
@@ -22,7 +23,11 @@ function shouldShowSubtitle(thread: MessageThreadSummary): boolean {
   return Boolean(thread.subtitle);
 }
 
-export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadRowProps) {
+export function ParentMessageThreadRow({
+  thread,
+  onPress,
+  onPressIn,
+}: ParentMessageThreadRowProps) {
   const theme = useParentTheme();
   const hasUnread = thread.unreadCount > 0;
   const showSubtitle = shouldShowSubtitle(thread);
@@ -31,6 +36,7 @@ export function ParentMessageThreadRow({ thread, onPress }: ParentMessageThreadR
     <ScalePressable
       accessibilityRole="button"
       onPress={onPress}
+      onPressIn={onPressIn}
       style={[
         styles.rowPressable,
         {

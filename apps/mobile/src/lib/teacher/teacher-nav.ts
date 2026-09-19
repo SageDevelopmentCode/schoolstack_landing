@@ -34,6 +34,14 @@ export function isTeacherStudentDetailPath(pathname: string): boolean {
   return /\/students\/[^/]+$/.test(pathname);
 }
 
+export function teacherBulletinDetailRoute(slug: string, postId: string): Href {
+  return `/teacher/${slug}/bulletin/${encodeURIComponent(postId)}` as Href;
+}
+
+export function isTeacherBulletinDetailPath(pathname: string): boolean {
+  return /\/bulletin\/[^/]+$/.test(pathname);
+}
+
 export function isTeacherMessageThreadPath(pathname: string): boolean {
   return /\/teacher\/[^/]+\/messages\/[^/]+$/.test(pathname);
 }

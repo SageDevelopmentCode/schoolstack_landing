@@ -256,6 +256,7 @@ function CrmPanel({
   onSave: (id: string, updates: Partial<School>) => Promise<void>;
 }) {
   const [status, setStatus] = useState<CrmStatus>(school.crm_status);
+  const [website, setWebsite] = useState(school.website);
   const [contactName, setContactName] = useState(school.contact_name);
   const [contactEmail, setContactEmail] = useState(school.contact_email);
   const [contactPhone, setContactPhone] = useState(school.contact_phone);
@@ -276,6 +277,7 @@ function CrmPanel({
   useEffect(() => {
     queueMicrotask(() => {
       setStatus(school.crm_status);
+      setWebsite(school.website);
       setContactName(school.contact_name);
       setContactEmail(school.contact_email);
       setContactPhone(school.contact_phone);
@@ -337,6 +339,7 @@ function CrmPanel({
   async function handleSave() {
     setSaving(true);
     await onSave(school.id, {
+      website: website.trim(),
       contact_name: contactName,
       contact_email: contactEmail,
       contact_phone: contactPhone,
@@ -416,17 +419,19 @@ function CrmPanel({
             <h2 className="text-lg font-semibold text-admin-text leading-tight">{school.name}</h2>
             <p className="text-xs text-admin-faint mt-0.5">{school.location}</p>
           </div>
-          <a
-            href={school.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-admin-accent hover:underline mt-1"
-          >
-            {hostname(school.website)}
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-              <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
+          {school.website.trim() && (
+            <a
+              href={school.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-admin-accent hover:underline mt-1"
+            >
+              {hostname(school.website)}
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                <path d="M2 9L9 2M9 2H5M9 2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          )}
         </div>
 
         {/* Product demo link */}
@@ -526,6 +531,7 @@ function CrmPanel({
           <div>
             <p className="text-[11px] font-bold text-admin-faint uppercase tracking-wider mb-2.5">Contact Info</p>
             <div className="flex flex-col gap-2.5">
+              <Field label="Website" value={website} onChange={setWebsite} placeholder="https://example.org" type="url" />
               <Field label="Name" value={contactName} onChange={setContactName} placeholder="Sarah Johnson" />
               <Field label="Email" value={contactEmail} onChange={setContactEmail} placeholder="sarah@school.org" type="email" />
               <Field label="Phone" value={contactPhone} onChange={setContactPhone} placeholder="+1 (555) 000-0000" type="tel" />

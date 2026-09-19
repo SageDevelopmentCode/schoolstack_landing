@@ -13,7 +13,8 @@ export type NotificationChannel =
   | "applications"
   | "payments"
   | "visits"
-  | "committees";
+  | "committees"
+  | "program_signups";
 
 export type NotificationChannelSettings = {
   enabled: boolean;
@@ -21,11 +22,19 @@ export type NotificationChannelSettings = {
   additional_emails: string[];
 };
 
+export type ParentReminderSettings = {
+  incomplete_admissions: {
+    enabled: boolean;
+  };
+};
+
 export type OrganizationNotificationSettings = {
   applications: NotificationChannelSettings;
   payments: NotificationChannelSettings;
   visits: NotificationChannelSettings;
   committees: NotificationChannelSettings;
+  program_signups: NotificationChannelSettings;
+  parent_reminders: ParentReminderSettings;
 };
 
 export type RecipientSummary = {
@@ -77,6 +86,37 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       include_org_admins: true,
       additional_emails: [],
     },
+    program_signups: {
+      enabled: true,
+      include_org_admins: true,
+      additional_emails: [],
+    },
+    parent_reminders: {
+      incomplete_admissions: {
+        enabled: false,
+      },
+    },
+  };
+}
+
+function parseParentReminderSettings(
+  raw: Record<string, unknown> | undefined,
+  defaults: ParentReminderSettings,
+): ParentReminderSettings {
+  const incompleteRaw =
+    raw?.incomplete_admissions &&
+    typeof raw.incomplete_admissions === "object" &&
+    !Array.isArray(raw.incomplete_admissions)
+      ? (raw.incomplete_admissions as Record<string, unknown>)
+      : undefined;
+
+  return {
+    incomplete_admissions: {
+      enabled:
+        typeof incompleteRaw?.enabled === "boolean"
+          ? incompleteRaw.enabled
+          : defaults.incomplete_admissions.enabled,
+    },
   };
 }
 
@@ -124,12 +164,25 @@ export function parseOrganizationNotificationSettings(
     stored.committees && typeof stored.committees === "object"
       ? (stored.committees as Record<string, unknown>)
       : undefined;
+  const programSignupsRaw =
+    stored.program_signups && typeof stored.program_signups === "object"
+      ? (stored.program_signups as Record<string, unknown>)
+      : undefined;
+  const parentRemindersRaw =
+    stored.parent_reminders && typeof stored.parent_reminders === "object"
+      ? (stored.parent_reminders as Record<string, unknown>)
+      : undefined;
 
   return {
     applications: parseChannelSettings(applicationsRaw, defaults.applications),
     payments: parseChannelSettings(paymentsRaw, defaults.payments),
     visits: parseChannelSettings(visitsRaw, defaults.visits),
     committees: parseChannelSettings(committeesRaw, defaults.committees),
+    program_signups: parseChannelSettings(programSignupsRaw, defaults.program_signups),
+    parent_reminders: parseParentReminderSettings(
+      parentRemindersRaw,
+      defaults.parent_reminders,
+    ),
   };
 }
 
@@ -160,7 +213,8 @@ export function validateOrganizationNotificationSettings(
     ) ??
     validateChannelEmails(settings.payments.additional_emails, "payment") ??
     validateChannelEmails(settings.visits.additional_emails, "visit") ??
-    validateChannelEmails(settings.committees.additional_emails, "committee")
+    validateChannelEmails(settings.committees.additional_emails, "committee") ??
+    validateChannelEmails(settings.program_signups.additional_emails, "program sign-up")
   );
 }
 
@@ -204,6 +258,10 @@ export function buildOrganizationNotificationRecipients(
     payments: computeNotificationRecipients(settings.payments, orgAdminEmails),
     visits: computeNotificationRecipients(settings.visits, orgAdminEmails),
     committees: computeNotificationRecipients(settings.committees, orgAdminEmails),
+    program_signups: computeNotificationRecipients(
+      settings.program_signups,
+      orgAdminEmails,
+    ),
   };
 }
 
@@ -242,6 +300,66 @@ export async function collectPublishedFormSubmissionNotifyEmails(
   }
 
   return [...emails];
+}
+
+export async function hasLegacyDraftRemindersEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("application_form_versions")
+    .select("notification_config")
+    .eq("organization_id", organizationId)
+    .eq("status", "published");
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    const config = parseApplicationFormNotificationConfig(row.notification_config);
+    if (config.draft_reminders.enabled) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function maybeMigrateIncompleteAdmissionsReminders(
+  admin: SupabaseClient,
+  organizationId: string,
+  settings: OrganizationNotificationSettings,
+  storedNotifications: Record<string, unknown> | null | undefined,
+): Promise<OrganizationNotificationSettings> {
+  if (
+    storedNotifications &&
+    typeof storedNotifications === "object" &&
+    "parent_reminders" in storedNotifications
+  ) {
+    return settings;
+  }
+
+  const legacyEnabled = await hasLegacyDraftRemindersEnabled(admin, organizationId);
+  if (!legacyEnabled) {
+    return settings;
+  }
+
+  const nextSettings: OrganizationNotificationSettings = {
+    ...settings,
+    parent_reminders: {
+      incomplete_admissions: {
+        enabled: true,
+      },
+    },
+  };
+
+  const { error } = await admin
+    .from("organization_settings")
+    .update({ notifications: nextSettings })
+    .eq("organization_id", organizationId);
+
+  if (error) throw error;
+
+  return nextSettings;
 }
 
 export async function maybeMigrateApplicationNotificationEmails(
@@ -341,9 +459,28 @@ export async function loadOrganizationNotificationSettings(
 
   if (error) throw error;
 
-  return parseOrganizationNotificationSettings(
-    data?.notifications as Record<string, unknown> | null | undefined,
+  const rawNotifications = data?.notifications as
+    | Record<string, unknown>
+    | null
+    | undefined;
+
+  let settings = parseOrganizationNotificationSettings(rawNotifications);
+  settings = await maybeMigrateIncompleteAdmissionsReminders(
+    admin,
+    organizationId,
+    settings,
+    rawNotifications,
   );
+
+  return settings;
+}
+
+export async function isIncompleteAdmissionsRemindersEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.incomplete_admissions.enabled;
 }
 
 export async function resolveApplicationNotificationEmails(
@@ -372,4 +509,11 @@ export async function resolveCommitteeNotificationEmails(
   organizationId: string,
 ): Promise<string[]> {
   return resolveChannelNotificationEmails(admin, organizationId, "committees");
+}
+
+export async function resolveProgramSignupNotificationEmails(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<string[]> {
+  return resolveChannelNotificationEmails(admin, organizationId, "program_signups");
 }

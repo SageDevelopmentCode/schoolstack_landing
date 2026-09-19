@@ -2,7 +2,12 @@
 
 import { AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  buildDemoParentThemeTokens,
+  demoStoryShellStyle,
+} from "@/components/demo/shared/demo-story-theme";
+import { dmSans, fraunces } from "@/lib/fonts";
 import { resolveWalkthroughStepIndex } from "@/lib/demo-walkthrough";
 import DemoContactPanel from "@/components/demo/DemoContactPanel";
 import DemoPreviewHint from "@/components/demo/DemoPreviewHint";
@@ -91,13 +96,28 @@ function SchoolDemoShellInner({
     }
   }, [searchParams, steps]);
 
+  const storyTheme = useMemo(
+    () =>
+      buildDemoParentThemeTokens({
+        accent: config.theme.primary,
+        accentHover: config.theme.primaryHover,
+        accentLight: config.theme.badgeBg,
+        accentDark: config.theme.dark,
+      }),
+    [config.theme],
+  );
+
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div
+      className={`${fraunces.variable} ${dmSans.variable} flex h-screen overflow-hidden [&_.font-heading]:font-[family-name:var(--font-fraunces)] [&_.font-secondary]:font-[family-name:var(--font-dm-sans)]`}
+      style={demoStoryShellStyle(storyTheme)}
+    >
       <DemoWalkthroughPanel
         schoolName={schoolName}
         schoolLogo={config.logo}
         steps={steps}
         activeStep={activeStep}
+        storyTheme={storyTheme}
         onStepSelect={handleStepSelect}
       />
       <div className="relative flex-1 h-screen min-w-0">

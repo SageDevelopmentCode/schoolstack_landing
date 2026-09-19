@@ -376,6 +376,128 @@ export async function sendDraftApplicationReminderEmail(payload: {
   return { ok: true };
 }
 
+export function buildIncompleteAdmissionsReminderSubject(payload: {
+  schoolName: string;
+  hasDraftApplications: boolean;
+  hasIncompleteEnrollments: boolean;
+}): string {
+  if (payload.hasDraftApplications && payload.hasIncompleteEnrollments) {
+    return `Reminder: finish your admissions steps — ${payload.schoolName}`;
+  }
+  if (payload.hasIncompleteEnrollments) {
+    return `Reminder: complete your enrollment — ${payload.schoolName}`;
+  }
+  return `Reminder: finish your application — ${payload.schoolName}`;
+}
+
+export function buildIncompleteAdmissionsReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  contactEmail: string;
+  applyDashboardUrl: string;
+  draftApplications: Array<{ formTitle: string; applyUrl: string }>;
+  incompleteEnrollments: Array<{
+    label: string;
+    progressLabel: string;
+    enrollmentUrl: string;
+  }>;
+}): string {
+  const hasDrafts = payload.draftApplications.length > 0;
+  const hasEnrollments = payload.incompleteEnrollments.length > 0;
+  const contactMailto = payload.contactEmail
+    ? `mailto:${encodeURIComponent(payload.contactEmail)}`
+    : null;
+
+  const draftSection = hasDrafts
+    ? `
+      ${emailHeading("Applications in progress")}
+      ${emailParagraph(
+        "You started an application but have not submitted it yet. Your progress is saved — pick up where you left off whenever you are ready.",
+      )}
+      ${emailBulletList(
+        payload.draftApplications.map(
+          (application) => `${application.formTitle}`,
+        ),
+      )}
+      ${emailCta({
+        label: "Continue your application",
+        href: payload.draftApplications[0]?.applyUrl ?? payload.applyDashboardUrl,
+      })}
+    `
+    : "";
+
+  const enrollmentSection = hasEnrollments
+    ? `
+      ${emailHeading("Enrollment checklist")}
+      ${emailParagraph(
+        "Your enrollment checklist still has steps to complete before your student can be fully enrolled.",
+      )}
+      ${emailBulletList(
+        payload.incompleteEnrollments.map(
+          (enrollment) => `${enrollment.label} (${enrollment.progressLabel})`,
+        ),
+      )}
+      ${emailCta({
+        label: "Complete enrollment",
+        href:
+          payload.incompleteEnrollments[0]?.enrollmentUrl ??
+          payload.applyDashboardUrl,
+      })}
+    `
+    : "";
+
+  const contactSection = payload.contactEmail && contactMailto
+    ? emailParagraph(
+        `Questions? Reach out to the ${escapeHtml(payload.schoolName)} team at <a href="${contactMailto}" style="color:inherit;">${escapeHtml(payload.contactEmail)}</a>.`,
+      )
+    : "";
+
+  const preheader = hasDrafts && hasEnrollments
+    ? `${payload.schoolName} — finish your application and enrollment steps.`
+    : hasEnrollments
+      ? `${payload.schoolName} — complete your enrollment checklist.`
+      : `${payload.schoolName} would love to see you finish your application.`;
+
+  return composeEmail({
+    preheader,
+    contentHtml: `
+      ${emailBadge("Friendly Reminder")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(
+        `This is a friendly reminder from ${escapeHtml(payload.schoolName)} about outstanding admissions steps for your family.`,
+      )}
+      ${draftSection}
+      ${enrollmentSection}
+      ${contactSection}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendIncompleteAdmissionsReminderEmail(payload: {
+  to: string;
+  schoolName: string;
+  subject: string;
+  html: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: payload.subject,
+    content: payload.html,
+  });
+
+  if (!result.success) {
+    console.error("Incomplete admissions reminder email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildEnrollmentCompletedConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -1068,6 +1190,216 @@ export function buildCommitteeJoinRequestAdminNotificationHtml(payload: {
   });
 }
 
+export function buildFridayBranchEnrollmentAdminNotificationHtml(payload: {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  blockLabel: string;
+  blockDateRange?: string;
+  studentName: string;
+  familyName: string;
+  guardianName: string;
+  guardianEmail: string;
+  statusLabel: string;
+  submittedAtLabel: string;
+  fridayBranchAdminUrl: string;
+}): string {
+  const scheduleLabel = payload.blockDateRange
+    ? `${payload.blockLabel} (${payload.blockDateRange})`
+    : payload.blockLabel;
+
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Class", value: payload.className },
+    { label: "Time", value: payload.slotTime },
+    { label: "Block", value: scheduleLabel },
+    { label: "Student", value: payload.studentName },
+    { label: "Family", value: payload.familyName },
+    { label: "Parent", value: payload.guardianName },
+    { label: "Email", value: payload.guardianEmail },
+    { label: "Status", value: payload.statusLabel },
+    { label: "Submitted", value: payload.submittedAtLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.studentName} signed up for ${payload.className}.`,
+    contentHtml: `
+      ${emailBadge("Program Sign-up")}
+      ${emailHeading("A parent signed up for a program class")}
+      ${emailParagraph(
+        `${escapeHtml(payload.guardianName)} signed up ${escapeHtml(payload.studentName)} for ${escapeHtml(payload.className)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View Friday Branch", href: payload.fridayBranchAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+const ROSTER_EMAIL_FONT =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+
+function buildFridayBranchRosterTableHtml(
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[],
+): string {
+  if (rows.length === 0) {
+    return emailMutedParagraph("No students are signed up for this class yet.");
+  }
+
+  const header = `<tr>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Student</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Family</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Grade</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Status</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Email</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Phone</th>
+  </tr>`;
+
+  const body = rows
+    .map(
+      (row) => `<tr>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.studentName)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyName)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.grade)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.statusLabel)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyEmail)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyPhone)}</td>
+  </tr>`,
+    )
+    .join("");
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;border-collapse:collapse;">
+  ${header}
+  ${body}
+</table>`;
+}
+
+export function buildFridayBranchClassRosterEmailHtml(payload: {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  sentAtLabel: string;
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[];
+}): string {
+  const scheduleLabel = payload.blockDateRange
+    ? `${payload.blockLabel} (${payload.blockDateRange})`
+    : payload.blockLabel;
+
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Class", value: payload.className },
+    { label: "Time", value: payload.slotTime },
+    { label: "Location", value: payload.location },
+    { label: "Age group", value: payload.ageGroup },
+    { label: "Class leader", value: payload.teacher },
+    { label: "Block", value: scheduleLabel },
+    { label: "Sent", value: payload.sentAtLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.className} roster for ${payload.slotTime}.`,
+    contentHtml: `
+      ${emailBadge("Class Roster")}
+      ${emailHeading("Friday Branch class roster")}
+      ${emailParagraph(
+        `Here is the current sign-up roster for ${escapeHtml(payload.className)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${buildFridayBranchRosterTableHtml(payload.rows)}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendFridayBranchClassRosterEmail(payload: {
+  email: string;
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  sentAtLabel: string;
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[];
+}): Promise<{ success: boolean; error?: string }> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Email is not configured." };
+  }
+
+  const content = buildFridayBranchClassRosterEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Friday Branch roster — ${payload.className} (${payload.slotTime})`,
+    content,
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  return { success: true };
+}
+
+export async function sendFridayBranchEnrollmentAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  blockLabel: string;
+  blockDateRange?: string;
+  studentName: string;
+  familyName: string;
+  guardianName: string;
+  guardianEmail: string;
+  statusLabel: string;
+  submittedAtLabel: string;
+  fridayBranchAdminUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildFridayBranchEnrollmentAdminNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Program sign-up — ${payload.schoolName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error(
+      "Friday Branch enrollment admin notification email failed:",
+      result.error,
+    );
+  }
+}
+
 export async function sendCommitteeJoinRequestAdminNotification(payload: {
   email: string;
   schoolName: string;
@@ -1353,6 +1685,133 @@ export async function sendNewMessageEmail(payload: {
 
   if (!result.success) {
     console.error("New message email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export function buildTeacherParentFormPublishedEmailHtml(payload: {
+  schoolName: string;
+  publisherName: string;
+  formTitle: string;
+  dueDate?: string | null;
+  studentNames?: string[];
+  formUrl: string;
+}): string {
+  const absoluteUrl = payload.formUrl.startsWith("http")
+    ? payload.formUrl
+    : `${SITE_URL}${payload.formUrl}`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "Form", value: payload.formTitle },
+    { label: "From", value: payload.publisherName },
+  ];
+
+  if (payload.dueDate) {
+    details.push({ label: "Due", value: formatSelectedDate(payload.dueDate) });
+  }
+
+  if (payload.studentNames && payload.studentNames.length > 0) {
+    details.push({
+      label: "Students",
+      value: payload.studentNames.join(", "),
+    });
+  }
+
+  return composeEmail({
+    preheader: `${payload.publisherName} posted a form for you to sign`,
+    contentHtml: `
+      ${emailBadge("Form to Sign")}
+      ${emailHeading(`A form is ready to sign at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.publisherName)}</strong> posted <strong>${escapeHtml(payload.formTitle)}</strong> for your family to review and sign.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Sign form", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTeacherParentFormPublishedEmail(payload: {
+  to: string;
+  schoolName: string;
+  publisherName: string;
+  formTitle: string;
+  dueDate?: string | null;
+  studentNames?: string[];
+  formUrl: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildTeacherParentFormPublishedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Form to sign — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("Teacher parent form published email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export function buildTeacherParentFormResponseSignedEmailHtml(payload: {
+  schoolName: string;
+  familyName: string;
+  formTitle: string;
+  formUrl: string;
+}): string {
+  const absoluteUrl = payload.formUrl.startsWith("http")
+    ? payload.formUrl
+    : `${SITE_URL}${payload.formUrl}`;
+
+  return composeEmail({
+    preheader: `${payload.familyName} signed ${payload.formTitle}`,
+    contentHtml: `
+      ${emailBadge("Form Signed")}
+      ${emailHeading(`A family signed your form at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.familyName)}</strong> signed <strong>${escapeHtml(payload.formTitle)}</strong>.`,
+      )}
+      ${emailDetailCard([
+        { label: "School", value: payload.schoolName },
+        { label: "Family", value: payload.familyName },
+        { label: "Form", value: payload.formTitle },
+      ])}
+      ${emailCta({ label: "View form", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTeacherParentFormResponseSignedEmail(payload: {
+  to: string;
+  schoolName: string;
+  familyName: string;
+  formTitle: string;
+  formUrl: string;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildTeacherParentFormResponseSignedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Form signed — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("Teacher parent form response signed email failed:", result.error);
     return { ok: false };
   }
 

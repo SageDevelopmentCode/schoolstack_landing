@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell,
+  CalendarDays,
   ChevronRight,
   ClipboardList,
   CreditCard,
@@ -68,6 +69,15 @@ function getActivityNotificationVisual(
           backgroundColor: C.accentLight,
           color: C.accent,
           border: `1px solid ${C.secondaryBtnBorder}`,
+        },
+      };
+    case "program_signups":
+      return {
+        Icon: CalendarDays,
+        badgeStyle: {
+          backgroundColor: C.warningBg,
+          color: C.warning,
+          border: `1px solid ${C.warningBorder}`,
         },
       };
     case "other":

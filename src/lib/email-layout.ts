@@ -200,3 +200,25 @@ export function composeEmail(opts: {
     bodyHtml: `${emailHeader()}${emailContentBlock(opts.contentHtml)}${emailFooter()}`,
   });
 }
+
+const EMAIL_ADMIN_PREVIEW_LIGHT_CSS = `<style>
+  :root, html { color-scheme: light only; }
+  body { background-color: #ffffff !important; color: #1f2937 !important; }
+  @media (prefers-color-scheme: dark) {
+    .email-accent { color: ${COLORS.accent} !important; }
+    .email-link { color: ${COLORS.accent} !important; }
+  }
+</style>`;
+
+/** Forces light rendering in admin iframe previews without changing sent email HTML. */
+export function wrapEmailHtmlForAdminPreview(html: string): string {
+  const withLightMeta = html
+    .replace(/content="light dark"/g, 'content="light"')
+    .replace(/content='light dark'/g, "content='light'");
+
+  if (withLightMeta.includes("</head>")) {
+    return withLightMeta.replace("</head>", `${EMAIL_ADMIN_PREVIEW_LIGHT_CSS}</head>`);
+  }
+
+  return `${EMAIL_ADMIN_PREVIEW_LIGHT_CSS}${withLightMeta}`;
+}
