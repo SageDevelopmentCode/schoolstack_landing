@@ -11,6 +11,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/arizonagiftedacademy/ArizonaGiftedAcademyWebsiteDashboardDemo"
     ),
+  "asheboro-hybrid-academy": () =>
+    import(
+      "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyWebsiteDashboardDemo"
+    ),
   "acton-academy-pittsburgh": () =>
     import(
       "@/components/demo/actonacademy/ActonAcademyPittsburghWebsiteDashboardDemo"

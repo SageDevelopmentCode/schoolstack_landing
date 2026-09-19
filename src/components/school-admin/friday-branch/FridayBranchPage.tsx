@@ -18,7 +18,7 @@ import {
   getScheduleGaps,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
-import FridayBranchBlockContext from "./FridayBranchBlockContext";
+import FridayBranchBlockDetailsSheet from "./FridayBranchBlockDetailsSheet";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
 import FridayBranchRecentActivity from "./FridayBranchRecentActivity";
 import FridayBranchScheduleCard from "./FridayBranchScheduleCard";
@@ -49,6 +49,7 @@ export default function FridayBranchPage({
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [highlightClassId, setHighlightClassId] = useState<string | null>(null);
   const [requestedClassId, setRequestedClassId] = useState<string | null>(null);
+  const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -204,6 +205,15 @@ export default function FridayBranchPage({
           </AdminButton>
           <AdminButton
             theme={theme}
+            variant="outline"
+            type="button"
+            onClick={() => setBlockDetailsOpen(true)}
+            disabled={loading || !selectedBlock || saving}
+          >
+            Edit block details
+          </AdminButton>
+          <AdminButton
+            theme={theme}
             variant="primary"
             type="button"
             onClick={handleSave}
@@ -235,14 +245,7 @@ export default function FridayBranchPage({
                 exit={reduceMotion ? undefined : { opacity: 0 }}
                 transition={transition}
               >
-                <FridayBranchBlockContext
-                  C={C}
-                  theme={theme}
-                  block={selectedBlock}
-                  onChange={handleUpdateBlock}
-                />
-
-                <div ref={scheduleRef}>
+                <div ref={scheduleRef} className="mt-4">
                   <FridayBranchScheduleCard
                     C={C}
                     theme={theme}
@@ -255,13 +258,6 @@ export default function FridayBranchPage({
                     onReviewGaps={handleReviewGaps}
                   />
                 </div>
-
-                <FridayBranchRecentActivity
-                  C={C}
-                  theme={theme}
-                  organizationId={organizationId}
-                  onOpenClass={handleOpenClass}
-                />
               </motion.div>
             ) : (
               <motion.div
@@ -276,8 +272,26 @@ export default function FridayBranchPage({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {!loading ? (
+            <FridayBranchRecentActivity
+              C={C}
+              theme={theme}
+              organizationId={organizationId}
+              onOpenClass={handleOpenClass}
+            />
+          ) : null}
         </>
       )}
+
+      <FridayBranchBlockDetailsSheet
+        open={blockDetailsOpen}
+        onClose={() => setBlockDetailsOpen(false)}
+        block={selectedBlock}
+        onChange={handleUpdateBlock}
+        theme={theme}
+        C={C}
+      />
 
       <ConfirmDialog
         C={C}

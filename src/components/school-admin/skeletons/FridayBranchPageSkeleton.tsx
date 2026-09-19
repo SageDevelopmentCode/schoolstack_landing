@@ -32,36 +32,6 @@ export default function FridayBranchPageSkeleton({
       </div>
 
       <div
-        className="mt-4 rounded-xl border px-4 py-4"
-        style={{ borderColor: "#E0E7E0", backgroundColor: "#fff" }}
-      >
-        <div className="space-y-4">
-          <div>
-            <SkeletonBlock C={C} className="mb-1.5 h-3 w-28" />
-            <SkeletonBlock C={C} className="h-9 w-full rounded-sm" />
-          </div>
-          <div>
-            <SkeletonBlock C={C} className="mb-1.5 h-3 w-32" />
-            <SkeletonBlock C={C} className="h-16 w-full rounded-sm" />
-          </div>
-        </div>
-
-        <div
-          className="mt-4 grid gap-4 rounded-lg px-3 py-3 sm:grid-cols-3"
-          style={{ backgroundColor: "#FBFCFB" }}
-        >
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index}>
-              <SkeletonBlock C={C} className="h-2.5 w-12" />
-              <SkeletonBlock C={C} className="mt-2 h-4 w-24" />
-            </div>
-          ))}
-        </div>
-
-        <SkeletonBlock C={C} className="mt-3 h-3 w-16" />
-      </div>
-
-      <div
         className="mt-4 overflow-hidden rounded-xl border"
         style={{ borderColor: "#E0E7E0", backgroundColor: "#fff" }}
       >

@@ -14,6 +14,10 @@ import {
   removeClassFromBlock,
   removeSlotFromBlock,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
+import {
+  EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
+  type FridayBranchClassEnrollmentSummary,
+} from "@/lib/school-admin/friday-branch/friday-branch-enrollment-counts";
 import type {
   FridayBranchBlock,
   FridayBranchClass,
@@ -24,6 +28,7 @@ import FridayBranchAddTimeSlotSheet, {
 import FridayBranchClassDetailSheet from "./FridayBranchClassDetailSheet";
 import FridayBranchClassEditSheet from "./FridayBranchClassEditSheet";
 import FridayBranchRowActionsMenu from "./FridayBranchRowActionsMenu";
+import FridayBranchSendRosterSheet from "./FridayBranchSendRosterSheet";
 import FridayBranchStatusTag from "./FridayBranchStatusTag";
 
 type FridayBranchScheduleCardProps = {
@@ -50,6 +55,46 @@ type DetailTarget = {
   classEntry: FridayBranchClass;
   slotTime: string;
 };
+
+type SendRosterTarget = {
+  classId: string;
+  className: string;
+  slotTime: string;
+};
+
+function collectBlockClassIds(block: FridayBranchBlock): string[] {
+  const classIds: string[] = [];
+  for (const slot of block.slots) {
+    for (const classEntry of slot.classes) {
+      classIds.push(classEntry.id);
+    }
+  }
+  return classIds;
+}
+
+function renderSignedUpValue(
+  summary: FridayBranchClassEnrollmentSummary,
+  capacity: number | null | undefined,
+  theme: ParentThemeTokens,
+) {
+  const confirmedLabel =
+    capacity && capacity > 0
+      ? `${summary.confirmed} / ${capacity}`
+      : String(summary.confirmed);
+
+  return (
+    <div>
+      <span className="text-xs font-semibold" style={{ color: theme.ink }}>
+        {confirmedLabel}
+      </span>
+      {summary.waitlisted > 0 ? (
+        <span className="mt-0.5 block text-[10px]" style={{ color: theme.muted }}>
+          +{summary.waitlisted} waitlisted
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function renderLocationValue(location: string) {
   if (!location.trim()) {
@@ -81,11 +126,51 @@ export default function FridayBranchScheduleCard({
 }: FridayBranchScheduleCardProps) {
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null);
+  const [sendRosterTarget, setSendRosterTarget] = useState<SendRosterTarget | null>(null);
   const [addSlotOpen, setAddSlotOpen] = useState(false);
   const [localHighlightClassId, setLocalHighlightClassId] = useState<string | null>(null);
+  const [enrollmentCounts, setEnrollmentCounts] = useState<
+    Record<string, FridayBranchClassEnrollmentSummary>
+  >({});
 
   const effectiveHighlightClassId = highlightClassId ?? localHighlightClassId;
   const gaps = getScheduleGaps(block);
+
+  useEffect(() => {
+    const classIds = collectBlockClassIds(block);
+    if (classIds.length === 0) {
+      setEnrollmentCounts({});
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/school-admin/friday-branch/enrollment-counts?organizationId=${encodeURIComponent(organizationId)}&classIds=${encodeURIComponent(classIds.join(","))}`,
+        );
+
+        if (!response.ok || cancelled) return;
+
+        const payload = (await response.json()) as {
+          counts?: Record<string, FridayBranchClassEnrollmentSummary>;
+        };
+
+        if (!cancelled) {
+          setEnrollmentCounts(payload.counts ?? {});
+        }
+      } catch {
+        if (!cancelled) {
+          setEnrollmentCounts({});
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [block, organizationId]);
 
   useEffect(() => {
     if (!requestedClassId) return;
@@ -309,10 +394,10 @@ export default function FridayBranchScheduleCard({
         </header>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse">
+          <table className="w-full min-w-[760px] border-collapse">
             <thead>
               <tr style={{ backgroundColor: "#FBFCFB" }}>
-                {["Time", "Class", "Location", "Age group", ""].map((label) => (
+                {["Time", "Class", "Location", "Age group", "Signed up", ""].map((label) => (
                   <th
                     key={label || "actions"}
                     className="px-[17px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
@@ -379,7 +464,33 @@ export default function FridayBranchScheduleCard({
                           className="border-t px-[17px] py-[13px] align-top text-xs"
                           style={{ borderColor: "#EDF1ED" }}
                         >
-                          <div className="flex gap-1.5">
+                          {renderSignedUpValue(
+                            enrollmentCounts[classEntry.id] ??
+                              EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
+                            classEntry.capacity,
+                            theme,
+                          )}
+                        </td>
+                        <td
+                          className="border-t px-[17px] py-[13px] align-top text-xs"
+                          style={{ borderColor: "#EDF1ED" }}
+                        >
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSendRosterTarget({
+                                  classId: classEntry.id,
+                                  className: classEntry.name || "Untitled class",
+                                  slotTime: slot.time,
+                                });
+                              }}
+                              className="rounded-[7px] px-2 py-1.5 text-[10px] font-bold"
+                              style={{ backgroundColor: "#EEF4F7", color: "#39788D" }}
+                            >
+                              Send roster
+                            </button>
                             <button
                               type="button"
                               onClick={(event) => {
@@ -408,7 +519,7 @@ export default function FridayBranchScheduleCard({
                   })}
                   <tr style={{ backgroundColor: "#FBFDFB" }}>
                     <td className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }} />
-                    <td colSpan={4} className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }}>
+                    <td colSpan={5} className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }}>
                       <button
                         type="button"
                         onClick={() => openAddClass(slot.id)}
@@ -437,6 +548,17 @@ export default function FridayBranchScheduleCard({
           </button>
         </div>
       </AdminCard>
+
+      <FridayBranchSendRosterSheet
+        open={sendRosterTarget !== null}
+        onClose={() => setSendRosterTarget(null)}
+        organizationId={organizationId}
+        classId={sendRosterTarget?.classId ?? null}
+        className={sendRosterTarget?.className ?? ""}
+        slotTime={sendRosterTarget?.slotTime ?? ""}
+        theme={theme}
+        C={C}
+      />
 
       {addSlotSheet}
       {editSheet}

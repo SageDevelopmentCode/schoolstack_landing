@@ -32,6 +32,27 @@ export type FridayBranchClassDetail = {
   enrollments: FridayBranchClassEnrollment[];
 };
 
+export type FridayBranchRosterEmailRow = {
+  studentName: string;
+  familyName: string;
+  grade: string;
+  status: FridayBranchClassEnrollmentStatus;
+  familyEmail: string;
+  familyPhone: string;
+};
+
+export type FridayBranchClassRosterForEmail = {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  rows: FridayBranchRosterEmailRow[];
+};
+
 export type FridayBranchTimeSlot = {
   id: string;
   time: string;

@@ -7,6 +7,8 @@ import type {
   FridayBranchClassDetail,
   FridayBranchClassEnrollment,
   FridayBranchClassEnrollmentStatus,
+  FridayBranchClassRosterForEmail,
+  FridayBranchRosterEmailRow,
   FridayBranchTimeSlot,
 } from "./friday-branch-types";
 
@@ -410,6 +412,26 @@ type FridayBranchEnrollmentRow = {
   families: { name?: string } | { name?: string }[] | null;
 };
 
+type FridayBranchRosterEnrollmentRow = {
+  status: string;
+  students:
+    | { first_name?: string; last_name?: string; grade?: string | null }
+    | { first_name?: string; last_name?: string; grade?: string | null }[]
+    | null;
+  families:
+    | {
+        name?: string;
+        primary_email?: string | null;
+        primary_phone?: string | null;
+      }
+    | {
+        name?: string;
+        primary_email?: string | null;
+        primary_phone?: string | null;
+      }[]
+    | null;
+};
+
 function relationOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null;
   return Array.isArray(value) ? value[0] ?? null : value;
@@ -514,3 +536,82 @@ export async function loadFridayBranchClassDetail(
     enrollments: activeEnrollments,
   };
 }
+
+function rosterStatusSortOrder(status: FridayBranchClassEnrollmentStatus): number {
+  return status === "confirmed" ? 0 : 1;
+}
+
+function formatRosterStatusLabel(status: FridayBranchClassEnrollmentStatus): string {
+  return status === "waitlisted" ? "Waitlisted" : "Signed up";
+}
+
+export async function loadFridayBranchClassRosterForEmail(
+  supabase: SupabaseClient,
+  organizationId: string,
+  classId: string,
+): Promise<FridayBranchClassRosterForEmail | null> {
+  const [{ data: orgRow, error: orgError }, detail] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", organizationId)
+      .maybeSingle(),
+    loadFridayBranchClassDetail(supabase, organizationId, classId),
+  ]);
+
+  if (orgError) throw orgError;
+  if (!detail) return null;
+
+  const { data: enrollmentRows, error: enrollmentError } = await supabase
+    .from("friday_branch_class_enrollments")
+    .select(
+      `status,
+      students ( first_name, last_name, grade ),
+      families ( name, primary_email, primary_phone )`,
+    )
+    .eq("class_id", classId)
+    .eq("organization_id", organizationId)
+    .in("status", ["confirmed", "waitlisted"]);
+
+  if (enrollmentError) throw enrollmentError;
+
+  const rows: FridayBranchRosterEmailRow[] = (
+    (enrollmentRows ?? []) as FridayBranchRosterEnrollmentRow[]
+  )
+    .map((enrollment) => {
+      const student = relationOne(enrollment.students);
+      const family = relationOne(enrollment.families);
+      const status = parseEnrollmentStatus(enrollment.status);
+      if (status === "withdrawn") return null;
+
+      return {
+        studentName: formatPersonName(student?.first_name, student?.last_name),
+        familyName: family?.name?.trim() || "Family",
+        grade: student?.grade?.trim() || "—",
+        status,
+        familyEmail: family?.primary_email?.trim() || "—",
+        familyPhone: family?.primary_phone?.trim() || "—",
+      };
+    })
+    .filter((row): row is FridayBranchRosterEmailRow => row !== null)
+    .sort((left, right) => {
+      const statusDiff =
+        rosterStatusSortOrder(left.status) - rosterStatusSortOrder(right.status);
+      if (statusDiff !== 0) return statusDiff;
+      return left.studentName.localeCompare(right.studentName);
+    });
+
+  return {
+    schoolName: String(orgRow?.name ?? "School"),
+    className: detail.class.name?.trim() || "Class",
+    slotTime: detail.slotTime,
+    location: detail.class.location?.trim() || "Not set",
+    ageGroup: detail.class.ageGroup?.trim() || "Not set",
+    teacher: detail.class.teacher?.trim() || "Not assigned",
+    blockLabel: detail.blockLabel,
+    blockDateRange: detail.blockDateRange,
+    rows,
+  };
+}
+
+export { formatRosterStatusLabel };

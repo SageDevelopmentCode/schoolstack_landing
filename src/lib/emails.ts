@@ -1236,6 +1236,138 @@ export function buildFridayBranchEnrollmentAdminNotificationHtml(payload: {
   });
 }
 
+const ROSTER_EMAIL_FONT =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+
+function buildFridayBranchRosterTableHtml(
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[],
+): string {
+  if (rows.length === 0) {
+    return emailMutedParagraph("No students are signed up for this class yet.");
+  }
+
+  const header = `<tr>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Student</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Family</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Grade</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Status</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Email</th>
+    <th align="left" style="padding:8px 10px;font-family:${ROSTER_EMAIL_FONT};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:0.65;border-bottom:1px solid #E0E7E0;">Phone</th>
+  </tr>`;
+
+  const body = rows
+    .map(
+      (row) => `<tr>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.studentName)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyName)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.grade)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.statusLabel)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyEmail)}</td>
+    <td style="padding:10px;font-family:${ROSTER_EMAIL_FONT};font-size:13px;line-height:1.5;border-bottom:1px solid #EEF2EE;">${escapeHtml(row.familyPhone)}</td>
+  </tr>`,
+    )
+    .join("");
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;border-collapse:collapse;">
+  ${header}
+  ${body}
+</table>`;
+}
+
+export function buildFridayBranchClassRosterEmailHtml(payload: {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  sentAtLabel: string;
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[];
+}): string {
+  const scheduleLabel = payload.blockDateRange
+    ? `${payload.blockLabel} (${payload.blockDateRange})`
+    : payload.blockLabel;
+
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Class", value: payload.className },
+    { label: "Time", value: payload.slotTime },
+    { label: "Location", value: payload.location },
+    { label: "Age group", value: payload.ageGroup },
+    { label: "Class leader", value: payload.teacher },
+    { label: "Block", value: scheduleLabel },
+    { label: "Sent", value: payload.sentAtLabel },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.className} roster for ${payload.slotTime}.`,
+    contentHtml: `
+      ${emailBadge("Class Roster")}
+      ${emailHeading("Friday Branch class roster")}
+      ${emailParagraph(
+        `Here is the current sign-up roster for ${escapeHtml(payload.className)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${buildFridayBranchRosterTableHtml(payload.rows)}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendFridayBranchClassRosterEmail(payload: {
+  email: string;
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  sentAtLabel: string;
+  rows: {
+    studentName: string;
+    familyName: string;
+    grade: string;
+    statusLabel: string;
+    familyEmail: string;
+    familyPhone: string;
+  }[];
+}): Promise<{ success: boolean; error?: string }> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Email is not configured." };
+  }
+
+  const content = buildFridayBranchClassRosterEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Friday Branch roster — ${payload.className} (${payload.slotTime})`,
+    content,
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  return { success: true };
+}
+
 export async function sendFridayBranchEnrollmentAdminNotification(payload: {
   email: string;
   schoolName: string;

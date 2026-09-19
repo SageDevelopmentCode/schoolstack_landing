@@ -48,6 +48,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/actonacademyplacer/ActonAcademyPlacerMobileAppShowcase"
     ),
+  "asheboro-hybrid-academy": () =>
+    import(
+      "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({
