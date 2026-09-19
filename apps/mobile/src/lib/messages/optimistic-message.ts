@@ -43,6 +43,14 @@ type BuildOptimisticPortalMessageParams = {
   senderIdentity: OwnMessageSenderIdentity;
 };
 
+function createOptimisticMessageId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `pending-${crypto.randomUUID()}`;
+  }
+
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export function buildOptimisticPortalMessage({
   threadId,
   body,
@@ -53,7 +61,7 @@ export function buildOptimisticPortalMessage({
   const createdAt = new Date().toISOString();
 
   return {
-    id: `pending-${Date.now()}`,
+    id: createOptimisticMessageId(),
     threadId,
     body,
     senderUserId: senderIdentity.senderUserId,

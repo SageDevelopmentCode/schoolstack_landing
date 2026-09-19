@@ -30,6 +30,11 @@ import {
 } from '@/lib/messages/message-thread-cache';
 import { mergeMessages, sendMessage } from '@/lib/messages/api';
 import {
+  createLoadGenerationGuard,
+  createOptimisticSendTracker,
+  reconcileThreadMessages,
+} from '@/lib/messages/reconcile-thread-messages';
+import {
   buildOptimisticPortalMessage,
   confirmOptimisticMessage,
   displayNameFromAuthMetadata,
@@ -83,15 +88,19 @@ export function MessageThreadScreen({
   const [stagedFiles, setStagedFiles] = useState<StagedMessageFile[]>([]);
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
-  const pendingOptimisticIds = useRef(new Set<string>());
+  const optimisticSendRef = useRef(createOptimisticSendTracker());
+  const loadGenerationRef = useRef(createLoadGenerationGuard());
 
   const applyThreadDetail = useCallback((detail: MessageThreadDetail) => {
     setThread((prev) => {
       if (!prev) return detail;
-      const optimistic = prev.messages.filter((message) => message.pending);
       return {
         ...detail,
-        messages: mergeMessages(detail.messages, optimistic),
+        messages: reconcileThreadMessages(
+          detail.messages,
+          prev.messages,
+          optimisticSendRef.current.getReconcileOptions(),
+        ),
       };
     });
   }, []);
@@ -123,6 +132,7 @@ export function MessageThreadScreen({
       }
 
       setError(null);
+      const generation = loadGenerationRef.current.bump();
       try {
         const detail = await fetchAndCacheSchoolAdminMessageThread(
           organizationId,
@@ -130,9 +140,11 @@ export function MessageThreadScreen({
           threadId,
           options?.refresh || isStale ? { refresh: true } : undefined,
         );
+        if (!loadGenerationRef.current.isLatest(generation)) return;
         applyThreadDetail(detail);
         await refreshUnreadCount();
       } catch (loadError) {
+        if (!loadGenerationRef.current.isLatest(generation)) return;
         if (!hasCached) {
           reportError('school_admin_message_thread_load', loadError, {
             entityType: 'message_thread',
@@ -198,7 +210,7 @@ export function MessageThreadScreen({
     });
     const optimisticId = optimisticMessage.id;
 
-    pendingOptimisticIds.current.add(optimisticId);
+    optimisticSendRef.current.addPending(optimisticId);
     setThread((prev) =>
       prev ? { ...prev, messages: [...prev.messages, optimisticMessage] } : prev,
     );
@@ -217,7 +229,7 @@ export function MessageThreadScreen({
         files: filesToSend,
       });
 
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.confirm(optimisticId, serverMessage.id);
       setThread((prev) => {
         if (!prev) return prev;
         const withoutPending = prev.messages.filter((message) => message.id !== optimisticId);
@@ -233,7 +245,7 @@ export function MessageThreadScreen({
         entityType: 'message_thread',
         entityId: threadId,
       });
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.fail(optimisticId);
       setThread((prev) =>
         prev
           ? {

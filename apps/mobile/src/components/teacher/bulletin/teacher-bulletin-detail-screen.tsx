@@ -18,27 +18,12 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { canPreviewBulletinAttachment } from '@/lib/school-bulletin/attachment-preview';
+import { buildBulletinImageViewerState } from '@/lib/school-bulletin/attachment-preview';
 import { formatBulletinDetailDate } from '@/lib/school-bulletin/bulletin-format';
-import type { BulletinAttachment } from '@/lib/school-bulletin/types';
 
 type TeacherBulletinDetailScreenProps = {
   postId: string;
 };
-
-function buildViewerState(
-  attachments: BulletinAttachment[],
-  attachment: BulletinAttachment,
-): BulletinAttachmentViewerState {
-  const previewable = attachments.filter(
-    (item) => item.downloadUrl && canPreviewBulletinAttachment(item.mimeType),
-  );
-  const index = previewable.findIndex((item) => item.id === attachment.id);
-  return {
-    attachments: previewable,
-    index: index >= 0 ? index : 0,
-  };
-}
 
 export function TeacherBulletinDetailScreen({ postId }: TeacherBulletinDetailScreenProps) {
   const theme = useParentTheme();
@@ -95,7 +80,7 @@ export function TeacherBulletinDetailScreen({ postId }: TeacherBulletinDetailScr
               <BulletinAttachmentList
                 attachments={post.attachments}
                 onOpenAttachment={(attachment) => {
-                  setViewerState(buildViewerState(post.attachments, attachment));
+                  setViewerState(buildBulletinImageViewerState(post.attachments, attachment));
                 }}
               />
             </View>

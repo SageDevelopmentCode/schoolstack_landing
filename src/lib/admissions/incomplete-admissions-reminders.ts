@@ -10,7 +10,10 @@ import {
   sendIncompleteAdmissionsReminderEmail,
 } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
-import { resolveApplicationNotificationEmails } from "@/lib/notifications/org-notification-settings";
+import {
+  isIncompleteAdmissionsRemindersEnabled,
+  resolveApplicationNotificationEmails,
+} from "@/lib/notifications/org-notification-settings";
 import { SITE_URL } from "@/lib/site";
 
 export const FIRST_INCOMPLETE_REMINDER_DELAY_HOURS = 72;
@@ -51,6 +54,7 @@ type ReminderDeps = {
   loadFamilyNotificationEmails?: typeof loadFamilyNotificationEmails;
   resolveApplicationNotificationEmails?: typeof resolveApplicationNotificationEmails;
   resolveApplicantContact?: typeof resolveApplicantContact;
+  isIncompleteAdmissionsRemindersEnabled?: typeof isIncompleteAdmissionsRemindersEnabled;
   now?: Date;
 };
 
@@ -115,10 +119,11 @@ export function isEligibleForIncompleteAdmissionsReminder(input: {
     return false;
   }
 
+  const activityCutoffMs =
+    now.getTime() - FIRST_INCOMPLETE_REMINDER_DELAY_HOURS * 60 * 60 * 1000;
+
   if (count === 0) {
-    const cutoffMs =
-      now.getTime() - FIRST_INCOMPLETE_REMINDER_DELAY_HOURS * 60 * 60 * 1000;
-    return activityMs <= cutoffMs;
+    return activityMs <= activityCutoffMs;
   }
 
   if (!lastSentAt) {
@@ -130,9 +135,9 @@ export function isEligibleForIncompleteAdmissionsReminder(input: {
     return false;
   }
 
-  const secondCutoffMs =
+  const secondSentCutoffMs =
     now.getTime() - SECOND_INCOMPLETE_REMINDER_DELAY_DAYS * 24 * 60 * 60 * 1000;
-  return sentMs <= secondCutoffMs;
+  return sentMs <= secondSentCutoffMs && activityMs <= activityCutoffMs;
 }
 
 export async function loadIncompleteAdmissionsWork(
@@ -314,7 +319,14 @@ export async function sendIncompleteAdmissionsReminders(
   const resolveSchoolContactEmails =
     deps.resolveApplicationNotificationEmails ?? resolveApplicationNotificationEmails;
   const resolveContact = deps.resolveApplicantContact ?? resolveApplicantContact;
+  const checkRemindersEnabled =
+    deps.isIncompleteAdmissionsRemindersEnabled ??
+    isIncompleteAdmissionsRemindersEnabled;
   const now = deps.now ?? new Date();
+
+  if (!(await checkRemindersEnabled(supabase, organizationId))) {
+    return 0;
+  }
 
   const { data: org, error: orgError } = await supabase
     .from("organizations")
@@ -449,6 +461,20 @@ export async function sendIncompleteAdmissionsReminders(
         : SITE_URL,
     });
 
+    const { data: claimedRows, error: claimError } = await supabase
+      .from("families")
+      .update({
+        incomplete_admissions_reminder_count: reminderCount + 1,
+        incomplete_admissions_reminder_sent_at: now.toISOString(),
+      })
+      .eq("id", familyId)
+      .eq("organization_id", organizationId)
+      .eq("incomplete_admissions_reminder_count", reminderCount)
+      .select("id");
+
+    if (claimError) throw claimError;
+    if (!claimedRows?.length) continue;
+
     let delivered = false;
     for (const email of recipientEmails) {
       const result = await sendEmail({
@@ -470,19 +496,20 @@ export async function sendIncompleteAdmissionsReminders(
       }
     }
 
-    if (!delivered) continue;
+    if (!delivered) {
+      const { error: revertError } = await supabase
+        .from("families")
+        .update({
+          incomplete_admissions_reminder_count: reminderCount,
+          incomplete_admissions_reminder_sent_at: lastSentAt,
+        })
+        .eq("id", familyId)
+        .eq("organization_id", organizationId)
+        .eq("incomplete_admissions_reminder_count", reminderCount + 1);
 
-    const { error: updateError } = await supabase
-      .from("families")
-      .update({
-        incomplete_admissions_reminder_count: reminderCount + 1,
-        incomplete_admissions_reminder_sent_at: now.toISOString(),
-      })
-      .eq("id", familyId)
-      .eq("organization_id", organizationId)
-      .eq("incomplete_admissions_reminder_count", reminderCount);
-
-    if (updateError) throw updateError;
+      if (revertError) throw revertError;
+      continue;
+    }
 
     void notifyDiscord({
       schoolName,

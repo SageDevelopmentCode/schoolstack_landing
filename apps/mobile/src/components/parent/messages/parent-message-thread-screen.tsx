@@ -34,6 +34,11 @@ import {
   resolveOwnMessageSenderIdentity,
 } from '@/lib/messages/optimistic-message';
 import { mergeMessages, sendParentMessage } from '@/lib/messages/parent-api';
+import {
+  createLoadGenerationGuard,
+  createOptimisticSendTracker,
+  reconcileThreadMessages,
+} from '@/lib/messages/reconcile-thread-messages';
 import { buildMessageRenderItems } from '@/lib/messages/format-chat';
 import { useMessagesRealtime } from '@/contexts/messages-realtime-context';
 import type { RenderMessageItem } from '@/lib/messages/format-chat';
@@ -82,15 +87,19 @@ export function ParentMessageThreadScreen({
   const [stagedFiles, setStagedFiles] = useState<StagedMessageFile[]>([]);
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
-  const pendingOptimisticIds = useRef(new Set<string>());
+  const optimisticSendRef = useRef(createOptimisticSendTracker());
+  const loadGenerationRef = useRef(createLoadGenerationGuard());
 
   const applyThreadDetail = useCallback((detail: MessageThreadDetail) => {
     setThread((prev) => {
       if (!prev) return detail;
-      const optimistic = prev.messages.filter((message) => message.pending);
       return {
         ...detail,
-        messages: mergeMessages(detail.messages, optimistic),
+        messages: reconcileThreadMessages(
+          detail.messages,
+          prev.messages,
+          optimisticSendRef.current.getReconcileOptions(),
+        ),
       };
     });
   }, []);
@@ -122,6 +131,7 @@ export function ParentMessageThreadScreen({
       }
 
       setError(null);
+      const generation = loadGenerationRef.current.bump();
       try {
         const detail = await fetchAndCacheParentMessageThread(
           organizationId,
@@ -129,9 +139,11 @@ export function ParentMessageThreadScreen({
           threadId,
           options?.refresh || isStale ? { refresh: true } : undefined,
         );
+        if (!loadGenerationRef.current.isLatest(generation)) return;
         applyThreadDetail(detail);
         await refreshUnreadCount();
       } catch (loadError) {
+        if (!loadGenerationRef.current.isLatest(generation)) return;
         if (!hasCached) {
           reportError('parent_message_thread_load', loadError, {
             entityType: 'message_thread',
@@ -192,7 +204,7 @@ export function ParentMessageThreadScreen({
     });
     const optimisticId = optimisticMessage.id;
 
-    pendingOptimisticIds.current.add(optimisticId);
+    optimisticSendRef.current.addPending(optimisticId);
     setThread((prev) =>
       prev ? { ...prev, messages: [...prev.messages, optimisticMessage] } : prev,
     );
@@ -211,7 +223,7 @@ export function ParentMessageThreadScreen({
         files: filesToSend,
       });
 
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.confirm(optimisticId, serverMessage.id);
       setThread((prev) => {
         if (!prev) return prev;
         const withoutPending = prev.messages.filter((message) => message.id !== optimisticId);
@@ -227,7 +239,7 @@ export function ParentMessageThreadScreen({
         entityType: 'message_thread',
         entityId: threadId,
       });
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.fail(optimisticId);
       setThread((prev) =>
         prev
           ? {

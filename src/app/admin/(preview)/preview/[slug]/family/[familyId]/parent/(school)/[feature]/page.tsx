@@ -386,6 +386,7 @@ export default async function FamilyPreviewParentFeaturePage({
           initialBundle={initialBundle}
           previewBasePath={previewBasePath}
           readOnly
+          previewFamilyId={familyId}
           initialClassId={initialClassId}
           childrenPath={familyPreviewParentPath(slug, familyId, "children")}
         />

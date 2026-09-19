@@ -4,6 +4,7 @@ import {
   buildOrganizationNotificationRecipients,
   computeNotificationRecipients,
   getDefaultNotificationSettings,
+  maybeMigrateIncompleteAdmissionsReminders,
   normalizeNotificationEmails,
   parseOrganizationNotificationSettings,
   validateOrganizationNotificationSettings,
@@ -36,6 +37,11 @@ describe("parseOrganizationNotificationSettings", () => {
         enabled: true,
         include_org_admins: true,
         additional_emails: [],
+      },
+      parent_reminders: {
+        incomplete_admissions: {
+          enabled: false,
+        },
       },
     });
   });
@@ -90,6 +96,28 @@ describe("parseOrganizationNotificationSettings", () => {
           enabled: true,
           include_org_admins: true,
           additional_emails: ["programs@school.com"],
+        },
+        parent_reminders: {
+          incomplete_admissions: {
+            enabled: false,
+          },
+        },
+      },
+    );
+  });
+
+  it("parses parent reminder settings from stored json", () => {
+    assert.deepEqual(
+      parseOrganizationNotificationSettings({
+        parent_reminders: {
+          incomplete_admissions: {
+            enabled: true,
+          },
+        },
+      }).parent_reminders,
+      {
+        incomplete_admissions: {
+          enabled: true,
         },
       },
     );
@@ -216,6 +244,93 @@ describe("buildOrganizationNotificationRecipients", () => {
     ]);
     assert.deepEqual(recipients.committees.allRecipients, ["admin@school.com"]);
     assert.deepEqual(recipients.program_signups.allRecipients, ["admin@school.com"]);
+  });
+});
+
+describe("maybeMigrateIncompleteAdmissionsReminders", () => {
+  it("enables parent reminders when legacy draft_reminders.enabled is true", async () => {
+    let persisted: Record<string, unknown> | null = null;
+
+    const admin = {
+      from(table: string) {
+        if (table === "application_form_versions") {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: async () => ({
+                  data: [
+                    {
+                      notification_config: {
+                        draft_reminders: {
+                          enabled: true,
+                          delay_hours: 72,
+                          contact_email: "admissions@school.com",
+                        },
+                      },
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+
+        if (table === "organization_settings") {
+          return {
+            update: (patch: Record<string, unknown>) => ({
+              eq: async () => {
+                persisted = patch;
+                return { error: null };
+              },
+            }),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      },
+    };
+
+    const settings = getDefaultNotificationSettings();
+    const migrated = await maybeMigrateIncompleteAdmissionsReminders(
+      admin as never,
+      "org-1",
+      settings,
+      null,
+    );
+
+    assert.equal(migrated.parent_reminders.incomplete_admissions.enabled, true);
+    assert.equal(
+      (persisted?.notifications as { parent_reminders: { incomplete_admissions: { enabled: boolean } } })
+        .parent_reminders.incomplete_admissions.enabled,
+      true,
+    );
+  });
+
+  it("skips migration when parent_reminders is already stored", async () => {
+    const admin = {
+      from() {
+        throw new Error("Should not query when parent_reminders already exists");
+      },
+    };
+
+    const settings = getDefaultNotificationSettings();
+    settings.parent_reminders.incomplete_admissions.enabled = false;
+
+    const migrated = await maybeMigrateIncompleteAdmissionsReminders(
+      admin as never,
+      "org-1",
+      settings,
+      {
+        parent_reminders: {
+          incomplete_admissions: {
+            enabled: false,
+          },
+        },
+      },
+    );
+
+    assert.equal(migrated.parent_reminders.incomplete_admissions.enabled, false);
   });
 });
 

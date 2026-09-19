@@ -48,6 +48,11 @@ import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-st
 import type { MessageStudentSummary } from "@/lib/messages/types";
 import { initialInboxLoadingState } from "@/lib/messages/thread-list-helpers";
 import {
+  createLoadGenerationGuard,
+  createOptimisticSendTracker,
+  reconcileThreadMessages,
+} from "@/lib/messages/reconcile-thread-messages";
+import {
   reportPortalOperationalError,
   type PortalOperationalSurface,
 } from "@/lib/portal-operational-errors";
@@ -231,7 +236,8 @@ export default function MessagesInboxLayout({
   );
   const [inboxSearch, setInboxSearch] = useState("");
   const handledThreadParam = useRef<string | null>(null);
-  const pendingOptimisticIds = useRef<Set<string>>(new Set());
+  const optimisticSendRef = useRef(createOptimisticSendTracker());
+  const loadGenerationRef = useRef(createLoadGenerationGuard());
   const hasLoadedThreadsRef = useRef((initialInbox?.threads.length ?? 0) > 0);
 
   if (initialInbox !== prevInitialInbox) {
@@ -330,17 +336,23 @@ export default function MessagesInboxLayout({
 
   const loadThread = useCallback(
     async (threadId: string, options?: { silent?: boolean }) => {
+      const generation = loadGenerationRef.current.bump();
       if (!options?.silent) setLoadingMessages(true);
       try {
         const data = await fetchJson<{ thread: MessageThreadDetail }>(
           `${api.basePath}/threads/${threadId}?${query}`,
         );
+        if (!loadGenerationRef.current.isLatest(generation)) return;
+
         setActiveThread((prev) => {
           if (!prev || prev.id !== threadId) return data.thread;
-          const optimistic = prev.messages.filter((message) => message.pending);
           return {
             ...data.thread,
-            messages: mergeMessages(data.thread.messages, optimistic),
+            messages: reconcileThreadMessages(
+              data.thread.messages,
+              prev.messages,
+              optimisticSendRef.current.getReconcileOptions(),
+            ),
           };
         });
         setActiveThreadId(threadId);
@@ -350,10 +362,13 @@ export default function MessagesInboxLayout({
         setError(null);
         void loadInbox({ silent: true });
       } catch (err) {
+        if (!loadGenerationRef.current.isLatest(generation)) return;
         setError(err instanceof Error ? err.message : "Failed to load conversation.");
         reportMessagesError("messages.load_thread", err);
       } finally {
-        if (!options?.silent) setLoadingMessages(false);
+        if (loadGenerationRef.current.isLatest(generation) && !options?.silent) {
+          setLoadingMessages(false);
+        }
       }
     },
     [api.basePath, loadInbox, query, reportMessagesError],
@@ -495,7 +510,7 @@ export default function MessagesInboxLayout({
       pending: true,
     };
 
-    pendingOptimisticIds.current.add(optimisticId);
+    optimisticSendRef.current.addPending(optimisticId);
     setActiveThread((prev) =>
       prev
         ? { ...prev, messages: [...prev.messages, optimisticMessage] }
@@ -541,7 +556,7 @@ export default function MessagesInboxLayout({
       }
 
       const serverMessage = data.message as PortalMessage;
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.confirm(optimisticId, serverMessage.id);
       setActiveThread((prev) => {
         if (!prev) return prev;
         const withoutPending = prev.messages.filter((message) => message.id !== optimisticId);
@@ -552,7 +567,7 @@ export default function MessagesInboxLayout({
       });
       await loadThread(activeThreadId, { silent: true });
     } catch (err) {
-      pendingOptimisticIds.current.delete(optimisticId);
+      optimisticSendRef.current.fail(optimisticId);
       setActiveThread((prev) =>
         prev
           ? {

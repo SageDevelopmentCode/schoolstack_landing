@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import AlertsStoryHeader from "@/components/school-admin/notifications/AlertsStoryHeader";
-import NotificationChannelCard from "@/components/school-admin/notifications/NotificationChannelCard";
+import NotificationChannelCard, {
+  SettingToggleRow,
+} from "@/components/school-admin/notifications/NotificationChannelCard";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -225,6 +227,22 @@ export default function NotificationsSettingsPage({
     [saveSettings, settings],
   );
 
+  const updateParentReminders = useCallback(
+    (enabled: boolean) => {
+      const nextSettings: OrganizationNotificationSettings = {
+        ...settings,
+        parent_reminders: {
+          incomplete_admissions: {
+            enabled,
+          },
+        },
+      };
+      setSettings(nextSettings);
+      void saveSettings(nextSettings);
+    },
+    [saveSettings, settings],
+  );
+
   const handleAddEmail = (channel: NotificationChannel, email: string) => {
     const nextEmails = normalizeNotificationEmails([
       ...settings[channel].additional_emails,
@@ -340,6 +358,29 @@ export default function NotificationsSettingsPage({
                 />
               </motion.div>
             </AnimatePresence>
+
+            <AdminCard
+              theme={theme}
+              className="space-y-1"
+              data-testid="parent-reminders-card"
+            >
+              <div className="space-y-1 px-1 pb-1">
+                <h2 className="text-base font-semibold" style={{ color: C.textPrimary }}>
+                  Parent reminders
+                </h2>
+                <p className="text-sm" style={{ color: C.textSecondary }}>
+                  Outbound emails to families — separate from the staff alert channels above.
+                </p>
+              </div>
+              <SettingToggleRow
+                C={C}
+                label="Email families with unfinished applications or enrollment"
+                description="Sends up to two reminders: first after 72 hours of inactivity, then again 7 days later. The school contact in those emails comes from your Applications alert channel."
+                checked={settings.parent_reminders.incomplete_admissions.enabled}
+                disabled={saving}
+                onChange={updateParentReminders}
+              />
+            </AdminCard>
           </>
         ) : null}
       </div>

@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendIncompleteAdmissionsReminders } from "@/lib/admissions/incomplete-admissions-reminders";
+import { messageFromCause } from "@/lib/api/error-serialization";
 import { notifyTuitionBillingCronSummary } from "@/lib/discord";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
 import {
@@ -23,8 +25,12 @@ import {
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 
+const FAILED_ORGANIZATION_IDS_CAP = 10;
+
 export type TuitionBillingCronSummary = {
   organizations: number;
+  organizationFailures: number;
+  failedOrganizationIds: string[];
   overdueCount: number;
   remindersSent: number;
   incompleteAdmissionsRemindersSent: number;
@@ -101,84 +107,113 @@ export async function runTuitionBillingCron(
   let autopayDueCandidates = 0;
   let autopayLines: AutopayLineItem[] = [];
   let autopayLinesTruncated = false;
+  let organizationFailures = 0;
+  const failedOrganizationIds: string[] = [];
 
   for (const organizationId of organizationIds) {
-    const settings = await loadSettings(admin, organizationId);
-    const graceDays = getGraceDaysForSettings(settings);
-    const reminderDaysList = getReminderDaysForSettings(settings);
+    try {
+      const settings = await loadSettings(admin, organizationId);
+      const graceDays = getGraceDaysForSettings(settings);
+      const reminderDaysList = getReminderDaysForSettings(settings);
 
-    const orgOverdue = await markOverdue(admin, organizationId, graceDays);
-    overdueCount += orgOverdue;
+      const orgOverdue = await markOverdue(admin, organizationId, graceDays);
+      overdueCount += orgOverdue;
 
-    let orgReminders = 0;
-    for (const reminderDays of reminderDaysList) {
-      const sent = await sendReminders(admin, organizationId, reminderDays);
-      orgReminders += sent;
-      remindersSent += sent;
-    }
+      let orgReminders = 0;
+      for (const reminderDays of reminderDaysList) {
+        const sent = await sendReminders(admin, organizationId, reminderDays);
+        orgReminders += sent;
+        remindersSent += sent;
+      }
 
-    const orgIncompleteAdmissionsReminders =
-      await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
-    incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
+      const orgIncompleteAdmissionsReminders =
+        await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
+      incompleteAdmissionsRemindersSent += orgIncompleteAdmissionsReminders;
 
-    const orgRules = await evaluateRules(admin, organizationId);
-    rulesEvaluated += orgRules;
+      const orgRules = await evaluateRules(admin, organizationId);
+      rulesEvaluated += orgRules;
 
-    const lateFeeResult = await applyLateFees(admin, organizationId);
-    lateFeesApplied += lateFeeResult.applied;
-    lateFeesNotified += lateFeeResult.notified;
+      const lateFeeResult = await applyLateFees(admin, organizationId);
+      lateFeesApplied += lateFeeResult.applied;
+      lateFeesNotified += lateFeeResult.notified;
 
-    const autopayResult = await processAutopay(admin, organizationId);
-    autopayProcessed += autopayResult.processed;
-    autopayFailed += autopayResult.failed;
-    autopaySkipped += autopayResult.skipped;
-    autopayDueCandidates += autopayResult.dueCandidates;
-    const merged = mergeAutopayLines(autopayLines, autopayResult.lines, AUTOPAY_LINES_GLOBAL_CAP);
-    autopayLines = merged.lines;
-    autopayLinesTruncated =
-      autopayLinesTruncated || autopayResult.truncated || merged.truncated;
+      const autopayResult = await processAutopay(admin, organizationId);
+      autopayProcessed += autopayResult.processed;
+      autopayFailed += autopayResult.failed;
+      autopaySkipped += autopayResult.skipped;
+      autopayDueCandidates += autopayResult.dueCandidates;
+      const merged = mergeAutopayLines(
+        autopayLines,
+        autopayResult.lines,
+        AUTOPAY_LINES_GLOBAL_CAP,
+      );
+      autopayLines = merged.lines;
+      autopayLinesTruncated =
+        autopayLinesTruncated || autopayResult.truncated || merged.truncated;
 
-    void logTuitionActivity(admin, {
-      organizationId,
-      action: ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED,
-      entityType: "organization",
-      entityId: organizationId,
-      summary: "Tuition billing run completed",
-      changeSummary: summarizeBillingRunSummary({
-        overdueCount: orgOverdue,
-        remindersSent: orgReminders,
-        rulesEvaluated: orgRules,
-        lateFeesApplied: lateFeeResult.applied,
-        lateFeesNotified: lateFeeResult.notified,
-        autopayProcessed: autopayResult.processed,
-        autopayFailed: autopayResult.failed,
-        autopaySkipped: autopayResult.skipped,
-      }),
-      logWhenEmpty: true,
-      context: systemActivityContext(),
-    });
-
-    if (lateFeeResult.applied > 0) {
       void logTuitionActivity(admin, {
         organizationId,
-        action: ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED,
+        action: ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED,
         entityType: "organization",
         entityId: organizationId,
-        summary: `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
-        changeSummary: {
-          changedFields: ["lateFees"],
-          changes: [
-            `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
-          ],
-        },
+        summary: "Tuition billing run completed",
+        changeSummary: summarizeBillingRunSummary({
+          overdueCount: orgOverdue,
+          remindersSent: orgReminders,
+          rulesEvaluated: orgRules,
+          lateFeesApplied: lateFeeResult.applied,
+          lateFeesNotified: lateFeeResult.notified,
+          autopayProcessed: autopayResult.processed,
+          autopayFailed: autopayResult.failed,
+          autopaySkipped: autopayResult.skipped,
+        }),
         logWhenEmpty: true,
         context: systemActivityContext(),
+      });
+
+      if (lateFeeResult.applied > 0) {
+        void logTuitionActivity(admin, {
+          organizationId,
+          action: ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED,
+          entityType: "organization",
+          entityId: organizationId,
+          summary: `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+          changeSummary: {
+            changedFields: ["lateFees"],
+            changes: [
+              `Applied ${lateFeeResult.applied} late fee${lateFeeResult.applied === 1 ? "" : "s"}`,
+            ],
+          },
+          logWhenEmpty: true,
+          context: systemActivityContext(),
+        });
+      }
+    } catch (error) {
+      organizationFailures += 1;
+      if (failedOrganizationIds.length < FAILED_ORGANIZATION_IDS_CAP) {
+        failedOrganizationIds.push(organizationId);
+      }
+
+      void reportOperationalError({
+        supabase: admin,
+        surface: "system",
+        organizationId,
+        operation: "tuition_billing_cron.organization",
+        error:
+          messageFromCause(error) ??
+          "Tuition billing cron failed for organization",
+        entityType: "organization",
+        entityId: organizationId,
+        actor: { type: "system" },
+        cause: error,
       });
     }
   }
 
   const summary: TuitionBillingCronSummary = {
     organizations: organizationIds.length,
+    organizationFailures,
+    failedOrganizationIds,
     overdueCount,
     remindersSent,
     incompleteAdmissionsRemindersSent,

@@ -323,6 +323,8 @@ export async function sendPerformanceChecksDiscordEmbed(
 
 export async function notifyTuitionBillingCronSummary(payload: {
   organizations: number;
+  organizationFailures?: number;
+  failedOrganizationIds?: string[];
   overdueCount: number;
   remindersSent: number;
   incompleteAdmissionsRemindersSent?: number;
@@ -353,6 +355,16 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField("Autopay failed", String(payload.autopayFailed), true),
     embedField("Autopay skipped", String(payload.autopaySkipped), true),
   ];
+
+  if ((payload.organizationFailures ?? 0) > 0) {
+    const failedIds = payload.failedOrganizationIds ?? [];
+    const failedDetail =
+      failedIds.length > 0 ? failedIds.join(", ") : "See activity_events";
+    fields.push(
+      embedField("Organization failures", String(payload.organizationFailures), true),
+      embedField("Failed organization IDs", truncate(failedDetail)),
+    );
+  }
 
   const chargedDetail = formatAutopayLineItems(payload.autopayLines, "charged");
   if (chargedDetail) {

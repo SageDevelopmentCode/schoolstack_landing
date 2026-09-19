@@ -30,6 +30,7 @@ type ParentFridayBranchPageProps = {
   slug: string;
   initialBundle: ParentFridayBranchPageBundle;
   readOnly?: boolean;
+  previewFamilyId?: string;
   previewBasePath?: string;
   initialClassId?: string;
   childrenPath?: string;
@@ -40,6 +41,7 @@ export default function ParentFridayBranchPage({
   slug,
   initialBundle,
   readOnly = false,
+  previewFamilyId,
   initialClassId,
   childrenPath,
 }: ParentFridayBranchPageProps) {
@@ -244,6 +246,7 @@ export default function ParentFridayBranchPage({
         blockDateRange={activeClassContext?.blockDateRange ?? selectedBlockMeta?.dateRange}
         studentOptions={bundle.studentOptions}
         readOnly={readOnly}
+        previewFamilyId={previewFamilyId}
         onClose={closeClass}
         onEnrollmentChange={handleEnrollmentChange}
       />

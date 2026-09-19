@@ -26,7 +26,7 @@ type SettingToggleRowProps = {
   showDivider?: boolean;
 };
 
-function SettingToggleRow({
+export function SettingToggleRow({
   C,
   label,
   checked,

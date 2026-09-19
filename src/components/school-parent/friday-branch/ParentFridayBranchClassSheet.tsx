@@ -36,6 +36,7 @@ type ParentFridayBranchClassSheetProps = {
   blockDateRange?: string;
   studentOptions: ParentFridayBranchStudentOption[];
   readOnly?: boolean;
+  previewFamilyId?: string;
   onClose: () => void;
   onEnrollmentChange: (classId: string, detail: ParentFridayBranchClassDetailBundle) => void;
 };
@@ -95,6 +96,7 @@ export default function ParentFridayBranchClassSheet({
   blockDateRange,
   studentOptions,
   readOnly = false,
+  previewFamilyId,
   onClose,
   onEnrollmentChange,
 }: ParentFridayBranchClassSheetProps) {
@@ -140,10 +142,17 @@ export default function ParentFridayBranchClassSheet({
 
         let response: Response | undefined;
         try {
-          const query = new URLSearchParams({ organizationId }).toString();
-          response = await fetch(
-            `/api/parent-portal/friday-branch/classes/${encodeURIComponent(activeClassId)}?${query}`,
-          );
+          if (readOnly && previewFamilyId) {
+            const query = new URLSearchParams({ familyId: previewFamilyId }).toString();
+            response = await fetch(
+              `/api/admin/organizations/${encodeURIComponent(organizationId)}/friday-branch/classes/${encodeURIComponent(activeClassId)}?${query}`,
+            );
+          } else {
+            const query = new URLSearchParams({ organizationId }).toString();
+            response = await fetch(
+              `/api/parent-portal/friday-branch/classes/${encodeURIComponent(activeClassId)}?${query}`,
+            );
+          }
           const payload = (await response.json()) as {
             detail?: ParentFridayBranchClassDetailBundle;
             error?: string;
@@ -183,7 +192,7 @@ export default function ParentFridayBranchClassSheet({
     return () => {
       cancelled = true;
     };
-  }, [classId, open, organizationId, studentOptions]);
+  }, [classId, open, organizationId, previewFamilyId, readOnly, studentOptions]);
 
   const { enrollableIds, withdrawableIds } = useMemo(
     () =>

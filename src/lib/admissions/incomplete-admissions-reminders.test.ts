@@ -33,7 +33,7 @@ describe("isEligibleForIncompleteAdmissionsReminder", () => {
     );
   });
 
-  it("returns true for the second reminder after 7 days", () => {
+  it("returns true for the second reminder after 7 days and 72 hours of inactivity", () => {
     assert.equal(
       isEligibleForIncompleteAdmissionsReminder({
         count: 1,
@@ -42,6 +42,30 @@ describe("isEligibleForIncompleteAdmissionsReminder", () => {
         now,
       }),
       true,
+    );
+  });
+
+  it("returns false for the second reminder when the family was active within 72 hours", () => {
+    assert.equal(
+      isEligibleForIncompleteAdmissionsReminder({
+        count: 1,
+        lastSentAt: "2026-09-08T12:00:00.000Z",
+        lastActivityAt: "2026-09-15T12:00:00.000Z",
+        now,
+      }),
+      false,
+    );
+  });
+
+  it("returns false for the second reminder before 7 days since the first send", () => {
+    assert.equal(
+      isEligibleForIncompleteAdmissionsReminder({
+        count: 1,
+        lastSentAt: "2026-09-12T12:00:00.000Z",
+        lastActivityAt: "2026-09-01T12:00:00.000Z",
+        now,
+      }),
+      false,
     );
   });
 
@@ -62,6 +86,7 @@ function createIncompleteReminderSupabase(options: {
   families: Array<Record<string, unknown>>;
   contactApplication?: Record<string, unknown> | null;
   onFamilyUpdate?: (familyId: string, patch: Record<string, unknown>) => void;
+  staleReminderCounts?: Record<string, number>;
 }) {
   const familyMap = new Map(
     options.families.map((family) => [String(family.id), family]),
@@ -128,10 +153,25 @@ function createIncompleteReminderSupabase(options: {
               if (column === "id") {
                 return {
                   eq: () => ({
-                    maybeSingle: async () => ({
-                      data: familyMap.get(value) ?? null,
-                      error: null,
-                    }),
+                    maybeSingle: async () => {
+                      const family = familyMap.get(value);
+                      if (!family) {
+                        return { data: null, error: null };
+                      }
+
+                      const staleCount = options.staleReminderCounts?.[value];
+                      if (staleCount === undefined) {
+                        return { data: family, error: null };
+                      }
+
+                      return {
+                        data: {
+                          ...family,
+                          incomplete_admissions_reminder_count: staleCount,
+                        },
+                        error: null,
+                      };
+                    },
                   }),
                 };
               }
@@ -145,45 +185,52 @@ function createIncompleteReminderSupabase(options: {
             const applyUpdate = (currentCount?: number) => {
               const family = familyMap.get(familyId);
               if (!family) {
-                return { error: null };
+                return { data: [], error: null };
               }
 
               if (
                 currentCount !== undefined &&
                 Number(family.incomplete_admissions_reminder_count) !== currentCount
               ) {
-                return { error: null };
+                return { data: [], error: null };
               }
 
               Object.assign(family, patch);
               options.onFamilyUpdate?.(familyId, patch);
-              return { error: null };
+              return { data: [{ id: familyId }], error: null };
             };
 
-            const createOrgFilter = () => {
-              const result = {
-                eq: (countColumn: string, currentCount: number) => {
-                  if (countColumn !== "incomplete_admissions_reminder_count") {
-                    throw new Error(`Unexpected count column: ${countColumn}`);
-                  }
-                  return Promise.resolve(applyUpdate(currentCount));
-                },
-                then: (
-                  onFulfilled: (value: { error: null }) => unknown,
-                  onRejected?: (reason: unknown) => unknown,
-                ) => Promise.resolve(applyUpdate()).then(onFulfilled, onRejected),
-                catch: (onRejected: (reason: unknown) => unknown) =>
-                  Promise.resolve(applyUpdate()).catch(onRejected),
-              };
-              return result;
-            };
+            const createCountFilter = () => ({
+              eq: (countColumn: string, currentCount: number) => {
+                if (countColumn !== "incomplete_admissions_reminder_count") {
+                  throw new Error(`Unexpected count column: ${countColumn}`);
+                }
+
+                const result = applyUpdate(currentCount);
+                return {
+                  select: async () => result,
+                  then: (
+                    onFulfilled: (value: { data: Array<{ id: string }>; error: null }) => unknown,
+                    onRejected?: (reason: unknown) => unknown,
+                  ) => Promise.resolve(result).then(onFulfilled, onRejected),
+                  catch: (onRejected: (reason: unknown) => unknown) =>
+                    Promise.resolve(result).catch(onRejected),
+                };
+              },
+              then: (
+                onFulfilled: (value: { data: Array<{ id: string }>; error: null }) => unknown,
+                onRejected?: (reason: unknown) => unknown,
+              ) => Promise.resolve(applyUpdate()).then(onFulfilled, onRejected),
+              catch: (onRejected: (reason: unknown) => unknown) =>
+                Promise.resolve(applyUpdate()).catch(onRejected),
+            });
 
             return {
               eq: (column: string, value: string) => {
                 if (column === "id") {
                   familyId = value;
                   return {
-                    eq: () => createOrgFilter(),
+                    eq: () => createCountFilter(),
                   };
                 }
 
@@ -268,6 +315,7 @@ describe("sendIncompleteAdmissionsReminders", () => {
 
     const sent = await sendIncompleteAdmissionsReminders(supabase as never, "org-1", {
       now,
+      isIncompleteAdmissionsRemindersEnabled: async () => true,
       sendEmail: async ({ to }) => {
         sentTo.push(to);
         return { ok: true };
@@ -302,6 +350,127 @@ describe("sendIncompleteAdmissionsReminders", () => {
     assert.deepEqual(discordPayloads[0]?.incompleteEnrollmentItems, []);
   });
 
+  it("returns 0 when org reminders are disabled", async () => {
+    const sentTo: string[] = [];
+    const now = new Date("2026-09-16T12:00:00.000Z");
+
+    const supabase = createIncompleteReminderSupabase({
+      families: [
+        {
+          id: "family-1",
+          incomplete_admissions_reminder_count: 0,
+          incomplete_admissions_reminder_sent_at: null,
+        },
+      ],
+    });
+
+    const sent = await sendIncompleteAdmissionsReminders(supabase as never, "org-1", {
+      now,
+      isIncompleteAdmissionsRemindersEnabled: async () => false,
+      sendEmail: async ({ to }) => {
+        sentTo.push(to);
+        return { ok: true };
+      },
+      notifyDiscord: async () => {},
+      loadIncompleteAdmissionsWork: async () => familyWork,
+    });
+
+    assert.equal(sent, 0);
+    assert.deepEqual(sentTo, []);
+  });
+
+  it("skips send when the optimistic claim updates zero rows", async () => {
+    const sentTo: string[] = [];
+    const now = new Date("2026-09-16T12:00:00.000Z");
+
+    const families = [
+      {
+        id: "family-1",
+        incomplete_admissions_reminder_count: 1,
+        incomplete_admissions_reminder_sent_at: "2026-09-08T12:00:00.000Z",
+      },
+    ];
+
+    const supabase = createIncompleteReminderSupabase({
+      families,
+      staleReminderCounts: { "family-1": 0 },
+      contactApplication: {
+        primary_guardian_id: "guardian-1",
+        created_by_user_id: null,
+      },
+    });
+
+    const sent = await sendIncompleteAdmissionsReminders(supabase as never, "org-1", {
+      now,
+      isIncompleteAdmissionsRemindersEnabled: async () => true,
+      sendEmail: async ({ to }) => {
+        sentTo.push(to);
+        return { ok: true };
+      },
+      notifyDiscord: async () => {},
+      resolveApplicationNotificationEmails: async () => ["admissions@rootedmeadows.com"],
+      loadFamilyNotificationEmails: async () => ["maria@example.com"],
+      resolveApplicantContact: async () => ({
+        email: "maria@example.com",
+        emails: ["maria@example.com"],
+        displayName: "Maria Lopez",
+      }),
+      loadIncompleteAdmissionsWork: async () => familyWork,
+    });
+
+    assert.equal(sent, 0);
+    assert.deepEqual(sentTo, []);
+    assert.equal(families[0]?.incomplete_admissions_reminder_count, 1);
+  });
+
+  it("reverts the claim when all reminder emails fail to send", async () => {
+    const familyUpdates: Array<{ familyId: string; patch: Record<string, unknown> }> =
+      [];
+    const now = new Date("2026-09-16T12:00:00.000Z");
+
+    const families = [
+      {
+        id: "family-1",
+        incomplete_admissions_reminder_count: 0,
+        incomplete_admissions_reminder_sent_at: null,
+      },
+    ];
+
+    const supabase = createIncompleteReminderSupabase({
+      families,
+      contactApplication: {
+        primary_guardian_id: "guardian-1",
+        created_by_user_id: null,
+      },
+      onFamilyUpdate: (familyId, patch) => {
+        familyUpdates.push({ familyId, patch });
+      },
+    });
+
+    const sent = await sendIncompleteAdmissionsReminders(supabase as never, "org-1", {
+      now,
+      isIncompleteAdmissionsRemindersEnabled: async () => true,
+      sendEmail: async () => ({ ok: false }),
+      notifyDiscord: async () => {},
+      resolveApplicationNotificationEmails: async () => ["admissions@rootedmeadows.com"],
+      loadFamilyNotificationEmails: async () => ["maria@example.com"],
+      resolveApplicantContact: async () => ({
+        email: "maria@example.com",
+        emails: ["maria@example.com"],
+        displayName: "Maria Lopez",
+      }),
+      loadIncompleteAdmissionsWork: async () => familyWork,
+    });
+
+    assert.equal(sent, 0);
+    assert.equal(families[0]?.incomplete_admissions_reminder_count, 0);
+    assert.equal(families[0]?.incomplete_admissions_reminder_sent_at, null);
+    assert.equal(familyUpdates.length, 2);
+    assert.equal(familyUpdates[0]?.patch.incomplete_admissions_reminder_count, 1);
+    assert.equal(familyUpdates[1]?.patch.incomplete_admissions_reminder_count, 0);
+    assert.equal(familyUpdates[1]?.patch.incomplete_admissions_reminder_sent_at, null);
+  });
+
   it("resets reminder count when a family has no incomplete work", async () => {
     const familyUpdates: Array<{ familyId: string; patch: Record<string, unknown> }> =
       [];
@@ -324,6 +493,7 @@ describe("sendIncompleteAdmissionsReminders", () => {
 
     const sent = await sendIncompleteAdmissionsReminders(supabase as never, "org-1", {
       now,
+      isIncompleteAdmissionsRemindersEnabled: async () => true,
       sendEmail: async () => ({ ok: true }),
       notifyDiscord: async () => {},
       resolveApplicationNotificationEmails: async () => ["admissions@rootedmeadows.com"],

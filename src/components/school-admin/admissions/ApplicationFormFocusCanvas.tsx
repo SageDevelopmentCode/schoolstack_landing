@@ -369,14 +369,14 @@ function SetupView({
         C={C}
         tone="info"
         question="Need to nudge families who haven't finished applying or enrolling?"
-        helper="MudKitchen automatically sends up to two reminder emails when a family has an unfinished draft application or enrollment checklist — first after 72 hours of inactivity, then again 7 days later. The school contact shown in those emails comes from your Notifications settings."
+        helper="MudKitchen can send up to two reminder emails when a family has an unfinished draft application or enrollment checklist — first after 72 hours of inactivity, then again 7 days later. Reminders are off by default; enable them under Notifications → Parent reminders."
       >
         <Link
           href={schoolAdminPath(orgSlug, "notifications")}
           className="inline-flex items-center gap-1 text-sm font-medium"
           style={{ color: C.accent }}
         >
-          Manage admissions notification emails
+          Enable parent reminders in Notifications
         </Link>
       </BuilderQuestionCard>
     </div>

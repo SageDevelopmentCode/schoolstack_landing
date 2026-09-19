@@ -39,137 +39,68 @@ export function resolveEnrollmentStatus(
   return confirmedCount >= capacity ? "waitlisted" : "confirmed";
 }
 
-type ClassContext = {
-  classId: string;
-  blockId: string;
-  slotId: string;
-  slotTime: string;
-  familyVisible: boolean;
-  blockStatus: string;
-  capacity: number | null;
+const RPC_ERROR_MESSAGES: Record<
+  FridayBranchEnrollmentErrorCode,
+  { message: string; status: number }
+> = {
+  class_not_found: {
+    message: "Friday Branch class not found.",
+    status: 404,
+  },
+  class_not_visible: {
+    message: "This class is not open for sign-up.",
+    status: 404,
+  },
+  block_not_open: {
+    message: "This block is not open for sign-up yet.",
+    status: 403,
+  },
+  student_not_in_family: {
+    message: "This child is not part of your family.",
+    status: 403,
+  },
+  already_enrolled: {
+    message: "This child is already signed up for this class.",
+    status: 409,
+  },
+  time_conflict: {
+    message: "This child is already signed up for another class at this time.",
+    status: 409,
+  },
+  not_enrolled: {
+    message: "This child is not signed up for this class.",
+    status: 404,
+  },
 };
 
-type EnrollmentRow = {
-  id: string;
-  status: string;
-};
+function mapFridayBranchEnrollRpcError(error: { message?: string; code?: string }): never {
+  const message = typeof error.message === "string" ? error.message : "";
 
-function relationOne<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) return null;
-  return Array.isArray(value) ? value[0] ?? null : value;
-}
-
-async function loadClassContextForEnrollment(
-  admin: SupabaseClient,
-  organizationId: string,
-  classId: string,
-): Promise<ClassContext | null> {
-  const { data, error } = await admin
-    .from("friday_branch_classes")
-    .select(
-      `id, family_visible, capacity, time_slot_id,
-      friday_branch_time_slots!inner (
-        id, time, block_id,
-        friday_branch_blocks!inner ( id, status )
-      )`,
-    )
-    .eq("id", classId)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  const row = data as unknown as {
-    id: string;
-    family_visible: boolean;
-    capacity: number | null;
-    friday_branch_time_slots: {
-      id: string;
-      time: string;
-      block_id: string;
-      friday_branch_blocks: { id: string; status: string };
-    };
-  };
-
-  const slot = relationOne(row.friday_branch_time_slots);
-  const block = slot ? relationOne(slot.friday_branch_blocks) : null;
-  if (!slot || !block) return null;
-
-  return {
-    classId: row.id,
-    blockId: block.id,
-    slotId: slot.id,
-    slotTime: slot.time,
-    familyVisible: row.family_visible,
-    blockStatus: block.status,
-    capacity: row.capacity,
-  };
-}
-
-async function assertStudentInFamily(
-  admin: SupabaseClient,
-  organizationId: string,
-  familyId: string,
-  studentId: string,
-): Promise<void> {
-  const { data, error } = await admin
-    .from("students")
-    .select("id")
-    .eq("id", studentId)
-    .eq("family_id", familyId)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) {
-    throw new FridayBranchEnrollmentConflictError(
-      "This child is not part of your family.",
-      "student_not_in_family",
-      403,
-    );
-  }
-}
-
-async function assertNoTimeConflict(
-  admin: SupabaseClient,
-  organizationId: string,
-  blockId: string,
-  studentId: string,
-  slotTime: string,
-  excludeClassId: string,
-): Promise<void> {
-  const { data, error } = await admin
-    .from("friday_branch_class_enrollments")
-    .select(
-      `class_id,
-      friday_branch_classes!inner (
-        friday_branch_time_slots!inner ( time )
-      )`,
-    )
-    .eq("organization_id", organizationId)
-    .eq("block_id", blockId)
-    .eq("student_id", studentId)
-    .in("status", ["confirmed", "waitlisted"])
-    .neq("class_id", excludeClassId);
-
-  if (error) throw error;
-
-  for (const row of data ?? []) {
-    const record = row as unknown as {
-      class_id: string;
-      friday_branch_classes: {
-        friday_branch_time_slots: { time: string } | { time: string }[];
-      };
-    };
-    const slot = relationOne(record.friday_branch_classes.friday_branch_time_slots);
-    if (slot?.time === slotTime) {
+  for (const [code, details] of Object.entries(RPC_ERROR_MESSAGES)) {
+    if (message.includes(code)) {
       throw new FridayBranchEnrollmentConflictError(
-        "This child is already signed up for another class at this time.",
-        "time_conflict",
+        details.message,
+        code as FridayBranchEnrollmentErrorCode,
+        details.status,
       );
     }
   }
+
+  if (error.code === "P0001") {
+    throw new FridayBranchEnrollmentConflictError(
+      "Unable to complete Friday Branch sign-up.",
+      "already_enrolled",
+    );
+  }
+
+  throw error;
+}
+
+function parseEnrollmentStatus(value: unknown): FridayBranchClassEnrollmentStatus {
+  if (value === "confirmed" || value === "waitlisted" || value === "withdrawn") {
+    return value;
+  }
+  return "confirmed";
 }
 
 export async function enrollStudentInFridayBranchClass(
@@ -184,104 +115,24 @@ export async function enrollStudentInFridayBranchClass(
   status: FridayBranchClassEnrollmentStatus;
   detail: ParentFridayBranchClassDetailBundle;
 }> {
-  const context = await loadClassContextForEnrollment(admin, organizationId, classId);
-  if (!context) {
-    throw new FridayBranchEnrollmentConflictError(
-      "Friday Branch class not found.",
-      "class_not_found",
-      404,
-    );
+  const { data, error } = await admin.rpc("enroll_friday_branch_student_atomic", {
+    p_organization_id: organizationId,
+    p_class_id: classId,
+    p_family_id: familyId,
+    p_student_id: studentId,
+    p_source: "parent",
+  });
+
+  if (error) {
+    mapFridayBranchEnrollRpcError(error);
   }
 
-  if (!context.familyVisible) {
-    throw new FridayBranchEnrollmentConflictError(
-      "This class is not open for sign-up.",
-      "class_not_visible",
-      404,
-    );
-  }
+  const payload = data as { enrollment_id?: string; status?: string } | null;
+  const enrollmentId = payload?.enrollment_id ? String(payload.enrollment_id) : "";
+  const status = parseEnrollmentStatus(payload?.status);
 
-  if (context.blockStatus !== "current" && context.blockStatus !== "upcoming") {
-    throw new FridayBranchEnrollmentConflictError(
-      "This block is not open for sign-up yet.",
-      "block_not_open",
-      403,
-    );
-  }
-
-  await assertStudentInFamily(admin, organizationId, familyId, studentId);
-
-  const { data: existing, error: existingError } = await admin
-    .from("friday_branch_class_enrollments")
-    .select("id, status")
-    .eq("class_id", classId)
-    .eq("student_id", studentId)
-    .maybeSingle();
-
-  if (existingError) throw existingError;
-
-  const existingRow = existing as EnrollmentRow | null;
-  if (
-    existingRow &&
-    (existingRow.status === "confirmed" || existingRow.status === "waitlisted")
-  ) {
-    throw new FridayBranchEnrollmentConflictError(
-      "This child is already signed up for this class.",
-      "already_enrolled",
-    );
-  }
-
-  await assertNoTimeConflict(
-    admin,
-    organizationId,
-    context.blockId,
-    studentId,
-    context.slotTime,
-    classId,
-  );
-
-  const { count: confirmedCount, error: countError } = await admin
-    .from("friday_branch_class_enrollments")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("class_id", classId)
-    .eq("status", "confirmed");
-
-  if (countError) throw countError;
-
-  const status = resolveEnrollmentStatus(context.capacity, confirmedCount ?? 0);
-
-  const payload = {
-    organization_id: organizationId,
-    class_id: classId,
-    block_id: context.blockId,
-    student_id: studentId,
-    family_id: familyId,
-    status,
-    source: "parent" as const,
-  };
-
-  let enrollmentId: string;
-
-  if (existingRow) {
-    const { data: updated, error: updateError } = await admin
-      .from("friday_branch_class_enrollments")
-      .update({ status, source: "parent" })
-      .eq("id", existingRow.id)
-      .select("id")
-      .single();
-
-    if (updateError) throw updateError;
-    enrollmentId = String((updated as { id: string }).id);
-  } else {
-    const { data: inserted, error: insertError } = await admin
-      .from("friday_branch_class_enrollments")
-      .insert(payload)
-      .select("id")
-      .single();
-
-    if (insertError) throw insertError;
-    enrollmentId = String((inserted as { id: string }).id);
+  if (!enrollmentId) {
+    throw new Error("Friday Branch enrollment did not return an enrollment id.");
   }
 
   const detail = await loadParentFridayBranchClassDetail(
@@ -311,35 +162,22 @@ export async function withdrawStudentFromFridayBranchClass(
   studentId: string,
   studentOptions: ParentFridayBranchStudentOption[],
 ): Promise<ParentFridayBranchClassDetailBundle> {
-  const { data: existing, error: existingError } = await admin
-    .from("friday_branch_class_enrollments")
-    .select("id, status")
-    .eq("organization_id", organizationId)
-    .eq("family_id", familyId)
-    .eq("class_id", classId)
-    .eq("student_id", studentId)
-    .maybeSingle();
+  const { data, error } = await admin.rpc("withdraw_friday_branch_student_atomic", {
+    p_organization_id: organizationId,
+    p_class_id: classId,
+    p_family_id: familyId,
+    p_student_id: studentId,
+    p_source: "parent",
+  });
 
-  if (existingError) throw existingError;
-
-  const existingRow = existing as EnrollmentRow | null;
-  if (
-    !existingRow ||
-    (existingRow.status !== "confirmed" && existingRow.status !== "waitlisted")
-  ) {
-    throw new FridayBranchEnrollmentConflictError(
-      "This child is not signed up for this class.",
-      "not_enrolled",
-      404,
-    );
+  if (error) {
+    mapFridayBranchEnrollRpcError(error);
   }
 
-  const { error: updateError } = await admin
-    .from("friday_branch_class_enrollments")
-    .update({ status: "withdrawn", source: "parent" })
-    .eq("id", existingRow.id);
-
-  if (updateError) throw updateError;
+  const payload = data as { withdrawn_enrollment_id?: string } | null;
+  if (!payload?.withdrawn_enrollment_id) {
+    throw new Error("Friday Branch withdrawal did not return an enrollment id.");
+  }
 
   const detail = await loadParentFridayBranchClassDetail(
     admin,

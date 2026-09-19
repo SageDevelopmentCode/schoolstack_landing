@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BulletinPdfPreview } from '@/components/bulletin/bulletin-pdf-preview';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius } from '@/constants/theme';
@@ -20,6 +19,39 @@ type BulletinAttachmentPreviewGridProps = {
   attachments: BulletinAttachment[];
   onOpen?: () => void;
 };
+
+function PdfPlaceholderCell({
+  fileName,
+  onOpen,
+  height,
+}: {
+  fileName: string;
+  onOpen?: () => void;
+  height?: number;
+}) {
+  const theme = useParentTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`View ${fileName}`}
+      onPress={onOpen}
+      style={[
+        styles.cell,
+        styles.cellCentered,
+        height ? { height } : null,
+        { borderColor: theme.line, backgroundColor: theme.infoBg },
+      ]}>
+      <Ionicons name="document-text-outline" size={24} color={theme.info} />
+      <Text style={[styles.fileName, { color: theme.muted }]} numberOfLines={2}>
+        {fileName}
+      </Text>
+      <View style={[styles.pdfBadge, { backgroundColor: theme.white }]}>
+        <Text style={[styles.pdfBadgeText, { color: theme.info }]}>PDF</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 function PreviewCell({
   attachment,
@@ -56,19 +88,7 @@ function PreviewCell({
   }
 
   if (isBulletinPdfAttachment(attachment.mimeType) && attachment.downloadUrl) {
-    return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`View ${attachment.fileName}`}
-        onPress={onOpen}
-        style={styles.cellPressable}>
-        <BulletinPdfPreview
-          downloadUrl={attachment.downloadUrl}
-          fileName={attachment.fileName}
-          style={styles.pdfPreview}
-        />
-      </Pressable>
-    );
+    return <PdfPlaceholderCell fileName={attachment.fileName} onOpen={onOpen} />;
   }
 
   return (
@@ -127,19 +147,7 @@ export function BulletinAttachmentPreviewGrid({
 
     if (isBulletinPdfAttachment(attachment.mimeType) && attachment.downloadUrl) {
       return (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`View ${attachment.fileName}`}
-          onPress={onOpen}
-          style={styles.singlePdfPressable}>
-          <BulletinPdfPreview
-            downloadUrl={attachment.downloadUrl}
-            fileName={attachment.fileName}
-            height={160}
-            showBadge={false}
-            style={styles.singlePdfPreview}
-          />
-        </Pressable>
+        <PdfPlaceholderCell fileName={attachment.fileName} onOpen={onOpen} height={160} />
       );
     }
   }
@@ -192,12 +200,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  cellPressable: {
-    width: '100%',
-  },
-  pdfPreview: {
-    borderWidth: 0,
-  },
   fileName: {
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 10,
@@ -213,11 +215,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 220,
   },
-  singlePdfPressable: {
-    width: '100%',
+  pdfBadge: {
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  singlePdfPreview: {
-    width: '100%',
+  pdfBadgeText: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   overflowCell: {
     alignItems: 'center',

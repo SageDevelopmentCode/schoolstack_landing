@@ -4,6 +4,7 @@ import { apiError } from "@/lib/api/route-errors";
 import {
   buildOrganizationNotificationRecipients,
   maybeMigrateApplicationNotificationEmails,
+  maybeMigrateIncompleteAdmissionsReminders,
   parseOrganizationNotificationSettings,
   resolveOrganizationAdminEmails,
   validateOrganizationNotificationSettings,
@@ -53,11 +54,20 @@ export async function GET(request: Request) {
       });
     }
 
-    let settings = parseOrganizationNotificationSettings(
-      data?.notifications as Record<string, unknown> | null | undefined,
-    );
+    const rawNotifications = data?.notifications as
+      | Record<string, unknown>
+      | null
+      | undefined;
+
+    let settings = parseOrganizationNotificationSettings(rawNotifications);
 
     if (data) {
+      settings = await maybeMigrateIncompleteAdmissionsReminders(
+        admin,
+        organizationId,
+        settings,
+        rawNotifications,
+      );
       settings = await maybeMigrateApplicationNotificationEmails(
         admin,
         organizationId,
