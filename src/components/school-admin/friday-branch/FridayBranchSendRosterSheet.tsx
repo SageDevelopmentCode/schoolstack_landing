@@ -53,22 +53,24 @@ export default function FridayBranchSendRosterSheet({
   const [preview, setPreview] = useState<RosterEmailPreview | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    queueMicrotask(() => {
+      if (!open) {
+        setPreviewDialogOpen(false);
+        setPreviewLoading(false);
+        setPreviewError(null);
+        setPreview(null);
+        return;
+      }
+
+      setEmailDraft("");
+      setRecipients([]);
+      setEmailError(null);
+      setSending(false);
       setPreviewDialogOpen(false);
       setPreviewLoading(false);
       setPreviewError(null);
       setPreview(null);
-      return;
-    }
-
-    setEmailDraft("");
-    setRecipients([]);
-    setEmailError(null);
-    setSending(false);
-    setPreviewDialogOpen(false);
-    setPreviewLoading(false);
-    setPreviewError(null);
-    setPreview(null);
+    });
   }, [open, classId]);
 
   const fieldInputStyle = fridayBranchFieldInputStyle(theme, C);

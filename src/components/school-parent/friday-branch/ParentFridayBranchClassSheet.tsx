@@ -116,63 +116,69 @@ export default function ParentFridayBranchClassSheet({
 
   useEffect(() => {
     if (!open || !classId) {
-      setDetail(null);
-      setSelectedStudentIds(new Set());
-      setLoadError(null);
-      setActionError(null);
+      queueMicrotask(() => {
+        setDetail(null);
+        setSelectedStudentIds(new Set());
+        setLoadError(null);
+        setActionError(null);
+      });
       return;
     }
 
     let cancelled = false;
 
-    async function loadDetail() {
-      const activeClassId = classId;
-      if (!activeClassId) return;
+    queueMicrotask(() => {
+      if (cancelled) return;
 
-      setIsLoading(true);
-      setLoadError(null);
-      setActionError(null);
+      async function loadDetail() {
+        const activeClassId = classId;
+        if (!activeClassId) return;
 
-      let response: Response | undefined;
-      try {
-        const query = new URLSearchParams({ organizationId }).toString();
-        response = await fetch(
-          `/api/parent-portal/friday-branch/classes/${encodeURIComponent(activeClassId)}?${query}`,
-        );
-        const payload = (await response.json()) as {
-          detail?: ParentFridayBranchClassDetailBundle;
-          error?: string;
-        };
+        setIsLoading(true);
+        setLoadError(null);
+        setActionError(null);
 
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Failed to load class.");
+        let response: Response | undefined;
+        try {
+          const query = new URLSearchParams({ organizationId }).toString();
+          response = await fetch(
+            `/api/parent-portal/friday-branch/classes/${encodeURIComponent(activeClassId)}?${query}`,
+          );
+          const payload = (await response.json()) as {
+            detail?: ParentFridayBranchClassDetailBundle;
+            error?: string;
+          };
+
+          if (!response.ok) {
+            throw new Error(payload.error ?? "Failed to load class.");
+          }
+
+          if (cancelled) return;
+          const nextDetail = payload.detail ?? null;
+          setDetail(nextDetail);
+          setSelectedStudentIds(
+            new Set(getInitialFridayBranchChildSelection(nextDetail?.studentStates ?? [])),
+          );
+        } catch (error) {
+          if (cancelled) return;
+          setLoadError(error instanceof Error ? error.message : "Failed to load class.");
+          void reportPortalOperationalError(
+            "parent_portal",
+            {
+              organizationId,
+              operation: "friday_branch.class.detail.load",
+              error: "",
+            },
+            error,
+            response?.status,
+          );
+        } finally {
+          if (!cancelled) setIsLoading(false);
         }
-
-        if (cancelled) return;
-        const nextDetail = payload.detail ?? null;
-        setDetail(nextDetail);
-        setSelectedStudentIds(
-          new Set(getInitialFridayBranchChildSelection(nextDetail?.studentStates ?? [])),
-        );
-      } catch (error) {
-        if (cancelled) return;
-        setLoadError(error instanceof Error ? error.message : "Failed to load class.");
-        void reportPortalOperationalError(
-          "parent_portal",
-          {
-            organizationId,
-            operation: "friday_branch.class.detail.load",
-            error: "",
-          },
-          error,
-          response?.status,
-        );
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
-    }
 
-    void loadDetail();
+      void loadDetail();
+    });
 
     return () => {
       cancelled = true;

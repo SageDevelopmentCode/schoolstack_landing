@@ -49,8 +49,10 @@ export default function FridayBranchClassEditSheet({
 
   useEffect(() => {
     if (!open) return;
-    setDraft(classEntry);
-    setDraftSlotId(slotId ?? slots[0]?.id ?? "");
+    queueMicrotask(() => {
+      setDraft(classEntry);
+      setDraftSlotId(slotId ?? slots[0]?.id ?? "");
+    });
   }, [open, classEntry, slotId, slots]);
 
   const slotOptions = useMemo(

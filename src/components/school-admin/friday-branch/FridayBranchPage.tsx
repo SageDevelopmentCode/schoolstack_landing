@@ -96,7 +96,9 @@ export default function FridayBranchPage({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadSchedule();
+    queueMicrotask(() => {
+      void loadSchedule();
+    });
   }, [loadSchedule]);
 
   const handleAddBlock = () => {

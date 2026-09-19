@@ -55,13 +55,15 @@ export default function FridayBranchAddTimeSlotSheet({
 
   useEffect(() => {
     if (!open) return;
-    const suggested = suggestNextSlotTime(slots);
-    setPickerTime(fridayBranchTimeToPickerValue(suggested));
-    setFirstClassName("");
-    setLocation("");
-    setAgeGroup("");
-    setClassLeader("");
-    setError(null);
+    queueMicrotask(() => {
+      const suggested = suggestNextSlotTime(slots);
+      setPickerTime(fridayBranchTimeToPickerValue(suggested));
+      setFirstClassName("");
+      setLocation("");
+      setAgeGroup("");
+      setClassLeader("");
+      setError(null);
+    });
   }, [open, slots]);
 
   const quickPicks = getAvailableQuickPickTimes(slots);

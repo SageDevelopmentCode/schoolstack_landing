@@ -50,7 +50,9 @@ export default function FridayBranchRecentActivity({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadSignups();
+    queueMicrotask(() => {
+      void loadSignups();
+    });
   }, [loadSignups]);
 
   return (

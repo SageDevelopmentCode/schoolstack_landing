@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
@@ -72,6 +72,25 @@ function collectBlockClassIds(block: FridayBranchBlock): string[] {
   return classIds;
 }
 
+function findDetailTarget(
+  block: FridayBranchBlock,
+  classId: string,
+): DetailTarget | null {
+  for (const slot of block.slots) {
+    const classEntry = slot.classes.find((entry) => entry.id === classId);
+    if (!classEntry) continue;
+
+    return {
+      classId: classEntry.id,
+      slotId: slot.id,
+      classEntry,
+      slotTime: slot.time,
+    };
+  }
+
+  return null;
+}
+
 function renderSignedUpValue(
   summary: FridayBranchClassEnrollmentSummary,
   capacity: number | null | undefined,
@@ -135,20 +154,25 @@ export default function FridayBranchScheduleCard({
 
   const effectiveHighlightClassId = highlightClassId ?? localHighlightClassId;
   const gaps = getScheduleGaps(block);
+  const classIds = collectBlockClassIds(block);
+  const displayEnrollmentCounts = classIds.length === 0 ? {} : enrollmentCounts;
+
+  const requestedDetailTarget = useMemo(
+    () => (requestedClassId ? findDetailTarget(block, requestedClassId) : null),
+    [block, requestedClassId],
+  );
+  const activeDetailTarget = detailTarget ?? requestedDetailTarget;
 
   useEffect(() => {
-    const classIds = collectBlockClassIds(block);
-    if (classIds.length === 0) {
-      setEnrollmentCounts({});
-      return;
-    }
+    const activeClassIds = collectBlockClassIds(block);
+    if (activeClassIds.length === 0) return;
 
     let cancelled = false;
 
     void (async () => {
       try {
         const response = await fetch(
-          `/api/school-admin/friday-branch/enrollment-counts?organizationId=${encodeURIComponent(organizationId)}&classIds=${encodeURIComponent(classIds.join(","))}`,
+          `/api/school-admin/friday-branch/enrollment-counts?organizationId=${encodeURIComponent(organizationId)}&classIds=${encodeURIComponent(activeClassIds.join(","))}`,
         );
 
         if (!response.ok || cancelled) return;
@@ -173,22 +197,9 @@ export default function FridayBranchScheduleCard({
   }, [block, organizationId]);
 
   useEffect(() => {
-    if (!requestedClassId) return;
-
-    for (const slot of block.slots) {
-      const classEntry = slot.classes.find((entry) => entry.id === requestedClassId);
-      if (!classEntry) continue;
-
-      setDetailTarget({
-        classId: classEntry.id,
-        slotId: slot.id,
-        classEntry,
-        slotTime: slot.time,
-      });
-      onRequestedClassHandled?.();
-      return;
-    }
-  }, [block, onRequestedClassHandled, requestedClassId]);
+    if (!requestedDetailTarget) return;
+    queueMicrotask(() => onRequestedClassHandled?.());
+  }, [onRequestedClassHandled, requestedDetailTarget]);
 
   const updateBlock = (nextBlock: FridayBranchBlock) => onChange(nextBlock);
 
@@ -319,11 +330,11 @@ export default function FridayBranchScheduleCard({
 
   const detailSheet = (
     <FridayBranchClassDetailSheet
-      open={detailTarget !== null}
+      open={activeDetailTarget !== null}
       organizationId={organizationId}
-      classId={detailTarget?.classId ?? null}
-      fallbackClass={detailTarget?.classEntry ?? null}
-      fallbackSlotTime={detailTarget?.slotTime}
+      classId={activeDetailTarget?.classId ?? null}
+      fallbackClass={activeDetailTarget?.classEntry ?? null}
+      fallbackSlotTime={activeDetailTarget?.slotTime}
       theme={theme}
       C={C}
       onClose={() => setDetailTarget(null)}
@@ -465,7 +476,7 @@ export default function FridayBranchScheduleCard({
                           style={{ borderColor: "#EDF1ED" }}
                         >
                           {renderSignedUpValue(
-                            enrollmentCounts[classEntry.id] ??
+                            displayEnrollmentCounts[classEntry.id] ??
                               EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
                             classEntry.capacity,
                             theme,

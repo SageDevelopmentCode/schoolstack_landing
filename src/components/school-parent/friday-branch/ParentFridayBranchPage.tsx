@@ -61,16 +61,14 @@ export default function ParentFridayBranchPage({
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(initialBlockId);
 
   useEffect(() => {
-    if (activeClassId) {
-      const blockId = findBlockIdForClass(bundle, activeClassId);
-      if (blockId) setSelectedBlockId(blockId);
-    }
-  }, [activeClassId, bundle]);
-
-  useEffect(() => {
     const onPopState = () => {
       const classId = new URLSearchParams(window.location.search).get("class");
-      setActiveClassId(resolveValidClassId(classId, bundle));
+      const resolvedClassId = resolveValidClassId(classId, bundle);
+      setActiveClassId(resolvedClassId);
+      if (resolvedClassId) {
+        const blockId = findBlockIdForClass(bundle, resolvedClassId);
+        if (blockId) setSelectedBlockId(blockId);
+      }
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -95,13 +93,18 @@ export default function ParentFridayBranchPage({
     };
   }, [bundle.blocks, selectedBlock]);
 
-  const activeClassContext = useMemo(() => {
-    if (!activeClassId) return null;
+  let activeClassContext: {
+    summary: ParentFridayBranchPageBundle["blocks"][number]["classes"][number];
+    blockLabel: string;
+    blockDateRange: string;
+  } | null = null;
+
+  if (activeClassId) {
     for (let index = 0; index < bundle.blocks.length; index += 1) {
       const entry = bundle.blocks[index];
       const match = entry.classes.find((c) => c.classId === activeClassId);
       if (match) {
-        return {
+        activeClassContext = {
           summary: match,
           blockLabel: getBlockDisplayLabel(entry.block, index),
           blockDateRange: formatBlockTabDateRange(
@@ -109,17 +112,19 @@ export default function ParentFridayBranchPage({
             entry.block.endDate,
           ),
         };
+        break;
       }
     }
-    return null;
-  }, [activeClassId, bundle.blocks]);
+  }
 
   const openClass = useCallback(
     (classId: string) => {
       setActiveClassId(classId);
+      const blockId = findBlockIdForClass(bundle, classId);
+      if (blockId) setSelectedBlockId(blockId);
       syncFridayBranchClassUrl(pathname, classId);
     },
-    [pathname],
+    [bundle, pathname],
   );
 
   const closeClass = useCallback(() => {

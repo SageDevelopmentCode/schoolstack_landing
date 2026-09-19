@@ -65,43 +65,49 @@ export default function FridayBranchClassDetailSheet({
 
   useEffect(() => {
     if (!open || !classId) {
-      setDetail(null);
+      queueMicrotask(() => {
+        setDetail(null);
+      });
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
 
-    void (async () => {
-      try {
-        const response = await fetch(
-          `/api/school-admin/friday-branch/classes/${encodeURIComponent(classId)}?organizationId=${encodeURIComponent(organizationId)}`,
-        );
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoading(true);
 
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-          throw new Error(payload?.error ?? "Failed to load class detail.");
-        }
+      void (async () => {
+        try {
+          const response = await fetch(
+            `/api/school-admin/friday-branch/classes/${encodeURIComponent(classId)}?organizationId=${encodeURIComponent(organizationId)}`,
+          );
 
-        const payload = (await response.json()) as FridayBranchClassDetail;
-        if (!cancelled) {
-          setDetail(payload);
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+            throw new Error(payload?.error ?? "Failed to load class detail.");
+          }
+
+          const payload = (await response.json()) as FridayBranchClassDetail;
+          if (!cancelled) {
+            setDetail(payload);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            adminToast.error(formatActionError(err, "Failed to load class detail."));
+            void reportClientOperationalError({
+              organizationId,
+              operation: "friday_branch.class.detail.load",
+              error: formatActionError(err, "Failed to load class detail."),
+            });
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
         }
-      } catch (err) {
-        if (!cancelled) {
-          adminToast.error(formatActionError(err, "Failed to load class detail."));
-          void reportClientOperationalError({
-            organizationId,
-            operation: "friday_branch.class.detail.load",
-            error: formatActionError(err, "Failed to load class detail."),
-          });
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
+      })();
+    });
 
     return () => {
       cancelled = true;
