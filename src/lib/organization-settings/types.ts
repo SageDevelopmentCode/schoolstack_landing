@@ -85,10 +85,15 @@ export type AdditionalFeatures = {
   homeschool_drop_in: boolean;
 };
 
+export type ParentHomeFeatures = {
+  friday_branch: boolean;
+};
+
 export type OrganizationFeatures = {
   admin: AdminFeatures;
   teacher: TeacherFeatures;
   parent: ParentFeatures;
+  parent_home?: ParentHomeFeatures;
   feature_nav?: FeatureNavConfig;
   parent_onboarding?: ParentOnboardingConfig;
   apply_auth_entry?: ApplyAuthEntryConfig;
@@ -99,6 +104,7 @@ export type OrganizationFeatures = {
     | AdminFeatures
     | TeacherFeatures
     | ParentFeatures
+    | ParentHomeFeatures
     | FeatureNavConfig
     | ParentOnboardingConfig
     | ApplyAuthEntryConfig

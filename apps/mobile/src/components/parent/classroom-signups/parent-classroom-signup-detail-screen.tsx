@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
 import { ParentClassroomSignupResponseForm } from '@/components/parent/classroom-signups/parent-classroom-signup-response-form';
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
@@ -100,10 +100,9 @@ export function ParentClassroomSignupDetailScreen({
   );
 
   return (
-    <ScrollView
+    <ParentKeyboardAwareScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
+      contentContainerStyle={styles.content}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
@@ -168,7 +167,7 @@ export function ParentClassroomSignupDetailScreen({
           )}
         </>
       ) : null}
-    </ScrollView>
+    </ParentKeyboardAwareScrollView>
   );
 }
 

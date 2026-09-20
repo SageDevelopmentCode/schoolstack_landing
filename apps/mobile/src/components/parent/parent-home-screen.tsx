@@ -24,16 +24,16 @@ import { useParentHome } from '@/contexts/parent-home-context';
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import {
-  resolveWebUrl,
-  schoolApplicationUrl,
-  schoolApplyUrl,
-} from '@/lib/admissions/school-apply-url';
+import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import {
   getOnboardingItemRoute,
   parentBulletinDetailRoute,
   parentChildrenRoute,
+  parentEnrollmentItemRoute,
+  parentFormDetailRoute,
+  parentFormsDocumentsRoute,
   parentTabRoute,
+  resolveParentAttentionNavigation,
 } from '@/lib/parent/parent-nav';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import {
@@ -84,20 +84,29 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     });
   };
 
-  const handleAttentionItem = async (item: ParentHomeAttentionItem) => {
-    if (!item.href) return;
-    if (item.href.startsWith('/parent/')) {
-      router.push(item.href as Href);
-      return;
+  const healthApplicationId =
+    data?.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
+
+  const handleAttentionItem = (item: ParentHomeAttentionItem) => {
+    const route = resolveParentAttentionNavigation(slug, {
+      target: item.target,
+      href: item.href,
+      formId: item.formId,
+      enrollmentApplicationId: item.enrollmentApplicationId,
+      enrollmentTemplateItemId: item.enrollmentTemplateItemId,
+      enrollmentSectionId: item.enrollmentSectionId,
+      healthApplicationId,
+    });
+    if (route) {
+      router.push(route);
     }
-    await openWebUrl(item.href);
   };
 
   const handleOnboardingItem = async (item: ResolvedParentOnboardingItem) => {
     setOnboardingOpen(false);
     if (item.completed) return;
 
-    const route = getOnboardingItemRoute(slug, item.target);
+    const route = getOnboardingItemRoute(slug, item.target, { healthApplicationId });
     if (route) {
       router.replace(route);
       return;
@@ -163,7 +172,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
             formAttentionItems={data.formAttentionItems ?? []}
             signupAttentionItems={signupAttentionItems}
-            onPressAttentionItem={(item) => void handleAttentionItem(item)}
+            familyChildren={data.familyChildren}
+            onPressAttentionItem={handleAttentionItem}
             onOpenOnboarding={() => setOnboardingOpen(true)}
           />
         </Animated.View>
@@ -200,8 +210,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
                     router.push(parentChildrenRoute(slug, child.applicationId))
                   }
                   onOpenEnrollment={() =>
-                    void openWebUrl(
-                      schoolApplicationUrl(slug, child.applicationId, { enrollment: true }),
+                    router.push(
+                      parentEnrollmentItemRoute(slug, child.applicationId),
                     )
                   }
                 />
@@ -214,8 +224,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           <Animated.View entering={FadeInDown.delay(140).duration(350)}>
             <ParentHomeFormsSnapshotCard
               snapshot={data.formSnapshot}
-              onOpenForm={(formsHref) => void openWebUrl(formsHref)}
-              onViewAll={() => void openWebUrl(data.formSnapshot!.formsPageHref)}
+              onOpenForm={(formId) => router.push(parentFormDetailRoute(slug, formId))}
+              onViewAll={() => router.push(parentFormsDocumentsRoute(slug))}
             />
           </Animated.View>
         ) : null}

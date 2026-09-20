@@ -65,6 +65,7 @@ export function mergeFeatures(
       key !== "parent" &&
       key !== "feature_nav" &&
       key !== "parent_onboarding" &&
+      key !== "parent_home" &&
       key !== "apply_auth_entry" &&
       typeof value === "boolean"
     ) {

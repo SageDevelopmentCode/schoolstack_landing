@@ -20,6 +20,8 @@ export { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 export { luffLearningConfig } from "./luff-learning";
 export { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 export { creationAcresConfig } from "./creation-acres";
+export { familyLyceumConfig } from "./family-lyceum";
+export { freedomPrepAcademyConfig } from "./freedom-prep-academy";
 export { gatheredOakFarmConfig } from "./gathered-oak-farm";
 export { trueNorthConfig } from "./true-north";
 export { oneAcreFarmConfig } from "./one-acre-farm";
@@ -36,6 +38,7 @@ export { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
 export { actonAcademyPlacerConfig } from "./acton-academy-placer";
 export { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
 export { tapestryAcademyConfig } from "./tapestry-academy";
+export { rootsAndWingsMicroschoolConfig } from "./roots-and-wings-microschool";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -58,6 +61,8 @@ import { lighthouseHomeschoolConfig } from "./lighthouse-homeschool";
 import { luffLearningConfig } from "./luff-learning";
 import { paradiseEarthAcademyConfig } from "./paradise-earth-academy";
 import { creationAcresConfig } from "./creation-acres";
+import { familyLyceumConfig } from "./family-lyceum";
+import { freedomPrepAcademyConfig } from "./freedom-prep-academy";
 import { gatheredOakFarmConfig } from "./gathered-oak-farm";
 import { trueNorthConfig } from "./true-north";
 import { oneAcreFarmConfig } from "./one-acre-farm";
@@ -74,6 +79,7 @@ import { actonAcademyPittsburghConfig } from "./acton-academy-pittsburgh";
 import { actonAcademyPlacerConfig } from "./acton-academy-placer";
 import { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
 import { tapestryAcademyConfig } from "./tapestry-academy";
+import { rootsAndWingsMicroschoolConfig } from "./roots-and-wings-microschool";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -96,6 +102,8 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "luff-learning": luffLearningConfig,
   "paradise-earth-academy": paradiseEarthAcademyConfig,
   "creation-acres": creationAcresConfig,
+  "family-lyceum": familyLyceumConfig,
+  "freedom-prep-academy": freedomPrepAcademyConfig,
   "gathered-oak-farm": gatheredOakFarmConfig,
   "true-north": trueNorthConfig,
   "one-acre-farm": oneAcreFarmConfig,
@@ -112,6 +120,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "acton-academy-placer": actonAcademyPlacerConfig,
   "asheboro-hybrid-academy": asheboroHybridAcademyConfig,
   "tapestry-academy": tapestryAcademyConfig,
+  "roots-and-wings-microschool": rootsAndWingsMicroschoolConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

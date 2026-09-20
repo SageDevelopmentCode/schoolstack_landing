@@ -64,6 +64,10 @@ const FridayBranchPage = nextDynamic(
   () => import("@/components/school-admin/friday-branch/FridayBranchPage"),
   { loading: () => <AdminPageSkeleton label="Loading Friday Branch" /> },
 );
+const AttendancePage = nextDynamic(
+  () => import("@/components/school-admin/attendance/AttendancePage"),
+  { loading: () => <AdminPageSkeleton label="Loading attendance" /> },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -274,6 +278,18 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
     return (
       <Suspense>
         <FridayBranchPage
+          organizationId={org.id}
+          branding={org.branding}
+          slug={slug}
+        />
+      </Suspense>
+    );
+  }
+
+  if (feature === "my_school" && subtab === "attendance") {
+    return (
+      <Suspense>
+        <AttendancePage
           organizationId={org.id}
           branding={org.branding}
           slug={slug}

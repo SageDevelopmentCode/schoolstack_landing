@@ -15,6 +15,7 @@ import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-u
 import { ParentBillingProvider } from '@/contexts/parent-billing-context';
 import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
 import { ParentClassroomSignupsProvider } from '@/contexts/parent-classroom-signups-context';
+import { ParentFormsDocumentsProvider } from '@/contexts/parent-forms-documents-context';
 import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
@@ -229,6 +230,7 @@ export default function ParentLayout() {
           <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
             <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
               <ParentClassroomSignupsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                <ParentFormsDocumentsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                 <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                   <MessagesRealtimeProvider organizationId={loadedOrg.id}>
                     <ParentMessagesInboxProvider
@@ -244,6 +246,7 @@ export default function ParentLayout() {
                     </ParentMessagesInboxProvider>
                   </MessagesRealtimeProvider>
                 </ParentCalendarProvider>
+                </ParentFormsDocumentsProvider>
               </ParentClassroomSignupsProvider>
             </ParentCommitteesProvider>
           </ParentBillingProvider>

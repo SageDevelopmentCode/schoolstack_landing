@@ -37,6 +37,14 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/creationacres/CreationAcresWebsiteDashboardDemo"
     ),
+  "family-lyceum": () =>
+    import(
+      "@/components/demo/familylyceum/FamilyLyceumWebsiteDashboardDemo"
+    ),
+  "freedom-prep-academy": () =>
+    import(
+      "@/components/demo/freedomprep/FreedomPrepAcademyWebsiteDashboardDemo"
+    ),
   "gathered-oak-farm": () =>
     import(
       "@/components/demo/gatheredoakfarm/GatheredOakFarmWebsiteDashboardDemo"
@@ -98,6 +106,10 @@ const WEBSITE_DEMO_LOADERS: Record<
   "rooted-meadows": () =>
     import(
       "@/components/demo/rootedmeadows/RootedMeadowsWebsiteDashboardDemo"
+    ),
+  "roots-and-wings-microschool": () =>
+    import(
+      "@/components/demo/rootsandwingsmicroschool/RootsAndWingsMicroschoolWebsiteDashboardDemo"
     ),
   "spring-river-school": () =>
     import(

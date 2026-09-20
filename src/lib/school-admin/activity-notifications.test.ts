@@ -3,9 +3,11 @@ import { describe, it } from "node:test";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   formatActivityNotificationDetail,
+  formatActivityNotificationTitle,
   formatSubjectShortLabel,
   getActivityNotificationRangeStart,
   isUnreadActivityNotificationEvent,
+  resolveActivityNotificationLink,
   shortenSubjectLabel,
 } from "@/lib/school-admin/activity-notifications";
 
@@ -248,6 +250,47 @@ describe("formatActivityNotificationDetail", () => {
       ),
       "Autopay succeeded for Aug Tuition (Julius) — $360.00",
     );
+  });
+});
+
+describe("authorized pickup notifications", () => {
+  it("formats pickup notification titles", () => {
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED),
+      "Authorized pickup added",
+    );
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED),
+      "Authorized pickup updated",
+    );
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED),
+      "Authorized pickup removed",
+    );
+  });
+
+  it("links pickup notifications to the student record when studentId is present", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-1",
+        action: ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED,
+        entity_type: "authorized_pickup_contact",
+        entity_id: "contact-1",
+        summary: "Jane Smith added an authorized pickup contact for Emma: Maria Lopez",
+        metadata: {
+          studentId: "student-1",
+          studentName: "Emma Thompson",
+          contactName: "Maria Lopez",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(link.href, "/school/rooted-meadows/admin/students/student-1");
+    assert.equal(link.ctaLabel, "View student");
   });
 });
 

@@ -27,6 +27,7 @@ import {
   type DemoActivityTimelineVariant,
 } from "@/components/demo/shared/DemoActivityTimelineRow";
 import { mapDemoLeadToSubmission } from "@/components/demo/shared/demo-submissions-mapper";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { fraunces, dmSans } from "@/lib/fonts";
 import {
   LayoutDashboard,
@@ -22485,11 +22486,8 @@ function Sidebar({
           justifyContent: isExpanded ? "flex-start" : "center",
         }}
       >
-        <Image
-          src={getAdminDemoLogo().src}
-          alt={getAdminDemoLogo().alt}
-          width={isExpanded ? (getAdminDemoLogo().width ?? 160) : 36}
-          height={getAdminDemoLogo().height ?? 40}
+        <SchoolDemoWordmark
+          logo={getAdminDemoLogo()}
           className="flex-shrink-0 object-contain"
           style={{ maxHeight: 40 }}
         />

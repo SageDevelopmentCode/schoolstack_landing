@@ -5,10 +5,12 @@ import { useAuth } from '@/contexts/auth-context';
 import { useParentHome } from '@/contexts/parent-home-context';
 
 export default function ParentChildDetailRoute() {
-  const { slug, applicationId, section } = useLocalSearchParams<{
+  const { slug, applicationId, section, item, enrollmentSection } = useLocalSearchParams<{
     slug: string;
     applicationId: string;
     section?: string;
+    item?: string;
+    enrollmentSection?: string;
   }>();
   const { selectedSchool } = useAuth();
   const { data } = useParentHome();
@@ -23,6 +25,8 @@ export default function ParentChildDetailRoute() {
       applicationId={applicationId}
       organizationId={organizationId}
       initialSection={section}
+      initialEnrollmentItemId={item}
+      initialEnrollmentSectionId={enrollmentSection}
     />
   );
 }

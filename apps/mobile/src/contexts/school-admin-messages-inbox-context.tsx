@@ -17,6 +17,7 @@ import type {
 } from '@/lib/messages/types';
 import {
   createPortalCache,
+  DEFAULT_PORTAL_CACHE_TTL_MS,
   resolvePortalProviderInit,
 } from '@/lib/portal-cache';
 import { createSchoolAdminErrorReporter } from '@/lib/mobile-error-reporter';
@@ -47,8 +48,49 @@ const messagesInboxCache = createPortalCache<SchoolAdminMessagesInboxData>(
   'school_admin_messages:',
 );
 
+const messagesContactsCache = createPortalCache<MessageContact[]>(
+  'school_admin_messages_contacts:',
+);
+
 function cacheKey(organizationId: string, schoolName: string): string {
   return `${organizationId}:${schoolName}`;
+}
+
+async function fetchMessagesContacts(
+  organizationId: string,
+  schoolName: string,
+): Promise<MessageContact[]> {
+  return loadMessagesContacts(organizationId, schoolName);
+}
+
+function fetchAndCacheMessagesContacts(
+  organizationId: string,
+  schoolName: string,
+  options?: { refresh?: boolean },
+): Promise<MessageContact[]> {
+  const key = cacheKey(organizationId, schoolName);
+  return messagesContactsCache.fetchAndCache(
+    key,
+    () => fetchMessagesContacts(organizationId, schoolName),
+    options,
+  );
+}
+
+export function prefetchSchoolAdminMessagesContacts(
+  organizationId: string,
+  schoolName: string,
+): Promise<void> {
+  const key = cacheKey(organizationId, schoolName);
+  return messagesContactsCache.prefetch(key, () =>
+    fetchMessagesContacts(organizationId, schoolName),
+  );
+}
+
+export async function hydrateSchoolAdminMessagesContactsFromDisk(
+  organizationId: string,
+  schoolName: string,
+): Promise<MessageContact[] | null> {
+  return messagesContactsCache.hydrateFromDisk(cacheKey(organizationId, schoolName));
 }
 
 async function fetchMessagesInboxData(
@@ -106,13 +148,14 @@ export function SchoolAdminMessagesInboxProvider({
 }: SchoolAdminMessagesInboxProviderProps) {
   const key = cacheKey(organizationId, schoolName);
   const cached = messagesInboxCache.get(key);
+  const cachedContacts = messagesContactsCache.get(key);
   const reportError = useMemo(
     () => createSchoolAdminErrorReporter(organizationId),
     [organizationId],
   );
 
   const [threads, setThreads] = useState<MessageThreadSummary[]>(cached?.threads ?? []);
-  const [contacts, setContacts] = useState<MessageContact[]>(cached?.contacts ?? []);
+  const [contacts, setContacts] = useState<MessageContact[]>(cachedContacts ?? []);
   const [viewerContext, setViewerContext] = useState<MessagesViewerContext | null>(
     cached?.viewerContext ?? null,
   );
@@ -126,12 +169,14 @@ export function SchoolAdminMessagesInboxProvider({
 
   const applyInboxData = useCallback((inbox: SchoolAdminMessagesInboxData | null) => {
     setThreads(inbox?.threads ?? []);
-    // Threads API excludes contacts; only overwrite when contacts were loaded.
-    if (inbox && inbox.contacts.length > 0) {
-      setContacts(inbox.contacts);
-    }
     if (inbox?.viewerContext) {
       setViewerContext(inbox.viewerContext);
+    }
+  }, []);
+
+  const applyContactsData = useCallback((nextContacts: MessageContact[] | null) => {
+    if (nextContacts && nextContacts.length > 0) {
+      setContacts(nextContacts);
     }
   }, []);
 
@@ -189,6 +234,24 @@ export function SchoolAdminMessagesInboxProvider({
   );
 
   const ensureContactsLoaded = useCallback(async () => {
+    const memoryContacts = messagesContactsCache.get(key);
+    if (memoryContacts && memoryContacts.length > 0) {
+      applyContactsData(memoryContacts);
+      if (!messagesContactsCache.isStale(key, DEFAULT_PORTAL_CACHE_TTL_MS)) {
+        return;
+      }
+
+      void fetchAndCacheMessagesContacts(organizationId, schoolName, { refresh: true })
+        .then((nextContacts) => {
+          applyContactsData(nextContacts);
+          setError(null);
+        })
+        .catch((loadError) => {
+          reportError('school_admin_messages_contacts_load', loadError);
+        });
+      return;
+    }
+
     if (contacts.length > 0) return;
     if (contactsPromiseRef.current) {
       await contactsPromiseRef.current;
@@ -198,8 +261,8 @@ export function SchoolAdminMessagesInboxProvider({
     const run = async () => {
       setLoadingContacts(true);
       try {
-        const nextContacts = await loadMessagesContacts(organizationId, schoolName);
-        setContacts(nextContacts);
+        const nextContacts = await fetchAndCacheMessagesContacts(organizationId, schoolName);
+        applyContactsData(nextContacts);
         setError(null);
       } catch (loadError) {
         reportError('school_admin_messages_contacts_load', loadError);
@@ -213,21 +276,37 @@ export function SchoolAdminMessagesInboxProvider({
     const promise = run();
     contactsPromiseRef.current = promise;
     await promise;
-  }, [contacts.length, organizationId, reportError, schoolName]);
+  }, [applyContactsData, contacts.length, key, organizationId, reportError, schoolName]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      const resolved = await resolvePortalProviderInit(key, messagesInboxCache, () =>
-        hydrateSchoolAdminMessagesInboxFromDisk(organizationId, schoolName),
-      );
+      const [resolved, contactsFromDisk] = await Promise.all([
+        resolvePortalProviderInit(key, messagesInboxCache, () =>
+          hydrateSchoolAdminMessagesInboxFromDisk(organizationId, schoolName),
+        ),
+        hydrateSchoolAdminMessagesContactsFromDisk(organizationId, schoolName),
+      ]);
       if (cancelled) return;
 
       applyInboxData(resolved.data);
+      applyContactsData(contactsFromDisk);
       setHasLoaded(resolved.hasLoaded);
       setIsLoading(resolved.isLoading);
       setError(null);
+
+      const shouldPrefetchContacts =
+        !messagesContactsCache.get(key)?.length ||
+        messagesContactsCache.isStale(key, DEFAULT_PORTAL_CACHE_TTL_MS);
+
+      if (shouldPrefetchContacts) {
+        void prefetchSchoolAdminMessagesContacts(organizationId, schoolName).then(() => {
+          if (!cancelled) {
+            applyContactsData(messagesContactsCache.get(key));
+          }
+        });
+      }
 
       if (!resolved.shouldBackgroundRefresh) {
         return;
@@ -262,7 +341,7 @@ export function SchoolAdminMessagesInboxProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyInboxData, key, organizationId, reportError, schoolName]);
+  }, [applyContactsData, applyInboxData, key, organizationId, reportError, schoolName]);
 
   const value = useMemo(
     () => ({

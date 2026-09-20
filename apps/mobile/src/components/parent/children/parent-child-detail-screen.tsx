@@ -31,6 +31,8 @@ type ParentChildDetailScreenProps = {
   applicationId: string;
   organizationId: string;
   initialSection?: string | null;
+  initialEnrollmentItemId?: string | null;
+  initialEnrollmentSectionId?: string | null;
 };
 
 function resolveInitialSection(section: string | null | undefined): ParentChildRecordSection {
@@ -45,6 +47,8 @@ export function ParentChildDetailScreen({
   applicationId,
   organizationId,
   initialSection,
+  initialEnrollmentItemId,
+  initialEnrollmentSectionId,
 }: ParentChildDetailScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
@@ -149,7 +153,12 @@ export function ParentChildDetailScreen({
             assignedTeachers={profile.assignedTeachers}
             organizationId={organizationId}
             activeSection={activeSection}
+            initialEnrollmentItemId={initialEnrollmentItemId}
+            initialEnrollmentSectionId={initialEnrollmentSectionId}
             onSectionChange={setActiveSection}
+            onChecklistUpdated={(nextChecklist) => {
+              setProfile((prev) => (prev ? { ...prev, checklist: nextChecklist } : prev));
+            }}
             onPhotoUpdated={handlePhotoUpdated}
           />
         ) : null}

@@ -10,7 +10,7 @@ import { AdminMessagesStoryHeader } from '@/components/school-admin/messages/adm
 import { MessagesListSkeleton } from '@/components/school-admin/messages/messages-list-skeleton';
 import { NewConversationSheet } from '@/components/school-admin/messages/new-conversation-sheet';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
-import { useSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
+import { useSchoolAdminMessagesInbox, prefetchSchoolAdminMessagesContacts } from '@/contexts/school-admin-messages-inbox-context';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -114,6 +114,12 @@ export function MessagesListScreen({
   const openThread = (threadId: string) => {
     router.push(`/school-admin/${organizationSlug}/messages/${threadId}`);
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      void prefetchSchoolAdminMessagesContacts(organizationId, schoolName);
+    }, [organizationId, schoolName]),
+  );
 
   useFocusEffect(
     useCallback(() => {

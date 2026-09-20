@@ -52,6 +52,18 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyMobileAppShowcase"
     ),
+  "family-lyceum": () =>
+    import(
+      "@/components/demo/familylyceum/FamilyLyceumMobileAppShowcase"
+    ),
+  "freedom-prep-academy": () =>
+    import(
+      "@/components/demo/freedomprep/FreedomPrepAcademyMobileAppShowcase"
+    ),
+  "roots-and-wings-microschool": () =>
+    import(
+      "@/components/demo/rootsandwingsmicroschool/RootsAndWingsMicroschoolMobileAppShowcase"
+    ),
   "tapestry-academy": () =>
     import(
       "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"

@@ -694,6 +694,16 @@ export default function OrganizationSettingsEditor({
     setFeatures((prev) => ({ ...prev, [key]: enabled }));
   };
 
+  const setParentHomeFeature = (key: "friday_branch", enabled: boolean) => {
+    setFeatures((prev) => ({
+      ...prev,
+      parent_home: {
+        ...(prev.parent_home ?? { friday_branch: false }),
+        [key]: enabled,
+      },
+    }));
+  };
+
   const updatePortalNavItem = (
     portal: Portal,
     key: string,
@@ -1342,6 +1352,31 @@ export default function OrganizationSettingsEditor({
                     </ul>
                   )}
                 </div>
+
+                {portal === "parent" ? (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-admin-ink font-secondary">
+                      Parent home
+                    </h4>
+                    <div className="border border-admin-border rounded-admin-sm divide-y divide-border">
+                      <FeatureSettingsRow
+                        title="Friday Branch home card"
+                        subtitle="Show Friday Branch schedule summary on parent portal home (requires Friday Branch tab)"
+                        enabled={Boolean(features.parent_home?.friday_branch)}
+                        toggleDisabled={!features.parent?.friday_branch}
+                        toggleTooltip={
+                          !features.parent?.friday_branch
+                            ? "Enable the Friday Branch parent tab first"
+                            : undefined
+                        }
+                        onToggle={(checked) =>
+                          setParentHomeFeature("friday_branch", checked)
+                        }
+                        toggleLabel="Friday Branch home card"
+                      />
+                    </div>
+                  </div>
+                ) : null}
 
                 {portal === "additional" ? (
                   <div className="flex gap-2 border-t border-admin-border pt-5">

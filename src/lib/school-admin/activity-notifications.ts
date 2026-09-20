@@ -39,6 +39,9 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
@@ -127,6 +130,9 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health update",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED]: "Authorized pickup added",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED]: "Authorized pickup updated",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED]: "Authorized pickup removed",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup published",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
@@ -345,6 +351,14 @@ function isStudentHealthNotificationAction(action: string): boolean {
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED
+  );
+}
+
+function isAuthorizedPickupNotificationAction(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED ||
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED ||
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED
   );
 }
 
@@ -1197,6 +1211,20 @@ export async function resolveActivityNotificationLink(
     };
   }
 
+  if (isAuthorizedPickupNotificationAction(event.action)) {
+    const studentId = metadataString(event.metadata, "studentId");
+    if (studentId) {
+      return {
+        href: schoolAdminPath(slug, "students", studentId),
+        ctaLabel: "View student",
+      };
+    }
+    return {
+      href: studentsHref(slug),
+      ctaLabel: "View students",
+    };
+  }
+
   if (isClassroomSignupNotificationAction(event.action)) {
     const staffMemberId = metadataString(event.metadata, "staffMemberId");
     const signupId =
@@ -1284,6 +1312,17 @@ export function mapActivityEventToNotification(
     const familyName = metadataString(event.metadata, "familyName");
     if (familyName) {
       guardianLabel = familyName;
+    }
+  }
+
+  if (isAuthorizedPickupNotificationAction(event.action)) {
+    const studentName = metadataString(event.metadata, "studentName");
+    if (studentName) {
+      subjectLabel = shortenSubjectLabel(studentName);
+    }
+    const actorName = metadataString(event.metadata, "actorName");
+    if (actorName) {
+      guardianLabel = actorName;
     }
   }
 

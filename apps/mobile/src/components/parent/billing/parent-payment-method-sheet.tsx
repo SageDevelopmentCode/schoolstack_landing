@@ -2,8 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -70,6 +74,7 @@ export function ParentPaymentMethodSheet({
   const [modalVisible, setModalVisible] = useState(false);
   const [localMode, setLocalMode] = useState<TuitionPayAmountMode>(amountMode);
   const [localDraft, setLocalDraft] = useState(customDraft);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
 
@@ -115,6 +120,21 @@ export function ParentPaymentMethodSheet({
     }
   }, [visible, modalVisible, backdropOpacity, sheetTranslateY]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardInset(0);
+    });
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   const payResolution = useMemo(
     () =>
       resolveTuitionPayAmountCents({
@@ -159,29 +179,38 @@ export function ParentPaymentMethodSheet({
           onPress={loading ? undefined : onClose}
           accessibilityLabel="Close payment method selection"
         />
-        <Animated.View
-          style={[
-            styles.sheet,
-            sheetAnimatedStyle,
-            {
-              backgroundColor: Story.white,
-              borderColor: theme.line,
-              paddingBottom: insets.bottom + Spacing.four,
-            },
-          ]}>
-          <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.line }]} />
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoiding}>
+          <Animated.View
+            style={[
+              styles.sheet,
+              sheetAnimatedStyle,
+              {
+                backgroundColor: Story.white,
+                borderColor: theme.line,
+                paddingBottom: insets.bottom + Spacing.four,
+              },
+            ]}>
+            <View style={styles.handleRow}>
+              <View style={[styles.handle, { backgroundColor: theme.line }]} />
+            </View>
 
-          <View style={[styles.header, { borderBottomColor: theme.line }]}>
-            <Text style={[styles.title, { color: theme.ink }]}>Choose payment method</Text>
-            <Text style={[styles.subtitle, { color: theme.muted }]}>{label}</Text>
-            <Text style={[styles.amount, { color: theme.ink }]}>
-              {formatCents(payResolution.amountCents)}
-            </Text>
-          </View>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[
+                styles.sheetContent,
+                keyboardInset > 0 ? { paddingBottom: keyboardInset + Spacing.four } : null,
+              ]}>
+              <View style={[styles.header, { borderBottomColor: theme.line }]}>
+                <Text style={[styles.title, { color: theme.ink }]}>Choose payment method</Text>
+                <Text style={[styles.subtitle, { color: theme.muted }]}>{label}</Text>
+                <Text style={[styles.amount, { color: theme.ink }]}>
+                  {formatCents(payResolution.amountCents)}
+                </Text>
+              </View>
 
-          {showExtraAmountUi ? (
+              {showExtraAmountUi ? (
             <View style={styles.amountSection}>
               <View style={styles.modeRow}>
                 <Pressable
@@ -302,8 +331,10 @@ export function ParentPaymentMethodSheet({
                 <Ionicons name="chevron-forward" size={18} color={theme.muted} />
               )}
             </Pressable>
-          </View>
-        </Animated.View>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -313,6 +344,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  keyboardAvoiding: {
+    justifyContent: 'flex-end',
+  },
+  sheetContent: {
+    flexGrow: 1,
   },
   backdrop: {
     ...StyleSheet.absoluteFill,

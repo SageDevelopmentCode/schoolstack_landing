@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { listAssignedEnrolledStudents, formatEnrolledStudentFirstNames, formatEnrolledStudentSubtitle, listFamilyEnrolledStudents } from "@/lib/school-admin/enrolled-students";
+import {
+  formatEnrolledStudentFirstNames,
+  formatEnrolledStudentSubtitle,
+  listAssignedEnrolledStudents,
+  listFamilyEnrolledStudents,
+  listFamilyEnrolledStudentsForMessageContacts,
+} from "@/lib/school-admin/enrolled-students";
 import { listStaffMembers } from "@/lib/staff/staff-members";
 import { colorForKey } from "./format";
 import {
@@ -206,13 +212,16 @@ export async function listAdminMessageContacts(
 ): Promise<MessageContact[]> {
   const contacts: MessageContact[] = [];
 
-  const { data: guardianRows, error: guardiansError } = await admin
+  const guardiansQuery = admin
     .from("guardians")
     .select("id, first_name, last_name, family_id, profile_photo_url")
     .eq("organization_id", organizationId)
     .order("last_name", { ascending: true })
     .order("first_name", { ascending: true })
     .limit(500);
+
+  const [{ data: guardianRows, error: guardiansError }, staffMembers] =
+    await Promise.all([guardiansQuery, listStaffMembers(admin, organizationId)]);
 
   if (guardiansError) throw new Error(guardiansError.message);
 
@@ -226,7 +235,11 @@ export async function listAdminMessageContacts(
 
   const enrolledStudentsByFamily =
     familyIds.length > 0
-      ? await listFamilyEnrolledStudents(admin, organizationId, familyIds)
+      ? await listFamilyEnrolledStudentsForMessageContacts(
+          admin,
+          organizationId,
+          familyIds,
+        )
       : new Map();
 
   for (const guardian of guardianRows ?? []) {
@@ -256,24 +269,6 @@ export async function listAdminMessageContacts(
     });
   }
 
-  const staffMembers = await listStaffMembers(admin, organizationId);
-  const { data: staffPhotoRows, error: staffPhotoError } = await admin
-    .from("staff_members")
-    .select("id, profile_photo_url")
-    .eq("organization_id", organizationId);
-
-  if (staffPhotoError) throw new Error(staffPhotoError.message);
-
-  const staffPhotoById = new Map<string, string | null>();
-  for (const row of staffPhotoRows ?? []) {
-    staffPhotoById.set(
-      String(row.id),
-      typeof row.profile_photo_url === "string" && row.profile_photo_url.trim()
-        ? row.profile_photo_url.trim()
-        : null,
-    );
-  }
-
   for (const staff of staffMembers) {
     if (staff.employmentStatus !== "active") continue;
     const name = [staff.firstName, staff.lastName].filter(Boolean).join(" ");
@@ -284,7 +279,7 @@ export async function listAdminMessageContacts(
       name: name || "Staff",
       subtitle: staff.roleTitle ?? staff.portalRole ?? "Staff",
       color: colorForKey(staff.id),
-      profilePhotoUrl: staffPhotoById.get(staff.id) ?? null,
+      profilePhotoUrl: staff.profilePhotoUrl,
     });
   }
 

@@ -13,7 +13,7 @@ import type { ParentFormHomeSnapshot } from '@/lib/parent/parent-portal-api';
 
 type ParentHomeFormsSnapshotCardProps = {
   snapshot: ParentFormHomeSnapshot;
-  onOpenForm: (formsHref: string) => void;
+  onOpenForm: (formId: string) => void;
   onViewAll: () => void;
 };
 
@@ -75,7 +75,7 @@ export function ParentHomeFormsSnapshotCard({
           return (
             <Pressable
               key={item.formId}
-              onPress={() => onOpenForm(item.formsHref)}
+              onPress={() => onOpenForm(item.formId)}
               style={({ pressed }) => [styles.rowPressable, pressed && styles.rowPressed]}>
               <StoryCard style={styles.rowCard}>
                 <View style={styles.rowContent}>

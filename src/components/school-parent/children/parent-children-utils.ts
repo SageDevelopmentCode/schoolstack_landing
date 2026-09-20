@@ -5,14 +5,20 @@ import {
   schoolProgramParentPath,
 } from "@/lib/organization-settings/parent-routes";
 
-export type ParentChildRecordSection = "application" | "checklist" | "teachers" | "health";
+export type ParentChildRecordSection =
+  | "application"
+  | "checklist"
+  | "teachers"
+  | "health"
+  | "pickup";
 
 export function isParentChildRecordSection(value: string | null): value is ParentChildRecordSection {
   return (
     value === "application" ||
     value === "checklist" ||
     value === "teachers" ||
-    value === "health"
+    value === "health" ||
+    value === "pickup"
   );
 }
 

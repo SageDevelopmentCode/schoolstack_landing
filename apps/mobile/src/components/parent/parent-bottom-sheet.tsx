@@ -1,5 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -37,6 +46,7 @@ export function ParentBottomSheet({
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const backdropOpacity = useSharedValue(0);
   const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
 
@@ -67,6 +77,21 @@ export function ParentBottomSheet({
     }
   }, [visible, modalVisible, backdropOpacity, sheetTranslateY]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardInset(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardInset(0);
+    });
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   const backdropAnimatedStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
@@ -84,33 +109,44 @@ export function ParentBottomSheet({
           onPress={onClose}
           accessibilityLabel={accessibilityLabel}
         />
-        <Animated.View
-          style={[
-            styles.sheet,
-            sheetAnimatedStyle,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-              paddingBottom: insets.bottom + Spacing.four,
-            },
-          ]}>
-          <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardAvoiding}>
+          <Animated.View
+            style={[
+              styles.sheet,
+              sheetAnimatedStyle,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                paddingBottom: insets.bottom + Spacing.four,
+              },
+            ]}>
+            <View style={styles.handleRow}>
+              <View style={[styles.handle, { backgroundColor: theme.borderStrong }]} />
+            </View>
 
-          <View style={[styles.header, { borderBottomColor: theme.border }]}>
-            <ThemedText type="title" style={{ color: theme.textPrimary }}>
-              {title}
-            </ThemedText>
-            {subtitle ? (
-              <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
-                {subtitle}
+            <View style={[styles.header, { borderBottomColor: theme.border }]}>
+              <ThemedText type="title" style={{ color: theme.textPrimary }}>
+                {title}
               </ThemedText>
-            ) : null}
-          </View>
+              {subtitle ? (
+                <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: 4 }}>
+                  {subtitle}
+                </ThemedText>
+              ) : null}
+            </View>
 
-          <ScrollView contentContainerStyle={styles.body}>{children}</ScrollView>
-        </Animated.View>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[
+                styles.body,
+                keyboardInset > 0 ? { paddingBottom: keyboardInset + Spacing.four } : null,
+              ]}>
+              {children}
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -119,6 +155,9 @@ export function ParentBottomSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  keyboardAvoiding: {
     justifyContent: 'flex-end',
   },
   backdrop: {

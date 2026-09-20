@@ -19,7 +19,10 @@ import {
   type ProgramCoopFamily,
 } from "@/lib/admissions/program-coop-directory";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
+import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
+import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
 import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
@@ -36,7 +39,39 @@ export type ParentHomeContentData = {
   formAttentionItems: ParentFormAttentionItem[];
   formSnapshot: ParentFormHomeSnapshot | null;
   coopFamilies?: ProgramCoopFamily[];
+  fridayBranchHome?: ParentFridayBranchPageBundle | null;
 };
+
+function buildFridayBranchStudentOptions(
+  familyChildren: Awaited<ReturnType<typeof listFamilyChildrenForHome>>,
+) {
+  return familyChildren
+    .filter((child) => child.studentId)
+    .map((child) => ({
+      id: child.studentId!,
+      name: child.studentName,
+    }));
+}
+
+async function loadFridayBranchHomeBundle(input: {
+  organizationId: string;
+  familyId: string;
+  features: OrganizationFeatures;
+  familyChildren: Awaited<ReturnType<typeof listFamilyChildrenForHome>>;
+}): Promise<ParentFridayBranchPageBundle | null> {
+  if (!isParentHomeFridayBranchEnabled(input.features)) {
+    return null;
+  }
+
+  const admin = createAdminClient();
+  const studentOptions = buildFridayBranchStudentOptions(input.familyChildren);
+  return loadParentFridayBranchPageBundle(
+    admin,
+    input.organizationId,
+    input.familyId,
+    studentOptions,
+  );
+}
 
 async function loadCoopFamiliesForHome(input: {
   organizationId: string;
@@ -76,6 +111,7 @@ export async function loadParentHomeContentData(input: {
       enrollmentIncompleteBannerItems: [],
       formAttentionItems: [],
       formSnapshot: null,
+      fridayBranchHome: null,
     };
   }
 
@@ -112,8 +148,14 @@ export async function loadParentHomeContentData(input: {
   const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
-  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies, formAttentionItems, formSnapshot] =
-    await Promise.all([
+  const [
+    amendmentsByApplicationId,
+    incompleteByApplicationId,
+    coopFamilies,
+    formAttentionItems,
+    formSnapshot,
+    fridayBranchHome,
+  ] = await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       supabase,
       input.organizationId,
@@ -149,6 +191,12 @@ export async function loadParentHomeContentData(input: {
           input.previewBasePath,
         )
       : Promise.resolve(null),
+    loadFridayBranchHomeBundle({
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      features: input.features,
+      familyChildren,
+    }),
   ]);
 
   return {
@@ -169,6 +217,7 @@ export async function loadParentHomeContentData(input: {
     formAttentionItems,
     formSnapshot,
     coopFamilies,
+    fridayBranchHome,
   };
 }
 
@@ -225,8 +274,14 @@ export async function loadParentHomePreviewContentData(input: {
   const applicationIds = familyChildren.map((child) => child.applicationId);
   const admin = createAdminClient();
   const formsFeatureEnabled = isParentFeatureEnabled(input.features, "forms_documents");
-  const [amendmentsByApplicationId, incompleteByApplicationId, coopFamilies, formAttentionItems, formSnapshot] =
-    await Promise.all([
+  const [
+    amendmentsByApplicationId,
+    incompleteByApplicationId,
+    coopFamilies,
+    formAttentionItems,
+    formSnapshot,
+    fridayBranchHome,
+  ] = await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
       input.supabase,
       input.organizationId,
@@ -262,6 +317,12 @@ export async function loadParentHomePreviewContentData(input: {
           input.previewBasePath,
         )
       : Promise.resolve(null),
+    loadFridayBranchHomeBundle({
+      organizationId: input.organizationId,
+      familyId: input.familyId,
+      features: input.features,
+      familyChildren,
+    }),
   ]);
 
   return {
@@ -282,5 +343,6 @@ export async function loadParentHomePreviewContentData(input: {
     formAttentionItems,
     formSnapshot,
     coopFamilies,
+    fridayBranchHome,
   };
 }

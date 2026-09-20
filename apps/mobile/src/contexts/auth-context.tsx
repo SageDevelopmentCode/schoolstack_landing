@@ -16,7 +16,7 @@ import { prefetchParentHome } from '@/contexts/parent-home-context';
 import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { prefetchTeacherHome } from '@/contexts/teacher-home-context';
 import { prefetchTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-context';
-import { prefetchSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
+import { prefetchSchoolAdminMessagesInbox, prefetchSchoolAdminMessagesContacts } from '@/contexts/school-admin-messages-inbox-context';
 import { prefetchSchoolAdminStudents } from '@/contexts/school-admin-students-context';
 import { prefetchSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
 import {
@@ -65,6 +65,7 @@ function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
     prefetchSchoolAdminSubmissions(school.id),
     prefetchSchoolAdminStudents(school.id),
     prefetchSchoolAdminMessagesInbox(school.id, school.name),
+    prefetchSchoolAdminMessagesContacts(school.id, school.name),
   ]);
 }
 

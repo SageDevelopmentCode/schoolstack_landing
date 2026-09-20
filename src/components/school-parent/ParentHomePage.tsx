@@ -72,9 +72,13 @@ import ParentHomeFeatureAnnouncementsSection from "@/components/school-parent/ho
 import {
   ParentHomeChildCardsSkeleton,
   ParentHomeFormsSnapshotSkeleton,
+  ParentHomeFridayBranchSkeleton,
   ParentHomeStartHereSkeleton,
 } from "@/components/school-parent/home/ParentHomeDeferredSkeleton";
 import ParentHomeFormsSnapshotSection from "@/components/school-parent/home/ParentHomeFormsSnapshotSection";
+import ParentHomeFridayBranchSection from "@/components/school-parent/home/ParentHomeFridayBranchSection";
+import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
+import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
@@ -112,6 +116,7 @@ type ParentHomePageProps = {
   programSlug?: string;
   parentNavBasePath?: string;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
+  fridayBranchHome?: ParentFridayBranchPageBundle | null;
 };
 
 type AttentionItem = {
@@ -414,6 +419,7 @@ export default function ParentHomePage({
   programSlug,
   parentNavBasePath,
   featureAnnouncements = [],
+  fridayBranchHome = null,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeGuide, setActiveGuide] = useState<ParentDocGuide | null>(null);
@@ -448,6 +454,9 @@ export default function ParentHomePage({
   );
   const formsFeatureEnabled = features
     ? isParentFeatureEnabled(features, "forms_documents")
+    : false;
+  const fridayBranchHomeEnabled = features
+    ? isParentHomeFridayBranchEnabled(features)
     : false;
 
   const howToGuides = useMemo(() => {
@@ -760,6 +769,24 @@ export default function ParentHomePage({
           </motion.section>
         ) : contentDeferred && formsFeatureEnabled ? (
           <ParentHomeFormsSnapshotSkeleton theme={theme} />
+        ) : null}
+
+        {fridayBranchHomeEnabled && organizationId ? (
+          <motion.div custom={5} initial="hidden" animate="visible" variants={fadeUp}>
+            {contentDeferred ? (
+              <ParentHomeFridayBranchSkeleton theme={theme} />
+            ) : fridayBranchHome && fridayBranchHome.blocks.length > 0 ? (
+              <ParentHomeFridayBranchSection
+                theme={theme}
+                organizationId={organizationId}
+                schoolSlug={schoolSlug}
+                initialBundle={fridayBranchHome}
+                previewMode={previewMode}
+                previewFamilyId={previewMode ? familyId : undefined}
+                parentNavBasePath={parentNavBasePath}
+              />
+            ) : null}
+          </motion.div>
         ) : null}
 
         {coopModeEnabled && programPortalLabel ? (

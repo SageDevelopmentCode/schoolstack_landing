@@ -51,4 +51,20 @@ describe("mobile bearer auth route wiring", () => {
     assert.match(source, /userHasTeacherPortalAccess\(/);
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
   });
+
+  it("enrollment checklist item route uses createClientFromRequest", () => {
+    const source = readRoute("app/api/admissions/enrollment-checklist-items/[id]/route.ts");
+
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+  });
+
+  it("enrollment checklist checkout route uses createClientFromRequest", () => {
+    const source = readRoute(
+      "app/api/admissions/enrollment-checklist-items/[id]/checkout/route.ts",
+    );
+
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+  });
 });

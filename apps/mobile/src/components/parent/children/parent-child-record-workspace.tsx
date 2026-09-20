@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, View, type View as ViewType } from 'react-native';
 
 import { ParentApplicationStepBottomSheet } from '@/components/parent/children/parent-application-step-bottom-sheet';
@@ -44,7 +44,10 @@ type ParentChildRecordWorkspaceProps = {
   assignedTeachers: ParentAssignedTeacher[];
   organizationId: string;
   activeSection: ParentChildRecordSection;
+  initialEnrollmentItemId?: string | null;
+  initialEnrollmentSectionId?: string | null;
   onSectionChange: (section: ParentChildRecordSection) => void;
+  onChecklistUpdated?: (checklist: LoadedEnrollmentChecklist) => void;
   onPhotoUpdated?: (profilePhotoUrl: string) => void;
   workspaceRef?: React.RefObject<ViewType | null>;
 };
@@ -84,7 +87,10 @@ export function ParentChildRecordWorkspace({
   assignedTeachers,
   organizationId,
   activeSection,
+  initialEnrollmentItemId,
+  initialEnrollmentSectionId,
   onSectionChange,
+  onChecklistUpdated,
   onPhotoUpdated,
   workspaceRef,
 }: ParentChildRecordWorkspaceProps) {
@@ -96,7 +102,13 @@ export function ParentChildRecordWorkspace({
   );
   const [photoUploading, setPhotoUploading] = useState(false);
   const [selectedApplicationStepId, setSelectedApplicationStepId] = useState<string | null>(null);
-  const [selectedEnrollmentItemId, setSelectedEnrollmentItemId] = useState<string | null>(null);
+  const [selectedEnrollmentItemId, setSelectedEnrollmentItemId] = useState<string | null>(
+    initialEnrollmentItemId ?? null,
+  );
+  const [selectedEnrollmentSectionId, setSelectedEnrollmentSectionId] = useState<string | null>(
+    initialEnrollmentSectionId ?? null,
+  );
+  const [localChecklist, setLocalChecklist] = useState(checklist);
 
   const student = extractStudentFromResponses(application.responses);
   const fullName =
@@ -109,7 +121,8 @@ export function ParentChildRecordWorkspace({
     : student?.grade
       ? `Grade ${student.grade}`
       : null;
-  const hasChecklist = Boolean(checklist && checklist.items.length > 0);
+  const resolvedChecklist = localChecklist ?? checklist;
+  const hasChecklist = Boolean(resolvedChecklist && resolvedChecklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
   const canUploadPhoto = Boolean(application.studentId);
   const statusLabel = applicationStatusLabel(application.status);
@@ -140,19 +153,33 @@ export function ParentChildRecordWorkspace({
     return stepsWithStatus.find((step) => step.id === selectedApplicationStepId) ?? null;
   }, [application, selectedApplicationStepId]);
 
+  useEffect(() => {
+    if (initialEnrollmentItemId) {
+      setSelectedEnrollmentItemId(initialEnrollmentItemId);
+      onSectionChange('checklist');
+    }
+    if (initialEnrollmentSectionId) {
+      setSelectedEnrollmentSectionId(initialEnrollmentSectionId);
+    }
+  }, [initialEnrollmentItemId, initialEnrollmentSectionId, onSectionChange]);
+
+  useEffect(() => {
+    setLocalChecklist(checklist);
+  }, [checklist]);
+
   const selectedEnrollmentItem = useMemo(() => {
-    if (!checklist || !selectedEnrollmentItemId) return null;
-    return checklist.items.find((item) => item.id === selectedEnrollmentItemId) ?? null;
-  }, [checklist, selectedEnrollmentItemId]);
+    if (!resolvedChecklist || !selectedEnrollmentItemId) return null;
+    return resolvedChecklist.items.find((item) => item.id === selectedEnrollmentItemId) ?? null;
+  }, [resolvedChecklist, selectedEnrollmentItemId]);
 
   const selectedEnrollmentInstance = useMemo(() => {
-    if (!checklist || !selectedEnrollmentItemId) return null;
+    if (!resolvedChecklist || !selectedEnrollmentItemId) return null;
     return (
-      checklist.instances.find(
+      resolvedChecklist.instances.find(
         (instance) => instance.templateItemId === selectedEnrollmentItemId,
       ) ?? null
     );
-  }, [checklist, selectedEnrollmentItemId]);
+  }, [resolvedChecklist, selectedEnrollmentItemId]);
 
   const handlePhotoSelected = useCallback(
     async (uri: string, mimeType?: string) => {
@@ -261,13 +288,16 @@ export function ParentChildRecordWorkspace({
             />
           ) : null}
 
-          {activeTab === 'checklist' && checklist ? (
+          {activeTab === 'checklist' && resolvedChecklist ? (
             <SubmissionEnrollmentStepsSection
               embedded
-              checklist={checklist}
+              checklist={resolvedChecklist}
               loading={false}
               error={null}
-              onItemPress={setSelectedEnrollmentItemId}
+              onItemPress={(itemId) => {
+                setSelectedEnrollmentItemId(itemId);
+                setSelectedEnrollmentSectionId(null);
+              }}
               activeItemId={selectedEnrollmentItemId ?? undefined}
             />
           ) : null}
@@ -316,7 +346,18 @@ export function ParentChildRecordWorkspace({
         visible={Boolean(selectedEnrollmentItem)}
         item={selectedEnrollmentItem}
         instance={selectedEnrollmentInstance}
-        onClose={() => setSelectedEnrollmentItemId(null)}
+        checklist={resolvedChecklist}
+        organizationId={organizationId}
+        applicationId={application.id}
+        initialSectionId={selectedEnrollmentSectionId ?? undefined}
+        onChecklistUpdated={(nextChecklist) => {
+          setLocalChecklist(nextChecklist);
+          onChecklistUpdated?.(nextChecklist);
+        }}
+        onClose={() => {
+          setSelectedEnrollmentItemId(null);
+          setSelectedEnrollmentSectionId(null);
+        }}
       />
     </View>
   );

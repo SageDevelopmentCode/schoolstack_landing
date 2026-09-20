@@ -25,6 +25,7 @@ export interface SchoolAdminDemoLogo {
   text?: string;
   textClassName?: string;
   logoOnDarkClassName?: string;
+  logoOnLightClassName?: string;
 }
 
 /** School-specific strings substituted into default admin mock content. */

@@ -32,6 +32,7 @@ const ADMIN_NAV_CATALOG_ENTRIES: PortalNavCatalogEntry[] = [
 const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
   my_school: [
     { key: "students", label: "My Students", icon: "users" },
+    { key: "attendance", label: "Attendance", icon: "clipboard-list" },
     { key: "programs", label: "Programs", icon: "book-open" },
     { key: "staff", label: "Staff", icon: "user-check" },
     { key: "classrooms", label: "Classrooms", icon: "home" },

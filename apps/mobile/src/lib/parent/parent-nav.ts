@@ -10,6 +10,7 @@ export type ParentMoreMenuItemId =
   | 'children'
   | 'committees'
   | 'classroom-signups'
+  | 'forms-documents'
   | 'notifications';
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {
@@ -34,6 +35,50 @@ export function parentClassroomSignupsRoute(slug: string): Href {
 
 export function parentClassroomSignupDetailRoute(slug: string, signupId: string): Href {
   return `/parent/${slug}/more/classroom-signups/${encodeURIComponent(signupId)}` as Href;
+}
+
+export function parentFormsDocumentsRoute(slug: string): Href {
+  return parentMoreRoute(slug, 'forms-documents');
+}
+
+export function parentFormDetailRoute(slug: string, formId: string): Href {
+  return `/parent/${slug}/more/forms-documents/${encodeURIComponent(formId)}` as Href;
+}
+
+export function parentEnrollmentItemRoute(
+  slug: string,
+  applicationId: string,
+  templateItemId?: string,
+  sectionId?: string,
+): Href {
+  const params = new URLSearchParams({ section: 'checklist' });
+  if (templateItemId) {
+    params.set('item', templateItemId);
+  }
+  if (sectionId) {
+    params.set('enrollmentSection', sectionId);
+  }
+  return `/parent/${slug}/more/children/${encodeURIComponent(applicationId)}?${params.toString()}` as Href;
+}
+
+export function parseEnrollmentHref(
+  enrollmentHref: string,
+): { applicationId: string; templateItemId?: string; sectionId?: string } | null {
+  const match = enrollmentHref.match(/\/apply\/([^/?]+)\/enrollment(?:\?(.+))?/);
+  if (!match) return null;
+
+  const applicationId = match[1];
+  const query = match[2];
+  if (!query) {
+    return { applicationId };
+  }
+
+  const params = new URLSearchParams(query);
+  return {
+    applicationId,
+    templateItemId: params.get('item') ?? undefined,
+    sectionId: params.get('section') ?? undefined,
+  };
 }
 
 export function parentChildrenRoute(slug: string, applicationId?: string): Href {
@@ -78,7 +123,15 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   children: (slug) => parentMoreRoute(slug, 'children'),
   committees: (slug) => parentMoreRoute(slug, 'committees'),
   classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
+  forms_documents: (slug) => parentFormsDocumentsRoute(slug),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
+};
+
+const WEB_PARENT_FEATURE_ALIASES: Record<string, string> = {
+  forms_documents: 'forms_documents',
+  'forms-documents': 'forms_documents',
+  classroom_signups: 'classroom_signups',
+  'classroom-signups': 'classroom_signups',
 };
 
 export function getParentFeatureRoute(slug: string, featureKey: string): Href | null {
@@ -86,9 +139,87 @@ export function getParentFeatureRoute(slug: string, featureKey: string): Href | 
   return resolver ? resolver(slug) : null;
 }
 
-export function getOnboardingItemRoute(slug: string, target: string): Href | null {
+export function getOnboardingItemRoute(
+  slug: string,
+  target: string,
+  options?: { healthApplicationId?: string | null },
+): Href | null {
   if (target.startsWith('url:')) return null;
+
+  if (target === 'health') {
+    if (!options?.healthApplicationId) return null;
+    return parentChildDetailRoute(slug, options.healthApplicationId, 'health');
+  }
+
   return getParentFeatureRoute(slug, target);
+}
+
+function parseWebParentFeatureKey(href: string): string | null {
+  const match = href.match(/\/parent\/([^/?]+)/);
+  if (!match?.[1]) return null;
+  return WEB_PARENT_FEATURE_ALIASES[match[1]] ?? match[1].replace(/-/g, '_');
+}
+
+export function resolveParentAttentionNavigation(
+  slug: string,
+  item: {
+    target?: string;
+    href?: string;
+    formId?: string;
+    enrollmentApplicationId?: string;
+    enrollmentTemplateItemId?: string;
+    enrollmentSectionId?: string;
+    healthApplicationId?: string | null;
+  },
+): Href | null {
+  if (item.formId) {
+    return parentFormDetailRoute(slug, item.formId);
+  }
+
+  if (item.enrollmentApplicationId) {
+    return parentEnrollmentItemRoute(
+      slug,
+      item.enrollmentApplicationId,
+      item.enrollmentTemplateItemId,
+      item.enrollmentSectionId,
+    );
+  }
+
+  if (item.target) {
+    const route = getOnboardingItemRoute(slug, item.target, {
+      healthApplicationId: item.healthApplicationId,
+    });
+    if (route) return route;
+  }
+
+  if (item.href) {
+    if (item.href.startsWith('/parent/')) {
+      return item.href as Href;
+    }
+
+    const enrollment = parseEnrollmentHref(item.href);
+    if (enrollment) {
+      return parentEnrollmentItemRoute(
+        slug,
+        enrollment.applicationId,
+        enrollment.templateItemId,
+        enrollment.sectionId,
+      );
+    }
+
+    const formsMatch = item.href.match(/[?&]form=([^&]+)/);
+    if (formsMatch?.[1] && item.href.includes('forms_documents')) {
+      return parentFormDetailRoute(slug, decodeURIComponent(formsMatch[1]));
+    }
+
+    const featureKey = parseWebParentFeatureKey(item.href);
+    if (featureKey) {
+      const route = getParentFeatureRoute(slug, featureKey);
+      if (route) return route;
+    }
+  }
+
+  return null;
 }
 
 type QuickActionIconStyle = {

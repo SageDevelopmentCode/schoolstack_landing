@@ -16,6 +16,12 @@ import type {
   ParentClassroomSignupsPageBundle,
   ParentSignupAttentionItem,
 } from '@/lib/parent/parent-classroom-signups-types';
+import type {
+  ParentFormDetail,
+  ParentFormDownloadPayload,
+  ParentFormsDocumentsPageBundle,
+  SubmitParentFormInput,
+} from '@/lib/parent/parent-forms-documents-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
@@ -720,6 +726,59 @@ export async function withdrawParentClassroomSignupResponse(
     throw new Error('Failed to withdraw response.');
   }
   return payload.response;
+}
+
+export type {
+  ParentFormDetail,
+  ParentFormDownloadPayload,
+  ParentFormFilterStatus,
+  ParentFormListItem,
+  ParentFormsDocumentsPageBundle,
+  SubmitParentFormInput,
+} from '@/lib/parent/parent-forms-documents-types';
+
+export async function fetchParentFormsDocuments(
+  organizationId: string,
+): Promise<ParentFormsDocumentsPageBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<ParentFormsDocumentsPageBundle>(
+    `/api/parent-portal/forms-documents?${query}`,
+  );
+  return { items: payload.items ?? [] };
+}
+
+export async function fetchParentFormDetail(
+  organizationId: string,
+  formId: string,
+): Promise<ParentFormDetail> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentFormDetail>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}?${query}`,
+  );
+}
+
+export async function submitParentFormResponse(
+  organizationId: string,
+  formId: string,
+  input: SubmitParentFormInput,
+): Promise<ParentFormDetail> {
+  return fetchParentApi<ParentFormDetail>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}`,
+    {
+      method: 'PATCH',
+      body: { organizationId, ...input },
+    },
+  );
+}
+
+export async function fetchParentFormDownloadUrl(
+  organizationId: string,
+  formId: string,
+): Promise<ParentFormDownloadPayload> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentFormDownloadPayload>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}/download?${query}`,
+  );
 }
 
 export async function fetchParentSignupAttentionItems(

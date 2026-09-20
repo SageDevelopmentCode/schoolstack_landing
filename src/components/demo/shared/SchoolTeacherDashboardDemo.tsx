@@ -49,6 +49,7 @@ import {
   getTeacherDemoLogo,
 } from "@/components/demo/shared/teacher-demo-runtime";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { fraunces, dmSans } from "@/lib/fonts";
 
 // ─── Demo Data ────────────────────────────────────────────────────────────────
@@ -5110,11 +5111,8 @@ export default function SchoolTeacherDashboardDemo({
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
             {/* Logo */}
             <div className="shrink-0">
-              <Image
-                src={getTeacherDemoLogo().src}
-                alt={getTeacherDemoLogo().alt}
-                width={getTeacherDemoLogo().width}
-                height={getTeacherDemoLogo().height}
+              <SchoolDemoWordmark
+                logo={getTeacherDemoLogo()}
                 className="h-10 w-auto object-contain"
               />
             </div>

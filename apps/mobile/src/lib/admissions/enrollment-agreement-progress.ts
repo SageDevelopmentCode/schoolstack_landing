@@ -59,3 +59,43 @@ export function parseAgreementConsentValue(
   const value = responses?.consentValue;
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
+
+export function mergeAgreementSectionSignature(
+  existing: AgreementSectionSignature[],
+  sectionId: string,
+  signerName: string,
+  signedAt: string = new Date().toISOString(),
+): AgreementSectionSignature[] {
+  const next = existing.filter((signature) => signature.sectionId !== sectionId);
+  next.push({ sectionId, signerName, signedAt });
+  return next;
+}
+
+export function getAgreementResumeSectionIndex(
+  sections: EnrollmentContractSection[],
+  signatures: AgreementSectionSignature[],
+): number {
+  if (sections.length === 0) return 0;
+
+  const signedIds = new Set(signatures.map((signature) => signature.sectionId));
+  const firstUnsignedIndex = sections.findIndex((section) => !signedIds.has(section.id));
+  if (firstUnsignedIndex === -1) {
+    return sections.length - 1;
+  }
+  return firstUnsignedIndex;
+}
+
+export function getAgreementInitialSectionIndex(
+  sections: EnrollmentContractSection[],
+  signatures: AgreementSectionSignature[],
+  explicitSectionId?: string | null,
+): number {
+  if (sections.length === 0) return 0;
+
+  if (explicitSectionId) {
+    const explicitIndex = sections.findIndex((section) => section.id === explicitSectionId);
+    if (explicitIndex >= 0) return explicitIndex;
+  }
+
+  return getAgreementResumeSectionIndex(sections, signatures);
+}

@@ -60,6 +60,7 @@ import {
   getParentDemoLogo,
 } from "@/components/demo/shared/parent-demo-runtime";
 import { demoStoryShellStyle } from "@/components/demo/shared/demo-story-theme";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { fraunces, dmSans } from "@/lib/fonts";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -4754,9 +4755,8 @@ function DemoHeader({
     >
       {/* Logo — left */}
       <div className="flex items-center gap-2 flex-1">
-        <img
-          src={getParentDemoLogo().src}
-          alt={getParentDemoLogo().alt}
+        <SchoolDemoWordmark
+          logo={getParentDemoLogo()}
           className="h-10 w-auto object-contain"
         />
         {/* <span className="text-sm font-semibold text-gray-700">SchoolLayer</span> */}
