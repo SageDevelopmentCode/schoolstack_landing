@@ -141,7 +141,8 @@ export type ParentOnboardingAutoCompletionType =
   | "messages"
   | "committees"
   | "children"
-  | "health";
+  | "health"
+  | "pickup";
 
 export type ParentOnboardingItem = {
   id: string;

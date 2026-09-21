@@ -43,6 +43,10 @@ const TeacherFormsDocumentsPage = nextDynamic(
     ),
 );
 
+const TeacherAttendancePage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherAttendancePage"),
+);
+
 export const dynamic = "force-dynamic";
 
 type PageProps = {
@@ -206,6 +210,17 @@ export default async function StaffTeacherPreviewFeaturePage({
         classroomOptions={pageData.classroomOptions}
         previewMode
         uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
+      />
+    );
+  }
+
+  if (feature === "attendance") {
+    return (
+      <TeacherAttendancePage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+        previewMode
       />
     );
   }

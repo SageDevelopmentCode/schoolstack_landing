@@ -42,6 +42,10 @@ const TeacherFormsDocumentsPage = nextDynamic(
     ),
 );
 
+const TeacherAttendancePage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherAttendancePage"),
+);
+
 export const dynamic = "force-dynamic";
 
 type PageProps = {
@@ -224,6 +228,18 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         initialForms={pageData.forms}
         initialResponsesByFormId={pageData.responsesByFormId}
         classroomOptions={pageData.classroomOptions}
+      />
+    );
+  }
+
+  if (feature === "attendance") {
+    await requireTeacherPortalUser(supabase, org.id);
+
+    return (
+      <TeacherAttendancePage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
       />
     );
   }

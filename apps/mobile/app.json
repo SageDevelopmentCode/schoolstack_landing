@@ -40,6 +40,14 @@
         {
           "photosPermission": "Allow MudKitchen to access your photos so you can attach images to messages."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#5C4A3A",
+          "defaultChannel": "messages"
+        }
       ]
     ],
     "experiments": {

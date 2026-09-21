@@ -29,6 +29,7 @@ import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { logMobileAuthSessionRestored, logMobileAuthSignedOut } from '@/lib/mobile-activity';
+import { clearExpoPushToken } from '@/lib/push-notifications';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -255,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     void logMobileAuthSignedOut(portalType, selectedSchool?.id);
+    await clearExpoPushToken();
     await supabase.auth.signOut();
     setPortalType(null);
     setSelectedSchool(null);

@@ -599,6 +599,99 @@ export async function notifyMobileOperationalError(payload: {
   );
 }
 
+const MOBILE_PUSH_PORTAL_LABELS: Record<"parent" | "teacher" | "admin", string> = {
+  parent: "Parent",
+  teacher: "Teacher",
+  admin: "Admin",
+};
+
+function mobilePushNotificationTitle(
+  status: "sent" | "failed" | "skipped_no_token",
+): string {
+  switch (status) {
+    case "sent":
+      return "📱 Mobile push sent";
+    case "failed":
+      return "📱 Mobile push failed";
+    case "skipped_no_token":
+      return "📱 Mobile push skipped · no device";
+    default:
+      return "📱 Mobile push delivery";
+  }
+}
+
+function mobilePushNotificationColor(
+  status: "sent" | "failed" | "skipped_no_token",
+): number {
+  switch (status) {
+    case "sent":
+      return DISCORD_EMBED_COLORS.success;
+    case "failed":
+      return DISCORD_EMBED_COLORS.error;
+    case "skipped_no_token":
+      return DISCORD_EMBED_COLORS.warning;
+    default:
+      return DISCORD_EMBED_COLORS.ops;
+  }
+}
+
+export async function notifyMobilePushNotificationDelivered(payload: {
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
+  recipientUserId: string;
+  recipientPortal: "parent" | "teacher" | "admin";
+  recipientEmail?: string | null;
+  title: string;
+  body: string;
+  threadId?: string | null;
+  status: "sent" | "failed" | "skipped_no_token";
+  expoTicketId?: string | null;
+  errorMessage?: string | null;
+}) {
+  const portalLabel = MOBILE_PUSH_PORTAL_LABELS[payload.recipientPortal];
+  const recipientEmail = payload.recipientEmail?.trim() || null;
+  const recipientValue = recipientEmail
+    ? truncate(`${recipientEmail}\n${portalLabel}`)
+    : truncate(`${payload.recipientUserId.slice(0, 8)}…\n${portalLabel}`);
+
+  const fields: DiscordEmbedField[] = [
+    schoolField(
+      payload.organizationName,
+      payload.organizationSlug,
+      payload.organizationId,
+    ),
+    embedField("Recipient", recipientValue, true),
+    embedField("Title", truncate(payload.title)),
+    embedField("Message", truncate(payload.body)),
+  ];
+
+  if (payload.threadId) {
+    const threadUrl = `${SITE_URL}/school/${payload.organizationSlug}/${payload.recipientPortal}/messages?thread=${encodeURIComponent(payload.threadId)}`;
+    fields.push(embedField("Thread", truncate(threadUrl)));
+  }
+
+  if (payload.expoTicketId) {
+    fields.push(
+      embedField("Expo ticket", truncate(formatId(payload.expoTicketId)), true),
+    );
+  }
+
+  if (payload.errorMessage) {
+    fields.push(embedField("Error", truncate(payload.errorMessage)));
+  }
+
+  await sendMobileActivityDiscordEmbed(
+    {
+      title: mobilePushNotificationTitle(payload.status),
+      description: truncate(`${payload.organizationName} · ${payload.title}`, 200),
+      color: mobilePushNotificationColor(payload.status),
+      fields,
+    },
+    payload.status === "failed" ? { content: "@everyone" } : undefined,
+  );
+}
+
 export async function notifyRootedMeadowsVerificationCodeSent(payload: {
   schoolName: string;
   email: string;

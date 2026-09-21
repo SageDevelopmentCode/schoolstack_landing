@@ -39,6 +39,7 @@ export { actonAcademyPlacerConfig } from "./acton-academy-placer";
 export { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
 export { tapestryAcademyConfig } from "./tapestry-academy";
 export { rootsAndWingsMicroschoolConfig } from "./roots-and-wings-microschool";
+export { riverOakAcademyConfig } from "./river-oak-academy";
 
 import type { SchoolWebsiteDemoConfig } from "./types";
 import { athenaMicroacademyConfig } from "./athena-microacademy";
@@ -80,6 +81,7 @@ import { actonAcademyPlacerConfig } from "./acton-academy-placer";
 import { asheboroHybridAcademyConfig } from "./asheboro-hybrid-academy";
 import { tapestryAcademyConfig } from "./tapestry-academy";
 import { rootsAndWingsMicroschoolConfig } from "./roots-and-wings-microschool";
+import { riverOakAcademyConfig } from "./river-oak-academy";
 
 export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "athena-microacademy": athenaMicroacademyConfig,
@@ -121,6 +123,7 @@ export const schoolDemoRegistry: Record<string, SchoolWebsiteDemoConfig> = {
   "asheboro-hybrid-academy": asheboroHybridAcademyConfig,
   "tapestry-academy": tapestryAcademyConfig,
   "roots-and-wings-microschool": rootsAndWingsMicroschoolConfig,
+  "river-oak-academy": riverOakAcademyConfig,
 };
 
 export function getSchoolDemoConfig(slug: string): SchoolWebsiteDemoConfig | undefined {

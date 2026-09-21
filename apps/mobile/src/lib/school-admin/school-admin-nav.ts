@@ -110,3 +110,7 @@ export function schoolAdminSubmissionsRoute(slug: string): string {
 export function schoolAdminMessagesRoute(slug: string): string {
   return `/school-admin/${slug}/messages`;
 }
+
+export function schoolAdminMessageThreadRoute(slug: string, threadId: string): string {
+  return `/school-admin/${slug}/messages/${encodeURIComponent(threadId)}`;
+}

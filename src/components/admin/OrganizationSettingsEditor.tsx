@@ -147,12 +147,18 @@ const compactSelectTriggerClass =
 const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
 type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
 
+export type OrganizationSettingsEditorView =
+  | "overview"
+  | "branding"
+  | "features";
+
 type Props = {
   organizationId: string;
   organizationSlug: string;
   organizationName: string;
   initialRow: OrganizationSettingsRow | null;
   settingsLoading?: boolean;
+  view?: OrganizationSettingsEditorView;
   onSaved?: () => void | Promise<void>;
 };
 
@@ -162,6 +168,7 @@ export default function OrganizationSettingsEditor({
   organizationName,
   initialRow,
   settingsLoading = false,
+  view = "overview",
   onSaved,
 }: Props) {
   const supabase = createClient();
@@ -844,6 +851,7 @@ export default function OrganizationSettingsEditor({
         </div>
       ) : null}
 
+      {view === "branding" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding preview
@@ -877,7 +885,9 @@ export default function OrganizationSettingsEditor({
           </button>
         </div>
       </section>
+      ) : null}
 
+      {view === "branding" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding
@@ -1037,7 +1047,9 @@ export default function OrganizationSettingsEditor({
           </div>
         </CollapsibleSection>
       </section>
+      ) : null}
 
+      {view === "features" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-5">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Features
@@ -1439,7 +1451,10 @@ export default function OrganizationSettingsEditor({
           },
         )}
       </section>
+      ) : null}
 
+      {view === "overview" ? (
+      <>
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
@@ -1474,7 +1489,10 @@ export default function OrganizationSettingsEditor({
           onChange={setOnboardingItems}
         />
       </section>
+      </>
+      ) : null}
 
+      {view === "features" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
@@ -1723,6 +1741,7 @@ export default function OrganizationSettingsEditor({
           ) : null}
         </div>
       </section>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

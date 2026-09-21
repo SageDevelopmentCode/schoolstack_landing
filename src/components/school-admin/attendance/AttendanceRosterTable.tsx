@@ -5,6 +5,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AttendanceRosterStudent } from "@/lib/school-admin/attendance/attendance-types";
 import AttendanceStudentRow from "./AttendanceStudentRow";
+import { useAttendancePreviewMode } from "./AttendanceApiContext";
 
 type AttendanceRosterTableProps = {
   students: AttendanceRosterStudent[];
@@ -33,6 +34,8 @@ export default function AttendanceRosterTable({
   onMarkPresent,
   onRecordPickup,
 }: AttendanceRosterTableProps) {
+  const previewMode = useAttendancePreviewMode();
+
   if (loading) {
     return (
       <div
@@ -81,6 +84,7 @@ export default function AttendanceRosterTable({
               student={student}
               theme={theme}
               C={C}
+              previewMode={previewMode}
               saving={savingStudentId === student.id}
               selected={selectedStudentId === student.id}
               onRowClick={() => onRowClick(student)}

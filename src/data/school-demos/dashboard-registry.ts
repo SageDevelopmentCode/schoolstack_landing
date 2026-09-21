@@ -32,6 +32,7 @@ import { actonAcademyPlacerAdminDemoConfig } from "./acton-academy-placer-admin-
 import { asheboroHybridAcademyAdminDemoConfig } from "./asheboro-hybrid-academy-admin-demo";
 import { tapestryAcademyAdminDemoConfig } from "./tapestry-academy-admin-demo";
 import { rootsAndWingsMicroschoolAdminDemoConfig } from "./roots-and-wings-microschool-admin-demo";
+import { riverOakAcademyAdminDemoConfig } from "./river-oak-academy-admin-demo";
 import { theWoodlandsMicroschoolAdminDemoConfig } from "./the-woodlands-admin-demo";
 import { trueNorthAdminDemoConfig } from "./truenorth-admin-demo";
 import { wildHeartsAdventureAdminDemoConfig } from "./wild-hearts-admin-demo";
@@ -72,6 +73,7 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "asheboro-hybrid-academy": asheboroHybridAcademyAdminDemoConfig,
   "tapestry-academy": tapestryAcademyAdminDemoConfig,
   "roots-and-wings-microschool": rootsAndWingsMicroschoolAdminDemoConfig,
+  "river-oak-academy": riverOakAcademyAdminDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolAdminDemoConfig,
   "true-north": trueNorthAdminDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureAdminDemoConfig,
@@ -113,6 +115,7 @@ import { actonAcademyPlacerParentDemoConfig } from "./acton-academy-placer-paren
 import { asheboroHybridAcademyParentDemoConfig } from "./asheboro-hybrid-academy-parent-demo";
 import { tapestryAcademyParentDemoConfig } from "./tapestry-academy-parent-demo";
 import { rootsAndWingsMicroschoolParentDemoConfig } from "./roots-and-wings-microschool-parent-demo";
+import { riverOakAcademyParentDemoConfig } from "./river-oak-academy-parent-demo";
 import { theWoodlandsMicroschoolParentDemoConfig } from "./the-woodlands-parent-demo";
 import { trueNorthParentDemoConfig } from "./truenorth-parent-demo";
 import { wildHeartsAdventureParentDemoConfig } from "./wild-hearts-parent-demo";
@@ -153,6 +156,7 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "asheboro-hybrid-academy": asheboroHybridAcademyParentDemoConfig,
   "tapestry-academy": tapestryAcademyParentDemoConfig,
   "roots-and-wings-microschool": rootsAndWingsMicroschoolParentDemoConfig,
+  "river-oak-academy": riverOakAcademyParentDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolParentDemoConfig,
   "true-north": trueNorthParentDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureParentDemoConfig,
@@ -193,6 +197,7 @@ import { actonAcademyPlacerTeacherDemoConfig } from "./acton-academy-placer-teac
 import { asheboroHybridAcademyTeacherDemoConfig } from "./asheboro-hybrid-academy-teacher-demo";
 import { tapestryAcademyTeacherDemoConfig } from "./tapestry-academy-teacher-demo";
 import { rootsAndWingsMicroschoolTeacherDemoConfig } from "./roots-and-wings-microschool-teacher-demo";
+import { riverOakAcademyTeacherDemoConfig } from "./river-oak-academy-teacher-demo";
 import { theWoodlandsMicroschoolTeacherDemoConfig } from "./the-woodlands-teacher-demo";
 import { trueNorthTeacherDemoConfig } from "./truenorth-teacher-demo";
 import { wildHeartsAdventureTeacherDemoConfig } from "./wild-hearts-teacher-demo";
@@ -233,6 +238,7 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "asheboro-hybrid-academy": asheboroHybridAcademyTeacherDemoConfig,
   "tapestry-academy": tapestryAcademyTeacherDemoConfig,
   "roots-and-wings-microschool": rootsAndWingsMicroschoolTeacherDemoConfig,
+  "river-oak-academy": riverOakAcademyTeacherDemoConfig,
   "the-woodlands-microschool": theWoodlandsMicroschoolTeacherDemoConfig,
   "true-north": trueNorthTeacherDemoConfig,
   "wild-hearts-adventure": wildHeartsAdventureTeacherDemoConfig,

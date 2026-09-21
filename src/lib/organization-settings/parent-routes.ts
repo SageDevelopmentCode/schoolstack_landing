@@ -115,6 +115,19 @@ export function childHealthDeepLinkHref(
   return `${base}?${params.toString()}`;
 }
 
+export function childPickupDeepLinkHref(
+  slug: string,
+  applicationId: string,
+  previewBasePath?: string,
+): string {
+  const base = parentChildrenPagePath(slug, previewBasePath);
+  const params = new URLSearchParams({
+    applicationId,
+    section: "pickup",
+  });
+  return `${base}?${params.toString()}`;
+}
+
 export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
   const match = pathname.match(/\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) return null;

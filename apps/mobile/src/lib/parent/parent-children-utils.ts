@@ -6,7 +6,12 @@ import type {
   ParentAssignedTeacher,
 } from '@/lib/parent/parent-portal-api';
 
-export type ParentChildRecordSection = 'application' | 'checklist' | 'teachers' | 'health';
+export type ParentChildRecordSection =
+  | 'application'
+  | 'checklist'
+  | 'teachers'
+  | 'health'
+  | 'pickup';
 
 export type ChildProfileData = {
   application: ApplicationDetail;
@@ -21,7 +26,8 @@ export function isParentChildRecordSection(
     value === 'application' ||
     value === 'checklist' ||
     value === 'teachers' ||
-    value === 'health'
+    value === 'health' ||
+    value === 'pickup'
   );
 }
 

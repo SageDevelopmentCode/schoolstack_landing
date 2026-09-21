@@ -14,6 +14,10 @@ import type {
   AttendancePickupSelection,
   AttendanceRosterStudent,
 } from "@/lib/school-admin/attendance/attendance-types";
+import {
+  useAttendanceApiBasePath,
+  useAttendancePreviewMode,
+} from "./AttendanceApiContext";
 
 type AttendancePickupSheetProps = {
   open: boolean;
@@ -49,6 +53,8 @@ export default function AttendancePickupSheet({
   onClose,
   onConfirm,
 }: AttendancePickupSheetProps) {
+  const apiBasePath = useAttendanceApiBasePath();
+  const previewMode = useAttendancePreviewMode();
   const [contacts, setContacts] = useState<AttendancePickupContact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +75,7 @@ export default function AttendancePickupSheet({
     void (async () => {
       try {
         const response = await fetch(
-          `/api/school-admin/attendance/pickup-contacts?organizationId=${encodeURIComponent(organizationId)}&familyId=${encodeURIComponent(student.familyId)}&studentId=${encodeURIComponent(student.id)}`,
+          `${apiBasePath}/pickup-contacts?organizationId=${encodeURIComponent(organizationId)}&familyId=${encodeURIComponent(student.familyId)}&studentId=${encodeURIComponent(student.id)}`,
         );
         const payload = (await response.json().catch(() => null)) as {
           contacts?: AttendancePickupContact[];
@@ -98,7 +104,7 @@ export default function AttendancePickupSheet({
     return () => {
       cancelled = true;
     };
-  }, [open, organizationId, student]);
+  }, [apiBasePath, open, organizationId, student]);
 
   const groupedContacts = useMemo(() => {
     const parentsOnFile = contacts.filter((contact) => contact.source === "guardian");
@@ -172,7 +178,7 @@ export default function AttendancePickupSheet({
           theme={theme}
           variant="primary"
           type="button"
-          disabled={saving || !selectedSelection || loading}
+          disabled={previewMode || saving || !selectedSelection || loading}
           onClick={() => {
             if (selectedSelection) onConfirm(selectedSelection);
           }}

@@ -8,6 +8,7 @@ type ParentButtonLinkProps = {
   children: React.ReactNode;
   variant?: "primary" | "soft" | "outline";
   showArrow?: boolean;
+  fullWidth?: boolean;
   className?: string;
 };
 
@@ -41,6 +42,7 @@ export default function ParentButtonLink({
   children,
   variant = "soft",
   showArrow = false,
+  fullWidth = true,
   className = "",
 }: ParentButtonLinkProps) {
   const isOutline = variant === "outline";
@@ -48,7 +50,7 @@ export default function ParentButtonLink({
   return (
     <Link
       href={href}
-      className={`inline-flex w-full items-center justify-center gap-1.5 px-[15px] py-[11px] text-[13px] font-bold transition-opacity hover:opacity-90 ${
+      className={`inline-flex ${fullWidth ? "w-full" : "w-auto"} items-center justify-center gap-1.5 px-[15px] py-[11px] text-[13px] font-bold transition-opacity hover:opacity-90 ${
         isOutline ? "border" : "border-0"
       } ${className}`}
       style={{

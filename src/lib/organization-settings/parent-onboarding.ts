@@ -2,6 +2,7 @@ import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access"
 import { DEFAULT_PARENT_ONBOARDING_ITEMS } from "./catalog";
 import {
   childHealthDeepLinkHref,
+  childPickupDeepLinkHref,
   isParentFeatureEnabled,
   schoolParentPath,
 } from "./parent-routes";
@@ -26,6 +27,7 @@ export type ParentOnboardingCompletionStatus = {
   committees: boolean;
   children: boolean;
   health: boolean;
+  pickup: boolean;
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -117,7 +119,8 @@ export function getAutoCompletionType(
     target === "messages" ||
     target === "committees" ||
     target === "children" ||
-    target === "health"
+    target === "health" ||
+    target === "pickup"
   ) {
     return target;
   }
@@ -151,6 +154,16 @@ export function resolveParentOnboardingHref(
     );
   }
 
+  if (target === "pickup") {
+    const child = firstChildWithStudentId(options?.familyChildren ?? []);
+    if (!child) return null;
+    return childPickupDeepLinkHref(
+      slug,
+      child.applicationId,
+      options?.parentBasePath,
+    );
+  }
+
   if (options?.parentBasePath) {
     return `${options.parentBasePath}/${target}`;
   }
@@ -167,7 +180,7 @@ export function shouldShowParentOnboardingItem(
     return getCustomOnboardingUrl(item.target) !== null;
   }
 
-  if (item.target === "health") {
+  if (item.target === "health" || item.target === "pickup") {
     if (!isParentFeatureEnabled(features, "children")) {
       return false;
     }

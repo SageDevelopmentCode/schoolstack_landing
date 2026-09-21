@@ -1,6 +1,7 @@
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
 import {
   childHealthDeepLinkHref,
+  childPickupDeepLinkHref,
   parentChildrenPagePath,
   schoolProgramParentPath,
 } from "@/lib/organization-settings/parent-routes";
@@ -140,4 +141,4 @@ export function childrenPagePath(schoolSlug: string, previewBasePath?: string): 
   return parentChildrenPagePath(schoolSlug, previewBasePath);
 }
 
-export { childHealthDeepLinkHref };
+export { childHealthDeepLinkHref, childPickupDeepLinkHref };

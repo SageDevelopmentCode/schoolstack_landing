@@ -134,6 +134,12 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
     target: "health",
   },
   {
+    id: "authorized_pickup",
+    label: "Set your authorized pickup list",
+    icon: "user-check",
+    target: "pickup",
+  },
+  {
     id: "message_teacher",
     label: "Message your teacher",
     icon: "message-square",

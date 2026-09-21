@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
@@ -8,7 +9,17 @@ import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard"
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportClientOperationalError } from "@/lib/operational-errors-client";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import type { PortalOperationalSurface } from "@/lib/portal-operational-errors";
 import { formatEnrolledStudentName } from "@/lib/school-admin/enrolled-students";
+import {
+  formatAttendanceDateLabel,
+  isSameDay,
+  isToday,
+  parseDateKey,
+  shiftDate,
+  toDateKey,
+} from "@/lib/school-admin/attendance/attendance-date-utils";
 import type {
   AttendanceAction,
   AttendancePickupSelection,
@@ -17,6 +28,11 @@ import type {
   AttendanceRosterStudent,
 } from "@/lib/school-admin/attendance/attendance-types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import {
+  AttendanceApiProvider,
+  useAttendanceApiBasePath,
+  useAttendancePreviewMode,
+} from "./AttendanceApiContext";
 import AttendancePickupSheet from "./AttendancePickupSheet";
 import AttendanceRosterTable from "./AttendanceRosterTable";
 import AttendanceStudentDetailSheet from "./AttendanceStudentDetailSheet";
@@ -25,7 +41,37 @@ type AttendancePageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   slug: string;
+  apiBasePath?: string;
+  operationalErrorSurface?: PortalOperationalSurface;
+  previewMode?: boolean;
+  sectionKicker?: string;
 };
+
+function reportAttendanceOperationalError(
+  surface: PortalOperationalSurface,
+  organizationId: string,
+  operation: string,
+  error: string,
+) {
+  if (surface === "school_admin") {
+    void reportClientOperationalError({
+      organizationId,
+      operation,
+      error,
+    });
+    return;
+  }
+
+  void reportPortalOperationalError(
+    surface,
+    {
+      organizationId,
+      operation,
+      error,
+    },
+    error,
+  );
+}
 
 type StatusFilter = "all" | AttendanceRosterStatus;
 
@@ -36,31 +82,6 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "not_marked", label: "Not marked" },
   { key: "picked_up", label: "Picked up" },
 ];
-
-function formatAttendanceDateLabel(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function toDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function shiftDate(date: Date, deltaDays: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + deltaDays);
-  return next;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return toDateKey(a) === toDateKey(b);
-}
 
 function AttendanceFilterPill({
   active,
@@ -102,16 +123,23 @@ function AttendanceFilterPill({
   );
 }
 
-export default function AttendancePage({
+function AttendancePageContent({
   organizationId,
-  branding,
   slug,
-}: AttendancePageProps) {
-  void branding;
+  operationalErrorSurface = "school_admin",
+  sectionKicker = "My School",
+}: Omit<AttendancePageProps, "branding" | "apiBasePath" | "previewMode">) {
   void slug;
 
+  const searchParams = useSearchParams();
+  const apiBasePath = useAttendanceApiBasePath();
+  const previewMode = useAttendancePreviewMode();
   const { theme, C } = useSchoolAdminStoryTheme();
-  const [activeDate, setActiveDate] = useState(() => new Date());
+  const [activeDate, setActiveDate] = useState(() => {
+    const dateParam = searchParams.get("date");
+    if (!dateParam) return new Date();
+    return parseDateKey(dateParam) ?? new Date();
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [roster, setRoster] = useState<AttendanceRosterResponse | null>(null);
@@ -121,13 +149,13 @@ export default function AttendancePage({
   const [pickupStudent, setPickupStudent] = useState<AttendanceRosterStudent | null>(null);
 
   const dateKey = useMemo(() => toDateKey(activeDate), [activeDate]);
-  const isToday = isSameDay(activeDate, new Date());
+  const viewingToday = isToday(activeDate);
 
   const loadRoster = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/school-admin/attendance?organizationId=${encodeURIComponent(organizationId)}&date=${encodeURIComponent(dateKey)}`,
+        `${apiBasePath}?organizationId=${encodeURIComponent(organizationId)}&date=${encodeURIComponent(dateKey)}`,
       );
       const payload = (await response.json().catch(() => null)) as
         | AttendanceRosterResponse
@@ -145,17 +173,18 @@ export default function AttendancePage({
       setRoster(payload as AttendanceRosterResponse);
     } catch (err) {
       const message = formatActionError(err, "Failed to load attendance roster.");
-      void reportClientOperationalError({
+      reportAttendanceOperationalError(
+        operationalErrorSurface,
         organizationId,
-        operation: "attendance.load_roster",
-        error: message,
-      });
+        "attendance.load_roster",
+        message,
+      );
       adminToast.error(message);
       setRoster(null);
     } finally {
       setLoading(false);
     }
-  }, [dateKey, organizationId]);
+  }, [apiBasePath, dateKey, operationalErrorSurface, organizationId]);
 
   useEffect(() => {
     void loadRoster();
@@ -210,9 +239,11 @@ export default function AttendancePage({
       action: AttendanceAction,
       pickupSelection?: AttendancePickupSelection,
     ) => {
+      if (previewMode) return;
+
       setSavingStudentId(student.id);
       try {
-        const response = await fetch("/api/school-admin/attendance/records", {
+        const response = await fetch(`${apiBasePath}/records`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -253,17 +284,18 @@ export default function AttendancePage({
         );
       } catch (err) {
         const message = formatActionError(err, "Failed to save attendance.");
-        void reportClientOperationalError({
+        reportAttendanceOperationalError(
+          operationalErrorSurface,
           organizationId,
-          operation: "attendance.save_record",
-          error: message,
-        });
+          "attendance.save_record",
+          message,
+        );
         adminToast.error(message);
       } finally {
         setSavingStudentId(null);
       }
     },
-    [dateKey, loadRoster, organizationId],
+    [apiBasePath, dateKey, loadRoster, operationalErrorSurface, organizationId, previewMode],
   );
 
   const presentOrPickedUpCount =
@@ -286,7 +318,7 @@ export default function AttendancePage({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1100px] px-[clamp(16px,3vw,36px)] py-4 pb-6">
           <div className="mb-4">
-            <AdminSectionKicker theme={theme}>My School</AdminSectionKicker>
+            <AdminSectionKicker theme={theme}>{sectionKicker}</AdminSectionKicker>
             <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1">
               Attendance
             </AdminDisplayHeading>
@@ -358,7 +390,7 @@ export default function AttendancePage({
                 </button>
               </div>
 
-              {!isToday ? (
+              {!viewingToday ? (
                 <div className="mt-1 text-center">
                   <button
                     type="button"
@@ -455,5 +487,28 @@ export default function AttendancePage({
         }}
       />
     </div>
+  );
+}
+
+export default function AttendancePage({
+  organizationId,
+  branding,
+  slug,
+  apiBasePath,
+  operationalErrorSurface,
+  previewMode,
+  sectionKicker,
+}: AttendancePageProps) {
+  void branding;
+
+  return (
+    <AttendanceApiProvider apiBasePath={apiBasePath} previewMode={previewMode}>
+      <AttendancePageContent
+        organizationId={organizationId}
+        slug={slug}
+        operationalErrorSurface={operationalErrorSurface}
+        sectionKicker={sectionKicker}
+      />
+    </AttendanceApiProvider>
   );
 }

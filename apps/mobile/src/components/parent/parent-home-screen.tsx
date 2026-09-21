@@ -84,7 +84,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     });
   };
 
-  const healthApplicationId =
+  const firstChildApplicationId =
     data?.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
 
   const handleAttentionItem = (item: ParentHomeAttentionItem) => {
@@ -95,7 +95,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
       enrollmentApplicationId: item.enrollmentApplicationId,
       enrollmentTemplateItemId: item.enrollmentTemplateItemId,
       enrollmentSectionId: item.enrollmentSectionId,
-      healthApplicationId,
+      healthApplicationId: firstChildApplicationId,
+      pickupApplicationId: firstChildApplicationId,
     });
     if (route) {
       router.push(route);
@@ -106,7 +107,10 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     setOnboardingOpen(false);
     if (item.completed) return;
 
-    const route = getOnboardingItemRoute(slug, item.target, { healthApplicationId });
+    const route = getOnboardingItemRoute(slug, item.target, {
+      healthApplicationId: firstChildApplicationId,
+      pickupApplicationId: firstChildApplicationId,
+    });
     if (route) {
       router.replace(route);
       return;

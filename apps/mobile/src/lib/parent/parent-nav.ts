@@ -109,6 +109,10 @@ export function parentBulletinDetailRoute(slug: string, postId: string): Href {
   return `/parent/${slug}/bulletin/${encodeURIComponent(postId)}` as Href;
 }
 
+export function parentMessageThreadRoute(slug: string, threadId: string): Href {
+  return `/parent/${slug}/messages/${encodeURIComponent(threadId)}` as Href;
+}
+
 export function isParentBulletinDetailPath(pathname: string): boolean {
   return /\/bulletin\/[^/]+$/.test(pathname);
 }
@@ -142,13 +146,21 @@ export function getParentFeatureRoute(slug: string, featureKey: string): Href | 
 export function getOnboardingItemRoute(
   slug: string,
   target: string,
-  options?: { healthApplicationId?: string | null },
+  options?: {
+    healthApplicationId?: string | null;
+    pickupApplicationId?: string | null;
+  },
 ): Href | null {
   if (target.startsWith('url:')) return null;
 
   if (target === 'health') {
     if (!options?.healthApplicationId) return null;
     return parentChildDetailRoute(slug, options.healthApplicationId, 'health');
+  }
+
+  if (target === 'pickup') {
+    if (!options?.pickupApplicationId) return null;
+    return parentChildDetailRoute(slug, options.pickupApplicationId, 'pickup');
   }
 
   return getParentFeatureRoute(slug, target);
@@ -170,6 +182,7 @@ export function resolveParentAttentionNavigation(
     enrollmentTemplateItemId?: string;
     enrollmentSectionId?: string;
     healthApplicationId?: string | null;
+    pickupApplicationId?: string | null;
   },
 ): Href | null {
   if (item.formId) {
@@ -188,6 +201,7 @@ export function resolveParentAttentionNavigation(
   if (item.target) {
     const route = getOnboardingItemRoute(slug, item.target, {
       healthApplicationId: item.healthApplicationId,
+      pickupApplicationId: item.pickupApplicationId,
     });
     if (route) return route;
   }

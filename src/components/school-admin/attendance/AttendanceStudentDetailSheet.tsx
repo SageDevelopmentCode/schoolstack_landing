@@ -12,9 +12,14 @@ import type {
   AttendanceHistoryEntry,
   AttendanceRosterStudent,
 } from "@/lib/school-admin/attendance/attendance-types";
+import AttendanceActionLabel from "./AttendanceActionLabel";
 import AttendanceHistoryList from "./AttendanceHistoryList";
 import AttendanceHistoryModal from "./AttendanceHistoryModal";
 import AttendanceStatusBadge from "./AttendanceStatusBadge";
+import {
+  useAttendanceApiBasePath,
+  useAttendancePreviewMode,
+} from "./AttendanceApiContext";
 
 const PREVIEW_LIMIT = 5;
 
@@ -77,6 +82,8 @@ export default function AttendanceStudentDetailSheet({
   onMarkAbsent,
   onRecordPickup,
 }: AttendanceStudentDetailSheetProps) {
+  const apiBasePath = useAttendanceApiBasePath();
+  const previewMode = useAttendancePreviewMode();
   const [history, setHistory] = useState<AttendanceHistoryEntry[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -95,7 +102,7 @@ export default function AttendanceStudentDetailSheet({
     void (async () => {
       try {
         const response = await fetch(
-          `/api/school-admin/attendance/history?organizationId=${encodeURIComponent(organizationId)}&studentId=${encodeURIComponent(student.id)}&limit=${PREVIEW_LIMIT}&offset=0`,
+          `${apiBasePath}/history?organizationId=${encodeURIComponent(organizationId)}&studentId=${encodeURIComponent(student.id)}&limit=${PREVIEW_LIMIT}&offset=0`,
         );
         const payload = (await response.json().catch(() => null)) as {
           entries?: AttendanceHistoryEntry[];
@@ -127,7 +134,7 @@ export default function AttendanceStudentDetailSheet({
     return () => {
       cancelled = true;
     };
-  }, [open, organizationId, student]);
+  }, [apiBasePath, open, organizationId, student]);
 
   useEffect(() => {
     if (!open) {
@@ -151,9 +158,9 @@ export default function AttendanceStudentDetailSheet({
               type="button"
               disabled={saving}
               onClick={onMarkPresent}
-              className="w-full sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
             >
-              Mark Present
+              <AttendanceActionLabel action="mark_present" />
             </AdminButton>
             <AdminButton
               theme={theme}
@@ -161,9 +168,9 @@ export default function AttendanceStudentDetailSheet({
               type="button"
               disabled={saving}
               onClick={onMarkAbsent}
-              className="w-full sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
             >
-              Mark Absent
+              <AttendanceActionLabel action="mark_absent" />
             </AdminButton>
           </>
         );
@@ -176,9 +183,9 @@ export default function AttendanceStudentDetailSheet({
               type="button"
               disabled={saving}
               onClick={onRecordPickup}
-              className="w-full sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
             >
-              Record Pickup
+              <AttendanceActionLabel action="record_pickup" />
             </AdminButton>
             <AdminButton
               theme={theme}
@@ -186,9 +193,9 @@ export default function AttendanceStudentDetailSheet({
               type="button"
               disabled={saving}
               onClick={onMarkAbsent}
-              className="w-full sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
             >
-              Mark Absent
+              <AttendanceActionLabel action="mark_absent" />
             </AdminButton>
           </>
         );
@@ -200,9 +207,9 @@ export default function AttendanceStudentDetailSheet({
             type="button"
             disabled={saving}
             onClick={onMarkPresent}
-            className="w-full sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
           >
-            Mark Present
+            <AttendanceActionLabel action="mark_present" />
           </AdminButton>
         );
       case "picked_up":
@@ -213,9 +220,9 @@ export default function AttendanceStudentDetailSheet({
             type="button"
             disabled={saving}
             onClick={onMarkPresent}
-            className="w-full sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-1.5 sm:w-auto"
           >
-            Mark Present again
+            <AttendanceActionLabel action="mark_present_again" />
           </AdminButton>
         );
       default:
@@ -232,9 +239,13 @@ export default function AttendanceStudentDetailSheet({
         subtitle={student.familyName ?? undefined}
         C={C}
         footer={
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-            {footerButtons}
-          </div>
+          previewMode
+            ? undefined
+            : (
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                {footerButtons}
+              </div>
+            )
         }
       >
         <div className="space-y-4">

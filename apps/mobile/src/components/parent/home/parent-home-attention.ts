@@ -32,7 +32,7 @@ export type ParentHomeAttentionItem = {
   urgent?: boolean;
 };
 
-function firstChildApplicationIdForHealth(
+function firstChildApplicationIdWithStudent(
   familyChildren: FamilyChildOverview[],
 ): string | null {
   const child = familyChildren.find((entry) => Boolean(entry.studentId));
@@ -58,7 +58,9 @@ export function buildAttentionItems(input: {
   signupAttentionItems?: ParentSignupAttentionItem[];
   familyChildren?: FamilyChildOverview[];
 }): ParentHomeAttentionItem[] {
-  const healthApplicationId = firstChildApplicationIdForHealth(input.familyChildren ?? []);
+  const firstChildApplicationId = firstChildApplicationIdWithStudent(
+    input.familyChildren ?? [],
+  );
   const items: ParentHomeAttentionItem[] = [];
 
   for (const form of input.formAttentionItems ?? []) {
@@ -143,7 +145,8 @@ export function buildAttentionItems(input: {
     const nativeRoute = resolveParentAttentionNavigation(input.slug, {
       target: item.target,
       href: item.href,
-      healthApplicationId,
+      healthApplicationId: firstChildApplicationId,
+      pickupApplicationId: firstChildApplicationId,
     });
     items.push({
       key: `onboarding-${item.id}`,

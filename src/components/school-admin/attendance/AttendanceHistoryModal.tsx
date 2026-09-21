@@ -8,6 +8,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AttendanceHistoryEntry } from "@/lib/school-admin/attendance/attendance-types";
 import AttendanceHistoryList from "./AttendanceHistoryList";
+import { useAttendanceApiBasePath } from "./AttendanceApiContext";
 
 const PAGE_SIZE = 20;
 
@@ -32,6 +33,7 @@ export default function AttendanceHistoryModal({
   highlightDate,
   onClose,
 }: AttendanceHistoryModalProps) {
+  const apiBasePath = useAttendanceApiBasePath();
   const [page, setPage] = useState(0);
   const [entries, setEntries] = useState<AttendanceHistoryEntry[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -46,7 +48,7 @@ export default function AttendanceHistoryModal({
       try {
         const offset = pageIndex * PAGE_SIZE;
         const response = await fetch(
-          `/api/school-admin/attendance/history?organizationId=${encodeURIComponent(organizationId)}&studentId=${encodeURIComponent(studentId)}&limit=${PAGE_SIZE}&offset=${offset}`,
+          `${apiBasePath}/history?organizationId=${encodeURIComponent(organizationId)}&studentId=${encodeURIComponent(studentId)}&limit=${PAGE_SIZE}&offset=${offset}`,
         );
         const payload = (await response.json().catch(() => null)) as {
           entries?: AttendanceHistoryEntry[];
@@ -72,7 +74,7 @@ export default function AttendanceHistoryModal({
         setLoading(false);
       }
     },
-    [organizationId, studentId],
+    [apiBasePath, organizationId, studentId],
   );
 
   useEffect(() => {

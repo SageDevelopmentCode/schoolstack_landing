@@ -7,6 +7,9 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { formatEnrolledStudentName } from "@/lib/school-admin/enrolled-students";
 import type { AttendanceRosterStudent } from "@/lib/school-admin/attendance/attendance-types";
+import AttendanceActionLabel, {
+  attendancePrimaryActionType,
+} from "./AttendanceActionLabel";
 import AttendanceStatusBadge from "./AttendanceStatusBadge";
 
 type AttendanceStudentRowProps = {
@@ -14,6 +17,7 @@ type AttendanceStudentRowProps = {
   theme: ParentThemeTokens;
   C: AdminThemeTokens;
   saving?: boolean;
+  previewMode?: boolean;
   selected?: boolean;
   onRowClick: () => void;
   onMarkPresent: () => void;
@@ -27,6 +31,7 @@ export default function AttendanceStudentRow({
   theme,
   C,
   saving = false,
+  previewMode = false,
   selected = false,
   onRowClick,
   onMarkPresent,
@@ -35,23 +40,21 @@ export default function AttendanceStudentRow({
   const studentName = formatEnrolledStudentName(student);
   const programLabel = student.programNames.join(" · ") || "—";
 
+  const primaryActionType = attendancePrimaryActionType(student.attendanceStatus);
   const primaryAction =
     student.attendanceStatus === "present"
       ? {
-          label: "Record Pickup",
           onClick: onRecordPickup,
           disabled: saving,
           variant: "primary" as const,
         }
       : student.attendanceStatus === "picked_up"
         ? {
-            label: "Picked up",
             onClick: () => {},
             disabled: true,
             variant: "soft" as const,
           }
         : {
-            label: "Mark Present",
             onClick: onMarkPresent,
             disabled: saving,
             variant: "soft" as const,
@@ -132,16 +135,19 @@ export default function AttendanceStudentRow({
         onKeyDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-end gap-1">
-          <AdminButton
-            theme={theme}
-            variant={primaryAction.variant}
-            size="compact"
-            type="button"
-            disabled={primaryAction.disabled}
-            onClick={primaryAction.onClick}
-          >
-            {primaryAction.label}
-          </AdminButton>
+          {previewMode ? null : (
+            <AdminButton
+              theme={theme}
+              variant={primaryAction.variant}
+              size="compact"
+              type="button"
+              disabled={primaryAction.disabled}
+              onClick={primaryAction.onClick}
+              className="inline-flex items-center gap-1.5"
+            >
+              <AttendanceActionLabel action={primaryActionType} />
+            </AdminButton>
+          )}
           <ChevronRight className="h-3.5 w-3.5 shrink-0" style={{ color: C.textTertiary }} />
         </div>
       </td>

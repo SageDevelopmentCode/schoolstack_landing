@@ -19,6 +19,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
+import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Story } from '@/constants/story-theme';
@@ -51,6 +52,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <AuthSessionGuard />
+      <PushNotificationManager />
       <SplashOverlay />
       <Stack
         screenOptions={{

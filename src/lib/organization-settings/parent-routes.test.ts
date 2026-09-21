@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  childPickupDeepLinkHref,
   isParentBillingPath,
   isParentMessagesPath,
 } from "./parent-routes";
@@ -35,6 +36,26 @@ describe("isParentMessagesPath", () => {
     assert.equal(
       isParentMessagesPath("/school/rooted-meadows-demo/parent/portal"),
       false,
+    );
+  });
+});
+
+describe("childPickupDeepLinkHref", () => {
+  it("builds children page deep link with pickup section", () => {
+    assert.equal(
+      childPickupDeepLinkHref("rooted-meadows-demo", "app-123"),
+      "/school/rooted-meadows-demo/parent/children?applicationId=app-123&section=pickup",
+    );
+  });
+
+  it("supports admin preview base paths", () => {
+    assert.equal(
+      childPickupDeepLinkHref(
+        "rooted-meadows-demo",
+        "app-123",
+        "/admin/preview/rooted-meadows-demo/family/fam-1",
+      ),
+      "/admin/preview/rooted-meadows-demo/family/fam-1/parent/children?applicationId=app-123&section=pickup",
     );
   });
 });
