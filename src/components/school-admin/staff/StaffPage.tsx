@@ -21,6 +21,9 @@ type StaffPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   slug: string;
+  initialStaff?: StaffMemberRecord[];
+  initialSelectedStaffId?: string | null;
+  previewMode?: boolean;
 };
 
 type AddStaffModalProps = {
@@ -255,19 +258,31 @@ function AddStaffModal({ open, slug, organizationId, onClose, onAdded }: AddStaf
   );
 }
 
-export default function StaffPage({ branding, slug, organizationId }: StaffPageProps) {
+export default function StaffPage({
+  branding,
+  slug,
+  organizationId,
+  initialStaff,
+  initialSelectedStaffId,
+  previewMode = false,
+}: StaffPageProps) {
   void branding;
   const { theme, C } = useSchoolAdminStoryTheme();
   const searchParams = useSearchParams();
   const deepLinkStaffId = searchParams.get("staff");
+  const hasInitialStaff = initialStaff !== undefined;
 
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>(
+    initialStaff ?? [],
+  );
+  const [loading, setLoading] = useState(!hasInitialStaff);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   const loadStaff = useCallback(async (options?: { silent?: boolean }) => {
+    if (previewMode) return;
+
     const silent = options?.silent ?? false;
     if (!silent) {
       setLoading(true);
@@ -302,21 +317,35 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
         setLoading(false);
       }
     }
-  }, [slug]);
+  }, [previewMode, slug]);
 
   useEffect(() => {
+    if (previewMode || hasInitialStaff) return;
     queueMicrotask(() => {
       void loadStaff();
     });
-  }, [loadStaff]);
+  }, [hasInitialStaff, loadStaff, previewMode]);
 
   useEffect(() => {
-    if (!deepLinkStaffId || loading) return;
+    if (!initialStaff) return;
+    setStaffMembers(initialStaff);
+    setLoading(false);
+    setSelectedId((current) => {
+      if (initialSelectedStaffId) return initialSelectedStaffId;
+      if (current && initialStaff.some((member) => member.id === current)) {
+        return current;
+      }
+      return initialStaff[0]?.id ?? null;
+    });
+  }, [initialSelectedStaffId, initialStaff]);
+
+  useEffect(() => {
+    if (previewMode || !deepLinkStaffId || loading) return;
     const match = staffMembers.find((member) => member.id === deepLinkStaffId);
     if (match) {
       queueMicrotask(() => setSelectedId(match.id));
     }
-  }, [deepLinkStaffId, loading, staffMembers]);
+  }, [deepLinkStaffId, loading, previewMode, staffMembers]);
 
   const selectedMember =
     staffMembers.find((member) => member.id === selectedId) ?? null;
@@ -355,7 +384,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
                 onSelect={setSelectedId}
                 theme={theme}
                 layout="strip"
-                onAddStaff={() => setAddOpen(true)}
+                onAddStaff={previewMode ? undefined : () => setAddOpen(true)}
               />
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
@@ -365,7 +394,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
                     selectedId={selectedId ?? ""}
                     onSelect={setSelectedId}
                     theme={theme}
-                    onAddStaff={() => setAddOpen(true)}
+                    onAddStaff={previewMode ? undefined : () => setAddOpen(true)}
                   />
                 </div>
 
@@ -391,7 +420,7 @@ export default function StaffPage({ branding, slug, organizationId }: StaffPageP
       </div>
 
       <AddStaffModal
-        open={addOpen}
+        open={!previewMode && addOpen}
         slug={slug}
         organizationId={organizationId}
         onClose={() => setAddOpen(false)}

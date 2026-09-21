@@ -1,5 +1,6 @@
 import {
   resolveSchoolAdminNativeRoute,
+  schoolAdminMessageThreadRoute,
   schoolAdminMessagesRoute,
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
@@ -35,6 +36,9 @@ describe('resolveSchoolAdminNativeRoute', () => {
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/messages`)).toBe(
       schoolAdminMessagesRoute(slug),
     );
+    expect(
+      resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/messages?thread=thread-1`),
+    ).toBe(schoolAdminMessageThreadRoute(slug, 'thread-1'));
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/schedule`)).toBe(
       `/school-admin/${slug}/more/schedule`,
     );

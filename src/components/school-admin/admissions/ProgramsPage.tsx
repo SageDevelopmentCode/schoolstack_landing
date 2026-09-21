@@ -78,6 +78,9 @@ type ProgramsPageProps = {
   orgFeatures: OrganizationFeatures;
   slug: string;
   programParentPortalConfig: ProgramParentPortalOrgConfig;
+  initialPrograms?: Program[];
+  initialSelectedProgramId?: string | null;
+  previewMode?: boolean;
 };
 
 type ProgramEditorTab =
@@ -179,16 +182,22 @@ export default function ProgramsPage({
   orgFeatures,
   slug,
   programParentPortalConfig,
+  initialPrograms,
+  initialSelectedProgramId,
+  previewMode = false,
 }: ProgramsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
+  const hasInitialPrograms = initialPrograms !== undefined;
 
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [programs, setPrograms] = useState<Program[]>(initialPrograms ?? []);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedProgramId ?? initialPrograms?.[0]?.id ?? null,
+  );
   const [editable, setEditable] = useState<EditableProgramState | null>(null);
   const [activeEditorTab, setActiveEditorTab] = useState<ProgramEditorTab>("details");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasInitialPrograms);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -222,6 +231,8 @@ export default function ProgramsPage({
   const canvasKey = selectedId ?? "none";
 
   const loadPrograms = useCallback(async () => {
+    if (previewMode) return;
+
     setLoading(true);
     setError(null);
     try {
@@ -242,13 +253,27 @@ export default function ProgramsPage({
     } finally {
       setLoading(false);
     }
-  }, [organizationId, supabase]);
+  }, [organizationId, previewMode, supabase]);
 
   useEffect(() => {
+    if (previewMode || hasInitialPrograms) return;
     queueMicrotask(() => {
       void loadPrograms();
     });
-  }, [loadPrograms]);
+  }, [hasInitialPrograms, loadPrograms, previewMode]);
+
+  useEffect(() => {
+    if (!initialPrograms) return;
+    setPrograms(initialPrograms);
+    setLoading(false);
+    setSelectedId((current) => {
+      if (initialSelectedProgramId) return initialSelectedProgramId;
+      if (current && initialPrograms.some((program) => program.id === current)) {
+        return current;
+      }
+      return initialPrograms[0]?.id ?? null;
+    });
+  }, [initialPrograms, initialSelectedProgramId]);
 
   useEffect(() => {
     if (isNew) {
@@ -285,6 +310,7 @@ export default function ProgramsPage({
   }, [editable, isNew, selectedProgram]);
 
   const handleCreate = () => {
+    if (previewMode) return;
     setSelectedId(NEW_PROGRAM_ID);
     setEditable(emptyEditableState(orgFeatures));
     setActiveEditorTab("details");
@@ -298,7 +324,7 @@ export default function ProgramsPage({
   };
 
   const handleSave = async () => {
-    if (!editable || !isProgramDirty) return;
+    if (previewMode || !editable || !isProgramDirty) return;
 
     setSaving(true);
     setError(null);
@@ -360,7 +386,7 @@ export default function ProgramsPage({
   };
 
   const handleDelete = async () => {
-    if (!selectedProgram) return;
+    if (previewMode || !selectedProgram) return;
 
     setDeleting(true);
     setError(null);

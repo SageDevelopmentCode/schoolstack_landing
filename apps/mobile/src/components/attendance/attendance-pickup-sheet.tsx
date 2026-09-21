@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import {
+  AttendanceConfirmButtonSkeleton,
+  AttendanceContactRowSkeleton,
+} from '@/components/attendance/attendance-skeleton-blocks';
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
 import { StoryButton } from '@/components/story/story-button';
 import { useAttendance } from '@/contexts/attendance-context';
@@ -11,6 +15,7 @@ import type {
 } from '@/lib/attendance/attendance-types';
 import { formatEnrolledStudentName } from '@/lib/teacher/teacher-home-utils';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -98,7 +103,12 @@ export function AttendancePickupSheet({ visible, student, onClose }: AttendanceP
         </Text>
 
         {loading ? (
-          <ActivityIndicator color={theme.primary} style={styles.loader} />
+          <View style={styles.list}>
+            {Array.from({ length: 3 }, (_, index) => (
+              <AttendanceContactRowSkeleton key={index} />
+            ))}
+            <AttendanceConfirmButtonSkeleton />
+          </View>
         ) : error ? (
           <Text style={[styles.error, { color: theme.alert }]}>{error}</Text>
         ) : contacts.length === 0 ? (
@@ -139,12 +149,15 @@ export function AttendancePickupSheet({ visible, student, onClose }: AttendanceP
           </View>
         )}
 
-        <StoryButton
-          label="Confirm pickup"
-          variant="primary"
-          disabled={!selectedSelection || saving || loading}
-          onPress={() => void handleConfirm()}
-        />
+        {!loading ? (
+          <StoryButton
+            label="Confirm pickup"
+            variant="primary"
+            disabled={!selectedSelection || saving}
+            accessibilityState={{ disabled: !selectedSelection || saving }}
+            onPress={() => void handleConfirm()}
+          />
+        ) : null}
       </View>
     </StoryBottomSheet>
   );
@@ -153,6 +166,7 @@ export function AttendancePickupSheet({ visible, student, onClose }: AttendanceP
 const styles = StyleSheet.create({
   content: {
     gap: Spacing.three,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.four,
   },
   title: {
@@ -164,9 +178,6 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 14,
     lineHeight: 20,
-  },
-  loader: {
-    marginVertical: Spacing.four,
   },
   error: {
     fontFamily: StoryFonts.body,

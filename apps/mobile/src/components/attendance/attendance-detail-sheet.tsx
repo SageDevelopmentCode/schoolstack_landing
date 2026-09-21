@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { AttendanceActionRow } from '@/components/attendance/attendance-action-button';
+import { AttendanceHistoryListItem } from '@/components/attendance/attendance-history-list-item';
+import { AttendanceHistoryRowSkeleton } from '@/components/attendance/attendance-skeleton-blocks';
 import { StudentPhoto } from '@/components/school-admin/student-photo';
 import { StoryBottomSheet } from '@/components/story/story-bottom-sheet';
-import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
 import { useAttendance } from '@/contexts/attendance-context';
 import {
@@ -11,13 +13,16 @@ import {
   attendanceStatusTone,
 } from '@/lib/attendance/attendance-actions';
 import type { AttendanceHistoryEntry, AttendanceRosterStudent } from '@/lib/attendance/attendance-types';
+import { formatAttendanceHistoryTime } from '@/lib/attendance/attendance-history-display';
 import {
   formatEnrolledStudentName,
   formatStudentGrade,
 } from '@/lib/teacher/teacher-home-utils';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+
 type AttendanceDetailSheetProps = {
   visible: boolean;
   student: AttendanceRosterStudent | null;
@@ -25,49 +30,21 @@ type AttendanceDetailSheetProps = {
   onRecordPickup: () => void;
 };
 
-function formatHistoryTime(iso: string | null): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
 function todayStatusDetail(student: AttendanceRosterStudent): string {
   if (student.attendanceStatus === 'present') {
-    const time = formatHistoryTime(student.presentAt);
+    const time = formatAttendanceHistoryTime(student.presentAt);
     return time ? `Marked present at ${time}` : 'Marked present';
   }
   if (student.attendanceStatus === 'absent') {
-    const time = formatHistoryTime(student.absentAt);
+    const time = formatAttendanceHistoryTime(student.absentAt);
     return time ? `Marked absent at ${time}` : 'Marked absent';
   }
   if (student.attendanceStatus === 'picked_up') {
-    const time = formatHistoryTime(student.pickedUpAt);
+    const time = formatAttendanceHistoryTime(student.pickedUpAt);
     const pickupName = student.pickedUpByName ? ` by ${student.pickedUpByName}` : '';
     return time ? `Picked up at ${time}${pickupName}` : `Picked up${pickupName}`;
   }
   return 'No attendance recorded yet for this day.';
-}
-
-function historyEntryLabel(entry: AttendanceHistoryEntry): string {
-  const date = new Date(`${entry.date}T12:00:00`);
-  const dateLabel = date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-
-  if (entry.status === 'present') {
-    const time = formatHistoryTime(entry.presentAt);
-    return time ? `${dateLabel} · Present at ${time}` : `${dateLabel} · Present`;
-  }
-  if (entry.status === 'absent') {
-    const time = formatHistoryTime(entry.absentAt);
-    return time ? `${dateLabel} · Absent at ${time}` : `${dateLabel} · Absent`;
-  }
-  const time = formatHistoryTime(entry.pickedUpAt);
-  const pickupName = entry.pickedUpByName ? ` by ${entry.pickedUpByName}` : '';
-  return time ? `${dateLabel} · Picked up at ${time}${pickupName}` : `${dateLabel} · Picked up${pickupName}`;
 }
 
 export function AttendanceDetailSheet({
@@ -120,6 +97,7 @@ export function AttendanceDetailSheet({
   const gradeLabel = formatStudentGrade(student.grade) ?? 'Grade not listed';
   const canPickup = student.attendanceStatus === 'present';
   const isPickedUp = student.attendanceStatus === 'picked_up';
+  const activeDateKey = `${activeDate.getFullYear()}-${String(activeDate.getMonth() + 1).padStart(2, '0')}-${String(activeDate.getDate()).padStart(2, '0')}`;
 
   return (
     <StoryBottomSheet visible={visible} onClose={onClose} accessibilityLabel="Student attendance details">
@@ -148,40 +126,34 @@ export function AttendanceDetailSheet({
           <Text style={[styles.sectionBody, { color: theme.muted }]}>{todayStatusDetail(student)}</Text>
         </View>
 
-        <View style={styles.actions}>
-          <StoryButton
-            label="Mark Present"
-            variant="soft"
-            disabled={saving || isPickedUp}
-            onPress={() => void saveAction(student, 'present')}
-          />
-          <StoryButton
-            label="Mark Absent"
-            variant="outline"
-            disabled={saving || isPickedUp}
-            onPress={() => void saveAction(student, 'absent')}
-          />
-          <StoryButton
-            label="Record Pickup"
-            variant="primary"
-            disabled={saving || !canPickup}
-            onPress={onRecordPickup}
-          />
-        </View>
+        <AttendanceActionRow
+          saving={saving}
+          canPickup={canPickup}
+          isPickedUp={isPickedUp}
+          onMarkPresent={() => void saveAction(student, 'present')}
+          onMarkAbsent={() => void saveAction(student, 'absent')}
+          onRecordPickup={onRecordPickup}
+        />
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.ink }]}>Recent history</Text>
           {historyLoading ? (
-            <ActivityIndicator color={theme.primary} />
+            <View>
+              {Array.from({ length: 3 }, (_, index) => (
+                <AttendanceHistoryRowSkeleton key={index} />
+              ))}
+            </View>
           ) : historyError ? (
             <Text style={[styles.sectionBody, { color: theme.alert }]}>{historyError}</Text>
           ) : history.length === 0 ? (
             <Text style={[styles.sectionBody, { color: theme.muted }]}>No attendance history yet.</Text>
           ) : (
             history.map((entry) => (
-              <Text key={`${entry.date}-${entry.status}`} style={[styles.historyLine, { color: theme.muted }]}>
-                {historyEntryLabel(entry)}
-              </Text>
+              <AttendanceHistoryListItem
+                key={`${entry.date}-${entry.status}`}
+                entry={entry}
+                highlightDate={activeDateKey}
+              />
             ))
           )}
         </View>
@@ -193,6 +165,7 @@ export function AttendanceDetailSheet({
 const styles = StyleSheet.create({
   content: {
     gap: Spacing.four,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingBottom: Spacing.four,
   },
   header: {
@@ -225,13 +198,5 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 13,
     lineHeight: 20,
-  },
-  actions: {
-    gap: Spacing.two,
-  },
-  historyLine: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 18,
   },
 });

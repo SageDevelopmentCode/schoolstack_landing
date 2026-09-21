@@ -20,9 +20,16 @@ export function mapThreadUnreadCountRows(
 export function shouldDeferInboxFetch(options: {
   initialInbox?: { threads: unknown[]; threadsDeferred?: boolean } | null;
   threadsHydrated: boolean;
+  readOnly?: boolean;
 }): boolean {
   if (!options.initialInbox) return false;
   if (options.threadsHydrated) return true;
+  if (
+    options.readOnly &&
+    (options.initialInbox.threads.length ?? 0) > 0
+  ) {
+    return true;
+  }
   return Boolean(options.initialInbox.threadsDeferred);
 }
 

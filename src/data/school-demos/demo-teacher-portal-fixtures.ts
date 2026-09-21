@@ -1,0 +1,683 @@
+import type { MessagesInboxData, PortalMessage } from "@/lib/messages/types";
+import type { StaffClassroomOption } from "@/lib/school-admin/classrooms";
+import type {
+  AttendanceRosterResponse,
+  AttendanceRosterStudent,
+} from "@/lib/school-admin/attendance/attendance-types";
+import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
+import type { BulletinPost } from "@/lib/school-bulletin/types";
+import type { TeacherCalendarInitialData } from "@/lib/school-events/types";
+import type { OrganizationEvent } from "@/lib/school-events/types";
+import type { TeacherDashboardSummary } from "@/lib/school-teacher/teacher-dashboard-summary";
+import {
+  DEMO_PORTAL_ORG_ID,
+  DEMO_TEACHER_STAFF_ID,
+} from "./demo-portal-shared";
+
+const DEMO_ATTENDANCE_DATE = "2026-09-20";
+const DEMO_ENROLLED_AT = "2026-08-15T12:00:00.000Z";
+
+const DEMO_CLASSROOMS: StaffClassroomOption[] = [
+  {
+    id: "classroom-oak",
+    name: "Oak Room",
+    studentCount: 4,
+    role: "lead",
+  },
+  {
+    id: "classroom-maple",
+    name: "Maple Room",
+    studentCount: 3,
+    role: "lead",
+  },
+  {
+    id: "classroom-cedar",
+    name: "Cedar Room",
+    studentCount: 2,
+    role: "assistant",
+  },
+];
+
+function buildDemoStudents(): AdminEnrolledStudentSummary[] {
+  const teacher = { id: DEMO_TEACHER_STAFF_ID, name: "Jordan Taylor" };
+  return [
+    {
+      id: "student-emma",
+      firstName: "Emma",
+      lastName: "Rivera",
+      grade: "3rd",
+      dateOfBirth: "2017-04-12",
+      status: "enrolled",
+      familyId: "family-rivera",
+      familyName: "Rivera Family",
+      primaryContactName: "Maria Rivera",
+      primaryContactEmail: "maria.rivera@example.com",
+      programNames: ["Lower Elementary"],
+      classroomNames: ["Oak Room"],
+      classroomIds: ["classroom-oak"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-noah",
+      firstName: "Noah",
+      lastName: "Chen",
+      grade: "1st",
+      dateOfBirth: "2019-01-08",
+      status: "enrolled",
+      familyId: "family-chen",
+      familyName: "Chen Family",
+      primaryContactName: "Sarah Chen",
+      primaryContactEmail: "sarah.chen@example.com",
+      programNames: ["Primary"],
+      classroomNames: ["Maple Room"],
+      classroomIds: ["classroom-maple"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: true,
+    },
+    {
+      id: "student-ava",
+      firstName: "Ava",
+      lastName: "Brooks",
+      grade: "5th",
+      dateOfBirth: "2015-09-30",
+      status: "enrolled",
+      familyId: "family-brooks",
+      familyName: "Brooks Family",
+      primaryContactName: "James Brooks",
+      primaryContactEmail: "james.brooks@example.com",
+      programNames: ["Upper Elementary"],
+      classroomNames: ["Cedar Room"],
+      classroomIds: ["classroom-cedar"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-liam",
+      firstName: "Liam",
+      lastName: "Patel",
+      grade: "2nd",
+      dateOfBirth: "2018-06-21",
+      status: "enrolled",
+      familyId: "family-patel",
+      familyName: "Patel Family",
+      primaryContactName: "Priya Patel",
+      primaryContactEmail: "priya.patel@example.com",
+      programNames: ["Lower Elementary"],
+      classroomNames: ["Oak Room"],
+      classroomIds: ["classroom-oak"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-sophia",
+      firstName: "Sophia",
+      lastName: "Nguyen",
+      grade: "4th",
+      dateOfBirth: "2016-11-03",
+      status: "enrolled",
+      familyId: "family-nguyen",
+      familyName: "Nguyen Family",
+      primaryContactName: "Linh Nguyen",
+      primaryContactEmail: "linh.nguyen@example.com",
+      programNames: ["Upper Elementary"],
+      classroomNames: ["Cedar Room"],
+      classroomIds: ["classroom-cedar"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-mason",
+      firstName: "Mason",
+      lastName: "Foster",
+      grade: "K",
+      dateOfBirth: "2020-02-14",
+      status: "enrolled",
+      familyId: "family-foster",
+      familyName: "Foster Family",
+      primaryContactName: "Elena Foster",
+      primaryContactEmail: "elena.foster@example.com",
+      programNames: ["Primary"],
+      classroomNames: ["Maple Room"],
+      classroomIds: ["classroom-maple"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-olivia",
+      firstName: "Olivia",
+      lastName: "Martinez",
+      grade: "3rd",
+      dateOfBirth: "2017-07-19",
+      status: "enrolled",
+      familyId: "family-martinez",
+      familyName: "Martinez Family",
+      primaryContactName: "Carlos Martinez",
+      primaryContactEmail: "carlos.martinez@example.com",
+      programNames: ["Lower Elementary"],
+      classroomNames: ["Oak Room"],
+      classroomIds: ["classroom-oak"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+    {
+      id: "student-ethan",
+      firstName: "Ethan",
+      lastName: "Kim",
+      grade: "1st",
+      dateOfBirth: "2019-05-27",
+      status: "enrolled",
+      familyId: "family-kim",
+      familyName: "Kim Family",
+      primaryContactName: "Hannah Kim",
+      primaryContactEmail: "hannah.kim@example.com",
+      programNames: ["Primary"],
+      classroomNames: ["Maple Room"],
+      classroomIds: ["classroom-maple"],
+      enrolledAt: DEMO_ENROLLED_AT,
+      assignedTeachers: [teacher],
+      assignedTeacherNames: "Jordan Taylor",
+      profilePhotoUrl: null,
+      hasStandingHealthItems: false,
+    },
+  ];
+}
+
+function buildAttendanceStudents(): AttendanceRosterStudent[] {
+  const date = DEMO_ATTENDANCE_DATE;
+  return [
+    {
+      id: "student-emma",
+      firstName: "Emma",
+      lastName: "Rivera",
+      grade: "3rd",
+      profilePhotoUrl: null,
+      familyId: "family-rivera",
+      familyName: "Rivera Family",
+      programNames: ["Lower Elementary"],
+      classroomNames: ["Oak Room"],
+      attendanceStatus: "present",
+      presentAt: `${date}T08:12:00.000Z`,
+      absentAt: null,
+      pickedUpAt: null,
+      pickedUpByGuardianId: null,
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: null,
+    },
+    {
+      id: "student-noah",
+      firstName: "Noah",
+      lastName: "Chen",
+      grade: "1st",
+      profilePhotoUrl: null,
+      familyId: "family-chen",
+      familyName: "Chen Family",
+      programNames: ["Primary"],
+      classroomNames: ["Maple Room"],
+      attendanceStatus: "picked_up",
+      presentAt: `${date}T08:05:00.000Z`,
+      absentAt: null,
+      pickedUpAt: `${date}T14:30:00.000Z`,
+      pickedUpByGuardianId: "guardian-chen",
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: "Sarah Chen",
+    },
+    {
+      id: "student-ava",
+      firstName: "Ava",
+      lastName: "Brooks",
+      grade: "5th",
+      profilePhotoUrl: null,
+      familyId: "family-brooks",
+      familyName: "Brooks Family",
+      programNames: ["Upper Elementary"],
+      classroomNames: ["Cedar Room"],
+      attendanceStatus: "absent",
+      presentAt: null,
+      absentAt: `${date}T08:00:00.000Z`,
+      pickedUpAt: null,
+      pickedUpByGuardianId: null,
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: null,
+    },
+    {
+      id: "student-liam",
+      firstName: "Liam",
+      lastName: "Patel",
+      grade: "2nd",
+      profilePhotoUrl: null,
+      familyId: "family-patel",
+      familyName: "Patel Family",
+      programNames: ["Lower Elementary"],
+      classroomNames: ["Oak Room"],
+      attendanceStatus: "present",
+      presentAt: `${date}T08:18:00.000Z`,
+      absentAt: null,
+      pickedUpAt: null,
+      pickedUpByGuardianId: null,
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: null,
+    },
+    {
+      id: "student-sophia",
+      firstName: "Sophia",
+      lastName: "Nguyen",
+      grade: "4th",
+      profilePhotoUrl: null,
+      familyId: "family-nguyen",
+      familyName: "Nguyen Family",
+      programNames: ["Upper Elementary"],
+      classroomNames: ["Cedar Room"],
+      attendanceStatus: "not_marked",
+      presentAt: null,
+      absentAt: null,
+      pickedUpAt: null,
+      pickedUpByGuardianId: null,
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: null,
+    },
+    {
+      id: "student-mason",
+      firstName: "Mason",
+      lastName: "Foster",
+      grade: "K",
+      profilePhotoUrl: null,
+      familyId: "family-foster",
+      familyName: "Foster Family",
+      programNames: ["Primary"],
+      classroomNames: ["Maple Room"],
+      attendanceStatus: "present",
+      presentAt: `${date}T08:22:00.000Z`,
+      absentAt: null,
+      pickedUpAt: null,
+      pickedUpByGuardianId: null,
+      pickedUpByAuthorizedContactId: null,
+      pickedUpByName: null,
+    },
+  ];
+}
+
+function buildDemoEvents(): OrganizationEvent[] {
+  return [
+    {
+      id: "event-staff-meeting",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Staff Meeting",
+      date: "2026-09-20",
+      time: "08:30",
+      endTime: "09:15",
+      isAllDay: false,
+      type: "community",
+      colorKey: "emerald",
+      location: "Main Hall",
+      description: "Weekly all-staff check-in. Bring your weekly progress notes.",
+      sortOrder: 0,
+    },
+    {
+      id: "event-nature-walk",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Nature Walk — Elementary",
+      date: "2026-09-24",
+      time: "10:00",
+      endTime: "11:30",
+      isAllDay: false,
+      type: "field_trip",
+      colorKey: "olive",
+      location: "Creek Trail",
+      description: "Outdoor science observation for lower elementary classrooms.",
+      sortOrder: 1,
+    },
+    {
+      id: "event-parent-night",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Parent Night",
+      date: "2026-09-26",
+      time: "18:00",
+      endTime: "19:30",
+      isAllDay: false,
+      type: "community",
+      colorKey: "purple",
+      location: "Community Room",
+      description: "Meet your child's teachers and see classroom work from the first month.",
+      sortOrder: 2,
+    },
+    {
+      id: "event-no-school",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Professional Development Day",
+      date: "2026-10-03",
+      isAllDay: true,
+      type: "no_school",
+      colorKey: "red",
+      description: "No classes — staff professional development on campus.",
+      sortOrder: 3,
+    },
+  ];
+}
+
+function buildDemoBulletinPosts(): BulletinPost[] {
+  return [
+    {
+      id: "bulletin-welcome",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Welcome back to a great school year",
+      body:
+        "We are so glad to see everyone on campus this week. Please review the updated pickup procedures in the family handbook.",
+      status: "published",
+      audiences: ["teachers"],
+      programIds: [],
+      publishedAt: "2026-09-01T14:00:00.000Z",
+      createdAt: "2026-09-01T12:00:00.000Z",
+      updatedAt: "2026-09-01T14:00:00.000Z",
+      attachments: [],
+    },
+    {
+      id: "bulletin-fire-drill",
+      organizationId: DEMO_PORTAL_ORG_ID,
+      title: "Fire drill scheduled for Friday",
+      body: "We will run a campus-wide fire drill on Friday at 10:15 AM. Please review your classroom exit route.",
+      status: "published",
+      audiences: ["teachers"],
+      programIds: [],
+      publishedAt: "2026-09-18T09:00:00.000Z",
+      createdAt: "2026-09-18T08:30:00.000Z",
+      updatedAt: "2026-09-18T09:00:00.000Z",
+      attachments: [],
+    },
+  ];
+}
+
+export function buildDemoTeacherStudents(): AdminEnrolledStudentSummary[] {
+  return buildDemoStudents();
+}
+
+export function buildDemoTeacherClassrooms(): StaffClassroomOption[] {
+  return DEMO_CLASSROOMS;
+}
+
+export function buildDemoTeacherAttendanceRoster(): AttendanceRosterResponse {
+  const students = buildAttendanceStudents();
+  return {
+    date: DEMO_ATTENDANCE_DATE,
+    students,
+    summary: {
+      totalStudents: students.length,
+      presentCount: 3,
+      absentCount: 1,
+      pickedUpCount: 1,
+      notMarkedCount: 1,
+    },
+  };
+}
+
+export function buildDemoTeacherMessageThreadDetails(): Record<
+  string,
+  PortalMessage[]
+> {
+  return {
+    "thread-rivera": [
+      {
+        id: "msg-rivera-1",
+        threadId: "thread-rivera",
+        body: "Hi Jordan — Emma will be picked up early today around 2:30. Her grandmother is coming instead of me.",
+        senderUserId: "guardian-rivera",
+        senderKind: "guardian",
+        senderName: "Maria Rivera",
+        isOwn: false,
+        createdAt: "2026-09-20T13:10:00.000Z",
+        timeLabel: "1:10 PM",
+        attachments: [],
+      },
+      {
+        id: "msg-rivera-2",
+        threadId: "thread-rivera",
+        body: "Thanks for letting me know, Maria. I'll have Emma ready at the front desk at 2:30.",
+        senderUserId: DEMO_TEACHER_STAFF_ID,
+        senderKind: "staff_member",
+        senderName: "Jordan Taylor",
+        isOwn: true,
+        createdAt: "2026-09-20T13:25:00.000Z",
+        timeLabel: "1:25 PM",
+        attachments: [],
+      },
+      {
+        id: "msg-rivera-3",
+        threadId: "thread-rivera",
+        body: "Emma will be picked up early today around 2:30.",
+        senderUserId: "guardian-rivera",
+        senderKind: "guardian",
+        senderName: "Maria Rivera",
+        isOwn: false,
+        createdAt: "2026-09-20T13:45:00.000Z",
+        timeLabel: "1:45 PM",
+        attachments: [],
+      },
+    ],
+    "thread-chen": [
+      {
+        id: "msg-chen-1",
+        threadId: "thread-chen",
+        body: "Noah had a great time on the nature walk today! He loved finding the caterpillars near the creek.",
+        senderUserId: DEMO_TEACHER_STAFF_ID,
+        senderKind: "staff_member",
+        senderName: "Jordan Taylor",
+        isOwn: true,
+        createdAt: "2026-09-19T15:30:00.000Z",
+        timeLabel: "3:30 PM",
+        attachments: [],
+      },
+      {
+        id: "msg-chen-2",
+        threadId: "thread-chen",
+        body: "Thanks for the update on today's nature walk. He hasn't stopped talking about it!",
+        senderUserId: "guardian-chen",
+        senderKind: "guardian",
+        senderName: "Sarah Chen",
+        isOwn: false,
+        createdAt: "2026-09-19T16:20:00.000Z",
+        timeLabel: "4:20 PM",
+        attachments: [],
+      },
+    ],
+    "thread-office": [
+      {
+        id: "msg-office-1",
+        threadId: "thread-office",
+        body: "Hi Jordan — we have a shadow visit scheduled for the Maple Room this Thursday at 10 AM. Can you cover the room while we host the family?",
+        senderUserId: "staff-admissions",
+        senderKind: "staff_member",
+        senderName: "Admissions Team",
+        isOwn: false,
+        createdAt: "2026-09-18T09:45:00.000Z",
+        timeLabel: "9:45 AM",
+        attachments: [],
+      },
+      {
+        id: "msg-office-2",
+        threadId: "thread-office",
+        body: "Can you cover the Maple Room shadow visit on Thursday?",
+        senderUserId: "staff-admissions",
+        senderKind: "staff_member",
+        senderName: "Admissions Team",
+        isOwn: false,
+        createdAt: "2026-09-18T10:05:00.000Z",
+        timeLabel: "10:05 AM",
+        attachments: [],
+      },
+    ],
+  };
+}
+
+export function buildDemoTeacherMessagesInbox(): MessagesInboxData {
+  return {
+    threads: [
+      {
+        id: "thread-rivera",
+        subject: null,
+        title: "Rivera Family",
+        subtitle: "Emma Rivera · 3rd",
+        subtitleStudents: [{ id: "student-emma", name: "Emma Rivera" }],
+        color: "#769a61",
+        lastMessagePreview: "Emma will be picked up early today around 2:30.",
+        lastMessageAt: "2026-09-20T13:45:00.000Z",
+        lastMessageTimeLabel: "1:45 PM",
+        unreadCount: 2,
+        participants: [
+          {
+            id: "participant-family-rivera",
+            kind: "family",
+            familyId: "family-rivera",
+            guardianId: null,
+            staffMemberId: null,
+          },
+        ],
+      },
+      {
+        id: "thread-chen",
+        subject: null,
+        title: "Chen Family",
+        subtitle: "Noah Chen · 1st",
+        subtitleStudents: [{ id: "student-noah", name: "Noah Chen" }],
+        color: "#8EBDCB",
+        lastMessagePreview: "Thanks for the update on today's nature walk.",
+        lastMessageAt: "2026-09-19T16:20:00.000Z",
+        lastMessageTimeLabel: "Yesterday",
+        unreadCount: 0,
+        participants: [
+          {
+            id: "participant-family-chen",
+            kind: "family",
+            familyId: "family-chen",
+            guardianId: null,
+            staffMemberId: null,
+          },
+        ],
+      },
+      {
+        id: "thread-office",
+        subject: "Shadow day volunteers",
+        title: "School Office",
+        subtitle: "Admissions team",
+        color: "#A9667C",
+        lastMessagePreview: "Can you cover the Maple Room shadow visit on Thursday?",
+        lastMessageAt: "2026-09-18T10:05:00.000Z",
+        lastMessageTimeLabel: "Thu",
+        unreadCount: 1,
+        participants: [
+          {
+            id: "participant-office",
+            kind: "school_office",
+            familyId: null,
+            guardianId: null,
+            staffMemberId: null,
+          },
+        ],
+      },
+    ],
+    contacts: [
+      {
+        key: "family-rivera",
+        kind: "guardian",
+        familyId: "family-rivera",
+        name: "Maria Rivera",
+        subtitle: "Emma Rivera · 3rd",
+        color: "#769a61",
+      },
+      {
+        key: "family-chen",
+        kind: "guardian",
+        familyId: "family-chen",
+        name: "Sarah Chen",
+        subtitle: "Noah Chen · 1st",
+        color: "#8EBDCB",
+      },
+      {
+        key: "school-office",
+        kind: "school_office",
+        name: "School Office",
+        subtitle: "Admissions & admin",
+        color: "#A9667C",
+      },
+    ],
+    viewerContext: {
+      staffMemberId: DEMO_TEACHER_STAFF_ID,
+      staffDisplayName: "Jordan Taylor",
+    },
+  };
+}
+
+export function buildDemoTeacherCalendarData(): TeacherCalendarInitialData {
+  return {
+    events: buildDemoEvents(),
+    canManageEvents: false,
+    windowStartDate: "2026-08-01",
+    windowEndDate: "2026-12-31",
+  };
+}
+
+export function buildDemoTeacherDashboardSummary(
+  schoolName: string,
+): TeacherDashboardSummary {
+  const students = buildDemoStudents();
+  const attendanceRoster = buildDemoTeacherAttendanceRoster();
+  const events = buildDemoEvents();
+
+  return {
+    focusItems: [
+      {
+        id: "unread-messages",
+        icon: "message",
+        title: "Reply to 3 unread messages",
+        subtitle: "Families and staff are waiting on your response",
+        href: "#messages",
+      },
+      {
+        id: "event-today",
+        icon: "calendar",
+        title: "Staff Meeting today",
+        subtitle: "8:30 AM – 9:15 AM",
+        href: "#calendar",
+      },
+      {
+        id: "attendance-not-marked",
+        icon: "attendance",
+        title: "1 student not marked yet",
+        subtitle: "Finish today's attendance before pickup",
+        href: "#attendance",
+      },
+    ],
+    assignedStudents: students,
+    upcomingEvents: events,
+    messagesUnreadCount: 3,
+    bulletinEnabled: true,
+    bulletinPosts: buildDemoBulletinPosts(),
+    staffClassrooms: DEMO_CLASSROOMS,
+    staffMemberId: DEMO_TEACHER_STAFF_ID,
+    attendanceToday: {
+      date: attendanceRoster.date,
+      summary: attendanceRoster.summary,
+      students: attendanceRoster.students,
+    },
+  };
+}

@@ -44,6 +44,7 @@ type StudentsPageProps = {
   initialMeta: StudentsPageMeta;
   initialTableData?: StudentsTableData;
   tableDeferred?: boolean;
+  previewMode?: boolean;
 };
 
 const STUDENTS_PAGE_SIZE = 50;
@@ -95,6 +96,7 @@ export default function StudentsPage({
   initialMeta,
   initialTableData,
   tableDeferred = false,
+  previewMode = false,
 }: StudentsPageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const searchParams = useSearchParams();
@@ -265,7 +267,7 @@ export default function StudentsPage({
   );
 
   const ensureClassroomsLoaded = useCallback(async () => {
-    if (classroomsRequested) return;
+    if (previewMode || classroomsRequested) return;
     setClassroomsRequested(true);
     setClassroomsLoading(true);
 
@@ -288,7 +290,7 @@ export default function StudentsPage({
     } finally {
       setClassroomsLoading(false);
     }
-  }, [classroomsRequested, organizationId, slug]);
+  }, [classroomsRequested, organizationId, previewMode, slug]);
 
   function changeRosterFilter(next: StudentRosterFilter) {
     setRosterFilter(next);
@@ -402,7 +404,7 @@ export default function StudentsPage({
   const skipSearchFetchRef = useRef(true);
 
   useEffect(() => {
-    if (tableDeferred) return;
+    if (previewMode || tableDeferred) return;
     if (skipInitialLoadRef.current) {
       skipInitialLoadRef.current = false;
       if (hasInitialTable) return;
@@ -410,10 +412,10 @@ export default function StudentsPage({
     queueMicrotask(() => {
       void loadStudents({ offset: 0 });
     });
-  }, [hasInitialTable, loadStudents, tableDeferred]);
+  }, [hasInitialTable, loadStudents, previewMode, tableDeferred]);
 
   useEffect(() => {
-    if (tableDeferred) return;
+    if (previewMode || tableDeferred) return;
     if (skipSearchFetchRef.current) {
       skipSearchFetchRef.current = false;
       return;
@@ -422,7 +424,7 @@ export default function StudentsPage({
     queueMicrotask(() => {
       void loadStudents({ offset: 0 });
     });
-  }, [debouncedSearch, loadStudents, students.length, tableDeferred, totalCount]);
+  }, [debouncedSearch, loadStudents, previewMode, students.length, tableDeferred, totalCount]);
 
   const searchFilteredClientSide =
     !debouncedSearch || students.length >= totalCount;

@@ -2,6 +2,7 @@
 
 import AttendancePage from "@/components/school-admin/attendance/AttendancePage";
 import SchoolAdminStoryShell from "@/components/school-admin/SchoolAdminStoryShell";
+import type { AttendanceRosterResponse } from "@/lib/school-admin/attendance/attendance-types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type TeacherAttendancePageProps = {
@@ -9,6 +10,7 @@ type TeacherAttendancePageProps = {
   branding: OrganizationBranding;
   slug: string;
   previewMode?: boolean;
+  initialRoster?: AttendanceRosterResponse;
 };
 
 export default function TeacherAttendancePage({
@@ -16,6 +18,7 @@ export default function TeacherAttendancePage({
   branding,
   slug,
   previewMode = false,
+  initialRoster,
 }: TeacherAttendancePageProps) {
   return (
     <SchoolAdminStoryShell branding={branding} className="min-h-0 flex-1">
@@ -26,6 +29,7 @@ export default function TeacherAttendancePage({
         apiBasePath="/api/teacher-portal/attendance"
         operationalErrorSurface="teacher_portal"
         previewMode={previewMode}
+        initialRoster={initialRoster}
         sectionKicker="Your classroom"
       />
     </SchoolAdminStoryShell>

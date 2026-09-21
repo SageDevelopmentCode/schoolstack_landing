@@ -24,17 +24,19 @@ const ParentThemeContext = createContext<ParentThemeContextValue | null>(null);
 export function ParentThemeProvider({
   branding,
   children,
+  themeOverride,
 }: {
   branding: OrganizationBranding;
   children: ReactNode;
+  themeOverride?: ParentThemeTokens;
 }) {
   const value = useMemo(() => {
-    const theme = buildParentThemeTokens(branding);
+    const theme = themeOverride ?? buildParentThemeTokens(branding);
     return {
       theme,
       adminCompat: parentThemeToAdminCompat(theme),
     };
-  }, [branding]);
+  }, [branding, themeOverride]);
 
   return (
     <ParentThemeContext.Provider value={value}>

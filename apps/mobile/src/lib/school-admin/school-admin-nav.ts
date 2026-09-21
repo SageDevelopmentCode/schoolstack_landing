@@ -50,7 +50,11 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
 
   const messagesBase = `/school/${slug}/admin/messages`;
   if (pathname === messagesBase) {
-    return `/school-admin/${slug}/messages`;
+    const threadId = query.get('thread');
+    if (threadId) {
+      return schoolAdminMessageThreadRoute(slug, threadId);
+    }
+    return schoolAdminMessagesRoute(slug);
   }
 
   const messageThreadMatch = pathname.match(

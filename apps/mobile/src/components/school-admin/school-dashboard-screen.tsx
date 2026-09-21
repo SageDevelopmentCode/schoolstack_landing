@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
 import { AdminActivityNotificationsSheet } from '@/components/school-admin/dashboard/admin-activity-notifications-sheet';
 import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-dashboard-header';
 import { AdminDashboardSkeleton } from '@/components/school-admin/dashboard/admin-dashboard-skeleton';
@@ -42,6 +44,13 @@ import {
 } from '@/lib/school-admin/school-admin-nav';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
+type SchoolDashboardTab = 'overview' | 'attendance';
+
+const SCHOOL_DASHBOARD_TABS = [
+  { id: 'overview' as const, label: 'Overview' },
+  { id: 'attendance' as const, label: 'Attendance', icon: 'clipboard-outline' as const },
+];
+
 type SchoolDashboardScreenProps = {
   organizationId: string;
   slug: string;
@@ -58,6 +67,7 @@ export function SchoolDashboardScreen({
   const theme = useAdminTheme();
   const router = useRouter();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,7 +115,8 @@ export function SchoolDashboardScreen({
   useFocusEffect(
     useCallback(() => {
       void loadSummary();
-    }, [loadSummary]),
+      void loadActivityUnreadCount();
+    }, [loadActivityUnreadCount, loadSummary]),
   );
 
   const stripeStep = summary?.setupStatus.steps.find((step) => step.id === 'stripe');
@@ -187,26 +198,17 @@ export function SchoolDashboardScreen({
 
   const remaining = summary.setupStatus.totalCount - summary.setupStatus.completedCount;
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: theme.bg }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void loadSummary(true)}
-          tintColor={theme.accent}
-        />
-      }>
-      <Animated.View entering={FadeInDown.duration(350)}>
-        <AdminDashboardHeader
-          schoolName={schoolName}
-          userFirstName={userFirstNameFromMetadata(user ?? null)}
-          unreadCount={activityUnreadCount}
-          onPressNotifications={() => setActivitySheetOpen(true)}
-        />
-      </Animated.View>
+  const header = (
+    <AdminDashboardHeader
+      userFirstName={userFirstNameFromMetadata(user ?? null)}
+      unreadCount={activityUnreadCount}
+      onPressBulletin={() => router.push(`/school-admin/${slug}/more/bulletin` as Href)}
+      onPressNotifications={() => setActivitySheetOpen(true)}
+    />
+  );
 
+  const overviewBody = (
+    <>
       {!summary.setupComplete ? (
         <Animated.View entering={FadeInDown.delay(40).duration(350)} style={styles.section}>
           <SetupProgressBar
@@ -258,7 +260,11 @@ export function SchoolDashboardScreen({
       <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
         <AdminNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
       </Animated.View>
+    </>
+  );
 
+  const sheets = (
+    <>
       <AdminActivityNotificationsSheet
         visible={activitySheetOpen}
         onClose={() => setActivitySheetOpen(false)}
@@ -275,11 +281,54 @@ export function SchoolDashboardScreen({
         userEmail={user?.email}
         sourcePagePath={`/school-admin/${slug}/dashboard`}
       />
-    </ScrollView>
+    </>
+  );
+
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.bg }]}>
+      <View style={styles.headerShell}>
+        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
+      </View>
+
+      <SubmissionStoryTabBar
+        tabs={SCHOOL_DASHBOARD_TABS}
+        activeTabId={homeTab}
+        onChange={(tabId) => setHomeTab(tabId as SchoolDashboardTab)}
+      />
+
+      {homeTab === 'overview' ? (
+        <ScrollView
+          style={styles.tabScroll}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void loadSummary(true)}
+              tintColor={theme.accent}
+            />
+          }>
+          {overviewBody}
+        </ScrollView>
+      ) : (
+        <AttendanceRosterPanel embedded active />
+      )}
+
+      {sheets}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  headerShell: {
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.four,
+  },
+  tabScroll: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
@@ -291,7 +340,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-
     paddingVertical: Spacing.four,
   },
   retry: {

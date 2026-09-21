@@ -148,6 +148,8 @@ type TuitionFamiliesPanelProps = {
   branding: OrganizationBranding;
   reloadToken?: number;
   initialFamilyId?: string | null;
+  initialFamilies?: FamilyBillingSummary[];
+  previewMode?: boolean;
   onAdjust: (familyId: string, assignmentId: string, studentName: string | null) => void;
   onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
@@ -256,6 +258,8 @@ export default function TuitionFamiliesPanel({
   branding,
   reloadToken = 0,
   initialFamilyId = null,
+  initialFamilies,
+  previewMode = false,
   onAdjust,
   onEditAssignment,
   onRefresh,
@@ -264,16 +268,24 @@ export default function TuitionFamiliesPanel({
   const { theme } = useSchoolAdminStoryTheme();
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
+  const hasInitialFamilies = initialFamilies !== undefined;
   const [familySearchQuery, setFamilySearchQuery] = useState("");
   const [showUnenrolledFamilies, setShowUnenrolledFamilies] = useState(() =>
     readStoredShowUnenrolledFamilies(organizationId),
   );
   const reducedMotion = useReducedMotion() ?? false;
-  const [families, setFamilies] = useState<FamilyBillingSummary[]>([]);
+  const [families, setFamilies] = useState<FamilyBillingSummary[]>(
+    initialFamilies ?? [],
+  );
   const [hasMoreFamilies, setHasMoreFamilies] = useState(false);
   const [loadingMoreFamilies, setLoadingMoreFamilies] = useState(false);
-  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(() => {
+    if (initialFamilyId && initialFamilies?.some((row) => row.familyId === initialFamilyId)) {
+      return initialFamilyId;
+    }
+    return initialFamilies?.[0]?.familyId ?? null;
+  });
+  const [loading, setLoading] = useState(!hasInitialFamilies);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
@@ -330,6 +342,8 @@ export default function TuitionFamiliesPanel({
   }, []);
 
   const loadFamilies = useCallback(async () => {
+    if (previewMode) return;
+
     setLoading(true);
     try {
       const { families: rows, hasMore } = await fetchFamiliesPage(organizationId, 0);
@@ -362,10 +376,10 @@ export default function TuitionFamiliesPanel({
     } finally {
       setLoading(false);
     }
-  }, [initialFamilyId, organizationId]);
+  }, [initialFamilyId, organizationId, previewMode]);
 
   const loadMoreFamilies = useCallback(async () => {
-    if (!hasMoreFamilies || loadingMoreFamilies) return;
+    if (previewMode || !hasMoreFamilies || loadingMoreFamilies) return;
     setLoadingMoreFamilies(true);
     try {
       const { families: rows, hasMore } = await fetchFamiliesPage(
@@ -384,35 +398,58 @@ export default function TuitionFamiliesPanel({
     } finally {
       setLoadingMoreFamilies(false);
     }
-  }, [families.length, hasMoreFamilies, loadingMoreFamilies, organizationId]);
+  }, [families.length, hasMoreFamilies, loadingMoreFamilies, organizationId, previewMode]);
 
   const refreshFamilySummaries = useCallback(async () => {
+    if (previewMode && initialFamilies) return initialFamilies;
+
     const { families: rows, hasMore } = await fetchFamiliesPage(organizationId, 0);
     setFamilies(rows);
     setHasMoreFamilies(hasMore);
     return rows;
-  }, [organizationId]);
+  }, [initialFamilies, organizationId, previewMode]);
 
   const refreshSelectedFamilyDetails = useCallback(async (familyId: string) => {
+    if (previewMode) {
+      setFamilyCharges([]);
+      setFamilyPayments([]);
+      return;
+    }
+
     const [charges, payments] = await Promise.all([
       listChargesForFamily(supabase, familyId),
       listTuitionPaymentsForFamily(supabase, familyId),
     ]);
     setFamilyCharges(charges);
     setFamilyPayments(payments);
-  }, [supabase]);
+  }, [previewMode, supabase]);
 
   useEffect(() => {
+    if (previewMode || hasInitialFamilies) return;
     queueMicrotask(() => {
       void loadFamilies();
     });
-  }, [loadFamilies, reloadToken]);
+  }, [hasInitialFamilies, loadFamilies, previewMode, reloadToken]);
+
+  useEffect(() => {
+    if (!initialFamilies) return;
+    setFamilies(initialFamilies);
+    setLoading(false);
+    setHasMoreFamilies(false);
+    const nextId = pickDefaultFamilyId(initialFamilies, {
+      preferredId: initialFamilyId,
+      previousId: selectedFamilyIdRef.current,
+      includeUnenrolled: showUnenrolledFamiliesRef.current,
+    });
+    selectedFamilyIdRef.current = nextId;
+    setSelectedFamilyId(nextId);
+  }, [initialFamilies, initialFamilyId]);
 
   const selectedFamily =
     families.find((f) => f.familyId === selectedFamilyId) ?? null;
 
   const handleManualPayment = async (amountCents: number) => {
-    if (!manualPaymentCharge) return;
+    if (previewMode || !manualPaymentCharge) return;
     const chargeId = manualPaymentCharge.id;
     setActionLoading(chargeId);
     try {

@@ -17,7 +17,31 @@ type StoryButtonProps = PressableProps & {
   trailingIcon?: ReactNode;
 };
 
-function getButtonColors(variant: StoryButtonProps['variant']) {
+function getButtonColors(variant: StoryButtonProps['variant'], disabled?: boolean) {
+  if (disabled) {
+    switch (variant) {
+      case 'soft':
+        return {
+          backgroundColor: Story.line,
+          labelColor: Story.muted,
+          borderColor: 'transparent',
+        };
+      case 'outline':
+        return {
+          backgroundColor: Story.white,
+          labelColor: Story.muted,
+          borderColor: Story.line,
+        };
+      case 'primary':
+      default:
+        return {
+          backgroundColor: Story.line,
+          labelColor: Story.muted,
+          borderColor: 'transparent',
+        };
+    }
+  }
+
   switch (variant) {
     case 'soft':
       return {
@@ -53,7 +77,7 @@ export function StoryButton({
   accessibilityLabel,
   ...rest
 }: StoryButtonProps) {
-  const { backgroundColor, labelColor, borderColor } = getButtonColors(variant);
+  const { backgroundColor, labelColor, borderColor } = getButtonColors(variant, disabled);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -98,7 +122,7 @@ export function StoryButton({
         testID={testID}
         style={({ pressed }) => [
           styles.outer,
-          { opacity: disabled ? 0.5 : pressed ? 0.95 : 1 },
+          { opacity: disabled ? 1 : pressed ? 0.95 : 1 },
           typeof style === 'function' ? style({ pressed, hovered: false }) : style,
         ]}
         onPressIn={onPressIn}
@@ -119,7 +143,6 @@ export function StoryButton({
       style={({ pressed }: { pressed: boolean }) => [
         styles.outer,
         animatedStyle,
-        { opacity: disabled ? 0.5 : 1 },
         typeof style === 'function' ? style({ pressed, hovered: false }) : style,
       ]}
       testID={testID}

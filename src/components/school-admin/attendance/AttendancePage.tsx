@@ -44,6 +44,7 @@ type AttendancePageProps = {
   apiBasePath?: string;
   operationalErrorSurface?: PortalOperationalSurface;
   previewMode?: boolean;
+  initialRoster?: AttendanceRosterResponse;
   sectionKicker?: string;
 };
 
@@ -127,6 +128,7 @@ function AttendancePageContent({
   organizationId,
   slug,
   operationalErrorSurface = "school_admin",
+  initialRoster,
   sectionKicker = "My School",
 }: Omit<AttendancePageProps, "branding" | "apiBasePath" | "previewMode">) {
   void slug;
@@ -142,8 +144,10 @@ function AttendancePageContent({
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [roster, setRoster] = useState<AttendanceRosterResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [roster, setRoster] = useState<AttendanceRosterResponse | null>(
+    initialRoster ?? null,
+  );
+  const [loading, setLoading] = useState(!initialRoster);
   const [savingStudentId, setSavingStudentId] = useState<string | null>(null);
   const [detailStudent, setDetailStudent] = useState<AttendanceRosterStudent | null>(null);
   const [pickupStudent, setPickupStudent] = useState<AttendanceRosterStudent | null>(null);
@@ -152,6 +156,12 @@ function AttendancePageContent({
   const viewingToday = isToday(activeDate);
 
   const loadRoster = useCallback(async () => {
+    if (previewMode && initialRoster) {
+      setRoster(initialRoster);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(
@@ -184,7 +194,14 @@ function AttendancePageContent({
     } finally {
       setLoading(false);
     }
-  }, [apiBasePath, dateKey, operationalErrorSurface, organizationId]);
+  }, [
+    apiBasePath,
+    dateKey,
+    initialRoster,
+    operationalErrorSurface,
+    organizationId,
+    previewMode,
+  ]);
 
   useEffect(() => {
     void loadRoster();
@@ -497,6 +514,7 @@ export default function AttendancePage({
   apiBasePath,
   operationalErrorSurface,
   previewMode,
+  initialRoster,
   sectionKicker,
 }: AttendancePageProps) {
   void branding;
@@ -507,6 +525,7 @@ export default function AttendancePage({
         organizationId={organizationId}
         slug={slug}
         operationalErrorSurface={operationalErrorSurface}
+        initialRoster={initialRoster}
         sectionKicker={sectionKicker}
       />
     </AttendanceApiProvider>

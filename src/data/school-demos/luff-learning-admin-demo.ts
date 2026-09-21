@@ -4,6 +4,7 @@ export const LUFF_LEARNING_LOGO = {
   alt: "Luff Learning Fine Arts Academy",
   width: 220,
   height: 52,
+  logoOnLightClassName: "brightness-0",
 } as const;
 
 export const LUFF_LEARNING_ADMIN_LOGO = LUFF_LEARNING_LOGO;

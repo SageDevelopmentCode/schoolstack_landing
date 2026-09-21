@@ -1328,6 +1328,15 @@ export async function resolveActivityNotificationLink(
     return { href: paymentsHref(slug), ctaLabel: "View enrollment" };
   }
 
+  if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    const threadId = metadataString(event.metadata, "threadId");
+    const messagesBase = schoolAdminPath(slug, "messages");
+    return {
+      href: threadId ? `${messagesBase}?thread=${threadId}` : messagesBase,
+      ctaLabel: "View message",
+    };
+  }
+
   return {
     href: schoolAdminPath(slug, "admissions", "submissions"),
     ctaLabel: "View",

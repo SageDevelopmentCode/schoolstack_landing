@@ -83,4 +83,26 @@ describe("shouldDeferInboxFetch", () => {
       true,
     );
   });
+
+  it("defers fetch for read-only inboxes with static preview threads", () => {
+    assert.equal(
+      shouldDeferInboxFetch({
+        initialInbox: { threads: [{ id: "thread-a" }], threadsDeferred: false },
+        threadsHydrated: false,
+        readOnly: true,
+      }),
+      true,
+    );
+  });
+
+  it("does not defer read-only fetch when preview inbox has no threads", () => {
+    assert.equal(
+      shouldDeferInboxFetch({
+        initialInbox: { threads: [], threadsDeferred: false },
+        threadsHydrated: false,
+        readOnly: true,
+      }),
+      false,
+    );
+  });
 });

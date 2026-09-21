@@ -1,6 +1,6 @@
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,6 +9,7 @@ import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-ho
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
 import { ParentHomeFormsSnapshotCard } from '@/components/parent/home/parent-home-forms-snapshot-card';
+import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
@@ -36,6 +37,7 @@ import {
   resolveParentAttentionNavigation,
 } from '@/lib/parent/parent-nav';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
+import { fetchParentActivityNotificationUnreadCount } from '@/lib/parent/fetch-activity-notifications';
 import {
   fetchParentSignupAttentionItems,
   submitParentSupportRequest,
@@ -53,11 +55,29 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [bulletinOpen, setBulletinOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
   );
 
   useAuthRequiredRedirect(error);
+
+  const loadNotificationUnreadCount = useCallback(async () => {
+    if (!data?.organizationId) return;
+    try {
+      const count = await fetchParentActivityNotificationUnreadCount(data.organizationId, slug);
+      setNotificationUnreadCount(count);
+    } catch {
+      // Keep the last known count on transient errors.
+    }
+  }, [data?.organizationId, slug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadNotificationUnreadCount();
+    }, [loadNotificationUnreadCount]),
+  );
 
   useEffect(() => {
     if (!data?.organizationId) return;
@@ -164,7 +184,9 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             displayName={data.userProfile.displayName}
             bulletinEnabled={bulletinEnabled}
             bulletinPostCount={bulletinPosts.length}
+            notificationUnreadCount={notificationUnreadCount}
             onOpenBulletin={() => setBulletinOpen(true)}
+            onPressNotifications={() => setNotificationsOpen(true)}
           />
         </Animated.View>
 
@@ -247,6 +269,15 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           setBulletinOpen(false);
           router.push(parentBulletinDetailRoute(slug, postId));
         }}
+      />
+
+      <ParentActivityNotificationsSheet
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        organizationId={data.organizationId}
+        slug={slug}
+        firstChildApplicationId={firstChildApplicationId}
+        onMarkedRead={() => setNotificationUnreadCount(0)}
       />
 
       <PortalSupportRequestSheet

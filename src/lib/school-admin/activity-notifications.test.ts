@@ -314,6 +314,56 @@ describe("getActivityNotificationCategory", () => {
   });
 });
 
+describe("resolveActivityNotificationLink", () => {
+  it("links message notifications to the messages inbox", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-1",
+        action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+        entity_type: "message_thread",
+        entity_id: "thread-1",
+        summary: "Hello there",
+        metadata: {
+          threadId: "thread-1",
+          senderName: "Jane Doe",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(
+      link.href,
+      "/school/rooted-meadows/admin/messages?thread=thread-1",
+    );
+    assert.equal(link.ctaLabel, "View message");
+  });
+
+  it("links message notifications without thread metadata to messages inbox", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-2",
+        action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+        entity_type: "message_thread",
+        entity_id: null,
+        summary: "Hello there",
+        metadata: {
+          senderName: "Jane Doe",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(link.href, "/school/rooted-meadows/admin/messages");
+    assert.equal(link.ctaLabel, "View message");
+  });
+});
+
 describe("authorized pickup notifications", () => {
   it("formats pickup notification titles", () => {
     assert.equal(

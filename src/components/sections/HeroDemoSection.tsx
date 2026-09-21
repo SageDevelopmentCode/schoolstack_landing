@@ -14,7 +14,7 @@ import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
 import { useMobileDemoScale } from '@/hooks/useMobileDemoScale'
 import { scheduleOnIdle } from '@/lib/schedule-on-idle'
 
-type HeroDemoTab = 'parent' | 'teacher' | 'admin'
+export type HeroDemoTab = 'parent' | 'teacher' | 'admin'
 
 const DEMO_TABS = [
   { id: 'parent',  label: 'Parent View',  shortLabel: 'Parent',  icon: Users },
@@ -185,8 +185,15 @@ function HeroScaledDemoFrame({
   )
 }
 
-export default function HeroDemoSection() {
-  const [demoTab, setDemoTab] = useState<HeroDemoTab>('parent')
+type HeroDemoSectionProps = {
+  demoTab: HeroDemoTab
+  onDemoTabChange: (tab: HeroDemoTab) => void
+}
+
+export default function HeroDemoSection({
+  demoTab,
+  onDemoTabChange,
+}: HeroDemoSectionProps) {
   const [loadedTabs, setLoadedTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const [readyTabs, setReadyTabs] = useState<Set<HeroDemoTab>>(() => new Set())
   const [demosEnabled, setDemosEnabled] = useState(false)
@@ -222,26 +229,22 @@ export default function HeroDemoSection() {
   }, [])
 
   const handleTabReady = useCallback((tab: HeroDemoTab) => {
-    setReadyTabs((prev) => new Set(prev).add(tab))
+    setReadyTabs((prev) => {
+      if (prev.has(tab)) return prev
+      return new Set(prev).add(tab)
+    })
   }, [])
 
   const handleDemoTabChange = useCallback((id: HeroDemoTab) => {
-    setDemoTab(id)
+    onDemoTabChange(id)
     setLoadedTabs((prev) => new Set(prev).add(id))
     if (id === 'parent') prefetchParentDemo()
     if (id === 'teacher') prefetchTeacherDemo()
     if (id === 'admin') prefetchAdminDemo()
-  }, [])
-
-  const demoBackground =
-    t ? '#F7F1E7' : demoTab === 'admin' ? '#1a3327' : '#2E4A3C'
+  }, [onDemoTabChange])
 
   return (
-    <div
-      ref={sectionRef}
-      className="mt-14 transition-colors duration-500"
-      style={{ backgroundColor: demoBackground }}
-    >
+    <div ref={sectionRef} className="mt-14">
       <div
         className="hero-enter grid grid-cols-3 items-center px-1"
         style={{ '--hero-delay': '360ms' } as React.CSSProperties}

@@ -92,6 +92,26 @@ describe("mobile bearer auth route wiring", () => {
     });
   }
 
+  const teacherActivityNotificationRoutes = [
+    "app/api/teacher-portal/activity-notifications/route.ts",
+    "app/api/teacher-portal/activity-notifications/unread-count/route.ts",
+    "app/api/teacher-portal/activity-notifications/mark-read/route.ts",
+  ];
+
+  for (const routePath of teacherActivityNotificationRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
+
   const attendanceRoutes = [
     "app/api/teacher-portal/attendance/route.ts",
     "app/api/teacher-portal/attendance/records/route.ts",

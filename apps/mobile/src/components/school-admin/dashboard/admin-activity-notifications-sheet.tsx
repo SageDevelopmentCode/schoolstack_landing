@@ -19,6 +19,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdminActivityFeedRow } from '@/components/school-admin/dashboard/admin-activity-feed-row';
+import { AdminActivityNotificationsSkeleton } from '@/components/school-admin/dashboard/admin-activity-notifications-skeleton';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -199,11 +200,7 @@ export function AdminActivityNotificationsSheet({
   );
 
   const listEmpty = loading
-    ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={theme.accent} />
-        </View>
-      )
+    ? <AdminActivityNotificationsSkeleton />
     : error
       ? (
           <View style={styles.centered}>

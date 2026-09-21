@@ -34,6 +34,7 @@ import { fetchTuitionPageMeta } from "@/lib/tuition/tuition-page-meta";
 import type { TuitionReadinessStatus } from "@/lib/tuition/tuition-readiness";
 import type { TuitionSetupStatus } from "@/lib/tuition/setup-status";
 import type { TuitionDashboardData } from "@/lib/tuition/load-tuition-dashboard-data";
+import type { FamilyBillingSummary } from "@/lib/tuition/types";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
@@ -46,7 +47,10 @@ type TuitionDashboardProps = {
   slug: string;
   setupStatus: TuitionSetupStatus;
   initialDashboardData?: TuitionDashboardData | null;
+  initialFamilies?: FamilyBillingSummary[];
+  initialFamilyId?: string | null;
   dashboardDeferred?: boolean;
+  previewMode?: boolean;
   onOpenSetupWizard: () => void;
 };
 
@@ -144,7 +148,10 @@ export default function TuitionDashboard({
   slug,
   setupStatus,
   initialDashboardData = null,
+  initialFamilies,
+  initialFamilyId = null,
   dashboardDeferred = false,
+  previewMode = false,
   onOpenSetupWizard,
 }: TuitionDashboardProps) {
   const { theme } = useSchoolAdminStoryTheme();
@@ -188,7 +195,7 @@ export default function TuitionDashboard({
   const [kpiBreakdownKind, setKpiBreakdownKind] = useState<TuitionKpiBreakdownKind | null>(
     null,
   );
-  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(null);
+  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(initialFamilyId);
   const [outstandingPeriodSelection, setOutstandingPeriod] =
     useState<OutstandingPeriod>("current_month");
   const [unassignedBannerDismissed, setUnassignedBannerDismissed] = useState(false);
@@ -223,6 +230,8 @@ export default function TuitionDashboard({
   }, []);
 
   const loadData = useCallback(async () => {
+    if (previewMode) return;
+
     if (hasLoadedDashboardRef.current) {
       setIsRefetching(true);
     } else {
@@ -249,18 +258,18 @@ export default function TuitionDashboard({
       setInitialLoading(false);
       setIsRefetching(false);
     }
-  }, [applyDashboardData, organizationId, outstandingPeriod, supabase]);
+  }, [applyDashboardData, organizationId, outstandingPeriod, previewMode, supabase]);
 
   useEffect(() => {
-    if (dashboardDeferred && !initialDashboardData) return;
+    if (previewMode || dashboardDeferred && !initialDashboardData) return;
     if (initialDashboardData) return;
     queueMicrotask(() => {
       void loadData();
     });
-  }, [dashboardDeferred, initialDashboardData, loadData]);
+  }, [dashboardDeferred, initialDashboardData, loadData, previewMode]);
 
   useEffect(() => {
-    if (!hasLoadedDashboardRef.current) return;
+    if (previewMode || !hasLoadedDashboardRef.current) return;
     if (skipOutstandingPeriodEffectRef.current) {
       skipOutstandingPeriodEffectRef.current = false;
       return;
@@ -271,6 +280,8 @@ export default function TuitionDashboard({
   }, [loadData, outstandingPeriod]);
 
   const handleSyncAssignments = useCallback(async () => {
+    if (previewMode) return;
+
     setSyncLoading(true);
     setError(null);
     try {
@@ -299,7 +310,7 @@ export default function TuitionDashboard({
     } finally {
       setSyncLoading(false);
     }
-  }, [loadData, organizationId]);
+  }, [loadData, organizationId, previewMode]);
 
   const refreshMetaOnly = useCallback(async () => {
     await loadData();
@@ -436,6 +447,8 @@ export default function TuitionDashboard({
                   slug={slug}
                   branding={branding}
                   initialFamilyId={focusFamilyId}
+                  initialFamilies={initialFamilies}
+                  previewMode={previewMode}
                   onAdjust={(familyId, assignmentId, studentName) => {
                     setAdjustFamilyId(familyId);
                     setAdjustAssignmentId(assignmentId);
