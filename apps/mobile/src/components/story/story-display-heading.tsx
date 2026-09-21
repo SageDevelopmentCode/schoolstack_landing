@@ -3,7 +3,7 @@ import { StyleSheet, Text, type TextProps } from 'react-native';
 import { Story, StoryFonts } from '@/constants/story-theme';
 
 type StoryDisplayHeadingProps = TextProps & {
-  size?: 'display' | 'section';
+  size?: 'display' | 'section' | 'header';
 };
 
 export function StoryDisplayHeading({
@@ -13,9 +13,7 @@ export function StoryDisplayHeading({
   ...rest
 }: StoryDisplayHeadingProps) {
   return (
-    <Text
-      style={[size === 'display' ? styles.display : styles.section, style]}
-      {...rest}>
+    <Text style={[SIZE_STYLES[size], style]} {...rest}>
       {children}
     </Text>
   );
@@ -38,4 +36,18 @@ const styles = StyleSheet.create({
     letterSpacing: -0.72,
     color: Story.ink,
   },
+  header: {
+    fontFamily: StoryFonts.display,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '600',
+    letterSpacing: -0.6,
+    color: Story.ink,
+  },
 });
+
+const SIZE_STYLES = {
+  display: styles.display,
+  section: styles.section,
+  header: styles.header,
+} as const;

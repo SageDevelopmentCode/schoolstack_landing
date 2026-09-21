@@ -1,13 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
+import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PortalHomeHeaderDateBadge } from '@/components/portal/portal-home-header-date-badge';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { Story, StoryFonts } from '@/constants/story-theme';
+import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 
+const ON_PRIMARY_BUTTON_BG = 'rgba(255, 255, 255, 0.18)';
+const ON_PRIMARY_BUTTON_BORDER = 'rgba(255, 255, 255, 0.35)';
+
 type PortalHomeHeaderToolbarProps = {
+  greeting?: ReactNode;
+  dateLabel?: string;
   bulletin?: {
     postCount?: number;
+    onPress: () => void;
+  };
+  help?: {
     onPress: () => void;
   };
   notifications?: {
@@ -16,103 +26,130 @@ type PortalHomeHeaderToolbarProps = {
   };
 };
 
+function formatCountBadge(count: number): string {
+  return count > 9 ? '9+' : String(count);
+}
+
 export function PortalHomeHeaderToolbar({
+  greeting,
+  dateLabel,
   bulletin,
+  help,
   notifications,
 }: PortalHomeHeaderToolbarProps) {
   const theme = useParentTheme();
+  const showBulletinBadge = (bulletin?.postCount ?? 0) > 0;
   const showUnreadBadge = (notifications?.unreadCount ?? 0) > 0;
+  const hasActions = Boolean(bulletin) || Boolean(help) || Boolean(notifications);
 
-  if (!bulletin && !notifications) {
+  if (!greeting && !hasActions && !dateLabel) {
     return null;
   }
 
   return (
-    <View style={styles.row}>
-      {bulletin ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`School bulletin${bulletin.postCount ? `, ${bulletin.postCount} posts` : ''}`}
-          onPress={bulletin.onPress}
-          style={({ pressed }) => [
-            styles.bulletinButton,
-            {
-              backgroundColor: theme.info,
-              shadowColor: theme.info,
-            },
-            pressed && styles.pressed,
-          ]}>
-          <Ionicons name="megaphone-outline" size={16} color={theme.white} />
-          <Text style={[styles.bulletinLabel, { color: theme.white }]}>
-            School bulletin{bulletin.postCount ? ` (${bulletin.postCount})` : ''}
-          </Text>
-          <Ionicons name="chevron-forward" size={14} color={theme.white} />
-        </Pressable>
-      ) : (
-        <View style={styles.spacer} />
-      )}
+    <View style={styles.container}>
+      {dateLabel ? <PortalHomeHeaderDateBadge label={dateLabel} /> : null}
 
-      {notifications ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            showUnreadBadge
-              ? `Open notifications, ${notifications.unreadCount} unread`
-              : 'Open notifications'
-          }
-          onPress={notifications.onPress}
-          style={({ pressed }) => [
-            styles.bellButton,
-            {
-              backgroundColor: Story.white,
-              borderColor: Story.line,
-            },
-            pressed && styles.pressed,
-          ]}>
-          <Ionicons name="notifications-outline" size={20} color={theme.muted} />
-          {showUnreadBadge ? (
-            <View style={[styles.unreadBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.unreadBadgeText}>
-                {notifications.unreadCount > 9 ? '9+' : String(notifications.unreadCount)}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
-      ) : null}
+      <View style={styles.row}>
+        {greeting ? <View style={styles.greeting}>{greeting}</View> : null}
+
+        {hasActions ? (
+          <View style={styles.actions}>
+            {help ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Get help"
+                onPress={help.onPress}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  {
+                    backgroundColor: ON_PRIMARY_BUTTON_BG,
+                    borderColor: ON_PRIMARY_BUTTON_BORDER,
+                  },
+                  pressed && styles.pressed,
+                ]}>
+                <Ionicons name="help-circle-outline" size={20} color={theme.white} />
+              </Pressable>
+            ) : null}
+
+            {bulletin ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`School bulletin${bulletin.postCount ? `, ${bulletin.postCount} posts` : ''}`}
+                onPress={bulletin.onPress}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  {
+                    backgroundColor: ON_PRIMARY_BUTTON_BG,
+                    borderColor: ON_PRIMARY_BUTTON_BORDER,
+                  },
+                  pressed && styles.pressed,
+                ]}>
+                <Ionicons name="megaphone-outline" size={20} color={theme.white} />
+                {showBulletinBadge ? (
+                  <View style={[styles.countBadge, { backgroundColor: theme.white }]}>
+                    <Text style={[styles.countBadgeText, { color: theme.primaryDark }]}>
+                      {formatCountBadge(bulletin.postCount ?? 0)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            ) : null}
+
+            {notifications ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showUnreadBadge
+                    ? `Open notifications, ${notifications.unreadCount} unread`
+                    : 'Open notifications'
+                }
+                onPress={notifications.onPress}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  {
+                    backgroundColor: ON_PRIMARY_BUTTON_BG,
+                    borderColor: ON_PRIMARY_BUTTON_BORDER,
+                  },
+                  pressed && styles.pressed,
+                ]}>
+                <Ionicons name="notifications-outline" size={20} color={theme.white} />
+                {showUnreadBadge ? (
+                  <View style={[styles.countBadge, { backgroundColor: theme.white }]}>
+                    <Text style={[styles.countBadgeText, { color: theme.primaryDark }]}>
+                      {formatCountBadge(notifications.unreadCount)}
+                    </Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.two,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  spacer: {
+  greeting: {
     flex: 1,
+    minWidth: 0,
   },
-  bulletinButton: {
-    flexShrink: 1,
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 3,
+    gap: Spacing.two,
+    flexShrink: 0,
   },
-  bulletinLabel: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  bellButton: {
+  iconButton: {
     width: 40,
     height: 40,
     borderRadius: Radius.pill,
@@ -120,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  unreadBadge: {
+  countBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
@@ -131,8 +168,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  unreadBadgeText: {
-    color: Story.white,
+  countBadgeText: {
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 10,
     lineHeight: 12,

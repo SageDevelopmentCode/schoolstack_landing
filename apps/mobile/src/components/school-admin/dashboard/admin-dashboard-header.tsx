@@ -1,14 +1,14 @@
-import { StyleSheet, View } from 'react-native';
-
+import { PortalHomeHeaderGreeting } from '@/components/portal/portal-home-header-greeting';
+import { PortalHomeHeaderShell } from '@/components/portal/portal-home-header-shell';
 import { PortalHomeHeaderToolbar } from '@/components/portal/portal-home-header-toolbar';
-import { StoryDisplayHeading } from '@/components/story/story-display-heading';
-import { Spacing } from '@/constants/theme';
+import { todayLabel } from '@/lib/parent/parent-home-utils';
 import { greetingParts } from '@/lib/school-admin/greeting';
 
 type AdminDashboardHeaderProps = {
   userFirstName?: string | null;
   unreadCount?: number;
   onPressBulletin?: () => void;
+  onPressHelp?: () => void;
   onPressNotifications?: () => void;
 };
 
@@ -16,38 +16,31 @@ export function AdminDashboardHeader({
   userFirstName,
   unreadCount = 0,
   onPressBulletin,
+  onPressHelp,
   onPressNotifications,
 }: AdminDashboardHeaderProps) {
   const greetingName = userFirstName?.trim() || 'there';
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
 
-  const showToolbar = Boolean(onPressBulletin) || Boolean(onPressNotifications);
-
   return (
-    <View style={styles.container}>
-      {showToolbar ? (
-        <PortalHomeHeaderToolbar
-          bulletin={onPressBulletin ? { onPress: onPressBulletin } : undefined}
-          notifications={
-            onPressNotifications
-              ? { unreadCount, onPress: onPressNotifications }
-              : undefined
-          }
-        />
-      ) : null}
-
-      <StoryDisplayHeading size="display" style={styles.greeting}>
-        {greetingPrefix}, {greetingName}. {greetingEmoji}
-      </StoryDisplayHeading>
-    </View>
+    <PortalHomeHeaderShell>
+      <PortalHomeHeaderToolbar
+        greeting={
+          <PortalHomeHeaderGreeting
+            prefix={greetingPrefix}
+            name={greetingName}
+            emoji={greetingEmoji}
+          />
+        }
+        dateLabel={todayLabel()}
+        bulletin={onPressBulletin ? { onPress: onPressBulletin } : undefined}
+        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        notifications={
+          onPressNotifications
+            ? { unreadCount, onPress: onPressNotifications }
+            : undefined
+        }
+      />
+    </PortalHomeHeaderShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.three,
-  },
-  greeting: {
-    marginTop: 0,
-  },
-});

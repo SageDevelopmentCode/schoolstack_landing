@@ -1,4 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -142,6 +143,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
       bulletinPostCount={summary.bulletinPosts.length}
       notificationUnreadCount={notificationUnreadCount}
       onOpenBulletin={() => setBulletinOpen(true)}
+      onPressHelp={() => setSupportSheetOpen(true)}
       onPressNotifications={() => setNotificationsOpen(true)}
     />
   );
@@ -277,9 +279,8 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   if (attendanceEnabled) {
     return (
       <View style={styles.screen}>
-        <View style={styles.headerShell}>
-          <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
-        </View>
+        <StatusBar style="light" />
+        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
         <SubmissionStoryTabBar
           tabs={TEACHER_HOME_TABS}
@@ -310,9 +311,12 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   }
 
   return (
-    <>
+    <View style={styles.screen}>
+      <StatusBar style="light" />
+      <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
+
       <ScrollView
-        style={{ backgroundColor: Story.paper }}
+        style={styles.tabScroll}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl
@@ -321,12 +325,11 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
             tintColor={theme.primary}
           />
         }>
-        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
         {overviewBody}
       </ScrollView>
 
       {sheets}
-    </>
+    </View>
   );
 }
 
@@ -334,10 +337,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Story.paper,
-  },
-  headerShell: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
   },
   tabScroll: {
     flex: 1,

@@ -1,4 +1,5 @@
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -169,16 +170,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   return (
     <>
-      <ScrollView
-        style={{ backgroundColor: Story.paper }}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => void refresh()}
-            tintColor={theme.primary}
-          />
-        }>
+      <StatusBar style="light" />
+      <View style={styles.screen}>
         <Animated.View entering={FadeInDown.duration(350)}>
           <ParentHomeHeader
             displayName={data.userProfile.displayName}
@@ -186,10 +179,21 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             bulletinPostCount={bulletinPosts.length}
             notificationUnreadCount={notificationUnreadCount}
             onOpenBulletin={() => setBulletinOpen(true)}
+            onPressHelp={() => setSupportSheetOpen(true)}
             onPressNotifications={() => setNotificationsOpen(true)}
           />
         </Animated.View>
 
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void refresh()}
+              tintColor={theme.primary}
+            />
+          }>
         <Animated.View entering={FadeInDown.delay(40).duration(350)}>
           <ParentHomeStartHereCard
             slug={slug}
@@ -259,7 +263,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
         <Animated.View entering={FadeInDown.delay(160).duration(350)}>
           <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
         </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       <HomeBulletinSheet
         visible={bulletinOpen}
@@ -301,6 +306,14 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',

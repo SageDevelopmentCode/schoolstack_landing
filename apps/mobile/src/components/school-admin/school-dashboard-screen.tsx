@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -203,6 +204,7 @@ export function SchoolDashboardScreen({
       userFirstName={userFirstNameFromMetadata(user ?? null)}
       unreadCount={activityUnreadCount}
       onPressBulletin={() => router.push(`/school-admin/${slug}/more/bulletin` as Href)}
+      onPressHelp={() => setSupportSheetOpen(true)}
       onPressNotifications={() => setActivitySheetOpen(true)}
     />
   );
@@ -286,9 +288,8 @@ export function SchoolDashboardScreen({
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
-      <View style={styles.headerShell}>
-        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
-      </View>
+      <StatusBar style="light" />
+      <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
       <SubmissionStoryTabBar
         tabs={SCHOOL_DASHBOARD_TABS}
@@ -321,10 +322,6 @@ export function SchoolDashboardScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-  },
-  headerShell: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
   },
   tabScroll: {
     flex: 1,

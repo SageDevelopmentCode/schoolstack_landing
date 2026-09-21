@@ -1,9 +1,7 @@
-import { StyleSheet, View } from 'react-native';
-
+import { PortalHomeHeaderGreeting } from '@/components/portal/portal-home-header-greeting';
+import { PortalHomeHeaderShell } from '@/components/portal/portal-home-header-shell';
 import { PortalHomeHeaderToolbar } from '@/components/portal/portal-home-header-toolbar';
-import { StoryDisplayHeading } from '@/components/story/story-display-heading';
-import { Spacing } from '@/constants/theme';
-import { firstName, greetingParts } from '@/lib/teacher/teacher-home-utils';
+import { firstName, greetingParts, todayLabel } from '@/lib/teacher/teacher-home-utils';
 
 type TeacherHomeHeaderProps = {
   displayName: string;
@@ -11,6 +9,7 @@ type TeacherHomeHeaderProps = {
   bulletinPostCount: number;
   notificationUnreadCount?: number;
   onOpenBulletin?: () => void;
+  onPressHelp?: () => void;
   onPressNotifications?: () => void;
 };
 
@@ -20,40 +19,31 @@ export function TeacherHomeHeader({
   bulletinPostCount,
   notificationUnreadCount = 0,
   onOpenBulletin,
+  onPressHelp,
   onPressNotifications,
 }: TeacherHomeHeaderProps) {
   const name = firstName(displayName);
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
 
-  const showToolbar =
-    (bulletinEnabled && onOpenBulletin) || Boolean(onPressNotifications);
-
   return (
-    <View style={styles.container}>
-      {showToolbar ? (
-        <PortalHomeHeaderToolbar
-          bulletin={
-            bulletinEnabled && onOpenBulletin
-              ? { postCount: bulletinPostCount, onPress: onOpenBulletin }
-              : undefined
-          }
-          notifications={
-            onPressNotifications
-              ? { unreadCount: notificationUnreadCount, onPress: onPressNotifications }
-              : undefined
-          }
-        />
-      ) : null}
-
-      <StoryDisplayHeading size="display">
-        {greetingPrefix}, {name}. {greetingEmoji}
-      </StoryDisplayHeading>
-    </View>
+    <PortalHomeHeaderShell>
+      <PortalHomeHeaderToolbar
+        greeting={
+          <PortalHomeHeaderGreeting prefix={greetingPrefix} name={name} emoji={greetingEmoji} />
+        }
+        dateLabel={todayLabel()}
+        bulletin={
+          bulletinEnabled && onOpenBulletin
+            ? { postCount: bulletinPostCount, onPress: onOpenBulletin }
+            : undefined
+        }
+        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        notifications={
+          onPressNotifications
+            ? { unreadCount: notificationUnreadCount, onPress: onPressNotifications }
+            : undefined
+        }
+      />
+    </PortalHomeHeaderShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.three,
-  },
-});
