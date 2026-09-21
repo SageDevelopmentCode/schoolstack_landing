@@ -134,7 +134,7 @@ function SchoolAdminLayoutContent() {
   };
 
   const handleSelectMoreItem = (
-    itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin',
+    itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin' | 'attendance',
   ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
@@ -145,6 +145,7 @@ function SchoolAdminLayoutContent() {
       staff: `/school-admin/${slug}/more/staff`,
       classrooms: `/school-admin/${slug}/more/classrooms`,
       bulletin: `/school-admin/${slug}/more/bulletin`,
+      attendance: `/school-admin/${slug}/more/attendance`,
     } as const;
 
     const target = routes[itemId];

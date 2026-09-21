@@ -67,4 +67,53 @@ describe("mobile bearer auth route wiring", () => {
     assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
   });
+
+  const activityNotificationRoutes = [
+    "app/api/school-admin/activity-notifications/route.ts",
+    "app/api/school-admin/activity-notifications/unread-count/route.ts",
+    "app/api/school-admin/activity-notifications/mark-read/route.ts",
+  ];
+
+  for (const routePath of activityNotificationRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.match(
+        source,
+        /requireSchoolAdminUser\(supabase, organizationId, request\)/,
+      );
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
+
+  const attendanceRoutes = [
+    "app/api/teacher-portal/attendance/route.ts",
+    "app/api/teacher-portal/attendance/records/route.ts",
+    "app/api/teacher-portal/attendance/history/route.ts",
+    "app/api/teacher-portal/attendance/pickup-contacts/route.ts",
+    "app/api/school-admin/attendance/route.ts",
+    "app/api/school-admin/attendance/records/route.ts",
+    "app/api/school-admin/attendance/history/route.ts",
+    "app/api/school-admin/attendance/pickup-contacts/route.ts",
+  ];
+
+  for (const routePath of attendanceRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
 });

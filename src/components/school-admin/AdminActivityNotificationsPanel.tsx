@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Heart,
   Loader2,
+  MessageSquare,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -78,6 +79,15 @@ function getActivityNotificationVisual(
           backgroundColor: C.warningBg,
           color: C.warning,
           border: `1px solid ${C.warningBorder}`,
+        },
+      };
+    case "messages":
+      return {
+        Icon: MessageSquare,
+        badgeStyle: {
+          backgroundColor: C.infoBg,
+          color: C.info,
+          border: `1px solid ${C.infoBorder}`,
         },
       };
     case "other":

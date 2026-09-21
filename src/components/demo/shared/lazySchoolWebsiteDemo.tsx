@@ -115,6 +115,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import(
       "@/components/demo/riveroakacademy/RiverOakAcademyWebsiteDashboardDemo"
     ),
+  "brazos-valley-honor-academy": () =>
+    import(
+      "@/components/demo/brazosvalleyhonoracademy/BrazosValleyHonorAcademyWebsiteDashboardDemo"
+    ),
   "spring-river-school": () =>
     import(
       "@/components/demo/springriverschool/SpringRiverSchoolWebsiteDashboardDemo"

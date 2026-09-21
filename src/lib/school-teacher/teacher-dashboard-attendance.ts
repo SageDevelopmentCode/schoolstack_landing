@@ -1,3 +1,7 @@
+import {
+  formatDashboardAttendanceSubcopy,
+  shouldShowDashboardAttendanceSnapshot,
+} from "@/lib/school-admin/attendance/dashboard-attendance";
 import type {
   AttendanceRosterStudent,
   AttendanceRosterSummary,
@@ -37,18 +41,7 @@ export function recomputeAttendanceSummary(
   };
 }
 
-export function formatTeacherDashboardAttendanceSubcopy(
-  summary: AttendanceRosterSummary,
-): string {
-  const presentOrPickedUp = summary.presentCount + summary.pickedUpCount;
-  const learnerLabel = summary.totalStudents === 1 ? "student" : "students";
-
-  if (summary.totalStudents === 0) {
-    return "No attendance-enabled students on today's roster.";
-  }
-
-  return `${presentOrPickedUp} of ${summary.totalStudents} ${learnerLabel} present`;
-}
+export const formatTeacherDashboardAttendanceSubcopy = formatDashboardAttendanceSubcopy;
 
 export function shouldShowTeacherDashboardAttendanceSection(
   attendanceEnabled: boolean,
@@ -58,5 +51,5 @@ export function shouldShowTeacherDashboardAttendanceSection(
     students: AttendanceRosterStudent[];
   } | null,
 ): boolean {
-  return attendanceEnabled && attendanceToday !== null;
+  return shouldShowDashboardAttendanceSnapshot(attendanceEnabled, attendanceToday);
 }

@@ -9,6 +9,7 @@ type StoryChipProps = {
   tone: StoryChipTone;
   label: string;
   style?: ViewStyle;
+  uppercase?: boolean;
 };
 
 function chipColors(tone: StoryChipTone, theme: ReturnType<typeof useParentTheme>) {
@@ -24,13 +25,19 @@ function chipColors(tone: StoryChipTone, theme: ReturnType<typeof useParentTheme
   }
 }
 
-export function StoryChip({ tone, label, style }: StoryChipProps) {
+export function StoryChip({ tone, label, style, uppercase = true }: StoryChipProps) {
   const theme = useParentTheme();
   const colors = chipColors(tone, theme);
 
   return (
     <View style={[styles.chip, { backgroundColor: colors.bg }, style]}>
-      <Text style={[styles.label, { color: colors.color }]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          { color: colors.color, textTransform: uppercase ? 'uppercase' : 'none' },
+        ]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -47,6 +54,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.44,
-    textTransform: 'uppercase',
   },
 });

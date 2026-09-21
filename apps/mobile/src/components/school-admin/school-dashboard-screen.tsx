@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
-import { AdminActivityFeedCard } from '@/components/school-admin/dashboard/admin-activity-feed-card';
+import { AdminActivityNotificationsSheet } from '@/components/school-admin/dashboard/admin-activity-notifications-sheet';
 import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-dashboard-header';
 import { AdminDashboardSkeleton } from '@/components/school-admin/dashboard/admin-dashboard-skeleton';
 import { AdminFeatureAnnouncementsCard } from '@/components/school-admin/dashboard/admin-feature-announcements-card';
@@ -28,8 +28,8 @@ import type {
   DashboardFocusItem,
   DashboardQuickAction,
   MobileAdminDashboardSummary,
-  SchoolAdminActivityNotification,
 } from '@/lib/school-admin/dashboard-summary-types';
+import { fetchActivityNotificationUnreadCount } from '@/lib/school-admin/fetch-activity-notifications';
 import {
   fetchAdminDashboardSummary,
   refreshStripeConnectStatus,
@@ -63,9 +63,20 @@ export function SchoolDashboardScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [activitySheetOpen, setActivitySheetOpen] = useState(false);
+  const [activityUnreadCount, setActivityUnreadCount] = useState(0);
   const stripePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useAuthRequiredRedirect(error);
+
+  const loadActivityUnreadCount = useCallback(async () => {
+    try {
+      const count = await fetchActivityNotificationUnreadCount(organizationId);
+      setActivityUnreadCount(count);
+    } catch {
+      // Keep the last known count on transient errors.
+    }
+  }, [organizationId]);
 
   const loadSummary = useCallback(
     async (isRefresh = false) => {
@@ -79,6 +90,7 @@ export function SchoolDashboardScreen({
       try {
         const nextSummary = await fetchAdminDashboardSummary(organizationId, slug);
         setSummary(filterMobileDashboardSummary(slug, nextSummary));
+        void loadActivityUnreadCount();
       } catch (loadError) {
         reportError('school_admin_dashboard_load', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load dashboard.');
@@ -87,7 +99,7 @@ export function SchoolDashboardScreen({
         setRefreshing(false);
       }
     },
-    [organizationId, reportError, slug],
+    [loadActivityUnreadCount, organizationId, reportError, slug],
   );
 
   useFocusEffect(
@@ -136,13 +148,6 @@ export function SchoolDashboardScreen({
 
   const handleFocusItem = useCallback(
     (item: DashboardFocusItem) => {
-      navigateToHref(item.href);
-    },
-    [navigateToHref],
-  );
-
-  const handleActivityItem = useCallback(
-    (item: SchoolAdminActivityNotification) => {
       navigateToHref(item.href);
     },
     [navigateToHref],
@@ -197,6 +202,8 @@ export function SchoolDashboardScreen({
         <AdminDashboardHeader
           schoolName={schoolName}
           userFirstName={userFirstNameFromMetadata(user ?? null)}
+          unreadCount={activityUnreadCount}
+          onPressNotifications={() => setActivitySheetOpen(true)}
         />
       </Animated.View>
 
@@ -236,25 +243,29 @@ export function SchoolDashboardScreen({
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
-        <AdminActivityFeedCard items={summary.recentActivity} onPressItem={handleActivityItem} />
-      </Animated.View>
-
       {summary.quickActions.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(240).duration(350)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
           <AdminQuickActionsCard actions={summary.quickActions} onPressLink={handleQuickActionLink} />
         </Animated.View>
       ) : null}
 
       {summary.featureAnnouncements.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(240).duration(350)} style={styles.section}>
           <AdminFeatureAnnouncementsCard announcements={summary.featureAnnouncements} />
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={FadeInDown.delay(320).duration(350)} style={styles.section}>
+      <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
         <AdminNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
       </Animated.View>
+
+      <AdminActivityNotificationsSheet
+        visible={activitySheetOpen}
+        onClose={() => setActivitySheetOpen(false)}
+        organizationId={organizationId}
+        slug={slug}
+        onMarkedRead={() => setActivityUnreadCount(0)}
+      />
 
       <AdminSupportRequestSheet
         visible={supportSheetOpen}

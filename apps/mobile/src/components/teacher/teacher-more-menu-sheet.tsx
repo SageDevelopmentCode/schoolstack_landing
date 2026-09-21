@@ -1,5 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { useMemo } from 'react';
+import { useTeacherHome } from '@/contexts/teacher-home-context';
+import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -77,7 +79,14 @@ export function TeacherMoreMenuSheet({
 }: TeacherMoreMenuSheetProps) {
   const theme = useParentTheme();
   const { user } = useAuth();
+  const { data } = useTeacherHome();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
+  const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
+  const visibleMenuItems = useMemo(
+    () =>
+      MENU_ITEMS.filter((item) => item.id !== 'attendance' || attendanceEnabled),
+    [attendanceEnabled],
+  );
 
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
@@ -88,7 +97,7 @@ export function TeacherMoreMenuSheet({
       />
 
       <StoryMoreMenuItemsCard>
-        {MENU_ITEMS.map((item, index) => (
+        {visibleMenuItems.map((item, index) => (
           <StoryMoreMenuItemRow
             key={item.id}
             isFirst={index === 0}

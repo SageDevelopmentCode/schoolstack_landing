@@ -12,6 +12,10 @@ export function activityCategoryChipTone(category: ActivityNotificationCategory)
       return 'info';
     case 'committees':
       return 'purple';
+    case 'program_signups':
+      return 'warning';
+    case 'messages':
+      return 'info';
     default:
       return 'info';
   }
@@ -27,6 +31,10 @@ export function activityCategoryLabel(category: ActivityNotificationCategory): s
       return 'Enrollment';
     case 'committees':
       return 'Community';
+    case 'program_signups':
+      return 'Program sign-ups';
+    case 'messages':
+      return 'Messages';
     default:
       return 'School';
   }

@@ -50,6 +50,8 @@ export type ActivityNotificationCategory =
   | 'payments'
   | 'enrollment'
   | 'committees'
+  | 'program_signups'
+  | 'messages'
   | 'other';
 
 export type SchoolAdminActivityNotification = {

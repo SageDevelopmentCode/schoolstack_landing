@@ -4,7 +4,9 @@ import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   formatActivityNotificationDetail,
   formatActivityNotificationTitle,
+  formatSchoolAdminMessageNotificationTitle,
   formatSubjectShortLabel,
+  getActivityNotificationCategory,
   getActivityNotificationRangeStart,
   isUnreadActivityNotificationEvent,
   resolveActivityNotificationLink,
@@ -249,6 +251,65 @@ describe("formatActivityNotificationDetail", () => {
         "$360.00",
       ),
       "Autopay succeeded for Aug Tuition (Julius) — $360.00",
+    );
+  });
+});
+
+describe("formatSchoolAdminMessageNotificationTitle", () => {
+  it("formats parent to school office as from parent", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Jane Doe",
+        senderPortal: "parent",
+        recipientLabels: ["Rooted Meadows Waldorf School Office"],
+      }),
+      "New message from Jane Doe",
+    );
+  });
+
+  it("formats parent to teacher as between parent and staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Jane Doe",
+        senderPortal: "parent",
+        recipientLabels: ["Ms. Smith"],
+      }),
+      "New message between Jane Doe and Ms. Smith",
+    );
+  });
+
+  it("formats teacher to parent as between parent and staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Ms. Smith",
+        senderPortal: "teacher",
+        recipientLabels: ["Jane Doe"],
+      }),
+      "New message between Jane Doe and Ms. Smith",
+    );
+  });
+
+  it("formats teacher with no person recipient as from staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Ms. Smith",
+        senderPortal: "teacher",
+        recipientLabels: ["Rooted Meadows Waldorf School Office"],
+      }),
+      "New message from Ms. Smith",
+    );
+  });
+
+  it("falls back when sender metadata is missing", () => {
+    assert.equal(formatSchoolAdminMessageNotificationTitle({}), "New message");
+  });
+});
+
+describe("getActivityNotificationCategory", () => {
+  it("returns messages for message received events", () => {
+    assert.equal(
+      getActivityNotificationCategory(ACTIVITY_ACTIONS.MESSAGES_RECEIVED),
+      "messages",
     );
   });
 });

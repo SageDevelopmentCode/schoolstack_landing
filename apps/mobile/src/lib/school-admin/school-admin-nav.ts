@@ -85,6 +85,14 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/students/${studentDetailMatch[1]}`;
   }
 
+  const attendancePaths = [
+    `/school/${slug}/admin/my_school/attendance`,
+    `/school/${slug}/admin/attendance`,
+  ];
+  if (attendancePaths.includes(pathname)) {
+    return `/school-admin/${slug}/more/attendance`;
+  }
+
   const classroomsPaths = [
     `/school/${slug}/admin/classrooms`,
     `/school/${slug}/admin/my_school/classrooms`,

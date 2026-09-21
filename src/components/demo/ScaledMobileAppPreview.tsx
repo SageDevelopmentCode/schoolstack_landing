@@ -68,6 +68,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/riveroakacademy/RiverOakAcademyMobileAppShowcase"
     ),
+  "brazos-valley-honor-academy": () =>
+    import(
+      "@/components/demo/brazosvalleyhonoracademy/BrazosValleyHonorAcademyMobileAppShowcase"
+    ),
   "tapestry-academy": () =>
     import(
       "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"

@@ -1,5 +1,8 @@
 import type { AdminDashboardSummary } from '@/lib/school-admin/dashboard-summary-types';
-import { filterMobileDashboardSummary } from '@/lib/school-admin/filter-mobile-dashboard-summary';
+import {
+  filterMobileDashboardSummary,
+  filterNativeActivityNotifications,
+} from '@/lib/school-admin/filter-mobile-dashboard-summary';
 
 const slug = 'rooted-meadows';
 
@@ -98,6 +101,42 @@ describe('filterMobileDashboardSummary', () => {
       }),
     );
     expect(withoutNative.signal).toBeNull();
+  });
+
+  it('filters activity notifications to native routes only', () => {
+    const filtered = filterNativeActivityNotifications(slug, [
+      {
+        id: 'activity-1',
+        action: 'messages.received',
+        title: 'New message from Jane Doe',
+        summary: 'Hello',
+        subjectLabel: null,
+        guardianLabel: null,
+        programName: null,
+        detail: 'Hello',
+        createdAt: '2026-09-20T12:00:00.000Z',
+        href: `/school/${slug}/admin/messages`,
+        ctaLabel: 'View',
+        category: 'messages',
+      },
+      {
+        id: 'activity-2',
+        action: 'payments.stripe_connected',
+        title: 'Payments ready',
+        summary: 'Stripe connected',
+        subjectLabel: null,
+        guardianLabel: null,
+        programName: null,
+        detail: 'Stripe connected',
+        createdAt: '2026-09-20T11:00:00.000Z',
+        href: `/school/${slug}/admin/admissions/payments`,
+        ctaLabel: 'View payments',
+        category: 'payments',
+      },
+    ]);
+
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.id).toBe('activity-1');
   });
 
   it('passes feature announcements through unchanged', () => {

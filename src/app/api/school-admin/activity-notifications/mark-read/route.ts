@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { markActivityNotificationsRead } from "@/lib/school-admin/activity-notifications";
@@ -6,14 +5,13 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/school-admin/activity-notifications/mark-read";
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   let body: { organizationId?: string };
   try {
@@ -38,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await requireSchoolAdminUser(supabase, organizationId);
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
     const lastReadAt = await markActivityNotificationsRead(
       admin,
