@@ -69,9 +69,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load calendar events.",
-      code: "internal_error",
+      error: "Failed to load calendar events.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

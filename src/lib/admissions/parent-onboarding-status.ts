@@ -14,6 +14,7 @@ import type {
   OrganizationFeatures,
   ParentOnboardingItem,
 } from "@/lib/organization-settings/types";
+import { familyHasAnyAuthorizedPickupContacts } from "@/lib/authorized-pickup/family-has-pickup-contacts";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import {
   emptyStudentHealthProfile,
@@ -38,6 +39,10 @@ function needsChildrenCheck(items: ParentOnboardingItem[]): boolean {
 
 function needsHealthCheck(items: ParentOnboardingItem[]): boolean {
   return items.some((item) => getAutoCompletionType(item.target) === "health");
+}
+
+function needsPickupCheck(items: ParentOnboardingItem[]): boolean {
+  return items.some((item) => getAutoCompletionType(item.target) === "pickup");
 }
 
 async function checkBillingComplete(
@@ -122,6 +127,24 @@ async function checkHealthComplete(
   );
 }
 
+async function checkPickupComplete(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyId: string,
+  familyChildren: FamilyChildOverview[],
+): Promise<boolean> {
+  const studentIds = familyChildren
+    .map((child) => child.studentId)
+    .filter((studentId): studentId is string => Boolean(studentId));
+
+  return familyHasAnyAuthorizedPickupContacts(
+    supabase,
+    organizationId,
+    familyId,
+    studentIds,
+  );
+}
+
 export async function loadParentOnboardingStatus(input: {
   supabase: SupabaseClient;
   organizationId: string;
@@ -136,6 +159,7 @@ export async function loadParentOnboardingStatus(input: {
     committees: false,
     children: false,
     health: false,
+    pickup: false,
   };
 
   const checks: Promise<void>[] = [];
@@ -184,15 +208,18 @@ export async function loadParentOnboardingStatus(input: {
     );
   }
 
-  if (needsHealthCheck(input.items)) {
-    const familyChildren =
-      input.familyChildren ??
+  const needsFamilyChildren =
+    needsHealthCheck(input.items) || needsPickupCheck(input.items);
+  const familyChildren = needsFamilyChildren
+    ? (input.familyChildren ??
       (await listFamilyChildrenForHomeByFamilyId(
         input.supabase,
         input.organizationId,
         input.familyId,
-      ));
+      )))
+    : undefined;
 
+  if (needsHealthCheck(input.items) && familyChildren) {
     checks.push(
       checkHealthComplete(
         input.supabase,
@@ -200,6 +227,19 @@ export async function loadParentOnboardingStatus(input: {
         familyChildren,
       ).then((complete) => {
         status.health = complete;
+      }),
+    );
+  }
+
+  if (needsPickupCheck(input.items) && familyChildren) {
+    checks.push(
+      checkPickupComplete(
+        input.supabase,
+        input.organizationId,
+        input.familyId,
+        familyChildren,
+      ).then((complete) => {
+        status.pickup = complete;
       }),
     );
   }

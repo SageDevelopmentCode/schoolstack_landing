@@ -23,6 +23,9 @@ export type ParentFridayBranchClassSummary = {
   ageGroup: string;
   teacher?: string;
   capacity: number | null;
+  priceCents: number | null;
+  hasFlyer: boolean;
+  flyerFileName?: string | null;
   confirmedCount: number;
   spotsRemaining: number | null;
   familyEnrollments: ParentFridayBranchChildEnrollment[];
@@ -59,6 +62,9 @@ export type ParentFridayBranchClassDetailBundle = {
   ageGroup: string;
   teacher?: string;
   capacity: number | null;
+  priceCents: number | null;
+  hasFlyer: boolean;
+  flyerFileName?: string | null;
   confirmedCount: number;
   spotsRemaining: number | null;
   studentStates: ParentFridayBranchStudentEnrollmentState[];

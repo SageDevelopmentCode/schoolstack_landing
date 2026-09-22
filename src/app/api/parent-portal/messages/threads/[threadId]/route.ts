@@ -88,13 +88,12 @@ export async function GET(request: Request, context: RouteContext) {
         surface: "parent_portal",
         organizationId,
         operation: "parent_portal_messages_mark_thread_read",
-        error:
-          readErr instanceof Error ? readErr.message : "Failed to mark thread read.",
+        error: "Failed to mark thread read.",
+      cause: readErr,
         entityType: "message_thread",
         entityId: threadId,
         notify: true,
         actor: { type: "parent", userId: user.id, email: user.email },
-        cause: readErr,
       });
     });
     return NextResponse.json({ thread });

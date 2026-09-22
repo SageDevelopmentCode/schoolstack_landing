@@ -13,13 +13,42 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 export const SCHOOL_ADMIN_PAPER_BG = "#F7F9F7";
 
-type SchoolAdminStoryThemeContextValue = {
+export type SchoolAdminStoryThemeContextValue = {
   theme: ParentThemeTokens;
   C: AdminThemeTokens;
 };
 
 const SchoolAdminStoryThemeContext =
   createContext<SchoolAdminStoryThemeContextValue | null>(null);
+
+type SchoolAdminStoryThemeProviderProps = {
+  theme: ParentThemeTokens;
+  C: AdminThemeTokens;
+  children: ReactNode;
+  className?: string;
+};
+
+export function SchoolAdminStoryThemeProvider({
+  theme,
+  C,
+  children,
+  className = "",
+}: SchoolAdminStoryThemeProviderProps) {
+  return (
+    <SchoolAdminStoryThemeContext.Provider value={{ theme, C }}>
+      <div
+        className={`${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${className}`}
+        style={{
+          ...parentThemeCssVars(theme),
+          fontFamily: theme.fontBody,
+          color: theme.ink,
+        }}
+      >
+        {children}
+      </div>
+    </SchoolAdminStoryThemeContext.Provider>
+  );
+}
 
 export function useSchoolAdminStoryTheme(): SchoolAdminStoryThemeContextValue {
   const value = useContext(SchoolAdminStoryThemeContext);
@@ -44,18 +73,14 @@ export default function SchoolAdminStoryShell({
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
 
   return (
-    <SchoolAdminStoryThemeContext.Provider value={{ theme, C }}>
-      <div
-        className={`flex h-full min-h-0 flex-col overflow-hidden ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${className}`}
-        data-admin-workspace-story
-        style={{
-          ...parentThemeCssVars(theme),
-          fontFamily: theme.fontBody,
-          color: theme.ink,
-        }}
-      >
+    <SchoolAdminStoryThemeProvider
+      theme={theme}
+      C={C}
+      className={`flex h-full min-h-0 flex-col overflow-hidden ${className}`}
+    >
+      <div data-admin-workspace-story className="flex h-full min-h-0 flex-col overflow-hidden">
         {children}
       </div>
-    </SchoolAdminStoryThemeContext.Provider>
+    </SchoolAdminStoryThemeProvider>
   );
 }

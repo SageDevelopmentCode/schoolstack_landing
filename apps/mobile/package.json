@@ -22,6 +22,7 @@
     "expo-image-picker": "~57.0.12",
     "expo-linear-gradient": "^57.0.1",
     "expo-linking": "~57.0.6",
+    "expo-notifications": "~57.0.0",
     "expo-router": "~57.0.14",
     "expo-secure-store": "^57.0.1",
     "expo-splash-screen": "~57.0.7",
@@ -67,6 +68,7 @@
     "test:e2e:ios:build": "expo prebuild --platform ios && xcodebuild -workspace ios/MudKitchen.xcworkspace -scheme MudKitchen -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO",
     "test:e2e:ios:run": "bash scripts/run-e2e-ios.sh",
     "test:e2e:android:run": "bash scripts/run-e2e-android.sh",
+    "generate:icons": "tsx scripts/generate-app-icons.ts",
     "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
     "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
     "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"

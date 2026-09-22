@@ -124,9 +124,9 @@ export async function POST(request: Request, context: RouteContext) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error?.message ?? "Failed to create invoice.",
+        error: "Failed to create invoice.",
+      cause: error,
         code: "insert_failed",
-        cause: error,
       });
     }
 

@@ -14,6 +14,13 @@ function isNativeFocusItem(slug: string, item: DashboardFocusItem): boolean {
   return resolveSchoolAdminNativeRoute(slug, item.href) != null;
 }
 
+export function filterNativeActivityNotifications(
+  slug: string,
+  items: SchoolAdminActivityNotification[],
+): SchoolAdminActivityNotification[] {
+  return items.filter((item) => isNativeActivityItem(slug, item));
+}
+
 function isNativeActivityItem(slug: string, item: SchoolAdminActivityNotification): boolean {
   return resolveSchoolAdminNativeRoute(slug, item.href) != null;
 }
@@ -45,7 +52,7 @@ export function filterMobileDashboardSummary(
         : null
       : null,
     metrics: summary.metrics,
-    recentActivity: summary.recentActivity.filter((item) => isNativeActivityItem(slug, item)),
+    recentActivity: filterNativeActivityNotifications(slug, summary.recentActivity),
     quickActions: summary.quickActions.filter((action) => isNativeQuickAction(slug, action)),
     featureAnnouncements: summary.featureAnnouncements,
     messagesUnreadCount: summary.messagesUnreadCount,

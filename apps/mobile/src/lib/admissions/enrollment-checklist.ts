@@ -64,6 +64,7 @@ export type EnrollmentChecklistItem = {
   document?: {
     kind: string;
     fileName?: string;
+    storagePath?: string;
     sections?: Array<{ id: string; title: string; body?: string }>;
     consentOptions?: Array<{ value: string; label: string }>;
   };
@@ -74,7 +75,10 @@ export type EnrollmentChecklistItem = {
 };
 
 export type EnrollmentChecklistItemInstance = {
+  id: string;
+  checklistId: string;
   templateItemId: string;
+  itemKey: string;
   status: EnrollmentChecklistItemStatus;
   responses: Record<string, unknown> | null;
   paymentStatus?: 'not_required' | 'pending' | 'paid' | 'waived';
@@ -82,11 +86,15 @@ export type EnrollmentChecklistItemInstance = {
 
 export type LoadedEnrollmentChecklist = {
   checklistId: string;
+  enrollmentId?: string;
+  applicationId?: string;
+  templateId?: string;
   title: string;
   status: string;
   progress?: { completed: number; total: number };
   items: EnrollmentChecklistItem[];
   instances: EnrollmentChecklistItemInstance[];
+  metadata?: Record<string, unknown>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -314,7 +322,10 @@ function parseTemplateItem(row: Record<string, unknown>): EnrollmentChecklistIte
 function parseInstance(row: Record<string, unknown>): EnrollmentChecklistItemInstance {
   const paymentStatus = row.payment_status;
   return {
+    id: String(row.id ?? ''),
+    checklistId: String(row.checklist_id ?? ''),
     templateItemId: String(row.template_item_id),
+    itemKey: String(row.item_key ?? row.template_item_id ?? ''),
     status: String(row.status ?? 'not_started') as EnrollmentChecklistItemStatus,
     responses:
       row.responses && typeof row.responses === 'object' && !Array.isArray(row.responses)

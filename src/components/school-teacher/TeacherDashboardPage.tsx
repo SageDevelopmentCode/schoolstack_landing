@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
   Calendar,
   ClipboardList,
   MessageSquare,
+  School,
   Users,
 } from "lucide-react";
 import PortalHomeSchoolBulletinLauncher from "@/components/portal-home/PortalHomeSchoolBulletinLauncher";
@@ -17,7 +19,9 @@ import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKick
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
 import ParentTextLink from "@/components/school-parent/ui/ParentTextLink";
+import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import TeacherDocumentationGuidePanel from "@/components/school-teacher/TeacherDocumentationGuidePanel";
+import TeacherDashboardAttendanceSection from "@/components/school-teacher/home/TeacherDashboardAttendanceSection";
 import TeacherHomeHowToGuidesSection from "@/components/school-teacher/home/TeacherHomeHowToGuidesSection";
 import TeacherClassroomStoryCard from "@/components/school-teacher/TeacherClassroomStoryCard";
 import TeacherClassroomStudentsSidebar from "@/components/school-teacher/TeacherClassroomStudentsSidebar";
@@ -39,9 +43,15 @@ import {
 } from "@/lib/school-teacher/teacher-documentation";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
+  isTeacherFeatureEnabled,
   schoolTeacherPath,
   teacherDocumentationPath,
 } from "@/lib/organization-settings/teacher-routes";
+import { shouldShowTeacherDashboardAttendanceSection } from "@/lib/school-teacher/teacher-dashboard-attendance";
+import {
+  resolveTeacherDashboardWorkspaceTabs,
+  type TeacherDashboardWorkspaceTab,
+} from "@/lib/school-teacher/teacher-dashboard-workspace";
 import type { OrganizationBranding, OrganizationFeatures } from "@/lib/organization-settings/types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
@@ -76,6 +86,14 @@ const fadeUp = {
 
 const MAX_STUDENT_CARDS = 6;
 
+const WORKSPACE_TAB_ICONS: Record<TeacherDashboardWorkspaceTab, LucideIcon> = {
+  attendance: ClipboardList,
+  classrooms: School,
+  students: Users,
+};
+
+const WORKSPACE_TAB_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
+
 function portalRoleLabel(role: StaffPortalRole | null): string {
   if (role === "teacher") return "Teacher";
   if (role === "staff") return "Staff";
@@ -97,6 +115,8 @@ function focusItemIcon(icon: TeacherDashboardFocusIcon, theme: ParentThemeTokens
       return <Users className="h-4 w-4" style={{ color: theme.primary }} />;
     case "signups":
       return <ClipboardList className="h-4 w-4" style={{ color: theme.primary }} />;
+    case "attendance":
+      return <ClipboardList className="h-4 w-4" style={{ color: theme.primary }} />;
   }
 }
 
@@ -109,6 +129,8 @@ function focusItemIconBg(icon: TeacherDashboardFocusIcon): string {
     case "students":
       return "#FFF4D9";
     case "signups":
+      return "#E9F2EA";
+    case "attendance":
       return "#E9F2EA";
   }
 }
@@ -136,6 +158,8 @@ export default function TeacherDashboardPage({
     null,
   );
   const [activeGuide, setActiveGuide] = useState<TeacherDocGuide | null>(null);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] =
+    useState<TeacherDashboardWorkspaceTab | null>(null);
 
   if (initialSummary !== prevInitialSummary) {
     setPrevInitialSummary(initialSummary);
@@ -151,6 +175,53 @@ export default function TeacherDashboardPage({
   const myStudentsHref = teacherBasePath
     ? `${teacherBasePath}/my_students`
     : schoolTeacherPath(slug, "my_students");
+  const attendanceHref = teacherBasePath
+    ? `${teacherBasePath}/attendance`
+    : schoolTeacherPath(slug, "attendance");
+  const attendanceEnabled = isTeacherFeatureEnabled(features, "attendance");
+  const showAttendanceSection = shouldShowTeacherDashboardAttendanceSection(
+    attendanceEnabled,
+    summary.attendanceToday,
+  );
+  const myStudentsEnabled = Boolean(features.teacher?.my_students);
+  const { tabs: workspaceTabs, defaultTab: defaultWorkspaceTab } = useMemo(
+    () =>
+      resolveTeacherDashboardWorkspaceTabs({
+        showAttendanceSection,
+        myStudentsEnabled,
+        classroomCount: summary.staffClassrooms.length,
+      }),
+    [showAttendanceSection, myStudentsEnabled, summary.staffClassrooms.length],
+  );
+  const workspaceNavItems = useMemo(
+    () =>
+      workspaceTabs.map((tab) => {
+        const Icon = WORKSPACE_TAB_ICONS[tab.key];
+        return {
+          ...tab,
+          icon: <Icon className={WORKSPACE_TAB_ICON_CLASS} aria-hidden />,
+        };
+      }),
+    [workspaceTabs],
+  );
+
+  useEffect(() => {
+    if (!defaultWorkspaceTab) {
+      queueMicrotask(() => {
+        setActiveWorkspaceTab(null);
+      });
+      return;
+    }
+
+    if (
+      !activeWorkspaceTab ||
+      !workspaceTabs.some((tab) => tab.key === activeWorkspaceTab)
+    ) {
+      queueMicrotask(() => {
+        setActiveWorkspaceTab(defaultWorkspaceTab);
+      });
+    }
+  }, [activeWorkspaceTab, defaultWorkspaceTab, workspaceTabs]);
 
   const refreshUnreadCount = useCallback(async () => {
     if (previewMode || !features.teacher?.messages) return;
@@ -222,7 +293,6 @@ export default function TeacherDashboardPage({
     year: "numeric",
   });
   const nextEvent = summary.upcomingEvents[0] ?? null;
-  const myStudentsEnabled = Boolean(features.teacher?.my_students);
   const messagesEnabled = Boolean(features.teacher?.messages);
   const calendarEnabled = Boolean(features.teacher?.calendar);
   const studentCount = summary.assignedStudents.length;
@@ -409,72 +479,113 @@ export default function TeacherDashboardPage({
           </motion.div>
         ) : null}
 
-        {myStudentsEnabled && summary.staffClassrooms.length > 0 ? (
+        {workspaceTabs.length > 0 && activeWorkspaceTab ? (
           <motion.section custom={4} initial="hidden" animate="visible" variants={fadeUp}>
-            <h3
-              className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
-              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-            >
-              Your classrooms
-            </h3>
-            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {summary.staffClassrooms.map((classroom, index) => (
-                <div key={classroom.id} className="h-full">
-                  <TeacherClassroomStoryCard
-                    classroom={classroom}
-                    theme={theme}
-                    onViewStudents={() => setClassroomSidebar(classroom)}
-                    index={index}
-                  />
-                </div>
-              ))}
-            </div>
-          </motion.section>
-        ) : null}
+            {workspaceTabs.length > 1 ? (
+              <div className="mb-4">
+                <ParentStoryPillNav
+                  theme={theme}
+                  items={workspaceNavItems}
+                  activeKey={activeWorkspaceTab}
+                  onChange={(key) =>
+                    setActiveWorkspaceTab(key as TeacherDashboardWorkspaceTab)
+                  }
+                  ariaLabel="Dashboard workspace"
+                  data-testid="teacher-dashboard-workspace-nav"
+                />
+              </div>
+            ) : null}
 
-        {myStudentsEnabled ? (
-          <motion.section custom={5} initial="hidden" animate="visible" variants={fadeUp}>
-            <h3
-              className="mb-3.5 font-heading text-2xl font-semibold tracking-[-0.03em]"
-              style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
-            >
-              Your students
-            </h3>
-            {studentCount === 0 ? (
-              <ParentCard theme={theme}>
-                <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
-                  No learners assigned yet — your administrator can link students to you
-                  from the staff directory.
-                </p>
-              </ParentCard>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {visibleStudents.map((student, index) => (
-                    <div key={student.id} className="h-full">
-                      <TeacherStudentStoryCard
-                        student={student}
-                        theme={theme}
-                        onViewProfile={() => setSelectedStudent(student)}
-                        index={index}
-                      />
-                    </div>
-                  ))}
-                </div>
-                {hasMoreStudents ? (
-                  <div className="mt-4">
-                    <ParentTextLink theme={theme} href={myStudentsHref}>
-                      View all {studentCount} students
-                    </ParentTextLink>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeWorkspaceTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {activeWorkspaceTab === "attendance" &&
+                showAttendanceSection &&
+                summary.attendanceToday ? (
+                  <TeacherDashboardAttendanceSection
+                    organizationId={organizationId}
+                    branding={branding}
+                    date={summary.attendanceToday.date}
+                    students={summary.attendanceToday.students}
+                    summary={summary.attendanceToday.summary}
+                    attendanceHref={attendanceHref}
+                    previewMode={previewMode}
+                    onSummaryChange={(nextSummary) => {
+                      setSummary((prev) => {
+                        if (!prev.attendanceToday) return prev;
+                        return {
+                          ...prev,
+                          attendanceToday: {
+                            ...prev.attendanceToday,
+                            summary: nextSummary,
+                          },
+                        };
+                      });
+                    }}
+                  />
+                ) : null}
+
+                {activeWorkspaceTab === "classrooms" &&
+                myStudentsEnabled &&
+                summary.staffClassrooms.length > 0 ? (
+                  <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {summary.staffClassrooms.map((classroom, index) => (
+                      <div key={classroom.id} className="h-full">
+                        <TeacherClassroomStoryCard
+                          classroom={classroom}
+                          theme={theme}
+                          onViewStudents={() => setClassroomSidebar(classroom)}
+                          index={index}
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : null}
-              </>
-            )}
+
+                {activeWorkspaceTab === "students" && myStudentsEnabled ? (
+                  studentCount === 0 ? (
+                    <ParentCard theme={theme}>
+                      <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                        No learners assigned yet — your administrator can link students to you
+                        from the staff directory.
+                      </p>
+                    </ParentCard>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {visibleStudents.map((student, index) => (
+                          <div key={student.id} className="h-full">
+                            <TeacherStudentStoryCard
+                              student={student}
+                              theme={theme}
+                              onViewProfile={() => setSelectedStudent(student)}
+                              index={index}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {hasMoreStudents ? (
+                        <div className="mt-4">
+                          <ParentTextLink theme={theme} href={myStudentsHref}>
+                            View all {studentCount} students
+                          </ParentTextLink>
+                        </div>
+                      ) : null}
+                    </>
+                  )
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
           </motion.section>
         ) : null}
 
         {howToGuides.length > 0 ? (
-          <motion.div custom={6} initial="hidden" animate="visible" variants={fadeUp}>
+          <motion.div custom={7} initial="hidden" animate="visible" variants={fadeUp}>
             <TeacherHomeHowToGuidesSection
               theme={theme}
               documentationHref={documentationHref}

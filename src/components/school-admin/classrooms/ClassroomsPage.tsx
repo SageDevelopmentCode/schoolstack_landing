@@ -24,6 +24,11 @@ type ClassroomsPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   slug: string;
+  initialClassrooms?: ClassroomSummary[];
+  initialPrograms?: ProgramOption[];
+  initialStaff?: StaffMemberRecord[];
+  initialSelectedClassroomId?: string | null;
+  previewMode?: boolean;
 };
 
 type AddClassroomModalProps = {
@@ -220,19 +225,31 @@ export default function ClassroomsPage({
   organizationId,
   branding,
   slug,
+  initialClassrooms,
+  initialPrograms,
+  initialStaff,
+  initialSelectedClassroomId,
+  previewMode = false,
 }: ClassroomsPageProps) {
   void branding;
   const { theme, C } = useSchoolAdminStoryTheme();
+  const hasInitialClassrooms = initialClassrooms !== undefined;
 
-  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>([]);
-  const [programs, setPrograms] = useState<ProgramOption[]>([]);
-  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [classrooms, setClassrooms] = useState<ClassroomSummary[]>(
+    initialClassrooms ?? [],
+  );
+  const [programs, setPrograms] = useState<ProgramOption[]>(initialPrograms ?? []);
+  const [staffMembers, setStaffMembers] = useState<StaffMemberRecord[]>(
+    initialStaff ?? [],
+  );
+  const [loading, setLoading] = useState(!hasInitialClassrooms);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   const loadClassrooms = useCallback(async (options?: { silent?: boolean }) => {
+    if (previewMode) return;
+
     const silent = options?.silent ?? false;
     if (!silent) setLoading(true);
     setError(null);
@@ -272,13 +289,36 @@ export default function ClassroomsPage({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [organizationId, slug]);
+  }, [organizationId, previewMode, slug]);
 
   useEffect(() => {
+    if (previewMode || hasInitialClassrooms) return;
     queueMicrotask(() => {
       void loadClassrooms();
     });
-  }, [loadClassrooms]);
+  }, [hasInitialClassrooms, loadClassrooms, previewMode]);
+
+  useEffect(() => {
+    if (!initialClassrooms) return;
+    queueMicrotask(() => {
+      setClassrooms(initialClassrooms);
+      setPrograms(initialPrograms ?? []);
+      setStaffMembers(initialStaff ?? []);
+      setLoading(false);
+      setSelectedId((current) => {
+        if (initialSelectedClassroomId) return initialSelectedClassroomId;
+        if (current && initialClassrooms.some((classroom) => classroom.id === current)) {
+          return current;
+        }
+        return initialClassrooms[0]?.id ?? null;
+      });
+    });
+  }, [
+    initialClassrooms,
+    initialPrograms,
+    initialSelectedClassroomId,
+    initialStaff,
+  ]);
 
   const selectedClassroom =
     classrooms.find((classroom) => classroom.id === selectedId) ?? null;
@@ -352,7 +392,7 @@ export default function ClassroomsPage({
                 onSelect={setSelectedId}
                 theme={theme}
                 layout="strip"
-                onAddClassroom={() => setAddOpen(true)}
+                onAddClassroom={previewMode ? undefined : () => setAddOpen(true)}
               />
 
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
@@ -362,7 +402,7 @@ export default function ClassroomsPage({
                     selectedId={selectedId ?? ""}
                     onSelect={setSelectedId}
                     theme={theme}
-                    onAddClassroom={() => setAddOpen(true)}
+                    onAddClassroom={previewMode ? undefined : () => setAddOpen(true)}
                   />
                 </div>
 
@@ -391,7 +431,7 @@ export default function ClassroomsPage({
       </div>
 
       <AddClassroomModal
-        open={addOpen}
+        open={!previewMode && addOpen}
         slug={slug}
         organizationId={organizationId}
         programs={programs}

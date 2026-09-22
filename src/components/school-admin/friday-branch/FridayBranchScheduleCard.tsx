@@ -18,6 +18,7 @@ import {
   EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
   type FridayBranchClassEnrollmentSummary,
 } from "@/lib/school-admin/friday-branch/friday-branch-enrollment-counts";
+import { mergeFridayBranchClassIntoBlock } from "@/lib/school-admin/friday-branch/friday-branch-class-save";
 import type {
   FridayBranchBlock,
   FridayBranchClass,
@@ -29,6 +30,7 @@ import FridayBranchClassDetailSheet from "./FridayBranchClassDetailSheet";
 import FridayBranchClassEditSheet from "./FridayBranchClassEditSheet";
 import FridayBranchRowActionsMenu from "./FridayBranchRowActionsMenu";
 import FridayBranchSendRosterSheet from "./FridayBranchSendRosterSheet";
+import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import FridayBranchStatusTag from "./FridayBranchStatusTag";
 
 type FridayBranchScheduleCardProps = {
@@ -37,6 +39,8 @@ type FridayBranchScheduleCardProps = {
   organizationId: string;
   block: FridayBranchBlock;
   onChange: (block: FridayBranchBlock) => void;
+  onClassSaved?: (nextBlock: FridayBranchBlock) => Promise<void>;
+  saving?: boolean;
   highlightClassId?: string | null;
   requestedClassId?: string | null;
   onRequestedClassHandled?: () => void;
@@ -138,6 +142,8 @@ export default function FridayBranchScheduleCard({
   organizationId,
   block,
   onChange,
+  onClassSaved,
+  saving = false,
   highlightClassId,
   requestedClassId,
   onRequestedClassHandled,
@@ -228,7 +234,7 @@ export default function FridayBranchScheduleCard({
   const openEdit = (slotId: string, classEntry: FridayBranchClass, isNew = false) => {
     setAddSlotOpen(false);
     setDetailTarget(null);
-    setEditTarget({ slotId, classEntry, isNew });
+    setEditTarget({ slotId, classEntry: { ...classEntry }, isNew });
   };
 
   const openDetail = (slotId: string, classEntry: FridayBranchClass, slotTime: string) => {
@@ -261,46 +267,24 @@ export default function FridayBranchScheduleCard({
     updateBlock(removeSlotFromBlock(block, slotId));
   };
 
-  const handleSaveClass = (
+  const handleSaveClass = async (
     targetSlotId: string,
     classEntry: FridayBranchClass,
     previousSlotId?: string,
   ) => {
-    let slots = block.slots.map((slot) => ({
-      ...slot,
-      classes: slot.classes.map((entry) => ({ ...entry })),
-    }));
+    const nextBlock = mergeFridayBranchClassIntoBlock(
+      block,
+      targetSlotId,
+      classEntry,
+      previousSlotId,
+    );
 
-    if (previousSlotId && previousSlotId !== targetSlotId) {
-      const sourceSlot = slots.find((slot) => slot.id === previousSlotId);
-      if (sourceSlot) {
-        sourceSlot.classes = sourceSlot.classes.filter((entry) => entry.id !== classEntry.id);
-      }
-      const targetSlot = slots.find((slot) => slot.id === targetSlotId);
-      if (targetSlot) {
-        const exists = targetSlot.classes.some((entry) => entry.id === classEntry.id);
-        if (exists) {
-          targetSlot.classes = targetSlot.classes.map((entry) =>
-            entry.id === classEntry.id ? classEntry : entry,
-          );
-        } else {
-          targetSlot.classes.push(classEntry);
-        }
-      }
-    } else {
-      slots = slots.map((slot) => {
-        if (slot.id !== targetSlotId) return slot;
-        const exists = slot.classes.some((entry) => entry.id === classEntry.id);
-        return {
-          ...slot,
-          classes: exists
-            ? slot.classes.map((entry) => (entry.id === classEntry.id ? classEntry : entry))
-            : [...slot.classes, classEntry],
-        };
-      });
+    if (onClassSaved) {
+      await onClassSaved(nextBlock);
+      return;
     }
 
-    updateBlock({ ...block, slots });
+    updateBlock(nextBlock);
   };
 
   const addSlotSheet = (
@@ -317,6 +301,7 @@ export default function FridayBranchScheduleCard({
   const editSheet = (
     <FridayBranchClassEditSheet
       open={editTarget !== null}
+      organizationId={organizationId}
       theme={theme}
       C={C}
       slots={block.slots}
@@ -325,6 +310,7 @@ export default function FridayBranchScheduleCard({
       isNew={editTarget?.isNew ?? false}
       onClose={() => setEditTarget(null)}
       onSave={handleSaveClass}
+      saving={saving}
     />
   );
 
@@ -408,7 +394,7 @@ export default function FridayBranchScheduleCard({
           <table className="w-full min-w-[760px] border-collapse">
             <thead>
               <tr style={{ backgroundColor: "#FBFCFB" }}>
-                {["Time", "Class", "Location", "Age group", "Signed up", ""].map((label) => (
+                {["Time", "Class", "Location", "Age group", "Price", "Signed up", ""].map((label) => (
                   <th
                     key={label || "actions"}
                     className="px-[17px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
@@ -458,6 +444,11 @@ export default function FridayBranchScheduleCard({
                               ? `with ${classEntry.teacher}`
                               : "Teacher not assigned"}
                           </span>
+                          {classEntry.flyerStoragePath ? (
+                            <span className="mt-1 block text-[10px] font-semibold" style={{ color: theme.primary }}>
+                              PDF flyer attached
+                            </span>
+                          ) : null}
                         </td>
                         <td
                           className="border-t px-[17px] py-[13px] align-top text-xs"
@@ -470,6 +461,14 @@ export default function FridayBranchScheduleCard({
                           style={{ borderColor: "#EDF1ED" }}
                         >
                           {renderAgeValue(classEntry.ageGroup)}
+                        </td>
+                        <td
+                          className="border-t px-[17px] py-[13px] align-top text-xs"
+                          style={{ borderColor: "#EDF1ED", color: "#5A6669" }}
+                        >
+                          {classEntry.priceCents != null
+                            ? formatFeeAmount(classEntry.priceCents)
+                            : "—"}
                         </td>
                         <td
                           className="border-t px-[17px] py-[13px] align-top text-xs"
@@ -530,7 +529,7 @@ export default function FridayBranchScheduleCard({
                   })}
                   <tr style={{ backgroundColor: "#FBFDFB" }}>
                     <td className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }} />
-                    <td colSpan={5} className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }}>
+                    <td colSpan={6} className="border-t px-[17px] py-2.5" style={{ borderColor: "#EDF1ED" }}>
                       <button
                         type="button"
                         onClick={() => openAddClass(slot.id)}

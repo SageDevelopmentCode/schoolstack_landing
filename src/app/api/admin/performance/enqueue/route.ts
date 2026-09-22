@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     if (error || !run) {
       return apiError(ROUTE, {
         status: 500,
-        error: error?.message ?? "Failed to enqueue local audit run.",
-        cause: error,
+        error: "Failed to enqueue local audit run.",
+      cause: error,
       });
     }
 

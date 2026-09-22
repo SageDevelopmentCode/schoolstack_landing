@@ -25,9 +25,19 @@ import {
   listTeacherClassroomSignups,
 } from "@/lib/classroom-signups/load-teacher-signups";
 import { computeSignupMetrics } from "@/lib/classroom-signups/utils";
+import { loadAttendanceRoster } from "@/lib/school-admin/attendance/attendance-roster";
+import type {
+  AttendanceRosterStudent,
+  AttendanceRosterSummary,
+} from "@/lib/school-admin/attendance/attendance-types";
 import { reportOperationalError } from "@/lib/operational-errors";
 
-export type TeacherDashboardFocusIcon = "message" | "calendar" | "students" | "signups";
+export type TeacherDashboardFocusIcon =
+  | "message"
+  | "calendar"
+  | "students"
+  | "signups"
+  | "attendance";
 
 export type TeacherDashboardFocusItem = {
   id: string;
@@ -46,6 +56,11 @@ export type TeacherDashboardSummary = {
   bulletinPosts: BulletinPost[];
   staffClassrooms: StaffClassroomOption[];
   staffMemberId: string | null;
+  attendanceToday: {
+    date: string;
+    summary: AttendanceRosterSummary;
+    students: AttendanceRosterStudent[];
+  } | null;
 };
 
 function teacherFeatureEnabled(
@@ -79,7 +94,9 @@ export async function fetchTeacherDashboardSummary(
   const calendarEnabled = teacherFeatureEnabled(features, "calendar");
   const myStudentsEnabled = teacherFeatureEnabled(features, "my_students");
   const signupsEnabled = teacherFeatureEnabled(features, "classroom_signups");
+  const attendanceEnabled = teacherFeatureEnabled(features, "attendance");
   const bulletinEnabled = Boolean(features.admin?.bulletin);
+  const todayKey = dateKey(new Date());
 
   let staffMemberId = options.staffMemberId ?? null;
   if (!staffMemberId && options.userId) {
@@ -153,6 +170,35 @@ export async function fetchTeacherDashboardSummary(
   const signupsHref = options.teacherBasePath
     ? `${options.teacherBasePath}/classroom_signups`
     : schoolTeacherPath(slug, "classroom_signups");
+  const attendanceHref = options.teacherBasePath
+    ? `${options.teacherBasePath}/attendance`
+    : schoolTeacherPath(slug, "attendance");
+
+  const attendanceToday = attendanceEnabled
+    ? await loadAttendanceRoster(admin, organizationId, todayKey)
+        .then((roster) => ({
+          date: roster.date,
+          summary: roster.summary,
+          students: roster.students,
+        }))
+        .catch((err) => {
+          void reportOperationalError({
+            supabase: admin,
+            surface: "teacher_portal",
+            organizationId,
+            operation: "dashboard.load_attendance_roster",
+            error:
+              err instanceof Error
+                ? err.message
+                : "Failed to load today's attendance roster.",
+            severity: "warning",
+            notify: true,
+            actor: { type: "system" },
+            cause: err,
+          });
+          return null;
+        })
+    : null;
 
   let signups: Awaited<ReturnType<typeof listTeacherClassroomSignups>> = [];
   let responsesBySignupId: Record<string, import("@/lib/classroom-signups/types").ClassroomSignupResponse[]> = {};
@@ -188,6 +234,22 @@ export async function fetchTeacherDashboardSummary(
         ? "All day"
         : formatEventTimeRange(eventToday),
       href: calendarHref,
+    });
+  }
+
+  if (
+    attendanceEnabled &&
+    attendanceToday &&
+    attendanceToday.summary.notMarkedCount > 0 &&
+    focusItems.length < 3
+  ) {
+    const count = attendanceToday.summary.notMarkedCount;
+    focusItems.push({
+      id: "attendance-not-marked",
+      icon: "attendance",
+      title: `Mark attendance for ${count} student${count === 1 ? "" : "s"}`,
+      subtitle: "Today's roster still has unmarked students",
+      href: attendanceHref,
     });
   }
 
@@ -228,6 +290,7 @@ export async function fetchTeacherDashboardSummary(
     bulletinPosts,
     staffClassrooms,
     staffMemberId,
+    attendanceToday,
   };
 }
 

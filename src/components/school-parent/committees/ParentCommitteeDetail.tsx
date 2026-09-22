@@ -7,9 +7,13 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import type { ParentCommitteeBrowseItem } from "@/lib/committees/types";
 import ParentCommitteeRequestStatus from "./ParentCommitteeRequestStatus";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import {
+  reportPortalOperationalError,
+  type PortalOperationalSurface,
+} from "@/lib/portal-operational-errors";
 
 type ParentCommitteeDetailProps = {
   committee: ParentCommitteeBrowseItem;
@@ -17,7 +21,10 @@ type ParentCommitteeDetailProps = {
   organizationId: string;
   schoolSlug: string;
   schoolName: string;
-  guardianName: string;
+  requesterName: string;
+  apiNamespace: CommitteesApiNamespace;
+  operationalSurface: PortalOperationalSurface;
+  showGradeField?: boolean;
   readOnly?: boolean;
   onBack: () => void;
   onRequestSubmitted: () => void;
@@ -32,7 +39,10 @@ export default function ParentCommitteeDetail({
   organizationId,
   schoolSlug,
   schoolName,
-  guardianName,
+  requesterName,
+  apiNamespace,
+  operationalSurface,
+  showGradeField = true,
   readOnly = false,
   onBack,
   onRequestSubmitted,
@@ -64,7 +74,7 @@ export default function ParentCommitteeDetail({
     setSubmitting(true);
     let response: Response | undefined;
     try {
-      response = await fetch("/api/parent-portal/committees/join-requests", {
+      response = await fetch(`/api/${apiNamespace}/committees/join-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -74,7 +84,7 @@ export default function ParentCommitteeDetail({
           schoolName,
           committeeName: committee.name,
           preferredDutyRoleId: preferredDutyRoleId || null,
-          grade: grade.trim() || null,
+          grade: showGradeField ? grade.trim() || null : null,
           note: note.trim() || null,
         }),
       });
@@ -90,7 +100,7 @@ export default function ParentCommitteeDetail({
         message: err instanceof Error ? err.message : "Failed to submit request.",
       });
       void reportPortalOperationalError(
-        "parent_portal",
+        operationalSurface,
         {
           organizationId,
           operation: "committees.join_request_submit",
@@ -112,10 +122,10 @@ export default function ParentCommitteeDetail({
       const params = new URLSearchParams({
         organizationId,
         committeeName: committee.name,
-        guardianName,
+        requesterName,
       });
       response = await fetch(
-        `/api/parent-portal/committees/join-requests/${committee.requestId}?${params}`,
+        `/api/${apiNamespace}/committees/join-requests/${committee.requestId}?${params}`,
         { method: "DELETE" },
       );
       const data = await response.json().catch(() => ({}));
@@ -130,7 +140,7 @@ export default function ParentCommitteeDetail({
         message: err instanceof Error ? err.message : "Failed to withdraw request.",
       });
       void reportPortalOperationalError(
-        "parent_portal",
+        operationalSurface,
         {
           organizationId,
           operation: "committees.join_request_withdraw",
@@ -225,8 +235,8 @@ export default function ParentCommitteeDetail({
                 Request to join
               </h3>
               <p className="mt-1 text-[12px]" style={{ color: theme.muted }}>
-                Your request will be reviewed by the school. You will get read-only access to the
-                committee workspace after approval.
+                Your request will be reviewed by the school. After approval, you will get
+                access to the committee workspace.
               </p>
             </div>
 
@@ -255,6 +265,7 @@ export default function ParentCommitteeDetail({
               </div>
             )}
 
+            {showGradeField ? (
             <div>
               <label
                 className="mb-1 block text-[12px] font-medium"
@@ -271,6 +282,7 @@ export default function ParentCommitteeDetail({
                 style={inputStyle}
               />
             </div>
+            ) : null}
 
             <div>
               <label

@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.mudkitchen.schoolstack.mobile",
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "package": "com.mudkitchen.schoolstack.mobile",
@@ -32,13 +32,21 @@
         {
           "backgroundColor": "#F7F1E7",
           "image": "./assets/images/logo.png",
-          "imageWidth": 80
+          "imageWidth": 140
         }
       ],
       [
         "expo-image-picker",
         {
           "photosPermission": "Allow MudKitchen to access your photos so you can attach images to messages."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#5C4A3A",
+          "defaultChannel": "messages"
         }
       ]
     ],

@@ -87,9 +87,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load billing data.",
-      code: "internal_error",
+      error: "Failed to load billing data.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

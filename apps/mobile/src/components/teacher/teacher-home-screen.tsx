@@ -1,13 +1,17 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
 import { TeacherHomeBulletinSheet } from '@/components/teacher/home/teacher-home-bulletin-sheet';
 import { TeacherHomeClassroomCard } from '@/components/teacher/home/teacher-home-classroom-card';
 import { TeacherHomeClassroomRosterSheet } from '@/components/teacher/home/teacher-home-classroom-roster-sheet';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
+import { TeacherActivityNotificationsSheet } from '@/components/teacher/teacher-activity-notifications-sheet';
 import { TeacherHomeHeader } from '@/components/teacher/home/teacher-home-header';
 import { TeacherHomeSchoolUpdatesCard } from '@/components/teacher/home/teacher-home-school-updates-card';
 import { TeacherHomeSnapshotCard } from '@/components/teacher/home/teacher-home-snapshot-card';
@@ -31,11 +35,20 @@ import {
   teacherStudentDetailRoute,
   teacherTabRoute,
 } from '@/lib/teacher/teacher-nav';
+import { fetchTeacherActivityNotificationUnreadCount } from '@/lib/teacher/fetch-activity-notifications';
 import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import type { StaffClassroomOption, TeacherDashboardFocusItem } from '@/lib/teacher/teacher-portal-api';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 const MAX_STUDENT_CARDS = 6;
+
+type TeacherHomeTab = 'overview' | 'attendance';
+
+const TEACHER_HOME_TABS = [
+  { id: 'overview' as const, label: 'Overview' },
+  { id: 'attendance' as const, label: 'Attendance', icon: 'clipboard-outline' as const },
+];
 
 type TeacherHomeScreenProps = {
   slug: string;
@@ -44,9 +57,13 @@ type TeacherHomeScreenProps = {
 export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useTeacherHome();
 
+  const [homeTab, setHomeTab] = useState<TeacherHomeTab>('overview');
   const [bulletinOpen, setBulletinOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [classroomRoster, setClassroomRoster] = useState<StaffClassroomOption | null>(null);
 
@@ -55,6 +72,25 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
+
+  const loadNotificationUnreadCount = useCallback(async () => {
+    if (!data?.organizationId) return;
+    try {
+      const count = await fetchTeacherActivityNotificationUnreadCount(
+        data.organizationId,
+        slug,
+      );
+      setNotificationUnreadCount(count);
+    } catch {
+      // Keep the last known count on transient errors.
+    }
+  }, [data?.organizationId, slug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadNotificationUnreadCount();
+    }, [loadNotificationUnreadCount]),
+  );
 
   const classroomRosterStudents = useMemo(() => {
     if (!classroomRoster || !data) return [];
@@ -84,7 +120,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }
@@ -92,6 +128,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   if (!data) return null;
 
   const { summary, features } = data;
+  const attendanceEnabled = isTeacherFeatureEnabled(features, 'attendance');
   const myStudentsEnabled = isTeacherFeatureEnabled(features, 'my_students');
   const messagesEnabled = isTeacherFeatureEnabled(features, 'messages');
   const calendarEnabled = isTeacherFeatureEnabled(features, 'calendar');
@@ -101,115 +138,108 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const showSchoolUpdates = !summary.bulletinEnabled && messagesEnabled;
   const nextEvent = summary.upcomingEvents[0] ?? null;
 
-  return (
+  const header = (
+    <TeacherHomeHeader
+      displayName={data.userProfile.displayName}
+      bulletinEnabled={summary.bulletinEnabled}
+      bulletinPostCount={summary.bulletinPosts.length}
+      notificationUnreadCount={notificationUnreadCount}
+      onOpenBulletin={() => setBulletinOpen(true)}
+      onPressHelp={() => setSupportSheetOpen(true)}
+      onPressNotifications={() => setNotificationsOpen(true)}
+    />
+  );
+
+  const overviewBody = (
     <>
-      <ScrollView
-        style={{ backgroundColor: Story.paper }}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => void refresh()}
-            tintColor={theme.primary}
-          />
-        }>
-        <Animated.View entering={FadeInDown.duration(350)}>
-          <TeacherHomeHeader
-            schoolName={data.schoolName}
-            displayName={data.userProfile.displayName}
-            roleTitle={data.roleTitle}
-            portalRole={data.portalRole}
-            bulletinEnabled={summary.bulletinEnabled}
-            bulletinPostCount={summary.bulletinPosts.length}
-            onOpenBulletin={() => setBulletinOpen(true)}
-          />
-        </Animated.View>
+      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+        <TeacherHomeStartHereCard
+          focusItems={summary.focusItems}
+          onPressItem={handleFocusItem}
+        />
+      </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-          <TeacherHomeStartHereCard
-            focusItems={summary.focusItems}
-            onPressItem={handleFocusItem}
+      <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+        <TeacherHomeSnapshotCard
+          schoolName={data.schoolName}
+          studentCount={studentCount}
+          myStudentsEnabled={myStudentsEnabled}
+          nextEvent={nextEvent}
+          calendarEnabled={calendarEnabled}
+          onViewCalendar={() => router.replace(teacherTabRoute(slug, 'calendar'))}
+        />
+      </Animated.View>
+
+      {showSchoolUpdates ? (
+        <Animated.View entering={FadeInDown.delay(120).duration(350)}>
+          <TeacherHomeSchoolUpdatesCard
+            messagesUnreadCount={summary.messagesUnreadCount}
+            onOpenMessages={() => router.replace(teacherTabRoute(slug, 'messages'))}
           />
         </Animated.View>
+      ) : null}
 
-        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-          <TeacherHomeSnapshotCard
-            schoolName={data.schoolName}
-            studentCount={studentCount}
-            myStudentsEnabled={myStudentsEnabled}
-            nextEvent={nextEvent}
-            calendarEnabled={calendarEnabled}
-            onViewCalendar={() => router.replace(teacherTabRoute(slug, 'calendar'))}
-          />
+      {myStudentsEnabled && summary.staffClassrooms.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(160).duration(350)} style={styles.section}>
+          <StoryDisplayHeading size="section">Your classrooms</StoryDisplayHeading>
+          <View style={styles.cardList}>
+            {summary.staffClassrooms.map((classroom, index) => (
+              <TeacherHomeClassroomCard
+                key={classroom.id}
+                classroom={classroom}
+                index={index}
+                onViewStudents={() => setClassroomRoster(classroom)}
+              />
+            ))}
+          </View>
         </Animated.View>
+      ) : null}
 
-        {showSchoolUpdates ? (
-          <Animated.View entering={FadeInDown.delay(120).duration(350)}>
-            <TeacherHomeSchoolUpdatesCard
-              messagesUnreadCount={summary.messagesUnreadCount}
-              onOpenMessages={() => router.replace(teacherTabRoute(slug, 'messages'))}
-            />
-          </Animated.View>
-        ) : null}
-
-        {myStudentsEnabled && summary.staffClassrooms.length > 0 ? (
-          <Animated.View entering={FadeInDown.delay(160).duration(350)} style={styles.section}>
-            <StoryDisplayHeading size="section">Your classrooms</StoryDisplayHeading>
-            <View style={styles.cardList}>
-              {summary.staffClassrooms.map((classroom, index) => (
-                <TeacherHomeClassroomCard
-                  key={classroom.id}
-                  classroom={classroom}
-                  index={index}
-                  onViewStudents={() => setClassroomRoster(classroom)}
-                />
-              ))}
+      {myStudentsEnabled ? (
+        <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
+          <StoryDisplayHeading size="section">Your students</StoryDisplayHeading>
+          {studentCount === 0 ? (
+            <View style={[styles.emptyCard, { borderColor: theme.line }]}>
+              <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                No learners assigned yet — your administrator can link students to you from the
+                staff directory.
+              </Text>
             </View>
-          </Animated.View>
-        ) : null}
-
-        {myStudentsEnabled ? (
-          <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
-            <StoryDisplayHeading size="section">Your students</StoryDisplayHeading>
-            {studentCount === 0 ? (
-              <View style={[styles.emptyCard, { borderColor: theme.line }]}>
-                <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                  No learners assigned yet — your administrator can link students to you from the
-                  staff directory.
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.cardList}>
-                  {visibleStudents.map((student, index) => (
-                    <TeacherHomeStudentCard
-                      key={student.id}
-                      student={student}
-                      index={index}
-                      onViewProfile={() => openStudentProfile(student)}
-                    />
-                  ))}
-                </View>
-                {hasMoreStudents ? (
-                  <StoryTextLink
-                    label={`View all ${studentCount} students`}
-                    onPress={() => router.replace(teacherTabRoute(slug, 'my-students'))}
+          ) : (
+            <>
+              <View style={styles.cardList}>
+                {visibleStudents.map((student, index) => (
+                  <TeacherHomeStudentCard
+                    key={student.id}
+                    student={student}
+                    index={index}
+                    onViewProfile={() => openStudentProfile(student)}
                   />
-                ) : null}
-              </>
-            )}
-          </Animated.View>
-        ) : null}
-
-        <Animated.View entering={FadeInDown.delay(240).duration(350)}>
-          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+                ))}
+              </View>
+              {hasMoreStudents ? (
+                <StoryTextLink
+                  label={`View all ${studentCount} students`}
+                  onPress={() => router.replace(teacherTabRoute(slug, 'my-students'))}
+                />
+              ) : null}
+            </>
+          )}
         </Animated.View>
+      ) : null}
 
-        <Text style={[styles.footerNote, { color: theme.muted }]}>
-          Need access changes? Contact your school administrator.
-        </Text>
-      </ScrollView>
+      <Animated.View entering={FadeInDown.delay(240).duration(350)}>
+        <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+      </Animated.View>
 
+      <Text style={[styles.footerNote, { color: theme.muted }]}>
+        Need access changes? Contact your school administrator.
+      </Text>
+    </>
+  );
+
+  const sheets = (
+    <>
       <TeacherHomeBulletinSheet
         visible={bulletinOpen}
         posts={summary.bulletinPosts}
@@ -218,6 +248,14 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
           setBulletinOpen(false);
           router.push(teacherBulletinDetailRoute(slug, postId));
         }}
+      />
+
+      <TeacherActivityNotificationsSheet
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        organizationId={data.organizationId}
+        slug={slug}
+        onMarkedRead={() => setNotificationUnreadCount(0)}
       />
 
       <PortalSupportRequestSheet
@@ -239,9 +277,73 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
       />
     </>
   );
+
+  if (attendanceEnabled) {
+    return (
+      <View style={styles.screen}>
+        <StatusBar style={isPreview ? 'dark' : 'light'} />
+        <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
+
+        <SubmissionStoryTabBar
+          tabs={TEACHER_HOME_TABS}
+          activeTabId={homeTab}
+          onChange={(tabId) => setHomeTab(tabId as TeacherHomeTab)}
+        />
+
+        {homeTab === 'overview' ? (
+          <ScrollView
+            style={styles.tabScroll}
+            contentContainerStyle={styles.content}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => void refresh()}
+                tintColor={theme.primary}
+              />
+            }>
+            {overviewBody}
+          </ScrollView>
+        ) : (
+          <AttendanceRosterPanel embedded active />
+        )}
+
+        {sheets}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
+      <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
+
+      <ScrollView
+        style={styles.tabScroll}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void refresh()}
+            tintColor={theme.primary}
+          />
+        }>
+        {overviewBody}
+      </ScrollView>
+
+      {sheets}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
+  tabScroll: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',

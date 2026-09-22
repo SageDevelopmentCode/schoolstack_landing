@@ -9,6 +9,7 @@ const ICONS = {
   schedule: Calendar,
   message: MessageSquare,
   setup: Settings2,
+  attendance: ClipboardList,
 } as const;
 
 type AdminFocusQueueProps = {

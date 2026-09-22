@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { listCommitteeJoinRequests } from "@/lib/committees/join-requests";
+import { listDutyRolesByCommitteeIds } from "@/lib/committees/duty-roles";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -40,7 +41,11 @@ export async function GET(request: Request) {
       committeeId,
       status: status ?? "pending",
     });
-    return NextResponse.json({ requests });
+    const dutyRolesByCommitteeId = await listDutyRolesByCommitteeIds(
+      admin,
+      requests.map((request) => request.committeeId),
+    );
+    return NextResponse.json({ requests, dutyRolesByCommitteeId });
   } catch (err) {
     if (err instanceof SchoolAdminAuthError) {
       return apiError(ROUTE, {

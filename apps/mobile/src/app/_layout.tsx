@@ -19,9 +19,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
+import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
-import { Story } from '@/constants/story-theme';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
 
@@ -45,12 +45,13 @@ export default function RootLayout() {
   });
 
   if (!fontsLoaded && !isMobileE2e) {
-    return <View style={{ flex: 1, backgroundColor: Story.paper }} />;
+    return <View style={{ flex: 1, backgroundColor: Brand.bg }} />;
   }
 
   return (
     <AuthProvider>
       <AuthSessionGuard />
+      <PushNotificationManager />
       <SplashOverlay />
       <Stack
         screenOptions={{

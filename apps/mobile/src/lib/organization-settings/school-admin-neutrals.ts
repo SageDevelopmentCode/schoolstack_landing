@@ -8,7 +8,7 @@ export type SchoolAdminStructureColorKey =
   | 'textSecondary';
 
 export const SCHOOL_ADMIN_LIGHT_NEUTRALS = {
-  bg: '#FFFFFF',
+  bg: '#F8F8F3',
   border: '#E2E8F0',
   borderStrong: '#CBD5E1',
   surface: '#FFFFFF',

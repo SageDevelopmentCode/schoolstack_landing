@@ -102,9 +102,9 @@ export async function POST(request: Request, context: RouteContext) {
 
     return apiError(ROUTE, {
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to upload attachments.",
-      code: "internal_error",
+      error: "Failed to upload attachments.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

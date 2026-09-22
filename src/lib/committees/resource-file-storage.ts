@@ -1,9 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { CommitteeResourceType } from "./types";
+import type { CommitteeResource, CommitteeResourceType } from "./types";
 
 export const COMMITTEE_RESOURCE_FILES_BUCKET = "committee-resource-files";
 
-export const COMMITTEE_RESOURCE_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export const COMMITTEE_RESOURCE_FILE_MAX_BYTES = 100 * 1024 * 1024;
+
+export function formatCommitteeResourceMaxFileSizeLabel(): string {
+  return `${Math.round(COMMITTEE_RESOURCE_FILE_MAX_BYTES / (1024 * 1024))} MB`;
+}
 export const COMMITTEE_RESOURCE_SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export const COMMITTEE_RESOURCE_PDF_ACCEPT = ".pdf,application/pdf";
@@ -38,7 +42,7 @@ export function validateCommitteeResourceFile(
   if (type !== "pdf" && type !== "doc") return null;
 
   if (file.size > COMMITTEE_RESOURCE_FILE_MAX_BYTES) {
-    return "File must be 10 MB or smaller.";
+    return `File must be ${formatCommitteeResourceMaxFileSizeLabel()} or smaller.`;
   }
 
   const name = file.name.toLowerCase();
@@ -108,4 +112,25 @@ export async function createCommitteeResourceSignedUrl(
   if (error) throw error;
   if (!data?.signedUrl) throw new Error("Failed to create download link.");
   return data.signedUrl;
+}
+
+export type CommitteeResourceOpenTarget = Pick<
+  CommitteeResource,
+  "url" | "storagePath" | "fileName"
+>;
+
+export async function openCommitteeResource(
+  supabase: SupabaseClient,
+  resource: CommitteeResourceOpenTarget,
+): Promise<boolean> {
+  if (resource.url) {
+    window.open(resource.url, "_blank", "noopener,noreferrer");
+    return true;
+  }
+
+  if (!resource.storagePath) return false;
+
+  const url = await createCommitteeResourceSignedUrl(supabase, resource.storagePath);
+  window.open(url, "_blank", "noopener,noreferrer");
+  return true;
 }

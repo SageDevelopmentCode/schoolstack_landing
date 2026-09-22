@@ -1,4 +1,4 @@
-import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -30,11 +30,11 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
 import {
   openStripeCheckout,
   waitBeforeStripeCheckout,
 } from '@/lib/parent/open-stripe-checkout';
+import { parentEnrollmentItemRoute, parseEnrollmentHref } from '@/lib/parent/parent-nav';
 import {
   createCombinedTuitionCheckout,
   createPaymentMethodSetup,
@@ -87,6 +87,7 @@ function resolveNextChargeId(
 }
 
 export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
+  const router = useRouter();
   const theme = useParentTheme();
   const { data, isLoading, isRefreshing, error, refresh } = useParentBilling();
   const { reportError } = useMobileErrorReporter(data?.organizationId);
@@ -403,12 +404,19 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
     }
   };
 
-  const handleOpenEnrollment = async () => {
+  const handleOpenEnrollment = () => {
     const href = data?.readiness.enrollmentChecklistHref;
     if (!href) return;
-    await openBrowserAsync(resolveWebUrl(href), {
-      presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
-    });
+    const enrollment = parseEnrollmentHref(href);
+    if (!enrollment) return;
+    router.push(
+      parentEnrollmentItemRoute(
+        slug,
+        enrollment.applicationId,
+        enrollment.templateItemId,
+        enrollment.sectionId,
+      ),
+    );
   };
 
   const selectedReceipt = useMemo(() => {
@@ -429,7 +437,7 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={{ color: theme.muted, textAlign: 'center' }}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }

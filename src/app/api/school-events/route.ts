@@ -89,9 +89,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to create event.",
-      code: "internal_error",
+      error: "Failed to create event.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
 import { ParentCommitteeRequestStatusChip } from '@/components/parent/committees/parent-committee-request-status-chip';
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
@@ -149,7 +149,7 @@ export function ParentCommitteeExploreDetailScreen({
   }
 
   return (
-    <ScrollView
+    <ParentKeyboardAwareScrollView
       style={[styles.container, { backgroundColor: Story.paper }]}
       contentContainerStyle={styles.content}>
       <Pressable
@@ -301,7 +301,7 @@ export function ParentCommitteeExploreDetailScreen({
           Your request was approved. Open this committee from My committees to view the workspace.
         </Text>
       ) : null}
-    </ScrollView>
+    </ParentKeyboardAwareScrollView>
   );
 }
 

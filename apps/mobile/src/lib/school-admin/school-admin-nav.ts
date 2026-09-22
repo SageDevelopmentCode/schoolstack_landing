@@ -50,7 +50,11 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
 
   const messagesBase = `/school/${slug}/admin/messages`;
   if (pathname === messagesBase) {
-    return `/school-admin/${slug}/messages`;
+    const threadId = query.get('thread');
+    if (threadId) {
+      return schoolAdminMessageThreadRoute(slug, threadId);
+    }
+    return schoolAdminMessagesRoute(slug);
   }
 
   const messageThreadMatch = pathname.match(
@@ -85,6 +89,14 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/students/${studentDetailMatch[1]}`;
   }
 
+  const attendancePaths = [
+    `/school/${slug}/admin/my_school/attendance`,
+    `/school/${slug}/admin/attendance`,
+  ];
+  if (attendancePaths.includes(pathname)) {
+    return `/school-admin/${slug}/more/attendance`;
+  }
+
   const classroomsPaths = [
     `/school/${slug}/admin/classrooms`,
     `/school/${slug}/admin/my_school/classrooms`,
@@ -109,4 +121,8 @@ export function schoolAdminSubmissionsRoute(slug: string): string {
 
 export function schoolAdminMessagesRoute(slug: string): string {
   return `/school-admin/${slug}/messages`;
+}
+
+export function schoolAdminMessageThreadRoute(slug: string, threadId: string): string {
+  return `/school-admin/${slug}/messages/${encodeURIComponent(threadId)}`;
 }

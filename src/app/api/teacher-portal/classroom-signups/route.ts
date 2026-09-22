@@ -86,9 +86,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load signups.",
-      code: "load_failed",
+      error: "Failed to load signups.",
       cause: error,
+      code: "load_failed",
     });
   }
 }
@@ -210,9 +210,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to publish signup.",
-      code: "publish_failed",
+      error: "Failed to publish signup.",
       cause: error,
+      code: "publish_failed",
     });
   }
 }

@@ -111,9 +111,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to create download link.",
-      code: "download_failed",
+      error: "Failed to create download link.",
       cause: error,
+      code: "download_failed",
     });
   }
 }

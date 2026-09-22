@@ -106,7 +106,7 @@ export function ParentCalendarScreen({ organizationId }: ParentCalendarScreenPro
     return (
       <View style={styles.centered}>
         <StoryErrorBanner message={error} />
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }

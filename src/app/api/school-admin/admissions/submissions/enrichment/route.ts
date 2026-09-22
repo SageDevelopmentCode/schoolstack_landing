@@ -68,10 +68,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        err instanceof Error ? err.message : "Failed to enrich submissions.",
-      code: "internal_error",
+      error: "Failed to enrich submissions.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

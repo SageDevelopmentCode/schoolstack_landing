@@ -119,12 +119,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to assign teacher.",
-      code: "internal_error",
+      error: "Failed to assign teacher.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

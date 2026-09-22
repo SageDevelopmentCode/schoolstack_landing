@@ -3,9 +3,13 @@ import { describe, it } from "node:test";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   formatActivityNotificationDetail,
+  formatActivityNotificationTitle,
+  formatSchoolAdminMessageNotificationTitle,
   formatSubjectShortLabel,
+  getActivityNotificationCategory,
   getActivityNotificationRangeStart,
   isUnreadActivityNotificationEvent,
+  resolveActivityNotificationLink,
   shortenSubjectLabel,
 } from "@/lib/school-admin/activity-notifications";
 
@@ -248,6 +252,156 @@ describe("formatActivityNotificationDetail", () => {
       ),
       "Autopay succeeded for Aug Tuition (Julius) — $360.00",
     );
+  });
+});
+
+describe("formatSchoolAdminMessageNotificationTitle", () => {
+  it("formats parent to school office as from parent", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Jane Doe",
+        senderPortal: "parent",
+        recipientLabels: ["Rooted Meadows Waldorf School Office"],
+      }),
+      "New message from Jane Doe",
+    );
+  });
+
+  it("formats parent to teacher as between parent and staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Jane Doe",
+        senderPortal: "parent",
+        recipientLabels: ["Ms. Smith"],
+      }),
+      "New message between Jane Doe and Ms. Smith",
+    );
+  });
+
+  it("formats teacher to parent as between parent and staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Ms. Smith",
+        senderPortal: "teacher",
+        recipientLabels: ["Jane Doe"],
+      }),
+      "New message between Jane Doe and Ms. Smith",
+    );
+  });
+
+  it("formats teacher with no person recipient as from staff", () => {
+    assert.equal(
+      formatSchoolAdminMessageNotificationTitle({
+        senderName: "Ms. Smith",
+        senderPortal: "teacher",
+        recipientLabels: ["Rooted Meadows Waldorf School Office"],
+      }),
+      "New message from Ms. Smith",
+    );
+  });
+
+  it("falls back when sender metadata is missing", () => {
+    assert.equal(formatSchoolAdminMessageNotificationTitle({}), "New message");
+  });
+});
+
+describe("getActivityNotificationCategory", () => {
+  it("returns messages for message received events", () => {
+    assert.equal(
+      getActivityNotificationCategory(ACTIVITY_ACTIONS.MESSAGES_RECEIVED),
+      "messages",
+    );
+  });
+});
+
+describe("resolveActivityNotificationLink", () => {
+  it("links message notifications to the messages inbox", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-1",
+        action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+        entity_type: "message_thread",
+        entity_id: "thread-1",
+        summary: "Hello there",
+        metadata: {
+          threadId: "thread-1",
+          senderName: "Jane Doe",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(
+      link.href,
+      "/school/rooted-meadows/admin/messages?thread=thread-1",
+    );
+    assert.equal(link.ctaLabel, "View message");
+  });
+
+  it("links message notifications without thread metadata to messages inbox", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-2",
+        action: ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
+        entity_type: "message_thread",
+        entity_id: null,
+        summary: "Hello there",
+        metadata: {
+          senderName: "Jane Doe",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(link.href, "/school/rooted-meadows/admin/messages");
+    assert.equal(link.ctaLabel, "View message");
+  });
+});
+
+describe("authorized pickup notifications", () => {
+  it("formats pickup notification titles", () => {
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED),
+      "Authorized pickup added",
+    );
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED),
+      "Authorized pickup updated",
+    );
+    assert.equal(
+      formatActivityNotificationTitle(ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED),
+      "Authorized pickup removed",
+    );
+  });
+
+  it("links pickup notifications to the student record when studentId is present", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-1",
+        action: ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED,
+        entity_type: "authorized_pickup_contact",
+        entity_id: "contact-1",
+        summary: "Jane Smith added an authorized pickup contact for Emma: Maria Lopez",
+        metadata: {
+          studentId: "student-1",
+          studentName: "Emma Thompson",
+          contactName: "Maria Lopez",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(link.href, "/school/rooted-meadows/admin/students/student-1");
+    assert.equal(link.ctaLabel, "View student");
   });
 });
 

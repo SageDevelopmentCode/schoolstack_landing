@@ -125,9 +125,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load home data.",
-      code: "internal_error",
+      error: "Failed to load home data.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

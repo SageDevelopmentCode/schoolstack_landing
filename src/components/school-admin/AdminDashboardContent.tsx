@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminDocumentationGuidePanel from "@/components/school-admin/AdminDocumentationGuidePanel";
+import AdminDashboardAttendanceSection from "@/components/school-admin/AdminDashboardAttendanceSection";
 import AdminActivityFeed from "@/components/school-admin/ui/story/AdminActivityFeed";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminDashboardHowToGuidesCard from "@/components/school-admin/ui/story/AdminDashboardHowToGuidesCard";
@@ -167,6 +168,32 @@ export default function AdminDashboardContent({
               accent={metric.accent}
             />
           ))}
+        </div>
+      ) : null}
+
+      {features.admin?.my_school && summary.attendanceToday ? (
+        <div className="mb-[19px]">
+          <AdminCard theme={theme} padding="canvas">
+            <AdminDashboardAttendanceSection
+              organizationId={organizationId}
+              slug={slug}
+              date={summary.attendanceToday.date}
+              students={summary.attendanceToday.students}
+              summary={summary.attendanceToday.summary}
+              onSummaryChange={(nextSummary) => {
+                setSummary((prev) => {
+                  if (!prev.attendanceToday) return prev;
+                  return {
+                    ...prev,
+                    attendanceToday: {
+                      ...prev.attendanceToday,
+                      summary: nextSummary,
+                    },
+                  };
+                });
+              }}
+            />
+          </AdminCard>
         </div>
       ) : null}
 

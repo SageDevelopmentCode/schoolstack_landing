@@ -72,12 +72,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to load assigned teachers.",
-      code: "internal_error",
+      error: "Failed to load assigned teachers.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

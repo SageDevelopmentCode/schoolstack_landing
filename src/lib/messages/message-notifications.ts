@@ -11,6 +11,7 @@ import {
   resolveSenderDisplayName,
   resolveThreadRecipientLabels,
 } from "@/lib/messages/message-notification-labels";
+import { sendExpoPushToUsers } from "@/lib/messages/expo-push";
 import { sendWebPushToUsers } from "@/lib/messages/web-push";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import type { PortalMessage } from "./types";
@@ -299,12 +300,29 @@ export async function dispatchMessageNotifications(
         }
       }
 
+      const pushTitle = `${context.schoolName} — ${context.senderName}`;
+
       await sendWebPushToUsers(admin, {
         organizationId: context.organizationId,
         userIds: [recipient.userId],
-        title: `${context.schoolName} — ${context.senderName}`,
+        title: pushTitle,
         body: preview,
         url: threadUrl,
+      });
+
+      await sendExpoPushToUsers(admin, {
+        organizationId: context.organizationId,
+        organizationName: context.schoolName,
+        userIds: [recipient.userId],
+        title: pushTitle,
+        body: preview,
+        recipientPortal: recipient.portal,
+        recipientEmail: recipient.email,
+        data: {
+          portal: recipient.portal,
+          organizationSlug: context.organizationSlug,
+          threadId: context.threadId,
+        },
       });
     }),
   );

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
+import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { ParentMoreMenuSheet } from '@/components/parent/parent-more-menu-sheet';
 import {
   PARENT_FLOATING_TAB_BAR_HEIGHT,
@@ -15,6 +16,7 @@ import { MessagesUnreadProvider, useMessagesUnread } from '@/contexts/messages-u
 import { ParentBillingProvider } from '@/contexts/parent-billing-context';
 import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
 import { ParentClassroomSignupsProvider } from '@/contexts/parent-classroom-signups-context';
+import { ParentFormsDocumentsProvider } from '@/contexts/parent-forms-documents-context';
 import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
@@ -35,6 +37,8 @@ import {
 } from '@/lib/parent/parent-nav';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
+import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
+import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
 
 function getActiveTab(pathname: string): ParentTab | null {
   if (isParentChildDetailPath(pathname)) return null;
@@ -67,7 +71,9 @@ function ParentLayoutContent() {
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, selectedSchool, portalType, isLoading } = useAuth();
+  const { user, selectedSchool, portalType, previewSession, isLoading } = useAuth();
+  const { isPreview } = usePortalPreview();
+  const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   const pathTab = getActiveTab(pathname);
@@ -83,10 +89,18 @@ function ParentLayoutContent() {
   useEffect(() => {
     if (isLoading || !slug || !user) return;
 
-    if (portalType !== 'parent' || selectedSchool?.slug !== slug) {
+    if (
+      !isPortalSessionAllowed(
+        portalType,
+        selectedSchool?.slug,
+        'parent',
+        slug,
+        previewSession,
+      )
+    ) {
       router.replace('/portal');
     }
-  }, [isLoading, portalType, router, selectedSchool?.slug, slug, user]);
+  }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
 
   const handleTabChange = (tab: ParentTab) => {
     if (!slug) return;
@@ -155,6 +169,7 @@ function ParentLayoutContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Story.paper }]}>
       <StatusBar style="dark" />
+      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
       <View
         style={[
           styles.content,
@@ -183,6 +198,7 @@ function ParentLayoutContent() {
 
 export default function ParentLayout() {
   const { selectedSchool, user, isLoading } = useAuth();
+  const { isPreview } = usePortalPreview();
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
@@ -229,8 +245,9 @@ export default function ParentLayout() {
           <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
             <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
               <ParentClassroomSignupsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                <ParentFormsDocumentsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                 <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-                  <MessagesRealtimeProvider organizationId={loadedOrg.id}>
+                  <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
                     <ParentMessagesInboxProvider
                       organizationId={loadedOrg.id}
                       schoolName={loadedOrg.name}>
@@ -244,6 +261,7 @@ export default function ParentLayout() {
                     </ParentMessagesInboxProvider>
                   </MessagesRealtimeProvider>
                 </ParentCalendarProvider>
+                </ParentFormsDocumentsProvider>
               </ParentClassroomSignupsProvider>
             </ParentCommitteesProvider>
           </ParentBillingProvider>

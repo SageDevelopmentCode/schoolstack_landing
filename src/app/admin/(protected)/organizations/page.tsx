@@ -12,6 +12,7 @@ import OrganizationDashboardCardsPanel from "@/components/admin/OrganizationDash
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationMessagesPanel from "@/components/admin/OrganizationMessagesPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
+import OrganizationPushNotificationsPanel from "@/components/admin/OrganizationPushNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
@@ -20,7 +21,10 @@ type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
 
 type OrganizationDetailTab =
   | "overview"
+  | "branding"
+  | "features"
   | "notifications"
+  | "push-notifications"
   | "messages"
   | "submissions"
   | "teacher-portal"
@@ -31,12 +35,33 @@ const ORGANIZATION_DETAIL_TABS: {
   label: string;
 }[] = [
   { id: "overview", label: "Overview" },
+  { id: "branding", label: "Branding" },
+  { id: "features", label: "Features" },
   { id: "notifications", label: "Notifications" },
+  { id: "push-notifications", label: "Push Notifications" },
   { id: "messages", label: "Messages" },
   { id: "submissions", label: "Submissions" },
   { id: "teacher-portal", label: "Teacher portal" },
   { id: "dashboard-cards", label: "Dashboard cards" },
 ];
+
+const SETTINGS_TABS: OrganizationDetailTab[] = [
+  "overview",
+  "branding",
+  "features",
+];
+
+function isSettingsTab(tab: OrganizationDetailTab): boolean {
+  return SETTINGS_TABS.includes(tab);
+}
+
+function settingsEditorViewForTab(
+  tab: OrganizationDetailTab,
+): "overview" | "branding" | "features" {
+  if (tab === "branding") return "branding";
+  if (tab === "features") return "features";
+  return "overview";
+}
 
 type Organization = {
   id: string;
@@ -218,6 +243,8 @@ export default function AdminOrganizationsPage() {
 
   const selected =
     organizations.find((org) => org.id === selectedId) ?? null;
+
+  const settingsTabVisited = SETTINGS_TABS.some((tab) => visitedTabs.has(tab));
 
   const counts = organizations.reduce(
     (acc, org) => {
@@ -410,23 +437,42 @@ export default function AdminOrganizationsPage() {
               organizationId={selected.id}
               organizationName={selected.name}
             />
+              </div>
+            ) : null}
 
-            <OrganizationSettingsEditor
-              organizationId={selected.id}
-              organizationSlug={selected.slug}
-              organizationName={selected.name}
-              initialRow={settingsRow}
-              settingsLoading={settingsLoading}
-              onSaved={async () => {
-                const { data } = await supabase
-                  .from("organization_settings")
-                  .select("*")
-                  .eq("organization_id", selected.id)
-                  .maybeSingle();
-                setSettingsRow((data as OrganizationSettingsRow | null) ?? null);
-              }}
-            />
+            {settingsTabVisited ? (
+              <div
+                hidden={!isSettingsTab(activeDetailTab)}
+                aria-hidden={!isSettingsTab(activeDetailTab)}
+                className="space-y-6"
+              >
+                <OrganizationSettingsEditor
+                  organizationId={selected.id}
+                  organizationSlug={selected.slug}
+                  organizationName={selected.name}
+                  initialRow={settingsRow}
+                  settingsLoading={settingsLoading}
+                  view={settingsEditorViewForTab(activeDetailTab)}
+                  onSaved={async () => {
+                    const { data } = await supabase
+                      .from("organization_settings")
+                      .select("*")
+                      .eq("organization_id", selected.id)
+                      .maybeSingle();
+                    setSettingsRow(
+                      (data as OrganizationSettingsRow | null) ?? null,
+                    );
+                  }}
+                />
+              </div>
+            ) : null}
 
+            {visitedTabs.has("overview") ? (
+              <div
+                hidden={activeDetailTab !== "overview"}
+                aria-hidden={activeDetailTab !== "overview"}
+                className="space-y-6"
+              >
             <OrganizationAccessPanel
               organizationId={selected.id}
               organizationName={selected.name}
@@ -553,6 +599,15 @@ export default function AdminOrganizationsPage() {
                 aria-hidden={activeDetailTab !== "notifications"}
               >
                 <OrganizationNotificationsPanel organizationId={selected.id} />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("push-notifications") ? (
+              <div
+                hidden={activeDetailTab !== "push-notifications"}
+                aria-hidden={activeDetailTab !== "push-notifications"}
+              >
+                <OrganizationPushNotificationsPanel organizationId={selected.id} />
               </div>
             ) : null}
 

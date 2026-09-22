@@ -13,6 +13,7 @@ import { updateCommittee } from "@/lib/committees/committees";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 
 export default function CommitteeSettingsSection({
   committee,
@@ -94,7 +95,8 @@ export default function CommitteeSettingsSection({
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <CommitteeWorkspaceSectionFrame width="wide">
+    <div className="space-y-6">
       <AdminCard theme={theme} padding="default">
         <AdminDisplayHeading theme={theme} as="h3" size="section">
           Committee details
@@ -205,5 +207,6 @@ export default function CommitteeSettingsSection({
         </AdminCard>
       )}
     </div>
+    </CommitteeWorkspaceSectionFrame>
   );
 }

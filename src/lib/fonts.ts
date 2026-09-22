@@ -4,6 +4,8 @@ import {
   Great_Vibes,
   Fragment_Mono,
   Delicious_Handrawn,
+  Inter,
+  Manrope,
   Poppins,
 } from "next/font/google";
 
@@ -227,4 +229,18 @@ export const poppins = Poppins({
   weight: ["300", "400", "500", "600"],
   display: "swap",
   variable: "--font-poppins",
+});
+
+export const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-manrope",
+});
+
+export const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
 });

@@ -48,6 +48,7 @@ type TeacherMyStudentsPageProps = {
   staffMemberId: string | null;
   initialStudents?: AdminEnrolledStudentSummary[];
   initialClassrooms?: StaffClassroomOption[];
+  initialSelectedStudentId?: string;
   previewMode?: boolean;
 };
 
@@ -112,6 +113,7 @@ export default function TeacherMyStudentsPage({
   staffMemberId,
   initialStudents,
   initialClassrooms,
+  initialSelectedStudentId,
   previewMode = false,
 }: TeacherMyStudentsPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
@@ -150,7 +152,9 @@ export default function TeacherMyStudentsPage({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [rosterFilter, setRosterFilter] = useState<StudentRosterFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSelectedStudentId ?? null,
+  );
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(STUDENTS_PAGE_SIZE);
 

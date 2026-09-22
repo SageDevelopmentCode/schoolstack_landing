@@ -1,12 +1,15 @@
 import type { User } from '@supabase/supabase-js';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { AttendanceRosterPanel } from '@/components/attendance/attendance-roster-panel';
 import { PrimaryButton } from '@/components/primary-button';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
-import { AdminActivityFeedCard } from '@/components/school-admin/dashboard/admin-activity-feed-card';
+import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/submission-story-tab-bar';
+import { AdminActivityNotificationsSheet } from '@/components/school-admin/dashboard/admin-activity-notifications-sheet';
 import { AdminDashboardHeader } from '@/components/school-admin/dashboard/admin-dashboard-header';
 import { AdminDashboardSkeleton } from '@/components/school-admin/dashboard/admin-dashboard-skeleton';
 import { AdminFeatureAnnouncementsCard } from '@/components/school-admin/dashboard/admin-feature-announcements-card';
@@ -28,8 +31,8 @@ import type {
   DashboardFocusItem,
   DashboardQuickAction,
   MobileAdminDashboardSummary,
-  SchoolAdminActivityNotification,
 } from '@/lib/school-admin/dashboard-summary-types';
+import { fetchActivityNotificationUnreadCount } from '@/lib/school-admin/fetch-activity-notifications';
 import {
   fetchAdminDashboardSummary,
   refreshStripeConnectStatus,
@@ -40,7 +43,15 @@ import {
   resolveSchoolAdminNativeRoute,
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+
+type SchoolDashboardTab = 'overview' | 'attendance';
+
+const SCHOOL_DASHBOARD_TABS = [
+  { id: 'overview' as const, label: 'Overview' },
+  { id: 'attendance' as const, label: 'Attendance', icon: 'clipboard-outline' as const },
+];
 
 type SchoolDashboardScreenProps = {
   organizationId: string;
@@ -57,15 +68,28 @@ export function SchoolDashboardScreen({
 }: SchoolDashboardScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [activitySheetOpen, setActivitySheetOpen] = useState(false);
+  const [activityUnreadCount, setActivityUnreadCount] = useState(0);
   const stripePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useAuthRequiredRedirect(error);
+
+  const loadActivityUnreadCount = useCallback(async () => {
+    try {
+      const count = await fetchActivityNotificationUnreadCount(organizationId);
+      setActivityUnreadCount(count);
+    } catch {
+      // Keep the last known count on transient errors.
+    }
+  }, [organizationId]);
 
   const loadSummary = useCallback(
     async (isRefresh = false) => {
@@ -79,6 +103,7 @@ export function SchoolDashboardScreen({
       try {
         const nextSummary = await fetchAdminDashboardSummary(organizationId, slug);
         setSummary(filterMobileDashboardSummary(slug, nextSummary));
+        void loadActivityUnreadCount();
       } catch (loadError) {
         reportError('school_admin_dashboard_load', loadError);
         setError(loadError instanceof Error ? loadError.message : 'Failed to load dashboard.');
@@ -87,13 +112,14 @@ export function SchoolDashboardScreen({
         setRefreshing(false);
       }
     },
-    [organizationId, reportError, slug],
+    [loadActivityUnreadCount, organizationId, reportError, slug],
   );
 
   useFocusEffect(
     useCallback(() => {
       void loadSummary();
-    }, [loadSummary]),
+      void loadActivityUnreadCount();
+    }, [loadActivityUnreadCount, loadSummary]),
   );
 
   const stripeStep = summary?.setupStatus.steps.find((step) => step.id === 'stripe');
@@ -141,13 +167,6 @@ export function SchoolDashboardScreen({
     [navigateToHref],
   );
 
-  const handleActivityItem = useCallback(
-    (item: SchoolAdminActivityNotification) => {
-      navigateToHref(item.href);
-    },
-    [navigateToHref],
-  );
-
   const handleQuickActionLink = useCallback(
     (action: Extract<DashboardQuickAction, { kind: 'link' }>) => {
       navigateToHref(action.href);
@@ -182,24 +201,18 @@ export function SchoolDashboardScreen({
 
   const remaining = summary.setupStatus.totalCount - summary.setupStatus.completedCount;
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: theme.bg }}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void loadSummary(true)}
-          tintColor={theme.accent}
-        />
-      }>
-      <Animated.View entering={FadeInDown.duration(350)}>
-        <AdminDashboardHeader
-          schoolName={schoolName}
-          userFirstName={userFirstNameFromMetadata(user ?? null)}
-        />
-      </Animated.View>
+  const header = (
+    <AdminDashboardHeader
+      userFirstName={userFirstNameFromMetadata(user ?? null)}
+      unreadCount={activityUnreadCount}
+      onPressBulletin={() => router.push(`/school-admin/${slug}/more/bulletin` as Href)}
+      onPressHelp={() => setSupportSheetOpen(true)}
+      onPressNotifications={() => setActivitySheetOpen(true)}
+    />
+  );
 
+  const overviewBody = (
+    <>
       {!summary.setupComplete ? (
         <Animated.View entering={FadeInDown.delay(40).duration(350)} style={styles.section}>
           <SetupProgressBar
@@ -236,25 +249,33 @@ export function SchoolDashboardScreen({
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
-        <AdminActivityFeedCard items={summary.recentActivity} onPressItem={handleActivityItem} />
-      </Animated.View>
-
       {summary.quickActions.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(240).duration(350)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.section}>
           <AdminQuickActionsCard actions={summary.quickActions} onPressLink={handleQuickActionLink} />
         </Animated.View>
       ) : null}
 
       {summary.featureAnnouncements.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(240).duration(350)} style={styles.section}>
           <AdminFeatureAnnouncementsCard announcements={summary.featureAnnouncements} />
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={FadeInDown.delay(320).duration(350)} style={styles.section}>
+      <Animated.View entering={FadeInDown.delay(280).duration(350)} style={styles.section}>
         <AdminNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
       </Animated.View>
+    </>
+  );
+
+  const sheets = (
+    <>
+      <AdminActivityNotificationsSheet
+        visible={activitySheetOpen}
+        onClose={() => setActivitySheetOpen(false)}
+        organizationId={organizationId}
+        slug={slug}
+        onMarkedRead={() => setActivityUnreadCount(0)}
+      />
 
       <AdminSupportRequestSheet
         visible={supportSheetOpen}
@@ -264,11 +285,49 @@ export function SchoolDashboardScreen({
         userEmail={user?.email}
         sourcePagePath={`/school-admin/${slug}/dashboard`}
       />
-    </ScrollView>
+    </>
+  );
+
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
+      <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
+
+      <SubmissionStoryTabBar
+        tabs={SCHOOL_DASHBOARD_TABS}
+        activeTabId={homeTab}
+        onChange={(tabId) => setHomeTab(tabId as SchoolDashboardTab)}
+      />
+
+      {homeTab === 'overview' ? (
+        <ScrollView
+          style={styles.tabScroll}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void loadSummary(true)}
+              tintColor={theme.accent}
+            />
+          }>
+          {overviewBody}
+        </ScrollView>
+      ) : (
+        <AttendanceRosterPanel embedded active />
+      )}
+
+      {sheets}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  tabScroll: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.four,
@@ -280,7 +339,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-
     paddingVertical: Spacing.four,
   },
   retry: {

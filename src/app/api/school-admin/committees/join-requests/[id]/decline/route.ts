@@ -76,9 +76,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to decline request.",
-      code: "internal_error",
+      error: "Failed to decline request.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

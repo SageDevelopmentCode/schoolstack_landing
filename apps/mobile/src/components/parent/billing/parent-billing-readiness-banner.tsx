@@ -72,7 +72,7 @@ export function ParentBillingReadinessBanner({
             accessibilityRole="button"
             style={({ pressed }) => [styles.cta, pressed && { opacity: 0.8 }]}>
             <Text style={[styles.ctaText, { color: theme.primary }]}>{cta}</Text>
-            <Ionicons name="open-outline" size={14} color={theme.primary} />
+            <Ionicons name="chevron-forward" size={14} color={theme.primary} />
           </Pressable>
         ) : null}
       </View>

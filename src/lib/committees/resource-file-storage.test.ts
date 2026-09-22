@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildCommitteeResourceStoragePath,
+  COMMITTEE_RESOURCE_FILE_MAX_BYTES,
   validateCommitteeResourceFile,
 } from "./resource-file-storage";
 
@@ -35,5 +36,12 @@ describe("validateCommitteeResourceFile", () => {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     assert.equal(validateCommitteeResourceFile(file, "doc"), null);
+  });
+
+  it("rejects files over the max size", () => {
+    const file = new File([new Uint8Array(COMMITTEE_RESOURCE_FILE_MAX_BYTES + 1)], "big.pdf", {
+      type: "application/pdf",
+    });
+    assert.match(validateCommitteeResourceFile(file, "pdf") ?? "", /100 MB/i);
   });
 });

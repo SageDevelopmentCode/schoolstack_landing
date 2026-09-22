@@ -1,6 +1,7 @@
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,6 +10,7 @@ import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-ho
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
 import { ParentHomeFormsSnapshotCard } from '@/components/parent/home/parent-home-forms-snapshot-card';
+import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
@@ -24,23 +26,25 @@ import { useParentHome } from '@/contexts/parent-home-context';
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import {
-  resolveWebUrl,
-  schoolApplicationUrl,
-  schoolApplyUrl,
-} from '@/lib/admissions/school-apply-url';
+import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import {
   getOnboardingItemRoute,
   parentBulletinDetailRoute,
   parentChildrenRoute,
+  parentEnrollmentItemRoute,
+  parentFormDetailRoute,
+  parentFormsDocumentsRoute,
   parentTabRoute,
+  resolveParentAttentionNavigation,
 } from '@/lib/parent/parent-nav';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
+import { fetchParentActivityNotificationUnreadCount } from '@/lib/parent/fetch-activity-notifications';
 import {
   fetchParentSignupAttentionItems,
   submitParentSupportRequest,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 type ParentHomeScreenProps = {
   slug: string;
@@ -49,15 +53,34 @@ type ParentHomeScreenProps = {
 export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [bulletinOpen, setBulletinOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
   );
 
   useAuthRequiredRedirect(error);
+
+  const loadNotificationUnreadCount = useCallback(async () => {
+    if (!data?.organizationId) return;
+    try {
+      const count = await fetchParentActivityNotificationUnreadCount(data.organizationId, slug);
+      setNotificationUnreadCount(count);
+    } catch {
+      // Keep the last known count on transient errors.
+    }
+  }, [data?.organizationId, slug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadNotificationUnreadCount();
+    }, [loadNotificationUnreadCount]),
+  );
 
   useEffect(() => {
     if (!data?.organizationId) return;
@@ -84,20 +107,33 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     });
   };
 
-  const handleAttentionItem = async (item: ParentHomeAttentionItem) => {
-    if (!item.href) return;
-    if (item.href.startsWith('/parent/')) {
-      router.push(item.href as Href);
-      return;
+  const firstChildApplicationId =
+    data?.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
+
+  const handleAttentionItem = (item: ParentHomeAttentionItem) => {
+    const route = resolveParentAttentionNavigation(slug, {
+      target: item.target,
+      href: item.href,
+      formId: item.formId,
+      enrollmentApplicationId: item.enrollmentApplicationId,
+      enrollmentTemplateItemId: item.enrollmentTemplateItemId,
+      enrollmentSectionId: item.enrollmentSectionId,
+      healthApplicationId: firstChildApplicationId,
+      pickupApplicationId: firstChildApplicationId,
+    });
+    if (route) {
+      router.push(route);
     }
-    await openWebUrl(item.href);
   };
 
   const handleOnboardingItem = async (item: ResolvedParentOnboardingItem) => {
     setOnboardingOpen(false);
     if (item.completed) return;
 
-    const route = getOnboardingItemRoute(slug, item.target);
+    const route = getOnboardingItemRoute(slug, item.target, {
+      healthApplicationId: firstChildApplicationId,
+      pickupApplicationId: firstChildApplicationId,
+    });
     if (route) {
       router.replace(route);
       return;
@@ -122,7 +158,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }
@@ -136,25 +172,30 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   return (
     <>
-      <ScrollView
-        style={{ backgroundColor: Story.paper }}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => void refresh()}
-            tintColor={theme.primary}
-          />
-        }>
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
+      <View style={styles.screen}>
         <Animated.View entering={FadeInDown.duration(350)}>
           <ParentHomeHeader
             displayName={data.userProfile.displayName}
             bulletinEnabled={bulletinEnabled}
             bulletinPostCount={bulletinPosts.length}
+            notificationUnreadCount={notificationUnreadCount}
             onOpenBulletin={() => setBulletinOpen(true)}
+            onPressHelp={() => setSupportSheetOpen(true)}
+            onPressNotifications={() => setNotificationsOpen(true)}
           />
         </Animated.View>
 
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => void refresh()}
+              tintColor={theme.primary}
+            />
+          }>
         <Animated.View entering={FadeInDown.delay(40).duration(350)}>
           <ParentHomeStartHereCard
             slug={slug}
@@ -163,7 +204,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
             formAttentionItems={data.formAttentionItems ?? []}
             signupAttentionItems={signupAttentionItems}
-            onPressAttentionItem={(item) => void handleAttentionItem(item)}
+            familyChildren={data.familyChildren}
+            onPressAttentionItem={handleAttentionItem}
             onOpenOnboarding={() => setOnboardingOpen(true)}
           />
         </Animated.View>
@@ -200,8 +242,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
                     router.push(parentChildrenRoute(slug, child.applicationId))
                   }
                   onOpenEnrollment={() =>
-                    void openWebUrl(
-                      schoolApplicationUrl(slug, child.applicationId, { enrollment: true }),
+                    router.push(
+                      parentEnrollmentItemRoute(slug, child.applicationId),
                     )
                   }
                 />
@@ -214,8 +256,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           <Animated.View entering={FadeInDown.delay(140).duration(350)}>
             <ParentHomeFormsSnapshotCard
               snapshot={data.formSnapshot}
-              onOpenForm={(formsHref) => void openWebUrl(formsHref)}
-              onViewAll={() => void openWebUrl(data.formSnapshot!.formsPageHref)}
+              onOpenForm={(formId) => router.push(parentFormDetailRoute(slug, formId))}
+              onViewAll={() => router.push(parentFormsDocumentsRoute(slug))}
             />
           </Animated.View>
         ) : null}
@@ -223,7 +265,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
         <Animated.View entering={FadeInDown.delay(160).duration(350)}>
           <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
         </Animated.View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       <HomeBulletinSheet
         visible={bulletinOpen}
@@ -233,6 +276,15 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
           setBulletinOpen(false);
           router.push(parentBulletinDetailRoute(slug, postId));
         }}
+      />
+
+      <ParentActivityNotificationsSheet
+        visible={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        organizationId={data.organizationId}
+        slug={slug}
+        firstChildApplicationId={firstChildApplicationId}
+        onMarkedRead={() => setNotificationUnreadCount(0)}
       />
 
       <PortalSupportRequestSheet
@@ -256,6 +308,14 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
+  scroll: {
+    flex: 1,
+    backgroundColor: Story.paper,
+  },
   centered: {
     flex: 1,
     alignItems: 'center',

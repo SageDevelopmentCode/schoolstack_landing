@@ -4,6 +4,7 @@ import {
   buildApplicationAcceptedEnrollmentHtml,
   buildApplicationSubmittedConfirmationHtml,
   buildApplicationSubmittedOwnerNotificationHtml,
+  buildCommitteeJoinApprovedNotificationHtml,
   buildCommitteeJoinRequestAdminNotificationHtml,
   buildFridayBranchClassRosterEmailHtml,
   buildFridayBranchEnrollmentAdminNotificationHtml,
@@ -635,6 +636,41 @@ const previews = [
       "9:00 AM",
       "View Friday Branch",
       "Rooted Meadows Waldorf School",
+    ],
+  },
+  {
+    filename: "committee-join-approved-parent.html",
+    html: buildCommitteeJoinApprovedNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      committeeName: "Farm Connection & Development Committee",
+      memberName: "Holly Evensen",
+      committeesUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/committees?committee=committee-1&tab=mine",
+    }),
+    checks: [
+      "Committee Approved",
+      "Your committee request was approved",
+      "Holly Evensen",
+      "Farm Connection",
+      "Open committee",
+      "Rooted Meadows Waldorf School",
+      "/school/rooted-meadows/parent/committees",
+    ],
+  },
+  {
+    filename: "committee-join-approved-teacher.html",
+    html: buildCommitteeJoinApprovedNotificationHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      committeeName: "Farm Connection & Development Committee",
+      memberName: "Ms. Taylor Reyes",
+      committeesUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/teacher/committees?committee=committee-1&tab=mine",
+    }),
+    checks: [
+      "Committee Approved",
+      "Ms. Taylor Reyes",
+      "Open committee",
+      "/school/rooted-meadows/teacher/committees",
     ],
   },
   {

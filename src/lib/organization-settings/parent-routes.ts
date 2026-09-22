@@ -115,6 +115,19 @@ export function childHealthDeepLinkHref(
   return `${base}?${params.toString()}`;
 }
 
+export function childPickupDeepLinkHref(
+  slug: string,
+  applicationId: string,
+  previewBasePath?: string,
+): string {
+  const base = parentChildrenPagePath(slug, previewBasePath);
+  const params = new URLSearchParams({
+    applicationId,
+    section: "pickup",
+  });
+  return `${base}?${params.toString()}`;
+}
+
 export function parseSchoolParentPath(pathname: string): ParentNavPath | null {
   const match = pathname.match(/\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) return null;
@@ -146,6 +159,21 @@ export function isParentCurriculumPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "curriculum") return true;
   if (parseSchoolParentPath(pathname)?.feature === "curriculum") return true;
   return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
+}
+
+export function isParentCommitteesPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "committees") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "committees") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?committees(?:\/|$)/.test(pathname);
+}
+
+export function isParentCommitteeWorkspaceOpen(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, "get"> | null,
+): boolean {
+  if (!searchParams?.get("committee")) return false;
+  if (isParentCommitteesPath(pathname)) return true;
+  return /\/admin\/preview\/[^/]+\/family\/[^/]+\/parent\/committees(?:\/|$)/.test(pathname);
 }
 
 export function isParentSupplyListPath(pathname: string): boolean {

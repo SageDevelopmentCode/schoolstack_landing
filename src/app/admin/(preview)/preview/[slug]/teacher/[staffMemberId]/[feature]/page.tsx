@@ -18,6 +18,7 @@ import {
   staffPreviewBasePath,
 } from "@/lib/staff/staff-preview-access";
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherCommitteesPreviewData } from "@/lib/committees/load-teacher-committees-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import { mintTeacherFormUploadPreviewUrls } from "@/lib/school-teacher/forms-documents/mint-teacher-form-upload-preview-urls";
@@ -43,10 +44,19 @@ const TeacherFormsDocumentsPage = nextDynamic(
     ),
 );
 
+const TeacherAttendancePage = nextDynamic(
+  () => import("@/components/school-teacher/TeacherAttendancePage"),
+);
+
+const TeacherCommitteesPage = nextDynamic(
+  () => import("@/components/school-teacher/committees/TeacherCommitteesPage"),
+);
+
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; staffMemberId: string; feature: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -71,8 +81,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function StaffTeacherPreviewFeaturePage({
   params,
+  searchParams,
 }: PageProps) {
   const { slug, staffMemberId, feature } = await params;
+  const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -206,6 +218,45 @@ export default async function StaffTeacherPreviewFeaturePage({
         classroomOptions={pageData.classroomOptions}
         previewMode
         uploadPreviewUrlsByFormId={uploadPreviewUrlsByFormId}
+      />
+    );
+  }
+
+  if (feature === "attendance") {
+    return (
+      <TeacherAttendancePage
+        organizationId={org.id}
+        branding={org.branding}
+        slug={slug}
+        previewMode
+      />
+    );
+  }
+
+  if (feature === "committees") {
+    const selectedCommitteeId =
+      typeof resolvedSearchParams.committee === "string"
+        ? resolvedSearchParams.committee
+        : null;
+    const initialData = await loadTeacherCommitteesPreviewData({
+      organizationId: org.id,
+      staffMemberId,
+      selectedCommitteeId,
+    });
+    const staffName =
+      previewContext.userProfile.displayName ||
+      previewContext.userProfile.email ||
+      "Staff member";
+
+    return (
+      <TeacherCommitteesPage
+        organizationId={org.id}
+        schoolSlug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        staffName={staffName}
+        previewMode
+        initialData={initialData}
       />
     );
   }

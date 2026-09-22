@@ -20,6 +20,12 @@ import {
   DEMO_DRAWER_PAPER_BG,
   demoAdminShellStyle,
 } from "@/components/demo/shared/demo-story-theme";
+import DemoAdminDashboardPage from "@/components/demo/shared/DemoAdminDashboardPage";
+import DemoAdminClassroomsPage from "@/components/demo/shared/DemoAdminClassroomsPage";
+import DemoAdminProgramsPage from "@/components/demo/shared/DemoAdminProgramsPage";
+import DemoAdminStaffPage from "@/components/demo/shared/DemoAdminStaffPage";
+import DemoAdminStudentsPage from "@/components/demo/shared/DemoAdminStudentsPage";
+import DemoAdminTuitionPage from "@/components/demo/shared/DemoAdminTuitionPage";
 import DemoApplicationSubmissionsTab from "@/components/demo/shared/DemoApplicationSubmissionsTab";
 import DemoApplicationSubmissionDetailPanel from "@/components/demo/shared/DemoApplicationSubmissionDetailPanel";
 import {
@@ -27,6 +33,7 @@ import {
   type DemoActivityTimelineVariant,
 } from "@/components/demo/shared/DemoActivityTimelineRow";
 import { mapDemoLeadToSubmission } from "@/components/demo/shared/demo-submissions-mapper";
+import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import { fraunces, dmSans } from "@/lib/fonts";
 import {
   LayoutDashboard,
@@ -4227,172 +4234,7 @@ function UpcomingEventsWidget() {
 // ─── Dashboard page ────────────────────────────────────────────────────────────
 
 function DashboardPage() {
-  const KPIS = [
-    {
-      title: "Revenue YTD",
-      value: "$47,320",
-      delta: "18% vs last year",
-      pos: true,
-      icon: <DollarSign className="w-4 h-4" />,
-    },
-    {
-      title: "Enrolled",
-      value: "24",
-      delta: "+4 this cycle",
-      pos: true,
-      icon: <Users className="w-4 h-4" />,
-    },
-    {
-      title: "Active Leads",
-      value: "37",
-      delta: "+12 this month",
-      pos: true,
-      icon: <TrendingUp className="w-4 h-4" />,
-    },
-    {
-      title: "In Review",
-      value: "8",
-      delta: "Applications",
-      pos: false,
-      icon: <ClipboardList className="w-4 h-4" />,
-    },
-    {
-      title: "Avg Tuition",
-      value: "$1,972/mo",
-      delta: "+$140 vs Q3",
-      pos: true,
-      icon: <BarChart2 className="w-4 h-4" />,
-    },
-  ];
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        kicker="Operations"
-        title="Dashboard"
-        subtitle={ADMIN_DEMO_COPY.locationSubtitle}
-        tip="Your morning snapshot — see revenue, enrollment, leads, and upcoming dates all in one place. Numbers update as families apply and pay."
-      />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {KPIS.map((kpi, i) => (
-          <StatCard
-            key={kpi.title}
-            title={kpi.title}
-            value={kpi.value}
-            delta={kpi.delta}
-            deltaPositive={kpi.pos}
-            icon={kpi.icon}
-            delay={i * 0.05}
-          />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="lg:col-span-2"
-        >
-          <Card style={{ padding: "20px" }}>
-            <div className="flex items-center justify-between mb-4">
-              <SectionLabel hint="Green line is tuition coming in; dashed line is what you&apos;re spending.">
-                Revenue vs Expenses
-              </SectionLabel>
-              <div className="flex items-center gap-4 text-[11px]">
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="w-3 h-0.5 inline-block rounded"
-                    style={{ backgroundColor: C.accent }}
-                  />
-                  <span style={{ color: C.textTertiary }}>Revenue</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="w-3 h-0.5 inline-block border-t border-dashed"
-                    style={{ borderColor: C.border }}
-                  />
-                  <span style={{ color: C.textTertiary }}>Expenses</span>
-                </span>
-              </div>
-            </div>
-            <RevenueAreaChart />
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <Card style={{ padding: "20px" }}>
-            <SectionLabel hint="See how full each program is — and how many families are waiting for a spot.">
-              Enrollment Capacity
-            </SectionLabel>
-            <div className="space-y-5">
-              <ProgressRing
-                value={90}
-                label="Summer 2026"
-                sublabel="18 / 20 enrolled"
-                color={C.accent}
-                delay={0.3}
-              />
-              <ProgressRing
-                value={64}
-                label="School Year 26–27"
-                sublabel="14 / 22 enrolled"
-                color={C.info}
-                delay={0.4}
-              />
-              <div className="flex items-center gap-4 pt-1">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold tabular-nums"
-                  style={{
-                    border: `5px solid ${C.warning}`,
-                    backgroundColor: C.warningBg,
-                    color: C.warning,
-                  }}
-                >
-                  31
-                </div>
-                <div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: C.textPrimary }}
-                  >
-                    Waitlist
-                  </p>
-                  <p className="text-xs" style={{ color: C.textTertiary }}>
-                    Families waiting
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <ActivityFeed />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32 }}
-        >
-          <FunnelWidget />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-        >
-          <UpcomingEventsWidget />
-        </motion.div>
-      </div>
-    </div>
-  );
+  return <DemoAdminDashboardPage />;
 }
 
 // ─── Enrollment Flow types & demo data ────────────────────────────────────────
@@ -22071,14 +21913,8 @@ function ClassroomsPage() {
 
 function MySchoolPage({
   activeTab,
-  onTabChange,
   selectedTuitionFamilyId,
-  tuitionFilter,
-  onSelectTuitionFamily,
   focusStaffId,
-  focusStaffTab,
-  onStaffFocusConsumed,
-  onNavigateToFinancesPayroll,
 }: {
   activeTab: MySchoolTab;
   onTabChange: (tab: MySchoolTab) => void;
@@ -22092,31 +21928,16 @@ function MySchoolPage({
 }) {
   return (
     <div className="h-full overflow-hidden">
-      {activeTab === "students" && (
-        <StudentsPage
-          onNavigateToTuition={(familyId) => {
-            onSelectTuitionFamily?.(familyId);
-            onTabChange("tuition");
-          }}
-        />
-      )}
-      {activeTab === "programs" && <ProgramsPage />}
+      {activeTab === "students" && <DemoAdminStudentsPage />}
+      {activeTab === "programs" && <DemoAdminProgramsPage />}
       {activeTab === "staff" && (
-        <StaffPage
-          key={focusStaffId ?? "default"}
-          focusStaffId={focusStaffId}
-          focusStaffTab={focusStaffTab}
-          onFocusConsumed={onStaffFocusConsumed}
-          onNavigateToFinancesPayroll={onNavigateToFinancesPayroll}
-        />
+        <DemoAdminStaffPage initialSelectedStaffId={focusStaffId ?? "staff-jordan"} />
       )}
-      {activeTab === "classrooms" && <ClassroomsPage />}
+      {activeTab === "classrooms" && <DemoAdminClassroomsPage />}
       {activeTab === "tuition" && (
-        <TuitionPage
-          key={`${selectedTuitionFamilyId ?? "none"}-${tuitionFilter}`}
-          selectedFamilyId={selectedTuitionFamilyId}
-          initialFilter={tuitionFilter}
-          onSelectFamily={onSelectTuitionFamily}
+        <DemoAdminTuitionPage
+          key={selectedTuitionFamilyId ?? "default"}
+          initialFamilyId={selectedTuitionFamilyId ?? "family-rivera"}
         />
       )}
     </div>
@@ -22485,11 +22306,8 @@ function Sidebar({
           justifyContent: isExpanded ? "flex-start" : "center",
         }}
       >
-        <Image
-          src={getAdminDemoLogo().src}
-          alt={getAdminDemoLogo().alt}
-          width={isExpanded ? (getAdminDemoLogo().width ?? 160) : 36}
-          height={getAdminDemoLogo().height ?? 40}
+        <SchoolDemoWordmark
+          logo={getAdminDemoLogo()}
           className="flex-shrink-0 object-contain"
           style={{ maxHeight: 40 }}
         />

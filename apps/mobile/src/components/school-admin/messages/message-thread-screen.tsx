@@ -22,6 +22,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { useSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
 import { resolveAdminComposeState } from '@/lib/messages/compose-gating';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import {
   fetchAndCacheSchoolAdminMessageThread,
   getCachedSchoolAdminMessageThread,
@@ -184,10 +185,12 @@ export function MessageThreadScreen({
     [thread],
   );
 
+  const readOnly = usePortalReadOnly();
+
   const composeState = useMemo(() => {
     if (!thread) return { disabled: true, banner: null };
-    return resolveAdminComposeState(thread, false, staffDisplayName);
-  }, [staffDisplayName, thread]);
+    return resolveAdminComposeState(thread, readOnly, staffDisplayName);
+  }, [readOnly, staffDisplayName, thread]);
 
   useEffect(() => {
     if (renderItems.length === 0) return;

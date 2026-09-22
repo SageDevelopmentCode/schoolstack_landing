@@ -1,20 +1,20 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ParentPlaceholderScreen } from '@/components/parent/parent-placeholder-screen';
+import { AttendanceScreen } from '@/components/attendance/attendance-screen';
 import { useAuth } from '@/contexts/auth-context';
+import { AttendanceProvider } from '@/contexts/attendance-context';
 
 export default function TeacherAttendanceRoute() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { selectedSchool } = useAuth();
 
-  if (!slug || !selectedSchool) return null;
+  if (!slug || !selectedSchool || selectedSchool.slug !== slug) {
+    return null;
+  }
 
   return (
-    <ParentPlaceholderScreen
-      slug={slug}
-      schoolName={selectedSchool.name}
-      title="Attendance"
-      description={`Student attendance records — coming soon in the ${selectedSchool.name} mobile app.`}
-    />
+    <AttendanceProvider organizationId={selectedSchool.id} portal="teacher">
+      <AttendanceScreen title="Attendance" />
+    </AttendanceProvider>
   );
 }

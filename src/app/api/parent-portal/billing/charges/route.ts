@@ -75,9 +75,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load charges.",
-      code: "internal_error",
+      error: "Failed to load charges.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

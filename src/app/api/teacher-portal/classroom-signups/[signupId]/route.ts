@@ -96,9 +96,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load signup.",
-      code: "load_failed",
+      error: "Failed to load signup.",
       cause: error,
+      code: "load_failed",
     });
   }
 }
@@ -258,9 +258,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to update signup.",
-      code: "update_failed",
+      error: "Failed to update signup.",
       cause: error,
+      code: "update_failed",
     });
   }
 }

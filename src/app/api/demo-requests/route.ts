@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: slotError.message,
+      error: "An unexpected error occurred.",
       cause: slotError,
     });
   }
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: bookingCheckError.message,
+      error: "An unexpected error occurred.",
       cause: bookingCheckError,
     });
   }
@@ -177,7 +177,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error.message,
+      error: "An unexpected error occurred.",
       cause: error,
     });
   }

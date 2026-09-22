@@ -37,7 +37,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (organizationError) {
       return apiError(ROUTE, {
         status: 500,
-        error: organizationError.message,
+        error: "Failed to load organization parent portal cards.",
         cause: organizationError,
       });
     }
@@ -131,7 +131,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (organizationError) {
       return apiError(ROUTE, {
         status: 500,
-        error: organizationError.message,
+        error: "Failed to load organization parent portal cards.",
         cause: organizationError,
       });
     }
@@ -173,12 +173,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to create organization parent portal card override.",
-      code: "internal_error",
+      error: "Failed to create organization parent portal card override.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

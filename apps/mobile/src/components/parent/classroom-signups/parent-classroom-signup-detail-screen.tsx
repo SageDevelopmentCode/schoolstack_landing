@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
 import { ParentClassroomSignupResponseForm } from '@/components/parent/classroom-signups/parent-classroom-signup-response-form';
+import { ParentKeyboardAwareScrollView } from '@/components/parent/parent-keyboard-aware-scroll-view';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
@@ -28,6 +28,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 
 type ParentClassroomSignupDetailScreenProps = {
   slug: string;
@@ -44,6 +45,7 @@ export function ParentClassroomSignupDetailScreen({
   const router = useRouter();
   const { applySubmittedResponse, applyWithdrawnResponse } = useParentClassroomSignups();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const previewReadOnly = usePortalReadOnly();
 
   const [signup, setSignup] = useState<ClassroomSignup | null>(null);
   const [responses, setResponses] = useState<ClassroomSignupResponse[]>([]);
@@ -78,7 +80,7 @@ export function ParentClassroomSignupDetailScreen({
   const canViewClosedSignup = signup?.status === 'closed' && hasConfirmedResponse;
   const canRespond = signup?.status === 'open';
   const canShowContent = signup && (canRespond || canViewClosedSignup);
-  const formReadOnly = signup?.status === 'closed';
+  const formReadOnly = signup?.status === 'closed' || previewReadOnly;
   const deadline = signup ? formatSignupDeadline(signup.responseDeadline) : null;
 
   const handleSubmitted = useCallback(
@@ -100,10 +102,9 @@ export function ParentClassroomSignupDetailScreen({
   );
 
   return (
-    <ScrollView
+    <ParentKeyboardAwareScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
+      contentContainerStyle={styles.content}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
@@ -168,7 +169,7 @@ export function ParentClassroomSignupDetailScreen({
           )}
         </>
       ) : null}
-    </ScrollView>
+    </ParentKeyboardAwareScrollView>
   );
 }
 

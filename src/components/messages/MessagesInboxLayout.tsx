@@ -46,7 +46,10 @@ import TeacherStudentDetailPanel from "@/components/school-teacher/TeacherStuden
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import type { AdminEnrolledStudentSummary } from "@/lib/school-admin/enrolled-students";
 import type { MessageStudentSummary } from "@/lib/messages/types";
-import { initialInboxLoadingState } from "@/lib/messages/thread-list-helpers";
+import {
+  initialInboxLoadingState,
+  shouldDeferInboxFetch,
+} from "@/lib/messages/thread-list-helpers";
 import {
   createLoadGenerationGuard,
   createOptimisticSendTracker,
@@ -178,6 +181,7 @@ export default function MessagesInboxLayout({
   api,
   initialInbox,
   readOnly = false,
+  previewThreadMessages,
   deferContactsLoad = false,
   C,
   variant = "card",
@@ -188,6 +192,7 @@ export default function MessagesInboxLayout({
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
   readOnly?: boolean;
+  previewThreadMessages?: Record<string, PortalMessage[]>;
   deferContactsLoad?: boolean;
   C: AdminThemeTokens;
   variant?: MessagesLayoutVariant;
@@ -379,9 +384,17 @@ export default function MessagesInboxLayout({
       setMobileView("chat");
       setActiveThreadId(thread.id);
       setActiveThread((prev) =>
-        threadDetailFromSummary(thread, prev?.id === thread.id ? prev.messages : []),
+        threadDetailFromSummary(
+          thread,
+          readOnly
+            ? (previewThreadMessages?.[thread.id] ?? [])
+            : prev?.id === thread.id
+              ? prev.messages
+              : [],
+        ),
       );
       clearThreadUnread(thread.id);
+      if (readOnly) return;
       setLoadingMessages(true);
       try {
         await loadThread(thread.id, { silent: true });
@@ -389,7 +402,7 @@ export default function MessagesInboxLayout({
         setLoadingMessages(false);
       }
     },
-    [clearThreadUnread, loadThread],
+    [clearThreadUnread, loadThread, previewThreadMessages, readOnly],
   );
 
   const openContact = useCallback(
@@ -628,21 +641,41 @@ export default function MessagesInboxLayout({
   }, [threads]);
 
   useEffect(() => {
-    if (initialInbox?.threadsDeferred) return;
+    if (
+      shouldDeferInboxFetch({
+        initialInbox,
+        threadsHydrated: false,
+        readOnly,
+      })
+    ) {
+      if (readOnly && (initialInbox?.threads.length ?? 0) > 0) {
+        hasLoadedThreadsRef.current = true;
+      }
+      return;
+    }
     queueMicrotask(() => {
       void loadInbox();
     });
-  }, [initialInbox?.threadsDeferred, loadInbox]);
+  }, [initialInbox, loadInbox, readOnly]);
 
   useEffect(() => {
     const threadParam = searchParams.get("thread");
     if (!threadParam || loadingInbox) return;
     if (handledThreadParam.current === threadParam) return;
     handledThreadParam.current = threadParam;
-    setMobileView("chat");
-    setLoadingMessages(true);
-    void loadThread(threadParam).finally(() => setLoadingMessages(false));
-  }, [loadThread, loadingInbox, searchParams]);
+    queueMicrotask(() => {
+      setMobileView("chat");
+      if (readOnly) {
+        const thread = threads.find((item) => item.id === threadParam);
+        if (thread) {
+          void selectThread(thread);
+        }
+        return;
+      }
+      setLoadingMessages(true);
+      void loadThread(threadParam).finally(() => setLoadingMessages(false));
+    });
+  }, [loadThread, loadingInbox, readOnly, searchParams, selectThread, threads]);
 
   useEffect(() => {
     if (readOnly || pushPromptDismissed) return;

@@ -1,60 +1,46 @@
-import { StyleSheet, View } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
-import { Radius, Spacing } from '@/constants/theme';
+import { PortalHomeHeaderGreeting } from '@/components/portal/portal-home-header-greeting';
+import { PortalHomeHeaderShell } from '@/components/portal/portal-home-header-shell';
+import { PortalHomeHeaderToolbar } from '@/components/portal/portal-home-header-toolbar';
+import { todayLabel } from '@/lib/parent/parent-home-utils';
 import { greetingParts } from '@/lib/school-admin/greeting';
 
 type AdminDashboardHeaderProps = {
-  schoolName: string;
   userFirstName?: string | null;
+  unreadCount?: number;
+  onPressBulletin?: () => void;
+  onPressHelp?: () => void;
+  onPressNotifications?: () => void;
 };
 
 export function AdminDashboardHeader({
-  schoolName,
   userFirstName,
+  unreadCount = 0,
+  onPressBulletin,
+  onPressHelp,
+  onPressNotifications,
 }: AdminDashboardHeaderProps) {
-  const theme = useAdminTheme();
   const greetingName = userFirstName?.trim() || 'there';
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
-  const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const dateLabel = new Date().toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.datePill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <ThemedText type="small" style={{ color: theme.textSecondary }}>
-          {dateLabel}
-        </ThemedText>
-      </View>
-
-      <ThemedText type="title" style={[styles.greeting, { color: theme.textPrimary }]}>
-        {greetingPrefix}, {greetingName}. {greetingEmoji}
-      </ThemedText>
-      <ThemedText type="small" style={{ color: theme.textSecondary }}>
-        Here is {schoolName}&apos;s operating picture for {dayName}.
-      </ThemedText>
-    </View>
+    <PortalHomeHeaderShell>
+      <PortalHomeHeaderToolbar
+        greeting={
+          <PortalHomeHeaderGreeting
+            prefix={greetingPrefix}
+            name={greetingName}
+            emoji={greetingEmoji}
+          />
+        }
+        dateLabel={todayLabel()}
+        bulletin={onPressBulletin ? { onPress: onPressBulletin } : undefined}
+        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        notifications={
+          onPressNotifications
+            ? { unreadCount, onPress: onPressNotifications }
+            : undefined
+        }
+      />
+    </PortalHomeHeaderShell>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.two,
-  },
-  datePill: {
-    alignSelf: 'flex-start',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
-  },
-  greeting: {
-    marginTop: Spacing.one,
-  },
-});

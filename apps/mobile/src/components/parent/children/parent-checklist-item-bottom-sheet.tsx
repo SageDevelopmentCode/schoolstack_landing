@@ -1,4 +1,7 @@
-import { EnrollmentChecklistItemReadOnly } from '@/components/school-admin/submission-detail/enrollment-checklist-item-read-only';
+import { useCallback, useState } from 'react';
+
+import { ParentEnrollmentChecklistItemPanel } from '@/components/parent/children/parent-enrollment-checklist-item-panel';
+import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import {
@@ -7,14 +10,18 @@ import {
   type EnrollmentChecklistItem,
   type EnrollmentChecklistItemInstance,
   type EnrollmentChecklistItemStatus,
+  type LoadedEnrollmentChecklist,
 } from '@/lib/admissions/enrollment-checklist';
-
-import { ParentBottomSheet } from '@/components/parent/parent-bottom-sheet';
 
 type ParentChecklistItemBottomSheetProps = {
   visible: boolean;
   item: EnrollmentChecklistItem | null;
   instance: EnrollmentChecklistItemInstance | null;
+  checklist: LoadedEnrollmentChecklist | null;
+  organizationId: string;
+  applicationId: string;
+  initialSectionId?: string;
+  onChecklistUpdated: (checklist: LoadedEnrollmentChecklist) => void;
   onClose: () => void;
 };
 
@@ -35,13 +42,33 @@ export function ParentChecklistItemBottomSheet({
   visible,
   item,
   instance,
+  checklist,
+  organizationId,
+  applicationId,
+  initialSectionId,
+  onChecklistUpdated,
   onClose,
 }: ParentChecklistItemBottomSheetProps) {
   const theme = useAdminTheme();
+  const [activeChecklist, setActiveChecklist] = useState<LoadedEnrollmentChecklist | null>(checklist);
 
-  if (!item) return null;
+  const resolvedChecklist = activeChecklist ?? checklist;
 
-  const status = instance?.status ?? 'not_started';
+  const handleChecklistUpdated = useCallback(
+    (nextChecklist: LoadedEnrollmentChecklist) => {
+      setActiveChecklist(nextChecklist);
+      onChecklistUpdated(nextChecklist);
+    },
+    [onChecklistUpdated],
+  );
+
+  if (!item || !resolvedChecklist) return null;
+
+  const resolvedInstance =
+    resolvedChecklist.instances.find((row) => row.templateItemId === item.id) ?? instance;
+  if (!resolvedInstance) return null;
+
+  const status = resolvedInstance.status ?? 'not_started';
   const subtitle = `${checklistItemTypeLabel(item.type)}${!item.required ? ' · Optional' : ''}`;
 
   return (
@@ -52,7 +79,16 @@ export function ParentChecklistItemBottomSheet({
       subtitle={subtitle}
       accessibilityLabel="Close checklist item">
       <StatusBadge label={checklistItemStatusLabel(status)} colors={statusBadgeColors(status, theme)} />
-      <EnrollmentChecklistItemReadOnly item={item} instance={instance} />
+      <ParentEnrollmentChecklistItemPanel
+        item={item}
+        instance={resolvedInstance}
+        checklist={resolvedChecklist}
+        organizationId={organizationId}
+        applicationId={applicationId}
+        initialSectionId={initialSectionId}
+        onUpdated={handleChecklistUpdated}
+        onClose={onClose}
+      />
     </ParentBottomSheet>
   );
 }

@@ -17,6 +17,7 @@ import {
   duplicateBlock,
   getScheduleGaps,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
+import { putFridayBranchSchedule } from "@/lib/school-admin/friday-branch/friday-branch-schedule-api";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
 import FridayBranchBlockDetailsSheet from "./FridayBranchBlockDetailsSheet";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
@@ -137,42 +138,52 @@ export default function FridayBranchPage({
     window.setTimeout(() => setHighlightClassId(null), 3000);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const response = await fetch("/api/school-admin/friday-branch/schedule", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId, blocks }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? "Failed to save Friday Branch schedule.");
+  const persistSchedule = useCallback(
+    async (blocksToSave: FridayBranchBlock[], successMessage: string) => {
+      setSaving(true);
+      try {
+        const nextBlocks = await putFridayBranchSchedule(organizationId, blocksToSave);
+        setBlocks(cloneBlocks(nextBlocks));
+        setSavedBlocks(cloneBlocks(nextBlocks));
+        setSelectedBlockId((current) => {
+          if (current && nextBlocks.some((block) => block.id === current)) {
+            return current;
+          }
+          return nextBlocks[0]?.id ?? null;
+        });
+        adminToast.success(successMessage);
+      } catch (err) {
+        adminToast.error(formatActionError(err, "Failed to save Friday Branch schedule."));
+        void reportClientOperationalError({
+          organizationId,
+          operation: "friday_branch.schedule.save",
+          error: formatActionError(err, "Failed to save Friday Branch schedule."),
+        });
+        throw err;
+      } finally {
+        setSaving(false);
       }
+    },
+    [organizationId],
+  );
 
-      const payload = (await response.json()) as { blocks: FridayBranchBlock[] };
-      const nextBlocks = payload.blocks ?? [];
-      setBlocks(cloneBlocks(nextBlocks));
-      setSavedBlocks(cloneBlocks(nextBlocks));
-      setSelectedBlockId((current) => {
-        if (current && nextBlocks.some((block) => block.id === current)) {
-          return current;
-        }
-        return nextBlocks[0]?.id ?? null;
-      });
-      adminToast.success("Friday Branch schedule saved");
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to save Friday Branch schedule."));
-      void reportClientOperationalError({
-        organizationId,
-        operation: "friday_branch.schedule.save",
-        error: formatActionError(err, "Failed to save Friday Branch schedule."),
-      });
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = async () => {
+    await persistSchedule(blocks, "Friday Branch schedule saved");
   };
+
+  const handleClassSaved = useCallback(
+    async (nextBlock: FridayBranchBlock) => {
+      let blocksToSave: FridayBranchBlock[] = [];
+      setBlocks((current) => {
+        blocksToSave = current.map((block) =>
+          block.id === nextBlock.id ? nextBlock : block,
+        );
+        return cloneBlocks(blocksToSave);
+      });
+      await persistSchedule(blocksToSave, "Class saved");
+    },
+    [persistSchedule],
+  );
 
   const transition = reduceMotion
     ? { duration: 0 }
@@ -254,6 +265,8 @@ export default function FridayBranchPage({
                     organizationId={organizationId}
                     block={selectedBlock}
                     onChange={handleUpdateBlock}
+                    onClassSaved={handleClassSaved}
+                    saving={saving}
                     highlightClassId={highlightClassId}
                     requestedClassId={requestedClassId}
                     onRequestedClassHandled={() => setRequestedClassId(null)}

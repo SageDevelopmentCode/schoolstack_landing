@@ -3,6 +3,14 @@ import {
   getApiAuthHeaders,
   throwUnauthorized,
 } from '@/lib/auth/auth-session';
+import {
+  assertPreviewWriteAllowed,
+  isPreviewSessionActive,
+} from '@/lib/platform-admin/preview-session-store';
+import {
+  fetchMobilePreviewApi,
+  resolveParentPreviewPath,
+} from '@/lib/platform-admin/mobile-preview-api';
 import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist';
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type {
@@ -16,6 +24,13 @@ import type {
   ParentClassroomSignupsPageBundle,
   ParentSignupAttentionItem,
 } from '@/lib/parent/parent-classroom-signups-types';
+import type {
+  ParentFormDetail,
+  ParentFormDownloadPayload,
+  ParentFormsDocumentsPageBundle,
+  SubmitParentFormInput,
+} from '@/lib/parent/parent-forms-documents-types';
+import type { AttendanceHistoryResponse } from '@/lib/attendance/attendance-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
@@ -31,6 +46,15 @@ export async function fetchParentApi<T>(
   path: string,
   options: FetchParentApiOptions = {},
 ): Promise<T> {
+  assertPreviewWriteAllowed(options.method);
+  const previewPath = resolveParentPreviewPath(path);
+  if (previewPath) {
+    return fetchMobilePreviewApi<T>(previewPath, options);
+  }
+  if (isPreviewSessionActive()) {
+    throw new Error('Preview mode could not load this screen.');
+  }
+
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
     headers: await getApiAuthHeaders(options.body !== undefined),
@@ -51,6 +75,15 @@ export async function fetchParentApiSoft<T>(
   path: string,
   options: FetchParentApiOptions = {},
 ): Promise<T> {
+  assertPreviewWriteAllowed(options.method);
+  const previewPath = resolveParentPreviewPath(path);
+  if (previewPath) {
+    return fetchMobilePreviewApi<T>(previewPath, options);
+  }
+  if (isPreviewSessionActive()) {
+    throw new Error('Preview mode could not load this screen.');
+  }
+
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
     headers: await getApiAuthHeaders(options.body !== undefined),
@@ -96,6 +129,15 @@ export async function fetchParentApiFormData<T>(
   formData: FormData,
   method: 'POST' | 'PATCH' = 'POST',
 ): Promise<T> {
+  assertPreviewWriteAllowed(method);
+  const previewPath = resolveParentPreviewPath(path);
+  if (previewPath) {
+    throw new Error('Preview mode is read-only.');
+  }
+  if (isPreviewSessionActive()) {
+    throw new Error('Preview mode could not load this screen.');
+  }
+
   const response = await fetch(`${siteUrl}${path}`, {
     method,
     headers: await getApiAuthHeaders(false),
@@ -722,6 +764,59 @@ export async function withdrawParentClassroomSignupResponse(
   return payload.response;
 }
 
+export type {
+  ParentFormDetail,
+  ParentFormDownloadPayload,
+  ParentFormFilterStatus,
+  ParentFormListItem,
+  ParentFormsDocumentsPageBundle,
+  SubmitParentFormInput,
+} from '@/lib/parent/parent-forms-documents-types';
+
+export async function fetchParentFormsDocuments(
+  organizationId: string,
+): Promise<ParentFormsDocumentsPageBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<ParentFormsDocumentsPageBundle>(
+    `/api/parent-portal/forms-documents?${query}`,
+  );
+  return { items: payload.items ?? [] };
+}
+
+export async function fetchParentFormDetail(
+  organizationId: string,
+  formId: string,
+): Promise<ParentFormDetail> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentFormDetail>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}?${query}`,
+  );
+}
+
+export async function submitParentFormResponse(
+  organizationId: string,
+  formId: string,
+  input: SubmitParentFormInput,
+): Promise<ParentFormDetail> {
+  return fetchParentApi<ParentFormDetail>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}`,
+    {
+      method: 'PATCH',
+      body: { organizationId, ...input },
+    },
+  );
+}
+
+export async function fetchParentFormDownloadUrl(
+  organizationId: string,
+  formId: string,
+): Promise<ParentFormDownloadPayload> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentFormDownloadPayload>(
+    `/api/parent-portal/forms-documents/${encodeURIComponent(formId)}/download?${query}`,
+  );
+}
+
 export async function fetchParentSignupAttentionItems(
   organizationId: string,
 ): Promise<ParentSignupAttentionItem[]> {
@@ -730,4 +825,39 @@ export async function fetchParentSignupAttentionItems(
     `/api/parent-portal/signups/attention?${query}`,
   );
   return payload.items ?? [];
+}
+
+export type ParentAttendanceEligibleChild = {
+  applicationId: string;
+  studentId: string;
+  studentName: string;
+  profilePhotoUrl: string | null;
+  grade: string | null;
+};
+
+export type ParentAttendanceEligibleChildrenResponse = {
+  eligibleChildren: ParentAttendanceEligibleChild[];
+};
+
+export async function fetchParentAttendanceEligibleChildren(
+  organizationId: string,
+): Promise<ParentAttendanceEligibleChildrenResponse> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentAttendanceEligibleChildrenResponse>(
+    `/api/parent-portal/attendance/eligible-children?${query}`,
+  );
+}
+
+export async function fetchParentStudentAttendanceHistory(
+  organizationId: string,
+  studentId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<AttendanceHistoryResponse> {
+  const params = new URLSearchParams({ organizationId });
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.offset != null) params.set('offset', String(options.offset));
+
+  return fetchParentApi<AttendanceHistoryResponse>(
+    `/api/parent-portal/students/${encodeURIComponent(studentId)}/attendance/history?${params}`,
+  );
 }

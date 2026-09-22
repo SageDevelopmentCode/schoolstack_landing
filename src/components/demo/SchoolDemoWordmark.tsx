@@ -9,6 +9,7 @@ export interface SchoolDemoLogo {
   text?: string;
   textClassName?: string;
   logoOnDarkClassName?: string;
+  logoOnLightClassName?: string;
 }
 
 interface SchoolDemoWordmarkProps {
@@ -59,6 +60,7 @@ export default function SchoolDemoWordmark({
   const imageClass = [
     className,
     onDark && logo.logoOnDarkClassName ? logo.logoOnDarkClassName : "",
+    !onDark && logo.logoOnLightClassName ? logo.logoOnLightClassName : "",
   ]
     .filter(Boolean)
     .join(" ");

@@ -32,6 +32,7 @@ export function ParentChildrenLearnerStrip({
       showsHorizontalScrollIndicator={false}
       accessibilityRole="tablist"
       accessibilityLabel="Select learner"
+      style={styles.strip}
       contentContainerStyle={styles.track}
       testID="parent-children-learner-strip">
       {learners.map((child, index) => {
@@ -78,6 +79,9 @@ export function ParentChildrenLearnerStrip({
 }
 
 const styles = StyleSheet.create({
+  strip: {
+    flexGrow: 0,
+  },
   track: {
     flexDirection: 'row',
     gap: Spacing.two,

@@ -1,3 +1,4 @@
+import type { StoryChipTone } from '@/components/story/story-chip';
 import type { EnrollmentProgressSummaryTone } from '@/lib/admissions/enrollment-progress';
 import type { MobileAdminTheme } from '@/lib/organization-settings/build-admin-theme';
 
@@ -240,5 +241,20 @@ export function organizationStatusLabel(status: string): string {
       return 'Churned';
     default:
       return status;
+  }
+}
+
+export function organizationStatusChipTone(status: string): StoryChipTone {
+  switch (status) {
+    case 'live':
+      return 'success';
+    case 'onboarding':
+      return 'info';
+    case 'paused':
+      return 'warning';
+    case 'churned':
+      return 'alert';
+    default:
+      return 'info';
   }
 }

@@ -6,6 +6,9 @@ import { Check, Loader2, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import type { CommitteeDutyRoleSummary } from "@/lib/committees/duty-roles";
+import { getCommitteeJoinRequestDisplayName } from "@/lib/committees/join-request-display";
+import { COMMITTEE_ASSIGNABLE_ROLE_OPTIONS } from "@/lib/committees/committee-role-labels";
 import type { CommitteeJoinRequest, CommitteeRole } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
@@ -18,14 +21,10 @@ type CommitteeJoinRequestsPanelProps = {
   schoolSlug: string;
   theme: ParentThemeTokens;
   committeeId?: string;
+  committeeDutyRoles?: CommitteeDutyRoleSummary[];
   compact?: boolean;
   onChanged?: () => void;
 };
-
-const ROLE_OPTIONS: { value: CommitteeRole; label: string }[] = [
-  { value: "member", label: "Member" },
-  { value: "lead", label: "Lead" },
-];
 
 function formatSubmittedAt(value: string): string {
   try {
@@ -39,20 +38,50 @@ function formatSubmittedAt(value: string): string {
   }
 }
 
+function buildDefaultDutyRoleIds(
+  requests: CommitteeJoinRequest[],
+): Record<string, string> {
+  return Object.fromEntries(
+    requests.map((request) => [
+      request.id,
+      request.preferredDutyRoleId ?? "",
+    ]),
+  );
+}
+
 export default function CommitteeJoinRequestsPanel({
   organizationId,
   schoolSlug,
   theme,
   committeeId,
+  committeeDutyRoles,
   compact = false,
   onChanged,
 }: CommitteeJoinRequestsPanelProps) {
   const [requests, setRequests] = useState<CommitteeJoinRequest[]>([]);
+  const [dutyRolesByCommitteeId, setDutyRolesByCommitteeId] = useState<
+    Record<string, CommitteeDutyRoleSummary[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, CommitteeRole>>({});
+  const [assignDutyRoleIds, setAssignDutyRoleIds] = useState<Record<string, string>>({});
   const reducedMotion = useReducedMotion() ?? false;
   const inputStyle = committeeStoryInputStyle(theme);
+
+  const applyRequestsResponse = useCallback(
+    (
+      nextRequests: CommitteeJoinRequest[],
+      nextDutyRolesByCommitteeId?: Record<string, CommitteeDutyRoleSummary[]>,
+    ) => {
+      setRequests(nextRequests);
+      setAssignDutyRoleIds(buildDefaultDutyRoleIds(nextRequests));
+      if (nextDutyRolesByCommitteeId) {
+        setDutyRolesByCommitteeId(nextDutyRolesByCommitteeId);
+      }
+    },
+    [],
+  );
 
   const reloadRequests = useCallback(async () => {
     try {
@@ -64,7 +93,10 @@ export default function CommitteeJoinRequestsPanel({
       const res = await fetch(`/api/school-admin/committees/join-requests?${params}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to load join requests.");
-      setRequests(data.requests ?? []);
+      applyRequestsResponse(
+        data.requests ?? [],
+        committeeDutyRoles ? undefined : (data.dutyRolesByCommitteeId ?? {}),
+      );
     } catch (err) {
       void reportPortalOperationalError("school_admin", {
         organizationId,
@@ -73,8 +105,9 @@ export default function CommitteeJoinRequestsPanel({
       }, err);
       adminToast.error(formatActionError(err, "Failed to load join requests."));
       setRequests([]);
+      setAssignDutyRoleIds({});
     }
-  }, [committeeId, organizationId]);
+  }, [applyRequestsResponse, committeeDutyRoles, committeeId, organizationId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +122,12 @@ export default function CommitteeJoinRequestsPanel({
         const res = await fetch(`/api/school-admin/committees/join-requests?${params}`);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error ?? "Failed to load join requests.");
-        if (!cancelled) setRequests(data.requests ?? []);
+        if (!cancelled) {
+          applyRequestsResponse(
+            data.requests ?? [],
+            committeeDutyRoles ? undefined : (data.dutyRolesByCommitteeId ?? {}),
+          );
+        }
       } catch (err) {
         void reportPortalOperationalError("school_admin", {
           organizationId,
@@ -99,6 +137,7 @@ export default function CommitteeJoinRequestsPanel({
         if (!cancelled) {
           adminToast.error(formatActionError(err, "Failed to load join requests."));
           setRequests([]);
+          setAssignDutyRoleIds({});
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -107,11 +146,20 @@ export default function CommitteeJoinRequestsPanel({
     return () => {
       cancelled = true;
     };
-  }, [committeeId, organizationId]);
+  }, [applyRequestsResponse, committeeDutyRoles, committeeId, organizationId]);
+
+  const resolveDutyRoles = useCallback(
+    (request: CommitteeJoinRequest): CommitteeDutyRoleSummary[] => {
+      if (committeeDutyRoles) return committeeDutyRoles;
+      return dutyRolesByCommitteeId[request.committeeId] ?? [];
+    },
+    [committeeDutyRoles, dutyRolesByCommitteeId],
+  );
 
   const handleApprove = async (request: CommitteeJoinRequest) => {
     setActingId(request.id);
     try {
+      const selectedDutyRoleId = assignDutyRoleIds[request.id] ?? "";
       const res = await fetch(
         `/api/school-admin/committees/join-requests/${request.id}/approve`,
         {
@@ -121,7 +169,7 @@ export default function CommitteeJoinRequestsPanel({
             organizationId,
             schoolSlug,
             memberRole: memberRoles[request.id] ?? "member",
-            assignDutyRoleId: request.preferredDutyRoleId,
+            assignDutyRoleId: selectedDutyRoleId || null,
           }),
         },
       );
@@ -222,6 +270,19 @@ export default function CommitteeJoinRequestsPanel({
       >
         {requests.map((request) => {
           const busy = actingId === request.id;
+          const requesterName = getCommitteeJoinRequestDisplayName(request);
+          const requesterBadge =
+            request.requesterType === "staff"
+              ? "Staff"
+              : request.requesterType === "parent"
+                ? "Parent"
+                : null;
+          const dutyRoles = resolveDutyRoles(request);
+          const selectedAccessLevel = memberRoles[request.id] ?? "member";
+          const selectedDutyRoleId = assignDutyRoleIds[request.id] ?? "";
+          const selectedDutyRole = dutyRoles.find(
+            (dutyRole) => dutyRole.id === selectedDutyRoleId,
+          );
           return (
             <motion.div
               key={request.id}
@@ -230,9 +291,22 @@ export default function CommitteeJoinRequestsPanel({
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                    {request.guardianName ?? "Parent"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
+                      {requesterName}
+                    </p>
+                    {requesterBadge && (
+                      <span
+                        className="text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5"
+                        style={{
+                          color: theme.muted,
+                          backgroundColor: "#F3F6F4",
+                        }}
+                      >
+                        {requesterBadge}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs mt-0.5" style={{ color: theme.muted }}>
                     {request.committeeName ?? "Committee"}
                     {request.grade ? ` · ${request.grade}` : ""}
@@ -252,45 +326,96 @@ export default function CommitteeJoinRequestsPanel({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <select
-                    value={memberRoles[request.id] ?? "member"}
-                    onChange={(e) =>
-                      setMemberRoles((prev) => ({
-                        ...prev,
-                        [request.id]: e.target.value as CommitteeRole,
-                      }))
-                    }
-                    className="text-xs rounded-lg border px-2 py-1.5"
-                    style={inputStyle}
-                    disabled={busy}
-                  >
-                    {ROLE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <AdminButton
-                    theme={theme}
-                    variant="primary"
-                    size="compact"
-                    onClick={() => void handleApprove(request)}
-                    disabled={busy}
-                  >
-                    {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    Approve
-                  </AdminButton>
-                  <AdminButton
-                    theme={theme}
-                    variant="danger"
-                    size="compact"
-                    onClick={() => void handleDecline(request)}
-                    disabled={busy}
-                  >
-                    <X className="w-3 h-3" />
-                    Decline
-                  </AdminButton>
+                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-end sm:flex-wrap">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      className="text-[10px] font-medium uppercase tracking-wide"
+                      style={{ color: theme.muted }}
+                    >
+                      Access level
+                    </label>
+                    <select
+                      value={selectedAccessLevel}
+                      onChange={(e) =>
+                        setMemberRoles((prev) => ({
+                          ...prev,
+                          [request.id]: e.target.value as CommitteeRole,
+                        }))
+                      }
+                      className="text-xs rounded-lg border px-2 py-1.5 min-w-[9rem]"
+                      style={inputStyle}
+                      disabled={busy}
+                    >
+                      {COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {dutyRoles.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <label
+                        className="text-[10px] font-medium uppercase tracking-wide"
+                        style={{ color: theme.muted }}
+                      >
+                        Duty role
+                      </label>
+                      <select
+                        value={selectedDutyRoleId}
+                        onChange={(e) =>
+                          setAssignDutyRoleIds((prev) => ({
+                            ...prev,
+                            [request.id]: e.target.value,
+                          }))
+                        }
+                        className="text-xs rounded-lg border px-2 py-1.5 min-w-[9rem]"
+                        style={inputStyle}
+                        disabled={busy}
+                      >
+                        <option value="">None</option>
+                        {dutyRoles.map((dutyRole) => (
+                          <option key={dutyRole.id} value={dutyRole.id}>
+                            {dutyRole.title}
+                            {dutyRole.assigneeId ? " (assigned)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedDutyRole?.assigneeName ? (
+                        <p
+                          className="max-w-[12rem] text-[10px] leading-snug"
+                          style={{ color: theme.muted }}
+                        >
+                          Currently assigned to {selectedDutyRole.assigneeName}. Approving
+                          will reassign this role.
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <AdminButton
+                      theme={theme}
+                      variant="primary"
+                      size="compact"
+                      onClick={() => void handleApprove(request)}
+                      disabled={busy}
+                    >
+                      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Approve
+                    </AdminButton>
+                    <AdminButton
+                      theme={theme}
+                      variant="danger"
+                      size="compact"
+                      onClick={() => void handleDecline(request)}
+                      disabled={busy}
+                    >
+                      <X className="w-3 h-3" />
+                      Decline
+                    </AdminButton>
+                  </div>
                 </div>
               </div>
             </motion.div>

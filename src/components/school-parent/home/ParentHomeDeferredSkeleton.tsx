@@ -117,6 +117,21 @@ function FormRowSkeleton({ theme }: SkeletonThemeProps) {
   );
 }
 
+export function ParentHomeFridayBranchSkeleton({ theme }: SkeletonThemeProps) {
+  return (
+    <ParentCard theme={theme} className="p-5 sm:p-6" aria-busy="true" aria-label="Loading Friday Branch">
+      <ParentSkeletonBlock theme={theme} className="h-3 w-28" />
+      <ParentSkeletonBlock theme={theme} className="mt-2 h-5 w-44" />
+      <ParentSkeletonBlock theme={theme} className="mt-1 h-3 w-32" />
+      <div className="mt-4 space-y-3">
+        <AttentionRowSkeleton theme={theme} />
+        <AttentionRowSkeleton theme={theme} />
+      </div>
+      <ParentSkeletonBlock theme={theme} className="mt-4 h-10 w-40 rounded-lg" />
+    </ParentCard>
+  );
+}
+
 export function ParentHomeFormsSnapshotSkeleton({ theme }: SkeletonThemeProps) {
   return (
     <ParentCard theme={theme} className="p-5 sm:p-6" aria-busy="true" aria-label="Loading forms">

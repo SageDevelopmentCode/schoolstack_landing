@@ -6,9 +6,10 @@ import { MapPin, Trash2, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
-import type { CommitteeEvent, CommitteeEventType } from "@/lib/committees/types";
+import type { CommitteeEvent, CommitteeEventType, CommitteeMember } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
+import { CommitteeAttributionLabel } from "@/components/school-admin/committees/CommitteeAttributionLabel";
 
 const TYPE_COLORS: Record<CommitteeEventType, string> = {
   meeting: "bg-[#827096]/10 text-[#827096]",
@@ -32,12 +33,14 @@ export default function CommitteeEventDetailPanel({
   readOnly = false,
   onClose,
   onDelete,
+  members = [],
 }: {
   event: CommitteeEvent | null;
   theme: ParentThemeTokens;
   readOnly?: boolean;
   onClose: () => void;
   onDelete?: (eventId: string) => void;
+  members?: CommitteeMember[];
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -125,6 +128,14 @@ export default function CommitteeEventDetailPanel({
                   </div>
                 </div>
               )}
+              <CommitteeAttributionLabel
+                theme={theme}
+                createdByMemberId={event.createdByMemberId}
+                createdByName={event.createdByName}
+                createdByRole={event.createdByRole}
+                members={members}
+                className="text-xs"
+              />
             </div>
             {!readOnly && onDelete && (
               <div

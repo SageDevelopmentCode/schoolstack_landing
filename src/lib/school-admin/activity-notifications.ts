@@ -39,6 +39,9 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED,
+  ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
@@ -54,6 +57,7 @@ export type ActivityNotificationCategory =
   | "enrollment"
   | "committees"
   | "program_signups"
+  | "messages"
   | "other";
 
 export type SchoolAdminActivityNotification = {
@@ -127,6 +131,9 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED]: "Student health update",
   [ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED]: "Student health update",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED]: "Authorized pickup added",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED]: "Authorized pickup updated",
+  [ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED]: "Authorized pickup removed",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup published",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_RESPONSE_SUBMITTED]: "Classroom signup response",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
@@ -165,6 +172,22 @@ function metadataString(
   const value = metadata[key];
   if (typeof value !== "string" || !value.trim()) return null;
   return value.trim();
+}
+
+function metadataStringArray(
+  metadata: Record<string, unknown>,
+  key: string,
+): string[] {
+  const value = metadata[key];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function isSchoolOfficeLabel(label: string): boolean {
+  return label.endsWith(" Office");
 }
 
 function metadataNumber(
@@ -277,7 +300,44 @@ export function getActivityNotificationCategory(
   if (action.startsWith("friday_branch.")) {
     return "program_signups";
   }
+  if (action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    return "messages";
+  }
   return "other";
+}
+
+export function formatSchoolAdminMessageNotificationTitle(
+  metadata: Record<string, unknown>,
+): string {
+  const senderName = metadataString(metadata, "senderName");
+  const senderPortal = metadataString(metadata, "senderPortal");
+  const recipientLabels = metadataStringArray(metadata, "recipientLabels");
+
+  if (!senderName) {
+    return "New message";
+  }
+
+  if (senderPortal === "parent") {
+    const personRecipients = recipientLabels.filter(
+      (label) => !isSchoolOfficeLabel(label),
+    );
+    if (personRecipients.length === 0) {
+      return `New message from ${senderName}`;
+    }
+    return `New message between ${senderName} and ${personRecipients[0]}`;
+  }
+
+  if (senderPortal === "teacher") {
+    const personRecipients = recipientLabels.filter(
+      (label) => !isSchoolOfficeLabel(label),
+    );
+    if (personRecipients.length > 0) {
+      return `New message between ${personRecipients[0]} and ${senderName}`;
+    }
+    return `New message from ${senderName}`;
+  }
+
+  return `New message from ${senderName}`;
 }
 
 export function formatActivityNotificationTitle(action: string): string {
@@ -345,6 +405,14 @@ function isStudentHealthNotificationAction(action: string): boolean {
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED ||
     action === ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_DELETED
+  );
+}
+
+function isAuthorizedPickupNotificationAction(action: string): boolean {
+  return (
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_CREATED ||
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_UPDATED ||
+    action === ACTIVITY_ACTIONS.AUTHORIZED_PICKUP_CONTACT_DELETED
   );
 }
 
@@ -1197,6 +1265,20 @@ export async function resolveActivityNotificationLink(
     };
   }
 
+  if (isAuthorizedPickupNotificationAction(event.action)) {
+    const studentId = metadataString(event.metadata, "studentId");
+    if (studentId) {
+      return {
+        href: schoolAdminPath(slug, "students", studentId),
+        ctaLabel: "View student",
+      };
+    }
+    return {
+      href: studentsHref(slug),
+      ctaLabel: "View students",
+    };
+  }
+
   if (isClassroomSignupNotificationAction(event.action)) {
     const staffMemberId = metadataString(event.metadata, "staffMemberId");
     const signupId =
@@ -1246,6 +1328,15 @@ export async function resolveActivityNotificationLink(
     return { href: paymentsHref(slug), ctaLabel: "View enrollment" };
   }
 
+  if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    const threadId = metadataString(event.metadata, "threadId");
+    const messagesBase = schoolAdminPath(slug, "messages");
+    return {
+      href: threadId ? `${messagesBase}?thread=${threadId}` : messagesBase,
+      ctaLabel: "View message",
+    };
+  }
+
   return {
     href: schoolAdminPath(slug, "admissions", "submissions"),
     ctaLabel: "View",
@@ -1287,6 +1378,17 @@ export function mapActivityEventToNotification(
     }
   }
 
+  if (isAuthorizedPickupNotificationAction(event.action)) {
+    const studentName = metadataString(event.metadata, "studentName");
+    if (studentName) {
+      subjectLabel = shortenSubjectLabel(studentName);
+    }
+    const actorName = metadataString(event.metadata, "actorName");
+    if (actorName) {
+      guardianLabel = actorName;
+    }
+  }
+
   if (tuitionContext) {
     guardianLabel =
       tuitionContext.payerLabel ?? tuitionContext.familyName ?? guardianLabel;
@@ -1297,10 +1399,15 @@ export function mapActivityEventToNotification(
 
   const programName = context?.programName ?? null;
 
+  const title =
+    event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED
+      ? formatSchoolAdminMessageNotificationTitle(event.metadata)
+      : formatActivityNotificationTitle(event.action);
+
   return {
     id: event.id,
     action: event.action,
-    title: formatActivityNotificationTitle(event.action),
+    title,
     summary: event.summary,
     subjectLabel,
     guardianLabel,

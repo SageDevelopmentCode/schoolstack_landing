@@ -55,6 +55,10 @@ type FridayBranchClassRow = {
   teacher: string;
   family_visible: boolean;
   capacity: number | null;
+  price_cents: number | null;
+  flyer_storage_path: string | null;
+  flyer_file_name: string | null;
+  flyer_file_size_bytes: number | null;
   sort_order: number;
 };
 
@@ -85,6 +89,10 @@ type FridayBranchScheduleRpcClass = {
   teacher: string;
   family_visible: boolean;
   capacity: number | null;
+  price_cents: number | null;
+  flyer_storage_path: string | null;
+  flyer_file_name: string | null;
+  flyer_file_size_bytes: number | null;
   sort_order: number;
 };
 
@@ -141,6 +149,20 @@ function parseCapacity(value: unknown): number | null {
   return num;
 }
 
+function parsePriceCents(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = typeof value === "number" ? value : Number.parseInt(asString(value), 10);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return num;
+}
+
+function parseFileSizeBytes(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = typeof value === "number" ? value : Number.parseInt(asString(value), 10);
+  if (!Number.isFinite(num) || num < 0) return null;
+  return num;
+}
+
 function parseEnrollmentStatus(value: unknown): FridayBranchClassEnrollmentStatus {
   const status = asString(value, "confirmed") as FridayBranchClassEnrollmentStatus;
   return ENROLLMENT_STATUSES.has(status) ? status : "confirmed";
@@ -155,6 +177,10 @@ function mapClassRow(row: FridayBranchClassRow): FridayBranchClass {
     teacher: row.teacher,
     familyVisible: row.family_visible,
     capacity: row.capacity,
+    priceCents: row.price_cents,
+    flyerStoragePath: row.flyer_storage_path,
+    flyerFileName: row.flyer_file_name,
+    flyerFileSizeBytes: row.flyer_file_size_bytes,
   };
 }
 
@@ -207,6 +233,10 @@ function mapBlocksToRpcPayload(blocks: FridayBranchBlock[]): FridayBranchSchedul
         teacher: (classEntry.teacher ?? "").trim(),
         family_visible: classEntry.familyVisible ?? true,
         capacity: classEntry.capacity ?? null,
+        price_cents: classEntry.priceCents ?? null,
+        flyer_storage_path: classEntry.flyerStoragePath ?? null,
+        flyer_file_name: classEntry.flyerFileName ?? null,
+        flyer_file_size_bytes: classEntry.flyerFileSizeBytes ?? null,
         sort_order: classIndex,
       })),
     })),
@@ -262,6 +292,10 @@ export function parseFridayBranchSchedulePayload(blocks: unknown): FridayBranchB
           teacher: asString(classRecord.teacher),
           familyVisible: asBoolean(classRecord.familyVisible, true),
           capacity: parseCapacity(classRecord.capacity),
+          priceCents: parsePriceCents(classRecord.priceCents),
+          flyerStoragePath: asString(classRecord.flyerStoragePath) || null,
+          flyerFileName: asString(classRecord.flyerFileName) || null,
+          flyerFileSizeBytes: parseFileSizeBytes(classRecord.flyerFileSizeBytes),
         });
       }
 
@@ -299,6 +333,9 @@ export function validateFridayBranchSchedule(blocks: FridayBranchBlock[]): strin
         if (!isUuid(classEntry.id)) return "Each class needs a valid id.";
         if (classEntry.capacity != null && classEntry.capacity <= 0) {
           return "Class capacity must be a positive number.";
+        }
+        if (classEntry.priceCents != null && classEntry.priceCents < 0) {
+          return "Class price must be zero or greater.";
         }
       }
     }
@@ -345,7 +382,9 @@ export async function loadFridayBranchSchedule(
       .order("sort_order", { ascending: true }),
     supabase
       .from("friday_branch_classes")
-      .select("id, time_slot_id, organization_id, name, location, age_group, teacher, family_visible, capacity, sort_order")
+      .select(
+        "id, time_slot_id, organization_id, name, location, age_group, teacher, family_visible, capacity, price_cents, flyer_storage_path, flyer_file_name, flyer_file_size_bytes, sort_order",
+      )
       .eq("organization_id", organizationId)
       .order("sort_order", { ascending: true }),
   ]);
@@ -390,6 +429,10 @@ type FridayBranchClassDetailRow = {
   teacher: string;
   family_visible: boolean;
   capacity: number | null;
+  price_cents: number | null;
+  flyer_storage_path: string | null;
+  flyer_file_name: string | null;
+  flyer_file_size_bytes: number | null;
   friday_branch_time_slots:
     | {
         time: string;
@@ -472,6 +515,7 @@ export async function loadFridayBranchClassDetail(
     .from("friday_branch_classes")
     .select(
       `id, name, location, age_group, teacher, family_visible, capacity,
+      price_cents, flyer_storage_path, flyer_file_name, flyer_file_size_bytes,
       friday_branch_time_slots!inner (
         time,
         friday_branch_blocks!inner (
@@ -531,6 +575,10 @@ export async function loadFridayBranchClassDetail(
       teacher: row.teacher,
       familyVisible: row.family_visible,
       capacity: row.capacity,
+      priceCents: row.price_cents,
+      flyerStoragePath: row.flyer_storage_path,
+      flyerFileName: row.flyer_file_name,
+      flyerFileSizeBytes: row.flyer_file_size_bytes,
     },
     slotTime: slot.time,
     blockLabel: block.label,

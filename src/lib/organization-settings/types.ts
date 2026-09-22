@@ -61,6 +61,7 @@ export type TeacherFeatures = {
   feed: boolean;
   payroll: boolean;
   forms_documents: boolean;
+  committees: boolean;
 };
 
 export type ParentFeatures = {
@@ -85,10 +86,15 @@ export type AdditionalFeatures = {
   homeschool_drop_in: boolean;
 };
 
+export type ParentHomeFeatures = {
+  friday_branch: boolean;
+};
+
 export type OrganizationFeatures = {
   admin: AdminFeatures;
   teacher: TeacherFeatures;
   parent: ParentFeatures;
+  parent_home?: ParentHomeFeatures;
   feature_nav?: FeatureNavConfig;
   parent_onboarding?: ParentOnboardingConfig;
   apply_auth_entry?: ApplyAuthEntryConfig;
@@ -99,6 +105,7 @@ export type OrganizationFeatures = {
     | AdminFeatures
     | TeacherFeatures
     | ParentFeatures
+    | ParentHomeFeatures
     | FeatureNavConfig
     | ParentOnboardingConfig
     | ApplyAuthEntryConfig
@@ -135,7 +142,8 @@ export type ParentOnboardingAutoCompletionType =
   | "messages"
   | "committees"
   | "children"
-  | "health";
+  | "health"
+  | "pickup";
 
 export type ParentOnboardingItem = {
   id: string;

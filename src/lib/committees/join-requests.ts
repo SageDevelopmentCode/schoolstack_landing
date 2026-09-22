@@ -1,5 +1,8 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
+import type { ActorType, ActivitySurface } from "@/lib/activity-log";
 import type { CommitteeJoinRequest, CommitteeJoinRequestStatus, CommitteeRole } from "./types";
 import {
   sendCommitteeJoinApprovedNotifications,
@@ -7,6 +10,9 @@ import {
   sendCommitteeJoinRequestedNotifications,
   sendCommitteeJoinWithdrawnNotifications,
 } from "./committee-notifications";
+import { getCommitteeJoinRequestDisplayName } from "./join-request-display";
+
+export { getCommitteeJoinRequestDisplayName } from "./join-request-display";
 
 export type CommitteeJoinRequestRow = {
   id: string;
@@ -14,6 +20,7 @@ export type CommitteeJoinRequestRow = {
   committee_id: string;
   user_id: string;
   guardian_id: string | null;
+  staff_member_id: string | null;
   preferred_duty_role_id: string | null;
   grade: string | null;
   note: string | null;
@@ -32,18 +39,33 @@ export type CommitteeJoinRequestRow = {
     last_name: string | null;
     email: string | null;
   }[] | null;
+  staff_members?: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  } | {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  }[] | null;
   committee_duty_roles?: { title: string } | { title: string }[] | null;
 };
 
 function mapJoinRequestRow(row: CommitteeJoinRequestRow): CommitteeJoinRequest {
   const committee = Array.isArray(row.committees) ? row.committees[0] : row.committees;
   const guardian = Array.isArray(row.guardians) ? row.guardians[0] : row.guardians;
+  const staffMember = Array.isArray(row.staff_members)
+    ? row.staff_members[0]
+    : row.staff_members;
   const dutyRole = Array.isArray(row.committee_duty_roles)
     ? row.committee_duty_roles[0]
     : row.committee_duty_roles;
 
   const guardianName = guardian
     ? [guardian.first_name, guardian.last_name].filter(Boolean).join(" ").trim() || null
+    : null;
+  const staffName = staffMember
+    ? [staffMember.first_name, staffMember.last_name].filter(Boolean).join(" ").trim() || null
     : null;
 
   return {
@@ -52,6 +74,7 @@ function mapJoinRequestRow(row: CommitteeJoinRequestRow): CommitteeJoinRequest {
     committeeId: row.committee_id,
     userId: row.user_id,
     guardianId: row.guardian_id,
+    staffMemberId: row.staff_member_id,
     preferredDutyRoleId: row.preferred_duty_role_id,
     grade: row.grade,
     note: row.note,
@@ -63,6 +86,9 @@ function mapJoinRequestRow(row: CommitteeJoinRequestRow): CommitteeJoinRequest {
     committeeName: committee?.name ?? undefined,
     guardianName: guardianName ?? undefined,
     guardianEmail: guardian?.email ?? undefined,
+    staffName: staffName ?? undefined,
+    staffEmail: staffMember?.email ?? undefined,
+    requesterType: row.staff_member_id ? "staff" : "parent",
     preferredDutyRoleTitle: dutyRole?.title ?? null,
   };
 }
@@ -71,8 +97,71 @@ const JOIN_REQUEST_SELECT = `
   *,
   committees (name),
   guardians (first_name, last_name, email),
+  staff_members (first_name, last_name, email),
   committee_duty_roles (title)
 `;
+
+type ActiveCommitteeContext = {
+  id: string;
+  name: string;
+  organizationId: string;
+  schoolName: string;
+  schoolSlug: string;
+};
+
+async function loadActiveCommitteeForOrg(
+  supabase: SupabaseClient,
+  organizationId: string,
+  committeeId: string,
+): Promise<ActiveCommitteeContext> {
+  const { data: committee, error } = await supabase
+    .from("committees")
+    .select("id, name, organization_id, status, organizations(name, slug)")
+    .eq("id", committeeId)
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!committee) throw new Error("Committee not found.");
+
+  const organizationRaw = committee.organizations as
+    | { name: string; slug: string }
+    | { name: string; slug: string }[]
+    | null
+    | undefined;
+  const organization = Array.isArray(organizationRaw)
+    ? organizationRaw[0] ?? null
+    : organizationRaw ?? null;
+
+  if (!organization?.name || !organization.slug) {
+    throw new Error("Committee not found.");
+  }
+
+  return {
+    id: String(committee.id),
+    name: committee.name,
+    organizationId: String(committee.organization_id),
+    schoolName: organization.name,
+    schoolSlug: organization.slug,
+  };
+}
+
+async function assertDutyRoleBelongsToCommittee(
+  supabase: SupabaseClient,
+  dutyRoleId: string,
+  committeeId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("committee_duty_roles")
+    .select("id")
+    .eq("id", dutyRoleId)
+    .eq("committee_id", committeeId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Duty role not found.");
+}
 
 export async function listCommitteeJoinRequests(
   supabase: SupabaseClient,
@@ -101,15 +190,16 @@ export type CreateJoinRequestInput = {
   organizationId: string;
   committeeId: string;
   userId: string;
-  guardianId: string | null;
-  guardianName: string;
-  guardianEmail: string;
-  committeeName: string;
-  schoolName: string;
-  schoolSlug: string;
   preferredDutyRoleId?: string | null;
   grade?: string | null;
   note?: string | null;
+  requesterType: "parent" | "staff";
+  guardianId?: string | null;
+  guardianName?: string;
+  guardianEmail?: string;
+  staffMemberId?: string | null;
+  staffName?: string;
+  staffEmail?: string;
 };
 
 export async function createCommitteeJoinRequest(
@@ -142,15 +232,40 @@ export async function createCommitteeJoinRequest(
     throw new Error("You are already a member of this committee.");
   }
 
+  const committee = await loadActiveCommitteeForOrg(
+    supabase,
+    input.organizationId,
+    input.committeeId,
+  );
+
+  if (input.preferredDutyRoleId) {
+    await assertDutyRoleBelongsToCommittee(
+      supabase,
+      input.preferredDutyRoleId,
+      committee.id,
+    );
+  }
+
+  const requesterName =
+    input.requesterType === "staff"
+      ? input.staffName?.trim() || "Staff member"
+      : input.guardianName?.trim() || "Parent";
+  const requesterEmail =
+    input.requesterType === "staff"
+      ? input.staffEmail?.trim() || ""
+      : input.guardianEmail?.trim() || "";
+
   const { data, error } = await supabase
     .from("committee_join_requests")
     .insert({
       organization_id: input.organizationId,
       committee_id: input.committeeId,
       user_id: input.userId,
-      guardian_id: input.guardianId,
+      guardian_id: input.requesterType === "parent" ? (input.guardianId ?? null) : null,
+      staff_member_id:
+        input.requesterType === "staff" ? (input.staffMemberId ?? null) : null,
       preferred_duty_role_id: input.preferredDutyRoleId ?? null,
-      grade: input.grade?.trim() || null,
+      grade: input.requesterType === "parent" ? input.grade?.trim() || null : null,
       note: input.note?.trim() || null,
       status: "pending",
     })
@@ -164,14 +279,15 @@ export async function createCommitteeJoinRequest(
   void sendCommitteeJoinRequestedNotifications(supabase, {
     organizationId: input.organizationId,
     requestId: request.id,
-    committeeId: input.committeeId,
-    committeeName: input.committeeName,
-    schoolName: input.schoolName,
-    schoolSlug: input.schoolSlug,
-    guardianName: input.guardianName,
-    guardianEmail: input.guardianEmail,
+    committeeId: committee.id,
+    committeeName: committee.name,
+    schoolName: committee.schoolName,
+    schoolSlug: committee.schoolSlug,
+    requesterName,
+    requesterEmail,
+    requesterType: input.requesterType,
     preferredDutyRoleTitle: request.preferredDutyRoleTitle,
-    grade: input.grade ?? null,
+    grade: input.requesterType === "parent" ? (input.grade ?? null) : null,
     note: input.note ?? null,
     actorUserId: input.userId,
   });
@@ -186,9 +302,14 @@ export async function withdrawCommitteeJoinRequest(
     userId: string;
     organizationId: string;
     committeeName: string;
-    guardianName: string;
+    requesterName: string;
+    actorType?: ActorType;
+    surface?: ActivitySurface;
   },
 ): Promise<CommitteeJoinRequest> {
+  const actorType = input.actorType ?? "parent";
+  const surface = input.surface ?? "parent_portal";
+
   const { data, error } = await supabase
     .from("committee_join_requests")
     .update({ status: "withdrawn" })
@@ -206,18 +327,18 @@ export async function withdrawCommitteeJoinRequest(
 
   void logActivityEvent(supabase, {
     organizationId: input.organizationId,
-    actorType: "parent",
+    actorType,
     actorUserId: input.userId,
-    actorName: input.guardianName,
-    surface: "parent_portal",
+    actorName: input.requesterName,
+    surface,
     action: ACTIVITY_ACTIONS.COMMITTEE_JOIN_WITHDRAWN,
     entityType: "committee_join_request",
     entityId: request.id,
-    summary: `${input.guardianName} withdrew their request to join ${input.committeeName}`,
+    summary: `${input.requesterName} withdrew their request to join ${input.committeeName}`,
     metadata: {
       committeeId: request.committeeId,
       committeeName: input.committeeName,
-      guardianName: input.guardianName,
+      requesterName: input.requesterName,
     },
   });
 
@@ -226,7 +347,7 @@ export async function withdrawCommitteeJoinRequest(
     requestId: request.id,
     committeeId: request.committeeId,
     committeeName: input.committeeName,
-    guardianName: input.guardianName,
+    guardianName: input.requesterName,
     actorUserId: input.userId,
   });
 
@@ -262,22 +383,52 @@ export async function approveCommitteeJoinRequest(
   const guardian = Array.isArray(requestRow.guardians)
     ? requestRow.guardians[0]
     : requestRow.guardians;
-  const displayName =
-    request.guardianName ||
-    [guardian?.first_name, guardian?.last_name].filter(Boolean).join(" ") ||
-    "Parent";
+  const staffMember = Array.isArray(requestRow.staff_members)
+    ? requestRow.staff_members[0]
+    : requestRow.staff_members;
+
+  const isStaffRequest = Boolean(request.staffMemberId);
+  const displayName = isStaffRequest
+    ? request.staffName ||
+      [staffMember?.first_name, staffMember?.last_name].filter(Boolean).join(" ") ||
+      "Staff member"
+    : request.guardianName ||
+      [guardian?.first_name, guardian?.last_name].filter(Boolean).join(" ") ||
+      "Parent";
+  const memberEmail = isStaffRequest
+    ? staffMember?.email ?? null
+    : guardian?.email ?? null;
+
+  const committee = await loadActiveCommitteeForOrg(
+    supabase,
+    input.organizationId,
+    request.committeeId,
+  );
+
+  if (committee.organizationId !== request.organizationId) {
+    throw new Error("Committee does not belong to this school.");
+  }
+
+  if (input.assignDutyRoleId) {
+    await assertDutyRoleBelongsToCommittee(
+      supabase,
+      input.assignDutyRoleId,
+      request.committeeId,
+    );
+  }
 
   const { data: member, error: memberError } = await supabase
     .from("committee_members")
     .insert({
       committee_id: request.committeeId,
-      organization_id: input.organizationId,
+      organization_id: committee.organizationId,
       user_id: request.userId,
-      guardian_id: request.guardianId,
+      guardian_id: isStaffRequest ? null : request.guardianId,
+      staff_member_id: isStaffRequest ? request.staffMemberId : null,
       display_name: displayName,
-      email: guardian?.email ?? null,
+      email: memberEmail,
       role: input.memberRole ?? "member",
-      grade: request.grade,
+      grade: isStaffRequest ? null : request.grade,
       status: "active",
     })
     .select("id")
@@ -310,13 +461,20 @@ export async function approveCommitteeJoinRequest(
   if (updateError) throw new Error(updateError.message);
 
   const approved = mapJoinRequestRow(updated as CommitteeJoinRequestRow);
+  const requesterEmail =
+    approved.requesterType === "staff"
+      ? approved.staffEmail ?? memberEmail
+      : approved.guardianEmail ?? memberEmail;
 
   void sendCommitteeJoinApprovedNotifications(supabase, {
     organizationId: input.organizationId,
     requestId: approved.id,
     committeeId: approved.committeeId,
     committeeName: approved.committeeName ?? "Committee",
-    guardianName: displayName,
+    memberName: displayName,
+    memberEmail: requesterEmail?.trim() || null,
+    requesterType: approved.requesterType ?? "parent",
+    requesterUserId: request.userId,
     reviewerUserId: input.reviewerUserId,
     reviewerName: input.reviewerName,
     schoolSlug: input.schoolSlug,
@@ -360,7 +518,7 @@ export async function declineCommitteeJoinRequest(
     requestId: declined.id,
     committeeId: declined.committeeId,
     committeeName: declined.committeeName ?? "Committee",
-    guardianName: declined.guardianName ?? "Parent",
+    memberName: getCommitteeJoinRequestDisplayName(declined),
     reviewerUserId: input.reviewerUserId,
     reviewerName: input.reviewerName,
     schoolSlug: input.schoolSlug,

@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import type { ParentFormDetail } from '@/lib/parent/parent-forms-documents-types';
+import { patchParentHomeAfterFormSigned } from '@/lib/parent/parent-forms-documents-utils';
 import {
   fetchParentHomeData,
   normalizeParentHomeData,
@@ -29,6 +31,7 @@ type ParentHomeContextValue = {
   hasLoaded: boolean;
   ensureLoaded: () => void;
   refresh: () => Promise<void>;
+  applySignedForm: (detail: ParentFormDetail) => void;
 };
 
 const ParentHomeContext = createContext<ParentHomeContextValue | null>(null);
@@ -137,6 +140,10 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
     await load({ refresh: true });
   }, [load]);
 
+  const applySignedForm = useCallback((detail: ParentFormDetail) => {
+    setData((current) => (current ? patchParentHomeAfterFormSigned(current, detail) : current));
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -196,8 +203,9 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
       hasLoaded,
       ensureLoaded,
       refresh,
+      applySignedForm,
     }),
-    [data, ensureLoaded, error, hasLoaded, isLoading, isRefreshing, refresh],
+    [applySignedForm, data, ensureLoaded, error, hasLoaded, isLoading, isRefreshing, refresh],
   );
 
   return <ParentHomeContext.Provider value={value}>{children}</ParentHomeContext.Provider>;

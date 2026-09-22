@@ -45,6 +45,9 @@ type ClassContextRow = {
   teacher: string;
   family_visible: boolean;
   capacity: number | null;
+  price_cents: number | null;
+  flyer_storage_path: string | null;
+  flyer_file_name: string | null;
   time_slot_id: string;
   friday_branch_time_slots: {
     id: string;
@@ -125,6 +128,9 @@ function buildClassSummary(
     ageGroup: classEntry.ageGroup,
     teacher: classEntry.teacher,
     capacity,
+    priceCents: classEntry.priceCents ?? null,
+    hasFlyer: Boolean(classEntry.flyerStoragePath),
+    flyerFileName: classEntry.flyerFileName ?? null,
     confirmedCount,
     spotsRemaining: computeSpotsRemaining(capacity, confirmedCount),
     familyEnrollments,
@@ -255,11 +261,15 @@ async function loadClassContext(
   teacher?: string;
   familyVisible: boolean;
   capacity: number | null;
+  priceCents: number | null;
+  hasFlyer: boolean;
+  flyerFileName: string | null;
 } | null> {
   const { data, error } = await admin
     .from("friday_branch_classes")
     .select(
-      `id, name, location, age_group, teacher, family_visible, capacity, time_slot_id,
+      `id, name, location, age_group, teacher, family_visible, capacity,
+      price_cents, flyer_storage_path, flyer_file_name, time_slot_id,
       friday_branch_time_slots!inner (
         id, time, block_id,
         friday_branch_blocks!inner (
@@ -296,6 +306,9 @@ async function loadClassContext(
     teacher: row.teacher || undefined,
     familyVisible: row.family_visible,
     capacity: row.capacity,
+    priceCents: row.price_cents,
+    hasFlyer: Boolean(row.flyer_storage_path),
+    flyerFileName: row.flyer_file_name,
   };
 }
 
@@ -476,6 +489,9 @@ export async function loadParentFridayBranchClassDetail(
     ageGroup: context.ageGroup,
     teacher: context.teacher,
     capacity: context.capacity,
+    priceCents: context.priceCents,
+    hasFlyer: context.hasFlyer,
+    flyerFileName: context.flyerFileName,
     confirmedCount: confirmedCount ?? 0,
     spotsRemaining,
     studentStates,

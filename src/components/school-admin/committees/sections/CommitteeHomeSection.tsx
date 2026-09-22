@@ -1,13 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CalendarDays, CheckSquare, FileText, MessageCircle } from "lucide-react";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
+import CommitteeActivityFeed from "@/components/school-admin/committees/CommitteeActivityFeed";
+import CommitteeActivityFeedSkeleton from "@/components/school-admin/committees/CommitteeActivityFeedSkeleton";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 const QUICK_LINKS = [
   { section: "resources" as const, label: "Resources", icon: FileText, accent: "forest" as const },
@@ -18,15 +24,23 @@ const QUICK_LINKS = [
 export default function CommitteeHomeSection({
   committee,
   theme,
+  organizationId,
+  schoolSlug,
+  activitySurface = "admin",
   onNavigate,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
+  organizationId?: string;
+  schoolSlug?: string;
+  activitySurface?: "parent" | "admin" | "teacher";
   onNavigate: (section: CommitteeWorkspaceSection) => void;
 }) {
   const upcomingEvents = committee.events.slice(0, 3);
   const urgentTasks = committee.tasks.filter((task) => task.status !== "done").slice(0, 4);
   const leaders = committee.members.filter((member) => member.role === "lead");
+  const [activityItems, setActivityItems] = useState<CommitteeActivityItem[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   const quickLinks = QUICK_LINKS.map(({ section, label, icon, accent }) => ({
     section,
@@ -41,7 +55,60 @@ export default function CommitteeHomeSection({
           : `${committee.messages.length} recent posts`,
   }));
 
+  useEffect(() => {
+    if (!organizationId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      setLoadingActivity(true);
+      try {
+        const params = new URLSearchParams({
+          organizationId,
+          limit: activitySurface === "parent" ? "8" : "8",
+        });
+        if (schoolSlug) params.set("slug", schoolSlug);
+
+        const endpoint =
+          activitySurface === "parent"
+            ? `/api/parent-portal/committees/${committee.id}/activity?${params}`
+            : activitySurface === "teacher"
+              ? `/api/teacher-portal/committees/${committee.id}/activity?${params}`
+              : `/api/school-admin/committees/activity?${params}&committeeId=${committee.id}`;
+
+        const res = await fetch(endpoint);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load activity.");
+        }
+        if (!cancelled) setActivityItems(data.items ?? []);
+      } catch (err) {
+        void reportPortalOperationalError(
+          activitySurface === "teacher"
+            ? "teacher_portal"
+            : activitySurface === "parent"
+              ? "parent_portal"
+              : "school_admin",
+          {
+            organizationId,
+            operation: "committees.activity.home_load",
+            error: "",
+          },
+          err,
+        );
+        if (!cancelled) setActivityItems([]);
+      } finally {
+        if (!cancelled) setLoadingActivity(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activitySurface, committee.id, organizationId, schoolSlug]);
+
   return (
+    <CommitteeWorkspaceSectionFrame width="wide">
     <div className="space-y-6">
       <AdminCard
         theme={theme}
@@ -164,6 +231,26 @@ export default function CommitteeHomeSection({
           </div>
         </AdminCard>
       </div>
+
+      {organizationId ? (
+        <AdminCard theme={theme} padding="default">
+          {loadingActivity ? (
+            <CommitteeActivityFeedSkeleton theme={theme} compact />
+          ) : (
+            <CommitteeActivityFeed
+              theme={theme}
+              items={activityItems}
+              compact
+              onViewAll={
+                activitySurface === "admin"
+                  ? () => onNavigate("activity")
+                  : undefined
+              }
+            />
+          )}
+        </AdminCard>
+      ) : null}
     </div>
+    </CommitteeWorkspaceSectionFrame>
   );
 }

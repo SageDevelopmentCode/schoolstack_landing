@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error.message,
+        error: "Failed to load notification settings.",
         cause: error,
       });
     }
@@ -179,7 +179,7 @@ export async function PATCH(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: existingError.message,
+        error: "Failed to save notification settings.",
         cause: existingError,
       });
     }
@@ -194,7 +194,7 @@ export async function PATCH(request: Request) {
         return apiError(ROUTE, {
           request,
           status: 500,
-          error: updateError.message,
+          error: "Failed to save notification settings.",
           cause: updateError,
         });
       }
@@ -208,7 +208,7 @@ export async function PATCH(request: Request) {
         return apiError(ROUTE, {
           request,
           status: 500,
-          error: insertError.message,
+          error: "Failed to save notification settings.",
           cause: insertError,
         });
       }

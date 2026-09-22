@@ -73,6 +73,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     feed: false,
     payroll: false,
     forms_documents: true,
+    committees: true,
   },
   parent: {
     portal: true,
@@ -88,6 +89,9 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     curriculum: false,
     supply_list: false,
     teaching_schedule: false,
+    friday_branch: false,
+  },
+  parent_home: {
     friday_branch: false,
   },
   observation_booking: true,
@@ -131,6 +135,12 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
     target: "health",
   },
   {
+    id: "authorized_pickup",
+    label: "Set your authorized pickup list",
+    icon: "user-check",
+    target: "pickup",
+  },
+  {
     id: "message_teacher",
     label: "Message your teacher",
     icon: "message-square",
@@ -147,7 +157,7 @@ export const DEFAULT_PARENT_ONBOARDING_ITEMS: ParentOnboardingItem[] = [
 export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "admin", key: "dashboard", label: "Dashboard", description: "Admin home overview" },
   { portal: "admin", key: "admissions", label: "Admissions", description: "Application pipeline and enrollment flows" },
-  { portal: "admin", key: "my_school", label: "My School", description: "Students, programs, staff, classrooms, tuition" },
+  { portal: "admin", key: "my_school", label: "My School", description: "Students, attendance, programs, staff, classrooms, tuition" },
   { portal: "admin", key: "committees", label: "Committees", description: "Parent committee workspaces" },
   { portal: "admin", key: "schedule", label: "Schedule", description: "School calendar, events, and availability" },
   { portal: "admin", key: "messages", label: "Messages", description: "Family and staff messaging" },
@@ -163,6 +173,7 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "teacher", key: "calendar", label: "Calendar", description: "Events and schedule" },
   { portal: "teacher", key: "my_hours", label: "My Hours", description: "Time tracking and hours log" },
   { portal: "teacher", key: "attendance", label: "Attendance", description: "Daily attendance tracking" },
+  { portal: "teacher", key: "committees", label: "Committees", description: "Volunteer committee participation" },
   { portal: "teacher", key: "feed", label: "Feed", description: "School activity feed" },
   { portal: "teacher", key: "payroll", label: "Payroll", description: "Pay stubs and earnings" },
   { portal: "parent", key: "portal", label: "Home", description: "Parent home overview" },

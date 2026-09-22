@@ -15,9 +15,11 @@ import {
 import type {
   Committee,
   CommitteeListItem,
+  CommitteeMessage,
   CommitteeStatus,
   CommitteeTemplate,
 } from "./types";
+import { loadCommitteeMessageAttachmentsForMessages } from "./committee-message-attachment-storage";
 
 function throwOnError<T>(result: { data: T | null; error: { message: string } | null }): T {
   if (result.error) throw new Error(result.error.message);
@@ -127,9 +129,13 @@ export async function getCommittee(
   const members = (membersRes.data ?? []).map((r) => mapMemberRow(r));
   const dutyRoles = (dutyRolesRes.data ?? []).map((r) => mapDutyRoleRow(r));
   const tasks = (tasksRes.data ?? []).map((r) => mapTaskRow(r, members));
-  const events = (eventsRes.data ?? []).map((r) => mapEventRow(r));
-  const resources = (resourcesRes.data ?? []).map((r) => mapResourceRow(r));
+  const events = (eventsRes.data ?? []).map((r) => mapEventRow(r, members));
+  const resources = (resourcesRes.data ?? []).map((r) => mapResourceRow(r, members));
   const messages = (messagesRes.data ?? []).map((r) => mapMessageRow(r, members));
+  const messagesWithAttachments = await hydrateCommitteeMessagesWithAttachments(
+    supabase,
+    messages,
+  );
 
   return assembleCommittee(
     committeeRow,
@@ -139,8 +145,35 @@ export async function getCommittee(
     tasks,
     events,
     resources,
-    messages,
+    messagesWithAttachments,
   );
+}
+
+async function hydrateCommitteeMessagesWithAttachments(
+  supabase: SupabaseClient,
+  messages: CommitteeMessage[],
+): Promise<CommitteeMessage[]> {
+  if (messages.length === 0) return messages;
+
+  const attachmentMap = await loadCommitteeMessageAttachmentsForMessages(
+    supabase,
+    messages.map((message) => message.id),
+  );
+
+  return messages.map((message) => {
+    const attachments = attachmentMap.get(message.id) ?? [];
+    if (attachments.length === 0) return message;
+
+    const hydrated = attachments.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
+      storagePath: attachment.storagePath,
+    }));
+
+    return { ...message, attachments: hydrated };
+  });
 }
 
 export type CreateCommitteeInput = {

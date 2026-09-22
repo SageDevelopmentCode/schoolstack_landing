@@ -49,11 +49,10 @@ export async function GET(request: Request) {
       surface: "school_admin",
       organizationId,
       operation: "stripe_connect_return",
-      error:
-        error instanceof Error ? error.message : "Stripe Connect return failed.",
+      error: "Stripe Connect return failed.",
+      cause: error,
       notify: true,
       actor: { type: "system" },
-      cause: error,
       metadata: { orgSlug },
     });
     const fallbackUrl = `${getSiteUrl()}${schoolAdminPath(orgSlug, "admissions", "payments")}?connected=0`;

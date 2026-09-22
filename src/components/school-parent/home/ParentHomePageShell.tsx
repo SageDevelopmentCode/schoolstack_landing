@@ -102,6 +102,7 @@ export default function ParentHomePageShell({
         schoolName={schoolName}
         coopModeEnabled={coopModeEnabled}
         coopFamilies={homeContent?.coopFamilies ?? []}
+        fridayBranchHome={homeContent?.fridayBranchHome ?? null}
         bulletinEnabled={bulletinEnabled}
         bulletinPosts={bulletinPosts}
         features={features}

@@ -1,6 +1,9 @@
-export {
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+import {
   SAGEFIELD_ADMIN_LOGO as SAGEFIELD_TEACHER_LOGO,
 } from "./sagefield-admin-demo";
+
+export { SAGEFIELD_TEACHER_LOGO };
 
 export const SAGEFIELD_TEACHER_OFFICE = "Sage Field Office";
 export const SAGEFIELD_TEACHER_ACCENT = "#5E7C68";
@@ -18,3 +21,15 @@ export const SAGEFIELD_TEACHER_PROGRAM_ORDER = [
   "school_year_26_27",
   "homeschool_drop_in",
 ] as const;
+
+export const sagefieldTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "sagefield",
+  logo: SAGEFIELD_TEACHER_LOGO,
+  accent: SAGEFIELD_TEACHER_ACCENT,
+  accentHover: SAGEFIELD_TEACHER_ACCENT_HOVER,
+  programLabels: SAGEFIELD_TEACHER_PROGRAM_LABELS,
+  programOrder: SAGEFIELD_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: SAGEFIELD_TEACHER_OFFICE,
+  },
+};

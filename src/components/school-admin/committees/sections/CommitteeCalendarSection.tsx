@@ -1,107 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, LayoutGrid, Plus } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { CalendarDays, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import OrganizationEventsCalendar from "@/components/school-events-calendar/OrganizationEventsCalendar";
+import type { CalendarViewMode } from "@/components/school-events-calendar/CalendarToolbar";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
-import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
-import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
-import type { Committee, CommitteeEvent, CommitteeEventType } from "@/lib/committees/types";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
+import { committeeOperationalSurface } from "@/components/school-admin/committees/CommitteeAttributionLabel";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import CommitteeAddEventPanel, {
+  type CommitteeAddEventFormState,
+} from "@/components/school-admin/committees/sections/CommitteeAddEventPanel";
+import CommitteeCalendarAgendaSidebar from "@/components/school-admin/committees/sections/CommitteeCalendarAgendaSidebar";
+import CommitteeEventDetailPanel from "@/components/school-admin/committees/sections/CommitteeEventDetailPanel";
+import { canMemberEditItem } from "@/lib/committees/attribution";
+import {
+  committeeEventsToOrganizationEvents,
+  findCommitteeEventById,
+} from "@/lib/committees/committee-events-calendar";
 import { createEvent, deleteEvent } from "@/lib/committees/events";
 import { getCommittee } from "@/lib/committees/committees";
-import {
-  addMonths,
-  addWeeks,
-  dateKey,
-  DAY_NAMES,
-  formatMonthLabel,
-  formatWeekRangeLabel,
-  getMonthCells,
-  getWeekDates,
-  groupEventsByDate,
-  initialCalendarAnchor,
-} from "@/lib/committees/calendar-utils";
-import CommitteeEventDetailPanel from "./CommitteeEventDetailPanel";
-import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
-import { committeeTransition, viewSwap } from "@/components/school-admin/committees/committee-motion";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import type { Committee } from "@/lib/committees/types";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
-type CalendarView = "month" | "week";
-
-const CALENDAR_LINE = "rgba(0, 0, 0, 0.06)";
-
-const TYPE_CHIP_STYLE: Record<CommitteeEventType, { bg: string; text: string }> = {
-  meeting: { bg: "rgba(130, 112, 150, 0.15)", text: "#827096" },
-  deadline: { bg: "rgba(245, 158, 11, 0.15)", text: "#b45309" },
-  service: { bg: "rgba(16, 185, 129, 0.15)", text: "#047857" },
-  event: { bg: "rgba(179, 180, 98, 0.25)", text: "#5C5A30" },
+const EMPTY_ADD_EVENT_FORM: CommitteeAddEventFormState = {
+  title: "",
+  date: "",
+  time: "",
+  eventType: "meeting",
+  location: "",
 };
-
-function DayNumber({
-  day,
-  C,
-  align = "right",
-  size = "sm",
-}: {
-  day: Date;
-  C: AdminThemeTokens;
-  align?: "right" | "center";
-  size?: "sm" | "lg";
-}) {
-  const isToday = dateKey(new Date()) === dateKey(day);
-  const sizeClass = size === "lg" ? "w-8 h-8 text-base" : "w-7 h-7 text-sm";
-
-  return (
-    <div className={`flex mb-1.5 ${align === "right" ? "justify-end" : "justify-center"}`}>
-      <span
-        className={`inline-flex items-center justify-center font-semibold rounded-full ${sizeClass}`}
-        style={
-          isToday
-            ? { backgroundColor: C.accent, color: "#FFFFFF" }
-            : { color: C.textTertiary }
-        }
-      >
-        {day.getDate()}
-      </span>
-    </div>
-  );
-}
-
-function EventChip({
-  event,
-  C,
-  selected,
-  onClick,
-}: {
-  event: CommitteeEvent;
-  C: AdminThemeTokens;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const colors = TYPE_CHIP_STYLE[event.type];
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className="w-full text-left text-[11px] font-medium px-2 py-1 rounded-md truncate cursor-pointer hover:brightness-95 transition-all"
-      style={{
-        backgroundColor: colors.bg,
-        color: colors.text,
-        borderLeft: `3px solid ${colors.text}`,
-        outline: selected ? `1px solid ${C.accent}` : undefined,
-      }}
-    >
-      {event.title}
-    </button>
-  );
-}
 
 export default function CommitteeCalendarSection({
   committee,
@@ -110,6 +42,8 @@ export default function CommitteeCalendarSection({
   organizationId,
   onCommitteeChange,
   readOnly = false,
+  currentMemberId,
+  isAdmin = true,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -117,64 +51,63 @@ export default function CommitteeCalendarSection({
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
+  currentMemberId?: string;
+  isAdmin?: boolean;
 }) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
-  const [view, setView] = useState<CalendarView>("month");
-  const [showAdd, setShowAdd] = useState(false);
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [eventType, setEventType] = useState<CommitteeEventType>("meeting");
-  const [location, setLocation] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [view, setView] = useState<CalendarViewMode>("week");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const reducedMotion = useReducedMotion() ?? false;
-  const viewDirection = view === "month" ? 1 : -1;
+  const [periodKey, setPeriodKey] = useState("initial");
+  const [showAdd, setShowAdd] = useState(false);
+  const [showAgendaSidebar, setShowAgendaSidebar] = useState(false);
+  const [addForm, setAddForm] = useState<CommitteeAddEventFormState>(EMPTY_ADD_EVENT_FORM);
+  const [saving, setSaving] = useState(false);
 
-  const initial = useMemo(() => initialCalendarAnchor(committee.events), [committee.events]);
-  const [year, setYear] = useState(initial.year);
-  const [month, setMonth] = useState(initial.month);
-  const [weekAnchor, setWeekAnchor] = useState(() => new Date());
-
-  const eventsByDate = useMemo(
-    () => groupEventsByDate(committee.events),
-    [committee.events],
+  const calendarEvents = useMemo(
+    () => committeeEventsToOrganizationEvents(committee.events, organizationId),
+    [committee.events, organizationId],
   );
-  const monthCells = useMemo(() => getMonthCells(year, month), [year, month]);
-  const weekDates = useMemo(() => getWeekDates(weekAnchor), [weekAnchor]);
-  const selectedEvent = committee.events.find((e) => e.id === selectedEventId) ?? null;
+  const selectedCommitteeEvent = findCommitteeEventById(committee.events, selectedEventId);
+  const canDeleteSelected =
+    selectedCommitteeEvent != null &&
+    canMemberEditItem(
+      selectedCommitteeEvent.createdByMemberId,
+      currentMemberId,
+      isAdmin,
+    );
 
   const refresh = async () => {
     const updated = await getCommittee(supabase, organizationId, committee.id);
     if (updated) onCommitteeChange(updated);
   };
 
-  const openAddModal = (prefillDate?: string) => {
-    setDate(prefillDate ?? "");
-    setTitle("");
-    setTime("");
-    setLocation("");
-    setEventType("meeting");
+  const openAddPanel = (prefillDate?: string) => {
+    if (readOnly) return;
+    setAddForm({
+      ...EMPTY_ADD_EVENT_FORM,
+      date: prefillDate ?? "",
+    });
     setShowAdd(true);
   };
 
   const handleAdd = async () => {
-    if (!title.trim() || !date) return;
+    if (!addForm.title.trim() || !addForm.date) return;
     setSaving(true);
     try {
       await createEvent(supabase, committee.id, {
-        title: title.trim(),
-        date,
-        time: time || undefined,
-        type: eventType,
-        location: location || undefined,
+        title: addForm.title.trim(),
+        date: addForm.date,
+        time: addForm.time || undefined,
+        type: addForm.eventType,
+        location: addForm.location || undefined,
+        createdByMemberId: currentMemberId,
       });
       setShowAdd(false);
+      setAddForm(EMPTY_ADD_EVENT_FORM);
       await refresh();
       adminToast.success("Event added");
     } catch (err) {
-      void reportPortalOperationalError("school_admin", {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.calendar.add_event",
         error: "",
@@ -192,7 +125,7 @@ export default function CommitteeCalendarSection({
       await refresh();
       adminToast.success("Event deleted");
     } catch (err) {
-      void reportPortalOperationalError("school_admin", {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.calendar.delete_event",
         error: "",
@@ -201,362 +134,92 @@ export default function CommitteeCalendarSection({
     }
   };
 
-  const prevMonth = () => {
-    const next = addMonths(year, month, -1);
-    setYear(next.year);
-    setMonth(next.month);
-  };
-
-  const nextMonth = () => {
-    const next = addMonths(year, month, 1);
-    setYear(next.year);
-    setMonth(next.month);
-  };
-
-  const prevWeek = () => setWeekAnchor((d) => addWeeks(d, -1));
-  const nextWeek = () => setWeekAnchor((d) => addWeeks(d, 1));
-
-  const switchView = (next: CalendarView) => {
-    setSelectedEventId(null);
-    setView(next);
-  };
-
-  const segmentButtonStyle = (active: boolean) => ({
-    backgroundColor: active ? C.surface : "transparent",
-    color: active ? C.textPrimary : C.textTertiary,
-    boxShadow: active ? "0 1px 2px rgba(0,0,0,0.06)" : undefined,
-  });
+  const handlePeriodMetaChange = useCallback(
+    (meta: { periodLabel: string; isCurrentPeriod: boolean }) => {
+      setPeriodKey(`${view}-${meta.periodLabel}`);
+    },
+    [view],
+  );
 
   return (
-    <div className="space-y-4 w-full">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div
-          className="flex items-center gap-1 rounded-md p-1"
-          style={{ backgroundColor: C.accentLight }}
-        >
-          <button
-            type="button"
-            onClick={() => switchView("month")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer"
-            style={segmentButtonStyle(view === "month")}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            Month
-          </button>
-          <button
-            type="button"
-            onClick={() => switchView("week")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer"
-            style={segmentButtonStyle(view === "week")}
-          >
-            Week
-          </button>
-        </div>
-        {!readOnly && (
-          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => openAddModal()}>
-            <Plus className="w-3.5 h-3.5" />
-            Add event
-          </AdminButton>
-        )}
-      </div>
-
-      <AnimatePresence mode="wait" initial={false}>
-      {view === "month" ? (
-        <motion.div
-          key="month"
-          className="space-y-4"
-          variants={viewSwap(reducedMotion, viewDirection)}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={committeeTransition}
-        >
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className="p-2 rounded-full transition-colors cursor-pointer hover:bg-black/5"
-              style={{ color: C.textTertiary }}
-              aria-label="Previous month"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <h3
-              className="text-base font-semibold min-w-[180px] text-center"
-              style={{ color: C.textPrimary }}
-            >
-              {formatMonthLabel(year, month)}
-            </h3>
-            <button
-              type="button"
-              onClick={nextMonth}
-              className="p-2 rounded-full transition-colors cursor-pointer hover:bg-black/5"
-              style={{ color: C.textTertiary }}
-              aria-label="Next month"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div
-            className="rounded-2xl overflow-hidden shadow-sm"
-            style={{
-              backgroundColor: C.surface,
-              border: `1px solid ${CALENDAR_LINE}`,
-            }}
-          >
-            <div className="grid grid-cols-7">
-              {DAY_NAMES.map((d) => (
-                <div
-                  key={d}
-                  className="text-center text-xs font-medium tracking-wide py-3"
-                  style={{ color: C.textTertiary }}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7">
-              {monthCells.map((day, idx) => {
-                const col = idx % 7;
-                const row = Math.floor(idx / 7);
-                const totalRows = Math.ceil(monthCells.length / 7);
-                const isLastCol = col === 6;
-                const isLastRow = row === totalRows - 1;
-                const cellBorder = {
-                  borderRight: isLastCol ? undefined : `1px solid ${CALENDAR_LINE}`,
-                  borderBottom: isLastRow ? undefined : `1px solid ${CALENDAR_LINE}`,
-                };
-
-                if (!day) {
-                  return (
-                    <div
-                      key={`empty-${idx}`}
-                      className="min-h-[128px] bg-gray-50/50"
-                      style={cellBorder}
-                    />
-                  );
-                }
-                const key = dateKey(day);
-                const dayEvents = eventsByDate.get(key) ?? [];
-                return (
-                  <div
-                    key={key}
-                    role={readOnly ? undefined : "button"}
-                    tabIndex={readOnly ? undefined : 0}
-                    onClick={readOnly ? undefined : () => openAddModal(key)}
-                    onKeyDown={
-                      readOnly
-                        ? undefined
-                        : (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              openAddModal(key);
-                            }
-                          }
-                    }
-                    className={`min-h-[128px] p-3 flex flex-col ${readOnly ? "" : "cursor-pointer hover:bg-black/[0.02] transition-colors"}`}
-                    style={{
-                      backgroundColor: C.surface,
-                      ...cellBorder,
-                    }}
-                  >
-                    <DayNumber day={day} C={C} align="right" />
-                    <div className="flex flex-col gap-1 flex-1 min-h-0">
-                      {dayEvents.slice(0, 3).map((event) => (
-                        <EventChip
-                          key={event.id}
-                          event={event}
-                          C={C}
-                          selected={selectedEventId === event.id}
-                          onClick={() => setSelectedEventId(event.id)}
-                        />
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <span className="text-[11px] px-2" style={{ color: C.textTertiary }}>
-                          +{dayEvents.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          key="week"
-          className="space-y-4"
-          variants={viewSwap(reducedMotion, -viewDirection)}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={committeeTransition}
-        >
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={prevWeek}
-              className="p-2 rounded-full transition-colors cursor-pointer hover:bg-black/5"
-              style={{ color: C.textTertiary }}
-              aria-label="Previous week"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <h3
-              className="text-base font-semibold min-w-[220px] text-center"
-              style={{ color: C.textPrimary }}
-            >
-              {formatWeekRangeLabel(weekDates)}
-            </h3>
-            <button
-              type="button"
-              onClick={nextWeek}
-              className="p-2 rounded-full transition-colors cursor-pointer hover:bg-black/5"
-              style={{ color: C.textTertiary }}
-              aria-label="Next week"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div
-            className="grid grid-cols-7 gap-px rounded-2xl overflow-hidden shadow-sm min-h-[360px]"
-            style={{ backgroundColor: CALENDAR_LINE }}
-          >
-            {weekDates.map((day) => {
-              const key = dateKey(day);
-              const dayEvents = eventsByDate.get(key) ?? [];
-              return (
-                <div
-                  key={key}
-                  role={readOnly ? undefined : "button"}
-                  tabIndex={readOnly ? undefined : 0}
-                  onClick={readOnly ? undefined : () => openAddModal(key)}
-                  onKeyDown={
-                    readOnly
-                      ? undefined
-                      : (e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            openAddModal(key);
-                          }
-                        }
-                  }
-                  className={`flex flex-col min-h-[360px] p-3 ${readOnly ? "" : "cursor-pointer hover:bg-black/[0.02] transition-colors"}`}
-                  style={{ backgroundColor: C.surface }}
-                >
-                  <div className="text-center mb-3">
-                    <p
-                      className="text-[10px] font-medium uppercase tracking-wide"
-                      style={{ color: C.textTertiary }}
-                    >
-                      {DAY_NAMES[day.getDay()]}
-                    </p>
-                    <div className="mt-1">
-                      <DayNumber day={day} C={C} align="center" size="lg" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1 flex-1">
-                    {dayEvents.map((event) => (
-                      <div key={event.id}>
-                        <EventChip
-                          event={event}
-                          C={C}
-                          selected={selectedEventId === event.id}
-                          onClick={() => setSelectedEventId(event.id)}
-                        />
-                        {event.time && (
-                          <p className="text-[10px] px-2 mt-0.5" style={{ color: C.textTertiary }}>
-                            {event.time}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      )}
-      </AnimatePresence>
-
-      <CommitteeEventDetailPanel
-        event={selectedEvent}
-        theme={theme}
-        readOnly={readOnly}
-        onClose={() => setSelectedEventId(null)}
-        onDelete={readOnly ? undefined : handleDelete}
-      />
-
-      <AnimatePresence>
-      {showAdd && (
-        <CommitteeModalShell
-          theme={theme}
-          title="Add event"
-          onClose={() => setShowAdd(false)}
-          footer={
-            <div className="flex justify-end gap-2">
-              <AdminButton theme={theme} variant="soft" onClick={() => setShowAdd(false)}>
-                Cancel
-              </AdminButton>
+    <CommitteeWorkspaceSectionFrame width="full">
+    <div className="space-y-4">
+      <ParentCard theme={theme} className="!p-3 sm:!p-4">
+        <OrganizationEventsCalendar
+          C={C}
+          events={calendarEvents}
+          view={view}
+          onViewChange={setView}
+          readOnly={readOnly}
+          variant="parent-story"
+          parentTheme={theme}
+          selectedEventId={selectedEventId}
+          onDayClick={readOnly ? undefined : (nextDate) => openAddPanel(nextDate)}
+          onEventClick={(event) => setSelectedEventId(event.id)}
+          onPeriodMetaChange={handlePeriodMetaChange}
+          toolbarExtra={
+            <div className="flex items-center gap-2">
               <AdminButton
                 theme={theme}
-                variant="primary"
-                onClick={() => void handleAdd()}
-                disabled={saving || !title.trim() || !date}
+                variant="soft"
+                size="compact"
+                onClick={() => setShowAgendaSidebar(true)}
               >
-                {saving ? "Adding…" : "Add event"}
+                <CalendarDays className="h-3.5 w-3.5" />
+                Upcoming events
               </AdminButton>
+              {!readOnly ? (
+                <AdminButton
+                  theme={theme}
+                  variant="primary"
+                  size="compact"
+                  onClick={() => openAddPanel()}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add event
+                </AdminButton>
+              ) : null}
             </div>
           }
-        >
-            <div className="space-y-3">
-              <input
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Time (optional)"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <select
-                value={eventType}
-                onChange={(e) => setEventType(e.target.value as CommitteeEventType)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              >
-                <option value="meeting">Meeting</option>
-                <option value="deadline">Deadline</option>
-                <option value="service">Service</option>
-                <option value="event">Event</option>
-              </select>
-              <input
-                placeholder="Location (optional)"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-            </div>
-        </CommitteeModalShell>
-      )}
-      </AnimatePresence>
+        />
+      </ParentCard>
+
+      <CommitteeCalendarAgendaSidebar
+        open={showAgendaSidebar}
+        theme={theme}
+        events={calendarEvents}
+        periodKey={periodKey}
+        selectedEventId={selectedEventId}
+        onEventClick={(event) => {
+          setSelectedEventId(event.id);
+          setShowAgendaSidebar(false);
+        }}
+        onClose={() => setShowAgendaSidebar(false)}
+      />
+
+      <CommitteeEventDetailPanel
+        event={selectedCommitteeEvent}
+        theme={theme}
+        readOnly={readOnly || !canDeleteSelected}
+        members={committee.members}
+        onClose={() => setSelectedEventId(null)}
+        onDelete={
+          readOnly || !canDeleteSelected
+            ? undefined
+            : (eventId) => void handleDelete(eventId)
+        }
+      />
+
+      <CommitteeAddEventPanel
+        open={showAdd}
+        theme={theme}
+        saving={saving}
+        form={addForm}
+        onChange={setAddForm}
+        onClose={() => setShowAdd(false)}
+        onSubmit={handleAdd}
+      />
     </div>
+    </CommitteeWorkspaceSectionFrame>
   );
 }

@@ -1,4 +1,5 @@
 import { assertApiAuthenticated, getApiAuthHeaders } from '@/lib/auth/auth-session';
+import { assertPreviewWriteAllowed } from '@/lib/platform-admin/preview-session-store';
 import type {
   ClassroomDetail,
   ClassroomStatus,
@@ -21,6 +22,8 @@ export async function fetchSchoolAdminApi<T>(
   path: string,
   options: FetchSchoolAdminApiOptions = {},
 ): Promise<T> {
+  assertPreviewWriteAllowed(options.method);
+
   const response = await fetch(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
     headers: await getApiAuthHeaders(options.body !== undefined),
@@ -41,6 +44,8 @@ export async function fetchSchoolAdminApiFormData<T>(
   formData: FormData,
   method: 'POST' | 'PATCH' = 'POST',
 ): Promise<T> {
+  assertPreviewWriteAllowed(method);
+
   const response = await fetch(`${siteUrl}${path}`, {
     method,
     headers: await getApiAuthHeaders(false),

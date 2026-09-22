@@ -44,19 +44,24 @@ export async function loadParentCommitteesInitialData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
-  if (input.selectedCommitteeId) {
-    try {
-      workspacesByCommitteeId[input.selectedCommitteeId] =
-        await getParentCommitteeWorkspace(
+  const workspaceIds = new Set<string>();
+  if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
+  for (const committee of myCommittees) workspaceIds.add(committee.id);
+
+  await Promise.all(
+    [...workspaceIds].map(async (committeeId) => {
+      try {
+        workspacesByCommitteeId[committeeId] = await getParentCommitteeWorkspace(
           supabase,
           input.organizationId,
           input.userId,
-          input.selectedCommitteeId,
+          committeeId,
         );
-    } catch {
-      // Workspace loads on selection when deep-link fetch fails.
-    }
-  }
+      } catch {
+        // Workspace loads on selection when preload fails.
+      }
+    }),
+  );
 
   return {
     browseCommittees,
@@ -89,18 +94,25 @@ export async function loadParentCommitteesPreviewData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
-  if (guardianUserId && input.selectedCommitteeId) {
-    try {
-      workspacesByCommitteeId[input.selectedCommitteeId] =
-        await getParentCommitteeWorkspace(
-          admin,
-          input.organizationId,
-          guardianUserId,
-          input.selectedCommitteeId,
-        );
-    } catch {
-      // Workspace loads on selection when deep-link fetch fails.
-    }
+  if (guardianUserId) {
+    const workspaceIds = new Set<string>();
+    if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
+    for (const committee of myCommittees) workspaceIds.add(committee.id);
+
+    await Promise.all(
+      [...workspaceIds].map(async (committeeId) => {
+        try {
+          workspacesByCommitteeId[committeeId] = await getParentCommitteeWorkspace(
+            admin,
+            input.organizationId,
+            guardianUserId,
+            committeeId,
+          );
+        } catch {
+          // Workspace loads on selection when preload fails.
+        }
+      }),
+    );
   }
 
   return {

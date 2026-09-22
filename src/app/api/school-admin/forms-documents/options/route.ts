@@ -39,9 +39,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load form options.",
-      code: "load_failed",
+      error: "Failed to load form options.",
       cause: error,
+      code: "load_failed",
     });
   }
 }

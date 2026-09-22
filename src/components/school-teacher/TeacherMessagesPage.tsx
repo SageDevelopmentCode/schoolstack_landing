@@ -4,7 +4,7 @@ import { Suspense, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import MessagesInboxLayout from "@/components/messages/MessagesInboxLayout";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import type { MessagesInboxData } from "@/lib/messages/types";
+import type { MessagesInboxData, PortalMessage } from "@/lib/messages/types";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 
 type TeacherMessagesPageProps = {
@@ -14,6 +14,7 @@ type TeacherMessagesPageProps = {
   branding: OrganizationBranding;
   staffMemberId: string | null;
   initialInbox?: MessagesInboxData;
+  previewThreadMessages?: Record<string, PortalMessage[]>;
   previewMode?: boolean;
 };
 
@@ -36,6 +37,7 @@ function TeacherMessagesPageContent({
   branding,
   staffMemberId,
   initialInbox,
+  previewThreadMessages,
   previewMode = false,
 }: TeacherMessagesPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
@@ -63,6 +65,7 @@ function TeacherMessagesPageContent({
           viewer: "teacher",
         }}
         initialInbox={initialInbox}
+        previewThreadMessages={previewThreadMessages}
         readOnly={previewMode}
         C={C}
         theme={theme}

@@ -156,7 +156,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to update health item.",
+      error: "Failed to update health item.",
+      cause: error,
       code: "update_failed",
     });
   }
@@ -233,7 +234,8 @@ export async function DELETE(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to delete health item.",
+      error: "Failed to delete health item.",
+      cause: error,
       code: "delete_failed",
     });
   }

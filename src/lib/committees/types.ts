@@ -18,6 +18,7 @@ export type CommitteeWorkspaceSection =
   | "tasks"
   | "messages"
   | "members"
+  | "activity"
   | "settings";
 
 export type CommitteeTaskStatus =
@@ -92,7 +93,9 @@ export type CommitteeResource = {
   storagePath?: string;
   fileName?: string;
   description?: string;
-  addedBy?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
   allowedDutyRoleIds?: string[];
 };
 
@@ -103,6 +106,9 @@ export type CommitteeEvent = {
   time?: string;
   type: CommitteeEventType;
   location?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
 };
 
 export type CommitteeTask = {
@@ -115,14 +121,28 @@ export type CommitteeTask = {
   assigneeName?: string;
   dueDate?: string;
   attachmentLabel?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
+};
+
+export type CommitteeMessageAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  storagePath?: string;
+  url?: string;
 };
 
 export type CommitteeMessage = {
   id: string;
   senderId: string;
   senderName: string;
+  senderRole?: CommitteeRole;
   text: string;
   time: string;
+  attachments?: CommitteeMessageAttachment[];
 };
 
 export type CommitteeDutyRole = {
@@ -176,6 +196,7 @@ export type CommitteeJoinRequest = {
   committeeId: string;
   userId: string;
   guardianId: string | null;
+  staffMemberId: string | null;
   preferredDutyRoleId: string | null;
   grade: string | null;
   note: string | null;
@@ -187,6 +208,9 @@ export type CommitteeJoinRequest = {
   committeeName?: string;
   guardianName?: string;
   guardianEmail?: string;
+  staffName?: string;
+  staffEmail?: string;
+  requesterType?: "parent" | "staff";
   preferredDutyRoleTitle?: string | null;
 };
 
@@ -220,6 +244,7 @@ export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string>
   tasks: "Tasks",
   messages: "Messages",
   members: "Members",
+  activity: "Activity",
   settings: "Settings",
 };
 

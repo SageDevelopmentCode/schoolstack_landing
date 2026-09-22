@@ -5,8 +5,14 @@ import {
   todayMonthYearInTimezone,
 } from "@/lib/admissions/admissions-availability";
 import { countObservationDaysInMonth } from "@/lib/admissions/admissions-observation-availability";
+import { dateKey } from "@/lib/committees/calendar-utils";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import type { AdminFeatures } from "@/lib/organization-settings/types";
+import { loadAttendanceRoster } from "@/lib/school-admin/attendance/attendance-roster";
+import type {
+  AttendanceRosterStudent,
+  AttendanceRosterSummary,
+} from "@/lib/school-admin/attendance/attendance-types";
 import {
   fetchSchoolAdminActivityNotifications,
   getActivityNotificationCategory,
@@ -33,7 +39,7 @@ import { formatShortDate } from "@/lib/admissions/application-submissions";
 
 export type DashboardFocusItem = {
   id: string;
-  icon: "application" | "schedule" | "message" | "setup";
+  icon: "application" | "schedule" | "message" | "setup" | "attendance";
   title: string;
   subtitle: string;
   href: string;
@@ -79,6 +85,11 @@ export type AdminDashboardSummary = {
   featureAnnouncements: ResolvedAdminFeatureAnnouncement[];
   messagesUnreadCount: number;
   setupComplete: boolean;
+  attendanceToday: {
+    date: string;
+    summary: AttendanceRosterSummary;
+    students: AttendanceRosterStudent[];
+  } | null;
 };
 
 export async function fetchAdminDashboardSummary(
@@ -89,12 +100,14 @@ export async function fetchAdminDashboardSummary(
   features: AdminFeatures,
   options?: { userId?: string; schoolName?: string },
 ): Promise<AdminDashboardSummary> {
+  const todayKey = dateKey(new Date());
   const [
     setupStatus,
     aggregateMetrics,
     latestSubmitted,
     activityPage,
     scheduleStats,
+    attendanceToday,
   ] = await Promise.all([
     fetchAdmissionsSetupStatus(supabase, organizationId, slug),
     features.admissions || (options?.userId && features.messages)
@@ -129,6 +142,31 @@ export async function fetchAdminDashboardSummary(
     features.schedule
       ? loadScheduleStats(supabase, organizationId)
       : Promise.resolve({ shadowDaysThisMonth: null, openSlots: null }),
+    features.my_school
+      ? loadAttendanceRoster(admin, organizationId, todayKey)
+          .then((roster) => ({
+            date: roster.date,
+            summary: roster.summary,
+            students: roster.students,
+          }))
+          .catch((err) => {
+            void reportOperationalError({
+              supabase: admin,
+              surface: "school_admin",
+              organizationId,
+              operation: "dashboard.load_attendance_roster",
+              error:
+                err instanceof Error
+                  ? err.message
+                  : "Failed to load today's attendance roster.",
+              severity: "warning",
+              notify: true,
+              actor: { type: "system" },
+              cause: err,
+            });
+            return null;
+          })
+      : Promise.resolve(null),
   ]);
 
   const setupComplete =
@@ -233,6 +271,23 @@ export async function fetchAdminDashboardSummary(
       subtitle: "Families are waiting on your response",
       href: schoolAdminPath(slug, "messages"),
       ctaLabel: "Reply →",
+    });
+  }
+
+  if (
+    features.my_school &&
+    attendanceToday &&
+    attendanceToday.summary.notMarkedCount > 0 &&
+    focusItems.length < 3
+  ) {
+    const count = attendanceToday.summary.notMarkedCount;
+    focusItems.push({
+      id: "attendance-not-marked",
+      icon: "attendance",
+      title: `Mark attendance for ${count} student${count === 1 ? "" : "s"}`,
+      subtitle: "Today's roster still has unmarked students",
+      href: schoolAdminPath(slug, "my_school", "attendance"),
+      ctaLabel: "Open →",
     });
   }
 
@@ -344,6 +399,7 @@ export async function fetchAdminDashboardSummary(
     ),
     messagesUnreadCount: resolvedMessagesUnreadCount,
     setupComplete,
+    attendanceToday,
   };
 }
 
@@ -378,6 +434,8 @@ export function activityCategoryChipTone(
       return "purple";
     case "program_signups":
       return "warning";
+    case "messages":
+      return "info";
     default:
       return "info";
   }
@@ -397,6 +455,8 @@ export function activityCategoryLabel(
       return "Community";
     case "program_signups":
       return "Program sign-ups";
+    case "messages":
+      return "Messages";
     default:
       return "School";
   }

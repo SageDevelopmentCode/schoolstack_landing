@@ -171,7 +171,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: organizationError.message,
+      error: "Failed to upload attachments.",
       cause: organizationError,
     });
   }
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: insertError?.message ?? "Failed to create support request.",
+      error: "Failed to create support request.",
       cause: insertError,
     });
   }
@@ -244,15 +244,12 @@ export async function POST(request: Request) {
         surface: "public_apply",
         organizationId: organization.id,
         operation: "apply_support_request_attachment_cleanup",
-        error:
-          cleanupError instanceof Error
-            ? cleanupError.message
-            : "Support request attachment cleanup failed.",
+        error: "Support request attachment cleanup failed.",
+      cause: cleanupError,
         entityType: "admin_support_request",
         entityId: requestId,
         notify: true,
         actor: { type: "parent", userId: user.id, email: submitterEmail },
-        cause: cleanupError,
       });
     });
 

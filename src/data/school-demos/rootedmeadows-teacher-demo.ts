@@ -1,6 +1,9 @@
-export {
+import type { SchoolTeacherDemoConfig } from "./demo-dashboard-types";
+import {
   ROOTED_MEADOWS_ADMIN_LOGO as ROOTED_MEADOWS_TEACHER_LOGO,
 } from "./rootedmeadows-admin-demo";
+
+export { ROOTED_MEADOWS_TEACHER_LOGO };
 
 export const ROOTED_MEADOWS_TEACHER_OFFICE = "Rooted Meadows Office";
 export const ROOTED_MEADOWS_TEACHER_ACCENT = "#827096";
@@ -19,3 +22,15 @@ export const ROOTED_MEADOWS_TEACHER_PROGRAM_ORDER = [
   "homeschool_drop_in",
   "farm_to_table",
 ] as const;
+
+export const rootedMeadowsTeacherDemoConfig: SchoolTeacherDemoConfig = {
+  slug: "rooted-meadows",
+  logo: ROOTED_MEADOWS_TEACHER_LOGO,
+  accent: ROOTED_MEADOWS_TEACHER_ACCENT,
+  accentHover: ROOTED_MEADOWS_TEACHER_ACCENT_HOVER,
+  programLabels: ROOTED_MEADOWS_TEACHER_PROGRAM_LABELS,
+  programOrder: ROOTED_MEADOWS_TEACHER_PROGRAM_ORDER,
+  copy: {
+    officeName: ROOTED_MEADOWS_TEACHER_OFFICE,
+  },
+};

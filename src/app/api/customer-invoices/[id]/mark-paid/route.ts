@@ -81,9 +81,9 @@ export async function POST(_request: Request, context: RouteContext) {
     if (error || !data) {
       return apiError(ROUTE, {
         status: 500,
-        error: error?.message ?? "Failed to mark invoice as paid.",
+        error: "Failed to mark invoice as paid.",
+      cause: error,
         code: "update_failed",
-        cause: error,
       });
     }
 

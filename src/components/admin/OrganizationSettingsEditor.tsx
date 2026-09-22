@@ -147,12 +147,18 @@ const compactSelectTriggerClass =
 const FEATURE_PORTALS = ["admin", "teacher", "parent", "additional"] as const;
 type FeaturePortalTab = (typeof FEATURE_PORTALS)[number];
 
+export type OrganizationSettingsEditorView =
+  | "overview"
+  | "branding"
+  | "features";
+
 type Props = {
   organizationId: string;
   organizationSlug: string;
   organizationName: string;
   initialRow: OrganizationSettingsRow | null;
   settingsLoading?: boolean;
+  view?: OrganizationSettingsEditorView;
   onSaved?: () => void | Promise<void>;
 };
 
@@ -162,6 +168,7 @@ export default function OrganizationSettingsEditor({
   organizationName,
   initialRow,
   settingsLoading = false,
+  view = "overview",
   onSaved,
 }: Props) {
   const supabase = createClient();
@@ -694,6 +701,16 @@ export default function OrganizationSettingsEditor({
     setFeatures((prev) => ({ ...prev, [key]: enabled }));
   };
 
+  const setParentHomeFeature = (key: "friday_branch", enabled: boolean) => {
+    setFeatures((prev) => ({
+      ...prev,
+      parent_home: {
+        ...(prev.parent_home ?? { friday_branch: false }),
+        [key]: enabled,
+      },
+    }));
+  };
+
   const updatePortalNavItem = (
     portal: Portal,
     key: string,
@@ -834,6 +851,7 @@ export default function OrganizationSettingsEditor({
         </div>
       ) : null}
 
+      {view === "branding" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding preview
@@ -867,7 +885,9 @@ export default function OrganizationSettingsEditor({
           </button>
         </div>
       </section>
+      ) : null}
 
+      {view === "branding" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Branding
@@ -1027,7 +1047,9 @@ export default function OrganizationSettingsEditor({
           </div>
         </CollapsibleSection>
       </section>
+      ) : null}
 
+      {view === "features" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-5">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Features
@@ -1343,6 +1365,31 @@ export default function OrganizationSettingsEditor({
                   )}
                 </div>
 
+                {portal === "parent" ? (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold text-admin-ink font-secondary">
+                      Parent home
+                    </h4>
+                    <div className="border border-admin-border rounded-admin-sm divide-y divide-border">
+                      <FeatureSettingsRow
+                        title="Friday Branch home card"
+                        subtitle="Show Friday Branch schedule summary on parent portal home (requires Friday Branch tab)"
+                        enabled={Boolean(features.parent_home?.friday_branch)}
+                        toggleDisabled={!features.parent?.friday_branch}
+                        toggleTooltip={
+                          !features.parent?.friday_branch
+                            ? "Enable the Friday Branch parent tab first"
+                            : undefined
+                        }
+                        onToggle={(checked) =>
+                          setParentHomeFeature("friday_branch", checked)
+                        }
+                        toggleLabel="Friday Branch home card"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
                 {portal === "additional" ? (
                   <div className="flex gap-2 border-t border-admin-border pt-5">
                     <input
@@ -1404,7 +1451,10 @@ export default function OrganizationSettingsEditor({
           },
         )}
       </section>
+      ) : null}
 
+      {view === "overview" ? (
+      <>
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
@@ -1439,7 +1489,10 @@ export default function OrganizationSettingsEditor({
           onChange={setOnboardingItems}
         />
       </section>
+      </>
+      ) : null}
 
+      {view === "features" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
@@ -1688,6 +1741,7 @@ export default function OrganizationSettingsEditor({
           ) : null}
         </div>
       </section>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

@@ -204,9 +204,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to send bulk messages.",
-      code: "internal_error",
+      error: "Failed to send bulk messages.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

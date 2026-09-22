@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import { mapEventRow, type CommitteeEventRow } from "./mappers";
 import type { CommitteeEvent, CommitteeEventType } from "./types";
@@ -9,6 +11,7 @@ export type CreateEventInput = {
   time?: string;
   type?: CommitteeEventType;
   location?: string;
+  createdByMemberId?: string;
 };
 
 export async function createEvent(
@@ -25,12 +28,25 @@ export async function createEvent(
       event_time: input.time ?? null,
       event_type: input.type ?? "meeting",
       location: input.location ?? null,
+      created_by_member_id: input.createdByMemberId ?? null,
     })
     .select()
     .single();
 
   if (error) throw new Error(error.message);
-  return mapEventRow(data as CommitteeEventRow);
+  const event = mapEventRow(data as CommitteeEventRow);
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
+    entityType: "committee_event",
+    entityId: event.id,
+    summary: `Calendar event "${event.title}" was added`,
+    metadata: { eventTitle: event.title, eventDate: event.date },
+    actor: input.createdByMemberId
+      ? { type: "parent", memberId: input.createdByMemberId }
+      : undefined,
+  });
+  return event;
 }
 
 export type UpdateEventInput = {
@@ -46,6 +62,14 @@ export async function updateEvent(
   eventId: string,
   input: UpdateEventInput,
 ): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("committee_events")
+    .select("committee_id, title")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.date !== undefined) patch.event_date = input.date;
@@ -59,14 +83,44 @@ export async function updateEvent(
     .eq("id", eventId);
 
   if (error) throw new Error(error.message);
+
+  if (existing?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(existing.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_UPDATED,
+      entityType: "committee_event",
+      entityId: eventId,
+      summary: `Calendar event "${String(existing.title ?? "Untitled")}" was updated`,
+      metadata: { eventTitle: existing.title ?? null, changes: input },
+    });
+  }
 }
 
 export async function deleteEvent(
   supabase: SupabaseClient,
   eventId: string,
 ): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("committee_events")
+    .select("committee_id, title")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const { error } = await supabase.from("committee_events").delete().eq("id", eventId);
   if (error) throw new Error(error.message);
+
+  if (existing?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(existing.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_DELETED,
+      entityType: "committee_event",
+      entityId: eventId,
+      summary: `Calendar event "${String(existing.title ?? "Untitled")}" was deleted`,
+      metadata: { eventTitle: existing.title ?? null },
+    });
+  }
 }
 
 export async function refreshCommitteeAfterEventChange(

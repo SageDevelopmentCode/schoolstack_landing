@@ -2,7 +2,7 @@
 
 import { createElement, useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, ClipboardCheck, FileText, HeartPulse, Users } from "lucide-react";
+import { Car, ChevronDown, ClipboardCheck, FileText, HeartPulse, Users } from "lucide-react";
 import ApplicationReadOnlyView from "@/components/admissions/ApplicationReadOnlyView";
 import EnrollmentChecklistItemReadOnlyPanel from "@/components/admissions/EnrollmentChecklistItemReadOnlyPanel";
 import StudentPhoto from "@/components/students/StudentPhoto";
@@ -30,6 +30,7 @@ import type {
 } from "@/lib/admissions/parent-portal-access";
 import ParentChildTeachersTab from "@/components/school-parent/ParentChildTeachersTab";
 import ParentChildHealthTab from "@/components/school-parent/health/ParentChildHealthTab";
+import ParentChildPickupTab from "@/components/school-parent/pickup/ParentChildPickupTab";
 import type { StudentHealthProfile } from "@/components/school-parent/health/parent-health-types";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
@@ -192,6 +193,7 @@ export default function ParentChildRecordWorkspace({
   const hasChecklist = Boolean(checklist && checklist.items.length > 0);
   const hasTeachersTab = Boolean(application.studentId);
   const hasHealthTab = Boolean(application.studentId);
+  const hasPickupTab = Boolean(application.studentId);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(application.profilePhotoUrl);
   const [photoUploading, setPhotoUploading] = useState(false);
 
@@ -284,6 +286,13 @@ export default function ParentChildRecordWorkspace({
       key: "health",
       label: "Health",
       icon: <HeartPulse className={RECORD_TAB_ICON_CLASS} aria-hidden />,
+    });
+  }
+  if (hasPickupTab) {
+    tabs.push({
+      key: "pickup",
+      label: "Authorized pickup",
+      icon: <Car className={RECORD_TAB_ICON_CLASS} aria-hidden />,
     });
   }
 
@@ -432,6 +441,16 @@ export default function ParentChildRecordWorkspace({
                 readOnly={readOnly}
                 initialProfile={initialHealthProfile}
                 onProfileChange={onHealthProfileChange}
+              />
+            ) : null}
+
+            {activeSection === "pickup" && hasPickupTab && application.studentId ? (
+              <ParentChildPickupTab
+                theme={theme}
+                organizationId={organizationId}
+                studentId={application.studentId}
+                studentFirstName={firstName}
+                readOnly={readOnly}
               />
             ) : null}
           </motion.div>

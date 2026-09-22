@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   AuthError,
@@ -20,8 +19,8 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admissions/enrollment-checklist-items/[id]";
 
@@ -42,8 +41,7 @@ type CompleteBody = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { id: instanceId } = await context.params;
 
   let body: CompleteBody;

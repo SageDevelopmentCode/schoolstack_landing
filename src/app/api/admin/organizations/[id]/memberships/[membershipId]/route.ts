@@ -83,12 +83,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update school admin access.",
-      code: "internal_error",
+      error: "Failed to update school admin access.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

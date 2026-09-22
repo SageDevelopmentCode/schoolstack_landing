@@ -13,6 +13,7 @@ import ParentCommitteesPageShell from "@/components/school-parent/committees/Par
 import ParentHomeContentLoader from "@/components/school-parent/home/ParentHomeContentLoader";
 import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageShell";
 import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
+import ParentAttendancePage from "@/components/school-parent/attendance/ParentAttendancePage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
@@ -58,6 +59,7 @@ import {
 import { createClient } from "@/utils/supabase/server";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { listFamilyChildrenForHome } from "@/lib/admissions/parent-portal-access";
+import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";
 import { listProgramCoopCurriculum } from "@/lib/admissions/program-coop-curriculum-storage";
@@ -496,6 +498,33 @@ export async function renderSchoolParentFeaturePage(
             />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (context.feature === "attendance") {
+    const admin = createAdminClient();
+    const allFamilyChildren = await listFamilyChildrenForHome(
+      supabase,
+      org.id,
+      user.id,
+    );
+    const familyChildren = programId
+      ? filterFamilyChildrenForProgramPortal(allFamilyChildren, programId)
+      : allFamilyChildren;
+    const eligibleChildren = await loadParentAttendanceEligibleChildren(
+      admin,
+      org.id,
+      features,
+      familyChildren,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentAttendancePage
+          organizationId={org.id}
+          eligibleChildren={eligibleChildren}
+        />
       </SchoolParentPageShell>
     );
   }

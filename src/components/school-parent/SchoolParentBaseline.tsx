@@ -1,8 +1,8 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import SchoolParentHeader from "@/components/school-parent/SchoolParentHeader";
 import { ParentPortalContextProvider } from "@/components/school-parent/ParentPortalContextProvider";
 import ParentToaster from "@/components/school-parent/ParentToaster";
@@ -16,6 +16,7 @@ import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { ParentPortalContextOption } from "@/lib/organization-settings/resolve-program-parent-features";
 import {
   isParentBillingPath,
+  isParentCommitteeWorkspaceOpen,
   isParentCurriculumPath,
   isParentHomePath,
   isParentMessagesPath,
@@ -88,7 +89,10 @@ function SchoolParentBaselineInner({
   initialActivityUnreadCount,
   notificationContext,
   embeddedPreview,
-}: SchoolParentBaselineProps) {
+  searchParams,
+}: SchoolParentBaselineProps & {
+  searchParams: ReturnType<typeof useSearchParams>;
+}) {
   const routerPathname = usePathname();
   const pathname = embeddedPreview?.pathname ?? routerPathname;
   const { theme, adminCompat: C } = useParentTheme();
@@ -123,7 +127,8 @@ function SchoolParentBaselineInner({
   const showHelpButton =
     isParentHelpPage(pathname, slug) &&
     !isMessagesPage &&
-    !isParentHomePath(pathname);
+    !isParentHomePath(pathname) &&
+    !isParentCommitteeWorkspaceOpen(pathname, searchParams);
   const documentationHref = parentDocumentationPath(slug, {
     previewBasePath,
     parentNavBasePath,
@@ -286,10 +291,17 @@ function SchoolParentBaselineInner({
   return <NavigationLoadingProvider>{wrappedShell}</NavigationLoadingProvider>;
 }
 
+function SchoolParentBaselineWithSearchParams(props: SchoolParentBaselineProps) {
+  const searchParams = useSearchParams();
+  return <SchoolParentBaselineInner {...props} searchParams={searchParams} />;
+}
+
 export default function SchoolParentBaseline(props: SchoolParentBaselineProps) {
   return (
     <ParentThemeProvider branding={props.branding}>
-      <SchoolParentBaselineInner {...props} />
+      <Suspense fallback={null}>
+        <SchoolParentBaselineWithSearchParams {...props} />
+      </Suspense>
     </ParentThemeProvider>
   );
 }

@@ -630,6 +630,81 @@ async function aggregateEnrolledStudentSummaries(
     });
 }
 
+function aggregateEnrolledStudentSummariesFromRows(
+  rows: Record<string, unknown>[],
+): AdminEnrolledStudentSummary[] {
+  const emptyPrimaryContacts = new Map<
+    string,
+    { name: string | null; email: string | null }
+  >();
+  const emptyTeachers = new Map<string, AssignedTeacher[]>();
+  const aggregates = new Map<string, EnrollmentAggregate>();
+
+  for (const row of rows) {
+    const aggregate = mapEnrollmentRowToAggregate(
+      row,
+      emptyPrimaryContacts,
+      emptyTeachers,
+    );
+    if (!aggregate) continue;
+
+    const studentId = aggregate.summary.id;
+    const existing = aggregates.get(studentId);
+    if (existing) {
+      aggregates.set(studentId, mergeEnrollmentAggregate(existing, aggregate));
+    } else {
+      aggregates.set(studentId, aggregate);
+    }
+  }
+
+  return [...aggregates.values()]
+    .map((aggregate) => aggregate.summary)
+    .sort((a, b) => {
+      const nameA = formatEnrolledStudentName(a);
+      const nameB = formatEnrolledStudentName(b);
+      return nameA.localeCompare(nameB);
+    });
+}
+
+export async function listFamilyEnrolledStudentsForMessageContacts(
+  supabase: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<Map<string, AdminEnrolledStudentSummary[]>> {
+  const byFamily = new Map<string, AdminEnrolledStudentSummary[]>();
+  if (familyIds.length === 0) return byFamily;
+
+  const { data, error } = await supabase
+    .from("enrollments")
+    .select(ENROLLED_ENROLLMENT_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("students.family_id", familyIds);
+
+  if (error) throw error;
+
+  const summaries = aggregateEnrolledStudentSummariesFromRows(
+    (data ?? []) as Record<string, unknown>[],
+  );
+
+  for (const summary of summaries) {
+    const list = byFamily.get(summary.familyId) ?? [];
+    list.push(summary);
+    byFamily.set(summary.familyId, list);
+  }
+
+  for (const [familyId, list] of byFamily) {
+    byFamily.set(
+      familyId,
+      [...list].sort((a, b) =>
+        formatEnrolledStudentName(a).localeCompare(formatEnrolledStudentName(b)),
+      ),
+    );
+  }
+
+  return byFamily;
+}
+
 export async function listOrgEnrolledStudents(
   supabase: SupabaseClient,
   organizationId: string,

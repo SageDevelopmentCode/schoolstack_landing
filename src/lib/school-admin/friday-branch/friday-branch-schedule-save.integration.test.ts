@@ -43,6 +43,10 @@ function buildSchedulePayload(input: {
   slotId: string;
   classId: string;
   capacity?: number | null;
+  priceCents?: number | null;
+  flyerStoragePath?: string | null;
+  flyerFileName?: string | null;
+  flyerFileSizeBytes?: number | null;
   includeClass?: boolean;
 }) {
   const includeClass = input.includeClass ?? true;
@@ -72,6 +76,10 @@ function buildSchedulePayload(input: {
                   teacher: "Ms. Test",
                   family_visible: true,
                   capacity: input.capacity ?? null,
+                  price_cents: input.priceCents ?? null,
+                  flyer_storage_path: input.flyerStoragePath ?? null,
+                  flyer_file_name: input.flyerFileName ?? null,
+                  flyer_file_size_bytes: input.flyerFileSizeBytes ?? null,
                   sort_order: 0,
                 },
               ]
@@ -215,6 +223,46 @@ describeIntegration("save_friday_branch_schedule", () => {
 
       if (classError) throw classError;
       assert.equal(classRow?.capacity, 12);
+    } finally {
+      await cleanupFridayBranchSchedule(admin, seed);
+    }
+  });
+
+  it("round-trips price and flyer metadata for unchanged class IDs", async () => {
+    const admin = createTestAdminClient();
+    const seed = await seedFridayBranchScheduleWithEnrollment(admin);
+
+    try {
+      const flyerPath = `${seed.organizationId}/classes/${seed.classId}/flyer_test.pdf`;
+      const { error: saveError } = await admin.rpc("save_friday_branch_schedule", {
+        p_organization_id: seed.organizationId,
+        p_blocks: buildSchedulePayload({
+          blockId: seed.blockId,
+          slotId: seed.slotId,
+          classId: seed.classId,
+          capacity: 10,
+          priceCents: 2500,
+          flyerStoragePath: flyerPath,
+          flyerFileName: "Art Flyer.pdf",
+          flyerFileSizeBytes: 4096,
+        }),
+      });
+
+      if (saveError) throw saveError;
+
+      const { data: classRow, error: classError } = await admin
+        .from("friday_branch_classes")
+        .select(
+          "price_cents, flyer_storage_path, flyer_file_name, flyer_file_size_bytes",
+        )
+        .eq("id", seed.classId)
+        .maybeSingle();
+
+      if (classError) throw classError;
+      assert.equal(classRow?.price_cents, 2500);
+      assert.equal(classRow?.flyer_storage_path, flyerPath);
+      assert.equal(classRow?.flyer_file_name, "Art Flyer.pdf");
+      assert.equal(classRow?.flyer_file_size_bytes, 4096);
     } finally {
       await cleanupFridayBranchSchedule(admin, seed);
     }

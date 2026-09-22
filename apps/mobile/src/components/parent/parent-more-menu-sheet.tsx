@@ -65,6 +65,14 @@ const MENU_ITEMS: {
     iconColor: '#3D6B4F',
   },
   {
+    id: 'forms-documents',
+    label: 'Forms & documents',
+    subtitle: 'View and sign school forms',
+    icon: 'document-text-outline',
+    iconBg: '#E2E8F0',
+    iconColor: '#475569',
+  },
+  {
     id: 'notifications',
     label: 'Notification settings',
     subtitle: 'Family email preferences',

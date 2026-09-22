@@ -1,5 +1,6 @@
 import {
   resolveSchoolAdminNativeRoute,
+  schoolAdminMessageThreadRoute,
   schoolAdminMessagesRoute,
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
@@ -31,16 +32,22 @@ describe('resolveSchoolAdminNativeRoute', () => {
     ).toBe(`/school-admin/${slug}/admissions/submissions/app-2`);
   });
 
-  it('maps messages, schedule, and bulletin', () => {
+  it('maps messages, schedule, bulletin, and attendance', () => {
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/messages`)).toBe(
       schoolAdminMessagesRoute(slug),
     );
+    expect(
+      resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/messages?thread=thread-1`),
+    ).toBe(schoolAdminMessageThreadRoute(slug, 'thread-1'));
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/schedule`)).toBe(
       `/school-admin/${slug}/more/schedule`,
     );
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/bulletin`)).toBe(
       `/school-admin/${slug}/more/bulletin`,
     );
+    expect(
+      resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/my_school/attendance`),
+    ).toBe(`/school-admin/${slug}/more/attendance`);
   });
 
   it('maps students routes', () => {

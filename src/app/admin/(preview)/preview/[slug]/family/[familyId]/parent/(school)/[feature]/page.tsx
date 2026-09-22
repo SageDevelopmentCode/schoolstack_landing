@@ -18,11 +18,14 @@ import {
   familyPreviewParentPath,
   listFamilyChildrenForHomeByFamilyId,
 } from "@/lib/admissions/family-preview-access";
+import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
+import { loadParentAttendancePreviewHistory } from "@/lib/parent-portal/attendance/load-parent-attendance-preview-data";
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
 import { loadParentCommitteesPreviewData } from "@/lib/committees/load-parent-committees-data";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
+import ParentAttendancePage from "@/components/school-parent/attendance/ParentAttendancePage";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import {
   loadParentClassroomSignupsPageBundle,
@@ -351,6 +354,39 @@ export default async function FamilyPreviewParentFeaturePage({
             <ParentCalendarPreviewEventsLoader organizationId={org.id} />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "attendance") {
+    const familyChildren = await listFamilyChildrenForHomeByFamilyId(
+      supabase,
+      org.id,
+      familyId,
+    );
+    const eligibleChildren = await loadParentAttendanceEligibleChildren(
+      admin,
+      org.id,
+      features,
+      familyChildren,
+    );
+    const studentIds = eligibleChildren
+      .map((child) => child.studentId)
+      .filter((studentId): studentId is string => Boolean(studentId));
+    const initialHistoryByStudentId = await loadParentAttendancePreviewHistory(
+      admin,
+      org.id,
+      studentIds,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentAttendancePage
+          organizationId={org.id}
+          eligibleChildren={eligibleChildren}
+          previewMode
+          initialHistoryByStudentId={initialHistoryByStudentId}
+        />
       </SchoolParentPageShell>
     );
   }

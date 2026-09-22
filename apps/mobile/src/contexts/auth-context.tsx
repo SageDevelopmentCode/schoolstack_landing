@@ -16,7 +16,7 @@ import { prefetchParentHome } from '@/contexts/parent-home-context';
 import { prefetchParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
 import { prefetchTeacherHome } from '@/contexts/teacher-home-context';
 import { prefetchTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-context';
-import { prefetchSchoolAdminMessagesInbox } from '@/contexts/school-admin-messages-inbox-context';
+import { prefetchSchoolAdminMessagesInbox, prefetchSchoolAdminMessagesContacts } from '@/contexts/school-admin-messages-inbox-context';
 import { prefetchSchoolAdminStudents } from '@/contexts/school-admin-students-context';
 import { prefetchSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
 import {
@@ -29,11 +29,18 @@ import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { logMobileAuthSessionRestored, logMobileAuthSignedOut } from '@/lib/mobile-activity';
+import { clearExpoPushToken } from '@/lib/push-notifications';
+import type {
+  PortalPreviewSession,
+  StartPortalPreviewInput,
+} from '@/lib/platform-admin/preview-session-types';
+import { setActivePreviewSession } from '@/lib/platform-admin/preview-session-store';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
 const SELECTED_SCHOOL_KEY = 'mobile_auth_selected_school';
 const PLATFORM_ADMIN_SESSION_KEY = 'mobile_auth_platform_admin_session';
+const PREVIEW_SESSION_KEY = 'mobile_auth_preview_session';
 
 type AuthContextValue = {
   session: Session | null;
@@ -41,9 +48,12 @@ type AuthContextValue = {
   portalType: PortalType | null;
   selectedSchool: LiveOrganization | null;
   isPlatformAdminSession: boolean;
+  previewSession: PortalPreviewSession | null;
   isLoading: boolean;
   setResolvedPortal: (portal: ResolvedPortal) => Promise<void>;
   enterSchoolAsPlatformAdmin: (school: LiveOrganization) => Promise<void>;
+  startPortalPreview: (input: StartPortalPreviewInput) => Promise<void>;
+  exitPortalPreview: () => Promise<void>;
   exitSchoolAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
   restorePortalState: () => Promise<void>;
@@ -65,6 +75,7 @@ function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
     prefetchSchoolAdminSubmissions(school.id),
     prefetchSchoolAdminStudents(school.id),
     prefetchSchoolAdminMessagesInbox(school.id, school.name),
+    prefetchSchoolAdminMessagesContacts(school.id, school.name),
   ]);
 }
 
@@ -75,7 +86,20 @@ function prefetchTeacherPortalData(school: LiveOrganization): void {
   ]);
 }
 
-async function persistPortalState(portal: ResolvedPortal, isPlatformAdminSession: boolean) {
+async function persistPreviewSession(session: PortalPreviewSession | null) {
+  if (session) {
+    await SecureStore.setItemAsync(PREVIEW_SESSION_KEY, JSON.stringify(session));
+  } else {
+    await SecureStore.deleteItemAsync(PREVIEW_SESSION_KEY);
+  }
+  setActivePreviewSession(session);
+}
+
+async function persistPortalState(
+  portal: ResolvedPortal,
+  isPlatformAdminSession: boolean,
+  previewSession: PortalPreviewSession | null = null,
+) {
   await SecureStore.setItemAsync(PORTAL_TYPE_KEY, portal.portalType);
   await SecureStore.setItemAsync(
     PLATFORM_ADMIN_SESSION_KEY,
@@ -86,13 +110,16 @@ async function persistPortalState(portal: ResolvedPortal, isPlatformAdminSession
   } else {
     await SecureStore.deleteItemAsync(SELECTED_SCHOOL_KEY);
   }
+  await persistPreviewSession(previewSession);
 }
 
 async function clearPortalState() {
+  setActivePreviewSession(null);
   await Promise.all([
     SecureStore.deleteItemAsync(PORTAL_TYPE_KEY),
     SecureStore.deleteItemAsync(SELECTED_SCHOOL_KEY),
     SecureStore.deleteItemAsync(PLATFORM_ADMIN_SESSION_KEY),
+    SecureStore.deleteItemAsync(PREVIEW_SESSION_KEY),
   ]);
 }
 
@@ -100,11 +127,13 @@ async function readPersistedPortalState(): Promise<{
   portalType: PortalType | null;
   selectedSchool: LiveOrganization | null;
   isPlatformAdminSession: boolean;
+  previewSession: PortalPreviewSession | null;
 }> {
-  const [portalType, schoolJson, platformAdminSession] = await Promise.all([
+  const [portalType, schoolJson, platformAdminSession, previewJson] = await Promise.all([
     SecureStore.getItemAsync(PORTAL_TYPE_KEY),
     SecureStore.getItemAsync(SELECTED_SCHOOL_KEY),
     SecureStore.getItemAsync(PLATFORM_ADMIN_SESSION_KEY),
+    SecureStore.getItemAsync(PREVIEW_SESSION_KEY),
   ]);
 
   let selectedSchool: LiveOrganization | null = null;
@@ -116,10 +145,22 @@ async function readPersistedPortalState(): Promise<{
     }
   }
 
+  let previewSession: PortalPreviewSession | null = null;
+  if (previewJson) {
+    try {
+      previewSession = JSON.parse(previewJson) as PortalPreviewSession;
+    } catch {
+      previewSession = null;
+    }
+  }
+
+  setActivePreviewSession(previewSession);
+
   return {
     portalType: portalType as PortalType | null,
     selectedSchool,
     isPlatformAdminSession: platformAdminSession === 'true',
+    previewSession,
   };
 }
 
@@ -130,13 +171,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [portalType, setPortalType] = useState<PortalType | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<LiveOrganization | null>(null);
   const [isPlatformAdminSession, setIsPlatformAdminSession] = useState(false);
+  const [previewSession, setPreviewSession] = useState<PortalPreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setActivePreviewSession(previewSession);
+  }, [previewSession]);
 
   const restorePortalState = useCallback(async () => {
     const persisted = await readPersistedPortalState();
     setPortalType(persisted.portalType);
     setSelectedSchool(persisted.selectedSchool);
     setIsPlatformAdminSession(persisted.isPlatformAdminSession);
+    setPreviewSession(persisted.previewSession);
+
+    if (persisted.previewSession) {
+      return;
+    }
 
     if (persisted.portalType === 'parent' && persisted.selectedSchool) {
       prefetchParentPortalData(persisted.selectedSchool);
@@ -194,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPortalType(null);
         setSelectedSchool(null);
         setIsPlatformAdminSession(false);
+        setPreviewSession(null);
         void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
         return;
       }
@@ -214,7 +266,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(portal.portalType);
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(platformAdminSession);
-    await persistPortalState(portal, platformAdminSession);
+    setActivePreviewSession(null);
+    setPreviewSession(null);
+    await persistPortalState(portal, platformAdminSession, null);
 
     if (portal.portalType === 'parent' && portal.school) {
       prefetchParentPortalData(portal.school);
@@ -237,11 +291,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(portal.portalType);
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(true);
-    await persistPortalState(portal, true);
+    setActivePreviewSession(null);
+    setPreviewSession(null);
+    await persistPortalState(portal, true, null);
     prefetchSchoolAdminPortalData(school);
   }, []);
 
+  const startPortalPreview = useCallback(async (input: StartPortalPreviewInput) => {
+    const session: PortalPreviewSession = {
+      portal: input.portal,
+      organizationId: input.organizationId,
+      slug: input.slug,
+      subjectLabel: input.subjectLabel,
+      membershipId: input.membershipId,
+      staffMemberId: input.staffMemberId,
+      familyId: input.familyId,
+    };
+    const portal: ResolvedPortal = {
+      portalType: input.portal,
+      school: input.school,
+    };
+
+    setActivePreviewSession(session);
+    setPortalType(portal.portalType);
+    setSelectedSchool(portal.school);
+    setIsPlatformAdminSession(true);
+    setPreviewSession(session);
+    await persistPortalState(portal, true, session);
+
+    if (input.portal === 'parent') {
+      prefetchParentPortalData(input.school);
+    } else if (input.portal === 'school_admin') {
+      prefetchSchoolAdminPortalData(input.school);
+    } else if (input.portal === 'teacher') {
+      prefetchTeacherPortalData(input.school);
+    }
+  }, []);
+
+  const exitPortalPreview = useCallback(async () => {
+    const portal: ResolvedPortal = {
+      portalType: 'platform_admin',
+      school: null,
+    };
+    setPortalType(portal.portalType);
+    setSelectedSchool(null);
+    setIsPlatformAdminSession(true);
+    setActivePreviewSession(null);
+    setPreviewSession(null);
+    await persistPortalState(portal, true, null);
+    await clearAllPersistedPortalCaches();
+  }, []);
+
   const exitSchoolAdmin = useCallback(async () => {
+    if (previewSession) {
+      await exitPortalPreview();
+      return;
+    }
+
     const portal: ResolvedPortal = {
       portalType: 'platform_admin',
       school: null,
@@ -249,15 +355,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPortalType(portal.portalType);
     setSelectedSchool(portal.school);
     setIsPlatformAdminSession(true);
-    await persistPortalState(portal, true);
-  }, []);
+    setActivePreviewSession(null);
+    setPreviewSession(null);
+    await persistPortalState(portal, true, null);
+  }, [exitPortalPreview, previewSession]);
 
   const signOut = useCallback(async () => {
     void logMobileAuthSignedOut(portalType, selectedSchool?.id);
+    await clearExpoPushToken();
     await supabase.auth.signOut();
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
+    setActivePreviewSession(null);
+    setPreviewSession(null);
     await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
   }, [portalType, selectedSchool?.id, supabase.auth]);
 
@@ -268,9 +379,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       portalType,
       selectedSchool,
       isPlatformAdminSession,
+      previewSession,
       isLoading,
       setResolvedPortal,
       enterSchoolAsPlatformAdmin,
+      startPortalPreview,
+      exitPortalPreview,
       exitSchoolAdmin,
       signOut,
       restorePortalState,
@@ -281,9 +395,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       portalType,
       selectedSchool,
       isPlatformAdminSession,
+      previewSession,
       isLoading,
       setResolvedPortal,
       enterSchoolAsPlatformAdmin,
+      startPortalPreview,
+      exitPortalPreview,
       exitSchoolAdmin,
       signOut,
       restorePortalState,

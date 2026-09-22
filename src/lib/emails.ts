@@ -1179,7 +1179,7 @@ export function buildCommitteeJoinRequestAdminNotificationHtml(payload: {
     preheader: `${payload.guardianName} requested to join ${payload.committeeName}.`,
     contentHtml: `
       ${emailBadge("Committee Join Request")}
-      ${emailHeading("A parent requested to join a committee")}
+      ${emailHeading("A member requested to join a committee")}
       ${emailParagraph(
         `${escapeHtml(payload.guardianName)} requested to join ${escapeHtml(payload.committeeName)} at ${escapeHtml(payload.schoolName)}. Review the request in your committees dashboard.`,
       )}
@@ -1424,6 +1424,117 @@ export async function sendCommitteeJoinRequestAdminNotification(payload: {
   if (!result.success) {
     console.error(
       "Committee join request admin notification email failed:",
+      result.error,
+    );
+  }
+}
+
+export function buildCommitteeTaskAssignedNotificationHtml(payload: {
+  schoolName: string;
+  committeeName: string;
+  taskTitle: string;
+  dueDateLabel?: string | null;
+  assignerName: string;
+  tasksUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Committee", value: payload.committeeName },
+    { label: "Task", value: payload.taskTitle },
+    { label: "Assigned by", value: payload.assignerName },
+  ];
+
+  if (payload.dueDateLabel?.trim()) {
+    details.push({ label: "Due date", value: payload.dueDateLabel.trim() });
+  }
+
+  return composeEmail({
+    preheader: `${payload.assignerName} assigned "${payload.taskTitle}" to you.`,
+    contentHtml: `
+      ${emailBadge("Committee Task")}
+      ${emailHeading("A committee task was assigned to you")}
+      ${emailParagraph(
+        `${escapeHtml(payload.assignerName)} assigned ${escapeHtml(payload.taskTitle)} on ${escapeHtml(payload.committeeName)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View task", href: payload.tasksUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeTaskAssignedNotification(payload: {
+  email: string;
+  schoolName: string;
+  committeeName: string;
+  taskTitle: string;
+  dueDateLabel?: string | null;
+  assignerName: string;
+  tasksUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildCommitteeTaskAssignedNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Task assigned — ${payload.committeeName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error(
+      "Committee task assigned notification email failed:",
+      result.error,
+    );
+  }
+}
+
+export function buildCommitteeJoinApprovedNotificationHtml(payload: {
+  schoolName: string;
+  committeeName: string;
+  memberName: string;
+  committeesUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Committee", value: payload.committeeName },
+    { label: "Member", value: payload.memberName },
+  ];
+
+  return composeEmail({
+    preheader: `You're approved to join ${payload.committeeName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Approved")}
+      ${emailHeading("Your committee request was approved")}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} approved your request to join ${escapeHtml(payload.committeeName)}. You can open your committee workspace in the portal anytime.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Open committee", href: payload.committeesUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeJoinApprovedNotification(payload: {
+  email: string;
+  schoolName: string;
+  committeeName: string;
+  memberName: string;
+  committeesUrl: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildCommitteeJoinApprovedNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Committee approved — ${payload.committeeName}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error(
+      "Committee join approved notification email failed:",
       result.error,
     );
   }
