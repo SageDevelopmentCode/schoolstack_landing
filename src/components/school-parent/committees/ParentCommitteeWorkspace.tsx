@@ -6,16 +6,23 @@ import type { Committee } from "@/lib/committees/types";
 import { parseCommitteeSection } from "@/components/school-admin/committees/committee-routing";
 import ParentCommitteeWorkspaceShell from "@/components/school-parent/committees/ParentCommitteeWorkspaceShell";
 import ParentCommitteeWorkspaceSkeleton from "@/components/school-parent/committees/ParentCommitteeWorkspaceSkeleton";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { createClient } from "@/utils/supabase/client";
-import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import {
+  reportPortalOperationalError,
+  type PortalOperationalSurface,
+} from "@/lib/portal-operational-errors";
 
 type ParentCommitteeWorkspaceProps = {
   committeeId: string;
   organizationId: string;
+  schoolSlug: string;
   theme: ParentThemeTokens;
   activeSection: string;
   initialCommittee?: Committee;
   previewMode?: boolean;
+  apiNamespace?: CommitteesApiNamespace;
+  operationalSurface?: PortalOperationalSurface;
   onSectionChange: (section: string) => void;
   onBack: () => void;
 };
@@ -23,10 +30,13 @@ type ParentCommitteeWorkspaceProps = {
 export default function ParentCommitteeWorkspace({
   committeeId,
   organizationId,
+  schoolSlug,
   theme,
   activeSection,
   initialCommittee,
   previewMode = false,
+  apiNamespace = "parent-portal",
+  operationalSurface = "parent_portal",
   onSectionChange,
   onBack,
 }: ParentCommitteeWorkspaceProps) {
@@ -75,7 +85,7 @@ export default function ParentCommitteeWorkspace({
       let res: Response | undefined;
       try {
         const params = new URLSearchParams({ organizationId });
-        res = await fetch(`/api/parent-portal/committees/${committeeId}?${params}`);
+        res = await fetch(`/api/${apiNamespace}/committees/${committeeId}?${params}`);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           throw new Error(data.error ?? "Failed to load committee.");
@@ -86,7 +96,7 @@ export default function ParentCommitteeWorkspace({
           setError(err instanceof Error ? err.message : "Failed to load committee.");
           setCommittee(null);
           void reportPortalOperationalError(
-            "parent_portal",
+            operationalSurface,
             {
               organizationId,
               operation: "committees.load_workspace",
@@ -103,7 +113,7 @@ export default function ParentCommitteeWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [committeeId, organizationId, initialCommittee, previewMode]);
+  }, [apiNamespace, committeeId, initialCommittee, operationalSurface, organizationId, previewMode]);
 
   if (loading) {
     return <ParentCommitteeWorkspaceSkeleton theme={theme} variant="workspace" />;
@@ -125,12 +135,14 @@ export default function ParentCommitteeWorkspace({
       theme={theme}
       supabase={supabase}
       organizationId={organizationId}
+      schoolSlug={schoolSlug}
       activeSection={parseCommitteeSection(activeSection)}
       onSectionChange={onSectionChange}
       onBack={onBack}
       onCommitteeChange={setCommittee}
       currentMemberId={currentMemberId}
       previewMode={previewMode}
+      portalApiNamespace={apiNamespace}
       backLabel="My committees"
     />
   );

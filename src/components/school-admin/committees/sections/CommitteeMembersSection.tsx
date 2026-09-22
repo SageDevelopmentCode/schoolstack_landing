@@ -9,6 +9,7 @@ import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import type { Committee, CommitteeDutyRole, CommitteeRole } from "@/lib/committees/types";
+import { COMMITTEE_ASSIGNABLE_ROLE_OPTIONS, COMMITTEE_ROLE_LABELS } from "@/lib/committees/committee-role-labels";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
@@ -19,13 +20,6 @@ import CommitteeModalShell from "@/components/school-admin/committees/CommitteeM
 import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
-
-const ROLE_LABELS: Record<CommitteeRole, string> = {
-  member: "Member",
-  lead: "Lead",
-  faculty_liaison: "Faculty liaison",
-  admin: "Admin",
-};
 
 function DutyRoleReadOnlyCard({
   role,
@@ -201,7 +195,7 @@ export default function CommitteeMembersSection({
                     {member.name}
                   </p>
                   <AdminChip theme={theme} tone="purple">
-                    {ROLE_LABELS[member.role]}
+                    {COMMITTEE_ROLE_LABELS[member.role]}
                   </AdminChip>
                   {showGrade && member.grade && (
                     <span className="text-[10px]" style={{ color: theme.muted }}>
@@ -240,7 +234,7 @@ export default function CommitteeMembersSection({
       </div>
       )}
 
-      {readOnly && committee.dutyRoles.length > 0 ? (
+      {committee.dutyRoles.length > 0 ? (
         <div className="space-y-3 border-t pt-6" style={{ borderColor: theme.line }}>
           <AdminDisplayHeading theme={theme} as="h3" size="section">
             Duty roles
@@ -306,9 +300,9 @@ export default function CommitteeMembersSection({
                 className="w-full px-3 py-2 text-sm rounded-lg border"
                 style={inputStyle}
               >
-                {Object.entries(ROLE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                {COMMITTEE_ASSIGNABLE_ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

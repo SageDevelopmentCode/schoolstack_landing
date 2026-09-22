@@ -164,6 +164,7 @@ const TEACHER_ICON_DEFAULTS: Record<string, string> = {
   feed: "megaphone",
   payroll: "wallet",
   forms_documents: "file-text",
+  committees: "heart",
 };
 
 const PARENT_ICON_DEFAULTS: Record<string, string> = {

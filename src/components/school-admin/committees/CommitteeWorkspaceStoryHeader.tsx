@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Activity,
   BookOpen,
   CalendarDays,
   CheckSquare,
@@ -35,6 +36,7 @@ const SECTION_ICONS: Record<CommitteeWorkspaceSection, LucideIcon> = {
   tasks: CheckSquare,
   messages: MessageCircle,
   members: Users,
+  activity: Activity,
   settings: Settings,
 };
 

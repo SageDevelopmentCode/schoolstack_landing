@@ -15,6 +15,7 @@ import type { LucideIcon } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CommitteeWorkspaceSidePanel } from "@/components/school-admin/committees/CommitteeWorkspaceStoryHeader";
 import CommitteeWorkspaceLayout from "@/components/school-admin/committees/CommitteeWorkspaceLayout";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import ParentCommitteeWorkspaceSkeleton from "@/components/school-parent/committees/ParentCommitteeWorkspaceSkeleton";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
@@ -79,14 +80,17 @@ function renderSectionContent(
     theme: ParentThemeTokens;
     supabase: SupabaseClient;
     organizationId: string;
+    schoolSlug: string;
     onCommitteeChange: (committee: Committee) => void;
     currentMemberId?: string;
     isAdmin: boolean;
+    portalApiNamespace: CommitteesApiNamespace;
+    activitySurface: "parent" | "teacher";
     canWrite: boolean;
     onNavigate: (section: CommitteeWorkspaceSection) => void;
   },
 ) {
-  const { committee, theme, canWrite, onNavigate, ...rest } = sectionProps;
+  const { committee, theme, canWrite, onNavigate, activitySurface, ...rest } = sectionProps;
 
   switch (section) {
     case "home":
@@ -94,6 +98,9 @@ function renderSectionContent(
         <CommitteeHomeSection
           committee={committee}
           theme={theme}
+          organizationId={sectionProps.organizationId}
+          schoolSlug={sectionProps.schoolSlug}
+          activitySurface={activitySurface}
           onNavigate={onNavigate}
         />
       );
@@ -121,6 +128,7 @@ export default function ParentCommitteeWorkspaceShell({
   theme,
   supabase,
   organizationId,
+  schoolSlug,
   activeSection,
   onSectionChange,
   onBack,
@@ -128,11 +136,13 @@ export default function ParentCommitteeWorkspaceShell({
   currentMemberId,
   previewMode = false,
   backLabel = "My committees",
+  portalApiNamespace = "parent-portal",
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
+  schoolSlug: string;
   activeSection: CommitteeWorkspaceSection;
   onSectionChange: (section: CommitteeWorkspaceSection) => void;
   onBack?: () => void;
@@ -140,7 +150,10 @@ export default function ParentCommitteeWorkspaceShell({
   currentMemberId?: string;
   previewMode?: boolean;
   backLabel?: string;
+  portalApiNamespace?: CommitteesApiNamespace;
 }) {
+  const activitySurface: "parent" | "teacher" =
+    portalApiNamespace === "teacher-portal" ? "teacher" : "parent";
   const sections = committee.config.sections.filter(
     (section): section is CommitteeWorkspaceSection =>
       PARENT_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
@@ -201,9 +214,12 @@ export default function ParentCommitteeWorkspaceShell({
     theme,
     supabase,
     organizationId,
+    schoolSlug,
     onCommitteeChange,
     currentMemberId,
     isAdmin: false,
+    portalApiNamespace,
+    activitySurface,
     canWrite,
     onNavigate: handleSectionChange,
   };

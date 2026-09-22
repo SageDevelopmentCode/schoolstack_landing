@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import { mapTaskRow, type CommitteeTaskRow } from "./mappers";
 import type { CommitteeTask, CommitteeTaskStatus } from "./types";
@@ -36,7 +38,19 @@ export async function createTask(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapTaskRow(data as CommitteeTaskRow, []);
+  const task = mapTaskRow(data as CommitteeTaskRow, []);
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+    entityType: "committee_task",
+    entityId: task.id,
+    summary: `Task "${task.title}" was created`,
+    metadata: { taskTitle: task.title, taskStatus: task.status },
+    actor: input.createdByMemberId
+      ? { type: "parent", memberId: input.createdByMemberId }
+      : undefined,
+  });
+  return task;
 }
 
 export type UpdateTaskInput = {
@@ -54,6 +68,14 @@ export async function updateTask(
   taskId: string,
   input: UpdateTaskInput,
 ): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("committee_tasks")
+    .select("committee_id, title")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.description !== undefined) patch.description = input.description;
@@ -73,14 +95,47 @@ export async function updateTask(
     .eq("id", taskId);
 
   if (error) throw new Error(error.message);
+
+  if (existing?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(existing.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_TASK_UPDATED,
+      entityType: "committee_task",
+      entityId: taskId,
+      summary: `Task "${String(existing.title ?? "Untitled")}" was updated`,
+      metadata: {
+        taskTitle: existing.title ?? null,
+        changes: input,
+      },
+    });
+  }
 }
 
 export async function deleteTask(
   supabase: SupabaseClient,
   taskId: string,
 ): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("committee_tasks")
+    .select("committee_id, title")
+    .eq("id", taskId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const { error } = await supabase.from("committee_tasks").delete().eq("id", taskId);
   if (error) throw new Error(error.message);
+
+  if (existing?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(existing.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_TASK_DELETED,
+      entityType: "committee_task",
+      entityId: taskId,
+      summary: `Task "${String(existing.title ?? "Untitled")}" was deleted`,
+      metadata: { taskTitle: existing.title ?? null },
+    });
+  }
 }
 
 export async function refreshCommitteeAfterTaskChange(

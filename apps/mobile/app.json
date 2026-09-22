@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.mudkitchen.schoolstack.mobile",
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "package": "com.mudkitchen.schoolstack.mobile",
@@ -32,7 +32,7 @@
         {
           "backgroundColor": "#F7F1E7",
           "image": "./assets/images/logo.png",
-          "imageWidth": 80
+          "imageWidth": 140
         }
       ],
       [

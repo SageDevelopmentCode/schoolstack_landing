@@ -18,6 +18,7 @@ export type CommitteeWorkspaceSection =
   | "tasks"
   | "messages"
   | "members"
+  | "activity"
   | "settings";
 
 export type CommitteeTaskStatus =
@@ -185,6 +186,7 @@ export type CommitteeJoinRequest = {
   committeeId: string;
   userId: string;
   guardianId: string | null;
+  staffMemberId: string | null;
   preferredDutyRoleId: string | null;
   grade: string | null;
   note: string | null;
@@ -196,6 +198,9 @@ export type CommitteeJoinRequest = {
   committeeName?: string;
   guardianName?: string;
   guardianEmail?: string;
+  staffName?: string;
+  staffEmail?: string;
+  requesterType?: "parent" | "staff";
   preferredDutyRoleTitle?: string | null;
 };
 
@@ -229,6 +234,7 @@ export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string>
   tasks: "Tasks",
   messages: "Messages",
   members: "Members",
+  activity: "Activity",
   settings: "Settings",
 };
 

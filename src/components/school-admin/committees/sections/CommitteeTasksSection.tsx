@@ -24,6 +24,7 @@ import CommitteeTaskDetailPanel, {
   type CommitteeTaskFormData,
   type CommitteeTaskPanelState,
 } from "@/components/school-admin/committees/sections/CommitteeTaskDetailPanel";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
@@ -45,6 +46,34 @@ function panelStatesEqual(
   return false;
 }
 
+async function notifyTaskAssignment(input: {
+  taskId: string;
+  organizationId: string;
+  previousAssigneeMemberId?: string | null;
+  portalApiNamespace: CommitteesApiNamespace | "school-admin";
+}) {
+  const route =
+    input.portalApiNamespace === "school-admin"
+      ? `/api/school-admin/committees/tasks/${input.taskId}/notify-assignment`
+      : `/api/${input.portalApiNamespace}/committees/tasks/${input.taskId}/notify-assignment`;
+
+  const response = await fetch(route, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      organizationId: input.organizationId,
+      previousAssigneeMemberId: input.previousAssigneeMemberId ?? null,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as
+      | { error?: string }
+      | null;
+    throw new Error(payload?.error ?? "Failed to notify task assignee.");
+  }
+}
+
 export default function CommitteeTasksSection({
   committee,
   theme,
@@ -54,6 +83,7 @@ export default function CommitteeTasksSection({
   readOnly = false,
   currentMemberId,
   isAdmin = true,
+  portalApiNamespace = "parent-portal",
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -63,6 +93,7 @@ export default function CommitteeTasksSection({
   readOnly?: boolean;
   currentMemberId?: string;
   isAdmin?: boolean;
+  portalApiNamespace?: CommitteesApiNamespace | "school-admin";
 }) {
   const [panelState, setPanelState] = useState<CommitteeTaskPanelState | null>(null);
   const [pendingPanelState, setPendingPanelState] =
@@ -124,9 +155,11 @@ export default function CommitteeTasksSection({
   const handleSave = async (data: CommitteeTaskFormData) => {
     if (readOnly) return;
     setSaving(true);
+    const previousAssigneeMemberId = selectedTask?.assigneeId ?? null;
+    let savedTaskId: string | null = null;
     try {
       if (panelState?.mode === "create") {
-        await createTask(supabase, committee.id, {
+        const created = await createTask(supabase, committee.id, {
           title: data.title.trim(),
           description: data.description.trim() || undefined,
           group: data.group,
@@ -135,6 +168,7 @@ export default function CommitteeTasksSection({
           dueDate: data.dueDate || undefined,
           createdByMemberId: currentMemberId,
         });
+        savedTaskId = created.id;
         adminToast.success("Task added");
       } else if (panelState?.mode === "edit" && selectedTask) {
         await updateTask(supabase, selectedTask.id, {
@@ -145,10 +179,30 @@ export default function CommitteeTasksSection({
           assigneeMemberId: data.assigneeMemberId,
           dueDate: data.dueDate || null,
         });
+        savedTaskId = selectedTask.id;
         adminToast.success("Task updated");
       }
       closePanel();
       await refresh();
+      if (savedTaskId) {
+        void notifyTaskAssignment({
+          taskId: savedTaskId,
+          organizationId,
+          previousAssigneeMemberId:
+            panelState?.mode === "edit" ? previousAssigneeMemberId : null,
+          portalApiNamespace: isAdmin ? "school-admin" : portalApiNamespace,
+        }).catch((err) => {
+          void reportPortalOperationalError(
+            committeeOperationalSurface(isAdmin),
+            {
+              organizationId,
+              operation: "committees.tasks.notify_assignment",
+              error: "",
+            },
+            err,
+          );
+        });
+      }
     } catch (err) {
       adminToast.error(
         formatActionError(

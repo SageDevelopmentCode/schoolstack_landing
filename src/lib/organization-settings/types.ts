@@ -61,6 +61,7 @@ export type TeacherFeatures = {
   feed: boolean;
   payroll: boolean;
   forms_documents: boolean;
+  committees: boolean;
 };
 
 export type ParentFeatures = {

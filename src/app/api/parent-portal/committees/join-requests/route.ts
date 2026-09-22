@@ -91,6 +91,7 @@ export async function POST(request: Request) {
       organizationId,
       committeeId,
       userId: user.id,
+      requesterType: "parent",
       guardianId: guardian.id,
       guardianName: guardian.displayName,
       guardianEmail: guardian.email,

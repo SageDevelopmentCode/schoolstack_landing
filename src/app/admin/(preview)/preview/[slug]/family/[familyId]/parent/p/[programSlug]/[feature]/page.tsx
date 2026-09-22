@@ -10,6 +10,7 @@ import ParentHomePageShell from "@/components/school-parent/home/ParentHomePageS
 import { fetchParentFeatureAnnouncements } from "@/lib/parent-portal/parent-feature-announcements";
 import ParentHomePreviewContentLoader from "@/components/school-parent/home/ParentHomePreviewContentLoader";
 import ParentMessagesPage from "@/components/school-parent/ParentMessagesPage";
+import ParentAttendancePage from "@/components/school-parent/attendance/ParentAttendancePage";
 import ParentChildrenPage from "@/components/school-parent/ParentChildrenPage";
 import ParentCurriculumPage from "@/components/school-parent/curriculum/ParentCurriculumPage";
 import ParentSupplyListPage from "@/components/school-parent/supply-list/ParentSupplyListPage";
@@ -46,6 +47,7 @@ import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
+import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -279,6 +281,34 @@ export default async function FamilyPreviewProgramParentFeaturePage({
             />
           </Suspense>
         </ParentCalendarPageShell>
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "attendance") {
+    const allFamilyChildren = await listFamilyChildrenForHomeByFamilyId(
+      admin,
+      org.id,
+      familyId,
+    );
+    const familyChildren = filterFamilyChildrenForProgramPortal(
+      allFamilyChildren,
+      programContext.programId,
+    );
+    const eligibleChildren = await loadParentAttendanceEligibleChildren(
+      admin,
+      org.id,
+      programContext.effectiveFeatures,
+      familyChildren,
+    );
+
+    return (
+      <SchoolParentPageShell title={pageName}>
+        <ParentAttendancePage
+          organizationId={org.id}
+          eligibleChildren={eligibleChildren}
+          previewMode
+        />
       </SchoolParentPageShell>
     );
   }

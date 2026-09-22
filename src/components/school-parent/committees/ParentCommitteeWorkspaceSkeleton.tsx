@@ -56,14 +56,33 @@ function CalendarSectionSkeleton({ theme }: { theme: ParentThemeTokens }) {
 }
 
 function MessagesSectionSkeleton({ theme }: { theme: ParentThemeTokens }) {
+  const bubbles: Array<{ align: "left" | "right"; width: string }> = [
+    { align: "left", width: "w-[58%]" },
+    { align: "right", width: "w-[44%]" },
+    { align: "left", width: "w-[48%]" },
+    { align: "right", width: "w-[36%]" },
+    { align: "left", width: "w-[52%]" },
+  ];
+
   return (
     <ParentCard theme={theme} className="!overflow-hidden !p-0">
-      <div className="space-y-3 p-4 sm:p-5">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <ParentSkeletonBlock key={index} theme={theme} className="h-16 w-full rounded-xl" />
+      <div className="space-y-2 p-3 sm:p-4" aria-busy="true" aria-label="Loading messages">
+        {bubbles.map((bubble, index) => (
+          <div
+            key={index}
+            className={`flex items-start gap-2 ${
+              bubble.align === "right" ? "flex-row-reverse" : ""
+            }`}
+          >
+            <ParentSkeletonBlock theme={theme} className="h-8 w-8 shrink-0 rounded-full" />
+            <ParentSkeletonBlock
+              theme={theme}
+              className={`h-12 ${bubble.width} rounded-2xl`}
+            />
+          </div>
         ))}
       </div>
-      <div className="border-t p-4 sm:p-5" style={{ borderColor: theme.line }}>
+      <div className="border-t p-3" style={{ borderColor: theme.line }}>
         <ParentSkeletonBlock theme={theme} className="h-10 w-full rounded-lg" />
       </div>
     </ParentCard>

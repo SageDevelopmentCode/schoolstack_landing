@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { ParentPlaceholderScreen } from '@/components/parent/parent-placeholder-screen';
+import { ParentAttendanceScreen } from '@/components/parent/attendance/parent-attendance-screen';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function ParentAttendanceRoute() {
@@ -9,12 +9,5 @@ export default function ParentAttendanceRoute() {
 
   if (!slug || !selectedSchool) return null;
 
-  return (
-    <ParentPlaceholderScreen
-      slug={slug}
-      schoolName={selectedSchool.name}
-      title="Attendance"
-      description="View your children's attendance history — coming soon in the mobile app."
-    />
-  );
+  return <ParentAttendanceScreen slug={slug} organizationId={selectedSchool.id} />;
 }

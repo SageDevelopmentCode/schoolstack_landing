@@ -22,7 +22,10 @@ import {
 } from "@/lib/school-admin/admin-committee-roster-metrics";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
+import CommitteeActivityFeed from "@/components/school-admin/committees/CommitteeActivityFeed";
+import CommitteeActivityFeedSkeleton from "@/components/school-admin/committees/CommitteeActivityFeedSkeleton";
 import CommitteeListView from "./CommitteeListView";
 import CommitteeWorkspaceShell from "./CommitteeWorkspaceShell";
 import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
@@ -31,6 +34,7 @@ import CommitteeStoryFilterPill from "./committee-story-filter-pill";
 import CreateCommitteeModal from "./modals/CreateCommitteeModal";
 import ArchiveCommitteeModal from "./modals/ArchiveCommitteeModal";
 import { parseCommitteeSection } from "./committee-routing";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
 import SchoolAdminSummaryCardsSkeleton from "@/components/school-admin/skeletons/SchoolAdminSummaryCardsSkeleton";
 
 type CommitteesPageProps = {
@@ -65,6 +69,8 @@ export default function CommitteesPage({
   const [showArchive, setShowArchive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [orgActivityItems, setOrgActivityItems] = useState<CommitteeActivityItem[]>([]);
+  const [loadingOrgActivity, setLoadingOrgActivity] = useState(false);
   const [rosterFilter, setRosterFilter] = useState<CommitteeRosterFilter>("all");
 
   const loadList = useCallback(async () => {
@@ -126,6 +132,41 @@ export default function CommitteesPage({
       cancelled = true;
     };
   }, [organizationId]);
+
+  useEffect(() => {
+    if (committeeId) return;
+
+    let cancelled = false;
+    (async () => {
+      setLoadingOrgActivity(true);
+      try {
+        const params = new URLSearchParams({
+          organizationId,
+          slug,
+          limit: "12",
+        });
+        const res = await fetch(`/api/school-admin/committees/activity?${params}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? "Failed to load activity.");
+        }
+        if (!cancelled) setOrgActivityItems(data.items ?? []);
+      } catch (err) {
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "committees.activity.org_load",
+          error: "",
+        }, err);
+        if (!cancelled) setOrgActivityItems([]);
+      } finally {
+        if (!cancelled) setLoadingOrgActivity(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [committeeId, organizationId, slug]);
 
   const loadPendingRequestCount = useCallback(async () => {
     try {
@@ -216,6 +257,11 @@ export default function CommitteesPage({
 
   const handleSectionChange = (section: string) => {
     if (committeeId) setUrl(committeeId, section);
+  };
+
+  const handleOpenCommitteeActivity = (item: CommitteeActivityItem) => {
+    if (!item.committeeId) return;
+    setUrl(item.committeeId, "activity");
   };
 
   const handleCreate = async (input: {
@@ -438,6 +484,22 @@ export default function CommitteesPage({
                 onChanged={loadPendingRequestCount}
               />
             </div>
+
+            {showMetrics ? (
+              <AdminCard theme={theme} padding="default" className="mt-6">
+                {loadingOrgActivity ? (
+                  <CommitteeActivityFeedSkeleton theme={theme} rowCount={6} />
+                ) : (
+                  <CommitteeActivityFeed
+                    theme={theme}
+                    items={orgActivityItems}
+                    showCommitteeName
+                    title="Recent activity across committees"
+                    onItemClick={handleOpenCommitteeActivity}
+                  />
+                )}
+              </AdminCard>
+            ) : null}
           </div>
         </div>
       </div>

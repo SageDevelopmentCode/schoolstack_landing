@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import { mapMessageRow, type CommitteeMessageRow } from "./mappers";
 import type { CommitteeMessage } from "./types";
@@ -37,7 +39,21 @@ export async function postMessage(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapMessageRow(data as CommitteeMessageRow, []);
+  const message = mapMessageRow(data as CommitteeMessageRow, []);
+  const preview =
+    body.trim().length > 80 ? `${body.trim().slice(0, 77)}…` : body.trim();
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+    entityType: "committee_message",
+    entityId: message.id,
+    summary: `New message posted: "${preview}"`,
+    metadata: { messagePreview: preview },
+    actor: senderMemberId
+      ? { type: "parent", memberId: senderMemberId }
+      : undefined,
+  });
+  return message;
 }
 
 export async function refreshCommitteeAfterMessageChange(

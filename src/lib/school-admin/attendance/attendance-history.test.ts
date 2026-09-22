@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildAttendanceHistorySummary,
   formatAttendanceHistoryDateLabel,
+  formatAttendanceHistoryFullDateLabel,
   formatAttendanceHistoryTime,
   mapAttendanceHistoryRow,
   resolveAttendanceHistoryActor,
@@ -23,6 +24,10 @@ const baseEntry = {
 describe("attendance history", () => {
   it("formats history dates and times", () => {
     assert.equal(formatAttendanceHistoryDateLabel("2026-09-20"), "Sun, Sep 20");
+    assert.equal(
+      formatAttendanceHistoryFullDateLabel("2026-09-20"),
+      "Sunday, September 20, 2026",
+    );
     assert.equal(
       formatAttendanceHistoryTime("2026-09-20T14:30:00.000Z"),
       new Date("2026-09-20T14:30:00.000Z").toLocaleTimeString("en-US", {

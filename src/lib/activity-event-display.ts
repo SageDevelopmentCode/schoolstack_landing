@@ -184,6 +184,10 @@ const CATEGORY_VISUALS: Record<
     Icon: CalendarDays,
     className: "bg-violet-50 text-violet-700 border-violet-200",
   },
+  messages: {
+    Icon: MessageSquare,
+    className: "bg-sky-50 text-sky-700 border-sky-200",
+  },
   other: {
     Icon: Bell,
     className: "bg-admin-neutral-bg text-admin-muted border-admin-border",

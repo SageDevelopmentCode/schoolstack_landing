@@ -30,6 +30,7 @@ import type {
   ParentFormsDocumentsPageBundle,
   SubmitParentFormInput,
 } from '@/lib/parent/parent-forms-documents-types';
+import type { AttendanceHistoryResponse } from '@/lib/attendance/attendance-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
@@ -824,4 +825,39 @@ export async function fetchParentSignupAttentionItems(
     `/api/parent-portal/signups/attention?${query}`,
   );
   return payload.items ?? [];
+}
+
+export type ParentAttendanceEligibleChild = {
+  applicationId: string;
+  studentId: string;
+  studentName: string;
+  profilePhotoUrl: string | null;
+  grade: string | null;
+};
+
+export type ParentAttendanceEligibleChildrenResponse = {
+  eligibleChildren: ParentAttendanceEligibleChild[];
+};
+
+export async function fetchParentAttendanceEligibleChildren(
+  organizationId: string,
+): Promise<ParentAttendanceEligibleChildrenResponse> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentAttendanceEligibleChildrenResponse>(
+    `/api/parent-portal/attendance/eligible-children?${query}`,
+  );
+}
+
+export async function fetchParentStudentAttendanceHistory(
+  organizationId: string,
+  studentId: string,
+  options?: { limit?: number; offset?: number },
+): Promise<AttendanceHistoryResponse> {
+  const params = new URLSearchParams({ organizationId });
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.offset != null) params.set('offset', String(options.offset));
+
+  return fetchParentApi<AttendanceHistoryResponse>(
+    `/api/parent-portal/students/${encodeURIComponent(studentId)}/attendance/history?${params}`,
+  );
 }

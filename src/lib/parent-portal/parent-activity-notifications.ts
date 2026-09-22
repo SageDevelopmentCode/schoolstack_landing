@@ -74,6 +74,7 @@ export const PARENT_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED,
+  ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
@@ -293,6 +294,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED]: "Late fee applied",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "Committee request approved",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee request declined",
+  [ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED]: "Task assigned to you",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup open",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "Form to sign",
@@ -440,6 +442,7 @@ function formatParentNotificationDetail(
   context?: {
     studentLabel?: string | null;
     committeeName?: string | null;
+    taskTitle?: string | null;
     signupTitle?: string | null;
     formTitle?: string | null;
     teacherName?: string | null;
@@ -515,6 +518,13 @@ function formatParentNotificationDetail(
       return context?.committeeName
         ? `Request declined for ${context.committeeName}`
         : "Committee join request declined";
+    case ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED: {
+      const taskTitle = context?.taskTitle;
+      if (taskTitle && context?.committeeName) {
+        return `${taskTitle} · ${context.committeeName}`;
+      }
+      return taskTitle ?? "A committee task was assigned to you";
+    }
     case ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED:
       return context?.signupTitle
         ? `"${context.signupTitle}" is open for sign-up`
@@ -572,6 +582,9 @@ function shouldExcludeParentActorEvent(
   },
 ): boolean {
   if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
+    return false;
+  }
+  if (event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED) {
     return false;
   }
   return event.actor_type === "parent" && event.surface === "parent_portal";
@@ -778,6 +791,31 @@ async function resolveFamilyIdsForEvents(
     }
   }
 
+  const assigneeUserIds = [
+    ...new Set(
+      events
+        .filter((event) => event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED)
+        .map((event) => metadataString(event.metadata, "assigneeUserId"))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+  const assigneeFamilyByUserId = new Map<string, string | null>();
+  if (assigneeUserIds.length > 0) {
+    const { data, error } = await supabase
+      .from("guardians")
+      .select("user_id, family_id")
+      .eq("organization_id", organizationId)
+      .in("user_id", assigneeUserIds);
+    if (error) throw error;
+    for (const row of data ?? []) {
+      if (!row.user_id) continue;
+      assigneeFamilyByUserId.set(
+        String(row.user_id),
+        row.family_id ? String(row.family_id) : null,
+      );
+    }
+  }
+
   const threadIds = events
     .filter((event) => event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED)
     .map((event) => metadataString(event.metadata, "threadId"))
@@ -837,6 +875,17 @@ async function resolveFamilyIdsForEvents(
       familyByEventId.set(
         event.id,
         committeeFamilyById.get(String(event.entity_id)) ?? null,
+      );
+      continue;
+    }
+
+    if (event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED) {
+      const assigneeUserId = metadataString(event.metadata, "assigneeUserId");
+      familyByEventId.set(
+        event.id,
+        assigneeUserId
+          ? assigneeFamilyByUserId.get(assigneeUserId) ?? null
+          : null,
       );
       continue;
     }
@@ -944,6 +993,13 @@ function resolveParentNotificationLink(
   }
 
   if (action.startsWith("committee.")) {
+    const committeeId = metadataString(event.metadata, "committeeId");
+    if (action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED && committeeId) {
+      return {
+        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=tasks&tab=mine`,
+        ctaLabel: "View task",
+      };
+    }
     return {
       href: `${parentBase}/committees`,
       ctaLabel: "View committees",
@@ -1155,6 +1211,7 @@ function mapActivityEventToParentNotification(
   >,
 ): ParentActivityNotification {
   const committeeName = metadataString(event.metadata, "committeeName");
+  const taskTitle = metadataString(event.metadata, "taskTitle");
   const signupTitle = metadataString(event.metadata, "signupTitle");
   const formTitle = metadataString(event.metadata, "formTitle");
   const teacherName = metadataString(event.metadata, "teacherName");
@@ -1180,6 +1237,7 @@ function mapActivityEventToParentNotification(
     detail: formatParentNotificationDetail(event.action, event.summary, {
       studentLabel,
       committeeName,
+      taskTitle,
       signupTitle,
       formTitle,
       teacherName,
@@ -1218,6 +1276,13 @@ async function filterRawActivityEventsForFamily(
     if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
       const senderUserId = metadataString(event.metadata, "senderUserId");
       if (senderUserId && guardianUserIds.has(senderUserId)) {
+        return false;
+      }
+    }
+
+    if (event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED) {
+      const assigneeUserId = metadataString(event.metadata, "assigneeUserId");
+      if (!assigneeUserId || !guardianUserIds.has(assigneeUserId)) {
         return false;
       }
     }

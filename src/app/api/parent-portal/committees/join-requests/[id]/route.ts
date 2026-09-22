@@ -60,7 +60,7 @@ export async function DELETE(request: Request, context: RouteContext) {
       userId: user.id,
       organizationId,
       committeeName,
-      guardianName,
+      requesterName: guardianName,
     });
 
     return NextResponse.json({ request: joinRequest });

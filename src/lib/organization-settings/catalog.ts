@@ -73,6 +73,7 @@ export const DEFAULT_FEATURES: OrganizationFeatures = {
     feed: false,
     payroll: false,
     forms_documents: true,
+    committees: true,
   },
   parent: {
     portal: true,
@@ -172,6 +173,7 @@ export const FEATURE_CATALOG: FeatureDef[] = [
   { portal: "teacher", key: "calendar", label: "Calendar", description: "Events and schedule" },
   { portal: "teacher", key: "my_hours", label: "My Hours", description: "Time tracking and hours log" },
   { portal: "teacher", key: "attendance", label: "Attendance", description: "Daily attendance tracking" },
+  { portal: "teacher", key: "committees", label: "Committees", description: "Volunteer committee participation" },
   { portal: "teacher", key: "feed", label: "Feed", description: "School activity feed" },
   { portal: "teacher", key: "payroll", label: "Payroll", description: "Pay stubs and earnings" },
   { portal: "parent", key: "portal", label: "Home", description: "Parent home overview" },

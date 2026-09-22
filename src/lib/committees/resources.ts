@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import {
   deleteCommitteeResourceFile,
@@ -39,7 +41,19 @@ export async function createResource(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapResourceRow(data as CommitteeResourceRow);
+  const resource = mapResourceRow(data as CommitteeResourceRow);
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+    entityType: "committee_resource",
+    entityId: resource.id,
+    summary: `Resource "${resource.title}" was added`,
+    metadata: { resourceTitle: resource.title, resourceType: resource.type },
+    actor: input.createdByMemberId
+      ? { type: "parent", memberId: input.createdByMemberId }
+      : undefined,
+  });
+  return resource;
 }
 
 export type UpdateResourceInput = {
@@ -57,6 +71,14 @@ export async function updateResource(
   resourceId: string,
   input: UpdateResourceInput,
 ): Promise<void> {
+  const { data: existing, error: fetchError } = await supabase
+    .from("committee_resources")
+    .select("committee_id, title")
+    .eq("id", resourceId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const patch: Record<string, unknown> = {};
   if (input.title !== undefined) patch.title = input.title;
   if (input.type !== undefined) patch.resource_type = input.type;
@@ -74,6 +96,17 @@ export async function updateResource(
     .eq("id", resourceId);
 
   if (error) throw new Error(error.message);
+
+  if (existing?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(existing.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_UPDATED,
+      entityType: "committee_resource",
+      entityId: resourceId,
+      summary: `Resource "${String(existing.title ?? "Untitled")}" was updated`,
+      metadata: { resourceTitle: existing.title ?? null, changes: input },
+    });
+  }
 }
 
 export async function deleteResource(
@@ -82,7 +115,7 @@ export async function deleteResource(
 ): Promise<void> {
   const { data: row, error: fetchError } = await supabase
     .from("committee_resources")
-    .select("storage_path")
+    .select("storage_path, committee_id, title")
     .eq("id", resourceId)
     .maybeSingle();
 
@@ -94,6 +127,17 @@ export async function deleteResource(
     .eq("id", resourceId);
 
   if (error) throw new Error(error.message);
+
+  if (row?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(row.committee_id),
+      action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_DELETED,
+      entityType: "committee_resource",
+      entityId: resourceId,
+      summary: `Resource "${String(row.title ?? "Untitled")}" was deleted`,
+      metadata: { resourceTitle: row.title ?? null },
+    });
+  }
 
   const storagePath = (row as { storage_path?: string | null } | null)?.storage_path;
   if (storagePath) {

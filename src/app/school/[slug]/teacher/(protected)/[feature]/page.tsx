@@ -13,6 +13,7 @@ import { loadTeacherMessagesPageData } from "@/lib/messages/load-messages-page-d
 import { loadTeacherMyStudentsPageData } from "@/lib/school-teacher/load-my-students-page-data";
 import { loadTeacherDashboardInitialData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { loadTeacherCalendarInitialData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadTeacherCommitteesInitialData } from "@/lib/committees/load-teacher-committees-data";
 import { loadTeacherClassroomSignupsPageData } from "@/lib/classroom-signups/load-classroom-signups-page-data";
 import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-documents/load-forms-documents-page-data";
 import {
@@ -46,10 +47,15 @@ const TeacherAttendancePage = nextDynamic(
   () => import("@/components/school-teacher/TeacherAttendancePage"),
 );
 
+const TeacherCommitteesPage = nextDynamic(
+  () => import("@/components/school-teacher/committees/TeacherCommitteesPage"),
+);
+
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; feature: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({
@@ -74,8 +80,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
+export default async function SchoolTeacherFeaturePage({
+  params,
+  searchParams,
+}: PageProps) {
   const { slug, feature } = await params;
+  const resolvedSearchParams = await searchParams;
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const org = await fetchOrganizationWithSettings(supabase, slug);
@@ -240,6 +250,37 @@ export default async function SchoolTeacherFeaturePage({ params }: PageProps) {
         organizationId={org.id}
         branding={org.branding}
         slug={slug}
+      />
+    );
+  }
+
+  if (feature === "committees") {
+    const user = await requireTeacherPortalUser(supabase, org.id);
+    const userProfile = await getStaffUserProfile(
+      supabase,
+      user.id,
+      org.id,
+      user,
+    );
+    const selectedCommitteeId =
+      typeof resolvedSearchParams.committee === "string"
+        ? resolvedSearchParams.committee
+        : null;
+    const initialData = await loadTeacherCommitteesInitialData({
+      organizationId: org.id,
+      userId: user.id,
+      selectedCommitteeId,
+    });
+    const staffName = userProfile.displayName || user.email || "Staff member";
+
+    return (
+      <TeacherCommitteesPage
+        organizationId={org.id}
+        schoolSlug={slug}
+        schoolName={org.name}
+        branding={org.branding}
+        staffName={staffName}
+        initialData={initialData}
       />
     );
   }

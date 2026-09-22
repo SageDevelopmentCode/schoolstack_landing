@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import { mapMemberRow, type CommitteeMemberRow } from "./mappers";
 import type { CommitteeMember, CommitteeRole } from "./types";
@@ -71,7 +73,17 @@ export async function inviteCommitteeMember(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapMemberRow(data as CommitteeMemberRow);
+  const member = mapMemberRow(data as CommitteeMemberRow);
+  logCommitteeActivityEvent(supabase, {
+    committeeId,
+    organizationId,
+    action: ACTIVITY_ACTIONS.COMMITTEE_MEMBER_INVITED,
+    entityType: "committee_member",
+    entityId: member.id,
+    summary: `${input.displayName.trim()} was invited to the committee`,
+    metadata: { memberName: member.name, memberRole: member.role },
+  });
+  return member;
 }
 
 export type UpdateMemberInput = {
@@ -113,12 +125,32 @@ export async function removeCommitteeMember(
   supabase: SupabaseClient,
   memberId: string,
 ): Promise<void> {
+  const { data: row, error: fetchError } = await supabase
+    .from("committee_members")
+    .select("committee_id, organization_id, display_name")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (fetchError) throw new Error(fetchError.message);
+
   const { error } = await supabase
     .from("committee_members")
     .update({ status: "removed" })
     .eq("id", memberId);
 
   if (error) throw new Error(error.message);
+
+  if (row?.committee_id) {
+    logCommitteeActivityEvent(supabase, {
+      committeeId: String(row.committee_id),
+      organizationId: row.organization_id ? String(row.organization_id) : undefined,
+      action: ACTIVITY_ACTIONS.COMMITTEE_MEMBER_REMOVED,
+      entityType: "committee_member",
+      entityId: memberId,
+      summary: `${String(row.display_name ?? "A member")} was removed from the committee`,
+      metadata: { memberName: row.display_name ?? null },
+    });
+  }
 }
 
 export async function refreshCommitteeAfterMemberChange(

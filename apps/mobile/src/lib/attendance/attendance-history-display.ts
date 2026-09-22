@@ -22,6 +22,19 @@ export function formatAttendanceHistoryDateLabel(dateKey: string): string {
   });
 }
 
+export function formatAttendanceHistoryFullDateLabel(dateKey: string): string {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  if (!year || !month || !day) return dateKey;
+
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function formatAttendanceHistoryTime(iso: string | null): string | null {
   if (!iso) return null;
 

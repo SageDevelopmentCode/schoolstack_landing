@@ -7,6 +7,7 @@ import {
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { getCommittee } from "@/lib/committees/committees";
 import CommitteeHomeSection from "./sections/CommitteeHomeSection";
 import CommitteeAboutSection from "./sections/CommitteeAboutSection";
 import CommitteeResourcesSection from "./sections/CommitteeResourcesSection";
@@ -15,6 +16,7 @@ import CommitteeTasksSection from "./sections/CommitteeTasksSection";
 import CommitteeMessagesSection from "./sections/CommitteeMessagesSection";
 import CommitteeMembersSection from "./sections/CommitteeMembersSection";
 import CommitteeSettingsSection from "./sections/CommitteeSettingsSection";
+import CommitteeActivitySection from "./sections/CommitteeActivitySection";
 import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
 import { CommitteeWorkspaceSidePanel } from "./CommitteeWorkspaceStoryHeader";
 import CommitteeWorkspaceLayout from "./CommitteeWorkspaceLayout";
@@ -51,7 +53,7 @@ export default function CommitteeWorkspaceShell({
 }) {
   const sections = (readOnly
     ? committee.config.sections
-    : [...committee.config.sections, "settings"]
+    : [...committee.config.sections, "activity", "settings"]
   ).filter((section, index, arr) => arr.indexOf(section) === index) as CommitteeWorkspaceSection[];
 
   return (
@@ -81,7 +83,14 @@ export default function CommitteeWorkspaceShell({
           transition={{ duration: 0.15 }}
         >
           {activeSection === "home" && (
-            <CommitteeHomeSection committee={committee} theme={theme} onNavigate={onSectionChange} />
+            <CommitteeHomeSection
+              committee={committee}
+              theme={theme}
+              organizationId={organizationId}
+              schoolSlug={schoolSlug}
+              activitySurface={readOnly ? "parent" : "admin"}
+              onNavigate={onSectionChange}
+            />
           )}
           {activeSection === "about" && (
             <CommitteeAboutSection
@@ -141,10 +150,24 @@ export default function CommitteeWorkspaceShell({
                     organizationId={organizationId}
                     schoolSlug={schoolSlug}
                     committeeId={committee.id}
+                    committeeDutyRoles={committee.dutyRoles.map((dutyRole) => ({
+                      id: dutyRole.id,
+                      title: dutyRole.title,
+                      assigneeId: dutyRole.assigneeId,
+                      assigneeName: committee.members.find(
+                        (member) => member.id === dutyRole.assigneeId,
+                      )?.name,
+                    }))}
                     theme={theme}
                     compact
-                    onChanged={() => {
+                    onChanged={async () => {
                       onJoinRequestsChanged?.();
+                      const updated = await getCommittee(
+                        supabase,
+                        organizationId,
+                        committee.id,
+                      );
+                      if (updated) onCommitteeChange(updated);
                     }}
                   />
                 )}
@@ -159,6 +182,14 @@ export default function CommitteeWorkspaceShell({
                 />
               </div>
             </CommitteeWorkspaceSectionFrame>
+          )}
+          {!readOnly && activeSection === "activity" && schoolSlug && (
+            <CommitteeActivitySection
+              organizationId={organizationId}
+              committeeId={committee.id}
+              slug={schoolSlug}
+              theme={theme}
+            />
           )}
           {!readOnly && activeSection === "settings" && (
             <CommitteeSettingsSection
