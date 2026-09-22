@@ -25,6 +25,13 @@ type ParentFridayBranchFlyerViewerProps = {
   previewFamilyId?: string;
 };
 
+type ParentFridayBranchFlyerViewerContentProps = {
+  target: ParentFridayBranchFlyerViewerTarget;
+  organizationId: string;
+  previewFamilyId?: string;
+  onClose: () => void;
+};
+
 type FlyerState =
   | { status: "loading" }
   | { status: "ready"; objectUrl: string; viewerUrl: string }
@@ -45,29 +52,31 @@ function buildFlyerUrl(
   return `/api/parent-portal/friday-branch/flyer?${params.toString()}`;
 }
 
-export default function ParentFridayBranchFlyerViewer({
+function createInitialFlyerState(cacheKey: string): FlyerState {
+  const cached = getCachedFlyer(cacheKey);
+  if (cached) {
+    return {
+      status: "ready",
+      objectUrl: cached.objectUrl,
+      viewerUrl: cached.viewerUrl,
+    };
+  }
+  return { status: "loading" };
+}
+
+function ParentFridayBranchFlyerViewerContent({
   target,
-  open,
   onClose,
   previewFamilyId,
   organizationId,
-}: ParentFridayBranchFlyerViewerProps) {
-  const [flyerState, setFlyerState] = useState<FlyerState>({ status: "loading" });
+}: ParentFridayBranchFlyerViewerContentProps) {
+  const cacheKey = buildFlyerCacheKey(organizationId, target.classId, previewFamilyId);
+  const [flyerState, setFlyerState] = useState<FlyerState>(() =>
+    createInitialFlyerState(cacheKey),
+  );
 
   useEffect(() => {
-    if (!open || !target) {
-      setFlyerState({ status: "loading" });
-      return;
-    }
-
-    const cacheKey = buildFlyerCacheKey(organizationId, target.classId, previewFamilyId);
-    const cached = getCachedFlyer(cacheKey);
-    if (cached) {
-      setFlyerState({
-        status: "ready",
-        objectUrl: cached.objectUrl,
-        viewerUrl: cached.viewerUrl,
-      });
+    if (getCachedFlyer(cacheKey)) {
       return;
     }
 
@@ -75,7 +84,6 @@ export default function ParentFridayBranchFlyerViewer({
     let cancelled = false;
 
     const loadFlyer = async () => {
-      setFlyerState({ status: "loading" });
       try {
         const response = await fetch(
           buildFlyerUrl(organizationId, target.classId, previewFamilyId),
@@ -121,67 +129,84 @@ export default function ParentFridayBranchFlyerViewer({
         URL.revokeObjectURL(activeObjectUrl);
       }
     };
-  }, [open, organizationId, previewFamilyId, target]);
+  }, [cacheKey, organizationId, previewFamilyId, target.classId]);
 
+  return (
+    <motion.div
+      className="fixed inset-0 z-[120] flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div
+        className="relative z-[15] flex shrink-0 items-center justify-between gap-3 px-4 py-3"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p className="min-w-0 truncate text-sm font-medium text-white">
+          {target.fileName}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full p-2 text-white transition-colors hover:bg-white/10"
+          aria-label="Close flyer viewer"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      <div
+        className="relative z-[15] flex flex-1 items-center justify-center px-4 pb-4"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {flyerState.status === "loading" ? (
+          <div className="flex items-center gap-2 text-sm text-white/80">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading flyer…
+          </div>
+        ) : null}
+
+        {flyerState.status === "error" ? (
+          <p className="text-sm text-white/90">{flyerState.message}</p>
+        ) : null}
+
+        {flyerState.status === "ready" ? (
+          <iframe
+            src={flyerState.viewerUrl}
+            title={target.fileName}
+            className="h-[calc(100vh-100px)] w-full max-w-[90vw] rounded-lg border-0 bg-white"
+          />
+        ) : null}
+      </div>
+    </motion.div>
+  );
+}
+
+export default function ParentFridayBranchFlyerViewer({
+  target,
+  open,
+  onClose,
+  previewFamilyId,
+  organizationId,
+}: ParentFridayBranchFlyerViewerProps) {
   return (
     <AnimatePresence>
       {open && target ? (
-        <motion.div
-          key="friday-branch-flyer"
-          className="fixed inset-0 z-[120] flex flex-col"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.85)" }}
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          <div
-            className="relative z-[15] flex shrink-0 items-center justify-between gap-3 px-4 py-3"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="min-w-0 truncate text-sm font-medium text-white">
-              {target.fileName}
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-2 text-white transition-colors hover:bg-white/10"
-              aria-label="Close flyer viewer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div
-            className="relative z-[15] flex flex-1 items-center justify-center px-4 pb-4"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {flyerState.status === "loading" ? (
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading flyer…
-              </div>
-            ) : null}
-
-            {flyerState.status === "error" ? (
-              <p className="text-sm text-white/90">{flyerState.message}</p>
-            ) : null}
-
-            {flyerState.status === "ready" ? (
-              <iframe
-                src={flyerState.viewerUrl}
-                title={target.fileName}
-                className="h-[calc(100vh-100px)] w-full max-w-[90vw] rounded-lg border-0 bg-white"
-              />
-            ) : null}
-          </div>
-        </motion.div>
+        <ParentFridayBranchFlyerViewerContent
+          key={buildFlyerCacheKey(organizationId, target.classId, previewFamilyId)}
+          target={target}
+          organizationId={organizationId}
+          previewFamilyId={previewFamilyId}
+          onClose={onClose}
+        />
       ) : null}
     </AnimatePresence>
   );
