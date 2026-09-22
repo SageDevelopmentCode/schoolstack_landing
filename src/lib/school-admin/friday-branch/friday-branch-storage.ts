@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sortFridayBranchTimeSlots } from "./friday-branch-mock";
 import type {
   FridayBranchBlock,
   FridayBranchBlockAccent,
@@ -221,7 +222,7 @@ function mapBlocksToRpcPayload(blocks: FridayBranchBlock[]): FridayBranchSchedul
     description: (block.description ?? "").trim(),
     status: block.status ?? "draft",
     sort_order: blockIndex,
-    slots: block.slots.map((slot, slotIndex) => ({
+    slots: sortFridayBranchTimeSlots(block.slots).map((slot, slotIndex) => ({
       id: slot.id,
       time: slot.time.trim(),
       sort_order: slotIndex,
@@ -362,7 +363,9 @@ function assembleFridayBranchBlocks(
     slotsByBlock.set(row.block_id, list);
   }
 
-  return blockRows.map((row) => mapBlockRow(row, slotsByBlock.get(row.id) ?? []));
+  return blockRows.map((row) =>
+    mapBlockRow(row, sortFridayBranchTimeSlots(slotsByBlock.get(row.id) ?? [])),
+  );
 }
 
 export async function loadFridayBranchSchedule(

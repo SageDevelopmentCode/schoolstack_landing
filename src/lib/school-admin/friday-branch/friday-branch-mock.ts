@@ -34,10 +34,15 @@ export function createEmptySlot(time = "9:00"): FridayBranchTimeSlot {
 }
 
 export type FridayBranchFirstClassSeed = {
+  id?: string;
   name?: string;
   location?: string;
   ageGroup?: string;
   teacher?: string;
+  priceCents?: number | null;
+  flyerStoragePath?: string | null;
+  flyerFileName?: string | null;
+  flyerFileSizeBytes?: number | null;
 };
 
 export function fridayBranchTimeToPickerValue(time: string): string {
@@ -65,10 +70,19 @@ export function createSlotWithTime(
   if (firstClass) {
     slot.classes[0] = {
       ...slot.classes[0],
+      ...(firstClass.id ? { id: firstClass.id } : {}),
       ...(firstClass.name?.trim() ? { name: firstClass.name.trim() } : {}),
       ...(firstClass.location ? { location: firstClass.location } : {}),
       ...(firstClass.ageGroup ? { ageGroup: firstClass.ageGroup } : {}),
       ...(firstClass.teacher ? { teacher: firstClass.teacher } : {}),
+      ...(firstClass.priceCents !== undefined ? { priceCents: firstClass.priceCents } : {}),
+      ...(firstClass.flyerStoragePath !== undefined
+        ? { flyerStoragePath: firstClass.flyerStoragePath }
+        : {}),
+      ...(firstClass.flyerFileName !== undefined ? { flyerFileName: firstClass.flyerFileName } : {}),
+      ...(firstClass.flyerFileSizeBytes !== undefined
+        ? { flyerFileSizeBytes: firstClass.flyerFileSizeBytes }
+        : {}),
     };
   }
   return slot;
@@ -120,6 +134,30 @@ function parseSimpleSlotTime(time: string): { hour: number; minute: number } | n
 function formatSimpleSlotTime(hour: number, minute: number): string {
   const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
   return `${displayHour}:${String(minute).padStart(2, "0")}`;
+}
+
+export function fridayBranchSlotTimeToMinutes(time: string): number | null {
+  const parsed = parseSimpleSlotTime(time);
+  if (parsed) {
+    return parsed.hour * 60 + parsed.minute;
+  }
+  return parseTimeToMinutes(time);
+}
+
+export function sortFridayBranchTimeSlots(slots: FridayBranchTimeSlot[]): FridayBranchTimeSlot[] {
+  return slots
+    .map((slot, index) => ({ slot, index }))
+    .sort((a, b) => {
+      const aMinutes = fridayBranchSlotTimeToMinutes(a.slot.time);
+      const bMinutes = fridayBranchSlotTimeToMinutes(b.slot.time);
+
+      if (aMinutes === null && bMinutes === null) return a.index - b.index;
+      if (aMinutes === null) return 1;
+      if (bMinutes === null) return -1;
+      if (aMinutes !== bMinutes) return aMinutes - bMinutes;
+      return a.index - b.index;
+    })
+    .map(({ slot }) => slot);
 }
 
 export function suggestNextSlotTime(slots: FridayBranchTimeSlot[]): string {
