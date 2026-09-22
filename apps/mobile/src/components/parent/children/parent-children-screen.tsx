@@ -197,7 +197,7 @@ export function ParentChildrenScreen({
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }

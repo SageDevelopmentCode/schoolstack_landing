@@ -8,6 +8,7 @@ import Animated, {
 
 import { Story, StoryRadius, StoryFonts } from '@/constants/story-theme';
 import { isMobileE2e } from '@/lib/e2e';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -15,6 +16,8 @@ type StoryButtonProps = PressableProps & {
   label: string;
   variant?: 'primary' | 'soft' | 'outline';
   trailingIcon?: ReactNode;
+  /** Allow presses while in read-only portal preview (e.g. retry / navigation). */
+  previewSafe?: boolean;
 };
 
 function getButtonColors(variant: StoryButtonProps['variant'], disabled?: boolean) {
@@ -71,13 +74,16 @@ export function StoryButton({
   trailingIcon,
   style,
   disabled,
+  previewSafe = false,
   onPressIn,
   onPressOut,
   testID,
   accessibilityLabel,
   ...rest
 }: StoryButtonProps) {
-  const { backgroundColor, labelColor, borderColor } = getButtonColors(variant, disabled);
+  const readOnly = usePortalReadOnly();
+  const effectiveDisabled = disabled || (readOnly && !previewSafe);
+  const { backgroundColor, labelColor, borderColor } = getButtonColors(variant, effectiveDisabled);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -85,7 +91,7 @@ export function StoryButton({
   }));
 
   const handlePressIn: StoryButtonProps['onPressIn'] = (event) => {
-    if (!disabled) {
+    if (!effectiveDisabled) {
       scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
     }
     onPressIn?.(event);
@@ -118,11 +124,11 @@ export function StoryButton({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
-        disabled={disabled}
+        disabled={effectiveDisabled}
         testID={testID}
         style={({ pressed }) => [
           styles.outer,
-          { opacity: disabled ? 1 : pressed ? 0.95 : 1 },
+          { opacity: effectiveDisabled ? 1 : pressed ? 0.95 : 1 },
           typeof style === 'function' ? style({ pressed, hovered: false }) : style,
         ]}
         onPressIn={onPressIn}
@@ -137,7 +143,7 @@ export function StoryButton({
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      disabled={disabled}
+      disabled={effectiveDisabled}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={({ pressed }: { pressed: boolean }) => [

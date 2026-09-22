@@ -92,7 +92,9 @@ export type CommitteeResource = {
   storagePath?: string;
   fileName?: string;
   description?: string;
-  addedBy?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
   allowedDutyRoleIds?: string[];
 };
 
@@ -103,6 +105,9 @@ export type CommitteeEvent = {
   time?: string;
   type: CommitteeEventType;
   location?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
 };
 
 export type CommitteeTask = {
@@ -115,12 +120,16 @@ export type CommitteeTask = {
   assigneeName?: string;
   dueDate?: string;
   attachmentLabel?: string;
+  createdByMemberId?: string;
+  createdByName?: string;
+  createdByRole?: CommitteeRole;
 };
 
 export type CommitteeMessage = {
   id: string;
   senderId: string;
   senderName: string;
+  senderRole?: CommitteeRole;
   text: string;
   time: string;
 };

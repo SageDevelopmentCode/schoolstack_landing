@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 const PORTAL_HOME_HEADER_HORIZONTAL_PADDING = SCREEN_HORIZONTAL_PADDING + Spacing.two;
 
@@ -16,6 +17,7 @@ type PortalHomeHeaderShellProps = {
 export function PortalHomeHeaderShell({ children }: PortalHomeHeaderShellProps) {
   const theme = useParentTheme();
   const insets = useSafeAreaInsets();
+  const { isPreview } = usePortalPreview();
 
   return (
     <LinearGradient
@@ -24,10 +26,15 @@ export function PortalHomeHeaderShell({ children }: PortalHomeHeaderShellProps) 
       end={{ x: 0, y: 1 }}
       style={[
         styles.shell,
-        {
-          marginTop: -insets.top,
-          paddingTop: insets.top + Spacing.four,
-        },
+        isPreview
+          ? {
+              marginTop: 0,
+              paddingTop: Spacing.four,
+            }
+          : {
+              marginTop: -insets.top,
+              paddingTop: insets.top + Spacing.four,
+            },
       ]}>
       {children}
     </LinearGradient>

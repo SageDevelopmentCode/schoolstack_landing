@@ -39,6 +39,7 @@ import { fetchTeacherActivityNotificationUnreadCount } from '@/lib/teacher/fetch
 import { submitTeacherSupportRequest } from '@/lib/teacher/teacher-portal-api';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import type { StaffClassroomOption, TeacherDashboardFocusItem } from '@/lib/teacher/teacher-portal-api';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 const MAX_STUDENT_CARDS = 6;
 
@@ -56,6 +57,7 @@ type TeacherHomeScreenProps = {
 export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useTeacherHome();
 
   const [homeTab, setHomeTab] = useState<TeacherHomeTab>('overview');
@@ -118,7 +120,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }
@@ -279,7 +281,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   if (attendanceEnabled) {
     return (
       <View style={styles.screen}>
-        <StatusBar style="light" />
+        <StatusBar style={isPreview ? 'dark' : 'light'} />
         <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
         <SubmissionStoryTabBar
@@ -312,7 +314,7 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" />
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
       <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
       <ScrollView

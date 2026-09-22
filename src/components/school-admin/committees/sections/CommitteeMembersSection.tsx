@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Mail, Phone, UserPlus } from "lucide-react";
+import { Mail, Phone, UserPlus, UserRound, Users } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import type { Committee, CommitteeRole } from "@/lib/committees/types";
+import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
+import type { Committee, CommitteeDutyRole, CommitteeRole } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { inviteCommitteeMember, removeCommitteeMember } from "@/lib/committees/members";
 import { getCommittee } from "@/lib/committees/committees";
@@ -15,6 +16,8 @@ import { memberInitials } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
+import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 
 const ROLE_LABELS: Record<CommitteeRole, string> = {
@@ -24,6 +27,57 @@ const ROLE_LABELS: Record<CommitteeRole, string> = {
   admin: "Admin",
 };
 
+function DutyRoleReadOnlyCard({
+  role,
+  assigneeName,
+  theme,
+}: {
+  role: CommitteeDutyRole;
+  assigneeName?: string;
+  theme: ParentThemeTokens;
+}) {
+  return (
+    <AdminCard theme={theme} padding="default">
+      <p className="text-sm font-semibold" style={{ color: theme.ink }}>
+        {role.title}
+      </p>
+      <p className="mt-1 line-clamp-3 text-xs leading-relaxed" style={{ color: theme.muted }}>
+        {role.description || "No description yet."}
+      </p>
+      <div
+        className="mt-3 flex items-center gap-2 border-t pt-3"
+        style={{ borderColor: theme.line }}
+      >
+        {assigneeName ? (
+          <>
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+              style={{ backgroundColor: theme.primarySoft, color: theme.primary }}
+            >
+              {memberInitials(assigneeName)}
+            </span>
+            <span className="truncate text-xs font-medium" style={{ color: theme.muted }}>
+              {assigneeName}
+            </span>
+          </>
+        ) : (
+          <>
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: theme.primarySoft }}
+            >
+              <UserRound className="h-3.5 w-3.5" style={{ color: theme.muted }} />
+            </span>
+            <span className="text-xs italic" style={{ color: theme.muted }}>
+              Unassigned
+            </span>
+          </>
+        )}
+      </div>
+    </AdminCard>
+  );
+}
+
 export default function CommitteeMembersSection({
   committee,
   theme,
@@ -31,6 +85,7 @@ export default function CommitteeMembersSection({
   organizationId,
   onCommitteeChange,
   readOnly = false,
+  skipFrame = false,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -38,6 +93,7 @@ export default function CommitteeMembersSection({
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
+  skipFrame?: boolean;
 }) {
   const [showInvite, setShowInvite] = useState(false);
   const [name, setName] = useState("");
@@ -94,8 +150,8 @@ export default function CommitteeMembersSection({
     }
   };
 
-  return (
-    <div className="space-y-4 max-w-3xl">
+  const content = (
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm" style={{ color: theme.muted }}>
           {committee.members.length} members
@@ -108,6 +164,27 @@ export default function CommitteeMembersSection({
         )}
       </div>
 
+      {committee.members.length === 0 ? (
+        <CommitteeSectionEmptyState
+          theme={theme}
+          icon={Users}
+          title="No members listed yet"
+          description="Committee members will appear here once they are added or invited."
+          action={
+            !readOnly ? (
+              <AdminButton
+                theme={theme}
+                variant="primary"
+                size="compact"
+                onClick={() => setShowInvite(true)}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Invite member
+              </AdminButton>
+            ) : undefined
+          }
+        />
+      ) : (
       <div className="space-y-2">
         {committee.members.map((member) => (
           <AdminCard key={member.id} theme={theme} padding="default">
@@ -161,6 +238,30 @@ export default function CommitteeMembersSection({
           </AdminCard>
         ))}
       </div>
+      )}
+
+      {readOnly && committee.dutyRoles.length > 0 ? (
+        <div className="space-y-3 border-t pt-6" style={{ borderColor: theme.line }}>
+          <AdminDisplayHeading theme={theme} as="h3" size="section">
+            Duty roles
+          </AdminDisplayHeading>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {committee.dutyRoles.map((dutyRole) => {
+              const assignee = committee.members.find(
+                (member) => member.id === dutyRole.assigneeId,
+              );
+              return (
+                <DutyRoleReadOnlyCard
+                  key={dutyRole.id}
+                  role={dutyRole}
+                  assigneeName={assignee?.name}
+                  theme={theme}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <AnimatePresence>
         {showInvite && (
@@ -216,5 +317,13 @@ export default function CommitteeMembersSection({
         )}
       </AnimatePresence>
     </div>
+  );
+
+  if (skipFrame) return content;
+
+  return (
+    <CommitteeWorkspaceSectionFrame width="narrow">
+      {content}
+    </CommitteeWorkspaceSectionFrame>
   );
 }

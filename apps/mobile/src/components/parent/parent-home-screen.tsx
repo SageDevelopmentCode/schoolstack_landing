@@ -44,6 +44,7 @@ import {
   submitParentSupportRequest,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 
 type ParentHomeScreenProps = {
   slug: string;
@@ -52,6 +53,7 @@ type ParentHomeScreenProps = {
 export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
@@ -156,7 +158,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
     return (
       <View style={[styles.centered, { backgroundColor: Story.paper }]}>
         <Text style={[styles.errorText, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" onPress={() => void refresh()} style={styles.retry} />
+        <StoryButton label="Try again" previewSafe onPress={() => void refresh()} style={styles.retry} />
       </View>
     );
   }
@@ -170,7 +172,7 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
       <View style={styles.screen}>
         <Animated.View entering={FadeInDown.duration(350)}>
           <ParentHomeHeader

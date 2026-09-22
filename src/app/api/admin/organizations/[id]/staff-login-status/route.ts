@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api";
 import { AuthError } from "@/lib/admissions/application-auth";
@@ -8,8 +7,8 @@ import {
   listStaffMembersWithLoginStatus,
   summarizeStaffPortalLoginStatus,
 } from "@/lib/staff/staff-portal-login-status";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/organizations/[id]/staff-login-status";
 
@@ -17,9 +16,8 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+export async function GET(request: Request, context: RouteContext) {
+  const supabase = await createClientFromRequest(request);
   const { id: organizationId } = await context.params;
 
   try {

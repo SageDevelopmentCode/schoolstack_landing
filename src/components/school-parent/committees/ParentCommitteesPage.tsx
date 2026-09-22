@@ -183,6 +183,9 @@ function ParentCommitteesPageContent({
   const selectedBrowseCommittee = exploreCommitteeId
     ? browseCommittees.find((c) => c.id === exploreCommitteeId) ?? null
     : null;
+  const memberWorkspaceId =
+    workspaceCommitteeId ??
+    (selectedBrowseCommittee?.isMember ? selectedBrowseCommittee.id : null);
 
   const handleSelectTab = useCallback(
     (key: ParentCommitteesTab) => {
@@ -191,24 +194,25 @@ function ParentCommitteesPageContent({
     [setUrl],
   );
 
-  if (workspaceCommitteeId) {
+  if (memberWorkspaceId) {
     return (
       <ParentCommitteeWorkspace
-        key={workspaceCommitteeId}
-        committeeId={workspaceCommitteeId}
+        key={memberWorkspaceId}
+        committeeId={memberWorkspaceId}
         organizationId={organizationId}
         theme={theme}
         activeSection={activeSection}
-        initialCommittee={initialData?.workspacesByCommitteeId[workspaceCommitteeId]}
+        previewMode={previewMode}
+        initialCommittee={initialData?.workspacesByCommitteeId[memberWorkspaceId]}
         onSectionChange={(section) =>
-          setUrl({ committee: workspaceCommitteeId, section, tab: "mine", explore: null })
+          setUrl({ committee: memberWorkspaceId, section, tab: "mine", explore: null })
         }
         onBack={() => setUrl({ committee: null, section: null, tab: "mine" })}
       />
     );
   }
 
-  if (selectedBrowseCommittee) {
+  if (selectedBrowseCommittee && !selectedBrowseCommittee.isMember) {
     return (
       <ParentCommitteeDetail
         committee={selectedBrowseCommittee}
@@ -253,7 +257,19 @@ function ParentCommitteesPageContent({
                   <ParentCommitteeBrowseList
                     committees={browseCommittees}
                     theme={theme}
-                    onOpenCommittee={(id) => setUrl({ explore: id, tab: "explore" })}
+                    onOpenCommittee={(id) => {
+                      const committee = browseCommittees.find((entry) => entry.id === id);
+                      if (committee?.isMember) {
+                        setUrl({
+                          committee: id,
+                          section: "home",
+                          tab: "mine",
+                          explore: null,
+                        });
+                        return;
+                      }
+                      setUrl({ explore: id, tab: "explore" });
+                    }}
                   />
                 )}
               </>

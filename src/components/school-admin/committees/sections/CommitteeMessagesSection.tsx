@@ -1,16 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
+import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
 import type { Committee } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { postMessage } from "@/lib/committees/messages";
 import { getCommittee } from "@/lib/committees/committees";
+import {
+  formatCommitteeAttribution,
+  SCHOOL_ADMIN_ATTRIBUTION,
+} from "@/lib/committees/attribution";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
+import { committeeOperationalSurface } from "@/components/school-admin/committees/CommitteeAttributionLabel";
 
 export default function CommitteeMessagesSection({
   committee,
@@ -19,6 +27,8 @@ export default function CommitteeMessagesSection({
   organizationId,
   onCommitteeChange,
   readOnly = false,
+  currentMemberId,
+  isAdmin = true,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -26,6 +36,8 @@ export default function CommitteeMessagesSection({
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
+  currentMemberId?: string;
+  isAdmin?: boolean;
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -35,14 +47,19 @@ export default function CommitteeMessagesSection({
     if (!text.trim()) return;
     setSending(true);
     try {
-      await postMessage(supabase, committee.id, text.trim());
+      await postMessage(
+        supabase,
+        committee.id,
+        text.trim(),
+        currentMemberId,
+      );
       setText("");
       const updated = await getCommittee(supabase, organizationId, committee.id);
       if (updated) onCommitteeChange(updated);
       adminToast.success("Message sent");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to send message."));
-      void reportPortalOperationalError("school_admin", {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.messages.send",
         error: "",
@@ -53,62 +70,85 @@ export default function CommitteeMessagesSection({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full">
-      <div className="flex-1 overflow-y-auto space-y-3 p-4">
-        {committee.messages.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: theme.muted }}>
-            No messages yet. Start the conversation.
-          </p>
-        ) : (
-          committee.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className="p-3 rounded-xl border max-w-lg"
-              style={{ backgroundColor: theme.white, borderColor: "#DCE4DC" }}
-            >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-xs font-semibold" style={{ color: theme.ink }}>
-                  {msg.senderName}
-                </p>
-                <p className="text-[10px]" style={{ color: theme.muted }}>
-                  {msg.time}
-                </p>
-              </div>
-              <p className="text-sm" style={{ color: theme.muted }}>
-                {msg.text}
-              </p>
-            </div>
-          ))
-        )}
-      </div>
-      {!readOnly && (
+    <CommitteeWorkspaceSectionFrame width="narrow">
+      <ParentCard theme={theme} className="!overflow-hidden !p-0">
         <div
-          className="shrink-0 border-t p-4 flex gap-2"
-          style={{ borderColor: "#DCE4DC", backgroundColor: theme.white }}
+          className="max-h-[min(480px,50vh)] overflow-y-auto p-4 sm:p-5"
+          style={{ backgroundColor: theme.white }}
         >
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSend();
-              }
-            }}
-            placeholder="Write a message…"
-            className="flex-1 px-3 py-2 text-sm rounded-lg border"
-            style={inputStyle}
-          />
-          <AdminButton
-            theme={theme}
-            variant="primary"
-            onClick={() => void handleSend()}
-            disabled={sending || !text.trim()}
-          >
-            <Send className="w-4 h-4" />
-          </AdminButton>
+          {committee.messages.length === 0 ? (
+            <CommitteeSectionEmptyState
+              theme={theme}
+              icon={MessageCircle}
+              title="No messages yet"
+              description="Start the conversation with your committee. Share updates, questions, and coordination with other members."
+              className="!border-0 !bg-transparent !shadow-none"
+            />
+          ) : (
+            <div className="space-y-3">
+              {committee.messages.map((msg) => {
+                const attribution =
+                  msg.senderRole != null
+                    ? formatCommitteeAttribution({
+                        name: msg.senderName,
+                        role: msg.senderRole,
+                      })
+                    : msg.senderName === SCHOOL_ADMIN_ATTRIBUTION
+                      ? SCHOOL_ADMIN_ATTRIBUTION
+                      : msg.senderName;
+                return (
+                  <div
+                    key={msg.id}
+                    className="rounded-xl border p-3 sm:p-4"
+                    style={{ backgroundColor: theme.primarySoft, borderColor: theme.line }}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold" style={{ color: theme.ink }}>
+                        {attribution}
+                      </p>
+                      <p className="text-[10px]" style={{ color: theme.muted }}>
+                        {msg.time}
+                      </p>
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: theme.muted }}>
+                      {msg.text}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
-    </div>
+        {!readOnly && (
+          <div
+            className="flex items-center gap-2 border-t p-4 sm:gap-3 sm:p-5"
+            style={{ borderColor: theme.line, backgroundColor: theme.white }}
+          >
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              placeholder="Write a message…"
+              className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm"
+              style={inputStyle}
+            />
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              onClick={() => void handleSend()}
+              disabled={sending || !text.trim()}
+              className="shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </AdminButton>
+          </div>
+        )}
+      </ParentCard>
+    </CommitteeWorkspaceSectionFrame>
   );
 }

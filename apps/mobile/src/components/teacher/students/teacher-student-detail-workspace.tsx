@@ -279,14 +279,14 @@ export function TeacherStudentDetailWorkspace({
       return (
         <View style={styles.sheetError}>
           <StoryErrorBanner message={error ?? 'Student not found.'} />
-          <StoryButton label="Try again" variant="soft" onPress={() => void loadDetail()} />
+          <StoryButton label="Try again" previewSafe variant="soft" onPress={() => void loadDetail()} />
         </View>
       );
     }
     return (
       <View style={styles.centered}>
         <Text style={[styles.errorCopy, { color: theme.muted }]}>{error ?? 'Student not found.'}</Text>
-        <StoryButton label="Try again" variant="soft" onPress={() => void loadDetail()} />
+        <StoryButton label="Try again" previewSafe variant="soft" onPress={() => void loadDetail()} />
       </View>
     );
   }

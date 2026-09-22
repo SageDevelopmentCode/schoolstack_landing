@@ -161,6 +161,21 @@ export function isParentCurriculumPath(pathname: string): boolean {
   return /\/parent\/(?:p\/[^/]+\/)?curriculum(?:\/|$)/.test(pathname);
 }
 
+export function isParentCommitteesPath(pathname: string): boolean {
+  if (parseProgramParentPath(pathname)?.feature === "committees") return true;
+  if (parseSchoolParentPath(pathname)?.feature === "committees") return true;
+  return /\/parent\/(?:p\/[^/]+\/)?committees(?:\/|$)/.test(pathname);
+}
+
+export function isParentCommitteeWorkspaceOpen(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, "get"> | null,
+): boolean {
+  if (!searchParams?.get("committee")) return false;
+  if (isParentCommitteesPath(pathname)) return true;
+  return /\/admin\/preview\/[^/]+\/family\/[^/]+\/parent\/committees(?:\/|$)/.test(pathname);
+}
+
 export function isParentSupplyListPath(pathname: string): boolean {
   if (parseProgramParentPath(pathname)?.feature === "supply_list") return true;
   if (parseSchoolParentPath(pathname)?.feature === "supply_list") return true;

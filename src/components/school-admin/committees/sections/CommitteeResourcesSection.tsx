@@ -1,65 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ExternalLink, Plus, Upload, X } from "lucide-react";
+import { useMemo, useState, type MouseEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ExternalLink, FileText, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
-import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
-import type { Committee, CommitteeResourceType } from "@/lib/committees/types";
+import AdminChip from "@/components/school-admin/ui/story/AdminChip";
+import type { Committee, CommitteeResource } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { createResource, deleteResource } from "@/lib/committees/resources";
 import { getCommittee } from "@/lib/committees/committees";
+import { canMemberEditItem } from "@/lib/committees/attribution";
 import { formatResourceAccessLabel } from "@/lib/committees/permissions";
-import {
-  acceptForResourceType,
-  createCommitteeResourceSignedUrl,
-  uploadCommitteeResourceFile,
-  validateCommitteeResourceFile,
-} from "@/lib/committees/resource-file-storage";
+import { uploadCommitteeResourceFile, openCommitteeResource } from "@/lib/committees/resource-file-storage";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
-import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
+import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import {
+  CommitteeAttributionLabel,
+  committeeOperationalSurface,
+} from "@/components/school-admin/committees/CommitteeAttributionLabel";
+import CommitteeResourceDetailPanel, {
+  COMMITTEE_RESOURCE_TYPE_LABELS,
+  CommitteeResourceTypeIcon,
+  type CommitteeResourceFormData,
+  type CommitteeResourcePanelState,
+} from "@/components/school-admin/committees/sections/CommitteeResourceDetailPanel";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
-function ResourceFileLink({
-  organizationId,
-  resource,
-  supabase,
-  theme,
-}: {
-  organizationId: string;
-  resource: Committee["resources"][number];
-  supabase: SupabaseClient;
-  theme: ParentThemeTokens;
-}) {
-  const [loading, setLoading] = useState(false);
-
-  const handleOpen = async () => {
-    if (!resource.storagePath) return;
-    setLoading(true);
-    try {
-      const url = await createCommitteeResourceSignedUrl(supabase, resource.storagePath);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to open file."));
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "committees.resources.open",
-        error: "",
-      }, err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AdminTextLink theme={theme} className="mt-2" onClick={() => void handleOpen()}>
-      {loading ? "Opening…" : "Open"} <ExternalLink className="w-3 h-3 inline" />
-    </AdminTextLink>
-  );
+function panelStatesEqual(
+  a: CommitteeResourcePanelState,
+  b: CommitteeResourcePanelState,
+): boolean {
+  if (a.mode !== b.mode) return false;
+  if (a.mode === "create" && b.mode === "create") return true;
+  if (a.mode === "view" && b.mode === "view") return a.resourceId === b.resourceId;
+  return false;
 }
 
 export default function CommitteeResourcesSection({
@@ -69,6 +47,8 @@ export default function CommitteeResourcesSection({
   organizationId,
   onCommitteeChange,
   readOnly = false,
+  currentMemberId,
+  isAdmin = true,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -76,75 +56,94 @@ export default function CommitteeResourcesSection({
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
+  currentMemberId?: string;
+  isAdmin?: boolean;
 }) {
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [description, setDescription] = useState("");
-  const [resourceType, setResourceType] = useState<CommitteeResourceType>("link");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  const [panelState, setPanelState] = useState<CommitteeResourcePanelState | null>(null);
+  const [pendingPanelState, setPendingPanelState] =
+    useState<CommitteeResourcePanelState | null>(null);
+  const [panelDirty, setPanelDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
 
-  const resetForm = () => {
-    setTitle("");
-    setUrl("");
-    setDescription("");
-    setResourceType("link");
-    setSelectedFile(null);
-    setFileError(null);
-  };
+  const selectedResource = useMemo(() => {
+    if (panelState?.mode !== "view") return null;
+    return committee.resources.find((resource) => resource.id === panelState.resourceId) ?? null;
+  }, [committee.resources, panelState]);
 
   const refresh = async () => {
     const updated = await getCommittee(supabase, organizationId, committee.id);
     if (updated) onCommitteeChange(updated);
   };
 
-  const needsFile = resourceType === "pdf" || resourceType === "doc";
-  const canSave =
-    title.trim().length > 0 &&
-    (needsFile ? selectedFile !== null : resourceType !== "link" || url.trim().length > 0);
-
-  const handleAdd = async () => {
-    if (!title.trim()) return;
-    if (needsFile && !selectedFile) {
-      setFileError("Please choose a file to upload.");
+  const tryOpenPanel = (next: CommitteeResourcePanelState) => {
+    if (panelState && panelDirty && !panelStatesEqual(panelState, next)) {
+      setPendingPanelState(next);
       return;
     }
+    setPanelState(next);
+  };
 
+  const openCreatePanel = () => {
+    if (readOnly) return;
+    tryOpenPanel({ mode: "create" });
+  };
+
+  const openViewPanel = (resourceId: string) => {
+    if (panelState?.mode === "view" && panelState.resourceId === resourceId) return;
+    tryOpenPanel({ mode: "view", resourceId });
+  };
+
+  const closePanel = () => {
+    setPanelState(null);
+    setPendingPanelState(null);
+    setPanelDirty(false);
+  };
+
+  const handleConfirmNavigation = (next: CommitteeResourcePanelState) => {
+    setPanelState(next);
+    setPendingPanelState(null);
+    setPanelDirty(false);
+  };
+
+  const handleCancelNavigation = () => {
+    setPendingPanelState(null);
+  };
+
+  const handleSave = async (data: CommitteeResourceFormData) => {
+    if (readOnly) return;
     setSaving(true);
     try {
+      const needsFile = data.type === "pdf" || data.type === "doc";
       let storagePath: string | undefined;
       let fileName: string | undefined;
 
-      if (needsFile && selectedFile) {
+      if (needsFile && data.file) {
         const uploaded = await uploadCommitteeResourceFile(
           supabase,
           { organizationId, committeeId: committee.id },
-          selectedFile,
-          resourceType,
+          data.file,
+          data.type,
         );
         storagePath = uploaded.storagePath;
         fileName = uploaded.fileName;
       }
 
       await createResource(supabase, committee.id, {
-        title: title.trim(),
-        url: resourceType === "link" ? url.trim() || undefined : undefined,
+        title: data.title.trim(),
+        url: data.type === "link" ? data.url.trim() || undefined : undefined,
         storagePath,
         fileName,
-        description: description || undefined,
-        type: resourceType,
+        description: data.description.trim() || undefined,
+        type: data.type,
+        createdByMemberId: currentMemberId,
       });
-      resetForm();
-      setShowAdd(false);
+      closePanel();
       await refresh();
       adminToast.success("Resource added");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to add resource."));
-      void reportPortalOperationalError("school_admin", {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.resources.add",
         error: "",
@@ -154,253 +153,238 @@ export default function CommitteeResourcesSection({
     }
   };
 
-  const handleDelete = async (resourceId: string) => {
+  const handleDelete = async () => {
+    if (!selectedResource || readOnly) return;
+    setSaving(true);
     try {
-      await deleteResource(supabase, resourceId);
+      await deleteResource(supabase, selectedResource.id);
+      closePanel();
       await refresh();
       adminToast.success("Resource deleted");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to delete resource."));
-      void reportPortalOperationalError("school_admin", {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
         organizationId,
         operation: "committees.resources.delete",
         error: "",
       }, err);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleTypeChange = (next: CommitteeResourceType) => {
-    setResourceType(next);
-    setSelectedFile(null);
-    setFileError(null);
-    if (next !== "link") setUrl("");
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (!file) {
-      setSelectedFile(null);
-      setFileError(null);
-      return;
-    }
-    const error = validateCommitteeResourceFile(file, resourceType);
-    if (error) {
-      setFileError(error);
-      setSelectedFile(null);
-      return;
-    }
-    setFileError(null);
-    setSelectedFile(file);
-  };
+  const canDeleteSelected =
+    selectedResource != null &&
+    !readOnly &&
+    canMemberEditItem(
+      selectedResource.createdByMemberId,
+      currentMemberId,
+      isAdmin,
+    );
 
   return (
-    <div className="space-y-4 max-w-3xl">
-      <div className="flex justify-end">
-        {!readOnly && (
-          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => setShowAdd(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            Add resource
-          </AdminButton>
-        )}
-      </div>
+    <CommitteeWorkspaceSectionFrame width="narrow">
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          {!readOnly ? (
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              size="compact"
+              onClick={openCreatePanel}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add resource
+            </AdminButton>
+          ) : null}
+        </div>
 
-      <motion.div
-        key={committee.resources.map((resource) => resource.id).join("-")}
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-        variants={staggerContainer(reducedMotion)}
-        initial="initial"
-        animate="animate"
-      >
-        {committee.resources.map((resource) => {
-          const accessLabel = formatResourceAccessLabel(
-            resource.allowedDutyRoleIds,
-            committee.dutyRoles,
-          );
-          return (
-            <motion.div key={resource.id} variants={staggerItem(reducedMotion)}>
-              <AdminCard theme={theme} padding="default">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                      {resource.title}
-                    </p>
-                    <p className="text-[10px] uppercase font-semibold mt-1" style={{ color: theme.muted }}>
-                      {resource.type}
-                    </p>
-                    {resource.fileName && (
-                      <p className="text-xs mt-1 truncate" style={{ color: theme.muted }}>
-                        {resource.fileName}
-                      </p>
-                    )}
-                    {resource.description && (
-                      <p className="text-xs mt-1" style={{ color: theme.muted }}>
-                        {resource.description}
-                      </p>
-                    )}
-                    {accessLabel && (
-                      <p className="text-[10px] mt-2 font-medium" style={{ color: theme.primary }}>
-                        {accessLabel}
-                      </p>
-                    )}
-                  </div>
-                  {!readOnly && (
-                    <AdminButton
-                      theme={theme}
-                      variant="danger"
-                      size="compact"
-                      onClick={() => void handleDelete(resource.id)}
-                    >
-                      Delete
-                    </AdminButton>
-                  )}
-                </div>
-                {resource.url && (
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs mt-2"
-                    style={{ color: theme.primary }}
-                  >
-                    Open <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-                {resource.storagePath && (
-                  <ResourceFileLink
-                    organizationId={organizationId}
-                    resource={resource}
-                    supabase={supabase}
-                    theme={theme}
-                  />
-                )}
-              </AdminCard>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-
-      <AnimatePresence>
-        {showAdd && (
-          <CommitteeModalShell
+        {committee.resources.length === 0 ? (
+          <CommitteeSectionEmptyState
             theme={theme}
-            title="Add resource"
-            onClose={() => {
-              resetForm();
-              setShowAdd(false);
-            }}
-            footer={
-              <div className="flex justify-end gap-2">
-                <AdminButton
-                  theme={theme}
-                  variant="soft"
-                  onClick={() => {
-                    resetForm();
-                    setShowAdd(false);
-                  }}
-                >
-                  Cancel
-                </AdminButton>
+            icon={FileText}
+            title="No resources yet"
+            description="Share helpful links, documents, and guides with your committee members."
+            action={
+              !readOnly ? (
                 <AdminButton
                   theme={theme}
                   variant="primary"
-                  onClick={() => void handleAdd()}
-                  disabled={saving || !canSave}
+                  size="compact"
+                  onClick={openCreatePanel}
                 >
-                  {saving ? "Adding…" : "Add resource"}
+                  <Plus className="h-3.5 w-3.5" />
+                  Add resource
                 </AdminButton>
-              </div>
+              ) : undefined
             }
+          />
+        ) : (
+          <motion.div
+            key={committee.resources.map((resource) => resource.id).join("-")}
+            className="space-y-2"
+            variants={staggerContainer(reducedMotion)}
+            initial="initial"
+            animate="animate"
           >
-            <div className="space-y-3">
-              <input
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              />
-              <select
-                value={resourceType}
-                onChange={(e) => handleTypeChange(e.target.value as CommitteeResourceType)}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
-              >
-                <option value="link">Link</option>
-                <option value="pdf">PDF</option>
-                <option value="doc">Document</option>
-                <option value="checklist">Checklist</option>
-              </select>
-
-              {resourceType === "link" && (
-                <input
-                  placeholder="URL"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border"
-                  style={inputStyle}
+            {committee.resources.map((resource) => (
+              <motion.div key={resource.id} variants={staggerItem(reducedMotion)}>
+                <ResourceListRow
+                  resource={resource}
+                  theme={theme}
+                  supabase={supabase}
+                  organizationId={organizationId}
+                  isAdmin={isAdmin}
+                  members={committee.members}
+                  dutyRoles={committee.dutyRoles}
+                  onOpen={() => openViewPanel(resource.id)}
                 />
-              )}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
-              {needsFile && (
-                <div
-                  className="rounded-lg border border-dashed p-4"
-                  style={{ borderColor: "#DCE4DC" }}
-                >
-                  <input
-                    id="committee-resource-file"
-                    type="file"
-                    accept={acceptForResourceType(resourceType)}
-                    className="hidden"
-                    onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
-                  />
-                  {selectedFile ? (
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm truncate" style={{ color: theme.ink }}>
-                        {selectedFile.name}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => handleFileSelect(null)}
-                        className="p-1 rounded cursor-pointer"
-                        style={{ color: theme.muted }}
-                        aria-label="Remove file"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="committee-resource-file"
-                      className="flex flex-col items-center gap-2 cursor-pointer py-2"
-                    >
-                      <Upload className="w-5 h-5" style={{ color: theme.primary }} />
-                      <span className="text-sm font-medium" style={{ color: theme.primary }}>
-                        Choose file
-                      </span>
-                      <span className="text-xs" style={{ color: theme.muted }}>
-                        {resourceType === "pdf" ? "PDF up to 10 MB" : "Word document up to 10 MB"}
-                      </span>
-                    </label>
-                  )}
-                  {fileError && (
-                    <p className="text-xs mt-2" style={{ color: theme.alert }}>
-                      {fileError}
-                    </p>
-                  )}
-                </div>
-              )}
+        <CommitteeResourceDetailPanel
+          open={panelState != null}
+          mode={panelState?.mode ?? "create"}
+          resource={selectedResource}
+          theme={theme}
+          supabase={supabase}
+          organizationId={organizationId}
+          members={committee.members}
+          readOnly={readOnly}
+          canEdit={!readOnly}
+          canDelete={canDeleteSelected}
+          saving={saving}
+          pendingNavigation={pendingPanelState}
+          onClose={closePanel}
+          onSave={handleSave}
+          onDelete={canDeleteSelected ? handleDelete : undefined}
+          onDirtyChange={setPanelDirty}
+          onConfirmNavigation={handleConfirmNavigation}
+          onCancelNavigation={handleCancelNavigation}
+          isAdmin={isAdmin}
+        />
+      </div>
+    </CommitteeWorkspaceSectionFrame>
+  );
+}
 
-              <textarea
-                placeholder="Description (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 text-sm rounded-lg border"
-                style={inputStyle}
+function ResourceListRow({
+  resource,
+  theme,
+  supabase,
+  organizationId,
+  isAdmin,
+  members,
+  dutyRoles,
+  onOpen,
+}: {
+  resource: CommitteeResource;
+  theme: ParentThemeTokens;
+  supabase: SupabaseClient;
+  organizationId: string;
+  isAdmin: boolean;
+  members: Committee["members"];
+  dutyRoles: Committee["dutyRoles"];
+  onOpen: () => void;
+}) {
+  const [opening, setOpening] = useState(false);
+  const accessLabel = formatResourceAccessLabel(
+    resource.allowedDutyRoleIds,
+    dutyRoles,
+  );
+  const hasOpenTarget = Boolean(resource.url || resource.storagePath);
+
+  const handleOpenResource = async (event: MouseEvent) => {
+    event.stopPropagation();
+    if (opening || !hasOpenTarget) return;
+    setOpening(true);
+    try {
+      await openCommitteeResource(supabase, resource);
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to open resource."));
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
+        organizationId,
+        operation: "committees.resources.open",
+        error: "",
+      }, err);
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  const openLabel = resource.fileName
+    ? `Open ${resource.fileName}`
+    : resource.url
+      ? "Open link"
+      : "Open resource";
+
+  return (
+    <AdminCard theme={theme} padding="compact" className="!p-2.5 hover:shadow-md">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="min-w-0 flex-1 cursor-pointer text-left"
+        >
+          <div className="flex items-start gap-2.5">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ backgroundColor: theme.primarySoft }}
+            >
+              <CommitteeResourceTypeIcon
+                type={resource.type}
+                className="h-4 w-4"
+                style={{ color: theme.primary }}
               />
             </div>
-          </CommitteeModalShell>
-        )}
-      </AnimatePresence>
-    </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p className="text-sm font-semibold leading-snug" style={{ color: theme.ink }}>
+                  {resource.title}
+                </p>
+                <AdminChip theme={theme} tone="info" className="!text-[9px] !py-0.5">
+                  {COMMITTEE_RESOURCE_TYPE_LABELS[resource.type]}
+                </AdminChip>
+                {accessLabel ? (
+                  <AdminChip theme={theme} tone="purple" className="!text-[9px] !py-0.5">
+                    {accessLabel}
+                  </AdminChip>
+                ) : null}
+              </div>
+              {resource.description ? (
+                <p
+                  className="mt-0.5 line-clamp-1 text-xs leading-relaxed"
+                  style={{ color: theme.muted }}
+                >
+                  {resource.description}
+                </p>
+              ) : null}
+              <CommitteeAttributionLabel
+                theme={theme}
+                createdByMemberId={resource.createdByMemberId}
+                createdByName={resource.createdByName}
+                createdByRole={resource.createdByRole}
+                members={members}
+                className="mt-1 text-[10px]"
+              />
+            </div>
+          </div>
+        </button>
+        {hasOpenTarget ? (
+          <button
+            type="button"
+            onClick={(event) => void handleOpenResource(event)}
+            disabled={opening}
+            className="shrink-0 rounded-md p-1.5 transition-colors hover:bg-black/5 disabled:opacity-50"
+            style={{ color: theme.primary }}
+            aria-label={openLabel}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+    </AdminCard>
   );
 }

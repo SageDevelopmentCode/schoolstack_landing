@@ -43,6 +43,7 @@ import {
   resolveSchoolAdminNativeRoute,
   schoolAdminSubmissionsRoute,
 } from '@/lib/school-admin/school-admin-nav';
+import { usePortalPreview } from '@/lib/portal-preview-gating';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 type SchoolDashboardTab = 'overview' | 'attendance';
@@ -67,6 +68,7 @@ export function SchoolDashboardScreen({
 }: SchoolDashboardScreenProps) {
   const theme = useAdminTheme();
   const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { reportError } = useMobileErrorReporter(organizationId);
   const [homeTab, setHomeTab] = useState<SchoolDashboardTab>('overview');
   const [summary, setSummary] = useState<MobileAdminDashboardSummary | null>(null);
@@ -288,7 +290,7 @@ export function SchoolDashboardScreen({
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.bg }]}>
-      <StatusBar style="light" />
+      <StatusBar style={isPreview ? 'dark' : 'light'} />
       <Animated.View entering={FadeInDown.duration(350)}>{header}</Animated.View>
 
       <SubmissionStoryTabBar

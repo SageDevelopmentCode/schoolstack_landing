@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
+import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { MoreMenuSheet } from '@/components/school-admin/more-menu-sheet';
 import {
   FLOATING_TAB_BAR_HEIGHT,
@@ -26,6 +27,8 @@ import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redi
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
+import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
+import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
 
 function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/submissions\/[^/]+$/.test(pathname)) return null;
@@ -65,9 +68,12 @@ function SchoolAdminLayoutContent() {
     selectedSchool,
     portalType,
     isPlatformAdminSession,
+    previewSession,
     isLoading,
     enterSchoolAsPlatformAdmin,
   } = useAuth();
+  const { isPreview } = usePortalPreview();
+  const exitPreview = useExitPortalPreviewNavigation();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
@@ -84,26 +90,44 @@ function SchoolAdminLayoutContent() {
   useEffect(() => {
     if (isLoading || !slug || !user) return;
 
-    if (portalType !== 'school_admin' || selectedSchool?.slug !== slug) {
-      void (async () => {
-        const organization = await fetchOrganizationBySlug(slug);
-        if (!organization) {
-          router.replace('/platform-admin/organizations');
-          return;
-        }
-
-        if (isPlatformAdminSession) {
-          await enterSchoolAsPlatformAdmin(organization);
-        } else {
-          router.replace('/login');
-        }
-      })();
+    if (
+      isPortalSessionAllowed(
+        portalType,
+        selectedSchool?.slug,
+        'school_admin',
+        slug,
+        previewSession,
+      )
+    ) {
+      return;
     }
+
+    void (async () => {
+      const organization = await fetchOrganizationBySlug(slug);
+      if (!organization) {
+        router.replace(
+          previewSession ? '/platform-admin/impersonate' : '/platform-admin/organizations',
+        );
+        return;
+      }
+
+      if (previewSession) {
+        router.replace('/platform-admin/impersonate');
+        return;
+      }
+
+      if (isPlatformAdminSession) {
+        await enterSchoolAsPlatformAdmin(organization);
+      } else {
+        router.replace('/login');
+      }
+    })();
   }, [
     enterSchoolAsPlatformAdmin,
     isLoading,
     isPlatformAdminSession,
     portalType,
+    previewSession,
     router,
     selectedSchool?.slug,
     slug,
@@ -178,6 +202,7 @@ function SchoolAdminLayoutContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar style="dark" />
+      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
       <View
         style={[
           styles.content,
@@ -205,7 +230,7 @@ function SchoolAdminLayoutContent() {
 
 export default function SchoolAdminLayout() {
   const { selectedSchool, user, isLoading } = useAuth();
-  const router = useRouter();
+  const { isPreview } = usePortalPreview();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const organization = useMemo(() => {
@@ -232,7 +257,7 @@ export default function SchoolAdminLayout() {
   return (
     <SchoolAdminThemeProvider branding={branding}>
       <ParentThemeProvider branding={branding}>
-        <MessagesRealtimeProvider organizationId={organization.id}>
+        <MessagesRealtimeProvider organizationId={organization.id} enabled={!isPreview}>
           <SchoolAdminSubmissionsProvider organizationId={organization.id}>
             <SchoolAdminStudentsProvider organizationId={organization.id}>
               <SchoolAdminMessagesInboxProvider

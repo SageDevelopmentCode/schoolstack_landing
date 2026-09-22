@@ -225,8 +225,8 @@ export default function ParentCommitteeDetail({
                 Request to join
               </h3>
               <p className="mt-1 text-[12px]" style={{ color: theme.muted }}>
-                Your request will be reviewed by the school. You will get read-only access to the
-                committee workspace after approval.
+                Your request will be reviewed by the school. After approval, you will get
+                access to the committee workspace.
               </p>
             </div>
 

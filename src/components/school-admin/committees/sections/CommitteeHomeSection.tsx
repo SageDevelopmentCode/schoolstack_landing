@@ -6,6 +6,7 @@ import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplay
 import AdminMetricCard from "@/components/school-admin/ui/story/AdminMetricCard";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import AdminTextLink from "@/components/school-admin/ui/story/AdminTextLink";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import type { Committee, CommitteeWorkspaceSection } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
@@ -42,6 +43,7 @@ export default function CommitteeHomeSection({
   }));
 
   return (
+    <CommitteeWorkspaceSectionFrame width="wide">
     <div className="space-y-6">
       <AdminCard
         theme={theme}
@@ -165,5 +167,6 @@ export default function CommitteeHomeSection({
         </AdminCard>
       </div>
     </div>
+    </CommitteeWorkspaceSectionFrame>
   );
 }

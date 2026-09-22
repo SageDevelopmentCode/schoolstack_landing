@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
+import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { TeacherMoreMenuSheet } from '@/components/teacher/teacher-more-menu-sheet';
 import { TeacherCalendarProvider } from '@/contexts/teacher-calendar-context';
 import { TeacherHomeProvider } from '@/contexts/teacher-home-context';
@@ -37,6 +38,8 @@ import {
   type TeacherTab,
 } from '@/lib/teacher/teacher-nav';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
+import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
+import { useExitPortalPreviewNavigation, usePortalPreview } from '@/lib/portal-preview-gating';
 
 function getActiveTab(pathname: string): TeacherTab | null {
   if (isTeacherStudentDetailPath(pathname)) return null;
@@ -69,7 +72,9 @@ function TeacherLayoutContent() {
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, selectedSchool, portalType, isLoading } = useAuth();
+  const { user, selectedSchool, portalType, previewSession, isLoading } = useAuth();
+  const { isPreview } = usePortalPreview();
+  const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   const pathTab = getActiveTab(pathname);
@@ -85,10 +90,18 @@ function TeacherLayoutContent() {
   useEffect(() => {
     if (isLoading || !slug || !user) return;
 
-    if (portalType !== 'teacher' || selectedSchool?.slug !== slug) {
+    if (
+      !isPortalSessionAllowed(
+        portalType,
+        selectedSchool?.slug,
+        'teacher',
+        slug,
+        previewSession,
+      )
+    ) {
       router.replace('/portal');
     }
-  }, [isLoading, portalType, router, selectedSchool?.slug, slug, user]);
+  }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
 
   const handleTabChange = (tab: TeacherTab) => {
     if (!slug) return;
@@ -145,6 +158,7 @@ function TeacherLayoutContent() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Story.paper }]}>
       <StatusBar style="dark" />
+      {isPreview ? <PortalPreviewBanner onExit={() => void exitPreview()} /> : null}
       <View
         style={[
           styles.content,
@@ -173,6 +187,7 @@ function TeacherLayoutContent() {
 
 export default function TeacherLayout() {
   const { selectedSchool, user, isLoading } = useAuth();
+  const { isPreview } = usePortalPreview();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const organization = useMemo(() => {
@@ -216,7 +231,7 @@ export default function TeacherLayout() {
       <ParentThemeProvider branding={branding}>
         <TeacherHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
           <TeacherCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-            <MessagesRealtimeProvider organizationId={loadedOrg.id}>
+            <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
               <TeacherMessagesInboxProvider
                 organizationId={loadedOrg.id}
                 schoolName={loadedOrg.name}>

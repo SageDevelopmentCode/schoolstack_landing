@@ -1,24 +1,49 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Calendar, Plus, UserRound } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
-import type { Committee, CommitteeTaskStatus } from "@/lib/committees/types";
+import type { Committee, CommitteeTask, CommitteeTaskStatus } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { createTask, updateTask } from "@/lib/committees/tasks";
+import { createTask, deleteTask, updateTask } from "@/lib/committees/tasks";
 import { getCommittee } from "@/lib/committees/committees";
+import { canMemberEditItem } from "@/lib/committees/attribution";
 import { TASK_STATUS_LABELS } from "@/lib/committees/task-utils";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import CommitteeModalShell from "@/components/school-admin/committees/CommitteeModalShell";
-import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
+import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
+import {
+  CommitteeAttributionLabel,
+  committeeOperationalSurface,
+} from "@/components/school-admin/committees/CommitteeAttributionLabel";
+import CommitteeTaskDetailPanel, {
+  type CommitteeTaskFormData,
+  type CommitteeTaskPanelState,
+} from "@/components/school-admin/committees/sections/CommitteeTaskDetailPanel";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
+
+function formatDueDate(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function panelStatesEqual(
+  a: CommitteeTaskPanelState,
+  b: CommitteeTaskPanelState,
+): boolean {
+  if (a.mode !== b.mode) return false;
+  if (a.mode === "create" && b.mode === "create") return a.status === b.status;
+  if (a.mode === "edit" && b.mode === "edit") return a.taskId === b.taskId;
+  return false;
+}
 
 export default function CommitteeTasksSection({
   committee,
@@ -27,6 +52,8 @@ export default function CommitteeTasksSection({
   organizationId,
   onCommitteeChange,
   readOnly = false,
+  currentMemberId,
+  isAdmin = true,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -34,168 +61,320 @@ export default function CommitteeTasksSection({
   organizationId: string;
   onCommitteeChange: (committee: Committee) => void;
   readOnly?: boolean;
+  currentMemberId?: string;
+  isAdmin?: boolean;
 }) {
-  const [showAdd, setShowAdd] = useState(false);
-  const [title, setTitle] = useState("");
-  const [group, setGroup] = useState("general");
+  const [panelState, setPanelState] = useState<CommitteeTaskPanelState | null>(null);
+  const [pendingPanelState, setPendingPanelState] =
+    useState<CommitteeTaskPanelState | null>(null);
+  const [panelDirty, setPanelDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
-  const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
 
   const taskGroups = committee.config.taskGroups ?? [{ id: "general", label: "General" }];
+
+  const selectedTask = useMemo(() => {
+    if (panelState?.mode !== "edit") return null;
+    return committee.tasks.find((task) => task.id === panelState.taskId) ?? null;
+  }, [committee.tasks, panelState]);
 
   const refresh = async () => {
     const updated = await getCommittee(supabase, organizationId, committee.id);
     if (updated) onCommitteeChange(updated);
   };
 
-  const handleAdd = async () => {
-    if (!title.trim()) return;
+  const tryOpenPanel = (next: CommitteeTaskPanelState) => {
+    if (
+      panelState &&
+      panelDirty &&
+      !panelStatesEqual(panelState, next)
+    ) {
+      setPendingPanelState(next);
+      return;
+    }
+    setPanelState(next);
+  };
+
+  const openCreatePanel = (status: CommitteeTaskStatus = "open") => {
+    if (readOnly) return;
+    tryOpenPanel({ mode: "create", status });
+  };
+
+  const openEditPanel = (taskId: string) => {
+    if (panelState?.mode === "edit" && panelState.taskId === taskId) return;
+    tryOpenPanel({ mode: "edit", taskId });
+  };
+
+  const closePanel = () => {
+    setPanelState(null);
+    setPendingPanelState(null);
+    setPanelDirty(false);
+  };
+
+  const handleConfirmNavigation = (next: CommitteeTaskPanelState) => {
+    setPanelState(next);
+    setPendingPanelState(null);
+    setPanelDirty(false);
+  };
+
+  const handleCancelNavigation = () => {
+    setPendingPanelState(null);
+  };
+
+  const handleSave = async (data: CommitteeTaskFormData) => {
+    if (readOnly) return;
     setSaving(true);
     try {
-      await createTask(supabase, committee.id, { title: title.trim(), group });
-      setTitle("");
-      setShowAdd(false);
+      if (panelState?.mode === "create") {
+        await createTask(supabase, committee.id, {
+          title: data.title.trim(),
+          description: data.description.trim() || undefined,
+          group: data.group,
+          status: data.status,
+          assigneeMemberId: data.assigneeMemberId ?? undefined,
+          dueDate: data.dueDate || undefined,
+          createdByMemberId: currentMemberId,
+        });
+        adminToast.success("Task added");
+      } else if (panelState?.mode === "edit" && selectedTask) {
+        await updateTask(supabase, selectedTask.id, {
+          title: data.title.trim(),
+          description: data.description.trim(),
+          group: data.group,
+          status: data.status,
+          assigneeMemberId: data.assigneeMemberId,
+          dueDate: data.dueDate || null,
+        });
+        adminToast.success("Task updated");
+      }
+      closePanel();
       await refresh();
-      adminToast.success("Task added");
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to add task."));
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "committees.tasks.add",
-        error: "",
-      }, err);
+      adminToast.error(
+        formatActionError(
+          err,
+          panelState?.mode === "create"
+            ? "Failed to add task."
+            : "Failed to update task.",
+        ),
+      );
+      void reportPortalOperationalError(
+        committeeOperationalSurface(isAdmin),
+        {
+          organizationId,
+          operation:
+            panelState?.mode === "create"
+              ? "committees.tasks.add"
+              : "committees.tasks.update",
+          error: "",
+        },
+        err,
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleStatusChange = async (taskId: string, status: CommitteeTaskStatus) => {
+  const handleDelete = async () => {
+    if (!selectedTask || readOnly) return;
+    setSaving(true);
     try {
-      await updateTask(supabase, taskId, { status });
+      await deleteTask(supabase, selectedTask.id);
+      closePanel();
       await refresh();
-      adminToast.success("Task updated");
+      adminToast.success("Task deleted");
     } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to update task."));
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "committees.tasks.update",
-        error: "",
-      }, err);
+      adminToast.error(formatActionError(err, "Failed to delete task."));
+      void reportPortalOperationalError(
+        committeeOperationalSurface(isAdmin),
+        {
+          organizationId,
+          operation: "committees.tasks.delete",
+          error: "",
+        },
+        err,
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
   const groupLabel = (key: string) =>
     taskGroups.find((groupItem) => groupItem.id === key)?.label ?? key;
 
+  const panelCanEdit =
+    !readOnly &&
+    (panelState?.mode === "create"
+      ? true
+      : selectedTask != null &&
+        canMemberEditItem(
+          selectedTask.createdByMemberId,
+          currentMemberId,
+          isAdmin,
+        ));
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        {!readOnly && (
-          <AdminButton theme={theme} variant="primary" size="compact" onClick={() => setShowAdd(true)}>
-            <Plus className="w-3.5 h-3.5" />
-            Add task
-          </AdminButton>
-        )}
-      </div>
-
-      <motion.div
-        key={committee.tasks.map((task) => task.id).join("-")}
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
-        variants={staggerContainer(reducedMotion)}
-        initial="initial"
-        animate="animate"
-      >
-        {COLUMNS.map((status) => (
-          <motion.div key={status} variants={staggerItem(reducedMotion)}>
-            <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: theme.muted }}>
-              {TASK_STATUS_LABELS[status]}
-            </h4>
-            <div className="space-y-2">
-              {committee.tasks
-                .filter((task) => task.status === status)
-                .map((task) => (
-                  <AdminCard key={task.id} theme={theme} padding="compact">
-                    <p className="text-sm font-medium mb-1" style={{ color: theme.ink }}>
-                      {task.title}
-                    </p>
-                    <AdminChip theme={theme} tone="info">
-                      {groupLabel(task.group)}
-                    </AdminChip>
-                    {task.assigneeName && (
-                      <p className="text-xs mt-2" style={{ color: theme.muted }}>
-                        {task.assigneeName}
-                      </p>
-                    )}
-                    {!readOnly ? (
-                      <select
-                        value={task.status}
-                        onChange={(e) =>
-                          void handleStatusChange(task.id, e.target.value as CommitteeTaskStatus)
-                        }
-                        className="mt-2 w-full text-xs rounded border px-1 py-1"
-                        style={inputStyle}
-                      >
-                        {COLUMNS.map((columnStatus) => (
-                          <option key={columnStatus} value={columnStatus}>
-                            {TASK_STATUS_LABELS[columnStatus]}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <p className="text-xs mt-2" style={{ color: theme.muted }}>
-                        {TASK_STATUS_LABELS[task.status]}
-                      </p>
-                    )}
-                  </AdminCard>
-                ))}
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      <AnimatePresence>
-        {showAdd && (
-          <CommitteeModalShell
-            theme={theme}
-            title="Add task"
-            onClose={() => setShowAdd(false)}
-            footer={
-              <div className="flex justify-end gap-2">
-                <AdminButton theme={theme} variant="soft" onClick={() => setShowAdd(false)}>
-                  Cancel
-                </AdminButton>
-                <AdminButton
-                  theme={theme}
-                  variant="primary"
-                  onClick={() => void handleAdd()}
-                  disabled={saving || !title.trim()}
-                >
-                  {saving ? "Adding…" : "Add task"}
-                </AdminButton>
-              </div>
-            }
-          >
-            <input
-              placeholder="Task title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border mb-3"
-              style={inputStyle}
-            />
-            <select
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border"
-              style={inputStyle}
+    <CommitteeWorkspaceSectionFrame width="full">
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          {!readOnly ? (
+            <AdminButton
+              theme={theme}
+              variant="primary"
+              size="compact"
+              onClick={() => openCreatePanel("open")}
             >
-              {taskGroups.map((groupItem) => (
-                <option key={groupItem.id} value={groupItem.id}>{groupItem.label}</option>
-              ))}
-            </select>
-          </CommitteeModalShell>
-        )}
-      </AnimatePresence>
-    </div>
+              <Plus className="h-3.5 w-3.5" />
+              Add task
+            </AdminButton>
+          ) : null}
+        </div>
+
+        <motion.div
+          key={committee.tasks.map((task) => task.id).join("-")}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
+          variants={staggerContainer(reducedMotion)}
+          initial="initial"
+          animate="animate"
+        >
+          {COLUMNS.map((status) => {
+            const columnTasks = committee.tasks.filter((task) => task.status === status);
+            return (
+              <motion.div key={status} variants={staggerItem(reducedMotion)}>
+                <div
+                  className="flex min-h-[280px] flex-col space-y-2 rounded-2xl border p-3"
+                  style={{ backgroundColor: theme.white, borderColor: theme.line }}
+                >
+                  <h4
+                    className="text-xs font-semibold uppercase"
+                    style={{ color: theme.muted }}
+                  >
+                    {TASK_STATUS_LABELS[status]}
+                  </h4>
+                  {columnTasks.length === 0 ? (
+                    <p
+                      className="py-6 text-center text-xs"
+                      style={{ color: theme.muted }}
+                    >
+                      No tasks here
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {columnTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          theme={theme}
+                          groupLabel={groupLabel(task.group)}
+                          members={committee.members}
+                          onOpen={() => openEditPanel(task.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      onClick={() => openCreatePanel(status)}
+                      className="mt-auto flex items-center gap-1 rounded-md px-1 py-2 text-left text-xs font-medium transition-colors"
+                      style={{ color: theme.muted }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add task
+                    </button>
+                  ) : null}
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        <CommitteeTaskDetailPanel
+          open={panelState != null}
+          mode={panelState?.mode ?? "create"}
+          task={selectedTask}
+          defaultStatus={
+            panelState?.mode === "create" ? panelState.status : "open"
+          }
+          taskGroups={taskGroups}
+          members={committee.members}
+          theme={theme}
+          readOnly={readOnly}
+          canEdit={panelCanEdit}
+          saving={saving}
+          pendingNavigation={pendingPanelState}
+          onClose={closePanel}
+          onSave={handleSave}
+          onDelete={
+            panelState?.mode === "edit" && panelCanEdit
+              ? handleDelete
+              : undefined
+          }
+          onDirtyChange={setPanelDirty}
+          onConfirmNavigation={handleConfirmNavigation}
+          onCancelNavigation={handleCancelNavigation}
+        />
+      </div>
+    </CommitteeWorkspaceSectionFrame>
+  );
+}
+
+function TaskCard({
+  task,
+  theme,
+  groupLabel,
+  members,
+  onOpen,
+}: {
+  task: CommitteeTask;
+  theme: ParentThemeTokens;
+  groupLabel: string;
+  members: Committee["members"];
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full cursor-pointer text-left"
+    >
+      <AdminCard theme={theme} padding="compact" className="!p-2 hover:shadow-md">
+        <p
+          className="mb-1 text-xs font-semibold leading-snug"
+          style={{ color: theme.ink }}
+        >
+          {task.title}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <AdminChip theme={theme} tone="info" className="!py-0.5 !text-[9px]">
+            {groupLabel}
+          </AdminChip>
+          {task.dueDate ? (
+            <span
+              className="inline-flex items-center gap-0.5 text-[10px]"
+              style={{ color: theme.muted }}
+            >
+              <Calendar className="h-2.5 w-2.5" />
+              {formatDueDate(task.dueDate)}
+            </span>
+          ) : null}
+          <span
+            className="inline-flex items-center gap-0.5 text-[10px]"
+            style={{ color: theme.muted }}
+          >
+            <UserRound className="h-2.5 w-2.5" />
+            {task.assigneeName ?? "Unassigned"}
+          </span>
+        </div>
+        <CommitteeAttributionLabel
+          theme={theme}
+          createdByMemberId={task.createdByMemberId}
+          createdByName={task.createdByName}
+          createdByRole={task.createdByRole}
+          members={members}
+          className="mt-1 text-[10px]"
+        />
+      </AdminCard>
+    </button>
   );
 }

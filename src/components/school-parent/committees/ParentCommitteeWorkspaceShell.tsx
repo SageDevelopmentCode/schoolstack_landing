@@ -1,23 +1,21 @@
 "use client";
 
+import { Suspense, useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
-  ArrowLeft,
-  BookOpen,
   CalendarDays,
   CheckSquare,
   FileText,
   Home,
+  Loader2,
   MessageCircle,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import ParentChip from "@/components/school-parent/ui/ParentChip";
-import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
-import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
-import { parentCommitteesViewTransition } from "@/components/school-parent/committees/parent-committees-view-transition";
+import { CommitteeWorkspaceSidePanel } from "@/components/school-admin/committees/CommitteeWorkspaceStoryHeader";
+import CommitteeWorkspaceLayout from "@/components/school-admin/committees/CommitteeWorkspaceLayout";
+import ParentCommitteeWorkspaceSkeleton from "@/components/school-parent/committees/ParentCommitteeWorkspaceSkeleton";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   COMMITTEE_SECTION_LABELS,
@@ -27,33 +25,35 @@ import {
 
 const CommitteeHomeSection = dynamic(
   () => import("@/components/school-admin/committees/sections/CommitteeHomeSection"),
-);
-const CommitteeAboutSection = dynamic(
-  () => import("@/components/school-admin/committees/sections/CommitteeAboutSection"),
+  { loading: () => null },
 );
 const CommitteeResourcesSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeResourcesSection"),
+  { loading: () => null },
 );
 const CommitteeCalendarSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeCalendarSection"),
+  { loading: () => null },
 );
 const CommitteeTasksSection = dynamic(
   () => import("@/components/school-admin/committees/sections/CommitteeTasksSection"),
+  { loading: () => null },
 );
 const CommitteeMessagesSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeMessagesSection"),
+  { loading: () => null },
 );
 const CommitteeMembersSection = dynamic(
   () =>
     import("@/components/school-admin/committees/sections/CommitteeMembersSection"),
+  { loading: () => null },
 );
 
-const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, LucideIcon>> = {
+const PARENT_SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, LucideIcon>> = {
   home: Home,
-  about: BookOpen,
   resources: FileText,
   calendar: CalendarDays,
   tasks: CheckSquare,
@@ -63,9 +63,58 @@ const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, LucideIcon>> = {
 
 const SECTION_ICON_CLASS = "h-3.5 w-3.5 shrink-0";
 
+const PARENT_VISIBLE_SECTIONS: CommitteeWorkspaceSection[] = [
+  "home",
+  "resources",
+  "calendar",
+  "tasks",
+  "messages",
+  "members",
+];
+
+function renderSectionContent(
+  section: CommitteeWorkspaceSection,
+  sectionProps: {
+    committee: Committee;
+    theme: ParentThemeTokens;
+    supabase: SupabaseClient;
+    organizationId: string;
+    onCommitteeChange: (committee: Committee) => void;
+    currentMemberId?: string;
+    isAdmin: boolean;
+    canWrite: boolean;
+    onNavigate: (section: CommitteeWorkspaceSection) => void;
+  },
+) {
+  const { committee, theme, canWrite, onNavigate, ...rest } = sectionProps;
+
+  switch (section) {
+    case "home":
+      return (
+        <CommitteeHomeSection
+          committee={committee}
+          theme={theme}
+          onNavigate={onNavigate}
+        />
+      );
+    case "resources":
+      return <CommitteeResourcesSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+    case "calendar":
+      return <CommitteeCalendarSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+    case "tasks":
+      return <CommitteeTasksSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+    case "messages":
+      return <CommitteeMessagesSection {...rest} committee={committee} theme={theme} readOnly={!canWrite} />;
+    case "members":
+      return <CommitteeMembersSection {...rest} committee={committee} theme={theme} readOnly />;
+    default:
+      return null;
+  }
+}
+
 /**
- * Read-only parent workspace shell — omits settings/join-request admin UI and
- * code-splits section panels so the parent committees browse page stays lean.
+ * Parent committee workspace — hides Role & Duties and Settings, enables member
+ * participation in resources, calendar, tasks, and messages.
  */
 export default function ParentCommitteeWorkspaceShell({
   committee,
@@ -76,6 +125,8 @@ export default function ParentCommitteeWorkspaceShell({
   onSectionChange,
   onBack,
   onCommitteeChange,
+  currentMemberId,
+  previewMode = false,
   backLabel = "My committees",
 }: {
   committee: Committee;
@@ -86,162 +137,122 @@ export default function ParentCommitteeWorkspaceShell({
   onSectionChange: (section: CommitteeWorkspaceSection) => void;
   onBack?: () => void;
   onCommitteeChange: (committee: Committee) => void;
+  currentMemberId?: string;
+  previewMode?: boolean;
   backLabel?: string;
 }) {
   const sections = committee.config.sections.filter(
-    (section): section is CommitteeWorkspaceSection => section !== "settings",
+    (section): section is CommitteeWorkspaceSection =>
+      PARENT_VISIBLE_SECTIONS.includes(section as CommitteeWorkspaceSection),
   );
-  const leaders = committee.members.filter((m) => m.role === "lead");
+  const canWrite = !previewMode;
+  const resolvedSection = sections.includes(activeSection) ? activeSection : "home";
+  const [mountedSections, setMountedSections] = useState<Set<CommitteeWorkspaceSection>>(
+    () => new Set([resolvedSection]),
+  );
+  const [pendingSection, setPendingSection] = useState<CommitteeWorkspaceSection | null>(null);
+
+  useEffect(() => {
+    setMountedSections((prev) => {
+      if (prev.has(resolvedSection)) return prev;
+      return new Set(prev).add(resolvedSection);
+    });
+  }, [resolvedSection]);
+
+  useEffect(() => {
+    if (pendingSection === resolvedSection) {
+      setPendingSection(null);
+    }
+  }, [pendingSection, resolvedSection]);
+
+  const handleSectionChange = useCallback(
+    (section: CommitteeWorkspaceSection) => {
+      if (section !== resolvedSection) {
+        setMountedSections((prev) => {
+          if (!prev.has(section)) {
+            setPendingSection(section);
+          }
+          return new Set(prev).add(section);
+        });
+      }
+      onSectionChange(section);
+    },
+    [onSectionChange, resolvedSection],
+  );
 
   const navItems = sections.map((section) => {
-    const Icon = SECTION_ICONS[section];
+    const Icon = PARENT_SECTION_ICONS[section];
+    const isPending = pendingSection === section;
     return {
       key: section,
       label: COMMITTEE_SECTION_LABELS[section],
       icon: Icon ? <Icon className={SECTION_ICON_CLASS} /> : undefined,
       testId: `parent-committee-section-${section}`,
+      disabled: isPending,
+      ariaBusy: isPending,
+      suffix: isPending ? (
+        <Loader2 className="h-3 w-3 animate-spin" data-testid="parent-committee-tab-loading" />
+      ) : undefined,
     };
   });
 
-  return (
-    <div className="flex h-full min-h-0 flex-col" style={{ backgroundColor: theme.paper }}>
-      <div
-        className="shrink-0 border-b px-4 py-4 sm:px-6 md:px-9"
-        style={{ borderColor: theme.line, backgroundColor: theme.white }}
-      >
-        <div className="mx-auto max-w-[1250px]">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="mb-3 flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-80"
-              style={{ color: theme.muted }}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              {backLabel}
-            </button>
-          ) : null}
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ParentDisplayHeading theme={theme} as="h1" size="section">
-                {committee.name}
-              </ParentDisplayHeading>
-              <ParentChip theme={theme} tone="info">
-                {committee.termLabel}
-              </ParentChip>
-            </div>
-            <p className="mt-1 text-[13px]" style={{ color: theme.muted }}>
-              {committee.description}
-            </p>
-            {leaders.length > 0 ? (
-              <p className="mt-1 text-[12px]" style={{ color: theme.muted }}>
-                Led by {leaders.map((l) => l.name).join(", ")}
-              </p>
-            ) : null}
-          </div>
-          <div className="mt-4">
-            <ParentStoryPillNav
-              theme={theme}
-              items={navItems}
-              activeKey={activeSection}
-              onChange={(key) => onSectionChange(key as CommitteeWorkspaceSection)}
-              ariaLabel="Committee sections"
-              data-testid="parent-committee-section-nav"
-            />
-          </div>
-        </div>
-      </div>
+  const sectionProps = {
+    committee,
+    theme,
+    supabase,
+    organizationId,
+    onCommitteeChange,
+    currentMemberId,
+    isAdmin: false,
+    canWrite,
+    onNavigate: handleSectionChange,
+  };
 
-      <div
-        className={
-          activeSection === "messages"
-            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-            : "flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-9"
-        }
-        style={{ backgroundColor: theme.paper }}
-      >
-        <div className={activeSection === "messages" ? "flex min-h-0 flex-1 flex-col" : "mx-auto max-w-[1250px] w-full"}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSection}
-              {...parentCommitteesViewTransition}
-              className={
-                activeSection === "messages"
-                  ? "flex h-full min-h-0 flex-1 flex-col"
-                  : undefined
+  const visibleMountedSections = PARENT_VISIBLE_SECTIONS.filter(
+    (section) => sections.includes(section) && mountedSections.has(section),
+  );
+
+  return (
+    <CommitteeWorkspaceLayout
+      theme={theme}
+      sidePanel={
+        <CommitteeWorkspaceSidePanel
+          committee={committee}
+          theme={theme}
+          sections={sections}
+          activeSection={resolvedSection}
+          onSectionChange={handleSectionChange}
+          onBack={onBack}
+          backLabel={backLabel}
+          variant="parent"
+          navItems={navItems}
+          navTestId="parent-committee-section-nav"
+        />
+      }
+    >
+      {visibleMountedSections.map((section) => {
+        const isActive = section === resolvedSection;
+        return (
+          <div
+            key={section}
+            hidden={!isActive}
+          >
+            <Suspense
+              fallback={
+                pendingSection === section ? (
+                  <ParentCommitteeWorkspaceSkeleton
+                    theme={theme}
+                    variant="section"
+                    section={section}
+                  />
+                ) : null
               }
             >
-              {activeSection === "home" ? (
-                <CommitteeHomeSection
-                  committee={committee}
-                  theme={theme}
-                  onNavigate={onSectionChange}
-                />
-              ) : null}
-              {activeSection === "about" ? (
-                <CommitteeAboutSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-              {activeSection === "resources" ? (
-                <CommitteeResourcesSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-              {activeSection === "calendar" ? (
-                <CommitteeCalendarSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-              {activeSection === "tasks" ? (
-                <CommitteeTasksSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-              {activeSection === "messages" ? (
-                <CommitteeMessagesSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-              {activeSection === "members" ? (
-                <CommitteeMembersSection
-                  committee={committee}
-                  theme={theme}
-                  supabase={supabase}
-                  organizationId={organizationId}
-                  onCommitteeChange={onCommitteeChange}
-                  readOnly
-                />
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-    </div>
+              {renderSectionContent(section, sectionProps)}
+            </Suspense>
+          </div>
+        );
+      })}
+    </CommitteeWorkspaceLayout>
   );
 }

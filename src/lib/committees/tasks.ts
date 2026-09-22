@@ -11,6 +11,7 @@ export type CreateTaskInput = {
   assigneeMemberId?: string;
   dueDate?: string;
   attachmentLabel?: string;
+  createdByMemberId?: string;
 };
 
 export async function createTask(
@@ -29,6 +30,7 @@ export async function createTask(
       assignee_member_id: input.assigneeMemberId ?? null,
       due_date: input.dueDate ?? null,
       attachment_label: input.attachmentLabel ?? null,
+      created_by_member_id: input.createdByMemberId ?? null,
     })
     .select()
     .single();

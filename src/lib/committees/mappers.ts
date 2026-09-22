@@ -1,3 +1,8 @@
+import {
+  formatCommitteeAttribution,
+  resolveAttributionMember,
+  SCHOOL_ADMIN_ATTRIBUTION,
+} from "./attribution";
 import { resolveTemplateConfig } from "./templates";
 import type {
   Committee,
@@ -73,6 +78,7 @@ export type CommitteeTaskRow = {
   assignee_member_id: string | null;
   due_date: string | null;
   attachment_label: string | null;
+  created_by_member_id: string | null;
   sort_order: number;
 };
 
@@ -84,6 +90,7 @@ export type CommitteeEventRow = {
   event_time: string | null;
   event_type: CommitteeEvent["type"];
   location: string | null;
+  created_by_member_id: string | null;
   sort_order: number;
 };
 
@@ -97,6 +104,7 @@ export type CommitteeResourceRow = {
   file_name: string | null;
   description: string | null;
   allowed_duty_role_ids: string[];
+  created_by_member_id: string | null;
   sort_order: number;
 };
 
@@ -149,6 +157,18 @@ export function mapDutyRoleRow(row: CommitteeDutyRoleRow): CommitteeDutyRole {
   };
 }
 
+function mapCreatorFields(
+  createdByMemberId: string | null | undefined,
+  members: CommitteeMember[],
+) {
+  const creator = resolveAttributionMember(createdByMemberId, members);
+  return {
+    createdByMemberId: createdByMemberId ?? undefined,
+    createdByName: creator?.name,
+    createdByRole: creator?.role,
+  };
+}
+
 export function mapTaskRow(
   row: CommitteeTaskRow,
   members: CommitteeMember[],
@@ -166,10 +186,14 @@ export function mapTaskRow(
     assigneeName: assignee?.name,
     dueDate: row.due_date ?? undefined,
     attachmentLabel: row.attachment_label ?? undefined,
+    ...mapCreatorFields(row.created_by_member_id, members),
   };
 }
 
-export function mapEventRow(row: CommitteeEventRow): CommitteeEvent {
+export function mapEventRow(
+  row: CommitteeEventRow,
+  members: CommitteeMember[] = [],
+): CommitteeEvent {
   return {
     id: row.id,
     title: row.title,
@@ -177,10 +201,14 @@ export function mapEventRow(row: CommitteeEventRow): CommitteeEvent {
     time: row.event_time ?? undefined,
     type: row.event_type,
     location: row.location ?? undefined,
+    ...mapCreatorFields(row.created_by_member_id, members),
   };
 }
 
-export function mapResourceRow(row: CommitteeResourceRow): CommitteeResource {
+export function mapResourceRow(
+  row: CommitteeResourceRow,
+  members: CommitteeMember[] = [],
+): CommitteeResource {
   return {
     id: row.id,
     title: row.title,
@@ -190,6 +218,7 @@ export function mapResourceRow(row: CommitteeResourceRow): CommitteeResource {
     fileName: row.file_name ?? undefined,
     description: row.description ?? undefined,
     allowedDutyRoleIds: row.allowed_duty_role_ids ?? [],
+    ...mapCreatorFields(row.created_by_member_id, members),
   };
 }
 
@@ -197,9 +226,7 @@ export function mapMessageRow(
   row: CommitteeMessageRow,
   members: CommitteeMember[],
 ): CommitteeMessage {
-  const sender = row.sender_member_id
-    ? members.find((m) => m.id === row.sender_member_id)
-    : undefined;
+  const sender = resolveAttributionMember(row.sender_member_id, members);
   const created = new Date(row.created_at);
   const time = created.toLocaleString("en-US", {
     weekday: "short",
@@ -209,7 +236,8 @@ export function mapMessageRow(
   return {
     id: row.id,
     senderId: row.sender_member_id ?? "",
-    senderName: sender?.name ?? "School Admin",
+    senderName: sender?.name ?? SCHOOL_ADMIN_ATTRIBUTION,
+    senderRole: sender?.role,
     text: row.body,
     time,
   };

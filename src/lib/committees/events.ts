@@ -9,6 +9,7 @@ export type CreateEventInput = {
   time?: string;
   type?: CommitteeEventType;
   location?: string;
+  createdByMemberId?: string;
 };
 
 export async function createEvent(
@@ -25,6 +26,7 @@ export async function createEvent(
       event_time: input.time ?? null,
       event_type: input.type ?? "meeting",
       location: input.location ?? null,
+      created_by_member_id: input.createdByMemberId ?? null,
     })
     .select()
     .single();

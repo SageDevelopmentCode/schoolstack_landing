@@ -8,6 +8,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
 import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 import { MAX_MESSAGE_ATTACHMENTS } from '@/lib/messages/constants';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
 import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
@@ -46,12 +47,14 @@ export function MessageComposeBar({
 }: MessageComposeBarProps) {
   const theme = useAdminTheme();
   const parentTheme = useOptionalParentTheme();
+  const readOnly = usePortalReadOnly();
+  const composeDisabled = disabled || readOnly;
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const insets = useSafeAreaInsets();
   const canSend = Boolean(value.trim() || files.length > 0);
   const bottomPadding = applyBottomSafeArea
     ? Math.max(insets.bottom, Spacing.two)
-    : disabled
+    : composeDisabled
       ? Spacing.one
       : Spacing.two;
 
@@ -65,7 +68,7 @@ export function MessageComposeBar({
   const chipBg = parentStory ? parentTheme.paper : theme.bg;
 
   const handlePickAttachment = () => {
-    if (disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS) return;
+    if (composeDisabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS) return;
 
     promptMessageAttachmentSource(async (source) => {
       const slots = remainingAttachmentSlots(files.length);
@@ -122,7 +125,7 @@ export function MessageComposeBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Attach photo or file"
-          disabled={disabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
+          disabled={composeDisabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
           onPress={handlePickAttachment}
           style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
           <Ionicons name="attach" size={22} color={textSecondary} />
@@ -134,7 +137,7 @@ export function MessageComposeBar({
           placeholder="Write a message..."
           placeholderTextColor={textTertiary}
           multiline
-          editable={!disabled}
+          editable={!composeDisabled}
           style={[
             styles.input,
             {
@@ -147,12 +150,12 @@ export function MessageComposeBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Send message"
-          disabled={disabled || sending || !canSend}
+          disabled={composeDisabled || sending || !canSend}
           onPress={onSend}
           style={({ pressed }) => [
             styles.sendButton,
             {
-              backgroundColor: canSend && !disabled && !sending ? accentColor : borderColor,
+              backgroundColor: canSend && !composeDisabled && !sending ? accentColor : borderColor,
               opacity: pressed ? 0.85 : 1,
             },
           ]}>

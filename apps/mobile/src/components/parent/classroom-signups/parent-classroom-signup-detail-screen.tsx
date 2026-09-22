@@ -28,6 +28,7 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
+import { usePortalReadOnly } from '@/lib/portal-preview-gating';
 
 type ParentClassroomSignupDetailScreenProps = {
   slug: string;
@@ -44,6 +45,7 @@ export function ParentClassroomSignupDetailScreen({
   const router = useRouter();
   const { applySubmittedResponse, applyWithdrawnResponse } = useParentClassroomSignups();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const previewReadOnly = usePortalReadOnly();
 
   const [signup, setSignup] = useState<ClassroomSignup | null>(null);
   const [responses, setResponses] = useState<ClassroomSignupResponse[]>([]);
@@ -78,7 +80,7 @@ export function ParentClassroomSignupDetailScreen({
   const canViewClosedSignup = signup?.status === 'closed' && hasConfirmedResponse;
   const canRespond = signup?.status === 'open';
   const canShowContent = signup && (canRespond || canViewClosedSignup);
-  const formReadOnly = signup?.status === 'closed';
+  const formReadOnly = signup?.status === 'closed' || previewReadOnly;
   const deadline = signup ? formatSignupDeadline(signup.responseDeadline) : null;
 
   const handleSubmitted = useCallback(

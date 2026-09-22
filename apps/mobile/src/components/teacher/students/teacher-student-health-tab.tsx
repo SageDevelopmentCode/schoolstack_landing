@@ -194,7 +194,7 @@ export function TeacherStudentHealthTab({
     return (
       <View style={styles.centered}>
         <Text style={[styles.errorCopy, { color: theme.muted }]}>{error}</Text>
-        <StoryButton label="Try again" variant="soft" onPress={() => void retryLoad()} />
+        <StoryButton label="Try again" previewSafe variant="soft" onPress={() => void retryLoad()} />
       </View>
     );
   }

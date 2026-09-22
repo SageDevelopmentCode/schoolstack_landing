@@ -1,44 +1,42 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { OrganizationListItem } from '@/components/platform-admin/organization-list-item';
+import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
 import { OrganizationStatusFilters } from '@/components/platform-admin/organization-status-filters';
-import { PrimaryButton } from '@/components/primary-button';
-import { ThemedText } from '@/components/themed-text';
-import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { OrganizationStoryListItem } from '@/components/platform-admin/organization-story-list-item';
+import {
+  PLATFORM_ADMIN_FLOATING_TAB_BAR_HEIGHT,
+} from '@/components/platform-admin/platform-admin-floating-tab-bar';
+import { PlatformAdminOrganizationsStoryHeader } from '@/components/platform-admin/platform-admin-organizations-story-header';
+import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import type { AdminOrganization, OrganizationStatus } from '@/lib/organizations';
 import { listAllOrganizations } from '@/lib/organizations';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Fonts, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 
 export function PlatformAdminOrganizationsScreen() {
-  const theme = useAdminTheme();
+  const theme = useParentTheme();
   const router = useRouter();
-  const { user, portalType, enterSchoolAsPlatformAdmin, signOut, isLoading: authLoading } =
-    useAuth();
+  const { user, enterSchoolAsPlatformAdmin } = useAuth();
 
   const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrganizationStatus | ''>('');
-
-  useEffect(() => {
-    if (!authLoading && (!user || portalType !== 'platform_admin')) {
-      router.replace('/');
-    }
-  }, [authLoading, user, portalType, router]);
 
   const loadOrganizations = useCallback(async () => {
     setLoading(true);
@@ -84,148 +82,156 @@ export function PlatformAdminOrganizationsScreen() {
     router.push(`/school-admin/${organization.slug}/dashboard`);
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace('/');
-  };
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      <Animated.View entering={FadeInDown.duration(350)}>
+        <PlatformAdminOrganizationsStoryHeader
+          totalCount={organizations.length}
+          email={user?.email}
+        />
+      </Animated.View>
 
-  if (authLoading || !user || portalType !== 'platform_admin') {
+      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+        <View
+          style={[
+            styles.searchField,
+            {
+              backgroundColor: theme.white,
+              borderColor: Story.line,
+            },
+          ]}>
+          <Ionicons name="search" size={18} color={theme.muted} />
+          <TextInput
+            accessibilityLabel="Search organizations"
+            placeholder="Search schools…"
+            placeholderTextColor={theme.muted}
+            style={[styles.searchInput, { color: theme.ink }]}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+      </Animated.View>
+
+      {organizations.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+          <OrganizationStatusFilters
+            activeStatus={statusFilter}
+            counts={counts}
+            onChange={setStatusFilter}
+          />
+        </Animated.View>
+      ) : null}
+
+      {error ? <StoryErrorBanner message={error} /> : null}
+    </View>
+  );
+
+  if (loading && organizations.length === 0) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
-        <ActivityIndicator color={theme.accent} />
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <Animated.View entering={FadeInDown.duration(350)} style={styles.loadingHeader}>
+            <PlatformAdminOrganizationsStoryHeader totalCount={0} email={user?.email} />
+          </Animated.View>
+          <OrganizationSelectorSkeleton rowCount={4} />
+        </View>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
-      <StatusBar style="dark" />
-      <View style={styles.header}>
-        <ThemedText type="badge" style={{ color: theme.accent }}>
-          Platform Admin
-        </ThemedText>
-        <ThemedText type="title" style={[styles.heading, { color: theme.textPrimary }]}>
-          Organizations
-        </ThemedText>
-        {user.email ? (
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {user.email}
-          </ThemedText>
-        ) : null}
-      </View>
-
-      <View style={styles.filters}>
-        <TextInput
-          accessibilityLabel="Search organizations"
-          placeholder="Search schools…"
-          placeholderTextColor={theme.textTertiary}
-          style={[
-            styles.searchInput,
-            {
-              color: theme.textPrimary,
-              backgroundColor: theme.input,
-              borderColor: theme.inputBorder,
-            },
-          ]}
-          value={query}
-          onChangeText={setQuery}
-        />
-        <OrganizationStatusFilters
-          activeStatus={statusFilter}
-          counts={counts}
-          onChange={setStatusFilter}
-        />
-      </View>
-
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={theme.accent} />
-        </View>
-      ) : error ? (
-        <View style={styles.centered}>
-          <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
-            {error}
-          </ThemedText>
-          <Pressable accessibilityRole="button" onPress={() => void loadOrganizations()}>
-            <ThemedText type="linkPrimary" style={{ color: theme.accent }}>
-              Try again
-            </ThemedText>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredOrganizations}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.centered}>
-              <ThemedText type="small" style={{ color: theme.textSecondary }}>
-                No organizations found.
-              </ThemedText>
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <OrganizationListItem
-              organization={item}
-              onPress={handleSelectOrganization}
-              showDivider={index < filteredOrganizations.length - 1}
-            />
-          )}
-        />
-      )}
-
-      <View style={[styles.footer, { borderTopColor: theme.border, backgroundColor: theme.bg }]}>
-        <PrimaryButton label="Sign out" variant="surface" onPress={handleSignOut} />
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <FlatList
+        data={filteredOrganizations}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              {organizations.length === 0
+                ? 'No organizations found.'
+                : statusFilter
+                  ? `No ${statusFilter} organizations match your filters.`
+                  : 'No organizations match your search.'}
+            </Text>
+            {error ? (
+              <Pressable accessibilityRole="button" onPress={() => void loadOrganizations()}>
+                <Text style={[styles.retryLink, { color: theme.primary }]}>Try again</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        }
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 180)).duration(220)}>
+            <OrganizationStoryListItem organization={item} onPress={handleSelectOrganization} />
+          </Animated.View>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Story.paper,
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: Story.paper,
   },
-  header: {
+  loadingContent: {
+    flex: 1,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.three,
-    gap: Spacing.two,
+    paddingTop: Spacing.two,
+    gap: Spacing.four,
   },
-  heading: {
-    marginTop: Spacing.one,
-  },
-  filters: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+  loadingHeader: {
     paddingBottom: Spacing.two,
   },
-  searchInput: {
-    fontFamily: Fonts.body,
-    fontSize: 15,
+  headerBlock: {
+    gap: Spacing.four,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
+  },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.pill,
     borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginTop: Spacing.two,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: StoryFonts.body,
+    padding: 0,
   },
   listContent: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.four,
+    paddingBottom: PLATFORM_ADMIN_FLOATING_TAB_BAR_HEIGHT + Spacing.five,
+    flexGrow: 1,
   },
-  centered: {
-    flex: 1,
+  separator: {
+    height: Spacing.two,
+  },
+  emptyState: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: Spacing.five,
     gap: Spacing.two,
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
   },
-  footer: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingBottom: Spacing.three,
-    paddingTop: Spacing.two,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  emptyCopy: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  retryLink: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
   },
 });

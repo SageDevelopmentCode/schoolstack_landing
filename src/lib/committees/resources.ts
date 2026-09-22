@@ -14,6 +14,7 @@ export type CreateResourceInput = {
   fileName?: string;
   description?: string;
   allowedDutyRoleIds?: string[];
+  createdByMemberId?: string;
 };
 
 export async function createResource(
@@ -32,6 +33,7 @@ export async function createResource(
       file_name: input.fileName ?? null,
       description: input.description ?? null,
       allowed_duty_role_ids: input.allowedDutyRoleIds ?? [],
+      created_by_member_id: input.createdByMemberId ?? null,
     })
     .select()
     .single();

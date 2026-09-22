@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   addOrganizationAdminMembership,
@@ -8,8 +7,8 @@ import {
 import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api";
 import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
+import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/organizations/[id]/memberships";
 
@@ -22,9 +21,8 @@ type CreateMembershipBody = {
   role?: OrganizationMembershipRole;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+export async function GET(request: Request, context: RouteContext) {
+  const supabase = await createClientFromRequest(request);
   const { id: organizationId } = await context.params;
 
   try {
@@ -52,8 +50,7 @@ export async function GET(_request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const { id: organizationId } = await context.params;
 
   try {

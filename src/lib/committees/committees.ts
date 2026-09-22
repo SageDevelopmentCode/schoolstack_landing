@@ -127,8 +127,8 @@ export async function getCommittee(
   const members = (membersRes.data ?? []).map((r) => mapMemberRow(r));
   const dutyRoles = (dutyRolesRes.data ?? []).map((r) => mapDutyRoleRow(r));
   const tasks = (tasksRes.data ?? []).map((r) => mapTaskRow(r, members));
-  const events = (eventsRes.data ?? []).map((r) => mapEventRow(r));
-  const resources = (resourcesRes.data ?? []).map((r) => mapResourceRow(r));
+  const events = (eventsRes.data ?? []).map((r) => mapEventRow(r, members));
+  const resources = (resourcesRes.data ?? []).map((r) => mapResourceRow(r, members));
   const messages = (messagesRes.data ?? []).map((r) => mapMessageRow(r, members));
 
   return assembleCommittee(

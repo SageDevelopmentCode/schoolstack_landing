@@ -136,4 +136,25 @@ describe("mobile bearer auth route wiring", () => {
       assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
     });
   }
+
+  const platformAdminOrganizationRoutes = [
+    "app/api/admin/organizations/[id]/memberships/route.ts",
+    "app/api/admin/organizations/[id]/parent-login-status/route.ts",
+    "app/api/admin/organizations/[id]/staff-login-status/route.ts",
+  ];
+
+  for (const routePath of platformAdminOrganizationRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.match(source, /requirePlatformAdminUser\(supabase\)/);
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
 });
