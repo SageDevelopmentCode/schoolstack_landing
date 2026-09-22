@@ -17,7 +17,9 @@ import { CommitteeWorkspaceSidePanel } from "@/components/school-admin/committee
 import CommitteeWorkspaceLayout from "@/components/school-admin/committees/CommitteeWorkspaceLayout";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
 import ParentCommitteeWorkspaceSkeleton from "@/components/school-parent/committees/ParentCommitteeWorkspaceSkeleton";
+import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import {
   COMMITTEE_SECTION_LABELS,
   type Committee,
@@ -88,6 +90,7 @@ function renderSectionContent(
     activitySurface: "parent" | "teacher";
     canWrite: boolean;
     onNavigate: (section: CommitteeWorkspaceSection) => void;
+    composeTokens: AdminThemeTokens;
   },
 ) {
   const { committee, theme, canWrite, onNavigate, activitySurface, ...rest } = sectionProps;
@@ -152,6 +155,7 @@ export default function ParentCommitteeWorkspaceShell({
   backLabel?: string;
   portalApiNamespace?: CommitteesApiNamespace;
 }) {
+  const { adminCompat: composeTokens } = useParentTheme();
   const activitySurface: "parent" | "teacher" =
     portalApiNamespace === "teacher-portal" ? "teacher" : "parent";
   const sections = committee.config.sections.filter(
@@ -222,15 +226,19 @@ export default function ParentCommitteeWorkspaceShell({
     activitySurface,
     canWrite,
     onNavigate: handleSectionChange,
+    composeTokens,
   };
 
   const visibleMountedSections = PARENT_VISIBLE_SECTIONS.filter(
     (section) => sections.includes(section) && mountedSections.has(section),
   );
 
+  const fillContent = resolvedSection === "messages";
+
   return (
     <CommitteeWorkspaceLayout
       theme={theme}
+      fillContent={fillContent}
       sidePanel={
         <CommitteeWorkspaceSidePanel
           committee={committee}
@@ -252,6 +260,7 @@ export default function ParentCommitteeWorkspaceShell({
           <div
             key={section}
             hidden={!isActive}
+            className={section === "messages" ? "flex h-full min-h-0 flex-1 flex-col" : undefined}
           >
             <Suspense
               fallback={

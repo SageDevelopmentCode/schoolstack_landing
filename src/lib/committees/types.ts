@@ -126,6 +126,14 @@ export type CommitteeTask = {
   createdByRole?: CommitteeRole;
 };
 
+export type CommitteeMessageAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  url?: string;
+};
+
 export type CommitteeMessage = {
   id: string;
   senderId: string;
@@ -133,6 +141,7 @@ export type CommitteeMessage = {
   senderRole?: CommitteeRole;
   text: string;
   time: string;
+  attachments?: CommitteeMessageAttachment[];
 };
 
 export type CommitteeDutyRole = {

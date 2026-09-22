@@ -130,7 +130,8 @@ export default function ParentCommitteeWorkspace({
   }
 
   return (
-    <ParentCommitteeWorkspaceShell
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <ParentCommitteeWorkspaceShell
       committee={committee}
       theme={theme}
       supabase={supabase}
@@ -145,5 +146,6 @@ export default function ParentCommitteeWorkspace({
       portalApiNamespace={apiNamespace}
       backLabel="My committees"
     />
+    </div>
   );
 }

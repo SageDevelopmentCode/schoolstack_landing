@@ -350,10 +350,11 @@ export default function CommitteesPage({
     }
 
     return (
-      <>
+      <div className="flex h-full min-h-0 flex-1 flex-col">
         <CommitteeWorkspaceShell
           committee={displayedCommittee}
           theme={theme}
+          composeTokens={C}
           supabase={supabase}
           organizationId={organizationId}
           schoolSlug={slug}
@@ -374,7 +375,7 @@ export default function CommitteesPage({
             />
           )}
         </AnimatePresence>
-      </>
+      </div>
     );
   }
 

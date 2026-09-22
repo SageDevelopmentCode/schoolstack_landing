@@ -15,9 +15,14 @@ import {
 import type {
   Committee,
   CommitteeListItem,
+  CommitteeMessage,
   CommitteeStatus,
   CommitteeTemplate,
 } from "./types";
+import {
+  loadCommitteeMessageAttachmentsForMessages,
+  getCommitteeMessageAttachmentSignedUrl,
+} from "./committee-message-attachment-storage";
 
 function throwOnError<T>(result: { data: T | null; error: { message: string } | null }): T {
   if (result.error) throw new Error(result.error.message);
@@ -130,6 +135,10 @@ export async function getCommittee(
   const events = (eventsRes.data ?? []).map((r) => mapEventRow(r, members));
   const resources = (resourcesRes.data ?? []).map((r) => mapResourceRow(r, members));
   const messages = (messagesRes.data ?? []).map((r) => mapMessageRow(r, members));
+  const messagesWithAttachments = await hydrateCommitteeMessagesWithAttachments(
+    supabase,
+    messages,
+  );
 
   return assembleCommittee(
     committeeRow,
@@ -139,7 +148,41 @@ export async function getCommittee(
     tasks,
     events,
     resources,
-    messages,
+    messagesWithAttachments,
+  );
+}
+
+async function hydrateCommitteeMessagesWithAttachments(
+  supabase: SupabaseClient,
+  messages: CommitteeMessage[],
+): Promise<CommitteeMessage[]> {
+  if (messages.length === 0) return messages;
+
+  const attachmentMap = await loadCommitteeMessageAttachmentsForMessages(
+    supabase,
+    messages.map((message) => message.id),
+  );
+
+  return Promise.all(
+    messages.map(async (message) => {
+      const attachments = attachmentMap.get(message.id) ?? [];
+      if (attachments.length === 0) return message;
+
+      const hydrated = await Promise.all(
+        attachments.map(async (attachment) => ({
+          id: attachment.id,
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          sizeBytes: attachment.sizeBytes,
+          url: await getCommitteeMessageAttachmentSignedUrl(
+            supabase,
+            attachment.storagePath,
+          ),
+        })),
+      );
+
+      return { ...message, attachments: hydrated };
+    }),
   );
 }
 

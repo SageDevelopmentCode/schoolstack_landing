@@ -1,7 +1,6 @@
 "use client";
 
-import { ChevronLeft, FileText, MessageSquare } from "lucide-react";
-import Image from "next/image";
+import { ChevronLeft, MessageSquare } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { buildMessageRenderItems } from "@/lib/messages/format-chat";
@@ -11,6 +10,7 @@ import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
+import MessageAttachments from "./MessageAttachments";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
 import {
   isSplitPaneMessagesVariant,
@@ -21,67 +21,6 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 export type MessagesComposeBanner =
   | { variant: "info"; message: string }
   | { variant: "warning"; message: string };
-
-function MessageAttachments({
-  attachments,
-  C,
-  splitPane,
-  isOwn,
-}: {
-  attachments: MessageThreadDetail["messages"][number]["attachments"];
-  C: AdminThemeTokens;
-  splitPane: boolean;
-  isOwn: boolean;
-}) {
-  if (attachments.length === 0) return null;
-
-  return (
-    <div className="mt-2 space-y-2">
-      {attachments.map((attachment) => {
-        const isImage = attachment.mimeType?.startsWith("image/");
-        if (isImage && attachment.url) {
-          return (
-            <a
-              key={attachment.id}
-              href={attachment.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <Image
-                src={attachment.url}
-                alt={attachment.fileName}
-                width={240}
-                height={180}
-                unoptimized
-                className={`max-h-48 w-auto object-cover ${
-                  splitPane ? "rounded-xl" : "rounded-lg border"
-                }`}
-                style={splitPane ? undefined : { borderColor: C.border }}
-              />
-            </a>
-          );
-        }
-
-        return (
-          <a
-            key={attachment.id}
-            href={attachment.url ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center gap-1 text-xs underline ${
-              splitPane && isOwn ? "text-white/90" : ""
-            }`}
-            style={splitPane && isOwn ? undefined : { color: C.accent }}
-          >
-            <FileText className="w-3.5 h-3.5" />
-            {attachment.fileName}
-          </a>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function MessagesThreadView({
   thread,

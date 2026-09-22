@@ -6,6 +6,7 @@ import {
   type Committee,
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { getCommittee } from "@/lib/committees/committees";
 import CommitteeHomeSection from "./sections/CommitteeHomeSection";
@@ -21,6 +22,7 @@ import CommitteeJoinRequestsPanel from "./CommitteeJoinRequestsPanel";
 import { CommitteeWorkspaceSidePanel } from "./CommitteeWorkspaceStoryHeader";
 import CommitteeWorkspaceLayout from "./CommitteeWorkspaceLayout";
 import CommitteeWorkspaceSectionFrame from "./CommitteeWorkspaceSectionFrame";
+import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
 
 export default function CommitteeWorkspaceShell({
   committee,
@@ -36,9 +38,11 @@ export default function CommitteeWorkspaceShell({
   backLabel = "All committees",
   schoolSlug,
   onJoinRequestsChanged,
+  composeTokens,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
+  composeTokens?: AdminThemeTokens;
   supabase: SupabaseClient;
   organizationId: string;
   activeSection: CommitteeWorkspaceSection;
@@ -51,14 +55,19 @@ export default function CommitteeWorkspaceShell({
   schoolSlug?: string;
   onJoinRequestsChanged?: () => void;
 }) {
+  const { C: shellComposeTokens } = useSchoolAdminStoryTheme();
+  const resolvedComposeTokens = composeTokens ?? shellComposeTokens;
   const sections = (readOnly
     ? committee.config.sections
     : [...committee.config.sections, "activity", "settings"]
   ).filter((section, index, arr) => arr.indexOf(section) === index) as CommitteeWorkspaceSection[];
 
+  const fillContent = activeSection === "messages";
+
   return (
     <CommitteeWorkspaceLayout
       theme={theme}
+      fillContent={fillContent}
       contentClassName="!px-[clamp(25px,4vw,56px)] !py-[30px] pb-14"
       contentInnerClassName="!max-w-[1350px]"
       sidePanel={
@@ -81,6 +90,7 @@ export default function CommitteeWorkspaceShell({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.15 }}
+          className={fillContent ? "flex h-full min-h-0 flex-1 flex-col" : undefined}
         >
           {activeSection === "home" && (
             <CommitteeHomeSection
@@ -140,6 +150,7 @@ export default function CommitteeWorkspaceShell({
               organizationId={organizationId}
               onCommitteeChange={onCommitteeChange}
               readOnly={readOnly}
+              composeTokens={resolvedComposeTokens}
             />
           )}
           {activeSection === "members" && (

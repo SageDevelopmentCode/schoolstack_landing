@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import CommitteeSectionEmptyState from "@/components/school-admin/committees/CommitteeSectionEmptyState";
 import CommitteeWorkspaceSectionFrame from "@/components/school-admin/committees/CommitteeWorkspaceSectionFrame";
 import MessagesAvatar from "@/components/messages/MessagesAvatar";
+import MessageAttachments from "@/components/messages/MessageAttachments";
+import MessagesComposeBar from "@/components/messages/MessagesComposeBar";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import type { Committee, CommitteeMessage } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { postMessage } from "@/lib/committees/messages";
 import { getCommittee } from "@/lib/committees/committees";
 import {
@@ -19,7 +21,6 @@ import {
 import { colorForKey } from "@/lib/messages/format";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { committeeStoryInputStyle } from "@/components/school-admin/committees/committee-story-input-style";
 import { committeeOperationalSurface } from "@/components/school-admin/committees/CommitteeAttributionLabel";
 
 function isOwnCommitteeMessage(
@@ -48,17 +49,20 @@ function senderLabel(msg: CommitteeMessage): string {
 function CommitteeMessageBubble({
   msg,
   theme,
+  composeTokens,
   currentMemberId,
   isAdmin,
 }: {
   msg: CommitteeMessage;
   theme: ParentThemeTokens;
+  composeTokens: AdminThemeTokens;
   currentMemberId?: string;
   isAdmin: boolean;
 }) {
   const own = isOwnCommitteeMessage(msg, currentMemberId, isAdmin);
   const label = senderLabel(msg);
   const avatarKey = msg.senderId || msg.senderName;
+  const attachments = msg.attachments ?? [];
 
   return (
     <div
@@ -84,12 +88,22 @@ function CommitteeMessageBubble({
             {label}
           </p>
         ) : null}
-        <p
-          className="whitespace-pre-wrap text-xs leading-snug"
-          style={{ color: own ? "#ffffff" : theme.ink }}
-        >
-          {msg.text}
-        </p>
+        {msg.text ? (
+          <p
+            className="whitespace-pre-wrap text-xs leading-snug"
+            style={{ color: own ? "#ffffff" : theme.ink }}
+          >
+            {msg.text}
+          </p>
+        ) : null}
+        {attachments.length > 0 ? (
+          <MessageAttachments
+            attachments={attachments}
+            C={composeTokens}
+            splitPane
+            isOwn={own}
+          />
+        ) : null}
         <p
           className={`mt-0.5 text-right text-[10px] ${own ? "text-white/70" : ""}`}
           style={own ? undefined : { color: theme.muted }}
@@ -110,6 +124,7 @@ export default function CommitteeMessagesSection({
   readOnly = false,
   currentMemberId,
   isAdmin = true,
+  composeTokens,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -119,13 +134,19 @@ export default function CommitteeMessagesSection({
   readOnly?: boolean;
   currentMemberId?: string;
   isAdmin?: boolean;
+  composeTokens: AdminThemeTokens;
 }) {
   const [text, setText] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
-  const inputStyle = committeeStoryInputStyle(theme);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [committee.messages]);
 
   const handleSend = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() && files.length === 0) return;
     setSending(true);
     try {
       await postMessage(
@@ -133,8 +154,13 @@ export default function CommitteeMessagesSection({
         committee.id,
         text.trim(),
         currentMemberId,
+        {
+          organizationId,
+          files,
+        },
       );
       setText("");
+      setFiles([]);
       const updated = await getCommittee(supabase, organizationId, committee.id);
       if (updated) onCommitteeChange(updated);
       adminToast.success("Message sent");
@@ -151,10 +177,16 @@ export default function CommitteeMessagesSection({
   };
 
   return (
-    <CommitteeWorkspaceSectionFrame width="narrow">
-      <ParentCard theme={theme} className="!overflow-hidden !p-0">
+    <CommitteeWorkspaceSectionFrame
+      width="narrow"
+      className="flex h-full min-h-0 flex-1 flex-col"
+    >
+      <ParentCard
+        theme={theme}
+        className="flex h-full min-h-0 flex-1 flex-col !overflow-hidden !p-0"
+      >
         <div
-          className="max-h-[min(520px,58vh)] overflow-y-auto p-3 sm:p-4"
+          className="flex-1 overflow-y-auto p-3 sm:p-4"
           style={{ backgroundColor: theme.white }}
         >
           {committee.messages.length === 0 ? (
@@ -172,41 +204,28 @@ export default function CommitteeMessagesSection({
                   key={msg.id}
                   msg={msg}
                   theme={theme}
+                  composeTokens={composeTokens}
                   currentMemberId={currentMemberId}
                   isAdmin={isAdmin}
                 />
               ))}
+              <div ref={bottomRef} />
             </div>
           )}
         </div>
         {!readOnly && (
-          <div
-            className="flex items-center gap-2 border-t p-3 sm:gap-3"
-            style={{ borderColor: theme.line, backgroundColor: theme.white }}
-          >
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleSend();
-                }
-              }}
-              placeholder="Write a message…"
-              className="min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm"
-              style={inputStyle}
-            />
-            <AdminButton
-              theme={theme}
-              variant="primary"
-              onClick={() => void handleSend()}
-              disabled={sending || !text.trim()}
-              className="shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </AdminButton>
-          </div>
+          <MessagesComposeBar
+            value={text}
+            onChange={setText}
+            files={files}
+            onFilesChange={setFiles}
+            onSend={() => void handleSend()}
+            sending={sending}
+            C={composeTokens}
+            theme={theme}
+            variant="parent-story"
+            placeholder="Write a message…"
+          />
         )}
       </ParentCard>
     </CommitteeWorkspaceSectionFrame>

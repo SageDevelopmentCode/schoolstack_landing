@@ -9,6 +9,7 @@ type CommitteeWorkspaceLayoutProps = {
   children: ReactNode;
   contentClassName?: string;
   contentInnerClassName?: string;
+  fillContent?: boolean;
 };
 
 export default function CommitteeWorkspaceLayout({
@@ -17,6 +18,7 @@ export default function CommitteeWorkspaceLayout({
   children,
   contentClassName = "",
   contentInnerClassName = "",
+  fillContent = false,
 }: CommitteeWorkspaceLayoutProps) {
   return (
     <div
@@ -30,10 +32,16 @@ export default function CommitteeWorkspaceLayout({
         {sidePanel}
       </aside>
       <main
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6 md:px-9 ${contentClassName}`}
+        className={`flex min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 md:px-9 ${
+          fillContent ? "overflow-hidden" : "overflow-y-auto"
+        } ${contentClassName}`}
         style={{ backgroundColor: theme.paper }}
       >
-        <div className={`mx-auto w-full max-w-[1250px] ${contentInnerClassName}`.trim()}>
+        <div
+          className={`mx-auto w-full max-w-[1250px] ${
+            fillContent ? "flex h-full min-h-0 flex-1 flex-col" : ""
+          } ${contentInnerClassName}`.trim()}
+        >
           {children}
         </div>
       </main>
