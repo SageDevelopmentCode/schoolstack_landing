@@ -101,6 +101,68 @@ const JOIN_REQUEST_SELECT = `
   committee_duty_roles (title)
 `;
 
+type ActiveCommitteeContext = {
+  id: string;
+  name: string;
+  organizationId: string;
+  schoolName: string;
+  schoolSlug: string;
+};
+
+async function loadActiveCommitteeForOrg(
+  supabase: SupabaseClient,
+  organizationId: string,
+  committeeId: string,
+): Promise<ActiveCommitteeContext> {
+  const { data: committee, error } = await supabase
+    .from("committees")
+    .select("id, name, organization_id, status, organizations(name, slug)")
+    .eq("id", committeeId)
+    .eq("organization_id", organizationId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!committee) throw new Error("Committee not found.");
+
+  const organizationRaw = committee.organizations as
+    | { name: string; slug: string }
+    | { name: string; slug: string }[]
+    | null
+    | undefined;
+  const organization = Array.isArray(organizationRaw)
+    ? organizationRaw[0] ?? null
+    : organizationRaw ?? null;
+
+  if (!organization?.name || !organization.slug) {
+    throw new Error("Committee not found.");
+  }
+
+  return {
+    id: String(committee.id),
+    name: committee.name,
+    organizationId: String(committee.organization_id),
+    schoolName: organization.name,
+    schoolSlug: organization.slug,
+  };
+}
+
+async function assertDutyRoleBelongsToCommittee(
+  supabase: SupabaseClient,
+  dutyRoleId: string,
+  committeeId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("committee_duty_roles")
+    .select("id")
+    .eq("id", dutyRoleId)
+    .eq("committee_id", committeeId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Duty role not found.");
+}
+
 export async function listCommitteeJoinRequests(
   supabase: SupabaseClient,
   organizationId: string,
@@ -128,9 +190,6 @@ export type CreateJoinRequestInput = {
   organizationId: string;
   committeeId: string;
   userId: string;
-  committeeName: string;
-  schoolName: string;
-  schoolSlug: string;
   preferredDutyRoleId?: string | null;
   grade?: string | null;
   note?: string | null;
@@ -173,6 +232,20 @@ export async function createCommitteeJoinRequest(
     throw new Error("You are already a member of this committee.");
   }
 
+  const committee = await loadActiveCommitteeForOrg(
+    supabase,
+    input.organizationId,
+    input.committeeId,
+  );
+
+  if (input.preferredDutyRoleId) {
+    await assertDutyRoleBelongsToCommittee(
+      supabase,
+      input.preferredDutyRoleId,
+      committee.id,
+    );
+  }
+
   const requesterName =
     input.requesterType === "staff"
       ? input.staffName?.trim() || "Staff member"
@@ -206,10 +279,10 @@ export async function createCommitteeJoinRequest(
   void sendCommitteeJoinRequestedNotifications(supabase, {
     organizationId: input.organizationId,
     requestId: request.id,
-    committeeId: input.committeeId,
-    committeeName: input.committeeName,
-    schoolName: input.schoolName,
-    schoolSlug: input.schoolSlug,
+    committeeId: committee.id,
+    committeeName: committee.name,
+    schoolName: committee.schoolName,
+    schoolSlug: committee.schoolSlug,
     requesterName,
     requesterEmail,
     requesterType: input.requesterType,
@@ -326,11 +399,29 @@ export async function approveCommitteeJoinRequest(
     ? staffMember?.email ?? null
     : guardian?.email ?? null;
 
+  const committee = await loadActiveCommitteeForOrg(
+    supabase,
+    input.organizationId,
+    request.committeeId,
+  );
+
+  if (committee.organizationId !== request.organizationId) {
+    throw new Error("Committee does not belong to this school.");
+  }
+
+  if (input.assignDutyRoleId) {
+    await assertDutyRoleBelongsToCommittee(
+      supabase,
+      input.assignDutyRoleId,
+      request.committeeId,
+    );
+  }
+
   const { data: member, error: memberError } = await supabase
     .from("committee_members")
     .insert({
       committee_id: request.committeeId,
-      organization_id: input.organizationId,
+      organization_id: committee.organizationId,
       user_id: request.userId,
       guardian_id: isStaffRequest ? null : request.guardianId,
       staff_member_id: isStaffRequest ? request.staffMemberId : null,

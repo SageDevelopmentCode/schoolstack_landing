@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: slotsError.message,
+      error: "An unexpected error occurred.",
       cause: slotsError,
     });
   }
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: bookingsError.message,
+      error: "An unexpected error occurred.",
       cause: bookingsError,
     });
   }

@@ -73,7 +73,8 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load health profile.",
+      error: "Failed to load health profile.",
+      cause: error,
       code: "load_failed",
     });
   }
@@ -194,7 +195,8 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to save health item.",
+      error: "Failed to save health item.",
+      cause: error,
       code: "create_failed",
     });
   }

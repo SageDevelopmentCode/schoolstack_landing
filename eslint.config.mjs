@@ -18,6 +18,7 @@ const eslintConfig = defineConfig([
   {
     files: [
       "src/components/demo/**/*DashboardDemo.tsx",
+      "src/components/demo/**/*Legacy.tsx",
       "src/components/sections/*DashboardDemo.tsx",
     ],
     rules: {

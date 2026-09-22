@@ -300,16 +300,18 @@ export default function ClassroomsPage({
 
   useEffect(() => {
     if (!initialClassrooms) return;
-    setClassrooms(initialClassrooms);
-    setPrograms(initialPrograms ?? []);
-    setStaffMembers(initialStaff ?? []);
-    setLoading(false);
-    setSelectedId((current) => {
-      if (initialSelectedClassroomId) return initialSelectedClassroomId;
-      if (current && initialClassrooms.some((classroom) => classroom.id === current)) {
-        return current;
-      }
-      return initialClassrooms[0]?.id ?? null;
+    queueMicrotask(() => {
+      setClassrooms(initialClassrooms);
+      setPrograms(initialPrograms ?? []);
+      setStaffMembers(initialStaff ?? []);
+      setLoading(false);
+      setSelectedId((current) => {
+        if (initialSelectedClassroomId) return initialSelectedClassroomId;
+        if (current && initialClassrooms.some((classroom) => classroom.id === current)) {
+          return current;
+        }
+        return initialClassrooms[0]?.id ?? null;
+      });
     });
   }, [
     initialClassrooms,

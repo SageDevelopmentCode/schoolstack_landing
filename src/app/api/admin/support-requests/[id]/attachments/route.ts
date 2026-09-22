@@ -46,7 +46,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (error) {
       return apiError(ROUTE, {
         status: 500,
-        error: error.message,
+        error: "Failed to load support request attachments.",
         cause: error,
       });
     }

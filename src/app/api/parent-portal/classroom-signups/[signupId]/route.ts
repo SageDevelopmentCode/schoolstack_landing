@@ -114,9 +114,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load signup.",
-      code: "load_failed",
+      error: "Failed to load signup.",
       cause: error,
+      code: "load_failed",
     });
   }
 }
@@ -246,9 +246,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to submit response.",
-      code: "submit_failed",
+      error: "Failed to submit response.",
       cause: error,
+      code: "submit_failed",
     });
   }
 }
@@ -304,9 +304,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to withdraw response.",
-      code: "withdraw_failed",
+      error: "Failed to withdraw response.",
       cause: error,
+      code: "withdraw_failed",
     });
   }
 }

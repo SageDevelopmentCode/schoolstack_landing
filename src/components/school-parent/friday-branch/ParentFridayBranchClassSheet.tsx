@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Clock, Loader2, X } from "lucide-react";
+import { Check, Clock, FileText, Loader2, X } from "lucide-react";
+import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
+import ParentFridayBranchFlyerViewer, {
+  type ParentFridayBranchFlyerViewerTarget,
+} from "@/components/school-parent/friday-branch/ParentFridayBranchFlyerViewer";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
@@ -106,6 +110,9 @@ export default function ParentFridayBranchClassSheet({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<"enroll" | "withdraw" | null>(null);
+  const [flyerTarget, setFlyerTarget] = useState<ParentFridayBranchFlyerViewerTarget | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -209,6 +216,11 @@ export default function ParentFridayBranchClassSheet({
   const displayBlockLabel = detail?.blockLabel ?? blockLabel ?? "Schedule";
   const displayBlockDateRange = detail?.blockDateRange ?? blockDateRange;
 
+  const displayPriceCents = detail?.priceCents ?? fallbackSummary?.priceCents ?? null;
+  const displayHasFlyer = detail?.hasFlyer ?? fallbackSummary?.hasFlyer ?? false;
+  const displayFlyerFileName =
+    detail?.flyerFileName ?? fallbackSummary?.flyerFileName ?? `${displayName} flyer`;
+
   const spotsLabel = detail
     ? formatFridayBranchSpotsLabel({
         classId: detail.classId,
@@ -219,6 +231,9 @@ export default function ParentFridayBranchClassSheet({
         ageGroup: detail.ageGroup,
         teacher: detail.teacher,
         capacity: detail.capacity,
+        priceCents: detail.priceCents,
+        hasFlyer: detail.hasFlyer,
+        flyerFileName: detail.flyerFileName,
         confirmedCount: detail.confirmedCount,
         spotsRemaining: detail.spotsRemaining,
         familyEnrollments: [],
@@ -317,16 +332,18 @@ export default function ParentFridayBranchClassSheet({
       : `Sign up (${enrollableIds.length})`;
 
   return (
-    <AnimatePresence>
-      {open && classId ? (
-        <motion.div
-          className="fixed inset-0 z-[110]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          data-testid="parent-friday-branch-class-sheet"
-        >
+    <>
+      <AnimatePresence>
+        {open && classId ? (
+          <motion.div
+            key="parent-friday-branch-class-sheet"
+            className="fixed inset-0 z-[110]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            data-testid="parent-friday-branch-class-sheet"
+          >
           <div
             className="absolute inset-0"
             style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
@@ -424,6 +441,31 @@ export default function ParentFridayBranchClassSheet({
                         {detail.teacher ? (
                           <DetailRow label="Teacher" theme={theme}>
                             {detail.teacher}
+                          </DetailRow>
+                        ) : null}
+                        {displayPriceCents != null ? (
+                          <DetailRow label="Price" theme={theme}>
+                            {formatFeeAmount(displayPriceCents)}
+                          </DetailRow>
+                        ) : null}
+                        {displayHasFlyer ? (
+                          <DetailRow label="Flyer" theme={theme}>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1.5 font-semibold"
+                              style={{ color: theme.primary }}
+                              onClick={() =>
+                                classId
+                                  ? setFlyerTarget({
+                                      classId,
+                                      fileName: displayFlyerFileName,
+                                    })
+                                  : undefined
+                              }
+                            >
+                              <FileText className="h-4 w-4" />
+                              View flyer
+                            </button>
                           </DetailRow>
                         ) : null}
                       </div>
@@ -546,8 +588,18 @@ export default function ParentFridayBranchClassSheet({
               ) : null}
             </div>
           </motion.aside>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <ParentFridayBranchFlyerViewer
+        theme={theme}
+        organizationId={organizationId}
+        target={flyerTarget}
+        open={flyerTarget !== null}
+        onClose={() => setFlyerTarget(null)}
+        previewFamilyId={previewFamilyId}
+      />
+    </>
   );
 }

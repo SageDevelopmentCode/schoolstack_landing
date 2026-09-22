@@ -17,9 +17,6 @@ const ROUTE = "/api/teacher-portal/committees/join-requests";
 type JoinRequestBody = {
   organizationId?: string;
   committeeId?: string;
-  schoolSlug?: string;
-  schoolName?: string;
-  committeeName?: string;
   preferredDutyRoleId?: string | null;
   note?: string | null;
 };
@@ -41,11 +38,8 @@ export async function POST(request: Request) {
 
   const organizationId = body.organizationId?.trim() ?? "";
   const committeeId = body.committeeId?.trim() ?? "";
-  const schoolSlug = body.schoolSlug?.trim() ?? "";
-  const schoolName = body.schoolName?.trim() ?? "";
-  const committeeName = body.committeeName?.trim() ?? "";
 
-  if (!organizationId || !committeeId || !schoolSlug || !schoolName || !committeeName) {
+  if (!organizationId || !committeeId) {
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -74,9 +68,6 @@ export async function POST(request: Request) {
       staffMemberId: staffMemberId ?? staff.id,
       staffName: staff.displayName,
       staffEmail: staff.email,
-      committeeName,
-      schoolName,
-      schoolSlug,
       preferredDutyRoleId: body.preferredDutyRoleId ?? null,
       note: body.note ?? null,
     });

@@ -92,9 +92,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load Friday Branch class.",
-      code: "load_failed",
+      error: "Failed to load Friday Branch class.",
       cause: err,
+      code: "load_failed",
     });
   }
 }

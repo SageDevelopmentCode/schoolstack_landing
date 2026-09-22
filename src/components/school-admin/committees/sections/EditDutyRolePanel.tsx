@@ -137,10 +137,12 @@ export default function EditDutyRolePanel({
   useEffect(() => {
     if (!open) return;
     const next = dutyRoleToForm(mode === "edit" ? dutyRole : null);
-    setForm(next);
-    setBaselineForm(next);
-    setDiscardDialogOpen(false);
-    setDeleteDialogOpen(false);
+    queueMicrotask(() => {
+      setForm(next);
+      setBaselineForm(next);
+      setDiscardDialogOpen(false);
+      setDeleteDialogOpen(false);
+    });
   }, [open, mode, dutyRole]);
 
   const isDirty = useMemo(
@@ -154,8 +156,10 @@ export default function EditDutyRolePanel({
 
   useEffect(() => {
     if (!open || !pendingNavigation || !isDirty) return;
-    setDiscardIntent("navigate");
-    setDiscardDialogOpen(true);
+    queueMicrotask(() => {
+      setDiscardIntent("navigate");
+      setDiscardDialogOpen(true);
+    });
   }, [open, pendingNavigation, isDirty]);
 
   const requestClose = useCallback(() => {

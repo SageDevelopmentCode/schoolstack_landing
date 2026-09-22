@@ -59,12 +59,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update organization parent portal card.",
-      code: "internal_error",
+      error: "Failed to update organization parent portal card.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

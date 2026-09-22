@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error.message,
+      error: "An unexpected error occurred.",
       cause: error,
     });
   }

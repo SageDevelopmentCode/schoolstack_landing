@@ -45,7 +45,7 @@ export async function GET(request: Request, context: RouteContext) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: organizationError.message,
+        error: "Failed to load push notifications.",
         cause: organizationError,
       });
     }

@@ -138,7 +138,9 @@ export default function AttendanceStudentDetailSheet({
 
   useEffect(() => {
     if (!open) {
-      setHistoryModalOpen(false);
+      queueMicrotask(() => {
+        setHistoryModalOpen(false);
+      });
     }
   }, [open]);
 

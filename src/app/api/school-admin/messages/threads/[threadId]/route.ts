@@ -58,13 +58,12 @@ export async function GET(request: Request, context: RouteContext) {
         surface: "school_admin",
         organizationId,
         operation: "school_admin_messages_mark_thread_read",
-        error:
-          readErr instanceof Error ? readErr.message : "Failed to mark thread read.",
+        error: "Failed to mark thread read.",
+      cause: readErr,
         entityType: "message_thread",
         entityId: threadId,
         notify: true,
         actor: { type: "school_admin", userId: user.id, email: user.email },
-        cause: readErr,
       });
     });
     return NextResponse.json({ thread });
@@ -82,9 +81,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load thread.",
-      code: "internal_error",
+      error: "Failed to load thread.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

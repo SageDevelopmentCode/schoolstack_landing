@@ -40,7 +40,7 @@ export async function GET(request: Request, context: RouteContext) {
     if (runError) {
       return apiError(ROUTE, {
         status: 500,
-        error: runError.message,
+        error: "Failed to load audit run.",
         cause: runError,
       });
     }
@@ -65,7 +65,7 @@ export async function GET(request: Request, context: RouteContext) {
       if (lastResultError) {
         return apiError(ROUTE, {
           status: 500,
-          error: lastResultError.message,
+          error: "Failed to load audit run.",
           cause: lastResultError,
         });
       }
@@ -87,7 +87,7 @@ export async function GET(request: Request, context: RouteContext) {
       if (resultError) {
         return apiError(ROUTE, {
           status: 500,
-          error: resultError.message,
+          error: "Failed to load audit run.",
           cause: resultError,
         });
       }
@@ -115,7 +115,7 @@ export async function GET(request: Request, context: RouteContext) {
     if (resultsError) {
       return apiError(ROUTE, {
         status: 500,
-        error: resultsError.message,
+        error: "Failed to load audit run.",
         cause: resultsError,
       });
     }

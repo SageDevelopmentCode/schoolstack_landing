@@ -20,6 +20,7 @@ import type {
   ParentFridayBranchClassSummary,
   ParentFridayBranchPageBundle,
 } from "@/lib/parent-portal/friday-branch/types";
+import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   formatBlockTabDateRange,
   getBlockDisplayLabel,
@@ -79,6 +80,27 @@ function openClasses(
     .slice(0, MAX_ROWS);
 }
 
+function findActiveClassContext(
+  activeClassId: string,
+  bundle: ParentFridayBranchPageBundle,
+) {
+  for (let index = 0; index < bundle.blocks.length; index += 1) {
+    const entry = bundle.blocks[index];
+    const match = entry.classes.find((classSummary) => classSummary.classId === activeClassId);
+    if (match) {
+      return {
+        summary: match,
+        blockLabel: getBlockDisplayLabel(entry.block, index),
+        blockDateRange: formatBlockTabDateRange(
+          entry.block.startDate,
+          entry.block.endDate,
+        ),
+      };
+    }
+  }
+  return null;
+}
+
 function ClassRow({
   theme,
   classSummary,
@@ -136,8 +158,15 @@ function ClassRow({
           </div>
         ) : (
           <p className="m-0 mt-0.5 text-xs" style={{ color: theme.muted }}>
-            {classSummary.location}
-            {classSummary.ageGroup ? ` · ${classSummary.ageGroup}` : ""}
+            {[
+              classSummary.location,
+              classSummary.ageGroup,
+              classSummary.priceCents != null
+                ? formatFeeAmount(classSummary.priceCents)
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
       </div>
@@ -183,24 +212,10 @@ export default function ParentHomeFridayBranchSection({
     [displayBlock, enrolled],
   );
 
-  const activeClassContext = useMemo(() => {
-    if (!activeClassId) return null;
-    for (let index = 0; index < bundle.blocks.length; index += 1) {
-      const entry = bundle.blocks[index];
-      const match = entry.classes.find((classSummary) => classSummary.classId === activeClassId);
-      if (match) {
-        return {
-          summary: match,
-          blockLabel: getBlockDisplayLabel(entry.block, index),
-          blockDateRange: formatBlockTabDateRange(
-            entry.block.startDate,
-            entry.block.endDate,
-          ),
-        };
-      }
-    }
-    return null;
-  }, [activeClassId, bundle.blocks]);
+  const activeClassContext = useMemo(
+    () => (activeClassId ? findActiveClassContext(activeClassId, bundle) : null),
+    [activeClassId, bundle],
+  );
 
   const fridayBranchHref = parentNavBasePath
     ? `${parentNavBasePath}/friday_branch`

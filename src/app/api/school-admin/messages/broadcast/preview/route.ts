@@ -72,9 +72,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to preview broadcast audience.",
-      code: "internal_error",
+      error: "Failed to preview broadcast audience.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

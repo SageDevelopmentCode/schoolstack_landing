@@ -4,13 +4,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { syncPushNotificationsForSession } from '@/lib/push-notifications';
 
 export function usePushNotificationRegistration(): void {
-  const { user, selectedSchool, isLoading } = useAuth();
+  const { user, isLoading, previewSession } = useAuth();
 
   useEffect(() => {
-    if (isLoading || !user || !selectedSchool) return;
+    if (isLoading || !user || previewSession) return;
 
-    void syncPushNotificationsForSession(selectedSchool.id).catch(() => {
+    void syncPushNotificationsForSession().catch(() => {
       // Push registration is best-effort; failures should not block sign-in.
     });
-  }, [isLoading, selectedSchool, user]);
+  }, [isLoading, previewSession, user]);
 }

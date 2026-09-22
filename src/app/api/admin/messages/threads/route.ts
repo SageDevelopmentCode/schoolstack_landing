@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: organizationError.message,
+        error: "Failed to load message threads.",
         cause: organizationError,
       });
     }

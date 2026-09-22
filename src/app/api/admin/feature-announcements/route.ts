@@ -110,12 +110,9 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to create global dashboard card.",
-      code: "internal_error",
+      error: "Failed to create global dashboard card.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

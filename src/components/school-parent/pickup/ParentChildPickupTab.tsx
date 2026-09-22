@@ -107,7 +107,9 @@ export default function ParentChildPickupTab({
   }, [organizationId, readOnly, studentId]);
 
   useEffect(() => {
-    void loadContacts();
+    queueMicrotask(() => {
+      void loadContacts();
+    });
   }, [loadContacts]);
 
   const openCreateForm = () => {

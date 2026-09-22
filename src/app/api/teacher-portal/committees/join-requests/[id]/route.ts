@@ -59,9 +59,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to withdraw request.",
-      code: "internal_error",
+      error: "Failed to withdraw request.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

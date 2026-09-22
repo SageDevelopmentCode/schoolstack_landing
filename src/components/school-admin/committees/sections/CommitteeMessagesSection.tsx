@@ -13,7 +13,7 @@ import type { Committee, CommitteeMessage } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { postMessage } from "@/lib/committees/messages";
-import { getCommittee } from "@/lib/committees/committees";
+import { resolveCommitteeMessageAttachmentUrl } from "@/lib/committees/open-committee-message-attachment";
 import {
   formatCommitteeAttribution,
   SCHOOL_ADMIN_ATTRIBUTION,
@@ -52,12 +52,14 @@ function CommitteeMessageBubble({
   composeTokens,
   currentMemberId,
   isAdmin,
+  supabase,
 }: {
   msg: CommitteeMessage;
   theme: ParentThemeTokens;
   composeTokens: AdminThemeTokens;
   currentMemberId?: string;
   isAdmin: boolean;
+  supabase: SupabaseClient;
 }) {
   const own = isOwnCommitteeMessage(msg, currentMemberId, isAdmin);
   const label = senderLabel(msg);
@@ -102,6 +104,9 @@ function CommitteeMessageBubble({
             C={composeTokens}
             splitPane
             isOwn={own}
+            resolveAttachmentUrl={(attachment) =>
+              resolveCommitteeMessageAttachmentUrl(supabase, attachment)
+            }
           />
         ) : null}
         <p
@@ -149,7 +154,7 @@ export default function CommitteeMessagesSection({
     if (!text.trim() && files.length === 0) return;
     setSending(true);
     try {
-      await postMessage(
+      const newMessage = await postMessage(
         supabase,
         committee.id,
         text.trim(),
@@ -161,8 +166,10 @@ export default function CommitteeMessagesSection({
       );
       setText("");
       setFiles([]);
-      const updated = await getCommittee(supabase, organizationId, committee.id);
-      if (updated) onCommitteeChange(updated);
+      onCommitteeChange({
+        ...committee,
+        messages: [...committee.messages, newMessage],
+      });
       adminToast.success("Message sent");
     } catch (err) {
       adminToast.error(formatActionError(err, "Failed to send message."));
@@ -207,6 +214,7 @@ export default function CommitteeMessagesSection({
                   composeTokens={composeTokens}
                   currentMemberId={currentMemberId}
                   isAdmin={isAdmin}
+                  supabase={supabase}
                 />
               ))}
               <div ref={bottomRef} />

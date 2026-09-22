@@ -1,7 +1,12 @@
 "use client";
 
-import { Fragment, type KeyboardEvent } from "react";
+import { Fragment, useState, type KeyboardEvent } from "react";
+import { FileText } from "lucide-react";
+import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
+import ParentFridayBranchFlyerViewer, {
+  type ParentFridayBranchFlyerViewerTarget,
+} from "@/components/school-parent/friday-branch/ParentFridayBranchFlyerViewer";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -17,11 +22,13 @@ import {
 
 type ParentFridayBranchScheduleProps = {
   theme: ParentThemeTokens;
+  organizationId: string;
   classes: ParentFridayBranchClassSummary[];
   studentOptions: ParentFridayBranchStudentOption[];
   blockLabel: string;
   blockDateRange: string;
   readOnly?: boolean;
+  previewFamilyId?: string;
   onOpenClass: (classId: string) => void;
 };
 
@@ -139,25 +146,57 @@ function RowCtaButton({
   );
 }
 
+function FlyerLink({
+  theme,
+  classSummary,
+  onViewFlyer,
+}: {
+  theme: ParentThemeTokens;
+  classSummary: ParentFridayBranchClassSummary;
+  onViewFlyer: (target: ParentFridayBranchFlyerViewerTarget) => void;
+}) {
+  if (!classSummary.hasFlyer) return null;
+
+  return (
+    <button
+      type="button"
+      className="mt-1 inline-flex items-center gap-1 text-xs font-semibold"
+      style={{ color: theme.primary }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onViewFlyer({
+          classId: classSummary.classId,
+          fileName: classSummary.flyerFileName?.trim() || `${classSummary.name} flyer`,
+        });
+      }}
+    >
+      <FileText className="h-3.5 w-3.5" />
+      View flyer
+    </button>
+  );
+}
+
 function DesktopScheduleTable({
   theme,
   slotGroups,
   studentOptions,
   readOnly,
   onOpenClass,
+  onViewFlyer,
 }: {
   theme: ParentThemeTokens;
   slotGroups: SlotGroup[];
   studentOptions: ParentFridayBranchStudentOption[];
   readOnly?: boolean;
   onOpenClass: (classId: string) => void;
+  onViewFlyer: (target: ParentFridayBranchFlyerViewerTarget) => void;
 }) {
   return (
     <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-[720px] border-collapse">
         <thead>
           <tr style={{ backgroundColor: theme.paper }}>
-            {["Time", "Class", "Location", "Ages", "Spots", "Your sign-ups", "Action"].map(
+            {["Time", "Class", "Location", "Ages", "Price", "Spots", "Your sign-ups", "Action"].map(
               (label) => (
                 <th
                   key={label}
@@ -213,6 +252,11 @@ function DesktopScheduleTable({
                           with {classSummary.teacher}
                         </span>
                       ) : null}
+                      <FlyerLink
+                        theme={theme}
+                        classSummary={classSummary}
+                        onViewFlyer={onViewFlyer}
+                      />
                     </td>
                     <td
                       className="border-t px-4 py-3 align-top text-sm"
@@ -231,6 +275,14 @@ function DesktopScheduleTable({
                       ) : (
                         <span style={{ color: theme.muted }}>—</span>
                       )}
+                    </td>
+                    <td
+                      className="border-t px-4 py-3 align-top text-sm"
+                      style={{ borderColor: theme.line, color: theme.muted }}
+                    >
+                      {classSummary.priceCents != null
+                        ? formatFeeAmount(classSummary.priceCents)
+                        : "—"}
                     </td>
                     <td
                       className="border-t px-4 py-3 align-top"
@@ -278,12 +330,14 @@ function MobileScheduleCards({
   studentOptions,
   readOnly,
   onOpenClass,
+  onViewFlyer,
 }: {
   theme: ParentThemeTokens;
   slotGroups: SlotGroup[];
   studentOptions: ParentFridayBranchStudentOption[];
   readOnly?: boolean;
   onOpenClass: (classId: string) => void;
+  onViewFlyer: (target: ParentFridayBranchFlyerViewerTarget) => void;
 }) {
   return (
     <div className="space-y-3 md:hidden">
@@ -322,8 +376,19 @@ function MobileScheduleCards({
                       with {classSummary.teacher}
                     </p>
                   ) : null}
+                  <FlyerLink
+                    theme={theme}
+                    classSummary={classSummary}
+                    onViewFlyer={onViewFlyer}
+                  />
                   <p className="mt-1 text-sm" style={{ color: theme.muted }}>
-                    {[classSummary.location, classSummary.ageGroup]
+                    {[
+                      classSummary.location,
+                      classSummary.ageGroup,
+                      classSummary.priceCents != null
+                        ? formatFeeAmount(classSummary.priceCents)
+                        : null,
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
@@ -356,14 +421,19 @@ function MobileScheduleCards({
 
 export default function ParentFridayBranchSchedule({
   theme,
+  organizationId,
   classes,
   studentOptions,
   blockLabel,
   blockDateRange,
   readOnly = false,
+  previewFamilyId,
   onOpenClass,
 }: ParentFridayBranchScheduleProps) {
   const slotGroups = groupClassesBySlot(classes);
+  const [flyerTarget, setFlyerTarget] = useState<ParentFridayBranchFlyerViewerTarget | null>(
+    null,
+  );
 
   return (
     <ParentCard theme={theme} className="!p-0 overflow-hidden">
@@ -388,6 +458,7 @@ export default function ParentFridayBranchSchedule({
         studentOptions={studentOptions}
         readOnly={readOnly}
         onOpenClass={onOpenClass}
+        onViewFlyer={setFlyerTarget}
       />
       <div className="p-4 md:hidden">
         <MobileScheduleCards
@@ -396,8 +467,18 @@ export default function ParentFridayBranchSchedule({
           studentOptions={studentOptions}
           readOnly={readOnly}
           onOpenClass={onOpenClass}
+          onViewFlyer={setFlyerTarget}
         />
       </div>
+
+      <ParentFridayBranchFlyerViewer
+        theme={theme}
+        organizationId={organizationId}
+        target={flyerTarget}
+        open={flyerTarget !== null}
+        onClose={() => setFlyerTarget(null)}
+        previewFamilyId={previewFamilyId}
+      />
     </ParentCard>
   );
 }

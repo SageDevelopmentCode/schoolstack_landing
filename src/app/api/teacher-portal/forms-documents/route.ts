@@ -141,9 +141,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load forms.",
-      code: "load_failed",
+      error: "Failed to load forms.",
       cause: error,
+      code: "load_failed",
     });
   }
 }

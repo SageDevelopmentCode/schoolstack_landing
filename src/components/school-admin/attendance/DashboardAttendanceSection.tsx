@@ -103,9 +103,11 @@ export function DashboardAttendanceSectionContent({
   useEffect(() => {
     const nextDate = parseDateKey(date);
     if (!nextDate) return;
-    setActiveDate(nextDate);
-    setStudents(initialStudents);
-    setSummary(initialSummary);
+    queueMicrotask(() => {
+      setActiveDate(nextDate);
+      setStudents(initialStudents);
+      setSummary(initialSummary);
+    });
   }, [date, initialStudents, initialSummary]);
 
   useEffect(() => {
@@ -113,18 +115,20 @@ export function DashboardAttendanceSectionContent({
     const refreshed = students.find((student) => student.id === detailStudent.id);
     if (!refreshed) return;
 
-    setDetailStudent((current) => {
-      if (!current || current.id !== refreshed.id) return current;
-      if (
-        current.attendanceStatus === refreshed.attendanceStatus &&
-        current.pickedUpByName === refreshed.pickedUpByName &&
-        current.presentAt === refreshed.presentAt &&
-        current.absentAt === refreshed.absentAt &&
-        current.pickedUpAt === refreshed.pickedUpAt
-      ) {
-        return current;
-      }
-      return refreshed;
+    queueMicrotask(() => {
+      setDetailStudent((current) => {
+        if (!current || current.id !== refreshed.id) return current;
+        if (
+          current.attendanceStatus === refreshed.attendanceStatus &&
+          current.pickedUpByName === refreshed.pickedUpByName &&
+          current.presentAt === refreshed.presentAt &&
+          current.absentAt === refreshed.absentAt &&
+          current.pickedUpAt === refreshed.pickedUpAt
+        ) {
+          return current;
+        }
+        return refreshed;
+      });
     });
   }, [detailStudent?.id, students]);
 
@@ -176,7 +180,9 @@ export function DashboardAttendanceSectionContent({
 
   useEffect(() => {
     if (activeDateKey === date) return;
-    void loadRoster(activeDateKey);
+    queueMicrotask(() => {
+      void loadRoster(activeDateKey);
+    });
   }, [activeDateKey, date, loadRoster]);
 
   const refreshRoster = useCallback(async () => {

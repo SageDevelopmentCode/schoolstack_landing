@@ -94,12 +94,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to load notification settings.",
-      code: "internal_error",
+      error: "Failed to load notification settings.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

@@ -328,14 +328,16 @@ export default function StaffPage({
 
   useEffect(() => {
     if (!initialStaff) return;
-    setStaffMembers(initialStaff);
-    setLoading(false);
-    setSelectedId((current) => {
-      if (initialSelectedStaffId) return initialSelectedStaffId;
-      if (current && initialStaff.some((member) => member.id === current)) {
-        return current;
-      }
-      return initialStaff[0]?.id ?? null;
+    queueMicrotask(() => {
+      setStaffMembers(initialStaff);
+      setLoading(false);
+      setSelectedId((current) => {
+        if (initialSelectedStaffId) return initialSelectedStaffId;
+        if (current && initialStaff.some((member) => member.id === current)) {
+          return current;
+        }
+        return initialStaff[0]?.id ?? null;
+      });
     });
   }, [initialSelectedStaffId, initialStaff]);
 

@@ -118,9 +118,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load attendance children.",
-      code: "load_failed",
+      error: "Failed to load attendance children.",
       cause: err,
+      code: "load_failed",
     });
   }
 }

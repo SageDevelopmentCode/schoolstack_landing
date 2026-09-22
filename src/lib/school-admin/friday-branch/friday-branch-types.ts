@@ -12,6 +12,10 @@ export type FridayBranchClass = {
   teacher?: string;
   familyVisible?: boolean;
   capacity?: number | null;
+  priceCents?: number | null;
+  flyerStoragePath?: string | null;
+  flyerFileName?: string | null;
+  flyerFileSizeBytes?: number | null;
 };
 
 export type FridayBranchClassEnrollment = {

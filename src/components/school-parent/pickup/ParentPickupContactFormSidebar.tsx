@@ -102,10 +102,12 @@ export default function ParentPickupContactFormSidebar({
   useEffect(() => {
     if (open) {
       const normalized = normalizePickupFormValues(initialValues);
-      setValues(normalized);
-      setBaselineValues(normalized);
-      setConfirmDelete(false);
-      setDiscardDialogOpen(false);
+      queueMicrotask(() => {
+        setValues(normalized);
+        setBaselineValues(normalized);
+        setConfirmDelete(false);
+        setDiscardDialogOpen(false);
+      });
     }
   }, [open, initialValues]);
 

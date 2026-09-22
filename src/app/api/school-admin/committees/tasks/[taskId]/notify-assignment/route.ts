@@ -78,10 +78,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        err instanceof Error ? err.message : "Failed to notify task assignee.",
-      code: "internal_error",
+      error: "Failed to notify task assignee.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

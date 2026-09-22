@@ -35,18 +35,10 @@ export async function sendWebPushToUsers(
 
   webpush.setVapidDetails(vapid.subject, vapid.publicKey, vapid.privateKey);
 
-  let query = admin
+  const { data: subscriptions, error } = await admin
     .from("web_push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .in("user_id", payload.userIds);
-
-  if (payload.organizationId) {
-    query = query.or(
-      `organization_id.eq.${payload.organizationId},organization_id.is.null`,
-    );
-  }
-
-  const { data: subscriptions, error } = await query;
   if (error || !subscriptions?.length) return;
 
   const notification = JSON.stringify({

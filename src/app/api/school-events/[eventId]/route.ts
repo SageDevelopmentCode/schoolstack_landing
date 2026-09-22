@@ -124,9 +124,9 @@ export async function PATCH(
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to update event.",
-      code: "internal_error",
+      error: "Failed to update event.",
       cause: err,
+      code: "internal_error",
     });
   }
 }
@@ -191,9 +191,9 @@ export async function DELETE(
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to delete event.",
-      code: "internal_error",
+      error: "Failed to delete event.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

@@ -204,7 +204,9 @@ function AttendancePageContent({
   ]);
 
   useEffect(() => {
-    void loadRoster();
+    queueMicrotask(() => {
+      void loadRoster();
+    });
   }, [loadRoster]);
 
   useEffect(() => {
@@ -212,18 +214,20 @@ function AttendancePageContent({
     const refreshed = roster.students.find((student) => student.id === detailStudent.id);
     if (!refreshed) return;
 
-    setDetailStudent((current) => {
-      if (!current || current.id !== refreshed.id) return current;
-      if (
-        current.attendanceStatus === refreshed.attendanceStatus &&
-        current.pickedUpByName === refreshed.pickedUpByName &&
-        current.presentAt === refreshed.presentAt &&
-        current.absentAt === refreshed.absentAt &&
-        current.pickedUpAt === refreshed.pickedUpAt
-      ) {
-        return current;
-      }
-      return refreshed;
+    queueMicrotask(() => {
+      setDetailStudent((current) => {
+        if (!current || current.id !== refreshed.id) return current;
+        if (
+          current.attendanceStatus === refreshed.attendanceStatus &&
+          current.pickedUpByName === refreshed.pickedUpByName &&
+          current.presentAt === refreshed.presentAt &&
+          current.absentAt === refreshed.absentAt &&
+          current.pickedUpAt === refreshed.pickedUpAt
+        ) {
+          return current;
+        }
+        return refreshed;
+      });
     });
   }, [detailStudent?.id, roster]);
 

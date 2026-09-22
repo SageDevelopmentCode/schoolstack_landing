@@ -68,13 +68,17 @@ export default function ParentCommitteeWorkspace({
 
   useEffect(() => {
     if (initialCommittee) {
-      setCommittee(initialCommittee);
-      setLoading(false);
+      queueMicrotask(() => {
+        setCommittee(initialCommittee);
+        setLoading(false);
+      });
       return;
     }
     if (previewMode) {
-      setError("Committee workspace preview is unavailable for this selection.");
-      setLoading(false);
+      queueMicrotask(() => {
+        setError("Committee workspace preview is unavailable for this selection.");
+        setLoading(false);
+      });
       return;
     }
 

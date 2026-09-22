@@ -85,9 +85,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to send message.",
-      code: "internal_error",
+      error: "Failed to send message.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

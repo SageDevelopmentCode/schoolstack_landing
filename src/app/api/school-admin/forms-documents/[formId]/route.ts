@@ -74,9 +74,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: error instanceof Error ? error.message : "Failed to load form.",
-      code: "load_failed",
+      error: "Failed to load form.",
       cause: error,
+      code: "load_failed",
     });
   }
 }

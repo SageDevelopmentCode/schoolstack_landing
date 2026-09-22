@@ -131,6 +131,7 @@ export type CommitteeMessageAttachment = {
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
+  storagePath?: string;
   url?: string;
 };
 

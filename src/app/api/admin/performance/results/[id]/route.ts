@@ -30,7 +30,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (resultError) {
       return apiError(ROUTE, {
         status: 500,
-        error: resultError.message,
+        error: "Failed to load audit result.",
         cause: resultError,
       });
     }

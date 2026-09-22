@@ -170,15 +170,19 @@ export default function ParentCommitteeWorkspaceShell({
   const [pendingSection, setPendingSection] = useState<CommitteeWorkspaceSection | null>(null);
 
   useEffect(() => {
-    setMountedSections((prev) => {
-      if (prev.has(resolvedSection)) return prev;
-      return new Set(prev).add(resolvedSection);
+    queueMicrotask(() => {
+      setMountedSections((prev) => {
+        if (prev.has(resolvedSection)) return prev;
+        return new Set(prev).add(resolvedSection);
+      });
     });
   }, [resolvedSection]);
 
   useEffect(() => {
     if (pendingSection === resolvedSection) {
-      setPendingSection(null);
+      queueMicrotask(() => {
+        setPendingSection(null);
+      });
     }
   }, [pendingSection, resolvedSection]);
 

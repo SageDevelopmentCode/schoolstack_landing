@@ -65,10 +65,8 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to load authorized pickup reuse options.",
+      error: "Failed to load authorized pickup reuse options.",
+      cause: error,
       code: "load_failed",
     });
   }

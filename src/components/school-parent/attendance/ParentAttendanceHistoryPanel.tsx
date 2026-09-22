@@ -7,7 +7,10 @@ import ParentAttendanceHistoryList from "@/components/school-parent/attendance/P
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
-import type { AttendanceHistoryEntry } from "@/lib/school-admin/attendance/attendance-types";
+import type {
+  AttendanceHistoryEntry,
+  AttendanceHistoryResponse,
+} from "@/lib/school-admin/attendance/attendance-types";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 
 const PAGE_SIZE = 20;
@@ -16,28 +19,42 @@ type ParentAttendanceHistoryPanelProps = {
   organizationId: string;
   studentId: string;
   studentName: string;
+  previewMode?: boolean;
+  initialHistory?: AttendanceHistoryResponse;
 };
 
 export default function ParentAttendanceHistoryPanel({
   organizationId,
   studentId,
   studentName,
+  previewMode = false,
+  initialHistory,
 }: ParentAttendanceHistoryPanelProps) {
   const { theme } = useParentTheme();
-  const [entries, setEntries] = useState<AttendanceHistoryEntry[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState<AttendanceHistoryEntry[]>(
+    initialHistory?.entries ?? [],
+  );
+  const [totalCount, setTotalCount] = useState(initialHistory?.totalCount ?? 0);
+  const [hasMore, setHasMore] = useState(
+    previewMode ? false : (initialHistory?.hasMore ?? false),
+  );
+  const [loading, setLoading] = useState(!previewMode && !initialHistory);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<AttendanceHistoryEntry | null>(null);
 
   useEffect(() => {
-    setSelectedEntry(null);
+    queueMicrotask(() => {
+      setSelectedEntry(null);
+    });
   }, [studentId]);
 
   const loadHistory = useCallback(
     async (offset: number, append: boolean) => {
+      if (previewMode) {
+        return;
+      }
+
       if (append) {
         setLoadingMore(true);
       } else {
@@ -89,12 +106,25 @@ export default function ParentAttendanceHistoryPanel({
         setLoadingMore(false);
       }
     },
-    [organizationId, studentId],
+    [organizationId, previewMode, studentId],
   );
 
   useEffect(() => {
-    void loadHistory(0, false);
-  }, [loadHistory]);
+    if (previewMode) {
+      queueMicrotask(() => {
+        setEntries(initialHistory?.entries ?? []);
+        setTotalCount(initialHistory?.totalCount ?? 0);
+        setHasMore(false);
+        setLoading(false);
+        setError(null);
+      });
+      return;
+    }
+
+    queueMicrotask(() => {
+      void loadHistory(0, false);
+    });
+  }, [initialHistory, loadHistory, previewMode, studentId]);
 
   const handleLoadMore = () => {
     if (loadingMore || !hasMore) return;
@@ -131,7 +161,7 @@ export default function ParentAttendanceHistoryPanel({
           />
         )}
 
-        {hasMore ? (
+        {!previewMode && hasMore ? (
           <div className="mt-4 flex justify-center">
             <ParentButton
               theme={theme}

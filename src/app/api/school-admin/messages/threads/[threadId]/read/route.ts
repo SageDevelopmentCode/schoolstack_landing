@@ -45,9 +45,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to mark thread read.",
-      code: "internal_error",
+      error: "Failed to mark thread read.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

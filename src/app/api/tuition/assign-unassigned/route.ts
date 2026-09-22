@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         results.push({
           enrollmentId: record.enrollmentId,
           assignmentId: null,
-          error: error instanceof Error ? error.message : "Assignment failed.",
+          error: "Assignment failed.",
         });
       }
     }

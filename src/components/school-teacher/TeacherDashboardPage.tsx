@@ -207,7 +207,9 @@ export default function TeacherDashboardPage({
 
   useEffect(() => {
     if (!defaultWorkspaceTab) {
-      setActiveWorkspaceTab(null);
+      queueMicrotask(() => {
+        setActiveWorkspaceTab(null);
+      });
       return;
     }
 
@@ -215,7 +217,9 @@ export default function TeacherDashboardPage({
       !activeWorkspaceTab ||
       !workspaceTabs.some((tab) => tab.key === activeWorkspaceTab)
     ) {
-      setActiveWorkspaceTab(defaultWorkspaceTab);
+      queueMicrotask(() => {
+        setActiveWorkspaceTab(defaultWorkspaceTab);
+      });
     }
   }, [activeWorkspaceTab, defaultWorkspaceTab, workspaceTabs]);
 

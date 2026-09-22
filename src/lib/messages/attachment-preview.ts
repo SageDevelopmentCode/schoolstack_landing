@@ -3,6 +3,7 @@ export type MessageAttachmentDisplay = {
   fileName: string;
   mimeType: string | null;
   url?: string | null;
+  storagePath?: string;
 };
 
 const MESSAGE_IMAGE_MIME_TYPES = new Set([

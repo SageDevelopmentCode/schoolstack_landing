@@ -9,17 +9,20 @@ import { parentChildrenFadeUp } from "@/components/school-parent/children/parent
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import type { FamilyChildOverview } from "@/lib/admissions/parent-portal-access";
+import type { AttendanceHistoryResponse } from "@/lib/school-admin/attendance/attendance-types";
 
 type ParentAttendancePageProps = {
   organizationId: string;
   eligibleChildren: FamilyChildOverview[];
   previewMode?: boolean;
+  initialHistoryByStudentId?: Record<string, AttendanceHistoryResponse>;
 };
 
 export default function ParentAttendancePage({
   organizationId,
   eligibleChildren,
   previewMode = false,
+  initialHistoryByStudentId,
 }: ParentAttendancePageProps) {
   const { theme, adminCompat } = useParentTheme();
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(
@@ -71,6 +74,8 @@ export default function ParentAttendancePage({
                   organizationId={organizationId}
                   studentId={selectedChild.studentId}
                   studentName={selectedChild.studentName}
+                  previewMode={previewMode}
+                  initialHistory={initialHistoryByStudentId?.[selectedChild.studentId]}
                 />
               </motion.div>
             ) : null}

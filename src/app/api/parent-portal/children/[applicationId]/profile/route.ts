@@ -82,9 +82,9 @@ export async function GET(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load student profile.",
-      code: "internal_error",
+      error: "Failed to load student profile.",
       cause: err,
+      code: "internal_error",
     });
   }
 }

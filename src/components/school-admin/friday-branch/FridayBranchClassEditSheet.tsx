@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import SchoolAdminSlideOverShell from "@/components/school-admin/ui/SchoolAdminSlideOverShell";
+import FridayBranchClassFlyerUpload from "@/components/school-admin/friday-branch/FridayBranchClassFlyerUpload";
 import {
   FridayBranchFamilyVisibilityToggle,
   FridayBranchFieldLabel,
@@ -15,6 +18,10 @@ import {
   FRIDAY_BRANCH_FIELD_INPUT_CLASS,
   fridayBranchFieldInputStyle,
 } from "@/lib/school-admin/friday-branch/friday-branch-form-options";
+import { buildFridayBranchClassSavePayload } from "@/lib/school-admin/friday-branch/friday-branch-class-save";
+import {
+  formatFridayBranchPriceInput,
+} from "@/lib/school-admin/friday-branch/friday-branch-price-utils";
 import type {
   FridayBranchClass,
   FridayBranchTimeSlot,
@@ -22,36 +29,59 @@ import type {
 
 type FridayBranchClassEditSheetProps = {
   open: boolean;
+  organizationId: string;
   theme: ParentThemeTokens;
   C: AdminThemeTokens;
   slots: FridayBranchTimeSlot[];
   classEntry: FridayBranchClass | null;
   slotId: string | null;
   isNew: boolean;
+  saving?: boolean;
   onClose: () => void;
-  onSave: (slotId: string, classEntry: FridayBranchClass, previousSlotId?: string) => void;
+  onSave: (
+    slotId: string,
+    classEntry: FridayBranchClass,
+    previousSlotId?: string,
+  ) => Promise<void>;
 };
 
 export default function FridayBranchClassEditSheet({
   open,
+  organizationId,
   theme,
   C,
   slots,
   classEntry,
   slotId,
   isNew,
+  saving = false,
   onClose,
   onSave,
 }: FridayBranchClassEditSheetProps) {
   const [draft, setDraft] = useState<FridayBranchClass | null>(classEntry);
   const [draftSlotId, setDraftSlotId] = useState(slotId ?? slots[0]?.id ?? "");
+  const [priceInput, setPriceInput] = useState("");
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
   const previousSlotId = slotId;
+  const initializedClassIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedClassIdRef.current = null;
+      return;
+    }
+
+    const classId = classEntry?.id ?? null;
+    if (initializedClassIdRef.current === classId) return;
+
+    initializedClassIdRef.current = classId;
     queueMicrotask(() => {
-      setDraft(classEntry);
+      setDraft(classEntry ? { ...classEntry } : null);
       setDraftSlotId(slotId ?? slots[0]?.id ?? "");
+      setPriceInput(formatFridayBranchPriceInput(classEntry?.priceCents));
+      setPriceError(null);
     });
   }, [open, classEntry, slotId, slots]);
 
@@ -68,11 +98,26 @@ export default function FridayBranchClassEditSheet({
 
   const title = isNew ? "Add a class" : `Edit ${classEntry?.name || "class"}`;
   const fieldInputStyle = fridayBranchFieldInputStyle(theme, C);
+  const isBusy = saving || isSaving;
 
-  const handleSave = () => {
-    if (!draftSlotId) return;
-    onSave(draftSlotId, draft, previousSlotId ?? undefined);
-    onClose();
+  const handleSave = async () => {
+    if (!draftSlotId || !draft || isBusy) return;
+
+    const payload = buildFridayBranchClassSavePayload(draft, priceInput);
+    if ("error" in payload) {
+      setPriceError(payload.error);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onSave(draftSlotId, payload, previousSlotId ?? undefined);
+      onClose();
+    } catch {
+      // Parent surfaces the error toast; keep the sheet open for retry.
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -88,13 +133,27 @@ export default function FridayBranchClassEditSheet({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-3 py-1.5 text-sm font-medium"
+            disabled={isBusy}
+            className="rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-60"
             style={{ color: C.textSecondary }}
           >
             Cancel
           </button>
-          <AdminButton theme={theme} variant="primary" type="button" onClick={handleSave}>
-            Save class
+          <AdminButton
+            theme={theme}
+            variant="primary"
+            type="button"
+            disabled={isBusy}
+            onClick={() => void handleSave()}
+          >
+            {isBusy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save class"
+            )}
           </AdminButton>
         </>
       }
@@ -108,6 +167,7 @@ export default function FridayBranchClassEditSheet({
             value={draft.name}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
             aria-label="Class name"
+            disabled={isBusy}
           />
         </label>
 
@@ -162,6 +222,37 @@ export default function FridayBranchClassEditSheet({
         </label>
 
         <label className="block">
+          <FridayBranchFieldLabel C={C}>Price (optional)</FridayBranchFieldLabel>
+          <div className="relative">
+            <span
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
+              style={{ color: C.textSecondary }}
+            >
+              $
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              className={FRIDAY_BRANCH_FIELD_INPUT_CLASS}
+              style={{ ...fieldInputStyle, paddingLeft: "1.5rem" }}
+              value={priceInput}
+              onChange={(event) => {
+                setPriceInput(event.target.value);
+                setPriceError(null);
+              }}
+              placeholder="0.00"
+              aria-label="Price"
+              disabled={isBusy}
+            />
+          </div>
+          {priceError ? (
+            <p className="mt-1 text-xs" style={{ color: theme.alert }}>
+              {priceError}
+            </p>
+          ) : null}
+        </label>
+
+        <label className="block">
           <FridayBranchFieldLabel C={C}>Capacity (optional)</FridayBranchFieldLabel>
           <input
             type="number"
@@ -183,8 +274,18 @@ export default function FridayBranchClassEditSheet({
             }}
             placeholder="Leave blank for unlimited"
             aria-label="Capacity"
+            disabled={isBusy}
           />
         </label>
+
+        <FridayBranchClassFlyerUpload
+          C={C}
+          theme={theme}
+          supabase={supabase}
+          organizationId={organizationId}
+          classEntry={draft}
+          onChange={setDraft}
+        />
 
         <FridayBranchFamilyVisibilityToggle
           C={C}

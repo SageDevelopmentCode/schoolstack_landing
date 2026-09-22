@@ -71,16 +71,12 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   return token.data;
 }
 
-export async function saveExpoPushToken(
-  pushToken: string,
-  organizationId?: string | null,
-): Promise<void> {
+export async function saveExpoPushToken(pushToken: string): Promise<void> {
   const response = await fetch(`${siteUrl}/api/account/expo-push/register`, {
     method: 'POST',
     headers: await getApiAuthHeaders(true),
     body: JSON.stringify({
       pushToken,
-      organizationId: organizationId ?? null,
       platform: Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : undefined,
     }),
   });
@@ -98,9 +94,13 @@ export async function clearExpoPushToken(): Promise<void> {
   }
 
   try {
+    const pushToken = await registerForPushNotificationsAsync();
+    if (!pushToken) return;
+
     const response = await fetch(`${siteUrl}/api/account/expo-push/register`, {
       method: 'DELETE',
-      headers: await getApiAuthHeaders(),
+      headers: await getApiAuthHeaders(true),
+      body: JSON.stringify({ pushToken }),
     });
 
     await assertApiAuthenticated(response);
@@ -115,13 +115,11 @@ export async function clearExpoPushToken(): Promise<void> {
   }
 }
 
-export async function syncPushNotificationsForSession(
-  organizationId?: string | null,
-): Promise<void> {
+export async function syncPushNotificationsForSession(): Promise<void> {
   const pushToken = await registerForPushNotificationsAsync();
   if (!pushToken) return;
 
-  await saveExpoPushToken(pushToken, organizationId);
+  await saveExpoPushToken(pushToken);
 }
 
 export type MessagePushNotificationData = {

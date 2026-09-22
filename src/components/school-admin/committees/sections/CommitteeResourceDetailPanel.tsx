@@ -242,11 +242,13 @@ export default function CommitteeResourceDetailPanel({
   useEffect(() => {
     if (!open || mode !== "create") return;
     const next = emptyResourceForm();
-    setForm(next);
-    setBaselineForm(next);
-    setFileError(null);
-    setDiscardDialogOpen(false);
-    setDeleteDialogOpen(false);
+    queueMicrotask(() => {
+      setForm(next);
+      setBaselineForm(next);
+      setFileError(null);
+      setDiscardDialogOpen(false);
+      setDeleteDialogOpen(false);
+    });
   }, [open, mode]);
 
   const editable = mode === "create" && !readOnly && canEdit;
@@ -262,8 +264,10 @@ export default function CommitteeResourceDetailPanel({
 
   useEffect(() => {
     if (!open || !pendingNavigation || !isDirty) return;
-    setDiscardIntent("navigate");
-    setDiscardDialogOpen(true);
+    queueMicrotask(() => {
+      setDiscardIntent("navigate");
+      setDiscardDialogOpen(true);
+    });
   }, [open, pendingNavigation, isDirty]);
 
   const requestClose = useCallback(() => {

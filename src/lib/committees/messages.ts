@@ -3,9 +3,7 @@ import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import {
   deleteCommitteeMessageAttachmentFiles,
-  getCommitteeMessageAttachmentSignedUrl,
   insertCommitteeMessageAttachments,
-  loadCommitteeMessageAttachmentsForMessages,
   MAX_MESSAGE_ATTACHMENTS,
   type CommitteeMessageAttachmentMeta,
   uploadCommitteeMessageAttachment,
@@ -13,59 +11,6 @@ import {
 import { getCommittee } from "./committees";
 import { mapMessageRow, type CommitteeMessageRow } from "./mappers";
 import type { CommitteeMessage, CommitteeMessageAttachment } from "./types";
-
-export async function listMessages(
-  supabase: SupabaseClient,
-  committeeId: string,
-  members: { id: string; name: string }[],
-): Promise<CommitteeMessage[]> {
-  const { data, error } = await supabase
-    .from("committee_messages")
-    .select("*")
-    .eq("committee_id", committeeId)
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  const messages = (data as CommitteeMessageRow[]).map((row) =>
-    mapMessageRow(row, members.map((m) => ({ ...m, committeeId: "", organizationId: "", userId: null, guardianId: null, staffMemberId: null, email: "", role: "member" as const, status: "active" as const }))),
-  );
-
-  return hydrateCommitteeMessageAttachments(supabase, messages);
-}
-
-async function hydrateCommitteeMessageAttachments(
-  supabase: SupabaseClient,
-  messages: CommitteeMessage[],
-): Promise<CommitteeMessage[]> {
-  if (messages.length === 0) return messages;
-
-  const attachmentMap = await loadCommitteeMessageAttachmentsForMessages(
-    supabase,
-    messages.map((message) => message.id),
-  );
-
-  return Promise.all(
-    messages.map(async (message) => {
-      const attachments = attachmentMap.get(message.id) ?? [];
-      if (attachments.length === 0) return message;
-
-      const hydrated = await Promise.all(
-        attachments.map(async (attachment) => ({
-          id: attachment.id,
-          fileName: attachment.fileName,
-          mimeType: attachment.mimeType,
-          sizeBytes: attachment.sizeBytes,
-          url: await getCommitteeMessageAttachmentSignedUrl(
-            supabase,
-            attachment.storagePath,
-          ),
-        })),
-      );
-
-      return { ...message, attachments: hydrated };
-    }),
-  );
-}
 
 export async function postMessage(
   supabase: SupabaseClient,
@@ -153,18 +98,13 @@ export async function postMessage(
 
   let attachments: CommitteeMessageAttachment[] | undefined;
   if (uploaded.length > 0) {
-    attachments = await Promise.all(
-      uploaded.map(async (attachment) => ({
-        id: attachment.id,
-        fileName: attachment.fileName,
-        mimeType: attachment.mimeType,
-        sizeBytes: attachment.sizeBytes,
-        url: await getCommitteeMessageAttachmentSignedUrl(
-          supabase,
-          attachment.storagePath,
-        ),
-      })),
-    );
+    attachments = uploaded.map((attachment) => ({
+      id: attachment.id,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
+      storagePath: attachment.storagePath,
+    }));
   }
 
   return attachments ? { ...message, attachments } : message;

@@ -111,12 +111,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to remove parent access.",
-      code: "internal_error",
+      error: "Failed to remove parent access.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

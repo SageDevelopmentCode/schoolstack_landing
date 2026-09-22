@@ -79,7 +79,9 @@ export default function AttendanceHistoryModal({
 
   useEffect(() => {
     if (!open) return;
-    void loadPage(0);
+    queueMicrotask(() => {
+      void loadPage(0);
+    });
   }, [open, loadPage]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

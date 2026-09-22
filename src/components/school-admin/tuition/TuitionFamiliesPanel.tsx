@@ -433,16 +433,18 @@ export default function TuitionFamiliesPanel({
 
   useEffect(() => {
     if (!initialFamilies) return;
-    setFamilies(initialFamilies);
-    setLoading(false);
-    setHasMoreFamilies(false);
-    const nextId = pickDefaultFamilyId(initialFamilies, {
-      preferredId: initialFamilyId,
-      previousId: selectedFamilyIdRef.current,
-      includeUnenrolled: showUnenrolledFamiliesRef.current,
+    queueMicrotask(() => {
+      setFamilies(initialFamilies);
+      setLoading(false);
+      setHasMoreFamilies(false);
+      const nextId = pickDefaultFamilyId(initialFamilies, {
+        preferredId: initialFamilyId,
+        previousId: selectedFamilyIdRef.current,
+        includeUnenrolled: showUnenrolledFamiliesRef.current,
+      });
+      selectedFamilyIdRef.current = nextId;
+      setSelectedFamilyId(nextId);
     });
-    selectedFamilyIdRef.current = nextId;
-    setSelectedFamilyId(nextId);
   }, [initialFamilies, initialFamilyId]);
 
   const selectedFamily =

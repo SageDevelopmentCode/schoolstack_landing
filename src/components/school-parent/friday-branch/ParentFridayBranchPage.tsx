@@ -219,11 +219,13 @@ export default function ParentFridayBranchPage({
           {selectedBlock && selectedBlock.classes.length > 0 && selectedBlockMeta ? (
             <ParentFridayBranchSchedule
               theme={theme}
+              organizationId={organizationId}
               classes={selectedBlock.classes}
               studentOptions={bundle.studentOptions}
               blockLabel={selectedBlockMeta.label}
               blockDateRange={selectedBlockMeta.dateRange}
               readOnly={readOnly}
+              previewFamilyId={previewFamilyId}
               onOpenClass={openClass}
             />
           ) : (

@@ -264,14 +264,16 @@ export default function ProgramsPage({
 
   useEffect(() => {
     if (!initialPrograms) return;
-    setPrograms(initialPrograms);
-    setLoading(false);
-    setSelectedId((current) => {
-      if (initialSelectedProgramId) return initialSelectedProgramId;
-      if (current && initialPrograms.some((program) => program.id === current)) {
-        return current;
-      }
-      return initialPrograms[0]?.id ?? null;
+    queueMicrotask(() => {
+      setPrograms(initialPrograms);
+      setLoading(false);
+      setSelectedId((current) => {
+        if (initialSelectedProgramId) return initialSelectedProgramId;
+        if (current && initialPrograms.some((program) => program.id === current)) {
+          return current;
+        }
+        return initialPrograms[0]?.id ?? null;
+      });
     });
   }, [initialPrograms, initialSelectedProgramId]);
 

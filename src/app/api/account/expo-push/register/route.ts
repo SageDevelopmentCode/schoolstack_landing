@@ -31,7 +31,6 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as {
-      organizationId?: string | null;
       pushToken?: string;
       platform?: string;
     };
@@ -60,19 +59,19 @@ export async function POST(request: Request) {
     const { error } = await supabase.from("expo_push_tokens").upsert(
       {
         user_id: user.id,
-        organization_id: body.organizationId ?? null,
+        organization_id: null,
         push_token: pushToken,
         platform: platform ?? null,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id" },
+      { onConflict: "push_token" },
     );
 
     if (error) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error.message,
+        error: "Failed to save push token.",
         cause: error,
       });
     }
@@ -105,16 +104,31 @@ export async function DELETE(request: Request) {
   }
 
   try {
+    const body = (await request.json().catch(() => ({}))) as {
+      pushToken?: string;
+    };
+    const pushToken = body.pushToken?.trim() ?? "";
+
+    if (!pushToken || !isValidExpoPushToken(pushToken)) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "A valid Expo push token is required.",
+        code: "invalid_push_token",
+      });
+    }
+
     const { error } = await supabase
       .from("expo_push_tokens")
       .delete()
+      .eq("push_token", pushToken)
       .eq("user_id", user.id);
 
     if (error) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error.message,
+        error: "Failed to remove push token.",
         cause: error,
       });
     }

@@ -81,30 +81,22 @@ export async function sendExpoPushToUsers(
 ): Promise<void> {
   if (payload.userIds.length === 0) return;
 
-  let query = admin
+  const { data: tokens, error } = await admin
     .from("expo_push_tokens")
     .select("user_id, push_token")
     .in("user_id", payload.userIds);
-
-  if (payload.organizationId) {
-    query = query.or(
-      `organization_id.eq.${payload.organizationId},organization_id.is.null`,
-    );
-  }
-
-  const { data: tokens, error } = await query;
   if (error) {
     throw new Error(error.message);
   }
 
   const tokenRows = (tokens ?? []) as ExpoPushTokenRow[];
-  const tokensByUserId = new Map(
-    tokenRows.map((row) => [String(row.user_id), row]),
+  const userIdsWithTokens = new Set(
+    tokenRows.map((row) => String(row.user_id)),
   );
 
   await Promise.all(
     payload.userIds.map(async (userId) => {
-      if (tokensByUserId.has(userId)) return;
+      if (userIdsWithTokens.has(userId)) return;
 
       await logPushNotificationDelivery(admin, {
         ...buildDeliveryBase(payload, userId),
@@ -177,7 +169,10 @@ export async function sendExpoPushToUsers(
       const errorMessage = ticket.message ?? ticket.details?.error ?? "Expo push failed";
 
       if (isStaleExpoTokenError(ticket)) {
-        await admin.from("expo_push_tokens").delete().eq("user_id", userId);
+        await admin
+          .from("expo_push_tokens")
+          .delete()
+          .eq("push_token", String(tokenRow.push_token));
         await logPushNotificationDelivery(admin, {
           ...deliveryBase,
           status: "failed",

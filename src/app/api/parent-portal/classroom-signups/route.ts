@@ -76,9 +76,9 @@ export async function GET(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error: err instanceof Error ? err.message : "Failed to load classroom signups.",
-      code: "load_failed",
+      error: "Failed to load classroom signups.",
       cause: err,
+      code: "load_failed",
     });
   }
 }

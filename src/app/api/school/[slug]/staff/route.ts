@@ -194,10 +194,9 @@ export async function POST(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error ? error.message : "Failed to add staff access.",
-      code: "internal_error",
+      error: "Failed to add staff access.",
       cause: error,
+      code: "internal_error",
     });
   }
 }

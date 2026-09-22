@@ -145,7 +145,7 @@ export async function PATCH(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: existingError.message,
+        error: "Failed to save schedule permissions.",
         cause: existingError,
       });
     }
@@ -160,7 +160,7 @@ export async function PATCH(request: Request) {
         return apiError(ROUTE, {
           request,
           status: 500,
-          error: updateError.message,
+          error: "Failed to save schedule permissions.",
           cause: updateError,
         });
       }
@@ -174,7 +174,7 @@ export async function PATCH(request: Request) {
         return apiError(ROUTE, {
           request,
           status: 500,
-          error: insertError.message,
+          error: "Failed to save schedule permissions.",
           cause: insertError,
         });
       }

@@ -192,10 +192,12 @@ export default function CommitteeTaskDetailPanel({
   useEffect(() => {
     if (!open) return;
     const nextForm = buildFormState(mode, task, defaultStatus, defaultGroup);
-    setForm(nextForm);
-    setBaselineForm(nextForm);
-    setDiscardDialogOpen(false);
-    setDeleteDialogOpen(false);
+    queueMicrotask(() => {
+      setForm(nextForm);
+      setBaselineForm(nextForm);
+      setDiscardDialogOpen(false);
+      setDeleteDialogOpen(false);
+    });
   }, [open, mode, task, defaultStatus, defaultGroup]);
 
   const editable = !readOnly && canEdit;
@@ -211,8 +213,10 @@ export default function CommitteeTaskDetailPanel({
 
   useEffect(() => {
     if (!open || !pendingNavigation || !isDirty) return;
-    setDiscardIntent("navigate");
-    setDiscardDialogOpen(true);
+    queueMicrotask(() => {
+      setDiscardIntent("navigate");
+      setDiscardDialogOpen(true);
+    });
   }, [open, pendingNavigation, isDirty]);
 
   const requestClose = useCallback(() => {

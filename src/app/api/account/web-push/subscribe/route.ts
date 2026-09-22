@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error.message,
+        error: "Failed to save push subscription.",
         cause: error,
       });
     }
@@ -115,7 +115,7 @@ export async function DELETE(request: Request) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: error.message,
+        error: "Failed to remove push subscription.",
         cause: error,
       });
     }

@@ -663,16 +663,18 @@ export default function MessagesInboxLayout({
     if (!threadParam || loadingInbox) return;
     if (handledThreadParam.current === threadParam) return;
     handledThreadParam.current = threadParam;
-    setMobileView("chat");
-    if (readOnly) {
-      const thread = threads.find((item) => item.id === threadParam);
-      if (thread) {
-        void selectThread(thread);
+    queueMicrotask(() => {
+      setMobileView("chat");
+      if (readOnly) {
+        const thread = threads.find((item) => item.id === threadParam);
+        if (thread) {
+          void selectThread(thread);
+        }
+        return;
       }
-      return;
-    }
-    setLoadingMessages(true);
-    void loadThread(threadParam).finally(() => setLoadingMessages(false));
+      setLoadingMessages(true);
+      void loadThread(threadParam).finally(() => setLoadingMessages(false));
+    });
   }, [loadThread, loadingInbox, readOnly, searchParams, selectThread, threads]);
 
   useEffect(() => {

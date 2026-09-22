@@ -73,8 +73,8 @@ export async function POST(request: Request) {
     if (runError || !run) {
       return apiError(ROUTE, {
         status: 500,
-        error: runError?.message ?? "Failed to create audit run.",
-        cause: runError,
+        error: "Failed to create audit run.",
+      cause: runError,
       });
     }
 
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     if (updateError) {
       return apiError(ROUTE, {
         status: 500,
-        error: updateError.message,
+        error: "Failed to run production performance audit.",
         cause: updateError,
       });
     }

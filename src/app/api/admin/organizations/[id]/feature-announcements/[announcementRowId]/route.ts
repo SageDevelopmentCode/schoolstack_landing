@@ -50,7 +50,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return apiError(ROUTE, {
         request,
         status: 500,
-        error: existingError.message,
+        error: "Organization dashboard card override not found.",
         cause: existingError,
       });
     }
@@ -84,12 +84,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return apiError(ROUTE, {
       request,
       status: 500,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to update organization dashboard card override.",
-      code: "internal_error",
+      error: "Failed to update organization dashboard card override.",
       cause: error,
+      code: "internal_error",
     });
   }
 }
@@ -112,7 +109,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (existingError) {
       return apiError(ROUTE, {
         status: 500,
-        error: existingError.message,
+        error: "Failed to delete organization dashboard card override.",
         cause: existingError,
       });
     }
