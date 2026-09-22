@@ -48,12 +48,16 @@ describe("createSlotWithTime", () => {
 
 describe("fridayBranchSlotTimeToMinutes", () => {
   it("parses Friday Branch slot times", () => {
+    assert.equal(fridayBranchSlotTimeToMinutes("6:00"), 6 * 60);
+    assert.equal(fridayBranchSlotTimeToMinutes("6:45"), 6 * 60 + 45);
+    assert.equal(fridayBranchSlotTimeToMinutes("7:00"), 7 * 60);
+    assert.equal(fridayBranchSlotTimeToMinutes("7:45"), 7 * 60 + 45);
+    assert.equal(fridayBranchSlotTimeToMinutes("9:00 AM"), 9 * 60);
     assert.equal(fridayBranchSlotTimeToMinutes("11:00"), 11 * 60);
     assert.equal(fridayBranchSlotTimeToMinutes("11:30"), 11 * 60 + 30);
     assert.equal(fridayBranchSlotTimeToMinutes("12:00"), 12 * 60);
     assert.equal(fridayBranchSlotTimeToMinutes("1:00"), 13 * 60);
     assert.equal(fridayBranchSlotTimeToMinutes("2:00"), 14 * 60);
-    assert.equal(fridayBranchSlotTimeToMinutes("9:00 AM"), 9 * 60);
   });
 });
 
@@ -95,6 +99,21 @@ describe("sortFridayBranchTimeSlots", () => {
     assert.deepEqual(
       sorted.map((entry) => entry.id),
       ["early", "bad", "empty"],
+    );
+  });
+
+  it("sorts early-morning slots before afternoon times", () => {
+    const sorted = sortFridayBranchTimeSlots([
+      slot("afternoon", "1:00"),
+      slot("mid-morning", "9:00"),
+      slot("early", "6:00"),
+      slot("late-morning", "7:45"),
+      slot("noon", "12:00"),
+    ]);
+
+    assert.deepEqual(
+      sorted.map((entry) => entry.time),
+      ["6:00", "7:45", "9:00", "12:00", "1:00"],
     );
   });
 });

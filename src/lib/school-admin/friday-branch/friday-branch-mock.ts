@@ -125,7 +125,7 @@ function parseSimpleSlotTime(time: string): { hour: number; minute: number } | n
 
   if (meridiem === "PM" && hour < 12) hour += 12;
   if (meridiem === "AM" && hour === 12) hour = 0;
-  if (!meridiem && hour >= 1 && hour <= 7) hour += 12;
+  if (!meridiem && hour >= 1 && hour <= 5) hour += 12;
 
   if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
   return { hour, minute };
