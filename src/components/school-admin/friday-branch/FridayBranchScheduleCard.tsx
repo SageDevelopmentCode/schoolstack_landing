@@ -13,6 +13,7 @@ import {
   getScheduleGaps,
   removeClassFromBlock,
   removeSlotFromBlock,
+  sortFridayBranchTimeSlots,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
 import {
   EMPTY_FRIDAY_BRANCH_ENROLLMENT_SUMMARY,
@@ -215,9 +216,18 @@ export default function FridayBranchScheduleCard({
     setAddSlotOpen(true);
   };
 
-  const handleSaveTimeSlot = ({ time, firstClass }: FridayBranchAddTimeSlotPayload) => {
+  const handleSaveTimeSlot = async ({ time, firstClass }: FridayBranchAddTimeSlotPayload) => {
     const newSlot = createSlotWithTime(time, firstClass);
-    updateBlock({ ...block, slots: [...block.slots, newSlot] });
+    const nextBlock = {
+      ...block,
+      slots: sortFridayBranchTimeSlots([...block.slots, newSlot]),
+    };
+
+    if (onClassSaved) {
+      await onClassSaved(nextBlock);
+    } else {
+      updateBlock(nextBlock);
+    }
 
     const classId = newSlot.classes[0]?.id;
     if (classId) {
@@ -293,6 +303,8 @@ export default function FridayBranchScheduleCard({
       onClose={() => setAddSlotOpen(false)}
       onSave={handleSaveTimeSlot}
       slots={block.slots}
+      organizationId={organizationId}
+      saving={saving}
       theme={theme}
       C={C}
     />
