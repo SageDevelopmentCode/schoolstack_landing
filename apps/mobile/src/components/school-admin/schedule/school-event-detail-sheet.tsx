@@ -1,6 +1,6 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -29,14 +29,20 @@ export function SchoolEventDetailSheet({
   onDelete,
 }: SchoolEventDetailSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
 
   if (!event) return null;
   const colors = getEventDisplayStyle(event);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      backgroundColor={Story.paper}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
             <Text style={[styles.headerAction, { color: theme.primary }]}>Close</Text>
@@ -46,33 +52,30 @@ export function SchoolEventDetailSheet({
             <Text style={[styles.headerAction, { color: theme.primary }]}>Edit</Text>
           </Pressable>
         </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
-          <StoryDisplayHeading size="section">{event.title}</StoryDisplayHeading>
-          <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-            <Text style={[styles.badgeLabel, { color: colors.text }]}>
-              {SCHOOL_EVENT_TYPE_LABELS[event.type]}
-            </Text>
-          </View>
-
-          <DetailRow label="Date" value={event.date} />
-          <DetailRow label="Time" value={formatEventTimeRange(event)} />
-          {event.location ? <DetailRow label="Location" value={event.location} /> : null}
-          {event.description ? <DetailRow label="Description" value={event.description} /> : null}
-
-          <Pressable
-            accessibilityRole="button"
-            disabled={deleting}
-            onPress={onDelete}
-            style={[styles.deleteButton, { borderColor: theme.alert }]}>
-            <Text style={[styles.deleteLabel, { color: theme.alert }]}>
-              {deleting ? 'Deleting…' : 'Delete event'}
-            </Text>
-          </Pressable>
-        </ScrollView>
+      }>
+      <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
+      <StoryDisplayHeading size="section">{event.title}</StoryDisplayHeading>
+      <View style={[styles.badge, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.badgeLabel, { color: colors.text }]}>
+          {SCHOOL_EVENT_TYPE_LABELS[event.type]}
+        </Text>
       </View>
-    </Modal>
+
+      <DetailRow label="Date" value={event.date} />
+      <DetailRow label="Time" value={formatEventTimeRange(event)} />
+      {event.location ? <DetailRow label="Location" value={event.location} /> : null}
+      {event.description ? <DetailRow label="Description" value={event.description} /> : null}
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={deleting}
+        onPress={onDelete}
+        style={[styles.deleteButton, { borderColor: theme.alert }]}>
+        <Text style={[styles.deleteLabel, { color: theme.alert }]}>
+          {deleting ? 'Deleting…' : 'Delete event'}
+        </Text>
+      </Pressable>
+    </BottomSheetShell>
   );
 }
 
@@ -87,9 +90,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

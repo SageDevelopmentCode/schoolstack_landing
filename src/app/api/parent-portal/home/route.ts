@@ -14,8 +14,10 @@ import {
   userHasEnrolledAccess,
 } from "@/lib/admissions/parent-portal-access";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
+import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
 import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
 import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
@@ -140,11 +142,32 @@ export async function GET(request: Request) {
 
     const quickActions = buildParentQuickActions(slug, org.features);
 
+    const fridayBranchStudentOptions = familyChildren
+      .filter((child) => child.studentId)
+      .map((child) => ({
+        id: child.studentId!,
+        name: child.studentName,
+      }));
+
+    const fridayBranchHome =
+      familyId && isParentHomeFridayBranchEnabled(org.features)
+        ? await loadParentFridayBranchPageBundle(
+            admin,
+            organizationId,
+            familyId,
+            fridayBranchStudentOptions,
+          )
+        : null;
+
     return NextResponse.json({
       branding: org.branding,
       schoolSlug: slug,
       schoolName: org.name,
       organizationId: org.id,
+      features: {
+        parent: org.features.parent ?? {},
+        parent_home: org.features.parent_home ?? {},
+      },
       userProfile,
       familyChildren,
       quickActions,
@@ -156,6 +179,7 @@ export async function GET(request: Request) {
       formSnapshot,
       bulletinEnabled,
       bulletinPosts,
+      fridayBranchHome,
     });
   } catch (err) {
     return apiError(ROUTE, {

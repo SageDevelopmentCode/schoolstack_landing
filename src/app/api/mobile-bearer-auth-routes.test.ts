@@ -137,6 +137,33 @@ describe("mobile bearer auth route wiring", () => {
     });
   }
 
+  const fridayBranchRoutes = [
+    "app/api/school-admin/friday-branch/schedule/route.ts",
+    "app/api/school-admin/friday-branch/enrollment-counts/route.ts",
+    "app/api/school-admin/friday-branch/recent-activity/route.ts",
+    "app/api/school-admin/friday-branch/classes/[classId]/route.ts",
+    "app/api/school-admin/friday-branch/classes/[classId]/roster-email-preview/route.ts",
+    "app/api/school-admin/friday-branch/classes/[classId]/send-roster/route.ts",
+  ];
+
+  for (const routePath of fridayBranchRoutes) {
+    it(`${routePath} uses createClientFromRequest`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(
+        source,
+        /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
+      );
+      assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+      assert.match(
+        source,
+        /requireSchoolAdminUser\(supabase, organizationId, request\)/,
+      );
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
+
   const platformAdminOrganizationRoutes = [
     "app/api/admin/organizations/[id]/memberships/route.ts",
     "app/api/admin/organizations/[id]/parent-login-status/route.ts",

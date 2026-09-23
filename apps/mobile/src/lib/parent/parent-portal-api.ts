@@ -32,6 +32,11 @@ import type {
   SubmitParentFormInput,
 } from '@/lib/parent/parent-forms-documents-types';
 import type { AttendanceHistoryResponse } from '@/lib/attendance/attendance-types';
+import type { ParentPortalFeatures } from '@/lib/parent/parent-features';
+import type {
+  ParentFridayBranchClassDetailBundle,
+  ParentFridayBranchPageBundle,
+} from '@/lib/parent/parent-friday-branch-types';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
 import type { OrganizationEvent, ParentCalendarInitialData } from '@/lib/school-events/types';
 import type { BulletinPost } from '@/lib/school-bulletin/types';
@@ -235,6 +240,7 @@ export type ParentHomeData = {
   schoolSlug: string;
   schoolName: string;
   organizationId: string;
+  features?: ParentPortalFeatures;
   userProfile: FamilyUserProfile;
   familyChildren: FamilyChildOverview[];
   quickActions: ParentQuickAction[];
@@ -246,6 +252,7 @@ export type ParentHomeData = {
   formSnapshot?: ParentFormHomeSnapshot | null;
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
+  fridayBranchHome?: ParentFridayBranchPageBundle | null;
 };
 
 export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
@@ -253,6 +260,7 @@ export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
+    fridayBranchHome: data.fridayBranchHome ?? null,
   };
 }
 
@@ -862,4 +870,94 @@ export async function fetchParentStudentAttendanceHistory(
   return fetchParentApi<AttendanceHistoryResponse>(
     `/api/parent-portal/students/${encodeURIComponent(studentId)}/attendance/history?${params}`,
   );
+}
+
+export async function fetchParentFridayBranchSchedule(
+  organizationId: string,
+): Promise<ParentFridayBranchPageBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  return fetchParentApi<ParentFridayBranchPageBundle>(
+    `/api/parent-portal/friday-branch/schedule?${query}`,
+  );
+}
+
+export async function fetchParentFridayBranchClassDetail(
+  organizationId: string,
+  classId: string,
+): Promise<ParentFridayBranchClassDetailBundle> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<{ detail: ParentFridayBranchClassDetailBundle }>(
+    `/api/parent-portal/friday-branch/classes/${encodeURIComponent(classId)}?${query}`,
+  );
+  if (!payload.detail) {
+    throw new Error('Failed to load class.');
+  }
+  return payload.detail;
+}
+
+export async function enrollParentFridayBranchClass(
+  organizationId: string,
+  classId: string,
+  studentId: string,
+): Promise<ParentFridayBranchClassDetailBundle> {
+  const payload = await fetchParentApi<{ detail?: ParentFridayBranchClassDetailBundle }>(
+    `/api/parent-portal/friday-branch/classes/${encodeURIComponent(classId)}`,
+    {
+      method: 'POST',
+      body: { organizationId, studentId },
+    },
+  );
+  if (!payload.detail) {
+    throw new Error('Failed to sign up for class.');
+  }
+  return payload.detail;
+}
+
+export async function withdrawParentFridayBranchClass(
+  organizationId: string,
+  classId: string,
+  studentId: string,
+): Promise<ParentFridayBranchClassDetailBundle> {
+  const payload = await fetchParentApi<{ detail?: ParentFridayBranchClassDetailBundle }>(
+    `/api/parent-portal/friday-branch/classes/${encodeURIComponent(classId)}`,
+    {
+      method: 'DELETE',
+      body: { organizationId, studentId },
+    },
+  );
+  if (!payload.detail) {
+    throw new Error('Failed to withdraw from class.');
+  }
+  return payload.detail;
+}
+
+async function arrayBufferToBase64(buffer: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+export async function fetchParentFridayBranchFlyerDataUri(
+  organizationId: string,
+  classId: string,
+): Promise<string> {
+  const query = new URLSearchParams({ organizationId, classId }).toString();
+  const response = await fetch(`${siteUrl}/api/parent-portal/friday-branch/flyer?${query}`, {
+    headers: await getApiAuthHeaders(),
+  });
+
+  await assertApiAuthenticated(response);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(typeof payload.error === 'string' ? payload.error : 'Failed to load flyer.');
+  }
+
+  const buffer = await response.arrayBuffer();
+  const base64 = await arrayBufferToBase64(buffer);
+  return `data:application/pdf;base64,${base64}`;
 }

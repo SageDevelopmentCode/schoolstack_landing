@@ -1442,6 +1442,38 @@ const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+export async function notifyPublicSupportRequest(payload: {
+  requestId: string;
+  submitterName: string;
+  submitterEmail: string;
+  topic: string;
+  description: string;
+  sourcePagePath?: string | null;
+}) {
+  const topicLabel =
+    SUPPORT_REQUEST_TOPIC_LABELS[payload.topic] ?? payload.topic;
+
+  const fields: DiscordEmbedField[] = [
+    embedField("Name", truncate(payload.submitterName), true),
+    embedField("Email", truncate(payload.submitterEmail), true),
+    embedField("Request ID", formatId(payload.requestId), true),
+    embedField("Topic", truncate(topicLabel), true),
+  ];
+
+  if (payload.sourcePagePath?.trim()) {
+    fields.push(embedField("Page", truncate(payload.sourcePagePath.trim())));
+  }
+
+  fields.push(embedField("Description", truncate(payload.description.trim())));
+
+  await sendWebsiteNotificationDiscordEmbed({
+    title: "📬 Public support request",
+    description: topicLabel,
+    color: DISCORD_EMBED_COLORS.support,
+    fields,
+  });
+}
+
 export async function notifyAdminSupportRequest(payload: {
   requestId: string;
   organizationId: string;

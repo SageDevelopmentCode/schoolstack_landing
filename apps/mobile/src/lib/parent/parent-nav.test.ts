@@ -1,6 +1,8 @@
 import {
+  getParentFeatureRoute,
   parentBillingAgreementsRoute,
   parentFormDetailRoute,
+  parentFridayBranchRoute,
   resolveParentAttentionNavigation,
 } from '@/lib/parent/parent-nav';
 
@@ -14,6 +16,20 @@ describe('parentBillingAgreementsRoute', () => {
   it('builds billing agreements tab route with form id', () => {
     expect(parentBillingAgreementsRoute(slug, 'form-123')).toBe(
       '/parent/rooted-meadows/billing?tab=agreements&form=form-123',
+    );
+  });
+});
+
+describe('parentFridayBranchRoute', () => {
+  it('builds the Friday Branch more menu route', () => {
+    expect(parentFridayBranchRoute(slug)).toBe('/parent/rooted-meadows/more/friday-branch');
+  });
+});
+
+describe('getParentFeatureRoute', () => {
+  it('maps friday_branch feature key to the mobile route', () => {
+    expect(getParentFeatureRoute(slug, 'friday_branch')).toBe(
+      '/parent/rooted-meadows/more/friday-branch',
     );
   });
 });

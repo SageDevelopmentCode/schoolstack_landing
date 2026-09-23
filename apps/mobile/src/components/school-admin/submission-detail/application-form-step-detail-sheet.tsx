@@ -1,7 +1,7 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ApplicationFormStepReadOnly } from '@/components/school-admin/submission-detail/application-form-step-read-only';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -40,14 +40,20 @@ export function ApplicationFormStepDetailSheet({
   onClose,
 }: ApplicationFormStepDetailSheetProps) {
   const theme = useAdminTheme();
-  const insets = useSafeAreaInsets();
 
   if (!step || !detail) return null;
   const badgeColors = stepStatusBadgeStyle(step.status, theme);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      backgroundColor={theme.bg}
+      borderColor={theme.border}
+      handleColor={theme.borderStrong}
+      maxHeight="85%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
             <ThemedText type="small" style={{ color: theme.accent }}>
@@ -59,28 +65,22 @@ export function ApplicationFormStepDetailSheet({
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.titleRow}>
-            <ThemedText type="subtitle" style={{ color: theme.textPrimary, flex: 1 }}>
-              {step.label}
-            </ThemedText>
-            <StatusBadge
-              label={checklistItemStatusLabel(step.status)}
-              colors={badgeColors}
-            />
-          </View>
-          <ApplicationFormStepReadOnly step={step} detail={detail} feeStatus={feeStatus} />
-        </ScrollView>
+      }>
+      <View style={styles.titleRow}>
+        <ThemedText type="subtitle" style={{ color: theme.textPrimary, flex: 1 }}>
+          {step.label}
+        </ThemedText>
+        <StatusBadge
+          label={checklistItemStatusLabel(step.status)}
+          colors={badgeColors}
+        />
       </View>
-    </Modal>
+      <ApplicationFormStepReadOnly step={step} detail={detail} feeStatus={feeStatus} />
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

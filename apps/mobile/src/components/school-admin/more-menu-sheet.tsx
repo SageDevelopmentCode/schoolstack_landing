@@ -15,6 +15,7 @@ import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useSchoolAdminFeatures } from '@/contexts/school-admin-features-context';
 import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -26,7 +27,8 @@ export type MoreMenuItemId =
   | 'classrooms'
   | 'bulletin'
   | 'attendance'
-  | 'committees';
+  | 'committees'
+  | 'friday-branch';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -49,6 +51,14 @@ const MENU_ITEMS: {
     icon: 'heart-outline',
     iconBg: '#FCE7F3',
     iconColor: '#DB2777',
+  },
+  {
+    id: 'friday-branch',
+    label: 'Friday Branch',
+    subtitle: 'Program schedule and rosters',
+    icon: 'calendar-outline',
+    iconBg: '#EDE9FE',
+    iconColor: '#7C3AED',
   },
   {
     id: 'transactions',
@@ -117,10 +127,19 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   const theme = useParentTheme();
   const { user, portalType, isPlatformAdminSession, selectedSchool, exitSchoolAdmin, signOut } =
     useAuth();
+  const { fridayBranchEnabled } = useSchoolAdminFeatures();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const roleLabel = useMemo(
     () => getAccountRoleLabel(portalType, isPlatformAdminSession),
     [portalType, isPlatformAdminSession],
+  );
+  const visibleMenuItems = useMemo(
+    () =>
+      MENU_ITEMS.filter((item) => {
+        if (item.id === 'friday-branch') return fridayBranchEnabled;
+        return true;
+      }),
+    [fridayBranchEnabled],
   );
 
   const handleSignOut = async () => {
@@ -164,7 +183,7 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
       ) : null}
 
       <StoryMoreMenuItemsCard>
-        {MENU_ITEMS.map((item, index) => (
+        {visibleMenuItems.map((item, index) => (
           <StoryMoreMenuItemRow
             key={item.id}
             isFirst={index === 0}

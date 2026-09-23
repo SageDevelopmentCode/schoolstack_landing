@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -22,41 +22,37 @@ export function ParentCalendarEmptyDaySheet({
   onClose,
 }: ParentCalendarEmptyDaySheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
 
   if (!date) return null;
 
   return (
-    <Modal
+    <BottomSheetShell
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.white, paddingTop: insets.top }]}>
+      onClose={onClose}
+      backgroundColor={theme.white}
+      borderColor={theme.line}
+      handleColor={theme.line}
+      scrollable={false}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={22} color={theme.muted} />
           </Pressable>
         </View>
-
-        <View style={styles.content}>
-          <StorySectionKicker>Selected day</StorySectionKicker>
-          <StoryDisplayHeading size="section" style={styles.heading}>
-            {formatLongEventDate(date)}
-          </StoryDisplayHeading>
-          <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-            Nothing scheduled for this day.
-          </Text>
-        </View>
-      </View>
-    </Modal>
+      }
+      scrollContentStyle={styles.content}>
+      <StorySectionKicker>Selected day</StorySectionKicker>
+      <StoryDisplayHeading size="section" style={styles.heading}>
+        {formatLongEventDate(date)}
+      </StoryDisplayHeading>
+      <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+        Nothing scheduled for this day.
+      </Text>
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',

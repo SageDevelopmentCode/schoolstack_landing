@@ -135,6 +135,44 @@ export async function sendHomepageQuestionConfirmation(payload: {
   }
 }
 
+export function buildPublicSupportRequestConfirmationHtml(payload: {
+  name: string;
+}): string {
+  return composeEmail({
+    preheader: "We received your support request.",
+    contentHtml: `
+      ${emailBadge("Support Request Received")}
+      ${emailHeading(`Thanks for reaching out, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `We received your support request and a member of the ${escapeHtml(SITE_NAME)} team will get back to you as soon as we can — usually within one business day.`,
+      )}
+      ${emailParagraph(
+        "If your question is urgent, you can also book a demo to speak with us directly.",
+      )}
+      ${emailCta({ label: "Book a Demo", href: `${SITE_URL}/get-started` })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPublicSupportRequestConfirmation(payload: {
+  name: string;
+  email: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildPublicSupportRequestConfirmationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `We received your support request — ${SITE_NAME}`,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Public support request confirmation email failed:", result.error);
+  }
+}
+
 export async function sendDemoFeedbackConfirmation(payload: {
   name: string;
   email: string;

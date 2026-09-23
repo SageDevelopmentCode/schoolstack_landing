@@ -1,5 +1,6 @@
-import { Analytics } from "@vercel/analytics/next";
 import NavigationRestoreInit from "@/components/NavigationRestoreInit";
+import CookieConsentBanner from "@/components/legal/CookieConsentBanner";
+import ConditionalAnalytics from "@/components/legal/ConditionalAnalytics";
 import {
   fragmentMono,
   geist,
@@ -21,7 +22,8 @@ export default function RootLayout({
       <body className="antialiased">
         <NavigationRestoreInit />
         {children}
-        <Analytics />
+        <CookieConsentBanner />
+        <ConditionalAnalytics />
       </body>
     </html>
   );

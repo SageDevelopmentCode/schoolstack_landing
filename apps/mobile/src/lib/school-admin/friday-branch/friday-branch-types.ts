@@ -1,0 +1,108 @@
+export type FridayBranchBlockAccent = 'sky' | 'berry' | 'sage' | 'sun';
+
+export type FridayBranchBlockStatus = 'current' | 'upcoming' | 'draft';
+
+export type FridayBranchClassEnrollmentStatus = 'confirmed' | 'waitlisted' | 'withdrawn';
+
+export type FridayBranchClass = {
+  id: string;
+  name: string;
+  location: string;
+  ageGroup: string;
+  teacher?: string;
+  familyVisible?: boolean;
+  capacity?: number | null;
+  priceCents?: number | null;
+  flyerStoragePath?: string | null;
+  flyerFileName?: string | null;
+  flyerFileSizeBytes?: number | null;
+};
+
+export type FridayBranchClassEnrollment = {
+  id: string;
+  studentId: string;
+  familyId: string;
+  studentName: string;
+  familyName: string;
+  status: FridayBranchClassEnrollmentStatus;
+};
+
+export type FridayBranchClassDetail = {
+  class: FridayBranchClass;
+  slotTime: string;
+  blockLabel: string;
+  blockDateRange: string;
+  enrollmentCount: number;
+  enrollments: FridayBranchClassEnrollment[];
+};
+
+export type FridayBranchRosterEmailRow = {
+  studentName: string;
+  familyName: string;
+  grade: string;
+  status: FridayBranchClassEnrollmentStatus;
+  familyEmail: string;
+  familyPhone: string;
+};
+
+export type FridayBranchClassRosterForEmail = {
+  schoolName: string;
+  className: string;
+  slotTime: string;
+  location: string;
+  ageGroup: string;
+  teacher: string;
+  blockLabel: string;
+  blockDateRange: string;
+  rows: FridayBranchRosterEmailRow[];
+};
+
+export type FridayBranchTimeSlot = {
+  id: string;
+  time: string;
+  classes: FridayBranchClass[];
+};
+
+export type FridayBranchBlock = {
+  id: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  accent: FridayBranchBlockAccent;
+  description?: string;
+  status?: FridayBranchBlockStatus;
+  slots: FridayBranchTimeSlot[];
+};
+
+export type FridayBranchScheduleGap = {
+  classId: string;
+  slotId: string;
+  className: string;
+  missingLocation: boolean;
+  missingAge: boolean;
+};
+
+export type FridayBranchStatusTagVariant = 'green' | 'blue' | 'amber' | 'purple' | 'rose';
+
+export type FridayBranchClassEnrollmentSummary = {
+  confirmed: number;
+  waitlisted: number;
+};
+
+export type FridayBranchRecentSignupRow = {
+  enrollmentId: string;
+  classId: string;
+  blockId: string;
+  className: string;
+  slotTime: string;
+  blockLabel: string;
+  studentName: string;
+  familyName: string;
+  status: Exclude<FridayBranchClassEnrollmentStatus, 'withdrawn'>;
+  updatedAt: string;
+};
+
+export type FridayBranchRosterEmailPreview = {
+  subject: string;
+  html: string;
+};

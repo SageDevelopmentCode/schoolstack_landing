@@ -17,6 +17,7 @@ import { ParentBillingProvider } from '@/contexts/parent-billing-context';
 import { ParentCalendarProvider } from '@/contexts/parent-calendar-context';
 import { ParentClassroomSignupsProvider } from '@/contexts/parent-classroom-signups-context';
 import { ParentFormsDocumentsProvider } from '@/contexts/parent-forms-documents-context';
+import { ParentFridayBranchProvider } from '@/contexts/parent-friday-branch-context';
 import { ParentCommitteesProvider } from '@/contexts/parent-committees-context';
 import { ParentHomeProvider } from '@/contexts/parent-home-context';
 import { ParentMessagesInboxProvider, useParentMessagesInbox } from '@/contexts/parent-messages-inbox-context';
@@ -245,6 +246,7 @@ export default function ParentLayout() {
           <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
             <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
               <ParentClassroomSignupsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+                <ParentFridayBranchProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                 <ParentFormsDocumentsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                 <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
                   <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
@@ -262,6 +264,7 @@ export default function ParentLayout() {
                   </MessagesRealtimeProvider>
                 </ParentCalendarProvider>
                 </ParentFormsDocumentsProvider>
+                </ParentFridayBranchProvider>
               </ParentClassroomSignupsProvider>
             </ParentCommitteesProvider>
           </ParentBillingProvider>

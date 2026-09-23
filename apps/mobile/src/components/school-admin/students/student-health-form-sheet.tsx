@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { HealthAllergySeverity, HealthItemType } from '@/lib/student-health/types';
 import { SEVERITY_LABELS } from '@/lib/student-health/types';
@@ -81,7 +78,6 @@ export function StudentHealthFormSheet({
   onSave,
 }: StudentHealthFormSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const [values, setValues] = useState<HealthFormValues>(defaultValues(itemType));
   const [baselineValues, setBaselineValues] = useState<HealthFormValues>(defaultValues(itemType));
 
@@ -114,149 +110,144 @@ export function StudentHealthFormSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
-      <Pressable style={styles.overlay} onPress={requestClose}>
-        <Animated.View
-          entering={SlideInDown.duration(260)}
-          exiting={SlideOutDown.duration(220)}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.white,
-              paddingBottom: Math.max(insets.bottom, Spacing.three),
-            },
-          ]}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
-            <View style={styles.header}>
-              <Text style={[styles.headerTitle, { color: theme.ink }]}>{title}</Text>
-              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
-              {values.type === 'allergy' ? (
-                <>
-                  <Field
-                    label="Allergen"
-                    value={values.allergen}
-                    onChangeText={(text) => setValues({ ...values, allergen: text })}
-                  />
-                  <View style={styles.severityRow}>
-                    {(Object.keys(SEVERITY_LABELS) as HealthAllergySeverity[]).map((severity) => {
-                      const active = values.severity === severity;
-                      return (
-                        <Pressable
-                          key={severity}
-                          accessibilityRole="button"
-                          onPress={() => setValues({ ...values, severity })}
-                          style={[
-                            styles.severityPill,
-                            {
-                              backgroundColor: active ? '#E9F2EA' : Story.paper,
-                              borderColor: active ? '#BCD4C1' : Story.line,
-                            },
-                          ]}>
-                          <Text
-                            style={{
-                              color: active ? theme.primary : theme.muted,
-                              fontFamily: StoryFonts.bodySemiBold,
-                              fontSize: 13,
-                            }}>
-                            {SEVERITY_LABELS[severity]}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                  <Field
-                    label="Treatment notes"
-                    value={values.treatmentNotes}
-                    onChangeText={(text) => setValues({ ...values, treatmentNotes: text })}
-                    multiline
-                  />
-                </>
-              ) : null}
-
-              {values.type === 'medication' ? (
-                <>
-                  <Field
-                    label="Medication name"
-                    value={values.name}
-                    onChangeText={(text) => setValues({ ...values, name: text })}
-                  />
-                  <Field
-                    label="Dose"
-                    value={values.dose}
-                    onChangeText={(text) => setValues({ ...values, dose: text })}
-                  />
-                  <Field
-                    label="Time of day"
-                    value={values.timeOfDay}
-                    onChangeText={(text) => setValues({ ...values, timeOfDay: text })}
-                  />
-                  <Field
-                    label="Instructions"
-                    value={values.instructions}
-                    onChangeText={(text) => setValues({ ...values, instructions: text })}
-                    multiline
-                  />
-                  <Field
-                    label="Start date (YYYY-MM-DD)"
-                    value={values.startDate}
-                    onChangeText={(text) => setValues({ ...values, startDate: text })}
-                  />
-                </>
-              ) : null}
-
-              {values.type === 'update' ? (
-                <>
-                  <Field
-                    label="Title"
-                    value={values.title}
-                    onChangeText={(text) => setValues({ ...values, title: text })}
-                  />
-                  <Field
-                    label="Details"
-                    value={values.details}
-                    onChangeText={(text) => setValues({ ...values, details: text })}
-                    multiline
-                  />
-                  <Field
-                    label="Start date (YYYY-MM-DD)"
-                    value={values.startDate}
-                    onChangeText={(text) => setValues({ ...values, startDate: text })}
-                  />
-                </>
-              ) : null}
-            </ScrollView>
-
-            <View style={styles.footer}>
-              <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
-                <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={saving || !isDirty}
-                onPress={() => void handleSave()}
-                style={[
-                  styles.saveButton,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: isDirty && !saving ? 1 : DISABLED_BUTTON_OPACITY,
-                  },
-                ]}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveLabel}>Save</Text>
-                )}
-              </Pressable>
-            </View>
+    <BottomSheetShell
+      visible={visible}
+      onClose={requestClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={theme.white}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="88%"
+      sheetStyle={styles.sheet}
+      scrollContentStyle={styles.scrollContent}
+      header={
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: theme.ink }]}>{title}</Text>
+          <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
+            <Ionicons name="close" size={22} color={theme.muted} />
           </Pressable>
-        </Animated.View>
-      </Pressable>
-    </Modal>
+        </View>
+      }
+      footer={
+        <View style={styles.footer}>
+          <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
+            <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={saving || !isDirty}
+            onPress={() => void handleSave()}
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: theme.primary,
+                opacity: isDirty && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+              },
+            ]}>
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveLabel}>Save</Text>
+            )}
+          </Pressable>
+        </View>
+      }>
+      {values.type === 'allergy' ? (
+        <>
+          <Field
+            label="Allergen"
+            value={values.allergen}
+            onChangeText={(text) => setValues({ ...values, allergen: text })}
+          />
+          <View style={styles.severityRow}>
+            {(Object.keys(SEVERITY_LABELS) as HealthAllergySeverity[]).map((severity) => {
+              const active = values.severity === severity;
+              return (
+                <Pressable
+                  key={severity}
+                  accessibilityRole="button"
+                  onPress={() => setValues({ ...values, severity })}
+                  style={[
+                    styles.severityPill,
+                    {
+                      backgroundColor: active ? '#E9F2EA' : Story.paper,
+                      borderColor: active ? '#BCD4C1' : Story.line,
+                    },
+                  ]}>
+                  <Text
+                    style={{
+                      color: active ? theme.primary : theme.muted,
+                      fontFamily: StoryFonts.bodySemiBold,
+                      fontSize: 13,
+                    }}>
+                    {SEVERITY_LABELS[severity]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Field
+            label="Treatment notes"
+            value={values.treatmentNotes}
+            onChangeText={(text) => setValues({ ...values, treatmentNotes: text })}
+            multiline
+          />
+        </>
+      ) : null}
+
+      {values.type === 'medication' ? (
+        <>
+          <Field
+            label="Medication name"
+            value={values.name}
+            onChangeText={(text) => setValues({ ...values, name: text })}
+          />
+          <Field
+            label="Dose"
+            value={values.dose}
+            onChangeText={(text) => setValues({ ...values, dose: text })}
+          />
+          <Field
+            label="Time of day"
+            value={values.timeOfDay}
+            onChangeText={(text) => setValues({ ...values, timeOfDay: text })}
+          />
+          <Field
+            label="Instructions"
+            value={values.instructions}
+            onChangeText={(text) => setValues({ ...values, instructions: text })}
+            multiline
+          />
+          <Field
+            label="Start date (YYYY-MM-DD)"
+            value={values.startDate}
+            onChangeText={(text) => setValues({ ...values, startDate: text })}
+          />
+        </>
+      ) : null}
+
+      {values.type === 'update' ? (
+        <>
+          <Field
+            label="Title"
+            value={values.title}
+            onChangeText={(text) => setValues({ ...values, title: text })}
+          />
+          <Field
+            label="Details"
+            value={values.details}
+            onChangeText={(text) => setValues({ ...values, details: text })}
+            multiline
+          />
+          <Field
+            label="Start date (YYYY-MM-DD)"
+            value={values.startDate}
+            onChangeText={(text) => setValues({ ...values, startDate: text })}
+          />
+        </>
+      ) : null}
+    </BottomSheetShell>
   );
 }
 
@@ -291,31 +282,23 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(40, 57, 67, 0.45)',
-  },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '88%',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
+  },
+  scrollContent: {
+    paddingTop: Spacing.two,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.three,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
   },
   headerTitle: {
     fontFamily: StoryFonts.display,
     fontSize: 22,
     lineHeight: 28,
-  },
-  form: {
-    maxHeight: 420,
   },
   field: {
     marginBottom: Spacing.three,
@@ -356,6 +339,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Spacing.two,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.three,
   },
   cancelLabel: {

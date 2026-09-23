@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -11,16 +10,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Animated, {
-  SlideInDown,
-  SlideOutDown,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import {
   buildAssignableClassroomPickerGroups,
@@ -101,7 +98,6 @@ export function StudentClassroomAssignPicker({
   onAddClassroom,
 }: StudentClassroomAssignPickerProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -181,170 +177,157 @@ export function StudentClassroomAssignPicker({
   const showNoAssignable = !loading && classrooms.length > 0 && assignableClassrooms.length === 0;
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
-      <Pressable style={styles.overlay} onPress={requestClose}>
-        <Animated.View
-          entering={SlideInDown.duration(260)}
-          exiting={SlideOutDown.duration(220)}
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: theme.white,
-              paddingBottom: Math.max(insets.bottom, Spacing.three),
-            },
-          ]}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
-            <View style={styles.header}>
-              <View style={styles.headerCopy}>
-                <Text style={[styles.title, { color: theme.ink }]}>Assign classrooms</Text>
-                <Text style={[styles.subtitle, { color: theme.muted }]}>{studentName}</Text>
-              </View>
-              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
-
-            {loading ? (
-              <ClassroomPickerSkeleton backgroundColor={skeletonColor} />
-            ) : showTrueEmpty ? (
-              <View style={styles.emptyState}>
-                <Text style={[styles.emptyCopy, { color: theme.muted }]}>No classrooms yet.</Text>
-                {onAddClassroom ? (
-                  <Pressable accessibilityRole="button" onPress={onAddClassroom}>
-                    <Text style={[styles.link, { color: theme.primary }]}>Add a classroom →</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : (
-              <>
-                <Text style={[styles.helper, { color: theme.muted }]}>
-                  Select all classrooms for this student. Org-wide classrooms can be used for any
-                  program.
-                </Text>
-
-                <View
-                  style={[
-                    styles.searchField,
-                    { backgroundColor: Story.paper, borderColor: Story.line },
-                  ]}>
-                  <Ionicons name="search" size={16} color={theme.muted} />
-                  <TextInput
-                    accessibilityLabel="Search classrooms"
-                    placeholder="Search classrooms or teachers…"
-                    placeholderTextColor={theme.muted}
-                    style={[styles.searchInput, { color: theme.ink }]}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                </View>
-
-                {showNoAssignable ? (
-                  <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                    No classrooms available for this student's programs.
-                  </Text>
-                ) : (
-                  <FlatList
-                    data={rows}
-                    keyExtractor={(item) => item.key}
-                    style={styles.list}
-                    keyboardShouldPersistTaps="handled"
-                    renderItem={({ item }) => {
-                      if (item.type === 'header') {
-                        return (
-                          <Text style={[styles.groupLabel, { color: theme.muted }]}>
-                            {item.programLabel}
-                          </Text>
-                        );
-                      }
-
-                      const classroom = item.classroom!;
-                      const selected = selectedIds.includes(classroom.id);
-                      const teacherLine = classroom.leadTeacherNames.join(', ') || 'No lead teacher';
-
-                      return (
-                        <Pressable
-                          accessibilityRole="checkbox"
-                          accessibilityState={{ checked: selected }}
-                          disabled={saving}
-                          onPress={() => toggleClassroom(classroom.id)}
-                          style={[
-                            styles.option,
-                            {
-                              borderColor: selected ? '#BCD4C1' : Story.line,
-                              backgroundColor: selected ? '#E9F2EA' : theme.white,
-                            },
-                          ]}>
-                          <View style={styles.optionCopy}>
-                            <Text style={[styles.optionTitle, { color: theme.ink }]}>
-                              {classroom.name}
-                            </Text>
-                            <Text style={[styles.optionMeta, { color: theme.muted }]}>
-                              {teacherLine}
-                            </Text>
-                          </View>
-                          <Ionicons
-                            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                            size={22}
-                            color={selected ? theme.primary : theme.muted}
-                          />
-                        </Pressable>
-                      );
-                    }}
-                    ListEmptyComponent={
-                      <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                        No classrooms match your search.
-                      </Text>
-                    }
-                  />
-                )}
-              </>
-            )}
-
-            <View style={styles.footer}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={saving}
-                onPress={requestClose}
-                style={styles.footerButton}>
-                <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={!canSave || saving}
-                onPress={() => void handleSave()}
-                style={[
-                  styles.saveButton,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
-                  },
-                ]}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveLabel}>Save</Text>
-                )}
-              </Pressable>
-            </View>
+    <BottomSheetShell
+      visible={visible}
+      onClose={requestClose}
+      scrollable={false}
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={theme.white}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="88%"
+      sheetStyle={styles.sheet}
+      header={
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={[styles.title, { color: theme.ink }]}>Assign classrooms</Text>
+            <Text style={[styles.subtitle, { color: theme.muted }]}>{studentName}</Text>
+          </View>
+          <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
+            <Ionicons name="close" size={22} color={theme.muted} />
           </Pressable>
-        </Animated.View>
-      </Pressable>
-    </Modal>
+        </View>
+      }
+      footer={
+        <View style={styles.footer}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={saving}
+            onPress={requestClose}
+            style={styles.footerButton}>
+            <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!canSave || saving}
+            onPress={() => void handleSave()}
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: theme.primary,
+                opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+              },
+            ]}>
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveLabel}>Save</Text>
+            )}
+          </Pressable>
+        </View>
+      }>
+      {loading ? (
+        <ClassroomPickerSkeleton backgroundColor={skeletonColor} />
+      ) : showTrueEmpty ? (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyCopy, { color: theme.muted }]}>No classrooms yet.</Text>
+          {onAddClassroom ? (
+            <Pressable accessibilityRole="button" onPress={onAddClassroom}>
+              <Text style={[styles.link, { color: theme.primary }]}>Add a classroom →</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : (
+        <>
+          <Text style={[styles.helper, { color: theme.muted }]}>
+            Select all classrooms for this student. Org-wide classrooms can be used for any
+            program.
+          </Text>
+
+          <View
+            style={[
+              styles.searchField,
+              { backgroundColor: Story.paper, borderColor: Story.line },
+            ]}>
+            <Ionicons name="search" size={16} color={theme.muted} />
+            <TextInput
+              accessibilityLabel="Search classrooms"
+              placeholder="Search classrooms or teachers…"
+              placeholderTextColor={theme.muted}
+              style={[styles.searchInput, { color: theme.ink }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          {showNoAssignable ? (
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              No classrooms available for this student's programs.
+            </Text>
+          ) : (
+            <FlatList
+              data={rows}
+              keyExtractor={(item) => item.key}
+              style={styles.list}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                if (item.type === 'header') {
+                  return (
+                    <Text style={[styles.groupLabel, { color: theme.muted }]}>
+                      {item.programLabel}
+                    </Text>
+                  );
+                }
+
+                const classroom = item.classroom!;
+                const selected = selectedIds.includes(classroom.id);
+                const teacherLine = classroom.leadTeacherNames.join(', ') || 'No lead teacher';
+
+                return (
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    disabled={saving}
+                    onPress={() => toggleClassroom(classroom.id)}
+                    style={[
+                      styles.option,
+                      {
+                        borderColor: selected ? '#BCD4C1' : Story.line,
+                        backgroundColor: selected ? '#E9F2EA' : theme.white,
+                      },
+                    ]}>
+                    <View style={styles.optionCopy}>
+                      <Text style={[styles.optionTitle, { color: theme.ink }]}>
+                        {classroom.name}
+                      </Text>
+                      <Text style={[styles.optionMeta, { color: theme.muted }]}>
+                        {teacherLine}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={22}
+                      color={selected ? theme.primary : theme.muted}
+                    />
+                  </Pressable>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                  No classrooms match your search.
+                </Text>
+              }
+            />
+          )}
+        </>
+      )}
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(40, 57, 67, 0.45)',
-  },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '88%',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
     gap: Spacing.three,
   },
   header: {
@@ -352,6 +335,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.two,
+    paddingTop: Spacing.two,
   },
   headerCopy: {
     flex: 1,
@@ -448,6 +432,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Spacing.two,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
   },
   footerButton: {

@@ -38,7 +38,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow MudKitchen to access your photos so you can attach images to messages."
+          "photosPermission": "Allow MudKitchen to access your photos so you can attach images to messages.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       [

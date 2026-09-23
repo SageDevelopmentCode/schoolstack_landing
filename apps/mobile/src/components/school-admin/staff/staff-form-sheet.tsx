@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
@@ -51,7 +49,6 @@ const PORTAL_ROLES: StaffPortalRole[] = ['teacher', 'staff'];
 
 export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const { reportError } = useMobileErrorReporter();
   const [form, setForm] = useState<StaffFormState>(EMPTY_STAFF_FORM);
   const [saving, setSaving] = useState(false);
@@ -113,8 +110,17 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
-      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={requestClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={Story.paper}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: Story.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>
             <Text style={[styles.headerAction, { color: theme.primary }]}>Cancel</Text>
@@ -137,80 +143,74 @@ export function StaffFormSheet({ visible, slug, onClose, onCreated }: StaffFormS
             )}
           </Pressable>
         </View>
+      }>
+      <Text style={[styles.description, { color: theme.muted }]}>
+        They can sign in with a one-time code sent to their email.
+      </Text>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={[styles.description, { color: theme.muted }]}>
-            They can sign in with a one-time code sent to their email.
-          </Text>
+      {error ? <StoryErrorBanner message={error} /> : null}
 
-          {error ? <StoryErrorBanner message={error} /> : null}
+      <StoryTextField
+        label="First name"
+        value={form.firstName}
+        onChangeText={(firstName) => setForm((current) => ({ ...current, firstName }))}
+        placeholder="First name"
+      />
 
-          <StoryTextField
-            label="First name"
-            value={form.firstName}
-            onChangeText={(firstName) => setForm((current) => ({ ...current, firstName }))}
-            placeholder="First name"
-          />
+      <StoryTextField
+        label="Last name"
+        value={form.lastName}
+        onChangeText={(lastName) => setForm((current) => ({ ...current, lastName }))}
+        placeholder="Last name"
+      />
 
-          <StoryTextField
-            label="Last name"
-            value={form.lastName}
-            onChangeText={(lastName) => setForm((current) => ({ ...current, lastName }))}
-            placeholder="Last name"
-          />
+      <StoryTextField
+        label="Email"
+        value={form.email}
+        onChangeText={(email) => setForm((current) => ({ ...current, email }))}
+        placeholder="name@school.org"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
 
-          <StoryTextField
-            label="Email"
-            value={form.email}
-            onChangeText={(email) => setForm((current) => ({ ...current, email }))}
-            placeholder="name@school.org"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+      <StoryTextField
+        label="Job title"
+        value={form.roleTitle}
+        onChangeText={(roleTitle) => setForm((current) => ({ ...current, roleTitle }))}
+        placeholder="Lead Teacher"
+      />
 
-          <StoryTextField
-            label="Job title"
-            value={form.roleTitle}
-            onChangeText={(roleTitle) => setForm((current) => ({ ...current, roleTitle }))}
-            placeholder="Lead Teacher"
-          />
-
-          <View style={styles.field}>
-            <Text style={[styles.fieldLabel, { color: theme.muted }]}>Portal role</Text>
-            <View style={styles.chipRow}>
-              {PORTAL_ROLES.map((role) => {
-                const active = form.portalRole === role;
-                return (
-                  <Pressable
-                    key={role}
-                    accessibilityRole="button"
-                    onPress={() => setForm((current) => ({ ...current, portalRole: role }))}>
-                    <StoryChip
-                      tone={active ? 'success' : 'info'}
-                      label={role === 'teacher' ? 'Teacher' : 'Staff'}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <StoryButton
-            label="Add staff"
-            disabled={!canSave || saving}
-            onPress={() => void handleSave()}
-          />
-        </ScrollView>
+      <View style={styles.field}>
+        <Text style={[styles.fieldLabel, { color: theme.muted }]}>Portal role</Text>
+        <View style={styles.chipRow}>
+          {PORTAL_ROLES.map((role) => {
+            const active = form.portalRole === role;
+            return (
+              <Pressable
+                key={role}
+                accessibilityRole="button"
+                onPress={() => setForm((current) => ({ ...current, portalRole: role }))}>
+                <StoryChip
+                  tone={active ? 'success' : 'info'}
+                  label={role === 'teacher' ? 'Teacher' : 'Staff'}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-    </Modal>
+
+      <StoryButton
+        label="Add staff"
+        disabled={!canSave || saving}
+        onPress={() => void handleSave()}
+      />
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -232,7 +232,6 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.four,
-    paddingBottom: Spacing.six,
   },
   description: {
     fontFamily: StoryFonts.body,

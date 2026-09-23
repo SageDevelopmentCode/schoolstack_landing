@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import Animated, { SlideInDown, SlideOutDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { ClassroomStatus, ClassroomSummary, ProgramOption } from '@/lib/school-admin/classrooms';
 import { createClassroomApi, updateClassroomApi } from '@/lib/school-admin-api';
@@ -42,7 +39,6 @@ export function ClassroomFormSheet({
   onSaved,
 }: ClassroomFormSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const { reportError } = useMobileErrorReporter();
   const isEdit = classroom != null;
 
@@ -116,117 +112,112 @@ export function ClassroomFormSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={requestClose}>
-      <Pressable style={styles.overlay} onPress={requestClose}>
-        <Animated.View
-          entering={SlideInDown.duration(260)}
-          exiting={SlideOutDown.duration(220)}
+    <BottomSheetShell
+      visible={visible}
+      onClose={requestClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={theme.white}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="88%"
+      sheetStyle={styles.sheet}
+      scrollContentStyle={styles.scrollContent}
+      header={
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.ink }]}>
+            {isEdit ? 'Edit classroom' : 'Add classroom'}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
+            <Ionicons name="close" size={22} color={theme.muted} />
+          </Pressable>
+        </View>
+      }
+      footer={
+        <View style={styles.footer}>
+          <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
+            <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={saving || !canSave}
+            onPress={() => void handleSave()}
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: theme.primary,
+                opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
+              },
+            ]}>
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveLabel}>Save</Text>
+            )}
+          </Pressable>
+        </View>
+      }>
+      <Field label="Name" value={name} onChangeText={setName} />
+      <Text style={[styles.fieldLabel, { color: theme.muted }]}>Program (optional)</Text>
+      <View style={styles.pillRow}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setProgramId('')}
           style={[
-            styles.sheet,
+            styles.pill,
             {
-              backgroundColor: theme.white,
-              paddingBottom: Math.max(insets.bottom, Spacing.three),
+              backgroundColor: !programId ? '#E9F2EA' : Story.paper,
+              borderColor: !programId ? '#BCD4C1' : Story.line,
             },
           ]}>
-          <Pressable onPress={(event) => event.stopPropagation()}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.ink }]}>
-                {isEdit ? 'Edit classroom' : 'Add classroom'}
+          <Text style={{ color: !programId ? theme.primary : theme.muted }}>All programs</Text>
+        </Pressable>
+        {programs.map((program) => {
+          const active = programId === program.id;
+          return (
+            <Pressable
+              key={program.id}
+              accessibilityRole="button"
+              onPress={() => setProgramId(program.id)}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: active ? '#E9F2EA' : Story.paper,
+                  borderColor: active ? '#BCD4C1' : Story.line,
+                },
+              ]}>
+              <Text style={{ color: active ? theme.primary : theme.muted }}>{program.name}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={[styles.fieldLabel, { color: theme.muted }]}>Status</Text>
+      <View style={styles.pillRow}>
+        {STATUS_OPTIONS.map((option) => {
+          const active = status === option;
+          return (
+            <Pressable
+              key={option}
+              accessibilityRole="button"
+              onPress={() => setStatus(option)}
+              style={[
+                styles.pill,
+                {
+                  backgroundColor: active ? '#E9F2EA' : Story.paper,
+                  borderColor: active ? '#BCD4C1' : Story.line,
+                },
+              ]}>
+              <Text style={{ color: active ? theme.primary : theme.muted }}>
+                {option.charAt(0).toUpperCase() + option.slice(1)}
               </Text>
-              <Pressable accessibilityRole="button" onPress={requestClose} hitSlop={8}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
+            </Pressable>
+          );
+        })}
+      </View>
 
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Field label="Name" value={name} onChangeText={setName} />
-              <Text style={[styles.fieldLabel, { color: theme.muted }]}>Program (optional)</Text>
-              <View style={styles.pillRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setProgramId('')}
-                  style={[
-                    styles.pill,
-                    {
-                      backgroundColor: !programId ? '#E9F2EA' : Story.paper,
-                      borderColor: !programId ? '#BCD4C1' : Story.line,
-                    },
-                  ]}>
-                  <Text style={{ color: !programId ? theme.primary : theme.muted }}>All programs</Text>
-                </Pressable>
-                {programs.map((program) => {
-                  const active = programId === program.id;
-                  return (
-                    <Pressable
-                      key={program.id}
-                      accessibilityRole="button"
-                      onPress={() => setProgramId(program.id)}
-                      style={[
-                        styles.pill,
-                        {
-                          backgroundColor: active ? '#E9F2EA' : Story.paper,
-                          borderColor: active ? '#BCD4C1' : Story.line,
-                        },
-                      ]}>
-                      <Text style={{ color: active ? theme.primary : theme.muted }}>{program.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              <Text style={[styles.fieldLabel, { color: theme.muted }]}>Status</Text>
-              <View style={styles.pillRow}>
-                {STATUS_OPTIONS.map((option) => {
-                  const active = status === option;
-                  return (
-                    <Pressable
-                      key={option}
-                      accessibilityRole="button"
-                      onPress={() => setStatus(option)}
-                      style={[
-                        styles.pill,
-                        {
-                          backgroundColor: active ? '#E9F2EA' : Story.paper,
-                          borderColor: active ? '#BCD4C1' : Story.line,
-                        },
-                      ]}>
-                      <Text style={{ color: active ? theme.primary : theme.muted }}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-            </ScrollView>
-
-            <View style={styles.footer}>
-              <Pressable accessibilityRole="button" disabled={saving} onPress={requestClose}>
-                <Text style={[styles.cancelLabel, { color: theme.muted }]}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={saving || !canSave}
-                onPress={() => void handleSave()}
-                style={[
-                  styles.saveButton,
-                  {
-                    backgroundColor: theme.primary,
-                    opacity: canSave && !saving ? 1 : DISABLED_BUTTON_OPACITY,
-                  },
-                ]}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.saveLabel}>Save</Text>
-                )}
-              </Pressable>
-            </View>
-          </Pressable>
-        </Animated.View>
-      </Pressable>
-    </Modal>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </BottomSheetShell>
   );
 }
 
@@ -256,23 +247,19 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(40, 57, 67, 0.45)',
-  },
   sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '88%',
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
+  },
+  scrollContent: {
+    paddingTop: Spacing.two,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.three,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
+    paddingTop: Spacing.two,
+    paddingBottom: Spacing.three,
   },
   title: {
     fontFamily: StoryFonts.display,
@@ -321,6 +308,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Spacing.two,
+    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.three,
   },
   cancelLabel: {

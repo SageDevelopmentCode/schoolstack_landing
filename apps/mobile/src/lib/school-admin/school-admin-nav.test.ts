@@ -1,5 +1,6 @@
 import {
   resolveSchoolAdminNativeRoute,
+  schoolAdminFridayBranchRoute,
   schoolAdminMessageThreadRoute,
   schoolAdminMessagesRoute,
   schoolAdminSubmissionsRoute,
@@ -60,6 +61,12 @@ describe('resolveSchoolAdminNativeRoute', () => {
     expect(resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/students/stu-1`)).toBe(
       `/school-admin/${slug}/students/stu-1`,
     );
+  });
+
+  it('maps friday branch admin route', () => {
+    expect(
+      resolveSchoolAdminNativeRoute(slug, `/school/${slug}/admin/my_school/friday_branch`),
+    ).toBe(schoolAdminFridayBranchRoute(slug));
   });
 
   it('returns null for web-only destinations', () => {

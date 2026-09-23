@@ -11,6 +11,7 @@ export type ParentMoreMenuItemId =
   | 'committees'
   | 'classroom-signups'
   | 'forms-documents'
+  | 'friday-branch'
   | 'notifications';
 
 export function parentTabRoute(slug: string, tab: Exclude<ParentTab, 'more'>): Href {
@@ -39,6 +40,10 @@ export function parentClassroomSignupDetailRoute(slug: string, signupId: string)
 
 export function parentFormsDocumentsRoute(slug: string): Href {
   return parentMoreRoute(slug, 'forms-documents');
+}
+
+export function parentFridayBranchRoute(slug: string): Href {
+  return parentMoreRoute(slug, 'friday-branch');
 }
 
 export function parentFormDetailRoute(slug: string, formId: string): Href {
@@ -139,6 +144,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   committees: (slug) => parentMoreRoute(slug, 'committees'),
   classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
   forms_documents: (slug) => parentFormsDocumentsRoute(slug),
+  friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
   notifications: (slug) => parentMoreRoute(slug, 'notifications'),
 };
 
@@ -147,6 +153,8 @@ const WEB_PARENT_FEATURE_ALIASES: Record<string, string> = {
   'forms-documents': 'forms_documents',
   classroom_signups: 'classroom_signups',
   'classroom-signups': 'classroom_signups',
+  friday_branch: 'friday_branch',
+  'friday-branch': 'friday_branch',
 };
 
 export function getParentFeatureRoute(slug: string, featureKey: string): Href | null {

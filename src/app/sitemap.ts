@@ -35,5 +35,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    {
+      url: `${SITE_URL}/support`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/terms`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/dpa`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${SITE_URL}/subprocessors`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
   ];
 }

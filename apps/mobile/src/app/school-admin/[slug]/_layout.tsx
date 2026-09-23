@@ -19,6 +19,8 @@ import {
   useSchoolAdminMessagesInbox,
 } from '@/contexts/school-admin-messages-inbox-context';
 import { SchoolAdminCommitteesProvider } from '@/contexts/school-admin-committees-context';
+import { SchoolAdminFeaturesProvider } from '@/contexts/school-admin-features-context';
+import { SchoolAdminFridayBranchProvider } from '@/contexts/school-admin-friday-branch-context';
 import { SchoolAdminStudentsProvider } from '@/contexts/school-admin-students-context';
 import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissions-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
@@ -167,7 +169,8 @@ function SchoolAdminLayoutContent() {
       | 'classrooms'
       | 'bulletin'
       | 'attendance'
-      | 'committees',
+      | 'committees'
+      | 'friday-branch',
   ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
@@ -180,6 +183,7 @@ function SchoolAdminLayoutContent() {
       bulletin: `/school-admin/${slug}/more/bulletin`,
       attendance: `/school-admin/${slug}/more/attendance`,
       committees: `/school-admin/${slug}/more/committees`,
+      'friday-branch': `/school-admin/${slug}/more/friday-branch`,
     } as const;
 
     const target = routes[itemId];
@@ -270,7 +274,9 @@ export default function SchoolAdminLayout() {
         <MessagesRealtimeProvider organizationId={organization.id} enabled={!isPreview}>
           <SchoolAdminSubmissionsProvider organizationId={organization.id}>
             <SchoolAdminStudentsProvider organizationId={organization.id}>
-              <SchoolAdminCommitteesProvider organizationId={organization.id}>
+              <SchoolAdminFeaturesProvider slug={organization.slug}>
+                <SchoolAdminCommitteesProvider organizationId={organization.id}>
+                  <SchoolAdminFridayBranchProvider organizationId={organization.id}>
               <SchoolAdminMessagesInboxProvider
                 organizationId={organization.id}
                 schoolName={organization.name}>
@@ -282,7 +288,9 @@ export default function SchoolAdminLayout() {
                   <SchoolAdminLayoutContent />
                 </MessagesUnreadProvider>
               </SchoolAdminMessagesInboxProvider>
-              </SchoolAdminCommitteesProvider>
+                  </SchoolAdminFridayBranchProvider>
+                </SchoolAdminCommitteesProvider>
+              </SchoolAdminFeaturesProvider>
             </SchoolAdminStudentsProvider>
           </SchoolAdminSubmissionsProvider>
         </MessagesRealtimeProvider>
