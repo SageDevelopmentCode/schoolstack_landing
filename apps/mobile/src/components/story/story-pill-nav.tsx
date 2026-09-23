@@ -14,16 +14,51 @@ export type StoryPillNavItem = {
   testID?: string;
 };
 
+type StoryPillNavSize = 'compact' | 'comfortable';
+
 type StoryPillNavProps = {
   items: StoryPillNavItem[];
   activeKey: string;
   onChange: (key: string) => void;
   accessibilityLabel?: string;
   fullWidth?: boolean;
+  size?: StoryPillNavSize;
 };
 
 const TRACK_COLOR = '#EAF2EB';
 const INACTIVE_COLOR = '#728079';
+
+const SIZE_STYLES: Record<
+  StoryPillNavSize,
+  {
+    trackPadding: number;
+    pillPaddingHorizontal: number;
+    pillPaddingVertical: number;
+    iconSize: number;
+    labelFontSize: number;
+    fullWidthLabelFontSize: number;
+    fullWidthPaddingVertical: number;
+  }
+> = {
+  compact: {
+    trackPadding: 4,
+    pillPaddingHorizontal: 12,
+    pillPaddingVertical: 8,
+    iconSize: 12,
+    labelFontSize: 11,
+    fullWidthLabelFontSize: 13,
+    fullWidthPaddingVertical: 11,
+  },
+  comfortable: {
+    trackPadding: 5,
+    pillPaddingHorizontal: 14,
+    pillPaddingVertical: 11,
+    iconSize: 15,
+    labelFontSize: 13,
+    fullWidthLabelFontSize: 14,
+    fullWidthPaddingVertical: 12,
+  },
+};
 
 export function StoryPillNav({
   items,
@@ -31,8 +66,10 @@ export function StoryPillNav({
   onChange,
   accessibilityLabel = 'Sections',
   fullWidth = false,
+  size = 'compact',
 }: StoryPillNavProps) {
   const theme = useParentTheme();
+  const metrics = SIZE_STYLES[size];
 
   const pills = items.map((item) => {
     const active = item.key === activeKey;
@@ -47,6 +84,10 @@ export function StoryPillNav({
         style={({ pressed }) => [
           styles.pill,
           fullWidth && styles.pillFullWidth,
+          {
+            paddingHorizontal: fullWidth ? 8 : metrics.pillPaddingHorizontal,
+            paddingVertical: fullWidth ? metrics.fullWidthPaddingVertical : metrics.pillPaddingVertical,
+          },
           active && styles.pillActive,
           active && { shadowColor: '#dbe2dc' },
           pressed && !item.disabled && { opacity: 0.85 },
@@ -55,7 +96,7 @@ export function StoryPillNav({
         {item.icon ? (
           <Ionicons
             name={item.icon}
-            size={fullWidth ? 14 : 12}
+            size={fullWidth ? metrics.iconSize : metrics.iconSize}
             color={active ? theme.primary : INACTIVE_COLOR}
           />
         ) : null}
@@ -64,7 +105,10 @@ export function StoryPillNav({
           ellipsizeMode="tail"
           style={[
             fullWidth ? styles.pillLabelFullWidth : styles.pillLabel,
-            { color: active ? theme.primary : INACTIVE_COLOR },
+            {
+              color: active ? theme.primary : INACTIVE_COLOR,
+              fontSize: fullWidth ? metrics.fullWidthLabelFontSize : metrics.labelFontSize,
+            },
           ]}>
           {item.label}
         </Text>
@@ -73,13 +117,19 @@ export function StoryPillNav({
     );
   });
 
+  const trackStyle = [
+    styles.track,
+    { padding: metrics.trackPadding },
+    fullWidth && styles.trackFullWidth,
+  ];
+
   if (fullWidth) {
     return (
       <View
         style={styles.fullWidthWrapper}
         accessibilityRole="tablist"
         accessibilityLabel={accessibilityLabel}>
-        <View style={[styles.track, styles.trackFullWidth]}>{pills}</View>
+        <View style={trackStyle}>{pills}</View>
       </View>
     );
   }
@@ -90,7 +140,7 @@ export function StoryPillNav({
       showsHorizontalScrollIndicator={false}
       accessibilityRole="tablist"
       accessibilityLabel={accessibilityLabel}
-      contentContainerStyle={styles.track}>
+      contentContainerStyle={trackStyle}>
       {pills}
     </ScrollView>
   );
@@ -107,7 +157,6 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: TRACK_COLOR,
     borderRadius: 12,
-    padding: 4,
   },
   trackFullWidth: {
     width: '100%',
@@ -117,14 +166,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
   pillFullWidth: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 11,
   },
   pillActive: {
     backgroundColor: '#FFFFFF',
@@ -135,12 +180,10 @@ const styles = StyleSheet.create({
   },
   pillLabel: {
     fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 11,
     fontWeight: '700',
   },
   pillLabelFullWidth: {
     fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
     flexShrink: 1,

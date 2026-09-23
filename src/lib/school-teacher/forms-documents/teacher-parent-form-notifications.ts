@@ -17,7 +17,7 @@ import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { SITE_URL } from "@/lib/site";
-import { resolveFormAudienceFamilies } from "./audience";
+import { resolveFormAudienceForType } from "./audience";
 import type { TeacherParentForm } from "./types";
 
 type TeacherParentFormPublishedNotificationInput = {
@@ -50,7 +50,7 @@ type OrganizationNotificationContext = {
 };
 
 export type TeacherParentFormNotificationDeps = {
-  resolveFormAudienceFamilies?: typeof resolveFormAudienceFamilies;
+  resolveFormAudienceForType?: typeof resolveFormAudienceForType;
   loadOrganizationContext?: (
     supabase: SupabaseClient,
     organizationId: string,
@@ -115,7 +115,7 @@ export async function sendTeacherParentFormPublishedNotifications(
   deps: TeacherParentFormNotificationDeps = {},
 ): Promise<void> {
   const resolveFamilies =
-    deps.resolveFormAudienceFamilies ?? resolveFormAudienceFamilies;
+    deps.resolveFormAudienceForType ?? resolveFormAudienceForType;
   const loadOrganizationContext =
     deps.loadOrganizationContext ?? loadOrganizationNotificationContext;
   const loadFamilyEmails =
@@ -128,7 +128,9 @@ export async function sendTeacherParentFormPublishedNotifications(
   const families = await resolveFamilies(
     supabase,
     input.organizationId,
+    input.form.audienceType,
     input.form.classroomIds,
+    input.form.familyIds,
   );
 
   if (families.length === 0) return;
@@ -153,6 +155,7 @@ export async function sendTeacherParentFormPublishedNotifications(
           familyId: family.familyId,
           formId: input.form.id,
           formTitle: input.form.title,
+          formCategory: input.form.formCategory,
           teacherName: input.publisherName,
           staffMemberId: input.staffMemberId,
           dueDate: input.form.dueDate,
@@ -164,7 +167,10 @@ export async function sendTeacherParentFormPublishedNotifications(
   const org = await loadOrganizationContext(supabase, input.organizationId);
   if (!org) return;
 
-  const formUrl = `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
+  const formUrl =
+    input.form.formCategory === "tuition"
+      ? `${SITE_URL}${schoolParentPath(org.schoolSlug, "billing")}?tab=agreements&form=${encodeURIComponent(input.form.id)}`
+      : `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
   const emailSendPromises: Promise<unknown>[] = [];
 
   for (const family of families) {

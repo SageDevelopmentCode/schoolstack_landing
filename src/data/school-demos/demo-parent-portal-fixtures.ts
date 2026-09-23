@@ -359,6 +359,7 @@ export function buildDemoParentBillingInitialData(
     hasBillingSplit: false,
     initialChildKey: DEMO_STUDENT_EMMA,
     showTaxCreditPaymentBanner: false,
+    tuitionAgreements: [],
   };
 }
 

@@ -169,6 +169,7 @@ export default function TuitionRulesPanel({
             const isActive = activeRulesTab === tab.id;
             const tabId = `tuition-rules-tab-${tab.id}`;
             const panelId = `tuition-rules-panel-${tab.id}`;
+            const Icon = tab.icon;
 
             return (
               <button
@@ -179,7 +180,7 @@ export default function TuitionRulesPanel({
                 aria-selected={isActive}
                 aria-controls={panelId}
                 onClick={() => handleRulesTabChange(tab.id)}
-                className="rounded-[11px] border px-[11px] py-[11px] text-left text-[12px] font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-[11px] border px-[11px] py-[11px] text-left text-[12px] font-bold transition-colors"
                 style={
                   isActive
                     ? {
@@ -195,6 +196,7 @@ export default function TuitionRulesPanel({
                 }
                 data-testid={tabId}
               >
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {tab.label}
               </button>
             );

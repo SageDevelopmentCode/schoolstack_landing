@@ -3,17 +3,15 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useCallback } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BulletinAttachmentList } from '@/components/school-admin/bulletin/bulletin-attachment-list';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryTextField } from '@/components/story/story-text-field';
@@ -86,7 +84,6 @@ export function BulletinPostEditorSheet({
   onDeleted,
 }: BulletinPostEditorSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const editor = useBulletinPostEditor({
     slug,
     post,
@@ -174,12 +171,17 @@ export function BulletinPostEditorSheet({
   const sheetSubtitle = bulletinEditorSheetSubtitle(isNew);
 
   return (
-    <Modal
+    <BottomSheetShell
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={requestClose}>
-      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+      onClose={requestClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={Story.paper}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: Story.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>
             <Text style={[styles.headerAction, { color: theme.primary }]}>Close</Text>
@@ -191,189 +193,9 @@ export function BulletinPostEditorSheet({
           </View>
           <View style={styles.headerSpacer} />
         </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={[styles.subtitle, { color: theme.muted }]}>{sheetSubtitle}</Text>
-
-          <StoryTextField
-            label="Title"
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Spring festival flyer"
-          />
-
-          <StoryTextField
-            label="Message"
-            value={body}
-            onChangeText={setBody}
-            placeholder="Share details families and staff should know..."
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-            style={styles.messageInput}
-          />
-
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: theme.ink }]}>Attachments</Text>
-            <Pressable
-              accessibilityRole="button"
-              disabled={uploading || !canUploadAttachments || atAttachmentLimit}
-              onPress={() => void handlePickFiles()}
-              style={({ pressed }) => [
-                styles.uploadZone,
-                {
-                  borderColor: theme.line,
-                  backgroundColor: theme.white,
-                  opacity: uploading || !canUploadAttachments || atAttachmentLimit ? 0.7 : 1,
-                },
-                pressed && styles.pressed,
-              ]}>
-              {uploading ? (
-                <ActivityIndicator color={theme.primary} />
-              ) : (
-                <Ionicons name="cloud-upload-outline" size={28} color={theme.muted} />
-              )}
-              <Text style={[styles.uploadTitle, { color: theme.ink }]}>
-                {uploading ? 'Uploading files…' : 'Tap to upload PDFs or images'}
-              </Text>
-              <Text style={[styles.uploadHint, { color: theme.muted }]}>
-                Up to {MAX_BULLETIN_ATTACHMENTS} files, 10 MB each
-              </Text>
-              {!canUploadAttachments ? (
-                <Text style={[styles.uploadHint, { color: theme.muted }]}>Add a title to upload files.</Text>
-              ) : null}
-              {atAttachmentLimit ? (
-                <Text style={[styles.uploadHint, { color: theme.muted }]}>
-                  Maximum {MAX_BULLETIN_ATTACHMENTS} attachments reached.
-                </Text>
-              ) : null}
-            </Pressable>
-            {activePost && activePost.attachments.length > 0 ? (
-              <BulletinAttachmentList
-                attachments={activePost.attachments}
-                removingId={removingAttachmentId}
-                onRemove={(attachmentId) => void handleRemoveAttachment(attachmentId)}
-              />
-            ) : null}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: theme.ink }]}>Audience</Text>
-            <Text style={[styles.sectionHint, { color: theme.muted }]}>Select one or more audiences.</Text>
-            <View style={styles.optionList}>
-              {AUDIENCE_OPTIONS.map((option) => {
-                const selected = audiences.includes(option.value);
-                return (
-                  <Pressable
-                    key={option.value}
-                    accessibilityRole="button"
-                    onPress={() => toggleAudience(option.value)}
-                    style={({ pressed }) => [
-                      styles.optionRow,
-                      {
-                        borderColor: selected ? theme.primary : theme.line,
-                        backgroundColor: selected ? theme.primarySoft : theme.white,
-                      },
-                      pressed && styles.pressed,
-                    ]}>
-                    <View style={styles.optionCopy}>
-                      <Text style={[styles.optionLabel, { color: theme.ink }]}>{option.label}</Text>
-                      <Text style={[styles.optionDescription, { color: theme.muted }]}>
-                        {option.description}
-                      </Text>
-                    </View>
-                    {selected ? <StoryChip tone="success" label="Selected" /> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          {showProgramPicker ? (
-            <View style={styles.section}>
-              {programRequired ? (
-                <Text style={[styles.sectionHint, { color: theme.muted }]}>
-                  Choose at least one program.
-                </Text>
-              ) : null}
-              {programs.length === 0 ? (
-                <Text style={[styles.sectionHint, { color: theme.muted }]}>
-                  No programs available for this school.
-                </Text>
-              ) : (
-                <View style={styles.optionList}>
-                  {programs.map((program) => {
-                    const selected = programIds.includes(program.id);
-                    return (
-                      <Pressable
-                        key={program.id}
-                        accessibilityRole="button"
-                        onPress={() => toggleProgramId(program.id)}
-                        style={({ pressed }) => [
-                          styles.optionRow,
-                          {
-                            borderColor: selected ? theme.primary : theme.line,
-                            backgroundColor: selected ? theme.primarySoft : theme.white,
-                          },
-                          pressed && styles.pressed,
-                        ]}>
-                        <Text style={[styles.optionLabel, { color: theme.ink }]}>{program.name}</Text>
-                        {selected ? <StoryChip tone="success" label="Selected" /> : null}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          ) : null}
-
-          <View style={styles.section}>
-            <ToggleRow
-              label="Schedule publish"
-              description="Publish later instead of right away"
-              value={publishScheduleEnabled}
-              onValueChange={togglePublishSchedule}
-            />
-            {publishScheduleEnabled ? (
-              <StoryTextField
-                label="Publish date and time"
-                value={publishedAt}
-                onChangeText={setPublishedAt}
-                placeholder="YYYY-MM-DDTHH:mm"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            ) : null}
-          </View>
-
-          <View style={styles.section}>
-            <ToggleRow
-              label="Set expiry"
-              description="Hide from feeds after this date"
-              value={expiryEnabled}
-              onValueChange={toggleExpiry}
-            />
-            {expiryEnabled ? (
-              <StoryTextField
-                label="Expiry date and time"
-                value={expiresAt}
-                onChangeText={setExpiresAt}
-                placeholder="YYYY-MM-DDTHH:mm"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            ) : null}
-          </View>
-        </ScrollView>
-
-        <View
-          style={[
-            styles.footer,
-            {
-              borderTopColor: Story.line,
-              paddingBottom: Math.max(insets.bottom, Spacing.three),
-            },
-          ]}>
+      }
+      footer={
+        <View style={[styles.footer, { borderTopColor: Story.line }]}>
           <StoryButton
             label="Save draft"
             variant="soft"
@@ -402,15 +224,183 @@ export function BulletinPostEditorSheet({
             />
           ) : null}
         </View>
+      }>
+      <Text style={[styles.subtitle, { color: theme.muted }]}>{sheetSubtitle}</Text>
+
+      <StoryTextField
+        label="Title"
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Spring festival flyer"
+      />
+
+      <StoryTextField
+        label="Message"
+        value={body}
+        onChangeText={setBody}
+        placeholder="Share details families and staff should know..."
+        multiline
+        numberOfLines={6}
+        textAlignVertical="top"
+        style={styles.messageInput}
+      />
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.ink }]}>Attachments</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={uploading || !canUploadAttachments || atAttachmentLimit}
+          onPress={() => void handlePickFiles()}
+          style={({ pressed }) => [
+            styles.uploadZone,
+            {
+              borderColor: theme.line,
+              backgroundColor: theme.white,
+              opacity: uploading || !canUploadAttachments || atAttachmentLimit ? 0.7 : 1,
+            },
+            pressed && styles.pressed,
+          ]}>
+          {uploading ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Ionicons name="cloud-upload-outline" size={28} color={theme.muted} />
+          )}
+          <Text style={[styles.uploadTitle, { color: theme.ink }]}>
+            {uploading ? 'Uploading files…' : 'Tap to upload PDFs or images'}
+          </Text>
+          <Text style={[styles.uploadHint, { color: theme.muted }]}>
+            Up to {MAX_BULLETIN_ATTACHMENTS} files, 10 MB each
+          </Text>
+          {!canUploadAttachments ? (
+            <Text style={[styles.uploadHint, { color: theme.muted }]}>Add a title to upload files.</Text>
+          ) : null}
+          {atAttachmentLimit ? (
+            <Text style={[styles.uploadHint, { color: theme.muted }]}>
+              Maximum {MAX_BULLETIN_ATTACHMENTS} attachments reached.
+            </Text>
+          ) : null}
+        </Pressable>
+        {activePost && activePost.attachments.length > 0 ? (
+          <BulletinAttachmentList
+            attachments={activePost.attachments}
+            removingId={removingAttachmentId}
+            onRemove={(attachmentId) => void handleRemoveAttachment(attachmentId)}
+          />
+        ) : null}
       </View>
-    </Modal>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: theme.ink }]}>Audience</Text>
+        <Text style={[styles.sectionHint, { color: theme.muted }]}>Select one or more audiences.</Text>
+        <View style={styles.optionList}>
+          {AUDIENCE_OPTIONS.map((option) => {
+            const selected = audiences.includes(option.value);
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                onPress={() => toggleAudience(option.value)}
+                style={({ pressed }) => [
+                  styles.optionRow,
+                  {
+                    borderColor: selected ? theme.primary : theme.line,
+                    backgroundColor: selected ? theme.primarySoft : theme.white,
+                  },
+                  pressed && styles.pressed,
+                ]}>
+                <View style={styles.optionCopy}>
+                  <Text style={[styles.optionLabel, { color: theme.ink }]}>{option.label}</Text>
+                  <Text style={[styles.optionDescription, { color: theme.muted }]}>
+                    {option.description}
+                  </Text>
+                </View>
+                {selected ? <StoryChip tone="success" label="Selected" /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {showProgramPicker ? (
+        <View style={styles.section}>
+          {programRequired ? (
+            <Text style={[styles.sectionHint, { color: theme.muted }]}>
+              Choose at least one program.
+            </Text>
+          ) : null}
+          {programs.length === 0 ? (
+            <Text style={[styles.sectionHint, { color: theme.muted }]}>
+              No programs available for this school.
+            </Text>
+          ) : (
+            <View style={styles.optionList}>
+              {programs.map((program) => {
+                const selected = programIds.includes(program.id);
+                return (
+                  <Pressable
+                    key={program.id}
+                    accessibilityRole="button"
+                    onPress={() => toggleProgramId(program.id)}
+                    style={({ pressed }) => [
+                      styles.optionRow,
+                      {
+                        borderColor: selected ? theme.primary : theme.line,
+                        backgroundColor: selected ? theme.primarySoft : theme.white,
+                      },
+                      pressed && styles.pressed,
+                    ]}>
+                    <Text style={[styles.optionLabel, { color: theme.ink }]}>{program.name}</Text>
+                    {selected ? <StoryChip tone="success" label="Selected" /> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      ) : null}
+
+      <View style={styles.section}>
+        <ToggleRow
+          label="Schedule publish"
+          description="Publish later instead of right away"
+          value={publishScheduleEnabled}
+          onValueChange={togglePublishSchedule}
+        />
+        {publishScheduleEnabled ? (
+          <StoryTextField
+            label="Publish date and time"
+            value={publishedAt}
+            onChangeText={setPublishedAt}
+            placeholder="YYYY-MM-DDTHH:mm"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        ) : null}
+      </View>
+
+      <View style={styles.section}>
+        <ToggleRow
+          label="Set expiry"
+          description="Hide from feeds after this date"
+          value={expiryEnabled}
+          onValueChange={toggleExpiry}
+        />
+        {expiryEnabled ? (
+          <StoryTextField
+            label="Expiry date and time"
+            value={expiresAt}
+            onChangeText={setExpiresAt}
+            placeholder="YYYY-MM-DDTHH:mm"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        ) : null}
+      </View>
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -441,7 +431,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingVertical: Spacing.four,
     gap: Spacing.four,
-    paddingBottom: Spacing.six,
   },
   subtitle: {
     fontFamily: StoryFonts.body,

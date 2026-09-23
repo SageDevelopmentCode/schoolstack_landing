@@ -11,6 +11,7 @@ import {
   updateAdminParentForm,
   type UpdateAdminParentFormInput,
 } from "@/lib/school-admin/forms-documents/mutations";
+import { parseFormCategoryQuery } from "@/lib/school-admin/forms-documents/parse-form-category";
 import { requireSchoolAdminUser, SchoolAdminAuthError } from "@/lib/school-admin/access";
 import {
   fireTeacherParentFormActivityNotification,
@@ -29,7 +30,9 @@ type RouteContext = {
 export async function GET(request: Request, context: RouteContext) {
   const { formId } = await context.params;
   const supabase = await createClientFromRequest(request);
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
+  const { searchParams } = new URL(request.url);
+  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
+  const category = parseFormCategoryQuery(searchParams.get("category"));
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -43,7 +46,9 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
-    const form = await getOrgParentFormById(admin, organizationId, formId);
+    const form = await getOrgParentFormById(admin, organizationId, formId, {
+      category,
+    });
     if (!form) {
       return apiError(ROUTE, {
         request,
@@ -83,6 +88,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 type PatchBody = {
   organizationId?: string;
+  category?: string;
   action?: "archive" | "duplicate";
   update?: UpdateAdminParentFormInput;
 };
@@ -104,6 +110,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const organizationId = body.organizationId?.trim() ?? "";
+  const category = parseFormCategoryQuery(
+    typeof body.category === "string" ? body.category : null,
+  );
   if (!organizationId) {
     return apiError(ROUTE, {
       request,
@@ -126,12 +135,42 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireSchoolAdminUser(supabase, organizationId, request);
     const admin = createAdminClient();
 
+    const categoryOptions = category ? { category } : {};
+
     if (body.action === "archive") {
+      const existing = await getOrgParentFormById(
+        admin,
+        organizationId,
+        formId,
+        categoryOptions,
+      );
+      if (!existing) {
+        return apiError(ROUTE, {
+          request,
+          status: 404,
+          error: "Form not found.",
+          code: "not_found",
+        });
+      }
       const form = await archiveAdminParentForm(admin, organizationId, formId);
       return NextResponse.json({ form });
     }
 
     if (body.action === "duplicate") {
+      const existing = await getOrgParentFormById(
+        admin,
+        organizationId,
+        formId,
+        categoryOptions,
+      );
+      if (!existing) {
+        return apiError(ROUTE, {
+          request,
+          status: 404,
+          error: "Form not found.",
+          code: "not_found",
+        });
+      }
       const staffMemberId = await ensureStaffMemberIdForSchoolAdminPublisher(
         admin,
         user,
@@ -146,7 +185,20 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ form });
     }
 
-    const existingForm = await getOrgParentFormById(admin, organizationId, formId);
+    const existingForm = await getOrgParentFormById(
+      admin,
+      organizationId,
+      formId,
+      categoryOptions,
+    );
+    if (!existingForm) {
+      return apiError(ROUTE, {
+        request,
+        status: 404,
+        error: "Form not found.",
+        code: "not_found",
+      });
+    }
     const form = await updateAdminParentForm(
       admin,
       organizationId,

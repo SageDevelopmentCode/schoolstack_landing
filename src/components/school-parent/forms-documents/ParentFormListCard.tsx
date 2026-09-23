@@ -73,6 +73,11 @@ export default function ParentFormListCard({
             <ParentChip theme={theme} tone={statusVariant}>
               {statusLabel}
             </ParentChip>
+            {item.form.formCategory === "tuition" ? (
+              <ParentChip theme={theme} tone="info">
+                Tuition
+              </ParentChip>
+            ) : null}
           </div>
           {item.response.studentNames.length > 0 ? (
             <p className="mt-1 text-xs" style={{ color: theme.muted }}>
@@ -139,9 +144,13 @@ export function parentFormListItemFromSnapshotItem(
       title: item.formTitle,
       description: "",
       formType: "upload",
+      formCategory: "general",
       status: "active",
+      audienceType: "classrooms",
       classroomIds: [],
       classroomNames: [],
+      familyIds: [],
+      familyNames: [],
       dueDate: item.dueDate,
       requireSignature: true,
       totalFamilies: 0,

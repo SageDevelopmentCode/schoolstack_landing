@@ -1,7 +1,7 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { EnrollmentChecklistItemReadOnly } from '@/components/school-admin/submission-detail/enrollment-checklist-item-read-only';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -42,14 +42,20 @@ export function EnrollmentChecklistStepDetailSheet({
   onClose,
 }: EnrollmentChecklistStepDetailSheetProps) {
   const theme = useAdminTheme();
-  const insets = useSafeAreaInsets();
 
   if (!item) return null;
   const status = instance?.status ?? 'not_started';
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      backgroundColor={theme.bg}
+      borderColor={theme.border}
+      handleColor={theme.borderStrong}
+      maxHeight="85%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
             <ThemedText type="small" style={{ color: theme.accent }}>
@@ -61,32 +67,26 @@ export function EnrollmentChecklistStepDetailSheet({
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.titleRow}>
-            <ThemedText type="subtitle" style={{ color: theme.textPrimary, flex: 1 }}>
-              {item.label}
-            </ThemedText>
-            <StatusBadge
-              label={checklistItemStatusLabel(status)}
-              colors={statusBadgeColors(status, theme)}
-            />
-          </View>
-          <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {checklistItemTypeLabel(item.type)}
-            {!item.required ? ' · Optional' : ''}
-          </ThemedText>
-          <EnrollmentChecklistItemReadOnly item={item} instance={instance} />
-        </ScrollView>
+      }>
+      <View style={styles.titleRow}>
+        <ThemedText type="subtitle" style={{ color: theme.textPrimary, flex: 1 }}>
+          {item.label}
+        </ThemedText>
+        <StatusBadge
+          label={checklistItemStatusLabel(status)}
+          colors={statusBadgeColors(status, theme)}
+        />
       </View>
-    </Modal>
+      <ThemedText type="small" style={{ color: theme.textSecondary }}>
+        {checklistItemTypeLabel(item.type)}
+        {!item.required ? ' · Optional' : ''}
+      </ThemedText>
+      <EnrollmentChecklistItemReadOnly item={item} instance={instance} />
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -8,8 +8,14 @@ import {
 } from '@/lib/organizations';
 import { getSupabaseClient } from '@/lib/supabase';
 import type { OrganizationBranding } from '@/lib/organization-settings/types';
+import {
+  parseSchoolAdminFeatures,
+  type SchoolAdminOrganizationFeatures,
+} from '@/lib/school-admin/school-admin-features';
 
-export type OrganizationWithSettings = LiveOrganization;
+export type OrganizationWithSettings = LiveOrganization & {
+  features?: SchoolAdminOrganizationFeatures;
+};
 
 export async function fetchOrganizationWithSettings(
   supabase: SupabaseClient,
@@ -25,17 +31,19 @@ export async function fetchOrganizationWithSettings(
 
   const { data: settings } = await supabase
     .from('organization_settings')
-    .select('branding')
+    .select('branding, features')
     .eq('organization_id', org.id)
     .maybeSingle();
 
   const branding = parseOrganizationBranding(settings?.branding);
+  const features = parseSchoolAdminFeatures(settings?.features);
 
   return {
     id: String(org.id),
     slug: String(org.slug),
     name: String(org.name),
     branding,
+    features,
   };
 }
 

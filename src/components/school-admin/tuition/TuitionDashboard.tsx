@@ -15,12 +15,16 @@ import TuitionAssignmentModal from "@/components/school-admin/tuition/TuitionAss
 import TuitionFamiliesPanel from "@/components/school-admin/tuition/TuitionFamiliesPanel";
 import TuitionKpiBreakdownPanel from "@/components/school-admin/tuition/TuitionKpiBreakdownPanel";
 import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/TuitionOutstandingPeriodSelect";
+import TuitionFormsPanel from "@/components/school-admin/tuition/TuitionFormsPanel";
 import TuitionPaymentHistoryPanel from "@/components/school-admin/tuition/TuitionPaymentHistoryPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
 import TuitionStoryHeader from "@/components/school-admin/tuition/TuitionStoryHeader";
-import type { TuitionDashboardTabId } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
+import {
+  tuitionDashboardTabShowsKpi,
+  type TuitionDashboardTabId,
+} from "@/components/school-admin/tuition/tuition-dashboard-tabs";
 import { formatCents } from "@/lib/tuition/pricing";
 import { listRatePlansWithDetails } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
@@ -337,7 +341,7 @@ export default function TuitionDashboard({
             onOpenSetupWizard={onOpenSetupWizard}
           />
 
-          {showUnassignedBanner ? (
+          {showUnassignedBanner && tuitionDashboardTabShowsKpi(tab) ? (
             <div
               className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
               style={{
@@ -373,57 +377,59 @@ export default function TuitionDashboard({
             </div>
           ) : null}
 
-          <div className="relative mb-[19px]">
-            {isRefetching ? (
+          {tuitionDashboardTabShowsKpi(tab) ? (
+            <div className="relative mb-[19px]">
+              {isRefetching ? (
+                <div
+                  className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/60 pt-6"
+                  aria-hidden="true"
+                >
+                  <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.muted }} />
+                </div>
+              ) : null}
               <div
-                className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/60 pt-6"
-                aria-hidden="true"
+                className={`grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4 ${
+                  initialLoading ? "animate-pulse opacity-70" : ""
+                }`}
               >
-                <Loader2 className="h-5 w-5 animate-spin" style={{ color: theme.muted }} />
+                {CLICKABLE_KPI_CARDS.slice(0, 1).map((card) => (
+                  <AdminMetricCard
+                    key={card.kind}
+                    theme={theme}
+                    value={card.getValue(kpis)}
+                    label={card.label}
+                    accent={card.accent}
+                    onClick={() => setKpiBreakdownKind(card.kind)}
+                  />
+                ))}
+                <TuitionOutstandingMetricCard
+                  theme={theme}
+                  C={C}
+                  value={formatCents(kpis.outstandingCents)}
+                  outstandingPeriod={outstandingPeriod}
+                  onOutstandingPeriodChange={setOutstandingPeriod}
+                  schoolYearBounds={schoolYearBounds}
+                  onClick={() => setKpiBreakdownKind("outstanding")}
+                />
+                {CLICKABLE_KPI_CARDS.slice(1).map((card) => (
+                  <AdminMetricCard
+                    key={card.kind}
+                    theme={theme}
+                    value={card.getValue(kpis)}
+                    label={card.label}
+                    accent={card.accent}
+                    onClick={() => setKpiBreakdownKind(card.kind)}
+                  />
+                ))}
+                <AdminMetricCard
+                  theme={theme}
+                  value={String(kpis.activeAssignments)}
+                  label="Active assignments"
+                  accent="gold"
+                />
               </div>
-            ) : null}
-            <div
-              className={`grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4 ${
-                initialLoading ? "animate-pulse opacity-70" : ""
-              }`}
-            >
-              {CLICKABLE_KPI_CARDS.slice(0, 1).map((card) => (
-                <AdminMetricCard
-                  key={card.kind}
-                  theme={theme}
-                  value={card.getValue(kpis)}
-                  label={card.label}
-                  accent={card.accent}
-                  onClick={() => setKpiBreakdownKind(card.kind)}
-                />
-              ))}
-              <TuitionOutstandingMetricCard
-                theme={theme}
-                C={C}
-                value={formatCents(kpis.outstandingCents)}
-                outstandingPeriod={outstandingPeriod}
-                onOutstandingPeriodChange={setOutstandingPeriod}
-                schoolYearBounds={schoolYearBounds}
-                onClick={() => setKpiBreakdownKind("outstanding")}
-              />
-              {CLICKABLE_KPI_CARDS.slice(1).map((card) => (
-                <AdminMetricCard
-                  key={card.kind}
-                  theme={theme}
-                  value={card.getValue(kpis)}
-                  label={card.label}
-                  accent={card.accent}
-                  onClick={() => setKpiBreakdownKind(card.kind)}
-                />
-              ))}
-              <AdminMetricCard
-                theme={theme}
-                value={String(kpis.activeAssignments)}
-                label="Active assignments"
-                accent="gold"
-              />
             </div>
-          </div>
+          ) : null}
 
           {error ? (
             <p className="mb-[15px] text-sm" style={{ color: "#AD574C" }}>
@@ -488,6 +494,14 @@ export default function TuitionDashboard({
                     setTab("families");
                     setFamiliesReloadToken((value) => value + 1);
                   }}
+                />
+              ) : null}
+
+              {tab === "forms" ? (
+                <TuitionFormsPanel
+                  organizationId={organizationId}
+                  branding={branding}
+                  onFamiliesChanged={() => setFamiliesReloadToken((value) => value + 1)}
                 />
               ) : null}
             </motion.div>

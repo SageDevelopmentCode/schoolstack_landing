@@ -44,6 +44,9 @@ export function ParentFormListItemCard({ item, onPress }: ParentFormListItemCard
                 {item.form.title}
               </Text>
               <StoryChip tone={status.tone} label={status.label} />
+              {item.form.formCategory === 'tuition' ? (
+                <StoryChip tone="info" label="Tuition" />
+              ) : null}
             </View>
             {item.response.studentNames.length > 0 ? (
               <Text style={[styles.meta, { color: theme.muted }]} numberOfLines={2}>

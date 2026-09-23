@@ -18,6 +18,17 @@ const EMAIL_DARK_MODE_CSS = `<style>
   @media (prefers-color-scheme: dark) {
     .email-accent { color: ${COLORS.accentDark} !important; }
     .email-link { color: ${COLORS.accentDark} !important; }
+    .email-digest-section {
+      background-color: rgba(197, 213, 184, 0.12) !important;
+      border-left-color: ${COLORS.accentDark} !important;
+    }
+    .email-digest-section-label { color: ${COLORS.accentDark} !important; }
+    .email-digest-card { border-color: rgba(197, 213, 184, 0.25) !important; }
+    .email-digest-card-title { color: #F3F4F6 !important; }
+    .email-digest-badge {
+      background-color: rgba(197, 157, 132, 0.2) !important;
+      color: #E8C4B0 !important;
+    }
   }
 </style>`;
 
@@ -143,6 +154,79 @@ export function emailDetailCard(rows: { label: string; value: string }[]): strin
     <td style="padding:0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         ${rowHtml}
+      </table>
+    </td>
+  </tr>
+</table>`;
+}
+
+const DIGEST_SECTION_STYLES: Record<
+  string,
+  { accent: string; background: string }
+> = {
+  Members: { accent: COLORS.accent, background: "#F4F7F4" },
+  Tasks: { accent: COLORS.clay, background: "#FBF5F2" },
+  Resources: { accent: "#4A6B58", background: "#F4F7F4" },
+  Calendar: { accent: COLORS.clay, background: "#FBF5F2" },
+  Messages: { accent: COLORS.accent, background: "#F4F7F4" },
+};
+
+export function emailDigestSectionHeader(category: string): string {
+  const style = DIGEST_SECTION_STYLES[category] ?? {
+    accent: COLORS.accent,
+    background: "#F4F7F4",
+  };
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 10px;">
+  <tr>
+    <td class="email-digest-section" style="padding:10px 14px;background-color:${style.background};border-left:4px solid ${style.accent};border-radius:6px;">
+      <p class="email-digest-section-label" style="margin:0;font-family:${FONT_BODY};font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${style.accent};">
+        ${escapeHtml(category)}
+      </p>
+    </td>
+  </tr>
+</table>`;
+}
+
+export function emailDigestActivityCard(item: {
+  title: string;
+  actionLabel: string;
+  details: string[];
+  actorName?: string | null;
+  occurredAtLabel: string;
+}): string {
+  const detailLines = item.details
+    .map(
+      (detail) =>
+        `<p style="margin:0 0 4px;font-family:${FONT_BODY};font-size:14px;line-height:1.55;opacity:${MUTED_OPACITY};">${escapeHtml(detail)}</p>`,
+    )
+    .join("");
+
+  const footerParts = [
+    item.actorName ? `By ${item.actorName}` : null,
+    item.occurredAtLabel,
+  ].filter(Boolean);
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;">
+  <tr>
+    <td class="email-digest-card" style="padding:14px 16px;border:1px solid rgba(46,74,60,0.12);border-radius:8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:0 0 8px;">
+            <span class="email-digest-badge" style="display:inline-block;margin-right:8px;padding:3px 8px;border-radius:999px;background-color:rgba(160,92,69,0.12);font-family:${FONT_BODY};font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${COLORS.clay};">
+              ${escapeHtml(item.actionLabel)}
+            </span>
+            <span class="email-digest-card-title" style="font-family:${FONT_BODY};font-size:15px;font-weight:600;line-height:1.45;color:#1F2937;">
+              ${escapeHtml(item.title)}
+            </span>
+          </td>
+        </tr>
+        ${detailLines ? `<tr><td style="padding:0 0 8px;">${detailLines}</td></tr>` : ""}
+        <tr>
+          <td style="padding:0;font-family:${FONT_BODY};font-size:12px;line-height:1.5;opacity:${MUTED_OPACITY};">
+            ${escapeHtml(footerParts.join(" · "))}
+          </td>
+        </tr>
       </table>
     </td>
   </tr>

@@ -307,6 +307,7 @@ async function loadBillingPreviewForMobile(
     hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),
     showTaxCreditPaymentBanner,
+    tuitionAgreements: [],
   };
 }
 

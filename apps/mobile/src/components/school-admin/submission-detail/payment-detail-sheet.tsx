@@ -1,7 +1,7 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ReadOnlyFieldRow } from '@/components/school-admin/submission-detail/read-only-field-row';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
@@ -41,7 +41,6 @@ function paymentStatusBadgeColors(
 
 export function PaymentDetailSheet({ visible, payment, onClose }: PaymentDetailSheetProps) {
   const theme = useAdminTheme();
-  const insets = useSafeAreaInsets();
 
   if (!payment) return null;
 
@@ -51,8 +50,15 @@ export function PaymentDetailSheet({ visible, payment, onClose }: PaymentDetailS
     : '—';
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.bg, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      backgroundColor={theme.bg}
+      borderColor={theme.border}
+      handleColor={theme.borderStrong}
+      maxHeight="85%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
             <ThemedText type="small" style={{ color: theme.accent }}>
@@ -64,52 +70,46 @@ export function PaymentDetailSheet({ visible, payment, onClose }: PaymentDetailS
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
-
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.titleRow}>
-            <View style={{ flex: 1, gap: 4 }}>
-              <ThemedText type="subtitle" style={{ color: theme.textPrimary }}>
-                {payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType]}
-              </ThemedText>
-              <ThemedText type="small" style={{ color: theme.textTertiary }}>
-                {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
-              </ThemedText>
-            </View>
-            <View style={styles.amountColumn}>
-              <ThemedText type="subtitle" style={{ color: theme.textPrimary }}>
-                {formatPaymentAmount(payment.amountCents)}
-              </ThemedText>
-              <StatusBadge
-                label={PAYMENT_STATUS_LABELS[payment.status]}
-                colors={paymentStatusBadgeColors(payment.status, theme)}
-              />
-            </View>
-          </View>
-
-          <View style={[styles.breakdown, { backgroundColor: theme.elevated, borderColor: theme.border }]}>
-            <ReadOnlyFieldRow label="Family paid" value={formatFeeAmount(chargedAmount)} />
-            {payment.processingFeeCents ? (
-              <ReadOnlyFieldRow
-                label="Processing fee"
-                value={`+${formatFeeAmount(payment.processingFeeCents)}`}
-              />
-            ) : null}
-            <ReadOnlyFieldRow label="Method" value={methodLabel} />
-            <ReadOnlyFieldRow label="Type" value={PAYMENT_TYPE_LABELS[payment.paymentType]} />
-            {payment.payerEmail ? (
-              <ReadOnlyFieldRow label="Payer email" value={payment.payerEmail} />
-            ) : null}
-          </View>
-        </ScrollView>
+      }>
+      <View style={styles.titleRow}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <ThemedText type="subtitle" style={{ color: theme.textPrimary }}>
+            {payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType]}
+          </ThemedText>
+          <ThemedText type="small" style={{ color: theme.textTertiary }}>
+            {formatPaymentDateTime(payment.paidAt ?? payment.createdAt)}
+          </ThemedText>
+        </View>
+        <View style={styles.amountColumn}>
+          <ThemedText type="subtitle" style={{ color: theme.textPrimary }}>
+            {formatPaymentAmount(payment.amountCents)}
+          </ThemedText>
+          <StatusBadge
+            label={PAYMENT_STATUS_LABELS[payment.status]}
+            colors={paymentStatusBadgeColors(payment.status, theme)}
+          />
+        </View>
       </View>
-    </Modal>
+
+      <View style={[styles.breakdown, { backgroundColor: theme.elevated, borderColor: theme.border }]}>
+        <ReadOnlyFieldRow label="Family paid" value={formatFeeAmount(chargedAmount)} />
+        {payment.processingFeeCents ? (
+          <ReadOnlyFieldRow
+            label="Processing fee"
+            value={`+${formatFeeAmount(payment.processingFeeCents)}`}
+          />
+        ) : null}
+        <ReadOnlyFieldRow label="Method" value={methodLabel} />
+        <ReadOnlyFieldRow label="Type" value={PAYMENT_TYPE_LABELS[payment.paymentType]} />
+        {payment.payerEmail ? (
+          <ReadOnlyFieldRow label="Payer email" value={payment.payerEmail} />
+        ) : null}
+      </View>
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,34 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { StoryCard } from '@/components/story/story-card';
+import { ParentCommitteeResourceDetailSheet } from '@/components/parent/committees/parent-committee-resource-detail-sheet';
+import { ParentCommitteeResourceRow } from '@/components/parent/committees/parent-committee-resource-row';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import type { Committee, CommitteeResourceType } from '@/lib/parent/parent-committees-types';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
+import type { CommitteeResource } from '@/lib/parent/parent-committees-types';
+import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
-type ParentCommitteeResourcesSectionProps = {
-  committee: Committee;
-};
-
-function resourceIcon(type: CommitteeResourceType): keyof typeof Ionicons.glyphMap {
-  switch (type) {
-    case 'pdf':
-      return 'document-outline';
-    case 'doc':
-      return 'document-text-outline';
-    case 'link':
-      return 'link-outline';
-    case 'checklist':
-      return 'list-outline';
-    default:
-      return 'document-outline';
-  }
-}
-
-export function ParentCommitteeResourcesSection({ committee }: ParentCommitteeResourcesSectionProps) {
+export function ParentCommitteeResourcesSection({
+  committee,
+  supabase,
+}: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
+  const [selectedResource, setSelectedResource] = useState<CommitteeResource | null>(null);
 
   if (committee.resources.length === 0) {
     return (
@@ -39,66 +26,32 @@ export function ParentCommitteeResourcesSection({ committee }: ParentCommitteeRe
   }
 
   return (
-    <StoryDetailSection title="Resources">
-      <View style={styles.list}>
-        {committee.resources.map((resource) => (
-          <Pressable
-            key={resource.id}
-            accessibilityRole="button"
-            disabled={!resource.url}
-            onPress={() => {
-              if (resource.url) {
-                void Linking.openURL(resource.url);
-              }
-            }}
-            style={({ pressed }) => [pressed && resource.url && { opacity: 0.85 }]}>
-            <StoryCard compact style={styles.card}>
-              <View style={styles.row}>
-                <Ionicons name={resourceIcon(resource.type)} size={18} color={theme.primary} />
-                <View style={styles.copy}>
-                  <Text style={[styles.title, { color: theme.ink }]}>{resource.title}</Text>
-                  {resource.description ? (
-                    <Text style={[styles.description, { color: theme.muted }]} numberOfLines={2}>
-                      {resource.description}
-                    </Text>
-                  ) : null}
-                </View>
-                {resource.url ? (
-                  <Ionicons name="open-outline" size={16} color={theme.muted} />
-                ) : null}
-              </View>
-            </StoryCard>
-          </Pressable>
-        ))}
-      </View>
-    </StoryDetailSection>
+    <>
+      <StoryDetailSection title="Resources">
+        <View style={styles.list}>
+          {committee.resources.map((resource) => (
+            <ParentCommitteeResourceRow
+              key={resource.id}
+              resource={resource}
+              onPress={() => setSelectedResource(resource)}
+            />
+          ))}
+        </View>
+      </StoryDetailSection>
+
+      <ParentCommitteeResourceDetailSheet
+        visible={Boolean(selectedResource)}
+        resource={selectedResource}
+        supabase={supabase}
+        onClose={() => setSelectedResource(null)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   list: {
     gap: Spacing.two,
-  },
-  card: {
-    padding: StoryCardPadding,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two,
-  },
-  copy: {
-    flex: 1,
-    gap: 2,
-  },
-  title: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-  },
-  description: {
-    fontFamily: StoryFonts.body,
-    fontSize: 12,
-    lineHeight: 16,
   },
   emptyCopy: {
     fontFamily: StoryFonts.body,

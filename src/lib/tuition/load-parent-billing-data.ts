@@ -23,6 +23,8 @@ import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-failure-
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import { shouldShowTaxCreditPaymentBanner } from "@/lib/tuition/family-checklist-responses";
+import { loadParentTuitionAgreements } from "@/lib/tuition/load-parent-tuition-agreements";
+import type { ParentFormListItem } from "@/lib/school-parent/forms-documents/types";
 import type { FamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
@@ -43,6 +45,7 @@ export type ParentBillingInitialData = {
   hasBillingSplit: boolean;
   initialChildKey: string | null;
   showTaxCreditPaymentBanner: boolean;
+  tuitionAgreements: ParentFormListItem[];
   chargesDeferred?: boolean;
   paymentsDeferred?: boolean;
 };
@@ -63,7 +66,7 @@ export async function loadParentBillingInitialDataWithClient(
   const billingSplits = await listBillingSplits(supabase, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
 
-  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState] =
+  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState, tuitionAgreements] =
     await Promise.all([
       listChargesForFamily(supabase, input.familyId),
       listParentTuitionPaymentHistory(supabase, input.familyId),
@@ -73,6 +76,7 @@ export async function loadParentBillingInitialDataWithClient(
         familyId: input.familyId,
         slug: input.slug,
       }),
+      loadParentTuitionAgreements(supabase, input.organizationId, input.familyId),
     ]);
 
   const chargeRows = filterChargesForFamilyGuardian(
@@ -136,6 +140,7 @@ export async function loadParentBillingInitialDataWithClient(
     hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),
     showTaxCreditPaymentBanner,
+    tuitionAgreements,
   };
 }
 

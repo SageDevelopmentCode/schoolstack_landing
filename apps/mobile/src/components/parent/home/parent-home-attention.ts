@@ -7,6 +7,7 @@ import type {
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
 import type { FamilyChildOverview } from '@/lib/parent/parent-portal-api';
 import {
+  parentBillingAgreementsRoute,
   parentClassroomSignupDetailRoute,
   parentEnrollmentItemRoute,
   parentFormDetailRoute,
@@ -64,10 +65,14 @@ export function buildAttentionItems(input: {
   const items: ParentHomeAttentionItem[] = [];
 
   for (const form of input.formAttentionItems ?? []) {
-    const nativeRoute = resolveParentAttentionNavigation(input.slug, {
-      formId: form.formId,
-      href: form.formsHref,
-    });
+    const isTuitionAgreement =
+      form.formsHref.includes('/billing') && form.formsHref.includes('tab=agreements');
+    const nativeRoute = isTuitionAgreement
+      ? parentBillingAgreementsRoute(input.slug, form.formId)
+      : resolveParentAttentionNavigation(input.slug, {
+          formId: form.formId,
+          href: form.formsHref,
+        });
     items.push({
       key: `form-${form.formId}`,
       title: `Sign ${form.formTitle}`,

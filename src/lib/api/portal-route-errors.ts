@@ -34,7 +34,9 @@ export function portalRouteErrorStatus(
 
   if (
     /^You can only assign forms to your classrooms\.$/.test(message) ||
-    /^One or more selected classrooms are invalid\.$/.test(message)
+    /^One or more selected classrooms are invalid\.$/.test(message) ||
+    /^You can only assign forms to families in your classrooms\.$/.test(message) ||
+    /^One or more selected families are invalid\.$/.test(message)
   ) {
     return { status: 403, message, code: "forbidden" };
   }
@@ -46,6 +48,8 @@ export function portalRouteErrorStatus(
   if (
     /^Title is required\.$/.test(message) ||
     /^Select at least one classroom\.$/.test(message) ||
+    /^Select at least one family\.$/.test(message) ||
+    /^Choose who should receive this form before sending\.$/.test(message) ||
     /^Built forms must include a signature field\.$/.test(message) ||
     /^Upload a document before saving\.$/.test(message) ||
     /^Type your full legal name to sign\.$/.test(message) ||

@@ -2,7 +2,11 @@ import type { Href } from 'expo-router';
 
 export type TeacherTab = 'home' | 'my-students' | 'messages' | 'calendar' | 'more';
 
-export type TeacherMoreMenuItemId = 'classroom-signups' | 'my-hours' | 'attendance';
+export type TeacherMoreMenuItemId =
+  | 'classroom-signups'
+  | 'my-hours'
+  | 'attendance'
+  | 'committees';
 
 export function teacherTabRoute(slug: string, tab: Exclude<TeacherTab, 'more'>): Href {
   return `/teacher/${slug}/${tab}` as Href;
@@ -64,6 +68,7 @@ const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
   classroom_signups: (slug) => teacherMoreRoute(slug, 'classroom-signups'),
   my_hours: (slug) => teacherMoreRoute(slug, 'my-hours'),
   attendance: (slug) => teacherMoreRoute(slug, 'attendance'),
+  committees: (slug) => teacherMoreRoute(slug, 'committees'),
 };
 
 export function getTeacherFeatureRoute(slug: string, featureKey: string): Href | null {

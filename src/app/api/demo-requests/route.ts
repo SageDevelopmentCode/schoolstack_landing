@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { isPastDate } from "@/lib/demo-scheduler";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
+import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  exceedsMaxLength,
+  fieldTooLongLabel,
+  MAX_PUBLIC_FORM_EMAIL_LENGTH,
+  MAX_PUBLIC_FORM_NAME_LENGTH,
+  MAX_PUBLIC_FORM_SCHEDULED_TIME_LENGTH,
+  MAX_PUBLIC_FORM_SCHOOL_NAME_FIELD_LENGTH,
+  MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH,
+} from "@/lib/public-forms/field-limits";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/demo-requests";
 
@@ -43,6 +51,7 @@ interface DemoRequestBody {
   conceptDemoSlug?: string;
   scheduledDate?: string;
   scheduledTime?: string;
+  turnstileToken?: string;
 }
 
 export async function POST(request: Request) {
@@ -66,6 +75,30 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
+  if (exceedsMaxLength(name, MAX_PUBLIC_FORM_NAME_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Name") });
+  }
+
+  if (exceedsMaxLength(email, MAX_PUBLIC_FORM_EMAIL_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Email") });
+  }
+
+  if (exceedsMaxLength(schoolName, MAX_PUBLIC_FORM_SCHOOL_NAME_FIELD_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("School name"),
+    });
+  }
+
+  if (exceedsMaxLength(scheduledTime, MAX_PUBLIC_FORM_SCHEDULED_TIME_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("Scheduled time"),
+    });
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
@@ -86,6 +119,38 @@ export async function POST(request: Request) {
   const prepNotes = body.prepNotes?.trim() ?? "";
   const conceptDemoSlug = body.conceptDemoSlug?.trim() || null;
 
+  if (exceedsMaxLength(currentSystems, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("Current systems"),
+    });
+  }
+
+  if (exceedsMaxLength(websiteUrl, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("Website URL"),
+    });
+  }
+
+  if (exceedsMaxLength(currentTools, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("Current tools"),
+    });
+  }
+
+  if (exceedsMaxLength(prepNotes, MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("Prep notes"),
+    });
+  }
+
   if (conceptDemoSlug && !schoolDemoRegistry[conceptDemoSlug]) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid concept demo." });
   }
@@ -98,10 +163,25 @@ export async function POST(request: Request) {
     });
   }
 
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const protection = await enforcePublicFormSubmission({
+    request,
+    form: "demo_request",
+    email,
+    turnstileToken: body.turnstileToken,
+  });
+  if (!protection.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: protection.status,
+      error: protection.error,
+      code: protection.code,
+      notify: false,
+    });
+  }
 
-  const { data: slotRow, error: slotError } = await supabase
+  const admin = createAdminClient();
+
+  const { data: slotRow, error: slotError } = await admin
     .from("demo_availability_slots")
     .select("id")
     .eq("date", scheduledDate)
@@ -125,7 +205,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: existingBooking, error: bookingCheckError } = await supabase
+  const { data: existingBooking, error: bookingCheckError } = await admin
     .from("demo_requests")
     .select("id")
     .eq("scheduled_date", scheduledDate)
@@ -150,7 +230,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const { error } = await supabase.from("demo_requests").insert({
+  const { error } = await admin.from("demo_requests").insert({
     name,
     email,
     school_name: schoolName,
@@ -200,7 +280,7 @@ export async function POST(request: Request) {
       scheduledTime,
     });
   } catch (err) {
-    void logNotificationFailure(createAdminClient(), {
+    void logNotificationFailure(admin, {
       operation: "demo_booking_discord",
       error: err,
       metadata: { email, schoolName },
@@ -216,7 +296,7 @@ export async function POST(request: Request) {
       scheduledTime,
     });
   } catch (err) {
-    void logNotificationFailure(createAdminClient(), {
+    void logNotificationFailure(admin, {
       operation: "demo_booking_confirmation_email",
       error: err,
       metadata: { email, schoolName },

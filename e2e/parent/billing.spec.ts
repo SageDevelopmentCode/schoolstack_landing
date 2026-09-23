@@ -14,6 +14,7 @@ import {
   openUpcomingChargesPanel,
   resetFamilyBillingState,
   waitForBillingPage,
+  waitForBillingChargesReady,
 } from "../helpers/billing-fixtures";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
@@ -1032,10 +1033,13 @@ test("parent billing extra payment shows updated schedule preview", async ({ pag
   await expect(
     page.getByTestId(`parent-billing-child-due-card-${enrollment!.id}`),
   ).toBeVisible();
-  await page.getByTestId(`parent-billing-child-pay-${enrollment!.id}`).click();
+  await waitForBillingChargesReady(page);
+  const payButton = page.getByTestId(`parent-billing-child-pay-${enrollment!.id}`);
+  await expect(payButton).toBeEnabled();
+  await payButton.click();
 
   const paymentModal = page.getByRole("dialog", { name: "How would you like to pay?" });
-  await expect(paymentModal).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How would you like to pay?" })).toBeVisible();
   await paymentModal.getByTestId("tuition-pay-extra-mode-button").click();
   await paymentModal.getByTestId("tuition-pay-custom-amount-input").fill("3600");
   await expect(paymentModal.getByTestId("tuition-pay-schedule-preview")).toBeVisible();

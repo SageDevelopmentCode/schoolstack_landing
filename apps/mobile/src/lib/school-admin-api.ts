@@ -10,11 +10,17 @@ import type {
 } from '@/lib/school-admin/classrooms';
 import type { StudentHealthProfile } from '@/lib/student-health/types';
 import { emptyStudentHealthProfile } from '@/lib/student-health/types';
+import type {
+  CommitteeActivityItem,
+  CommitteeDutyRoleSummary,
+  CommitteeJoinRequest,
+  CommitteeRole,
+} from '@/lib/parent/parent-committees-types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
 type FetchSchoolAdminApiOptions = {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 };
 
@@ -454,4 +460,66 @@ export async function fetchStaffAssignedStudents(
     `/api/school/${slug}/staff/${staffMemberId}/students`,
   );
   return payload.students ?? [];
+}
+
+export async function fetchAdminCommitteeJoinRequests(
+  organizationId: string,
+  options?: { committeeId?: string; status?: CommitteeJoinRequest['status'] },
+): Promise<{
+  requests: CommitteeJoinRequest[];
+  dutyRolesByCommitteeId: Record<string, CommitteeDutyRoleSummary[]>;
+}> {
+  const query = new URLSearchParams({ organizationId });
+  if (options?.committeeId) query.set('committeeId', options.committeeId);
+  if (options?.status) query.set('status', options.status);
+  const payload = await fetchSchoolAdminApi<{
+    requests?: CommitteeJoinRequest[];
+    dutyRolesByCommitteeId?: Record<string, CommitteeDutyRoleSummary[]>;
+  }>(`/api/school-admin/committees/join-requests?${query}`);
+  return {
+    requests: payload.requests ?? [],
+    dutyRolesByCommitteeId: payload.dutyRolesByCommitteeId ?? {},
+  };
+}
+
+export async function approveAdminCommitteeJoinRequest(
+  requestId: string,
+  input: {
+    organizationId: string;
+    schoolSlug: string;
+    memberRole?: CommitteeRole;
+    assignDutyRoleId?: string | null;
+  },
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school-admin/committees/join-requests/${requestId}/approve`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function declineAdminCommitteeJoinRequest(
+  requestId: string,
+  input: { organizationId: string; schoolSlug: string },
+): Promise<void> {
+  await fetchSchoolAdminApi(`/api/school-admin/committees/join-requests/${requestId}/decline`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function fetchAdminCommitteeActivity(
+  organizationId: string,
+  slug: string,
+  options?: { committeeId?: string; limit?: number },
+): Promise<CommitteeActivityItem[]> {
+  const query = new URLSearchParams({
+    organizationId,
+    slug,
+    limit: String(options?.limit ?? 30),
+  });
+  if (options?.committeeId) query.set('committeeId', options.committeeId);
+  const payload = await fetchSchoolAdminApi<{ items?: CommitteeActivityItem[] }>(
+    `/api/school-admin/committees/activity?${query}`,
+  );
+  return payload.items ?? [];
 }

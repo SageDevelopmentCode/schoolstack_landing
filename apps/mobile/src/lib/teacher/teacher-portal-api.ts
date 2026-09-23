@@ -23,6 +23,11 @@ import type {
   StudentHealthProfile,
 } from '@/lib/student-health/types';
 import { emptyStudentHealthProfile } from '@/lib/student-health/types';
+import type {
+  Committee,
+  ParentCommitteeBrowseItem,
+  ParentCommitteeListItem,
+} from '@/lib/parent/parent-committees-types';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -278,6 +283,77 @@ export async function deleteTeacherStudentHealthItem(
     `/api/teacher-portal/students/${encodeURIComponent(studentId)}/health/${encodeURIComponent(itemId)}?${query}`,
     { method: 'DELETE' },
   );
+}
+
+export async function fetchTeacherCommitteesBrowse(
+  organizationId: string,
+): Promise<ParentCommitteeBrowseItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchTeacherApi<{ committees: ParentCommitteeBrowseItem[] }>(
+    `/api/teacher-portal/committees/browse?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchTeacherCommitteesMine(
+  organizationId: string,
+): Promise<ParentCommitteeListItem[]> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchTeacherApi<{ committees: ParentCommitteeListItem[] }>(
+    `/api/teacher-portal/committees/mine?${query}`,
+  );
+  return payload.committees ?? [];
+}
+
+export async function fetchTeacherCommitteeWorkspace(
+  organizationId: string,
+  committeeId: string,
+): Promise<Committee> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchTeacherApi<{ committee: Committee }>(
+    `/api/teacher-portal/committees/${committeeId}?${query}`,
+  );
+  if (!payload.committee) {
+    throw new Error('Committee not found.');
+  }
+  return payload.committee;
+}
+
+export type SubmitTeacherCommitteeJoinRequestInput = {
+  organizationId: string;
+  committeeId: string;
+  preferredDutyRoleId?: string | null;
+  note?: string | null;
+};
+
+export async function submitTeacherCommitteeJoinRequest(
+  input: SubmitTeacherCommitteeJoinRequestInput,
+): Promise<void> {
+  await fetchTeacherApi('/api/teacher-portal/committees/join-requests', {
+    method: 'POST',
+    body: {
+      organizationId: input.organizationId,
+      committeeId: input.committeeId,
+      preferredDutyRoleId: input.preferredDutyRoleId ?? null,
+      note: input.note ?? null,
+    },
+  });
+}
+
+export async function withdrawTeacherCommitteeJoinRequest(
+  requestId: string,
+  organizationId: string,
+  committeeName: string,
+  requesterName: string,
+): Promise<void> {
+  const query = new URLSearchParams({
+    organizationId,
+    committeeName,
+    requesterName,
+  }).toString();
+  await fetchTeacherApi(`/api/teacher-portal/committees/join-requests/${requestId}?${query}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function fetchTeacherMessagesUnreadCount(

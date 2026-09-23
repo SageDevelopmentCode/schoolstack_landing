@@ -32,6 +32,9 @@ type CommitteeAddEventPanelProps = {
   onChange: (form: CommitteeAddEventFormState) => void;
   onClose: () => void;
   onSubmit: () => void | Promise<void>;
+  title?: string;
+  submitLabel?: string;
+  formId?: string;
 };
 
 function FieldLabel({
@@ -62,6 +65,9 @@ export default function CommitteeAddEventPanel({
   onChange,
   onClose,
   onSubmit,
+  title = "Add event",
+  submitLabel,
+  formId = "committee-add-event-form",
 }: CommitteeAddEventPanelProps) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const inputStyle = useMemo(() => committeeStoryInputStyle(theme), [theme]);
@@ -77,11 +83,11 @@ export default function CommitteeAddEventPanel({
       open={open}
       theme={theme}
       kicker="Committee"
-      title="Add event"
+      title={title}
       icon={<CalendarDays className="h-4 w-4" style={{ color: theme.primary }} />}
       onRequestClose={onClose}
       saving={saving}
-      formId="committee-add-event-form"
+      formId={formId}
       onSubmit={handleSubmit}
       footer={
         <div className="flex justify-end gap-2">
@@ -92,10 +98,10 @@ export default function CommitteeAddEventPanel({
             theme={theme}
             variant="primary"
             type="submit"
-            form="committee-add-event-form"
+            form={formId}
             disabled={saving || !form.title.trim() || !form.date}
           >
-            {saving ? "Adding…" : "Add event"}
+            {saving ? "Saving…" : submitLabel ?? title}
           </AdminButton>
         </div>
       }

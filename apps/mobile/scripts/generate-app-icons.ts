@@ -78,9 +78,9 @@ async function generateAppIcons() {
     alpha: 0,
   });
   const appIconPath = path.join(IMAGES_DIR, 'icon.png');
-  await sharp(
-    await compositeCentered(ICON_SIZE, BRAND_BG, appIconLogo),
-  ).toFile(appIconPath);
+  await sharp(await compositeCentered(ICON_SIZE, BRAND_BG, appIconLogo))
+    .flatten({ background: BRAND_BG })
+    .toFile(appIconPath);
   await writeWithSizeLog('icon.png', appIconPath);
 
   const androidForegroundLogo = await resizeLogo(source, Math.round(ICON_SIZE * 0.6), {
@@ -128,9 +128,9 @@ async function generateAppIcons() {
     alpha: 0,
   });
   const faviconPath = path.join(IMAGES_DIR, 'favicon.png');
-  await sharp(
-    await compositeCentered(FAVICON_SIZE, BRAND_BG, faviconLogo),
-  ).toFile(faviconPath);
+  await sharp(await compositeCentered(FAVICON_SIZE, BRAND_BG, faviconLogo))
+    .flatten({ background: BRAND_BG })
+    .toFile(faviconPath);
   await writeWithSizeLog('favicon.png', faviconPath);
 }
 

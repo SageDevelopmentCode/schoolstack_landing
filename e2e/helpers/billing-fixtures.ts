@@ -116,6 +116,12 @@ export async function gotoBillingPage(page: Page): Promise<void> {
   await waitForBillingPage(page);
 }
 
+export async function waitForBillingChargesReady(page: Page): Promise<void> {
+  await expect(page.getByTestId("parent-billing-charge-row").first()).toBeVisible({
+    timeout: 15_000,
+  });
+}
+
 export function billingMain(page: Page) {
   return page.getByRole("main");
 }

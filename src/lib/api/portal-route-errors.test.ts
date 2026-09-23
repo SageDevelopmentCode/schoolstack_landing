@@ -56,10 +56,28 @@ describe("portalRouteErrorStatus", () => {
     assert.equal(adminScope.code, "forbidden");
   });
 
+  it("maps form family scope errors to 403", () => {
+    const teacherScope = portalRouteErrorStatus(
+      new Error("You can only assign forms to families in your classrooms."),
+      "Fallback",
+    );
+    assert.equal(teacherScope.status, 403);
+    assert.equal(teacherScope.code, "forbidden");
+
+    const adminScope = portalRouteErrorStatus(
+      new Error("One or more selected families are invalid."),
+      "Fallback",
+    );
+    assert.equal(adminScope.status, 403);
+    assert.equal(adminScope.code, "forbidden");
+  });
+
   it("maps form validation errors to 400", () => {
     for (const message of [
       "Title is required.",
       "Select at least one classroom.",
+      "Select at least one family.",
+      "Choose who should receive this form before sending.",
       "Built forms must include a signature field.",
       "Upload a document before saving.",
       "Type your full legal name to sign.",

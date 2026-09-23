@@ -112,7 +112,44 @@ export function resolveSchoolAdminNativeRoute(slug: string, href: string): strin
     return `/school-admin/${slug}/more/classrooms/${classroomDetailMatch[1]}`;
   }
 
+  const fridayBranchPaths = [
+    `/school/${slug}/admin/my_school/friday_branch`,
+    `/school/${slug}/admin/friday_branch`,
+  ];
+  if (fridayBranchPaths.includes(pathname)) {
+    return `/school-admin/${slug}/more/friday-branch`;
+  }
+
+  const committeesBase = `/school/${slug}/admin/committees`;
+  if (pathname === committeesBase || pathname.startsWith(`${committeesBase}/`)) {
+    const committeeId = query.get('committee');
+    const section = query.get('section');
+    if (committeeId) {
+      const sectionQuery = section ? `?section=${encodeURIComponent(section)}` : '';
+      return `/school-admin/${slug}/more/committees/${committeeId}${sectionQuery}`;
+    }
+    return `/school-admin/${slug}/more/committees`;
+  }
+
   return null;
+}
+
+export function schoolAdminCommitteesRoute(slug: string): string {
+  return `/school-admin/${slug}/more/committees`;
+}
+
+export function schoolAdminFridayBranchRoute(slug: string): string {
+  return `/school-admin/${slug}/more/friday-branch`;
+}
+
+export function schoolAdminCommitteeWorkspaceRoute(
+  slug: string,
+  committeeId: string,
+  section?: string,
+): string {
+  const base = `/school-admin/${slug}/more/committees/${encodeURIComponent(committeeId)}`;
+  if (!section) return base;
+  return `${base}?section=${encodeURIComponent(section)}`;
 }
 
 export function schoolAdminSubmissionsRoute(slug: string): string {

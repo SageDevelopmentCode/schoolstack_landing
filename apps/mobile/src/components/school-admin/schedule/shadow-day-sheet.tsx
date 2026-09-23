@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -56,7 +56,6 @@ export function ShadowDaySheet({
   onToggleWholeDay,
 }: ShadowDaySheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const { reportError } = useMobileErrorReporter(organizationId);
   const presets = useMemo(() => getShadowDayTimeWindowPresets(), []);
 
@@ -129,8 +128,17 @@ export function ShadowDaySheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={Story.paper}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={onClose}>
             <Text style={[styles.headerAction, { color: theme.primary }]}>Done</Text>
@@ -138,161 +146,155 @@ export function ShadowDaySheet({
           <Text style={[styles.headerTitle, { color: theme.ink }]}>Shadow day</Text>
           <View style={styles.headerSpacer} />
         </View>
+      }>
+      <StorySectionKicker style={styles.kicker}>Shadow availability</StorySectionKicker>
+      <StoryDisplayHeading size="section">{formatDateOnlyLabel(date)}</StoryDisplayHeading>
+      <Text style={[styles.helperCopy, { color: theme.muted }]}>{footerText}</Text>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <StorySectionKicker style={styles.kicker}>Shadow availability</StorySectionKicker>
-          <StoryDisplayHeading size="section">{formatDateOnlyLabel(date)}</StoryDisplayHeading>
-          <Text style={[styles.helperCopy, { color: theme.muted }]}>{footerText}</Text>
-
-          {mode === 'whole_day' ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={readOnly || wholeDayBooked || togglingWholeDay}
-              onPress={() => onToggleWholeDay(!wholeDayOpen)}
-              style={[
-                styles.wholeDayButton,
-                {
-                  backgroundColor: wholeDayOpen ? theme.primarySoft : theme.white,
-                  borderColor: wholeDayBooked ? theme.warning : wholeDayOpen ? theme.primary : theme.line,
-                },
-              ]}>
-              {togglingWholeDay ? (
-                <ActivityIndicator color={theme.primary} />
-              ) : (
-                <Text style={[styles.wholeDayLabel, { color: wholeDayOpen ? theme.primary : theme.ink }]}>
-                  {wholeDayBooked
-                    ? 'Booked — cannot change'
-                    : wholeDayOpen
-                      ? 'Open for shadow visits'
-                      : 'Closed — tap to open'}
-                </Text>
-              )}
-            </Pressable>
+      {mode === 'whole_day' ? (
+        <Pressable
+          accessibilityRole="button"
+          disabled={readOnly || wholeDayBooked || togglingWholeDay}
+          onPress={() => onToggleWholeDay(!wholeDayOpen)}
+          style={[
+            styles.wholeDayButton,
+            {
+              backgroundColor: wholeDayOpen ? theme.primarySoft : theme.white,
+              borderColor: wholeDayBooked ? theme.warning : wholeDayOpen ? theme.primary : theme.line,
+            },
+          ]}>
+          {togglingWholeDay ? (
+            <ActivityIndicator color={theme.primary} />
           ) : (
-            <>
-              {slots.map((slot) => {
-                const booked = occupiedSlotIds.has(slot.id);
-                return (
-                  <View
-                    key={slot.id}
-                    style={[
-                      styles.slotRow,
-                      {
-                        borderColor: booked ? theme.warning : theme.line,
-                        backgroundColor: booked ? theme.warningBg : theme.white,
-                      },
-                    ]}>
-                    <View style={styles.slotCopy}>
-                      <Text style={[styles.slotTitle, { color: theme.ink }]}>
-                        {formatObservationSlotLabel(slot)}
-                      </Text>
-                      <Text style={[styles.slotMeta, { color: theme.muted }]}>
-                        {formatObservationSlotTimeLabel(slot)}
-                        {slot.gradeValues.length > 0 ? ` · ${formatGradeValuesLabel(slot.gradeValues)}` : ''}
-                      </Text>
-                    </View>
-                    {!readOnly && !booked ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={deletingId === slot.id}
-                        onPress={() => void handleDeleteSlot(slot.id)}>
-                        <Text style={[styles.removeAction, { color: theme.alert }]}>
-                          {deletingId === slot.id ? '…' : 'Remove'}
-                        </Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                );
-              })}
-
-              {!readOnly ? (
-                <View style={[styles.formCard, { borderColor: theme.line, backgroundColor: theme.white }]}>
-                  <Text style={[styles.formTitle, { color: theme.ink }]}>Add slot</Text>
-                  <View style={styles.chipRow}>
-                    {STUDENT_GRADE_OPTIONS.map((option) => {
-                      const active = gradeValues.includes(option.value);
-                      return (
-                        <Pressable
-                          key={option.value}
-                          accessibilityRole="button"
-                          onPress={() => toggleGrade(option.value)}
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: active ? theme.primarySoft : theme.paper,
-                              borderColor: active ? theme.primary : theme.line,
-                            },
-                          ]}>
-                          <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
-                            {option.label}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-
-                  {includeTime ? (
-                    <View style={styles.chipRow}>
-                      {presets.map((preset) => {
-                        const active = preset.id === presetId;
-                        return (
-                          <Pressable
-                            key={preset.id}
-                            accessibilityRole="button"
-                            onPress={() => setPresetId(preset.id)}
-                            style={[
-                              styles.chip,
-                              {
-                                backgroundColor: active ? theme.primarySoft : theme.paper,
-                                borderColor: active ? theme.primary : theme.line,
-                              },
-                            ]}>
-                            <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
-                              {preset.label}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  ) : null}
-
-                  <TextInput
-                    value={label}
-                    onChangeText={setLabel}
-                    placeholder="Optional label"
-                    placeholderTextColor={theme.muted}
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: theme.line,
-                        backgroundColor: theme.white,
-                        color: theme.ink,
-                        fontFamily: StoryFonts.body,
-                      },
-                    ]}
-                  />
-
+            <Text style={[styles.wholeDayLabel, { color: wholeDayOpen ? theme.primary : theme.ink }]}>
+              {wholeDayBooked
+                ? 'Booked — cannot change'
+                : wholeDayOpen
+                  ? 'Open for shadow visits'
+                  : 'Closed — tap to open'}
+            </Text>
+          )}
+        </Pressable>
+      ) : (
+        <>
+          {slots.map((slot) => {
+            const booked = occupiedSlotIds.has(slot.id);
+            return (
+              <View
+                key={slot.id}
+                style={[
+                  styles.slotRow,
+                  {
+                    borderColor: booked ? theme.warning : theme.line,
+                    backgroundColor: booked ? theme.warningBg : theme.white,
+                  },
+                ]}>
+                <View style={styles.slotCopy}>
+                  <Text style={[styles.slotTitle, { color: theme.ink }]}>
+                    {formatObservationSlotLabel(slot)}
+                  </Text>
+                  <Text style={[styles.slotMeta, { color: theme.muted }]}>
+                    {formatObservationSlotTimeLabel(slot)}
+                    {slot.gradeValues.length > 0 ? ` · ${formatGradeValuesLabel(slot.gradeValues)}` : ''}
+                  </Text>
+                </View>
+                {!readOnly && !booked ? (
                   <Pressable
                     accessibilityRole="button"
-                    disabled={submitting}
-                    onPress={() => void handleAddSlot()}
-                    style={[styles.addButton, { backgroundColor: theme.primary }]}>
-                    <Text style={styles.addButtonLabel}>{submitting ? 'Adding…' : 'Add slot'}</Text>
+                    disabled={deletingId === slot.id}
+                    onPress={() => void handleDeleteSlot(slot.id)}>
+                    <Text style={[styles.removeAction, { color: theme.alert }]}>
+                      {deletingId === slot.id ? '…' : 'Remove'}
+                    </Text>
                   </Pressable>
+                ) : null}
+              </View>
+            );
+          })}
+
+          {!readOnly ? (
+            <View style={[styles.formCard, { borderColor: theme.line, backgroundColor: theme.white }]}>
+              <Text style={[styles.formTitle, { color: theme.ink }]}>Add slot</Text>
+              <View style={styles.chipRow}>
+                {STUDENT_GRADE_OPTIONS.map((option) => {
+                  const active = gradeValues.includes(option.value);
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="button"
+                      onPress={() => toggleGrade(option.value)}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: active ? theme.primarySoft : theme.paper,
+                          borderColor: active ? theme.primary : theme.line,
+                        },
+                      ]}>
+                      <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {includeTime ? (
+                <View style={styles.chipRow}>
+                  {presets.map((preset) => {
+                    const active = preset.id === presetId;
+                    return (
+                      <Pressable
+                        key={preset.id}
+                        accessibilityRole="button"
+                        onPress={() => setPresetId(preset.id)}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: active ? theme.primarySoft : theme.paper,
+                            borderColor: active ? theme.primary : theme.line,
+                          },
+                        ]}>
+                        <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
+                          {preset.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
               ) : null}
-            </>
-          )}
-        </ScrollView>
-      </View>
-    </Modal>
+
+              <TextInput
+                value={label}
+                onChangeText={setLabel}
+                placeholder="Optional label"
+                placeholderTextColor={theme.muted}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: theme.line,
+                    backgroundColor: theme.white,
+                    color: theme.ink,
+                    fontFamily: StoryFonts.body,
+                  },
+                ]}
+              />
+
+              <Pressable
+                accessibilityRole="button"
+                disabled={submitting}
+                onPress={() => void handleAddSlot()}
+                style={[styles.addButton, { backgroundColor: theme.primary }]}>
+                <Text style={styles.addButtonLabel}>{submitting ? 'Adding…' : 'Add slot'}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </>
+      )}
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,7 +319,6 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.three,
-    paddingBottom: Spacing.six,
   },
   kicker: {
     marginBottom: 0,

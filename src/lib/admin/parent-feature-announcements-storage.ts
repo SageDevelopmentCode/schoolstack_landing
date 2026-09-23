@@ -25,6 +25,8 @@ export const PARENT_FEATURE_ANNOUNCEMENT_FEATURE_KEYS = [
   "supply_list",
   "teaching_schedule",
   "bulletin",
+  "forms_documents",
+  "friday_branch",
 ] as const;
 
 export type ParentFeatureAnnouncementFeatureKey =

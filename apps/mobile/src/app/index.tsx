@@ -7,6 +7,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ImageCarousel } from '@/components/image-carousel';
+import { IntroLegalLinks } from '@/components/intro-legal-links';
 import { IntroSlideCopy } from '@/components/intro-slide-copy';
 import { MudKitchenLogo } from '@/components/mudkitchen-logo';
 import { StoryButton } from '@/components/story/story-button';
@@ -90,6 +91,7 @@ export default function IntroScreen() {
             trailingIcon={<Ionicons name="chevron-forward" size={20} color={Story.white} />}
             onPress={() => router.push('/login')}
           />
+          <IntroLegalLinks />
         </Animated.View>
       </View>
     </View>
@@ -116,5 +118,6 @@ const styles = StyleSheet.create({
   },
   ctaDock: {
     marginTop: Spacing.four,
+    gap: Spacing.two,
   },
 });

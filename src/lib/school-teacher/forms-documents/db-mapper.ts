@@ -1,9 +1,11 @@
 import type {
+  TeacherFormAudienceType,
   TeacherFormConfig,
   TeacherFormField,
   TeacherFormSignatureRow,
   TeacherFormSignatureStatus,
   TeacherParentForm,
+  TeacherParentFormCategory,
   TeacherParentFormStatus,
   TeacherParentFormType,
   UploadFileFormat,
@@ -16,8 +18,11 @@ export type TeacherParentFormRow = {
   title: string;
   description: string;
   form_type: TeacherParentFormType;
+  form_category?: TeacherParentFormCategory | null;
   status: TeacherParentFormStatus;
+  audience_type?: TeacherFormAudienceType | null;
   classroom_ids: string[] | null;
+  family_ids?: string[] | null;
   due_date: string | null;
   require_signature: boolean;
   config: TeacherFormConfig | null;
@@ -85,16 +90,29 @@ export function mapTeacherParentFormRow(row: TeacherParentFormRow): TeacherParen
   const config = (row.config ?? {}) as TeacherFormConfig;
   const classroomIds = (row.classroom_ids ?? []).map(String);
   const classroomNames = config.classroomNames ?? [];
+  const familyIds = (row.family_ids ?? []).map(String);
+  const familyNames = config.familyNames ?? [];
   const upload = config.upload;
+  const audienceType =
+    row.audience_type ??
+    (familyIds.length > 0
+      ? "families"
+      : classroomIds.length > 0
+        ? "classrooms"
+        : "unassigned");
 
   return {
     id: String(row.id),
     title: String(row.title),
     description: String(row.description ?? ""),
     formType: row.form_type,
+    formCategory: row.form_category === "tuition" ? "tuition" : "general",
     status: row.status,
+    audienceType,
     classroomIds,
     classroomNames,
+    familyIds,
+    familyNames,
     dueDate: row.due_date,
     requireSignature: Boolean(row.require_signature),
     uploadFormat: upload?.uploadFormat,

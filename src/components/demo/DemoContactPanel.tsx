@@ -9,6 +9,9 @@ import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
+import TurnstileField, {
+  isTurnstileClientConfigured,
+} from "@/components/public-forms/TurnstileField";
 import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 
@@ -69,8 +72,13 @@ function DemoContactFeedbackPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileClientConfigured();
 
-  const canSubmit = comment.trim().length > 0 && !isSubmitting;
+  const canSubmit =
+    comment.trim().length > 0 &&
+    !isSubmitting &&
+    (!turnstileRequired || turnstileToken);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -86,6 +94,7 @@ function DemoContactFeedbackPanel({
           schoolSlug,
           schoolName,
           message: comment.trim(),
+          turnstileToken,
         }),
       });
 
@@ -98,6 +107,7 @@ function DemoContactFeedbackPanel({
 
       setSubmitted(true);
       setComment("");
+      setTurnstileToken(null);
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -146,6 +156,9 @@ function DemoContactFeedbackPanel({
                   className={textareaClassName}
                 />
               </label>
+              <div className="mt-4">
+                <TurnstileField onTokenChange={setTurnstileToken} />
+              </div>
               <div className="mt-4 flex items-center justify-end gap-3">
                 {submitError ? (
                   <p className="text-sm text-red-600 font-body mr-auto">{submitError}</p>
@@ -189,9 +202,14 @@ function DemoContactSchedulePanel({
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileClientConfigured();
 
   const canBook =
-    name.trim().length > 0 && email.trim().length > 0 && EMAIL_RE.test(email.trim());
+    name.trim().length > 0 &&
+    email.trim().length > 0 &&
+    EMAIL_RE.test(email.trim()) &&
+    (!turnstileRequired || turnstileToken);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,6 +263,7 @@ function DemoContactSchedulePanel({
           prepNotes: `Booked from school concept demo walkthrough (${schoolSlug}).`,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
+          turnstileToken,
         }),
       });
 
@@ -328,6 +347,10 @@ function DemoContactSchedulePanel({
               {!canBook ? (
                 <p className="mt-3 text-xs text-[#2E4A3C]/55 font-body">{form.contactHint}</p>
               ) : null}
+            </div>
+
+            <div className="mb-4">
+              <TurnstileField onTokenChange={setTurnstileToken} />
             </div>
 
             <div className="mb-4">

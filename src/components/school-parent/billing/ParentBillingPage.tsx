@@ -16,9 +16,11 @@ import ParentBillingUpcomingChargesPanel from "@/components/school-parent/billin
 import ParentBillingPaymentReceiptPanel from "@/components/school-parent/billing/ParentBillingPaymentReceiptPanel";
 import ParentBillingStoryHeader from "@/components/school-parent/billing/ParentBillingStoryHeader";
 import {
+  PARENT_BILLING_AGREEMENTS_TAB,
   PARENT_BILLING_SUMMARY_TAB,
 } from "@/components/school-parent/billing/ParentBillingNav";
 import ParentBillingSummaryPanel from "@/components/school-parent/billing/ParentBillingSummaryPanel";
+import ParentBillingTuitionAgreementsSection from "@/components/school-parent/billing/ParentBillingTuitionAgreementsSection";
 import ParentBillingChildDetailPanel from "@/components/school-parent/billing/ParentBillingChildDetailPanel";
 import { parentBillingViewTransition } from "@/components/school-parent/billing/parent-billing-view-transition";
 import ParentAutopayConfirmModal from "@/components/school-parent/billing/ParentAutopayConfirmModal";
@@ -74,6 +76,8 @@ import type { TuitionCharge, TuitionAdjustment } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
+import type { ParentFormDetail, ParentFormListItem } from "@/lib/school-parent/forms-documents/types";
+import { classifyParentFormListStatus } from "@/lib/school-parent/forms-documents/utils";
 import type { ParentBillingPageMeta } from "@/lib/tuition/parent-billing-page-meta";
 import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-responses";
 import { isProgramParentPortalPreviewFamilyId } from "@/lib/admissions/program-parent-portal-preview-data";
@@ -125,6 +129,7 @@ function ParentBillingPageContent({
   const deepLinkChargeId = searchParams.get("charge");
   const deepLinkChildParam = searchParams.get("child");
   const deepLinkTabParam = searchParams.get("tab");
+  const deepLinkFormId = searchParams.get("form");
   const cardSaved = searchParams.get("card_saved");
   const paymentCompleted = searchParams.get("paid");
   const hasInitialData = initialData !== undefined;
@@ -181,6 +186,9 @@ function ParentBillingPageContent({
   );
   const [activeTabKey, setActiveTabKey] = useState<string>(() => {
     if (deepLinkChildParam) return deepLinkChildParam;
+    if (deepLinkTabParam === PARENT_BILLING_AGREEMENTS_TAB) {
+      return PARENT_BILLING_AGREEMENTS_TAB;
+    }
     if (deepLinkTabParam === PARENT_BILLING_SUMMARY_TAB) {
       return PARENT_BILLING_SUMMARY_TAB;
     }
@@ -190,6 +198,9 @@ function ParentBillingPageContent({
     initialData?.showTaxCreditPaymentBanner ?? false,
   );
   const [dismissedTaxCreditBanner, setDismissedTaxCreditBanner] = useState(false);
+  const [tuitionAgreements, setTuitionAgreements] = useState<ParentFormListItem[]>(
+    initialData?.tuitionAgreements ?? [],
+  );
 
   const adjustmentsByAssignment = useMemo(() => {
     const map = new Map<string, TuitionAdjustment[]>();
@@ -474,6 +485,9 @@ function ParentBillingPageContent({
 
   const resolvedActiveTabKey = useMemo(() => {
     if (deepLinkChildParam) return deepLinkChildParam;
+    if (deepLinkTabParam === PARENT_BILLING_AGREEMENTS_TAB) {
+      return PARENT_BILLING_AGREEMENTS_TAB;
+    }
     if (deepLinkTabParam === PARENT_BILLING_SUMMARY_TAB) {
       return PARENT_BILLING_SUMMARY_TAB;
     }
@@ -485,6 +499,12 @@ function ParentBillingPageContent({
     deepLinkChildKeyFromCharge,
     activeTabKey,
   ]);
+  const hasAgreements = tuitionAgreements.length > 0;
+  const pendingAgreementCount = useMemo(
+    () => tuitionAgreements.filter((item) => item.listStatus === "needs_action").length,
+    [tuitionAgreements],
+  );
+  const isAgreementsTab = resolvedActiveTabKey === PARENT_BILLING_AGREEMENTS_TAB;
   const isSummaryTab =
     hasMultipleChildren && resolvedActiveTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = isSummaryTab
@@ -537,9 +557,14 @@ function ParentBillingPageContent({
     if (tabKey === PARENT_BILLING_SUMMARY_TAB) {
       params.set("tab", PARENT_BILLING_SUMMARY_TAB);
       params.delete("child");
+      params.delete("form");
+    } else if (tabKey === PARENT_BILLING_AGREEMENTS_TAB) {
+      params.set("tab", PARENT_BILLING_AGREEMENTS_TAB);
+      params.delete("child");
     } else {
       params.set("child", tabKey);
       params.delete("tab");
+      params.delete("form");
     }
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
@@ -1069,7 +1094,8 @@ function ParentBillingPageContent({
   }
 
   const showBillingContent =
-    familySummary != null && (isSummaryTab ? true : activeChild != null || displayChild != null);
+    familySummary != null &&
+    (isAgreementsTab || isSummaryTab || activeChild != null || displayChild != null);
 
   const panelChild = activeChild ?? displayChild;
 
@@ -1086,6 +1112,8 @@ function ParentBillingPageContent({
             childViews={childViews}
             openChargeCount={headerOpenChargeCount}
             totalRemainingCents={headerTotalRemainingCents}
+            hasAgreements={hasAgreements}
+            pendingAgreementCount={pendingAgreementCount}
             onSelectTab={handleSelectTab}
           />
         ) : null}
@@ -1111,7 +1139,29 @@ function ParentBillingPageContent({
                 {...parentBillingViewTransition}
                 onAnimationComplete={() => setPendingTabKey(null)}
               >
-              {isSummaryTab && familySummary ? (
+              {isAgreementsTab ? (
+                <ParentBillingTuitionAgreementsSection
+                  theme={theme}
+                  organizationId={organizationId}
+                  agreements={tuitionAgreements}
+                  readOnly={previewMode}
+                  initialFormId={deepLinkFormId}
+                  onAgreementUpdated={(detail: ParentFormDetail) => {
+                    setTuitionAgreements((current) =>
+                      current.map((item) =>
+                        item.form.id === detail.form.id
+                          ? {
+                              ...item,
+                              form: detail.form,
+                              response: detail.response,
+                              listStatus: classifyParentFormListStatus(detail.response.status),
+                            }
+                          : item,
+                      ),
+                    );
+                  }}
+                />
+              ) : isSummaryTab && familySummary ? (
                 <ParentBillingSummaryPanel
                   theme={theme}
                   C={C}

@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useMemo, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ParentBillingNeedsScheduleBadge } from '@/components/parent/billing/parent-billing-needs-schedule-badge';
@@ -7,6 +9,7 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import type { ParentBillingChildView } from '@/lib/parent/parent-portal-api';
 import {
   childFirstNameFromFullName,
+  PARENT_BILLING_AGREEMENTS_TAB,
   PARENT_BILLING_SUMMARY_TAB,
 } from '@/lib/tuition/billing-helpers';
 import { StoryFonts } from '@/constants/story-theme';
@@ -18,6 +21,8 @@ type ParentBillingStoryHeaderProps = {
   childViews: ParentBillingChildView[];
   openChargeCount: number;
   totalRemainingCents: number;
+  hasAgreements: boolean;
+  pendingAgreementCount: number;
   onSelectTab: (tabKey: string) => void;
 };
 
@@ -38,44 +43,79 @@ export function ParentBillingStoryHeader({
   childViews,
   openChargeCount,
   totalRemainingCents,
+  hasAgreements,
+  pendingAgreementCount,
   onSelectTab,
 }: ParentBillingStoryHeaderProps) {
   const theme = useParentTheme();
   const hasMultipleChildren = childViews.length > 1;
+  const isAgreementsTab = activeTabKey === PARENT_BILLING_AGREEMENTS_TAB;
   const isSummaryTab = activeTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = childViews.find((child) => child.childKey === activeTabKey);
 
-  const title =
-    isSummaryTab || !activeChild
+  const title = isAgreementsTab
+    ? 'Forms & agreements'
+    : isSummaryTab || !activeChild
       ? 'Family tuition'
       : `${childFirstNameFromFullName(activeChild.studentName)}'s tuition`;
 
   const subtitle = resolveSubtitle(openChargeCount, totalRemainingCents);
 
-  const navItems = hasMultipleChildren
-    ? [
-        {
-          key: PARENT_BILLING_SUMMARY_TAB,
-          label: 'Family view',
-          testID: 'parent-billing-summary-nav',
-        },
-        ...childViews.map((child) => ({
-          key: child.childKey,
-          label: childFirstNameFromFullName(child.studentName),
-          testID: `parent-billing-child-summary-${child.childKey}`,
-          suffix:
-            child.status === 'needs_schedule' ? (
-              <ParentBillingNeedsScheduleBadge label="Setup" size="sm" />
-            ) : undefined,
-        })),
-      ]
-    : [];
+  const navItems = useMemo(() => {
+    const items: Array<{
+      key: string;
+      label: string;
+      testID: string;
+      suffix?: ReactNode;
+    }> = [];
+
+    if (hasMultipleChildren) {
+      items.push({
+        key: PARENT_BILLING_SUMMARY_TAB,
+        label: 'Family view',
+        testID: 'parent-billing-summary-nav',
+      });
+    }
+
+    for (const child of childViews) {
+      items.push({
+        key: child.childKey,
+        label: childFirstNameFromFullName(child.studentName),
+        testID: `parent-billing-child-summary-${child.childKey}`,
+        suffix:
+          child.status === 'needs_schedule' ? (
+            <ParentBillingNeedsScheduleBadge label="Setup" size="sm" />
+          ) : undefined,
+      });
+    }
+
+    if (hasAgreements) {
+      items.push({
+        key: PARENT_BILLING_AGREEMENTS_TAB,
+        label: 'Forms',
+        testID: 'parent-billing-agreements-nav',
+        suffix:
+          pendingAgreementCount > 0 ? (
+            <Ionicons
+              name="alert-circle"
+              size={14}
+              color={theme.warning}
+              accessibilityLabel={`${pendingAgreementCount} agreement${
+                pendingAgreementCount === 1 ? '' : 's'
+              } need your signature`}
+            />
+          ) : undefined,
+      });
+    }
+
+    return items;
+  }, [childViews, hasAgreements, hasMultipleChildren, pendingAgreementCount, theme.warning]);
 
   return (
     <View style={styles.container} testID="parent-billing-story-header">
       <StoryDisplayHeading size="section">{title}</StoryDisplayHeading>
       <Text style={[styles.subtitle, { color: theme.muted }]}>{subtitle}</Text>
-      {hasMultipleChildren ? (
+      {hasMultipleChildren || hasAgreements ? (
         <StoryPillNav
           fullWidth
           items={navItems}

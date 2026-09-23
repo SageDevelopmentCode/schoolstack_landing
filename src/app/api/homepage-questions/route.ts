@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyHomepageQuestion } from "@/lib/discord";
 import { sendHomepageQuestionConfirmation } from "@/lib/emails";
+import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  exceedsMaxLength,
+  fieldTooLongLabel,
+  MAX_PUBLIC_FORM_EMAIL_LENGTH,
+  MAX_PUBLIC_FORM_MESSAGE_LENGTH,
+  MAX_PUBLIC_FORM_NAME_LENGTH,
+} from "@/lib/public-forms/field-limits";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/homepage-questions";
-const MAX_MESSAGE_LENGTH = 5000;
 const HOMEPAGE_SLUG = "homepage";
 const HOMEPAGE_NAME = "MudKitchen Homepage";
 const SOURCE = "floating-widget";
@@ -17,6 +22,7 @@ interface HomepageQuestionBody {
   name?: string;
   email?: string;
   message?: string;
+  turnstileToken?: string;
 }
 
 export async function POST(request: Request) {
@@ -36,18 +42,41 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
+  if (exceedsMaxLength(name, MAX_PUBLIC_FORM_NAME_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Name") });
+  }
+
+  if (exceedsMaxLength(email, MAX_PUBLIC_FORM_EMAIL_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Email") });
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
 
-  if (message.length > MAX_MESSAGE_LENGTH) {
+  if (exceedsMaxLength(message, MAX_PUBLIC_FORM_MESSAGE_LENGTH)) {
     return apiError(ROUTE, { request, status: 400, error: "Message is too long." });
   }
 
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const protection = await enforcePublicFormSubmission({
+    request,
+    form: "homepage_question",
+    email,
+    turnstileToken: body.turnstileToken,
+  });
+  if (!protection.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: protection.status,
+      error: protection.error,
+      code: protection.code,
+      notify: false,
+    });
+  }
 
-  const { error } = await supabase.from("demo_feedback").insert({
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("demo_feedback").insert({
     school_slug: HOMEPAGE_SLUG,
     school_name: HOMEPAGE_NAME,
     name,
@@ -64,8 +93,6 @@ export async function POST(request: Request) {
       cause: error,
     });
   }
-
-  const admin = createAdminClient();
 
   try {
     await notifyHomepageQuestion({ name, email, message });

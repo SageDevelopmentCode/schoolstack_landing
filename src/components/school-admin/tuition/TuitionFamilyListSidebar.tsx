@@ -120,6 +120,21 @@ function FamilySidebarRow({
             Late fee
           </AdminChip>
         ) : null}
+        {family.tuitionAgreementStatus === "pending" ? (
+          <AdminChip theme={theme} tone="warning">
+            Agreement pending
+          </AdminChip>
+        ) : null}
+        {family.tuitionAgreementStatus === "overdue" ? (
+          <AdminChip theme={theme} tone="alert">
+            Agreement overdue
+          </AdminChip>
+        ) : null}
+        {family.tuitionAgreementStatus === "signed" ? (
+          <AdminChip theme={theme} tone="success">
+            Agreement signed
+          </AdminChip>
+        ) : null}
       </div>
       <span className="text-[10px]" style={{ color: theme.muted }}>
         {familyStatusLabel(family)}

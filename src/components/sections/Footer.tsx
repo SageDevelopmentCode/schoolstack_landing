@@ -75,9 +75,37 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-white/70">
-            © 2026 MudKitchen. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <p className="text-xs text-white/70">
+              © 2026 MudKitchen. All rights reserved.
+            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Link
+                href="/support"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+              >
+                Support
+              </Link>
+              <Link
+                href="/privacy"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+              >
+                Terms of Use
+              </Link>
+              <Link
+                href="/dpa"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+              >
+                DPA
+              </Link>
+            </div>
+          </div>
           <p className="text-xs text-white/70">
             🏫 Made for microschool founders, by people who get it.
           </p>

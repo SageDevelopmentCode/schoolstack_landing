@@ -12,13 +12,19 @@ import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKick
 import SignupDatePicker from "@/components/classroom-signups/shared/SignupDatePicker";
 import TeacherFormBuilderCanvas from "./TeacherFormBuilderCanvas";
 import TeacherFormBuilderOutline from "./TeacherFormBuilderOutline";
-import TeacherFormSettingToggle from "./TeacherFormSettingToggle";
+import { TeacherFormInlineSwitch } from "./TeacherFormSettingToggle";
 import ParentFormDetailModal from "@/components/school-parent/forms-documents/ParentFormDetailModal";
+import TeacherFormAudienceOptionTabs from "./TeacherFormAudienceOptionTabs";
+import TeacherFormAudienceSummaryStrip from "./TeacherFormAudienceSummaryStrip";
+import TeacherFormClassroomPickerSheet from "./TeacherFormClassroomPickerSheet";
+import TeacherFormFamilyPickerSheet from "./TeacherFormFamilyPickerSheet";
 import TeacherFormUploadStep from "./TeacherFormUploadStep";
 import type { TeacherClassroomOption } from "@/lib/classroom-signups/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { FormFamilyOption } from "@/lib/school-teacher/forms-documents/load-form-family-options";
 import {
   FIELD_TYPE_LABELS,
+  type TeacherFormAudienceType,
   type TeacherFormCreateType,
   type TeacherFormDraft,
   type TeacherFormField,
@@ -39,7 +45,10 @@ type TeacherFormCreateWizardProps = {
   organizationId: string;
   classroomOptions: TeacherClassroomOption[];
   apiBasePath?: string;
+  familySearchApiPath?: string;
   allowSelectAllClassrooms?: boolean;
+  audienceMode?: "all" | "families_only";
+  formCategory?: import("@/lib/school-teacher/forms-documents/types").TeacherParentFormCategory;
   operationalErrorSurface?: "teacher_portal" | "school_admin";
   onCancel: () => void;
   onPublished: (
@@ -179,147 +188,194 @@ function TypeSelectionCard({
   );
 }
 
+const AUDIENCE_MODE_OPTIONS: TeacherFormAudienceType[] = [
+  "unassigned",
+  "classrooms",
+  "families",
+];
+
+type AudiencePickerMode = "classrooms" | "families" | null;
+
 function SharedConfigFields({
   theme,
   draft,
   classroomOptions,
+  organizationId,
+  familySearchApiPath,
   allowSelectAllClassrooms = false,
+  audienceOptions = AUDIENCE_MODE_OPTIONS,
+  selectedFamilies,
+  onSelectedFamiliesChange,
   onUpdate,
 }: {
   theme: ParentThemeTokens;
   draft: TeacherFormDraft;
   classroomOptions: TeacherClassroomOption[];
+  organizationId: string;
+  familySearchApiPath: string;
   allowSelectAllClassrooms?: boolean;
+  audienceOptions?: TeacherFormAudienceType[];
+  selectedFamilies: FormFamilyOption[];
+  onSelectedFamiliesChange: (families: FormFamilyOption[]) => void;
   onUpdate: (patch: Partial<TeacherFormDraft>) => void;
 }) {
-  const toggleClassroom = (classroomId: string) => {
-    const next = draft.classroomIds.includes(classroomId)
-      ? draft.classroomIds.filter((id) => id !== classroomId)
-      : [...draft.classroomIds, classroomId];
-    onUpdate({ classroomIds: next });
-  };
+  const [audiencePicker, setAudiencePicker] = useState<AudiencePickerMode>(null);
 
-  const selectAllClassrooms = () => {
-    onUpdate({ classroomIds: classroomOptions.map((classroom) => classroom.id) });
+  const setAudienceType = (audienceType: TeacherFormAudienceType) => {
+    onUpdate({
+      audienceType,
+      classroomIds: audienceType === "classrooms" ? draft.classroomIds : [],
+      familyIds: audienceType === "families" ? draft.familyIds : [],
+    });
+    if (audienceType !== "families") {
+      onSelectedFamiliesChange([]);
+    }
+
+    if (audienceType === "classrooms") {
+      setAudiencePicker("classrooms");
+    } else if (audienceType === "families") {
+      setAudiencePicker("families");
+    } else {
+      setAudiencePicker(null);
+    }
   };
 
   return (
-    <AdminCard theme={theme} padding="canvas" className="mb-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block sm:col-span-2">
-          <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
-            Form title *
-          </span>
-          <input
-            type="text"
-            value={draft.title}
-            onChange={(event) => onUpdate({ title: event.target.value })}
-            placeholder="e.g. Trampoline liability waiver"
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{
-              borderColor: theme.line,
-              color: theme.ink,
-              backgroundColor: theme.cream,
-            }}
-          />
-        </label>
-        <label className="block sm:col-span-2">
-          <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
-            Description
-          </span>
-          <textarea
-            value={draft.description}
-            onChange={(event) => onUpdate({ description: event.target.value })}
-            rows={2}
-            placeholder="Brief description for families"
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{
-              borderColor: theme.line,
-              color: theme.ink,
-              backgroundColor: theme.cream,
-            }}
-          />
-        </label>
-        <div className="block">
-          <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
-            Due date (optional)
-          </span>
-          <SignupDatePicker
-            theme={theme}
-            value={draft.dueDate ?? ""}
-            onChange={(value) => onUpdate({ dueDate: value || null })}
-            ariaLabel="Due date"
-            placeholder="Select due date…"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <TeacherFormSettingToggle
-            theme={theme}
-            label="Require parent signature"
-            description="Families must sign before the form is complete."
-            checked={draft.requireSignature}
-            onChange={(checked) => onUpdate({ requireSignature: checked })}
-          />
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-medium" style={{ color: theme.muted }}>
-            Assign to classrooms *
-          </p>
-          {allowSelectAllClassrooms && classroomOptions.length > 1 ? (
-            <button
-              type="button"
-              onClick={selectAllClassrooms}
-              className="cursor-pointer text-xs font-semibold"
-              style={{ color: theme.primary }}
-            >
-              Select all classrooms
-            </button>
-          ) : null}
-        </div>
-        {classroomOptions.length === 0 ? (
-          <p className="text-sm" style={{ color: theme.muted }}>
-            No assigned classrooms available.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {classroomOptions.map((classroom) => {
-              const selected = draft.classroomIds.includes(classroom.id);
-              return (
-                <button
-                  key={classroom.id}
-                  type="button"
-                  onClick={() => toggleClassroom(classroom.id)}
-                  className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-                  style={
-                    selected
-                      ? {
-                          backgroundColor: theme.primarySoft,
-                          color: theme.primary,
-                          borderColor: "#BCD4C1",
-                        }
-                      : {
-                          backgroundColor: theme.white,
-                          color: theme.muted,
-                          borderColor: theme.line,
-                        }
-                  }
-                >
-                  {classroom.name} · {classroom.familyCount} families
-                </button>
-              );
-            })}
+    <>
+      <AdminCard theme={theme} padding="canvas" className="mb-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
+              Form title *
+            </span>
+            <input
+              type="text"
+              value={draft.title}
+              onChange={(event) => onUpdate({ title: event.target.value })}
+              placeholder="e.g. Trampoline liability waiver"
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none"
+              style={{
+                borderColor: theme.line,
+                color: theme.ink,
+                backgroundColor: theme.cream,
+              }}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
+              Description
+            </span>
+            <textarea
+              value={draft.description}
+              onChange={(event) => onUpdate({ description: event.target.value })}
+              rows={2}
+              placeholder="Brief description for families"
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none"
+              style={{
+                borderColor: theme.line,
+                color: theme.ink,
+                backgroundColor: theme.cream,
+              }}
+            />
+          </label>
+          <div className="block">
+            <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
+              Due date (optional)
+            </span>
+            <SignupDatePicker
+              theme={theme}
+              value={draft.dueDate ?? ""}
+              onChange={(value) => onUpdate({ dueDate: value || null })}
+              ariaLabel="Due date"
+              placeholder="Select due date…"
+              className="rounded-md"
+            />
           </div>
-        )}
-      </div>
-    </AdminCard>
+          <div className="block">
+            <span className="mb-1.5 block text-xs font-medium" style={{ color: theme.muted }}>
+              Require signature
+            </span>
+            <TeacherFormInlineSwitch
+              theme={theme}
+              variant="field"
+              showLabel={false}
+              label="Require signature"
+              checked={draft.requireSignature}
+              onChange={(checked) => onUpdate({ requireSignature: checked })}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium" style={{ color: theme.muted }}>
+            Audience
+          </p>
+          <TeacherFormAudienceOptionTabs
+            theme={theme}
+            options={audienceOptions}
+            value={draft.audienceType}
+            onChange={setAudienceType}
+          />
+
+          {draft.audienceType === "unassigned" ? (
+            <p className="mt-3 text-sm" style={{ color: theme.muted }}>
+              Save the form now and choose who receives it when you are ready to send.
+            </p>
+          ) : (
+            <div className="mt-3">
+              <TeacherFormAudienceSummaryStrip
+                theme={theme}
+                audienceType={draft.audienceType}
+                classroomCount={draft.classroomIds.length}
+                familyCount={draft.familyIds.length}
+                familyNames={selectedFamilies.map((family) => family.name)}
+                onEdit={() =>
+                  setAudiencePicker(
+                    draft.audienceType === "classrooms" ? "classrooms" : "families",
+                  )
+                }
+              />
+            </div>
+          )}
+        </div>
+      </AdminCard>
+
+      <TeacherFormClassroomPickerSheet
+        theme={theme}
+        open={audiencePicker === "classrooms"}
+        classroomOptions={classroomOptions}
+        selectedClassroomIds={draft.classroomIds}
+        allowSelectAllClassrooms={allowSelectAllClassrooms}
+        onClose={() => setAudiencePicker(null)}
+        onChange={(classroomIds) => onUpdate({ classroomIds })}
+      />
+
+      <TeacherFormFamilyPickerSheet
+        theme={theme}
+        open={audiencePicker === "families"}
+        organizationId={organizationId}
+        familySearchApiPath={familySearchApiPath}
+        selectedFamilyIds={draft.familyIds}
+        selectedFamilies={selectedFamilies}
+        onClose={() => setAudiencePicker(null)}
+        onChange={(familyIds, families) => {
+          onSelectedFamiliesChange(families);
+          onUpdate({ familyIds });
+        }}
+      />
+    </>
   );
 }
 
-function createInitialDraft(classroomOptions: TeacherClassroomOption[]): TeacherFormDraft {
+function createInitialDraft(
+  classroomOptions: TeacherClassroomOption[],
+  audienceMode: "all" | "families_only" = "all",
+): TeacherFormDraft {
   const draft = createEmptyFormDraft();
+  if (audienceMode === "families_only") {
+    draft.audienceType = "families";
+    return draft;
+  }
   if (classroomOptions.length === 1) {
     draft.classroomIds = [classroomOptions[0].id];
   }
@@ -346,7 +402,10 @@ export default function TeacherFormCreateWizard({
   organizationId,
   classroomOptions,
   apiBasePath = "/api/teacher-portal/forms-documents",
+  familySearchApiPath = "/api/teacher-portal/forms-documents/families",
   allowSelectAllClassrooms = false,
+  audienceMode = "all",
+  formCategory = "general",
   operationalErrorSurface = "teacher_portal",
   onCancel,
   onPublished,
@@ -356,8 +415,15 @@ export default function TeacherFormCreateWizard({
   const reducedMotion = useReducedMotion() ?? false;
   const [step, setStep] = useState<WizardStep>(1);
   const [direction, setDirection] = useState(1);
+  const audienceOptions = useMemo(
+    () =>
+      audienceMode === "families_only"
+        ? (["unassigned", "families"] as TeacherFormAudienceType[])
+        : AUDIENCE_MODE_OPTIONS,
+    [audienceMode],
+  );
   const [draft, setDraft] = useState<TeacherFormDraft>(() =>
-    createInitialDraft(classroomOptions),
+    createInitialDraft(classroomOptions, audienceMode),
   );
   const [activeFieldId, setActiveFieldId] = useState<string | null>(
     draft.fields[0]?.id ?? null,
@@ -366,6 +432,7 @@ export default function TeacherFormCreateWizard({
   const [publishError, setPublishError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null);
+  const [selectedFamilies, setSelectedFamilies] = useState<FormFamilyOption[]>([]);
 
   const staffPreviewDetail = useMemo(
     () =>
@@ -414,13 +481,19 @@ export default function TeacherFormCreateWizard({
   }, [previewOpen, draft.formType, draft.uploadFormat, draft.uploadFile]);
 
   const canProceedStep1 = true;
-  const canSave =
+  const hasContent =
     draft.title.trim().length > 0 &&
-    draft.classroomIds.length > 0 &&
     (draft.formType === "builder" ||
       (draft.formType === "upload" && draft.uploadFile != null));
-
-  const canPublish = canSave;
+  const hasAudience =
+    draft.audienceType === "classrooms"
+      ? draft.classroomIds.length > 0
+      : draft.audienceType === "families"
+        ? draft.familyIds.length > 0
+        : false;
+  const canSaveForLater = hasContent && draft.audienceType === "unassigned";
+  const canSaveDraft = hasContent && hasAudience;
+  const canPublish = canSaveDraft;
 
   const updateDraft = (patch: Partial<TeacherFormDraft>) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -449,11 +522,14 @@ export default function TeacherFormCreateWizard({
         formData.set("title", draft.title);
         formData.set("description", draft.description);
         formData.set("formType", draft.formType);
+        formData.set("audienceType", draft.audienceType);
         formData.set("classroomIds", JSON.stringify(draft.classroomIds));
+        formData.set("familyIds", JSON.stringify(draft.familyIds));
         formData.set("dueDate", draft.dueDate ?? "");
         formData.set("requireSignature", String(draft.requireSignature));
         formData.set("uploadFormat", draft.uploadFormat);
         formData.set("status", status);
+        formData.set("formCategory", formCategory);
         formData.set("file", draft.uploadFile);
 
         response = await fetch(apiBasePath, {
@@ -469,12 +545,15 @@ export default function TeacherFormCreateWizard({
             title: draft.title,
             description: draft.description,
             formType: draft.formType,
+            audienceType: draft.audienceType,
             classroomIds: draft.classroomIds,
+            familyIds: draft.familyIds,
             dueDate: draft.dueDate,
             requireSignature: draft.requireSignature,
             uploadFormat: draft.uploadFormat,
             fields: draft.fields,
             status,
+            formCategory,
           }),
         });
       }
@@ -590,7 +669,12 @@ export default function TeacherFormCreateWizard({
               theme={theme}
               draft={draft}
               classroomOptions={classroomOptions}
+              organizationId={organizationId}
+              familySearchApiPath={familySearchApiPath}
               allowSelectAllClassrooms={allowSelectAllClassrooms}
+              audienceOptions={audienceOptions}
+              selectedFamilies={selectedFamilies}
+              onSelectedFamiliesChange={setSelectedFamilies}
               onUpdate={updateDraft}
             />
 
@@ -688,7 +772,7 @@ export default function TeacherFormCreateWizard({
               <AdminButton
                 theme={theme}
                 variant="outline"
-                disabled={!canSave || publishing}
+                disabled={!hasContent || publishing}
                 onClick={() => setPreviewOpen(true)}
                 className="w-full sm:w-auto"
               >
@@ -697,21 +781,34 @@ export default function TeacherFormCreateWizard({
               <AdminButton
                 theme={theme}
                 variant="soft"
-                disabled={!canSave || publishing}
+                disabled={!canSaveForLater || publishing}
                 onClick={() => void handlePublish("draft")}
                 className="w-full sm:w-auto"
               >
-                Save draft
+                Save for later
               </AdminButton>
-              <AdminButton
-                theme={theme}
-                variant="primary"
-                disabled={!canPublish || publishing}
-                onClick={() => void handlePublish("active")}
-                className="w-full sm:w-auto"
-              >
-                {publishing ? "Saving…" : "Send to families"}
-              </AdminButton>
+              {draft.audienceType !== "unassigned" ? (
+                <AdminButton
+                  theme={theme}
+                  variant="soft"
+                  disabled={!canSaveDraft || publishing}
+                  onClick={() => void handlePublish("draft")}
+                  className="w-full sm:w-auto"
+                >
+                  Save draft
+                </AdminButton>
+              ) : null}
+              {draft.audienceType !== "unassigned" ? (
+                <AdminButton
+                  theme={theme}
+                  variant="primary"
+                  disabled={!canPublish || publishing}
+                  onClick={() => void handlePublish("active")}
+                  className="w-full sm:w-auto"
+                >
+                  {publishing ? "Saving…" : "Send to families"}
+                </AdminButton>
+              ) : null}
             </div>
           </motion.div>
         )}

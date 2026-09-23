@@ -4,28 +4,20 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Animated, {
-  Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PortalActivityNotificationRow } from '@/components/portal/portal-activity-notification-row';
 import { PortalActivityNotificationsSkeleton } from '@/components/portal/portal-activity-notifications-skeleton';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryButton } from '@/components/story/story-button';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import {
   fetchParentActivityNotifications,
   markParentActivityNotificationsRead,
@@ -35,9 +27,7 @@ import { resolveParentAttentionNavigation } from '@/lib/parent/parent-nav';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
 const PAGE_SIZE = 20;
-const SHEET_SLIDE_OFFSET = 500;
-const OPEN_DURATION_MS = 280;
-const CLOSE_DURATION_MS = 220;
+const SHEET_CLOSE_MS = 220;
 
 type ParentActivityNotificationsSheetProps = {
   visible: boolean;
@@ -73,10 +63,8 @@ export function ParentActivityNotificationsSheet({
 }: ParentActivityNotificationsSheetProps) {
   const theme = useParentTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { reportError } = useMobileErrorReporter(organizationId);
 
-  const [modalVisible, setModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<ParentActivityNotification[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -85,47 +73,17 @@ export function ParentActivityNotificationsSheet({
   const [hasMore, setHasMore] = useState(false);
   const loadMorePromiseRef = useRef<Promise<void> | null>(null);
 
-  const backdropOpacity = useSharedValue(0);
-  const sheetTranslateY = useSharedValue(SHEET_SLIDE_OFFSET);
-
   useEffect(() => {
-    if (visible) {
-      setModalVisible(true);
-      backdropOpacity.value = 0;
-      sheetTranslateY.value = SHEET_SLIDE_OFFSET;
-      backdropOpacity.value = withTiming(1, { duration: 250 });
-      sheetTranslateY.value = withTiming(0, {
-        duration: OPEN_DURATION_MS,
-        easing: Easing.out(Easing.cubic),
-      });
-      return;
+    if (!visible) {
+      const timer = setTimeout(() => {
+        setNotifications([]);
+        setNextCursor(null);
+        setHasMore(false);
+        setError(null);
+      }, SHEET_CLOSE_MS);
+      return () => clearTimeout(timer);
     }
-
-    if (!visible && modalVisible) {
-      backdropOpacity.value = withTiming(0, { duration: 200 });
-      sheetTranslateY.value = withTiming(
-        SHEET_SLIDE_OFFSET,
-        { duration: CLOSE_DURATION_MS, easing: Easing.in(Easing.cubic) },
-        (finished) => {
-          if (finished) {
-            runOnJS(setModalVisible)(false);
-            runOnJS(setNotifications)([]);
-            runOnJS(setNextCursor)(null);
-            runOnJS(setHasMore)(false);
-            runOnJS(setError)(null);
-          }
-        },
-      );
-    }
-  }, [visible, modalVisible, backdropOpacity, sheetTranslateY]);
-
-  const backdropAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: backdropOpacity.value,
-  }));
-
-  const sheetAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: sheetTranslateY.value }],
-  }));
+  }, [visible]);
 
   const fetchPage = useCallback(
     async (cursor: string | null, append: boolean) => {
@@ -245,55 +203,19 @@ export function ParentActivityNotificationsSheet({
         );
 
   return (
-    <Modal visible={modalVisible} animationType="none" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Animated.View pointerEvents="none" style={[styles.backdrop, backdropAnimatedStyle]} />
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
-          accessibilityLabel="Close activity notifications"
-        />
-        <Animated.View
-          style={[
-            styles.sheet,
-            sheetAnimatedStyle,
-            {
-              backgroundColor: Story.white,
-              borderColor: Story.line,
-              paddingBottom: insets.bottom + Spacing.two,
-            },
-          ]}>
-          <View style={styles.handleRow}>
-            <View style={[styles.handle, { backgroundColor: theme.line }]} />
-          </View>
-
-          <FlatList
-            data={notifications}
-            keyExtractor={(item) => item.id}
-            ListHeaderComponent={listHeader}
-            ListEmptyComponent={listEmpty}
-            renderItem={({ item, index }) => (
-              <PortalActivityNotificationRow
-                item={item}
-                showDivider={index > 0}
-                onPress={() => handlePressItem(item)}
-              />
-            )}
-            onEndReached={() => {
-              if (hasMore) void loadMore();
-            }}
-            onEndReachedThreshold={0.4}
-            ListFooterComponent={
-              loadingMore ? (
-                <View style={styles.footerSpinner}>
-                  <ActivityIndicator color={theme.primary} />
-                </View>
-              ) : null
-            }
-            showsVerticalScrollIndicator={false}
-            style={styles.list}
-          />
-
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      accessibilityLabel="Close activity notifications"
+      backgroundColor={Story.white}
+      borderColor={Story.line}
+      handleColor={theme.line}
+      maxHeight="85%"
+      scrollable={false}
+      sheetStyle={styles.sheet}
+      scrollContentStyle={styles.listContainer}
+      header={
+        <View style={styles.headerArea}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close"
@@ -301,36 +223,56 @@ export function ParentActivityNotificationsSheet({
             style={[styles.closeButton, { backgroundColor: Story.paper, borderColor: Story.line }]}>
             <Ionicons name="close" size={18} color={theme.muted} />
           </Pressable>
-        </Animated.View>
-      </View>
-    </Modal>
+        </View>
+      }>
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        renderItem={({ item, index }) => (
+          <PortalActivityNotificationRow
+            item={item}
+            showDivider={index > 0}
+            onPress={() => handlePressItem(item)}
+          />
+        )}
+        onEndReached={() => {
+          if (hasMore) void loadMore();
+        }}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerSpinner}>
+              <ActivityIndicator color={theme.primary} />
+            </View>
+          ) : null
+        }
+        showsVerticalScrollIndicator={false}
+        style={styles.list}
+      />
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
   sheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    maxHeight: '85%',
     minHeight: '50%',
   },
-  handleRow: {
-    alignItems: 'center',
-    paddingTop: Spacing.two,
+  headerArea: {
+    position: 'relative',
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: Radius.pill,
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    right: Spacing.four,
+    zIndex: 1,
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   header: {
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
@@ -349,8 +291,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
+  listContainer: {
+    flex: 1,
+  },
   list: {
-    flexGrow: 0,
+    flex: 1,
   },
   centered: {
     alignItems: 'center',
@@ -370,16 +315,5 @@ const styles = StyleSheet.create({
   },
   footerSpinner: {
     paddingVertical: Spacing.four,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: Spacing.three,
-    right: Spacing.four,
-    width: 32,
-    height: 32,
-    borderRadius: Radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

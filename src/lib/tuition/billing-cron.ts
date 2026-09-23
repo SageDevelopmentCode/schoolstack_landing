@@ -22,6 +22,7 @@ import {
   mergeAutopayLines,
   type AutopayLineItem,
 } from "@/lib/tuition/autopay-cron-report";
+import { sendCommitteeDailyDigestsForOrganization } from "@/lib/committees/daily-digest";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
 
@@ -43,6 +44,8 @@ export type TuitionBillingCronSummary = {
   autopayDueCandidates: number;
   autopayLines: AutopayLineItem[];
   autopayLinesTruncated: boolean;
+  committeeDigestsSent: number;
+  committeeDigestFailures: number;
 };
 
 export type TuitionBillingCronDeps = {
@@ -55,6 +58,7 @@ export type TuitionBillingCronDeps = {
   evaluateRulesForOrganization?: typeof evaluateRulesForOrganization;
   processAutopayForOrganization?: typeof processAutopayForOrganization;
   notifySummary?: typeof notifyTuitionBillingCronSummary;
+  sendCommitteeDailyDigestsForOrganization?: typeof sendCommitteeDailyDigestsForOrganization;
 };
 
 export function authorizeTuitionBillingCronRequest(request: Request): boolean {
@@ -92,6 +96,9 @@ export async function runTuitionBillingCron(
   const evaluateRules = deps.evaluateRulesForOrganization ?? evaluateRulesForOrganization;
   const processAutopay = deps.processAutopayForOrganization ?? processAutopayForOrganization;
   const notifySummary = deps.notifySummary ?? notifyTuitionBillingCronSummary;
+  const sendCommitteeDailyDigests =
+    deps.sendCommitteeDailyDigestsForOrganization ??
+    sendCommitteeDailyDigestsForOrganization;
 
   const organizationIds = await listLiveOrganizationIds(admin);
 
@@ -108,6 +115,8 @@ export async function runTuitionBillingCron(
   let autopayLines: AutopayLineItem[] = [];
   let autopayLinesTruncated = false;
   let organizationFailures = 0;
+  let committeeDigestsSent = 0;
+  let committeeDigestFailures = 0;
   const failedOrganizationIds: string[] = [];
 
   for (const organizationId of organizationIds) {
@@ -188,6 +197,27 @@ export async function runTuitionBillingCron(
           context: systemActivityContext(),
         });
       }
+
+      try {
+        const digestResult = await sendCommitteeDailyDigests(admin, organizationId);
+        committeeDigestsSent += digestResult.digestsSent;
+        committeeDigestFailures += digestResult.digestFailures;
+      } catch (error) {
+        committeeDigestFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "committee_daily_digest_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Committee daily digest cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
     } catch (error) {
       organizationFailures += 1;
       if (failedOrganizationIds.length < FAILED_ORGANIZATION_IDS_CAP) {
@@ -226,6 +256,8 @@ export async function runTuitionBillingCron(
     autopayDueCandidates,
     autopayLines,
     autopayLinesTruncated,
+    committeeDigestsSent,
+    committeeDigestFailures,
   };
 
   try {

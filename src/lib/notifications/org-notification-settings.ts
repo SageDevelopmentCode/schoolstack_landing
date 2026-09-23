@@ -26,6 +26,9 @@ export type ParentReminderSettings = {
   incomplete_admissions: {
     enabled: boolean;
   };
+  committee_daily_digest: {
+    enabled: boolean;
+  };
 };
 
 export type OrganizationNotificationSettings = {
@@ -95,6 +98,9 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       incomplete_admissions: {
         enabled: false,
       },
+      committee_daily_digest: {
+        enabled: true,
+      },
     },
   };
 }
@@ -110,12 +116,25 @@ function parseParentReminderSettings(
       ? (raw.incomplete_admissions as Record<string, unknown>)
       : undefined;
 
+  const committeeDigestRaw =
+    raw?.committee_daily_digest &&
+    typeof raw.committee_daily_digest === "object" &&
+    !Array.isArray(raw.committee_daily_digest)
+      ? (raw.committee_daily_digest as Record<string, unknown>)
+      : undefined;
+
   return {
     incomplete_admissions: {
       enabled:
         typeof incompleteRaw?.enabled === "boolean"
           ? incompleteRaw.enabled
           : defaults.incomplete_admissions.enabled,
+    },
+    committee_daily_digest: {
+      enabled:
+        typeof committeeDigestRaw?.enabled === "boolean"
+          ? committeeDigestRaw.enabled
+          : defaults.committee_daily_digest.enabled,
     },
   };
 }
@@ -346,6 +365,7 @@ export async function maybeMigrateIncompleteAdmissionsReminders(
   const nextSettings: OrganizationNotificationSettings = {
     ...settings,
     parent_reminders: {
+      ...getDefaultNotificationSettings().parent_reminders,
       incomplete_admissions: {
         enabled: true,
       },
@@ -481,6 +501,14 @@ export async function isIncompleteAdmissionsRemindersEnabled(
 ): Promise<boolean> {
   const settings = await loadOrganizationNotificationSettings(admin, organizationId);
   return settings.parent_reminders.incomplete_admissions.enabled;
+}
+
+export async function isCommitteeDailyDigestEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.committee_daily_digest.enabled;
 }
 
 export async function resolveApplicationNotificationEmails(

@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { loadAdminFormsDocumentsPageData } from "@/lib/school-admin/forms-documents/load-forms-documents-page-data";
-import { listOrgFormResponsesForForm } from "@/lib/school-admin/forms-documents/load-admin-forms";
-import { parsePublishInputFromFormData } from "@/lib/school-admin/forms-documents/parse-publish-input";
+import {
+  listOrgFormResponsesByFormIds,
+  listOrgFormResponsesForForm,
+  listOrgParentForms,
+} from "@/lib/school-admin/forms-documents/load-admin-forms";
+import { loadAdminClassroomOptions } from "@/lib/school-admin/forms-documents/load-admin-classroom-options";
+import { parseFormCategoryQuery } from "@/lib/school-admin/forms-documents/parse-form-category";
+import {
+  parsePublishInputFromFormData,
+  parsePublishInputFromJson,
+} from "@/lib/school-admin/forms-documents/parse-publish-input";
 import { publishAdminParentForm } from "@/lib/school-admin/forms-documents/mutations";
 import { requireSchoolAdminUser, SchoolAdminAuthError } from "@/lib/school-admin/access";
 import type { PublishTeacherParentFormInput } from "@/lib/school-teacher/forms-documents/types";
@@ -20,7 +29,9 @@ const ROUTE = "/api/school-admin/forms-documents";
 
 export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
+  const { searchParams } = new URL(request.url);
+  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
+  const category = parseFormCategoryQuery(searchParams.get("category"));
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -40,7 +51,16 @@ export async function GET(request: Request) {
     );
 
     const admin = createAdminClient();
-    const pageData = await loadAdminFormsDocumentsPageData(admin, organizationId);
+    const pageData = category
+      ? await (async () => {
+          const forms = await listOrgParentForms(admin, organizationId, { category });
+          const [responsesByFormId, classroomOptions] = await Promise.all([
+            listOrgFormResponsesByFormIds(admin, organizationId, forms),
+            loadAdminClassroomOptions(admin, organizationId),
+          ]);
+          return { forms, responsesByFormId, classroomOptions };
+        })()
+      : await loadAdminFormsDocumentsPageData(admin, organizationId);
 
     return NextResponse.json({
       ...pageData,
@@ -86,19 +106,7 @@ export async function POST(request: Request) {
         organizationId?: string;
       };
       organizationId = body.organizationId?.trim() ?? "";
-      publishInput = {
-        title: body.title ?? "",
-        description: body.description ?? "",
-        formType: body.formType ?? "builder",
-        classroomIds: body.classroomIds ?? [],
-        dueDate: body.dueDate ?? null,
-        requireSignature: body.requireSignature ?? true,
-        uploadFormat: body.uploadFormat ?? "pdf",
-        uploadFileName: body.uploadFileName ?? null,
-        uploadFileSize: body.uploadFileSize ?? null,
-        fields: body.fields ?? [],
-        status: body.status ?? "active",
-      };
+      publishInput = parsePublishInputFromJson(body);
     }
   } catch {
     return apiError(ROUTE, {

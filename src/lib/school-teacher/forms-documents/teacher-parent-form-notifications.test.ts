@@ -12,9 +12,13 @@ const baseForm: TeacherParentForm = {
   title: "Field Trip Permission Slip",
   description: "",
   formType: "builder",
+  formCategory: "general",
   status: "active",
+  audienceType: "classrooms",
   classroomIds: ["classroom-1"],
   classroomNames: ["Grade 1"],
+  familyIds: [],
+  familyNames: [],
   dueDate: "2026-09-30",
   requireSignature: true,
   totalFamilies: 1,
@@ -53,7 +57,7 @@ describe("sendTeacherParentFormPublishedNotifications", () => {
       {} as SupabaseClient,
       publishedInput,
       {
-        resolveFormAudienceFamilies: async () => [
+        resolveFormAudienceForType: async () => [
           {
             familyId: "family-1",
             studentIds: ["student-1"],
@@ -86,7 +90,7 @@ describe("sendTeacherParentFormPublishedNotifications", () => {
       {} as SupabaseClient,
       publishedInput,
       {
-        resolveFormAudienceFamilies: async () => [
+        resolveFormAudienceForType: async () => [
           {
             familyId: "family-1",
             studentIds: ["student-1"],
@@ -122,7 +126,7 @@ describe("sendTeacherParentFormPublishedNotifications", () => {
       {} as SupabaseClient,
       publishedInput,
       {
-        resolveFormAudienceFamilies: async () => [
+        resolveFormAudienceForType: async () => [
           {
             familyId: "family-1",
             studentIds: ["student-1"],

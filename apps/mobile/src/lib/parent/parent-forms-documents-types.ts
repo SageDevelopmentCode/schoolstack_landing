@@ -2,6 +2,8 @@ export type TeacherParentFormStatus = 'draft' | 'active' | 'archived';
 
 export type TeacherParentFormType = 'upload' | 'builder';
 
+export type TeacherParentFormCategory = 'general' | 'tuition';
+
 export type UploadFileFormat = 'pdf' | 'docx';
 
 export type TeacherFormFieldType =
@@ -26,6 +28,7 @@ export type TeacherParentForm = {
   title: string;
   description: string;
   formType: TeacherParentFormType;
+  formCategory?: TeacherParentFormCategory;
   status: TeacherParentFormStatus;
   classroomIds: string[];
   classroomNames: string[];

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -71,7 +71,6 @@ export function SchoolEventFormSheet({
   onSave,
 }: SchoolEventFormSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
   const isValid = useMemo(
     () => Boolean(form.title.trim() && form.date && (form.isAllDay || form.time.trim())),
     [form],
@@ -83,8 +82,17 @@ export function SchoolEventFormSheet({
   }, [isDirty, onClose]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
-      <View style={[styles.container, { backgroundColor: Story.paper, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={requestClose}
+      keyboardAvoiding
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={Story.paper}
+      borderColor={Story.line}
+      handleColor={Story.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.content}
+      header={
         <View style={[styles.header, { borderBottomColor: theme.line }]}>
           <Pressable accessibilityRole="button" onPress={requestClose}>
             <Text style={[styles.headerAction, { color: theme.primary }]}>Cancel</Text>
@@ -102,146 +110,143 @@ export function SchoolEventFormSheet({
             </Text>
           </Pressable>
         </View>
+      }>
+      <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
+      <StoryDisplayHeading size="section">
+        {mode === 'create' ? 'New event' : 'Update event'}
+      </StoryDisplayHeading>
 
-        <ScrollView contentContainerStyle={styles.content}>
-          <StorySectionKicker style={styles.kicker}>School event</StorySectionKicker>
-          <StoryDisplayHeading size="section">
-            {mode === 'create' ? 'New event' : 'Update event'}
-          </StoryDisplayHeading>
+      <Field label="Title">
+        <TextInput
+          value={form.title}
+          onChangeText={(title) => onChange({ ...form, title })}
+          placeholder="Event title"
+          placeholderTextColor={theme.muted}
+          style={[styles.input, inputStyle(theme)]}
+        />
+      </Field>
 
-          <Field label="Title">
+      <Field label="Date (YYYY-MM-DD)">
+        <TextInput
+          value={form.date}
+          onChangeText={(date) => onChange({ ...form, date })}
+          placeholder="2026-08-22"
+          autoCapitalize="none"
+          placeholderTextColor={theme.muted}
+          style={[styles.input, inputStyle(theme)]}
+        />
+      </Field>
+
+      <View style={styles.switchRow}>
+        <Text style={[styles.fieldLabel, { color: theme.ink }]}>All day</Text>
+        <Switch
+          value={form.isAllDay}
+          onValueChange={(isAllDay) => onChange({ ...form, isAllDay })}
+          trackColor={{ false: theme.line, true: theme.primarySoft }}
+          thumbColor={form.isAllDay ? theme.primary : theme.white}
+        />
+      </View>
+
+      {!form.isAllDay ? (
+        <>
+          <Field label="Start time (HH:MM)">
             <TextInput
-              value={form.title}
-              onChangeText={(title) => onChange({ ...form, title })}
-              placeholder="Event title"
-              placeholderTextColor={theme.muted}
-              style={[styles.input, inputStyle(theme)]}
-            />
-          </Field>
-
-          <Field label="Date (YYYY-MM-DD)">
-            <TextInput
-              value={form.date}
-              onChangeText={(date) => onChange({ ...form, date })}
-              placeholder="2026-08-22"
+              value={form.time}
+              onChangeText={(time) => onChange({ ...form, time })}
+              placeholder="09:00"
               autoCapitalize="none"
               placeholderTextColor={theme.muted}
               style={[styles.input, inputStyle(theme)]}
             />
           </Field>
-
-          <View style={styles.switchRow}>
-            <Text style={[styles.fieldLabel, { color: theme.ink }]}>All day</Text>
-            <Switch
-              value={form.isAllDay}
-              onValueChange={(isAllDay) => onChange({ ...form, isAllDay })}
-              trackColor={{ false: theme.line, true: theme.primarySoft }}
-              thumbColor={form.isAllDay ? theme.primary : theme.white}
-            />
-          </View>
-
-          {!form.isAllDay ? (
-            <>
-              <Field label="Start time (HH:MM)">
-                <TextInput
-                  value={form.time}
-                  onChangeText={(time) => onChange({ ...form, time })}
-                  placeholder="09:00"
-                  autoCapitalize="none"
-                  placeholderTextColor={theme.muted}
-                  style={[styles.input, inputStyle(theme)]}
-                />
-              </Field>
-              <Field label="End time (HH:MM)">
-                <TextInput
-                  value={form.endTime}
-                  onChangeText={(endTime) => onChange({ ...form, endTime })}
-                  placeholder="10:00"
-                  autoCapitalize="none"
-                  placeholderTextColor={theme.muted}
-                  style={[styles.input, inputStyle(theme)]}
-                />
-              </Field>
-            </>
-          ) : null}
-
-          <Field label="Type">
-            <View style={styles.chipRow}>
-              {EVENT_TYPES.map((type) => {
-                const active = form.eventType === type;
-                return (
-                  <Pressable
-                    key={type}
-                    accessibilityRole="button"
-                    onPress={() =>
-                      onChange({
-                        ...form,
-                        eventType: type,
-                        colorKey: form.colorManuallySet ? form.colorKey : getDefaultColorKeyForType(type),
-                      })
-                    }
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: active ? theme.primarySoft : theme.white,
-                        borderColor: active ? theme.primary : theme.line,
-                      },
-                    ]}>
-                    <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
-                      {SCHOOL_EVENT_TYPE_LABELS[type]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </Field>
-
-          <Field label="Color">
-            <View style={styles.chipRow}>
-              {SCHOOL_EVENT_COLOR_KEYS.map((colorKey) => {
-                const active = form.colorKey === colorKey;
-                const color = getColorStyle(colorKey);
-                return (
-                  <Pressable
-                    key={colorKey}
-                    accessibilityRole="button"
-                    onPress={() => onChange({ ...form, colorKey, colorManuallySet: true })}
-                    style={[
-                      styles.colorSwatch,
-                      {
-                        backgroundColor: color.bg,
-                        borderColor: active ? theme.primary : 'transparent',
-                      },
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          </Field>
-
-          <Field label="Location">
+          <Field label="End time (HH:MM)">
             <TextInput
-              value={form.location}
-              onChangeText={(location) => onChange({ ...form, location })}
-              placeholder="Optional"
+              value={form.endTime}
+              onChangeText={(endTime) => onChange({ ...form, endTime })}
+              placeholder="10:00"
+              autoCapitalize="none"
               placeholderTextColor={theme.muted}
               style={[styles.input, inputStyle(theme)]}
             />
           </Field>
+        </>
+      ) : null}
 
-          <Field label="Description">
-            <TextInput
-              value={form.description}
-              onChangeText={(description) => onChange({ ...form, description })}
-              placeholder="Optional details"
-              multiline
-              placeholderTextColor={theme.muted}
-              style={[styles.input, styles.textArea, inputStyle(theme)]}
-            />
-          </Field>
-        </ScrollView>
-      </View>
-    </Modal>
+      <Field label="Type">
+        <View style={styles.chipRow}>
+          {EVENT_TYPES.map((type) => {
+            const active = form.eventType === type;
+            return (
+              <Pressable
+                key={type}
+                accessibilityRole="button"
+                onPress={() =>
+                  onChange({
+                    ...form,
+                    eventType: type,
+                    colorKey: form.colorManuallySet ? form.colorKey : getDefaultColorKeyForType(type),
+                  })
+                }
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active ? theme.primarySoft : theme.white,
+                    borderColor: active ? theme.primary : theme.line,
+                  },
+                ]}>
+                <Text style={[styles.chipLabel, { color: active ? theme.primary : theme.muted }]}>
+                  {SCHOOL_EVENT_TYPE_LABELS[type]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+
+      <Field label="Color">
+        <View style={styles.chipRow}>
+          {SCHOOL_EVENT_COLOR_KEYS.map((colorKey) => {
+            const active = form.colorKey === colorKey;
+            const color = getColorStyle(colorKey);
+            return (
+              <Pressable
+                key={colorKey}
+                accessibilityRole="button"
+                onPress={() => onChange({ ...form, colorKey, colorManuallySet: true })}
+                style={[
+                  styles.colorSwatch,
+                  {
+                    backgroundColor: color.bg,
+                    borderColor: active ? theme.primary : 'transparent',
+                  },
+                ]}
+              />
+            );
+          })}
+        </View>
+      </Field>
+
+      <Field label="Location">
+        <TextInput
+          value={form.location}
+          onChangeText={(location) => onChange({ ...form, location })}
+          placeholder="Optional"
+          placeholderTextColor={theme.muted}
+          style={[styles.input, inputStyle(theme)]}
+        />
+      </Field>
+
+      <Field label="Description">
+        <TextInput
+          value={form.description}
+          onChangeText={(description) => onChange({ ...form, description })}
+          placeholder="Optional details"
+          multiline
+          placeholderTextColor={theme.muted}
+          style={[styles.input, styles.textArea, inputStyle(theme)]}
+        />
+      </Field>
+    </BottomSheetShell>
   );
 }
 
@@ -265,9 +270,6 @@ function inputStyle(theme: ReturnType<typeof useParentTheme>) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -289,7 +291,6 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.four,
     gap: Spacing.four,
-    paddingBottom: Spacing.six,
   },
   kicker: {
     marginBottom: 0,

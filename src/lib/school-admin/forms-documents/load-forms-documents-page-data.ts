@@ -18,7 +18,9 @@ export async function loadAdminFormsDocumentsPageData(
   admin: SupabaseClient,
   organizationId: string,
 ): Promise<AdminFormsDocumentsPageData> {
-  const forms = await listOrgParentForms(admin, organizationId);
+  const forms = await listOrgParentForms(admin, organizationId, {
+    category: "general",
+  });
 
   const [responsesByFormId, classroomOptions] = await Promise.all([
     listOrgFormResponsesByFormIds(admin, organizationId, forms),

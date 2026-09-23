@@ -42,6 +42,9 @@ describe("parseOrganizationNotificationSettings", () => {
         incomplete_admissions: {
           enabled: false,
         },
+        committee_daily_digest: {
+          enabled: true,
+        },
       },
     });
   });
@@ -101,6 +104,9 @@ describe("parseOrganizationNotificationSettings", () => {
           incomplete_admissions: {
             enabled: false,
           },
+          committee_daily_digest: {
+            enabled: true,
+          },
         },
       },
     );
@@ -117,6 +123,9 @@ describe("parseOrganizationNotificationSettings", () => {
       }).parent_reminders,
       {
         incomplete_admissions: {
+          enabled: true,
+        },
+        committee_daily_digest: {
           enabled: true,
         },
       },

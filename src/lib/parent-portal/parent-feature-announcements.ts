@@ -191,6 +191,70 @@ const STATIC_PARENT_FEATURE_ANNOUNCEMENTS: StaticParentFeatureAnnouncement[] = [
     portalScope: "coop",
     publishedAt: "2026-09-03",
   },
+  {
+    id: "parent-committees",
+    title: "Join a parent committee",
+    description:
+      "Browse committees, request to join, and share PDFs and images in committee conversations.",
+    ctaLabel: "Try it now",
+    feature: "committees",
+    hrefPath: "committees",
+    portalScope: "coop",
+    publishedAt: "2026-09-21",
+  },
+  {
+    id: "classroom-signups-respond",
+    title: "Respond to classroom sign-ups",
+    description:
+      "See volunteer requests from teachers and respond from your home page.",
+    ctaLabel: "Try it now",
+    feature: "classroom_signups",
+    hrefPath: "classroom_signups",
+    portalScope: "any",
+    publishedAt: "2026-09-14",
+  },
+  {
+    id: "parent-forms-documents",
+    title: "Forms and documents",
+    description: "View, fill, and sign forms that need your attention.",
+    ctaLabel: "Open",
+    feature: "forms_documents",
+    hrefPath: "forms_documents",
+    portalScope: "any",
+    publishedAt: "2026-09-15",
+  },
+  {
+    id: "friday-branch-enrollment",
+    title: "Friday Branch classes",
+    description:
+      "Browse open classes, see spots left, enroll or join the waitlist, and view class price and flyers before you sign up.",
+    ctaLabel: "Try it now",
+    feature: "friday_branch",
+    hrefPath: "friday_branch",
+    portalScope: "coop",
+    publishedAt: "2026-09-22",
+  },
+  {
+    id: "message-push-notifications",
+    title: "Message alerts on your phone",
+    description:
+      "Get alerted on your phone when a new message arrives in the MudKitchen mobile app.",
+    ctaLabel: "Try it now",
+    feature: "messages",
+    hrefPath: "messages",
+    portalScope: "any",
+    publishedAt: "2026-09-20",
+  },
+  {
+    id: "parent-attendance-history",
+    title: "Your child's attendance history",
+    description: "See past attendance records for each of your children.",
+    ctaLabel: "View",
+    feature: "attendance",
+    hrefPath: "attendance",
+    portalScope: "any",
+    publishedAt: "2026-09-21",
+  },
 ];
 
 export function parseIsoDate(isoDate: string): Date {

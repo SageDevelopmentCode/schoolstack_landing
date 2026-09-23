@@ -23,6 +23,12 @@ import {
   formatSupportRequestTopic,
   parseSupportRequestStatus,
 } from "@/lib/school-admin/support-request-types";
+import {
+  type PublicSupportRequestRow,
+  formatPublicSupportRequestTopic,
+} from "@/lib/public-support/public-support-types";
+
+type TicketSource = "portal" | "public";
 
 type SignedAttachment = {
   fileName: string;
@@ -30,6 +36,11 @@ type SignedAttachment = {
   mimeType: string | null;
   sizeBytes: number | null;
 };
+
+const TICKET_SOURCE_TABS: Array<{ id: TicketSource; label: string }> = [
+  { id: "portal", label: "Portal" },
+  { id: "public", label: "Public" },
+];
 
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleString();
@@ -39,12 +50,32 @@ function isImageMimeType(mimeType: string | null): boolean {
   return Boolean(mimeType?.startsWith("image/"));
 }
 
+function parsePortalRows(data: AdminSupportRequestRow[] | null): AdminSupportRequestRow[] {
+  return ((data ?? []) as AdminSupportRequestRow[]).map((row) => ({
+    ...row,
+    status: parseSupportRequestStatus(row.status) ?? "open",
+    attachments: Array.isArray(row.attachments) ? row.attachments : [],
+    updated_at: row.updated_at ?? row.created_at,
+  }));
+}
+
+function parsePublicRows(data: PublicSupportRequestRow[] | null): PublicSupportRequestRow[] {
+  return ((data ?? []) as PublicSupportRequestRow[]).map((row) => ({
+    ...row,
+    status: parseSupportRequestStatus(row.status) ?? "open",
+    updated_at: row.updated_at ?? row.created_at,
+  }));
+}
+
 export default function AdminTicketsPage() {
   const supabase = createClient();
-  const [tickets, setTickets] = useState<AdminSupportRequestRow[]>([]);
+  const [ticketSource, setTicketSource] = useState<TicketSource>("portal");
+  const [portalTickets, setPortalTickets] = useState<AdminSupportRequestRow[]>([]);
+  const [publicTickets, setPublicTickets] = useState<PublicSupportRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPortalId, setSelectedPortalId] = useState<string | null>(null);
+  const [selectedPublicId, setSelectedPublicId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<SupportRequestStatus | "">(
     "",
   );
@@ -54,23 +85,31 @@ export default function AdminTicketsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data, error: loadError } = await supabase
-        .from("admin_support_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [portalResult, publicResult] = await Promise.all([
+        supabase
+          .from("admin_support_requests")
+          .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("public_support_requests")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (loadError) {
-        setError(loadError.message);
+      if (portalResult.error) {
+        setError(portalResult.error.message);
       } else {
-        const rows = ((data as AdminSupportRequestRow[]) ?? []).map((row) => ({
-          ...row,
-          status: parseSupportRequestStatus(row.status) ?? "open",
-          attachments: Array.isArray(row.attachments) ? row.attachments : [],
-          updated_at: row.updated_at ?? row.created_at,
-        })) as AdminSupportRequestRow[];
+        const rows = parsePortalRows(portalResult.data as AdminSupportRequestRow[]);
+        setPortalTickets(rows);
+        if (rows.length) setSelectedPortalId(rows[0].id);
+      }
 
-        setTickets(rows);
-        if (rows.length) setSelectedId(rows[0].id);
+      if (publicResult.error) {
+        setError((current) => current ?? publicResult.error!.message);
+      } else {
+        const rows = parsePublicRows(publicResult.data as PublicSupportRequestRow[]);
+        setPublicTickets(rows);
+        if (rows.length) setSelectedPublicId(rows[0].id);
       }
 
       setLoading(false);
@@ -79,10 +118,15 @@ export default function AdminTicketsPage() {
     void load();
   }, [supabase]);
 
-  const selected = tickets.find((ticket) => ticket.id === selectedId) ?? null;
+  const activeTickets =
+    ticketSource === "portal" ? portalTickets : publicTickets;
+  const selectedPortal =
+    portalTickets.find((ticket) => ticket.id === selectedPortalId) ?? null;
+  const selectedPublic =
+    publicTickets.find((ticket) => ticket.id === selectedPublicId) ?? null;
 
   useEffect(() => {
-    if (!selected?.id || selected.attachments.length === 0) {
+    if (ticketSource !== "portal" || !selectedPortal?.id || selectedPortal.attachments.length === 0) {
       queueMicrotask(() => {
         setAttachments([]);
         setAttachmentsError(null);
@@ -91,7 +135,7 @@ export default function AdminTicketsPage() {
       return;
     }
 
-    const requestId = selected.id;
+    const requestId = selectedPortal.id;
     let cancelled = false;
 
     async function loadAttachments() {
@@ -138,9 +182,9 @@ export default function AdminTicketsPage() {
     return () => {
       cancelled = true;
     };
-  }, [selected?.id, selected?.attachments.length]);
+  }, [ticketSource, selectedPortal?.id, selectedPortal?.attachments.length]);
 
-  const handleStatusChange = useCallback(
+  const handlePortalStatusChange = useCallback(
     async (id: string, status: SupportRequestStatus) => {
       const { data, error: updateError } = await supabase
         .from("admin_support_requests")
@@ -154,7 +198,7 @@ export default function AdminTicketsPage() {
         return;
       }
 
-      setTickets((prev) =>
+      setPortalTickets((prev) =>
         prev.map((ticket) =>
           ticket.id === id
             ? {
@@ -169,11 +213,40 @@ export default function AdminTicketsPage() {
     [supabase],
   );
 
-  const filtered = tickets.filter(
+  const handlePublicStatusChange = useCallback(
+    async (id: string, status: SupportRequestStatus) => {
+      const { data, error: updateError } = await supabase
+        .from("public_support_requests")
+        .update({ status })
+        .eq("id", id)
+        .select("updated_at")
+        .single();
+
+      if (updateError) {
+        alert("Update failed: " + updateError.message);
+        return;
+      }
+
+      setPublicTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === id
+            ? {
+                ...ticket,
+                status,
+                updated_at: String(data.updated_at),
+              }
+            : ticket,
+        ),
+      );
+    },
+    [supabase],
+  );
+
+  const filtered = activeTickets.filter(
     (ticket) => !statusFilter || ticket.status === statusFilter,
   );
 
-  const counts = tickets.reduce(
+  const counts = activeTickets.reduce(
     (acc, ticket) => {
       acc[ticket.status] = (acc[ticket.status] ?? 0) + 1;
       return acc;
@@ -185,159 +258,294 @@ export default function AdminTicketsPage() {
   if (error) return <AdminPageState variant="error" message={error} />;
 
   return (
-    <AdminMasterDetail
-      listWidth="md"
-      list={
-        <>
-          <AdminListPanelHeader>
-            <div className="flex flex-wrap gap-1.5">
-              {SUPPORT_REQUEST_STATUSES.map((status) => (
-                <AdminFilterChip
-                  key={status}
-                  label={TICKET_STATUS[status as TicketStatus].label}
-                  count={counts[status]}
-                  active={statusFilter === status}
-                  onClick={() =>
-                    setStatusFilter(statusFilter === status ? "" : status)
-                  }
-                />
-              ))}
-            </div>
-          </AdminListPanelHeader>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-admin-border bg-admin-surface px-4 py-3">
+        <div
+          className="inline-flex rounded-admin-md border border-admin-border bg-admin-bg p-1"
+          role="tablist"
+          aria-label="Ticket source"
+        >
+          {TICKET_SOURCE_TABS.map((tab) => {
+            const isActive = ticketSource === tab.id;
+            const count =
+              tab.id === "portal" ? portalTickets.length : publicTickets.length;
 
-          <div className="flex-1 overflow-y-auto">
-            {filtered.length === 0 ? (
-              <AdminEmptyState message="No tickets" />
-            ) : (
-              filtered.map((ticket) => (
-                <AdminListItem
-                  key={ticket.id}
-                  selected={selectedId === ticket.id}
-                  onClick={() => setSelectedId(ticket.id)}
-                  title={ticket.organization_name}
-                  subtitle={formatSupportRequestTopic(ticket.topic)}
-                  badge={
-                    <AdminStatusBadge
-                      label={TICKET_STATUS[ticket.status as TicketStatus].label}
-                      variant={TICKET_STATUS[ticket.status as TicketStatus].variant}
-                    />
-                  }
-                  footer={`${ticket.submitter_email} · ${new Date(ticket.created_at).toLocaleDateString()}`}
-                />
-              ))
-            )}
-          </div>
-        </>
-      }
-      detail={
-        !selected ? (
-          <AdminDetailEmpty message="Select a ticket" />
-        ) : (
-          <AdminDetailLayout>
-            <AdminDetailHeader
-              title={selected.submitter_email}
-              subtitle={selected.organization_name}
-              actions={
-                <AdminSelect
-                  value={selected.status}
-                  onChange={(event) => {
-                    const nextStatus = parseSupportRequestStatus(
-                      event.target.value,
-                    );
-                    if (!nextStatus) return;
-                    void handleStatusChange(selected.id, nextStatus);
-                  }}
-                >
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setTicketSource(tab.id)}
+                className={`rounded-admin-sm px-3 py-1.5 text-sm font-medium transition ${
+                  isActive
+                    ? "bg-admin-surface text-admin-text shadow-sm"
+                    : "text-admin-muted hover:text-admin-text"
+                }`}
+              >
+                {tab.label}
+                <span className="ml-1.5 text-xs text-admin-faint">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1">
+        <AdminMasterDetail
+          listWidth="md"
+          list={
+            <>
+              <AdminListPanelHeader>
+                <div className="flex flex-wrap gap-1.5">
                   {SUPPORT_REQUEST_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {TICKET_STATUS[status as TicketStatus].label}
-                    </option>
+                    <AdminFilterChip
+                      key={status}
+                      label={TICKET_STATUS[status as TicketStatus].label}
+                      count={counts[status]}
+                      active={statusFilter === status}
+                      onClick={() =>
+                        setStatusFilter(statusFilter === status ? "" : status)
+                      }
+                    />
                   ))}
-                </AdminSelect>
-              }
-            />
+                </div>
+              </AdminListPanelHeader>
 
-            <AdminDetailSection title="Request">
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
-                <dt className="text-admin-muted">Topic</dt>
-                <dd>{formatSupportRequestTopic(selected.topic)}</dd>
-              </dl>
-              <p className="whitespace-pre-wrap text-sm text-admin-text">
-                {selected.description}
-              </p>
-            </AdminDetailSection>
-
-            <AdminDetailSection title="Context">
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
-                <dt className="text-admin-muted">School</dt>
-                <dd>{selected.organization_name}</dd>
-                <dt className="text-admin-muted">Slug</dt>
-                <dd>{selected.organization_slug}</dd>
-                {selected.source_page_path ? (
-                  <>
-                    <dt className="text-admin-muted">Page</dt>
-                    <dd className="break-all">
-                      <Link
-                        href={selected.source_page_path}
-                        className="text-admin-accent hover:underline"
-                      >
-                        {selected.source_page_path}
-                      </Link>
-                    </dd>
-                  </>
-                ) : null}
-              </dl>
-            </AdminDetailSection>
-
-            {selected.attachments.length > 0 ? (
-              <AdminDetailSection title="Attachments">
-                {attachmentsLoading ? (
-                  <p className="text-sm text-admin-faint">Loading attachments…</p>
-                ) : attachmentsError ? (
-                  <p className="text-sm text-admin-error">{attachmentsError}</p>
-                ) : (
-                  <div className="space-y-3">
-                    {attachments.map((attachment) => (
-                      <div
-                        key={`${attachment.fileName}-${attachment.url}`}
-                        className="rounded-admin-md border border-admin-border bg-admin-bg p-3"
-                      >
-                        <a
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium text-admin-accent hover:underline"
-                        >
-                          {attachment.fileName}
-                        </a>
-                        {isImageMimeType(attachment.mimeType) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={attachment.url}
-                            alt={attachment.fileName}
-                            className="mt-3 max-h-80 w-full rounded-admin-sm border border-admin-border object-contain"
+              <div className="flex-1 overflow-y-auto">
+                {filtered.length === 0 ? (
+                  <AdminEmptyState message="No tickets" />
+                ) : ticketSource === "portal" ? (
+                  filtered.map((ticket) => {
+                    const portalTicket = ticket as AdminSupportRequestRow;
+                    return (
+                      <AdminListItem
+                        key={portalTicket.id}
+                        selected={selectedPortalId === portalTicket.id}
+                        onClick={() => setSelectedPortalId(portalTicket.id)}
+                        title={portalTicket.organization_name}
+                        subtitle={formatSupportRequestTopic(portalTicket.topic)}
+                        badge={
+                          <AdminStatusBadge
+                            label={
+                              TICKET_STATUS[portalTicket.status as TicketStatus].label
+                            }
+                            variant={
+                              TICKET_STATUS[portalTicket.status as TicketStatus].variant
+                            }
                           />
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
+                        }
+                        footer={`${portalTicket.submitter_email} · ${new Date(portalTicket.created_at).toLocaleDateString()}`}
+                      />
+                    );
+                  })
+                ) : (
+                  filtered.map((ticket) => {
+                    const publicTicket = ticket as PublicSupportRequestRow;
+                    return (
+                      <AdminListItem
+                        key={publicTicket.id}
+                        selected={selectedPublicId === publicTicket.id}
+                        onClick={() => setSelectedPublicId(publicTicket.id)}
+                        title={publicTicket.submitter_name}
+                        subtitle={formatPublicSupportRequestTopic(publicTicket.topic)}
+                        badge={
+                          <AdminStatusBadge
+                            label={
+                              TICKET_STATUS[publicTicket.status as TicketStatus].label
+                            }
+                            variant={
+                              TICKET_STATUS[publicTicket.status as TicketStatus].variant
+                            }
+                          />
+                        }
+                        footer={`${publicTicket.submitter_email} · ${new Date(publicTicket.created_at).toLocaleDateString()}`}
+                      />
+                    );
+                  })
                 )}
-              </AdminDetailSection>
-            ) : null}
+              </div>
+            </>
+          }
+          detail={
+            ticketSource === "portal" ? (
+              !selectedPortal ? (
+                <AdminDetailEmpty message="Select a ticket" />
+              ) : (
+                <AdminDetailLayout>
+                  <AdminDetailHeader
+                    title={selectedPortal.submitter_email}
+                    subtitle={selectedPortal.organization_name}
+                    actions={
+                      <AdminSelect
+                        value={selectedPortal.status}
+                        onChange={(event) => {
+                          const nextStatus = parseSupportRequestStatus(
+                            event.target.value,
+                          );
+                          if (!nextStatus) return;
+                          void handlePortalStatusChange(selectedPortal.id, nextStatus);
+                        }}
+                      >
+                        {SUPPORT_REQUEST_STATUSES.map((status) => (
+                          <option key={status} value={status}>
+                            {TICKET_STATUS[status as TicketStatus].label}
+                          </option>
+                        ))}
+                      </AdminSelect>
+                    }
+                  />
 
-            <AdminDetailSection title="Metadata">
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
-                <dt className="text-admin-muted">Request ID</dt>
-                <dd className="break-all">{selected.id}</dd>
-                <dt className="text-admin-muted">Created</dt>
-                <dd>{formatTimestamp(selected.created_at)}</dd>
-                <dt className="text-admin-muted">Updated</dt>
-                <dd>{formatTimestamp(selected.updated_at)}</dd>
-              </dl>
-            </AdminDetailSection>
-          </AdminDetailLayout>
-        )
-      }
-    />
+                  <AdminDetailSection title="Request">
+                    <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                      <dt className="text-admin-muted">Topic</dt>
+                      <dd>{formatSupportRequestTopic(selectedPortal.topic)}</dd>
+                    </dl>
+                    <p className="whitespace-pre-wrap text-sm text-admin-text">
+                      {selectedPortal.description}
+                    </p>
+                  </AdminDetailSection>
+
+                  <AdminDetailSection title="Context">
+                    <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                      <dt className="text-admin-muted">School</dt>
+                      <dd>{selectedPortal.organization_name}</dd>
+                      <dt className="text-admin-muted">Slug</dt>
+                      <dd>{selectedPortal.organization_slug}</dd>
+                      {selectedPortal.source_page_path ? (
+                        <>
+                          <dt className="text-admin-muted">Page</dt>
+                          <dd className="break-all">
+                            <Link
+                              href={selectedPortal.source_page_path}
+                              className="text-admin-accent hover:underline"
+                            >
+                              {selectedPortal.source_page_path}
+                            </Link>
+                          </dd>
+                        </>
+                      ) : null}
+                    </dl>
+                  </AdminDetailSection>
+
+                  {selectedPortal.attachments.length > 0 ? (
+                    <AdminDetailSection title="Attachments">
+                      {attachmentsLoading ? (
+                        <p className="text-sm text-admin-faint">Loading attachments…</p>
+                      ) : attachmentsError ? (
+                        <p className="text-sm text-admin-error">{attachmentsError}</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {attachments.map((attachment) => (
+                            <div
+                              key={`${attachment.fileName}-${attachment.url}`}
+                              className="rounded-admin-md border border-admin-border bg-admin-bg p-3"
+                            >
+                              <a
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-admin-accent hover:underline"
+                              >
+                                {attachment.fileName}
+                              </a>
+                              {isImageMimeType(attachment.mimeType) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={attachment.url}
+                                  alt={attachment.fileName}
+                                  className="mt-3 max-h-80 w-full rounded-admin-sm border border-admin-border object-contain"
+                                />
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </AdminDetailSection>
+                  ) : null}
+
+                  <AdminDetailSection title="Metadata">
+                    <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                      <dt className="text-admin-muted">Request ID</dt>
+                      <dd className="break-all">{selectedPortal.id}</dd>
+                      <dt className="text-admin-muted">Created</dt>
+                      <dd>{formatTimestamp(selectedPortal.created_at)}</dd>
+                      <dt className="text-admin-muted">Updated</dt>
+                      <dd>{formatTimestamp(selectedPortal.updated_at)}</dd>
+                    </dl>
+                  </AdminDetailSection>
+                </AdminDetailLayout>
+              )
+            ) : !selectedPublic ? (
+              <AdminDetailEmpty message="Select a ticket" />
+            ) : (
+              <AdminDetailLayout>
+                <AdminDetailHeader
+                  title={selectedPublic.submitter_name}
+                  subtitle={selectedPublic.submitter_email}
+                  actions={
+                    <AdminSelect
+                      value={selectedPublic.status}
+                      onChange={(event) => {
+                        const nextStatus = parseSupportRequestStatus(
+                          event.target.value,
+                        );
+                        if (!nextStatus) return;
+                        void handlePublicStatusChange(selectedPublic.id, nextStatus);
+                      }}
+                    >
+                      {SUPPORT_REQUEST_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {TICKET_STATUS[status as TicketStatus].label}
+                        </option>
+                      ))}
+                    </AdminSelect>
+                  }
+                />
+
+                <AdminDetailSection title="Request">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                    <dt className="text-admin-muted">Topic</dt>
+                    <dd>{formatPublicSupportRequestTopic(selectedPublic.topic)}</dd>
+                    <dt className="text-admin-muted">Email</dt>
+                    <dd>{selectedPublic.submitter_email}</dd>
+                  </dl>
+                  <p className="whitespace-pre-wrap text-sm text-admin-text">
+                    {selectedPublic.description}
+                  </p>
+                </AdminDetailSection>
+
+                {selectedPublic.source_page_path ? (
+                  <AdminDetailSection title="Context">
+                    <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                      <dt className="text-admin-muted">Page</dt>
+                      <dd className="break-all">
+                        <Link
+                          href={selectedPublic.source_page_path}
+                          className="text-admin-accent hover:underline"
+                        >
+                          {selectedPublic.source_page_path}
+                        </Link>
+                      </dd>
+                    </dl>
+                  </AdminDetailSection>
+                ) : null}
+
+                <AdminDetailSection title="Metadata">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[120px_1fr]">
+                    <dt className="text-admin-muted">Request ID</dt>
+                    <dd className="break-all">{selectedPublic.id}</dd>
+                    <dt className="text-admin-muted">Created</dt>
+                    <dd>{formatTimestamp(selectedPublic.created_at)}</dd>
+                    <dt className="text-admin-muted">Updated</dt>
+                    <dd>{formatTimestamp(selectedPublic.updated_at)}</dd>
+                  </dl>
+                </AdminDetailSection>
+              </AdminDetailLayout>
+            )
+          }
+        />
+      </div>
+    </div>
   );
 }

@@ -83,8 +83,8 @@ Before each store release:
    npm run mobile:test
    ```
 3. Bump version when shipping user-visible release:
-   - [`apps/mobile/app.json`](../../apps/mobile/app.json) — `expo.version`
-   - iOS build number / Android `versionCode` (via `eas.json` `autoIncrement` or manual `app.json` / `eas build` prompts)
+   - [`apps/mobile/app.json`](../../apps/mobile/app.json) — `expo.version` (user-facing, e.g. `1.0.0`)
+   - iOS build number / Android `versionCode` — **auto-incremented** on production builds via [`eas.json`](../../apps/mobile/eas.json) (`cli.appVersionSource: remote`, `production.autoIncrement: true`). Do not bump these manually unless syncing an existing store app (`eas build:version:set`).
 4. Production build (see below).
 5. Submit to TestFlight / Play (see below).
 

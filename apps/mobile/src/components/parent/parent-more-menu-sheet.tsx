@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useMemo } from 'react';
+import { isParentFeatureEnabled } from '@/lib/parent/parent-features';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -73,6 +74,14 @@ const MENU_ITEMS: {
     iconColor: '#475569',
   },
   {
+    id: 'friday-branch',
+    label: 'Friday Branch',
+    subtitle: 'Sign up for Friday classes',
+    icon: 'calendar-outline',
+    iconBg: '#EDE9FE',
+    iconColor: '#7C3AED',
+  },
+  {
     id: 'notifications',
     label: 'Notification settings',
     subtitle: 'Family email preferences',
@@ -109,6 +118,16 @@ export function ParentMoreMenuSheet({
     return user ? getDisplayName(user) : '';
   }, [homeData?.userProfile.displayName, user]);
 
+  const fridayBranchEnabled = isParentFeatureEnabled(homeData?.features, 'friday_branch');
+  const visibleMenuItems = useMemo(
+    () =>
+      MENU_ITEMS.filter((item) => {
+        if (item.id === 'friday-branch') return fridayBranchEnabled;
+        return true;
+      }),
+    [fridayBranchEnabled],
+  );
+
   useEffect(() => {
     if (visible) {
       ensureLoaded();
@@ -124,7 +143,7 @@ export function ParentMoreMenuSheet({
       />
 
       <StoryMoreMenuItemsCard>
-        {MENU_ITEMS.map((item, index) => (
+        {visibleMenuItems.map((item, index) => (
           <StoryMoreMenuItemRow
             key={item.id}
             isFirst={index === 0}

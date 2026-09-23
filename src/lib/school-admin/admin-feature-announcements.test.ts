@@ -58,9 +58,9 @@ describe("admin-feature-announcements", () => {
       },
     );
 
-    assert.equal(announcements.length, 11);
-    assert.equal(announcements[0]?.publishedAt, "2026-09-10");
-    assert.equal(announcements[0]?.id, "waive-tuition-charges");
+    assert.equal(announcements.length, 17);
+    assert.equal(announcements[0]?.publishedAt, "2026-09-22");
+    assert.equal(announcements[0]?.id, "friday-branch-scheduling");
   });
 
   it("returns recent announcements sorted by publishedAt descending", () => {
@@ -75,11 +75,11 @@ describe("admin-feature-announcements", () => {
     );
 
     assert.equal(announcements.length, 5);
-    assert.equal(announcements[0]?.id, "waive-tuition-charges");
-    assert.equal(announcements[1]?.id, "coop-supply-list");
-    assert.equal(announcements[2]?.id, "coop-teaching-schedule");
-    assert.equal(announcements[3]?.id, "coop-curriculum-guides");
-    assert.equal(announcements[4]?.id, "tuition-payment-history");
+    assert.equal(announcements[0]?.id, "friday-branch-scheduling");
+    assert.equal(announcements[1]?.id, "committee-workspace");
+    assert.equal(announcements[2]?.id, "mobile-attendance");
+    assert.equal(announcements[3]?.id, "incomplete-admissions-reminders");
+    assert.equal(announcements[4]?.id, "parent-message-broadcasts");
   });
 
   it("filters announcements outside the sinceDays window", () => {
@@ -95,9 +95,9 @@ describe("admin-feature-announcements", () => {
 
     const ids = announcements.map((announcement) => announcement.id);
 
-    assert.equal(ids.length, 10);
+    assert.equal(ids.length, 16);
     assert.equal(ids.includes("admissions-submissions"), false);
-    assert.equal(ids[0], "waive-tuition-charges");
+    assert.equal(ids[0], "friday-branch-scheduling");
     assert.equal(ids.at(-1), "tuition-workspace");
   });
 
@@ -114,7 +114,7 @@ describe("admin-feature-announcements", () => {
 
     const ids = announcements.map((announcement) => announcement.id);
 
-    assert.equal(ids.length, 10);
+    assert.equal(ids.length, 16);
     assert.equal(ids.includes("admissions-submissions"), false);
     assert.equal(ids.includes("program-parent-portals"), true);
     assert.equal(ids.includes("coop-curriculum-guides"), true);
@@ -171,7 +171,7 @@ describe("admin-feature-announcements", () => {
 
     assert.equal(
       announcement?.href,
-      "/school/demo-school/admin/my_school/tuition",
+      "/school/demo-school/admin/my_school/friday_branch",
     );
   });
 

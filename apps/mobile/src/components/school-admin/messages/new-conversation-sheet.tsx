@@ -2,14 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { NewConversationContactFilters } from '@/components/school-admin/messages/new-conversation-contact-filters';
@@ -17,6 +15,7 @@ import { NewConversationContactsSkeleton } from '@/components/school-admin/messa
 import {
   MESSAGES_SEARCH_FIELD_BG,
 } from '@/components/parent/messages/messages-layout';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { ThemedText } from '@/components/themed-text';
 import { StoryFonts } from '@/constants/story-theme';
@@ -57,7 +56,6 @@ export function NewConversationSheet({
   const parentTheme = useOptionalParentTheme();
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const adminStory = isAdminStoryMessagesVariant(variant);
-  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [audienceFilter, setAudienceFilter] = useState<MessageContactAudienceFilter>('all');
 
@@ -93,10 +91,20 @@ export function NewConversationSheet({
   const textTertiary = parentStory ? parentTheme.muted : theme.textTertiary;
   const searchBg = parentStory ? MESSAGES_SEARCH_FIELD_BG : theme.input;
   const searchBorder = parentStory ? parentTheme.line : theme.inputBorder;
+  const handleColor = parentStory ? parentTheme.line : theme.borderStrong;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor, paddingTop: insets.top }]}>
+    <BottomSheetShell
+      visible={visible}
+      onClose={onClose}
+      scrollable={false}
+      keyboardShouldPersistTaps="handled"
+      backgroundColor={backgroundColor}
+      borderColor={borderColor}
+      handleColor={handleColor}
+      maxHeight="92%"
+      sheetStyle={styles.sheet}
+      header={
         <View style={[styles.header, { borderBottomColor: borderColor, backgroundColor: surfaceColor }]}>
           <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
             {parentStory ? (
@@ -118,61 +126,61 @@ export function NewConversationSheet({
           )}
           <View style={styles.headerSpacer} />
         </View>
-
-        <View style={styles.toolbar}>
-          <View
+      }>
+      <View style={styles.toolbar}>
+        <View
+          style={[
+            styles.searchWrap,
+            {
+              backgroundColor: searchBg,
+              borderColor: searchBorder,
+            },
+          ]}>
+          <Ionicons name="search" size={18} color={textTertiary} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search contacts"
+            placeholderTextColor={textTertiary}
+            autoCorrect={false}
             style={[
-              styles.searchWrap,
+              styles.searchInput,
               {
-                backgroundColor: searchBg,
-                borderColor: searchBorder,
+                color: textPrimary,
+                fontFamily: parentStory ? StoryFonts.body : Fonts.body,
               },
-            ]}>
-            <Ionicons name="search" size={18} color={textTertiary} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search contacts"
-              placeholderTextColor={textTertiary}
-              autoCorrect={false}
-              style={[
-                styles.searchInput,
-                {
-                  color: textPrimary,
-                  fontFamily: parentStory ? StoryFonts.body : Fonts.body,
-                },
-              ]}
-            />
-          </View>
-
-          {adminStory ? (
-            <NewConversationContactFilters
-              contacts={contacts}
-              activeFilter={audienceFilter}
-              onChange={setAudienceFilter}
-            />
-          ) : null}
+            ]}
+          />
         </View>
 
-        {loadingContacts ? (
-          <NewConversationContactsSkeleton />
-        ) : (
-          <FlatList
-            data={filteredContacts}
-            keyExtractor={(item) => item.key}
-            contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
-            style={{ backgroundColor: surfaceColor, flex: 1 }}
-            ListEmptyComponent={
-              parentStory ? (
-                <Text style={[styles.emptyText, { color: textTertiary }]}>{emptyMessage}</Text>
-              ) : (
-                <ThemedText type="small" style={{ color: textTertiary, textAlign: 'center', marginTop: 24 }}>
-                  {emptyMessage}
-                </ThemedText>
-              )
-            }
-            renderItem={({ item }) => (
+        {adminStory ? (
+          <NewConversationContactFilters
+            contacts={contacts}
+            activeFilter={audienceFilter}
+            onChange={setAudienceFilter}
+          />
+        ) : null}
+      </View>
+
+      {loadingContacts ? (
+        <NewConversationContactsSkeleton />
+      ) : (
+        <FlatList
+          data={filteredContacts}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          style={[styles.list, { backgroundColor: surfaceColor }]}
+          ListEmptyComponent={
+            parentStory ? (
+              <Text style={[styles.emptyText, { color: textTertiary }]}>{emptyMessage}</Text>
+            ) : (
+              <ThemedText type="small" style={{ color: textTertiary, textAlign: 'center', marginTop: 24 }}>
+                {emptyMessage}
+              </ThemedText>
+            )
+          }
+          renderItem={({ item }) => (
             <Pressable
               accessibilityRole="button"
               onPress={() => onSelect(item)}
@@ -211,16 +219,15 @@ export function NewConversationSheet({
               </View>
             </Pressable>
           )}
-          />
-        )}
-      </View>
-    </Modal>
+        />
+      )}
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  sheet: {
+    minHeight: '60%',
   },
   header: {
     flexDirection: 'row',
@@ -263,6 +270,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 4,
+  },
+  list: {
+    flexGrow: 1,
+    maxHeight: 480,
   },
   listContent: {
     paddingBottom: Spacing.six,

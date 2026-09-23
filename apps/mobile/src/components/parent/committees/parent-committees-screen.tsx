@@ -20,6 +20,14 @@ import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentCommittees } from '@/contexts/parent-committees-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type {
+  CommitteesContextValue,
+  CommitteesPortal,
+} from '@/lib/committees/committees-portal-config';
+import {
+  getCommitteesExploreRoute,
+  getCommitteesWorkspaceRoute,
+} from '@/lib/committees/committees-portal-config';
+import type {
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
   ParentCommitteesTab,
@@ -28,16 +36,18 @@ import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 
-type ParentCommitteesScreenProps = {
+type CommitteesScreenProps = {
   slug: string;
   organizationId: string;
+  portal: CommitteesPortal;
+  useCommittees: () => CommitteesContextValue;
 };
 
 type ListItem =
   | { kind: 'browse'; committee: ParentCommitteeBrowseItem }
   | { kind: 'mine'; committee: ParentCommitteeListItem };
 
-export function ParentCommitteesScreen({ slug, organizationId: _organizationId }: ParentCommitteesScreenProps) {
+function CommitteesScreen({ slug, portal, useCommittees }: CommitteesScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
   const {
@@ -49,7 +59,7 @@ export function ParentCommitteesScreen({ slug, organizationId: _organizationId }
     hasLoaded,
     ensureLoaded,
     refresh,
-  } = useParentCommittees();
+  } = useCommittees();
   const [activeTab, setActiveTab] = useState<ParentCommitteesTab>('explore');
 
   useEffect(() => {
@@ -65,16 +75,16 @@ export function ParentCommitteesScreen({ slug, organizationId: _organizationId }
 
   const handleOpenBrowse = useCallback(
     (committeeId: string) => {
-      router.push(`/parent/${slug}/more/committees/explore/${committeeId}`);
+      router.push(getCommitteesExploreRoute(slug, portal, committeeId));
     },
-    [router, slug],
+    [portal, router, slug],
   );
 
   const handleOpenWorkspace = useCallback(
     (committeeId: string) => {
-      router.push(`/parent/${slug}/more/committees/workspace/${committeeId}`);
+      router.push(getCommitteesWorkspaceRoute(slug, portal, committeeId));
     },
-    [router, slug],
+    [portal, router, slug],
   );
 
   const listHeader = (
@@ -128,7 +138,11 @@ export function ParentCommitteesScreen({ slug, organizationId: _organizationId }
             {item.kind === 'browse' ? (
               <ParentCommitteeBrowseListItem
                 committee={item.committee}
-                onPress={() => handleOpenBrowse(item.committee.id)}
+                onPress={() =>
+                  item.committee.isMember
+                    ? handleOpenWorkspace(item.committee.id)
+                    : handleOpenBrowse(item.committee.id)
+                }
               />
             ) : (
               <ParentCommitteeMineListItem
@@ -142,6 +156,24 @@ export function ParentCommitteesScreen({ slug, organizationId: _organizationId }
     </View>
   );
 }
+
+type ParentCommitteesScreenProps = {
+  slug: string;
+  organizationId: string;
+};
+
+export function ParentCommitteesScreen({ slug, organizationId }: ParentCommitteesScreenProps) {
+  return (
+    <CommitteesScreen
+      slug={slug}
+      organizationId={organizationId}
+      portal="parent"
+      useCommittees={useParentCommittees}
+    />
+  );
+}
+
+export { CommitteesScreen };
 
 const styles = StyleSheet.create({
   container: {

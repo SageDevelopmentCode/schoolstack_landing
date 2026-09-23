@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -24,59 +24,57 @@ type ParentEventDetailSheetProps = {
 
 export function ParentEventDetailSheet({ visible, event, onClose }: ParentEventDetailSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
 
   if (!event) return null;
 
   return (
-    <Modal
+    <BottomSheetShell
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: theme.white, paddingTop: insets.top }]}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View
-            style={[
-              styles.hero,
-              {
-                backgroundColor: theme.primarySoft,
-                borderBottomColor: theme.line,
-              },
-            ]}>
-            <View style={styles.heroTop}>
-              <StoryChip
-                tone={eventTypeChipTone(event.type)}
-                label={SCHOOL_EVENT_TYPE_LABELS[event.type]}
-              />
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
-            <StoryDisplayHeading size="section" style={styles.title}>
-              {event.title}
-            </StoryDisplayHeading>
-          </View>
-
-          <View style={styles.details}>
-            <DetailField theme={theme} label="Date" value={formatLongEventDate(event.date)} />
-            <DetailField theme={theme} label="Time" value={formatEventTimeRange(event)} />
-            {event.location ? (
-              <DetailField theme={theme} label="Location" value={event.location} icon="location-outline" />
-            ) : null}
-            {event.description ? (
-              <DetailField
-                theme={theme}
-                label="Details"
-                value={event.description}
-                muted
-                multiline
-              />
-            ) : null}
-          </View>
-        </ScrollView>
+      onClose={onClose}
+      backgroundColor={theme.white}
+      borderColor={theme.line}
+      handleColor={theme.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.scrollContent}>
+      <View
+        style={[
+          styles.hero,
+          {
+            backgroundColor: theme.primarySoft,
+            borderBottomColor: theme.line,
+          },
+        ]}>
+        <View style={styles.heroTop}>
+          <StoryChip
+            tone={eventTypeChipTone(event.type)}
+            label={SCHOOL_EVENT_TYPE_LABELS[event.type]}
+          />
+          <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={22} color={theme.muted} />
+          </Pressable>
+        </View>
+        <StoryDisplayHeading size="section" style={styles.title}>
+          {event.title}
+        </StoryDisplayHeading>
       </View>
-    </Modal>
+
+      <View style={styles.details}>
+        <DetailField theme={theme} label="Date" value={formatLongEventDate(event.date)} />
+        <DetailField theme={theme} label="Time" value={formatEventTimeRange(event)} />
+        {event.location ? (
+          <DetailField theme={theme} label="Location" value={event.location} icon="location-outline" />
+        ) : null}
+        {event.description ? (
+          <DetailField
+            theme={theme}
+            label="Details"
+            value={event.description}
+            muted
+            multiline
+          />
+        ) : null}
+      </View>
+    </BottomSheetShell>
   );
 }
 
@@ -114,9 +112,6 @@ function DetailField({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     paddingBottom: Spacing.six,
   },

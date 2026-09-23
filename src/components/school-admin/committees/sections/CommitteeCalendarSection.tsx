@@ -19,7 +19,7 @@ import {
   committeeEventsToOrganizationEvents,
   findCommitteeEventById,
 } from "@/lib/committees/committee-events-calendar";
-import { createEvent, deleteEvent } from "@/lib/committees/events";
+import { createEvent, deleteEvent, updateEvent } from "@/lib/committees/events";
 import { getCommittee } from "@/lib/committees/committees";
 import type { Committee } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -59,8 +59,10 @@ export default function CommitteeCalendarSection({
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [periodKey, setPeriodKey] = useState("initial");
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [showAgendaSidebar, setShowAgendaSidebar] = useState(false);
   const [addForm, setAddForm] = useState<CommitteeAddEventFormState>(EMPTY_ADD_EVENT_FORM);
+  const [editForm, setEditForm] = useState<CommitteeAddEventFormState>(EMPTY_ADD_EVENT_FORM);
   const [saving, setSaving] = useState(false);
 
   const calendarEvents = useMemo(
@@ -68,7 +70,7 @@ export default function CommitteeCalendarSection({
     [committee.events, organizationId],
   );
   const selectedCommitteeEvent = findCommitteeEventById(committee.events, selectedEventId);
-  const canDeleteSelected =
+  const canManageSelected =
     selectedCommitteeEvent != null &&
     canMemberEditItem(
       selectedCommitteeEvent.createdByMemberId,
@@ -113,6 +115,45 @@ export default function CommitteeCalendarSection({
         error: "",
       }, err);
       adminToast.error(formatActionError(err, "Failed to add event."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditPanel = () => {
+    if (!selectedCommitteeEvent || readOnly || !canManageSelected) return;
+    setEditForm({
+      title: selectedCommitteeEvent.title,
+      date: selectedCommitteeEvent.date,
+      time: selectedCommitteeEvent.time ?? "",
+      eventType: selectedCommitteeEvent.type,
+      location: selectedCommitteeEvent.location ?? "",
+    });
+    setShowEdit(true);
+  };
+
+  const handleEdit = async () => {
+    if (!selectedCommitteeEvent || !editForm.title.trim() || !editForm.date) return;
+    setSaving(true);
+    try {
+      await updateEvent(supabase, selectedCommitteeEvent.id, {
+        title: editForm.title.trim(),
+        date: editForm.date,
+        time: editForm.time || null,
+        type: editForm.eventType,
+        location: editForm.location || null,
+      });
+      setShowEdit(false);
+      setSelectedEventId(null);
+      await refresh();
+      adminToast.success("Event updated");
+    } catch (err) {
+      void reportPortalOperationalError(committeeOperationalSurface(isAdmin), {
+        organizationId,
+        operation: "committees.calendar.edit_event",
+        error: "",
+      }, err);
+      adminToast.error(formatActionError(err, "Failed to update event."));
     } finally {
       setSaving(false);
     }
@@ -200,11 +241,13 @@ export default function CommitteeCalendarSection({
       <CommitteeEventDetailPanel
         event={selectedCommitteeEvent}
         theme={theme}
-        readOnly={readOnly || !canDeleteSelected}
+        readOnly={readOnly}
+        canManage={canManageSelected}
         members={committee.members}
         onClose={() => setSelectedEventId(null)}
+        onEdit={readOnly || !canManageSelected ? undefined : openEditPanel}
         onDelete={
-          readOnly || !canDeleteSelected
+          readOnly || !canManageSelected
             ? undefined
             : (eventId) => void handleDelete(eventId)
         }
@@ -218,6 +261,19 @@ export default function CommitteeCalendarSection({
         onChange={setAddForm}
         onClose={() => setShowAdd(false)}
         onSubmit={handleAdd}
+      />
+
+      <CommitteeAddEventPanel
+        open={showEdit}
+        theme={theme}
+        saving={saving}
+        form={editForm}
+        onChange={setEditForm}
+        onClose={() => setShowEdit(false)}
+        onSubmit={handleEdit}
+        title="Edit event"
+        submitLabel="Save changes"
+        formId="committee-edit-event-form"
       />
     </div>
     </CommitteeWorkspaceSectionFrame>

@@ -9,6 +9,7 @@ import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
 import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
+import { ParentHomeFridayBranchCard } from '@/components/parent/home/parent-home-friday-branch-card';
 import { ParentHomeFormsSnapshotCard } from '@/components/parent/home/parent-home-forms-snapshot-card';
 import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
@@ -22,6 +23,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { isParentHomeFridayBranchEnabled } from '@/lib/parent/parent-features';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -216,6 +218,16 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
             onViewCalendar={() => router.replace(parentTabRoute(slug, 'calendar'))}
           />
         </Animated.View>
+
+        {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
+          <Animated.View entering={FadeInDown.delay(100).duration(350)}>
+            <ParentHomeFridayBranchCard
+              slug={slug}
+              organizationId={data.organizationId}
+              initialBundle={data.fridayBranchHome}
+            />
+          </Animated.View>
+        ) : null}
 
         <Animated.View entering={FadeInDown.delay(120).duration(350)} style={styles.section}>
           <StoryDisplayHeading size="section">Your children</StoryDisplayHeading>

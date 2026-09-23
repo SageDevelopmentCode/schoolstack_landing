@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StudentPhoto } from '@/components/school-admin/student-photo';
+import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -58,7 +58,6 @@ export function ParentAttendanceHistoryDetailSheet({
   onClose,
 }: ParentAttendanceHistoryDetailSheetProps) {
   const theme = useParentTheme();
-  const insets = useSafeAreaInsets();
 
   if (!entry) return null;
 
@@ -74,83 +73,79 @@ export function ParentAttendanceHistoryDetailSheet({
         : null;
 
   return (
-    <Modal
+    <BottomSheetShell
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
-      <View
-        style={[styles.container, { backgroundColor: theme.white, paddingTop: insets.top }]}
-        testID="parent-attendance-history-detail-sheet">
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View
-            style={[
-              styles.hero,
-              {
-                backgroundColor: theme.primarySoft,
-                borderBottomColor: theme.line,
-              },
-            ]}>
-            <View style={styles.heroTop}>
-              <StoryChip
-                tone={attendanceStatusTone(entry.status)}
-                label={attendanceStatusLabel(entry.status)}
-              />
-              <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
-                <Ionicons name="close" size={22} color={theme.muted} />
-              </Pressable>
-            </View>
-            <StoryDisplayHeading size="section" style={styles.title}>
-              {fullDateLabel}
-            </StoryDisplayHeading>
-            <Text style={[styles.subtitle, { color: theme.muted }]}>
-              {firstName}&apos;s attendance
+      onClose={onClose}
+      backgroundColor={theme.white}
+      borderColor={theme.line}
+      handleColor={theme.line}
+      maxHeight="92%"
+      scrollContentStyle={styles.scrollContent}>
+      <View testID="parent-attendance-history-detail-sheet">
+        <View
+          style={[
+            styles.hero,
+            {
+              backgroundColor: theme.primarySoft,
+              borderBottomColor: theme.line,
+            },
+          ]}>
+          <View style={styles.heroTop}>
+            <StoryChip
+              tone={attendanceStatusTone(entry.status)}
+              label={attendanceStatusLabel(entry.status)}
+            />
+            <Pressable accessibilityRole="button" onPress={onClose} hitSlop={8}>
+              <Ionicons name="close" size={22} color={theme.muted} />
+            </Pressable>
+          </View>
+          <StoryDisplayHeading size="section" style={styles.title}>
+            {fullDateLabel}
+          </StoryDisplayHeading>
+          <Text style={[styles.subtitle, { color: theme.muted }]}>
+            {firstName}&apos;s attendance
+          </Text>
+        </View>
+
+        <View style={styles.details}>
+          <DetailField theme={theme} label="Recorded at">
+            <Text style={[styles.detailText, { color: theme.ink }]}>
+              {recordedTime ?? '—'}
             </Text>
-          </View>
+          </DetailField>
 
-          <View style={styles.details}>
-            <DetailField theme={theme} label="Recorded at">
-              <Text style={[styles.detailText, { color: theme.ink }]}>
-                {recordedTime ?? '—'}
-              </Text>
+          {staffRecorder ? (
+            <DetailField theme={theme} label="Recorded by">
+              <View style={styles.personRow}>
+                <StudentPhoto
+                  name={staffRecorder.name}
+                  photoUrl={staffRecorder.photoUrl}
+                  size="sm"
+                />
+                <Text style={[styles.detailText, { color: theme.ink }]}>
+                  {staffRecorder.name}
+                </Text>
+              </View>
             </DetailField>
+          ) : null}
 
-            {staffRecorder ? (
-              <DetailField theme={theme} label="Recorded by">
-                <View style={styles.personRow}>
-                  <StudentPhoto
-                    name={staffRecorder.name}
-                    photoUrl={staffRecorder.photoUrl}
-                    size="sm"
-                  />
-                  <Text style={[styles.detailText, { color: theme.ink }]}>
-                    {staffRecorder.name}
-                  </Text>
-                </View>
-              </DetailField>
-            ) : null}
-
-            {entry.status === 'picked_up' && entry.pickedUpByName ? (
-              <DetailField theme={theme} label="Picked up by">
-                <View style={styles.personRow}>
-                  <StudentPhoto name={entry.pickedUpByName} photoUrl={null} size="sm" />
-                  <Text style={[styles.detailText, { color: theme.ink }]}>
-                    {entry.pickedUpByName}
-                  </Text>
-                </View>
-              </DetailField>
-            ) : null}
-          </View>
-        </ScrollView>
+          {entry.status === 'picked_up' && entry.pickedUpByName ? (
+            <DetailField theme={theme} label="Picked up by">
+              <View style={styles.personRow}>
+                <StudentPhoto name={entry.pickedUpByName} photoUrl={null} size="sm" />
+                <Text style={[styles.detailText, { color: theme.ink }]}>
+                  {entry.pickedUpByName}
+                </Text>
+              </View>
+            </DetailField>
+          ) : null}
+        </View>
       </View>
-    </Modal>
+    </BottomSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContent: {
     paddingBottom: Spacing.six,
   },

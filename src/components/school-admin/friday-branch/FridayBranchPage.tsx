@@ -17,8 +17,11 @@ import {
   duplicateBlock,
   getScheduleGaps,
 } from "@/lib/school-admin/friday-branch/friday-branch-mock";
+import { diffRemovedFridayBranchFlyerPaths } from "@/lib/school-admin/friday-branch/friday-branch-flyer-paths";
+import { removeFridayBranchClassFlyer } from "@/lib/school-admin/friday-branch/friday-branch-class-flyer-storage";
 import { putFridayBranchSchedule } from "@/lib/school-admin/friday-branch/friday-branch-schedule-api";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
+import { createClient } from "@/utils/supabase/client";
 import FridayBranchBlockDetailsSheet from "./FridayBranchBlockDetailsSheet";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
 import FridayBranchRecentActivity from "./FridayBranchRecentActivity";
@@ -140,6 +143,7 @@ export default function FridayBranchPage({
 
   const persistSchedule = useCallback(
     async (blocksToSave: FridayBranchBlock[], successMessage: string) => {
+      const pathsToDelete = diffRemovedFridayBranchFlyerPaths(savedBlocks, blocksToSave);
       setSaving(true);
       try {
         const nextBlocks = await putFridayBranchSchedule(organizationId, blocksToSave);
@@ -151,6 +155,18 @@ export default function FridayBranchPage({
           }
           return nextBlocks[0]?.id ?? null;
         });
+
+        if (pathsToDelete.length > 0) {
+          const supabase = createClient();
+          for (const path of pathsToDelete) {
+            try {
+              await removeFridayBranchClassFlyer(supabase, path);
+            } catch {
+              // Best-effort cleanup of orphaned flyer files.
+            }
+          }
+        }
+
         adminToast.success(successMessage);
       } catch (err) {
         adminToast.error(formatActionError(err, "Failed to save Friday Branch schedule."));
@@ -164,7 +180,7 @@ export default function FridayBranchPage({
         setSaving(false);
       }
     },
-    [organizationId],
+    [organizationId, savedBlocks],
   );
 
   const handleSave = async () => {

@@ -236,6 +236,7 @@ export function getProgramParentPortalPreviewBillingInitialData(
     hasBillingSplit: false,
     initialChildKey: "preview-student-1",
     showTaxCreditPaymentBanner: false,
+    tuitionAgreements: [],
   };
 }
 

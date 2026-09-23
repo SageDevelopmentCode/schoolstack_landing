@@ -3,6 +3,7 @@ import type { TuitionCharge } from '@/lib/parent/parent-portal-api';
 export const OPEN_CHARGE_STATUSES = new Set(['scheduled', 'sent', 'overdue']);
 
 export const PARENT_BILLING_SUMMARY_TAB = 'summary';
+export const PARENT_BILLING_AGREEMENTS_TAB = 'agreements';
 
 export function chargeRemainingCents(charge: {
   amountCents: number;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Archive, Copy, Download, FileText, Pencil, X } from "lucide-react";
+import { Archive, Copy, Download, FileText, Send, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
@@ -18,7 +18,7 @@ import {
   type TeacherParentForm,
 } from "@/lib/school-teacher/forms-documents/types";
 import {
-  formatClassroomNames,
+  formatAudienceLabel,
   formatFormDueDate,
   getFormProgressPercent,
 } from "@/lib/school-teacher/forms-documents/utils";
@@ -37,6 +37,7 @@ type TeacherFormDetailSidebarProps = {
   onArchive?: (formId: string) => void;
   onDuplicate?: (formId: string) => void;
   onDownload?: (formId: string) => void;
+  onSend?: (form: TeacherParentForm) => void;
   fetchDownloadUrl?: (formId: string, organizationId: string) => Promise<string>;
 };
 
@@ -67,16 +68,17 @@ export default function TeacherFormDetailSidebar({
   onArchive,
   onDuplicate,
   onDownload,
+  onSend,
   fetchDownloadUrl,
 }: TeacherFormDetailSidebarProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [displayedForm, setDisplayedForm] = useState<TeacherParentForm | null>(form);
 
   useEffect(() => {
-    if (form) {
+    if (open && form) {
       queueMicrotask(() => setDisplayedForm(form));
     }
-  }, [form]);
+  }, [open, form]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,13 +89,14 @@ export default function TeacherFormDetailSidebar({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  if (!displayedForm) return null;
+  const contentForm = open ? (form ?? displayedForm) : displayedForm;
+  if (!contentForm) return null;
 
-  const progressPercent = getFormProgressPercent(displayedForm);
+  const progressPercent = getFormProgressPercent(contentForm);
   const typeLabel =
-    displayedForm.formType === "upload" && displayedForm.uploadFormat
-      ? displayedForm.uploadFormat.toUpperCase()
-      : FORM_TYPE_LABELS[displayedForm.formType];
+    contentForm.formType === "upload" && contentForm.uploadFormat
+      ? contentForm.uploadFormat.toUpperCase()
+      : FORM_TYPE_LABELS[contentForm.formType];
 
   const backdropTransition = { duration: reducedMotion ? 0.1 : 0.15 };
   const panelTransition = reducedMotion
@@ -149,20 +152,20 @@ export default function TeacherFormDetailSidebar({
                   className="mt-1 truncate text-base font-semibold"
                   style={{ color: theme.ink, fontFamily: theme.fontDisplay }}
                 >
-                  {displayedForm.title}
+                  {contentForm.title}
                 </h2>
                 <p className="mt-1 line-clamp-2 text-sm" style={{ color: theme.muted }}>
-                  {displayedForm.description}
+                  {contentForm.description}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <ParentChip theme={theme} tone="info">{typeLabel}</ParentChip>
-                  <ParentChip theme={theme} tone={statusChipVariant(displayedForm.status)}>
-                    {FORM_STATUS_LABELS[displayedForm.status]}
+                  <ParentChip theme={theme} tone={statusChipVariant(contentForm.status)}>
+                    {FORM_STATUS_LABELS[contentForm.status]}
                   </ParentChip>
                 </div>
                 <p className="mt-1.5 text-xs" style={{ color: theme.muted }}>
-                  {formatClassroomNames(displayedForm.classroomNames)} · Due{" "}
-                  {formatFormDueDate(displayedForm.dueDate)}
+                  {formatAudienceLabel(contentForm)} · Due{" "}
+                  {formatFormDueDate(contentForm.dueDate)}
                 </p>
               </div>
               <button
@@ -180,16 +183,17 @@ export default function TeacherFormDetailSidebar({
                 className="flex shrink-0 flex-col gap-2 border-b px-5 py-3 sm:flex-row sm:flex-wrap"
                 style={{ borderColor: theme.line }}
               >
-                {displayedForm.status === "draft" ? (
+                {contentForm.status === "draft" ? (
                   <AdminButton
                     theme={theme}
-                    variant="soft"
+                    variant="primary"
                     size="compact"
                     className="w-full sm:w-auto"
                     disabled={actionLoading}
+                    onClick={() => onSend?.(contentForm)}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
+                    <Send className="h-3.5 w-3.5" />
+                    Send to families
                   </AdminButton>
                 ) : null}
                 <AdminButton
@@ -198,19 +202,19 @@ export default function TeacherFormDetailSidebar({
                   size="compact"
                   className="w-full sm:w-auto"
                   disabled={actionLoading}
-                  onClick={() => onDuplicate?.(displayedForm.id)}
+                  onClick={() => onDuplicate?.(contentForm.id)}
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Duplicate
                 </AdminButton>
-                {displayedForm.status !== "archived" ? (
+                {contentForm.status !== "archived" ? (
                   <AdminButton
                     theme={theme}
                     variant="outline"
                     size="compact"
                     className="w-full sm:w-auto"
                     disabled={actionLoading}
-                    onClick={() => onArchive?.(displayedForm.id)}
+                    onClick={() => onArchive?.(contentForm.id)}
                   >
                     <Archive className="h-3.5 w-3.5" />
                     Archive
@@ -223,30 +227,32 @@ export default function TeacherFormDetailSidebar({
               {detailLoading ? (
                 <TeacherFormDetailSkeleton
                   theme={theme}
-                  formType={displayedForm.formType}
+                  formType={contentForm.formType}
                 />
               ) : (
                 <div className="flex flex-col gap-5">
-                  <AdminCard theme={theme} padding="canvas">
-                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                      {displayedForm.signedFamilies} of {displayedForm.totalFamilies} families
-                      signed
-                    </p>
-                    <div
-                      className="mt-2 h-2 w-full overflow-hidden rounded-full"
-                      style={{ backgroundColor: theme.line }}
-                    >
+                  {contentForm.status === "active" ? (
+                    <AdminCard theme={theme} padding="canvas">
+                      <p className="text-sm font-semibold" style={{ color: theme.ink }}>
+                        {contentForm.signedFamilies} of {contentForm.totalFamilies} families
+                        signed
+                      </p>
                       <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${progressPercent}%`,
-                          backgroundColor: theme.primary,
-                        }}
-                      />
-                    </div>
-                  </AdminCard>
+                        className="mt-2 h-2 w-full overflow-hidden rounded-full"
+                        style={{ backgroundColor: theme.line }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${progressPercent}%`,
+                            backgroundColor: theme.primary,
+                          }}
+                        />
+                      </div>
+                    </AdminCard>
+                  ) : null}
 
-                  {displayedForm.formType === "upload" ? (
+                  {contentForm.formType === "upload" ? (
                     <AdminCard theme={theme} padding="canvas">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
@@ -258,12 +264,12 @@ export default function TeacherFormDetailSidebar({
                           </div>
                           <div>
                             <p className="text-sm font-semibold" style={{ color: theme.ink }}>
-                              {displayedForm.uploadFileName ?? "Uploaded document"}
+                              {contentForm.uploadFileName ?? "Uploaded document"}
                             </p>
                             <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
-                              {displayedForm.uploadFormat?.toUpperCase() ?? "PDF"}
-                              {displayedForm.uploadFileSize
-                                ? ` · ${displayedForm.uploadFileSize}`
+                              {contentForm.uploadFormat?.toUpperCase() ?? "PDF"}
+                              {contentForm.uploadFileSize
+                                ? ` · ${contentForm.uploadFileSize}`
                                 : ""}
                             </p>
                           </div>
@@ -273,7 +279,7 @@ export default function TeacherFormDetailSidebar({
                           variant="outline"
                           size="compact"
                           disabled={actionLoading}
-                          onClick={() => onDownload?.(displayedForm.id)}
+                          onClick={() => onDownload?.(contentForm.id)}
                         >
                           <Download className="h-3.5 w-3.5" />
                           Download
@@ -282,7 +288,7 @@ export default function TeacherFormDetailSidebar({
                       <div className="mt-5">
                         <TeacherFormDocumentPreview
                           theme={theme}
-                          form={displayedForm}
+                          form={contentForm}
                           organizationId={organizationId}
                           previewMode={previewMode}
                           previewUrl={previewUrl}
@@ -296,7 +302,7 @@ export default function TeacherFormDetailSidebar({
                         Form fields
                       </p>
                       <div className="flex flex-col gap-2">
-                        {(displayedForm.fields ?? []).map((field, index) => (
+                        {(contentForm.fields ?? []).map((field, index) => (
                           <div
                             key={field.id}
                             className="flex items-center gap-3 rounded-xl border px-3 py-2.5"

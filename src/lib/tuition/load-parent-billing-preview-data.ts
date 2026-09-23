@@ -17,6 +17,7 @@ import { getRecentAutopayFailureForFamily } from "@/lib/tuition/autopay-failure-
 import { rowToBillingAccount } from "@/lib/tuition/row-mappers";
 import { fetchFamilyBillingReadiness } from "@/lib/tuition/tuition-readiness";
 import { shouldShowTaxCreditPaymentBanner } from "@/lib/tuition/family-checklist-responses";
+import { loadParentTuitionAgreements } from "@/lib/tuition/load-parent-tuition-agreements";
 import type { ParentBillingInitialData } from "@/lib/tuition/load-parent-billing-data";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -38,7 +39,7 @@ export async function loadParentBillingPreviewData(input: {
   const billingSplits = await listBillingSplits(admin, input.familyId);
   const hasBillingSplit = billingSplits.length > 0;
 
-  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState] =
+  const [allFamilyCharges, paymentRows, adjustmentRows, readinessState, tuitionAgreements] =
     await Promise.all([
       listChargesForFamily(admin, input.familyId),
       listParentTuitionPaymentHistory(admin, input.familyId),
@@ -48,6 +49,7 @@ export async function loadParentBillingPreviewData(input: {
         familyId: input.familyId,
         slug: input.slug,
       }),
+      loadParentTuitionAgreements(admin, input.organizationId, input.familyId),
     ]);
 
   const chargeRows = filterChargesForFamilyGuardian(
@@ -111,5 +113,6 @@ export async function loadParentBillingPreviewData(input: {
     hasBillingSplit,
     initialChildKey: pickInitialChildKey(familySummary.children),
     showTaxCreditPaymentBanner,
+    tuitionAgreements,
   };
 }
