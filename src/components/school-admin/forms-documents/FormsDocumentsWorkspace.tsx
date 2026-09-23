@@ -765,7 +765,11 @@ export default function FormsDocumentsWorkspace({
                 title={emptyState?.title}
                 description={emptyState?.description}
                 createLabel={emptyState?.createLabel}
-                onCreate={() => setCreating(true)}
+                onCreate={
+                  typeof header === "function"
+                    ? undefined
+                    : () => setCreating(true)
+                }
               />
             ) : filteredForms.length === 0 ? (
               <ParentCard theme={theme} className="text-center !py-12">

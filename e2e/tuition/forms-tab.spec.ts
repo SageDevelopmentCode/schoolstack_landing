@@ -10,6 +10,6 @@ test.describe("Tuition forms tab", () => {
     await expect(page.getByTestId("tuition-tab-forms")).toBeVisible();
     await page.getByTestId("tuition-tab-forms").click();
     await expect(page.getByRole("button", { name: "New agreement" })).toBeVisible();
-    await expect(page.getByText("Tuition agreements")).toBeVisible();
+    await expect(page.getByText("Tuition agreements", { exact: true })).toBeVisible();
   });
 });
