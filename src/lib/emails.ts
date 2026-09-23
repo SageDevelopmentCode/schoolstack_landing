@@ -4,6 +4,8 @@ import {
   emailBulletList,
   emailCta,
   emailDetailCard,
+  emailDigestActivityCard,
+  emailDigestSectionHeader,
   emailHeading,
   emailMutedParagraph,
   emailParagraph,
@@ -1537,6 +1539,112 @@ export async function sendCommitteeJoinApprovedNotification(payload: {
       "Committee join approved notification email failed:",
       result.error,
     );
+  }
+}
+
+export function buildCommitteeDailyDigestHtml(payload: {
+  schoolName: string;
+  recipientName?: string | null;
+  recipientKind: "member" | "admin";
+  committees: Array<{
+    committeeName: string;
+    categories: Array<{
+      category: string;
+      items: Array<{
+        title: string;
+        actionLabel: string;
+        details: string[];
+        actorName?: string | null;
+        occurredAtLabel: string;
+      }>;
+      truncatedCount: number;
+    }>;
+  }>;
+  committeesUrl: string;
+}): string {
+  const greetingName = payload.recipientName?.trim();
+  const intro = payload.recipientKind === "admin"
+    ? `${escapeHtml(payload.schoolName)} had committee activity in the last day.`
+    : greetingName
+      ? `Hi ${escapeHtml(greetingName)}, here is what happened in your committees at ${escapeHtml(payload.schoolName)}.`
+      : `Here is what happened in your committees at ${escapeHtml(payload.schoolName)}.`;
+
+  const committeeSections = payload.committees
+    .map((committee) => {
+      const categorySections = committee.categories
+        .map((category) => {
+          const cards = category.items
+            .map((item) => emailDigestActivityCard(item))
+            .join("");
+          const truncatedNote =
+            category.truncatedCount > 0
+              ? emailMutedParagraph(
+                  `and ${category.truncatedCount} more ${category.category.toLowerCase()} update${category.truncatedCount === 1 ? "" : "s"}`,
+                )
+              : "";
+
+          return `
+            ${emailDigestSectionHeader(category.category)}
+            ${cards}
+            ${truncatedNote}
+          `;
+        })
+        .join("");
+
+      return `
+        ${emailHeading(committee.committeeName)}
+        ${categorySections}
+      `;
+    })
+    .join("");
+
+  return composeEmail({
+    preheader: `Committee activity update for ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Update")}
+      ${emailHeading("Today's committee activity")}
+      ${emailParagraph(intro)}
+      ${committeeSections}
+      ${emailCta({ label: "Open committees", href: payload.committeesUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeDailyDigestEmail(payload: {
+  email: string;
+  schoolName: string;
+  recipientName?: string | null;
+  recipientKind: "member" | "admin";
+  committees: Array<{
+    committeeName: string;
+    categories: Array<{
+      category: string;
+      items: Array<{
+        title: string;
+        actionLabel: string;
+        details: string[];
+        actorName?: string | null;
+        occurredAtLabel: string;
+      }>;
+      truncatedCount: number;
+    }>;
+  }>;
+  committeesUrl: string;
+  subject: string;
+}): Promise<void> {
+  if (!(await isZohoConfigured())) return;
+
+  const content = buildCommitteeDailyDigestHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: payload.subject,
+    content,
+  });
+
+  if (!result.success) {
+    console.error("Committee daily digest email failed:", result.error);
+    throw new Error(result.error ?? "Committee daily digest email failed");
   }
 }
 

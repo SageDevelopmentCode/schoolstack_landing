@@ -11,12 +11,20 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 type TeacherFormsDocumentsEmptyStateProps = {
   theme: ParentThemeTokens;
   previewMode?: boolean;
+  kicker?: string;
+  title?: string;
+  description?: string;
+  createLabel?: string;
   onCreate?: () => void;
 };
 
 export default function TeacherFormsDocumentsEmptyState({
   theme,
   previewMode = false,
+  kicker = "Family forms",
+  title = "Create your first form",
+  description = "Upload a PDF or build a form for families to sign — like liability waivers, field trip permissions, or photo releases.",
+  createLabel = "Create form",
   onCreate,
 }: TeacherFormsDocumentsEmptyStateProps) {
   return (
@@ -33,16 +41,15 @@ export default function TeacherFormsDocumentsEmptyState({
         >
           <FileText className="h-7 w-7" />
         </div>
-        <AdminSectionKicker theme={theme}>Family forms</AdminSectionKicker>
+        <AdminSectionKicker theme={theme}>{kicker}</AdminSectionKicker>
         <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-2">
-          Create your first form
+          {title}
         </AdminDisplayHeading>
         <p
           className="mt-3 max-w-md text-sm leading-relaxed"
           style={{ color: theme.muted }}
         >
-          Upload a PDF or build a form for families to sign — like liability waivers,
-          field trip permissions, or photo releases.
+          {description}
         </p>
         {!previewMode && onCreate ? (
           <div className="mt-8">
@@ -53,7 +60,7 @@ export default function TeacherFormsDocumentsEmptyState({
               className="w-full sm:w-auto"
             >
               <Plus className="h-4 w-4" />
-              Create form
+              {createLabel}
             </AdminButton>
           </div>
         ) : null}

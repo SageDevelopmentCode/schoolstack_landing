@@ -18,6 +18,7 @@ import {
   SchoolAdminMessagesInboxProvider,
   useSchoolAdminMessagesInbox,
 } from '@/contexts/school-admin-messages-inbox-context';
+import { SchoolAdminCommitteesProvider } from '@/contexts/school-admin-committees-context';
 import { SchoolAdminStudentsProvider } from '@/contexts/school-admin-students-context';
 import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissions-context';
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
@@ -36,6 +37,7 @@ function getActiveTab(pathname: string): SchoolAdminTab | null {
   if (/\/messages\/[^/]+$/.test(pathname)) return null;
   if (/\/more\/staff\/[^/]+$/.test(pathname)) return null;
   if (/\/more\/classrooms\/[^/]+$/.test(pathname)) return null;
+  if (/\/more\/committees\/[^/]+$/.test(pathname)) return null;
   if (pathname.includes('/more')) return 'more';
   if (pathname.includes('/messages')) return 'messages';
   if (pathname.includes('/students')) return 'students';
@@ -158,7 +160,14 @@ function SchoolAdminLayoutContent() {
   };
 
   const handleSelectMoreItem = (
-    itemId: 'transactions' | 'schedule' | 'staff' | 'classrooms' | 'bulletin' | 'attendance',
+    itemId:
+      | 'transactions'
+      | 'schedule'
+      | 'staff'
+      | 'classrooms'
+      | 'bulletin'
+      | 'attendance'
+      | 'committees',
   ) => {
     setMoreSheetOpen(false);
     if (!slug) return;
@@ -170,6 +179,7 @@ function SchoolAdminLayoutContent() {
       classrooms: `/school-admin/${slug}/more/classrooms`,
       bulletin: `/school-admin/${slug}/more/bulletin`,
       attendance: `/school-admin/${slug}/more/attendance`,
+      committees: `/school-admin/${slug}/more/committees`,
     } as const;
 
     const target = routes[itemId];
@@ -260,6 +270,7 @@ export default function SchoolAdminLayout() {
         <MessagesRealtimeProvider organizationId={organization.id} enabled={!isPreview}>
           <SchoolAdminSubmissionsProvider organizationId={organization.id}>
             <SchoolAdminStudentsProvider organizationId={organization.id}>
+              <SchoolAdminCommitteesProvider organizationId={organization.id}>
               <SchoolAdminMessagesInboxProvider
                 organizationId={organization.id}
                 schoolName={organization.name}>
@@ -271,6 +282,7 @@ export default function SchoolAdminLayout() {
                   <SchoolAdminLayoutContent />
                 </MessagesUnreadProvider>
               </SchoolAdminMessagesInboxProvider>
+              </SchoolAdminCommitteesProvider>
             </SchoolAdminStudentsProvider>
           </SchoolAdminSubmissionsProvider>
         </MessagesRealtimeProvider>

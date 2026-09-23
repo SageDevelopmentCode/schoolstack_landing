@@ -1,8 +1,10 @@
+import { Clock, SlidersHorizontal } from "lucide-react";
+
 export const TUITION_ADJUSTMENT_RULES_UI_ENABLED = false;
 
 export const TUITION_RULES_TABS = [
-  { id: "late_fees", label: "Late fees" },
-  { id: "adjustments", label: "Adjustments" },
+  { id: "late_fees", label: "Late fees", icon: Clock },
+  { id: "adjustments", label: "Adjustments", icon: SlidersHorizontal },
 ] as const;
 
 export const VISIBLE_TUITION_RULES_TABS = TUITION_RULES_TABS.filter(

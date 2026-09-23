@@ -1,17 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ParentCommitteeDutyRoleCard } from '@/components/parent/committees/parent-committee-duty-role-card';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import type { Committee, CommitteeRole } from '@/lib/parent/parent-committees-types';
+import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
+import type { CommitteeRole } from '@/lib/parent/parent-committees-types';
 import type { StoryChipTone } from '@/components/story/story-chip';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
-
-type ParentCommitteeMembersSectionProps = {
-  committee: Committee;
-};
 
 function roleLabel(role: CommitteeRole): string {
   switch (role) {
@@ -33,41 +31,59 @@ function roleTone(role: CommitteeRole): StoryChipTone {
   return 'info';
 }
 
-export function ParentCommitteeMembersSection({ committee }: ParentCommitteeMembersSectionProps) {
+export function ParentCommitteeMembersSection({ committee }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
   const members = committee.members.filter((member) => member.status === 'active');
 
-  if (members.length === 0) {
-    return (
-      <StoryDetailSection title="Members">
-        <Text style={[styles.emptyCopy, { color: theme.muted }]}>No members yet.</Text>
-      </StoryDetailSection>
-    );
-  }
-
   return (
-    <StoryDetailSection title="Members">
-      <View style={styles.list}>
-        {members.map((member) => (
-          <StoryCard key={member.id} compact style={styles.card}>
-            <View style={styles.headerRow}>
-              <Text style={[styles.name, { color: theme.ink }]}>{member.name}</Text>
-              <StoryChip tone={roleTone(member.role)} label={roleLabel(member.role)} />
-            </View>
-            {member.grade ? (
-              <Text style={[styles.meta, { color: theme.muted }]}>Grade: {member.grade}</Text>
-            ) : null}
-            {member.bio ? (
-              <Text style={[styles.bio, { color: theme.muted }]}>{member.bio}</Text>
-            ) : null}
-          </StoryCard>
-        ))}
-      </View>
-    </StoryDetailSection>
+    <View style={styles.container}>
+      <StoryDetailSection title={`Members (${members.length})`}>
+        {members.length === 0 ? (
+          <Text style={[styles.emptyCopy, { color: theme.muted }]}>No members yet.</Text>
+        ) : (
+          <View style={styles.list}>
+            {members.map((member) => (
+              <StoryCard key={member.id} compact style={styles.card}>
+                <View style={styles.headerRow}>
+                  <Text style={[styles.name, { color: theme.ink }]}>{member.name}</Text>
+                  <StoryChip tone={roleTone(member.role)} label={roleLabel(member.role)} />
+                </View>
+                {member.grade ? (
+                  <Text style={[styles.meta, { color: theme.muted }]}>Grade: {member.grade}</Text>
+                ) : null}
+                {member.bio ? (
+                  <Text style={[styles.bio, { color: theme.muted }]}>{member.bio}</Text>
+                ) : null}
+              </StoryCard>
+            ))}
+          </View>
+        )}
+      </StoryDetailSection>
+
+      {committee.dutyRoles.length > 0 ? (
+        <StoryDetailSection title="Duty roles">
+          <View style={styles.list}>
+            {committee.dutyRoles.map((dutyRole) => {
+              const assignee = committee.members.find((member) => member.id === dutyRole.assigneeId);
+              return (
+                <ParentCommitteeDutyRoleCard
+                  key={dutyRole.id}
+                  role={dutyRole}
+                  assigneeName={assignee?.name}
+                />
+              );
+            })}
+          </View>
+        </StoryDetailSection>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    gap: Spacing.four,
+  },
   list: {
     gap: Spacing.two,
   },

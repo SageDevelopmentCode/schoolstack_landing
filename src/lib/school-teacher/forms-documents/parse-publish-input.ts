@@ -2,8 +2,15 @@ import type {
   PublishTeacherParentFormInput,
   TeacherFormAudienceType,
   TeacherFormField,
+  TeacherParentFormCategory,
   TeacherParentFormStatus,
 } from "./types";
+
+export function parseFormCategory(
+  value: string | null | undefined,
+): TeacherParentFormCategory {
+  return value === "tuition" ? "tuition" : "general";
+}
 
 export function parseStatus(value: string | null | undefined): TeacherParentFormStatus {
   if (value === "draft" || value === "active" || value === "archived") {
@@ -64,6 +71,7 @@ export function parsePublishInputFromFormData(
       uploadFileSize: file instanceof File ? String(file.size) : null,
       fields: parseFields(String(formData.get("fields") ?? "")),
       status: parseStatus(String(formData.get("status") ?? "active")),
+      formCategory: parseFormCategory(String(formData.get("formCategory") ?? "")),
     },
     file: file instanceof File && file.size > 0 ? file : null,
   };
@@ -86,5 +94,6 @@ export function parsePublishInputFromJson(
     uploadFileSize: body.uploadFileSize ?? null,
     fields: body.fields ?? [],
     status: body.status ?? "active",
+    formCategory: body.formCategory ?? "general",
   };
 }

@@ -12,6 +12,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 
 export const PARENT_BILLING_SUMMARY_TAB = "summary";
+export const PARENT_BILLING_AGREEMENTS_TAB = "agreements";
 
 const BILLING_ACTIVE_TOOLTIP =
   "Tuition billing is active — payment schedule confirmed";

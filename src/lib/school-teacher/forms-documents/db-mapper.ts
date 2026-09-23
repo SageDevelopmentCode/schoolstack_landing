@@ -5,6 +5,7 @@ import type {
   TeacherFormSignatureRow,
   TeacherFormSignatureStatus,
   TeacherParentForm,
+  TeacherParentFormCategory,
   TeacherParentFormStatus,
   TeacherParentFormType,
   UploadFileFormat,
@@ -17,6 +18,7 @@ export type TeacherParentFormRow = {
   title: string;
   description: string;
   form_type: TeacherParentFormType;
+  form_category?: TeacherParentFormCategory | null;
   status: TeacherParentFormStatus;
   audience_type?: TeacherFormAudienceType | null;
   classroom_ids: string[] | null;
@@ -104,6 +106,7 @@ export function mapTeacherParentFormRow(row: TeacherParentFormRow): TeacherParen
     title: String(row.title),
     description: String(row.description ?? ""),
     formType: row.form_type,
+    formCategory: row.form_category === "tuition" ? "tuition" : "general",
     status: row.status,
     audienceType,
     classroomIds,

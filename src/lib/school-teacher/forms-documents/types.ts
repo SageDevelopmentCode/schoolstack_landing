@@ -6,6 +6,8 @@ export type TeacherFormAudienceType = "unassigned" | "classrooms" | "families";
 
 export type TeacherParentFormType = "upload" | "builder";
 
+export type TeacherParentFormCategory = "general" | "tuition";
+
 export type UploadFileFormat = "pdf" | "docx";
 
 export type TeacherFormFieldType =
@@ -30,6 +32,7 @@ export type TeacherParentForm = {
   title: string;
   description: string;
   formType: TeacherParentFormType;
+  formCategory: TeacherParentFormCategory;
   status: TeacherParentFormStatus;
   audienceType: TeacherFormAudienceType;
   classroomIds: string[];
@@ -105,6 +108,7 @@ export type PublishTeacherParentFormInput = Omit<
   "uploadFile"
 > & {
   status: TeacherParentFormStatus;
+  formCategory?: TeacherParentFormCategory;
 };
 
 export const FORM_STATUS_LABELS: Record<TeacherParentFormStatus, string> = {

@@ -85,6 +85,14 @@ describe("runTuitionBillingCron", () => {
         lines: [autopayLine],
         truncated: false,
       }),
+      sendCommitteeDailyDigestsForOrganization: async (_admin, organizationId) => {
+        calls.push(`committee-digest:${organizationId}`);
+        return {
+          activityCount: organizationId === "org-1" ? 2 : 0,
+          digestsSent: organizationId === "org-1" ? 1 : 0,
+          digestFailures: 0,
+        };
+      },
       notifySummary: async (payload) => {
         notifiedPayload = payload;
       },
@@ -95,10 +103,12 @@ describe("runTuitionBillingCron", () => {
       "reminders:org-1",
       "incomplete-admissions-reminders:org-1",
       "rules:org-1",
+      "committee-digest:org-1",
       "overdue:org-2",
       "reminders:org-2",
       "incomplete-admissions-reminders:org-2",
       "rules:org-2",
+      "committee-digest:org-2",
     ]);
     assert.equal(summary.organizations, 2);
     assert.equal(summary.organizationFailures, 0);
@@ -115,9 +125,12 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.autopayDueCandidates, 2);
     assert.equal(summary.autopayLines.length, 2);
     assert.equal(summary.autopayLines[0]?.chargeId, "charge-1");
+    assert.equal(summary.committeeDigestsSent, 1);
+    assert.equal(summary.committeeDigestFailures, 0);
     const payload = notifiedPayload as Record<string, unknown> | null;
     assert.equal(payload?.autopaySkipped, 4);
     assert.equal(payload?.autopayDueCandidates, 2);
+    assert.equal(payload?.committeeDigestsSent, 1);
   });
 
   it("continues processing remaining orgs when one org fails", async () => {
@@ -161,6 +174,11 @@ describe("runTuitionBillingCron", () => {
           truncated: false,
         };
       },
+      sendCommitteeDailyDigestsForOrganization: async () => ({
+        activityCount: 0,
+        digestsSent: 0,
+        digestFailures: 0,
+      }),
       notifySummary: async () => {},
     });
 

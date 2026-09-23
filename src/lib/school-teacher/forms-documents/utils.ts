@@ -71,6 +71,20 @@ export function formatFamilyNames(names: string[]): string {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
 }
 
+export function formatFamilyAudienceSelectionLabel(names: string[]): string {
+  if (names.length === 0) return "Choose families";
+  const first = names[0]?.trim();
+  if (names.length === 1) {
+    return first || "1 family selected";
+  }
+  const extra = names.length - 1;
+  const extraLabel = extra === 1 ? "1 family" : `${extra} families`;
+  if (first) {
+    return `${first} + ${extraLabel} selected`;
+  }
+  return `${names.length} families selected`;
+}
+
 export function formatAudienceLabel(form: TeacherParentForm): string {
   if (form.audienceType === "unassigned") return "Saved for later";
   if (form.audienceType === "families") return formatFamilyNames(form.familyNames);
@@ -152,6 +166,7 @@ export function createFormFromDraft(
     title: draft.title.trim(),
     description: draft.description.trim(),
     formType: draft.formType,
+    formCategory: "general",
     status: "active",
     audienceType: draft.audienceType,
     classroomIds: draft.classroomIds,

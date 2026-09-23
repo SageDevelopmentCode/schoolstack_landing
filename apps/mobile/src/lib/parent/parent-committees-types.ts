@@ -18,6 +18,7 @@ export type CommitteeWorkspaceSection =
   | 'tasks'
   | 'messages'
   | 'members'
+  | 'activity'
   | 'settings';
 
 export type CommitteeTaskStatus = 'open' | 'claimed' | 'in_progress' | 'done';
@@ -31,11 +32,94 @@ export type CommitteeTaskGroupDef = {
   label: string;
 };
 
+export type CommitteeDutyRoleDef = {
+  title: string;
+  description: string;
+};
+
+export type CommitteeResourceDef = {
+  title: string;
+  type: CommitteeResourceType;
+  url?: string;
+  description?: string;
+};
+
 export type CommitteeTemplateConfig = {
   sections: CommitteeWorkspaceSection[];
   taskGroups?: CommitteeTaskGroupDef[];
+  defaultDutyRoles?: CommitteeDutyRoleDef[];
+  defaultResources?: CommitteeResourceDef[];
   showGradeColumn?: boolean;
   defaultTermLabel?: string;
+};
+
+export type CommitteeTemplate = {
+  id: string;
+  organizationId: string | null;
+  slug: string;
+  name: string;
+  type: CommitteeType;
+  description: string;
+  config: CommitteeTemplateConfig;
+};
+
+export type CommitteeListItem = {
+  id: string;
+  name: string;
+  description: string;
+  status: CommitteeStatus;
+  termLabel: string;
+  type: CommitteeType;
+  memberCount: number;
+  templateId: string | null;
+};
+
+export type CommitteeJoinRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'declined'
+  | 'withdrawn';
+
+export type CommitteeJoinRequest = {
+  id: string;
+  organizationId: string;
+  committeeId: string;
+  userId: string;
+  guardianId: string | null;
+  staffMemberId: string | null;
+  preferredDutyRoleId: string | null;
+  grade: string | null;
+  note: string | null;
+  status: CommitteeJoinRequestStatus;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  committeeName?: string;
+  guardianName?: string;
+  guardianEmail?: string;
+  staffName?: string;
+  staffEmail?: string;
+  requesterType?: 'parent' | 'staff';
+  preferredDutyRoleTitle?: string | null;
+};
+
+export type CommitteeActivityItem = {
+  id: string;
+  summary: string;
+  actorName: string | null;
+  action: string;
+  actionLabel: string;
+  category: string;
+  createdAt: string;
+  committeeId?: string;
+  committeeName?: string;
+};
+
+export type CommitteeDutyRoleSummary = {
+  id: string;
+  title: string;
+  description: string;
 };
 
 export type CommitteeMember = {
@@ -75,6 +159,7 @@ export type CommitteeEvent = {
   time?: string;
   type: CommitteeEventType;
   location?: string;
+  createdByMemberId?: string;
 };
 
 export type CommitteeTask = {
@@ -87,14 +172,25 @@ export type CommitteeTask = {
   assigneeName?: string;
   dueDate?: string;
   attachmentLabel?: string;
+  createdByMemberId?: string;
+};
+
+export type CommitteeMessageAttachment = {
+  id: string;
+  fileName: string;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  storagePath: string;
 };
 
 export type CommitteeMessage = {
   id: string;
   senderId: string;
   senderName: string;
+  senderRole?: CommitteeRole;
   text: string;
   time: string;
+  attachments?: CommitteeMessageAttachment[];
 };
 
 export type CommitteeDutyRole = {
@@ -124,12 +220,6 @@ export type Committee = {
   tasks: CommitteeTask[];
   messages: CommitteeMessage[];
 };
-
-export type CommitteeJoinRequestStatus =
-  | 'pending'
-  | 'approved'
-  | 'declined'
-  | 'withdrawn';
 
 export type ParentCommitteeBrowseItem = {
   id: string;
@@ -166,8 +256,25 @@ export const COMMITTEE_SECTION_LABELS: Record<CommitteeWorkspaceSection, string>
   tasks: 'Tasks',
   messages: 'Messages',
   members: 'Members',
+  activity: 'Activity',
   settings: 'Settings',
 };
+
+export const DEFAULT_COMMITTEE_SECTIONS: CommitteeWorkspaceSection[] = [
+  'home',
+  'about',
+  'resources',
+  'calendar',
+  'tasks',
+  'messages',
+  'members',
+];
+
+export const ADMIN_VISIBLE_SECTIONS: CommitteeWorkspaceSection[] = [
+  ...DEFAULT_COMMITTEE_SECTIONS,
+  'activity',
+  'settings',
+];
 
 export const TASK_STATUS_LABELS: Record<CommitteeTaskStatus, string> = {
   open: 'Open',
@@ -187,6 +294,7 @@ export function isCommitteeWorkspaceSection(value: string): value is CommitteeWo
     value === 'tasks' ||
     value === 'messages' ||
     value === 'members' ||
+    value === 'activity' ||
     value === 'settings'
   );
 }

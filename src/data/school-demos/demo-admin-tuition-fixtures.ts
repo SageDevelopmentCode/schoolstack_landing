@@ -183,6 +183,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: { baseCents: 1280000, adjustedCents: 1280000 },
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
     {
       familyId: "family-chen",
@@ -243,6 +244,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: { baseCents: 1280000, adjustedCents: 1152000 },
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
     {
       familyId: "family-brooks",
@@ -303,6 +305,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: { baseCents: 1280000, adjustedCents: 1280000 },
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
     {
       familyId: "family-nguyen",
@@ -348,6 +351,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: null,
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
     {
       familyId: "family-foster",
@@ -425,6 +429,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: { baseCents: 1280000, adjustedCents: 1280000 },
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
     {
       familyId: "family-hart",
@@ -485,6 +490,7 @@ export function buildDemoTuitionFamilies(): FamilyBillingSummary[] {
       catalogTuition: { baseCents: 1280000, adjustedCents: 1280000 },
       tuitionListVisibility: "active",
       hasWithdrawnApplication: false,
+      tuitionAgreementStatus: "none",
     },
   ];
 }

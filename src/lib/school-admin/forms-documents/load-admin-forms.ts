@@ -9,8 +9,15 @@ import {
   listFormResponsesByFormIds,
   listFormResponsesForForm,
 } from "@/lib/school-teacher/forms-documents/load-teacher-forms";
-import type { TeacherFormSignatureRow } from "@/lib/school-teacher/forms-documents/types";
+import type {
+  TeacherFormSignatureRow,
+  TeacherParentFormCategory,
+} from "@/lib/school-teacher/forms-documents/types";
 import type { AdminParentForm } from "./types";
+
+export type ListOrgParentFormsOptions = {
+  category?: TeacherParentFormCategory;
+};
 
 async function loadStaffNamesById(
   admin: SupabaseClient,
@@ -58,12 +65,18 @@ function mapAdminParentForm(
 export async function listOrgParentForms(
   admin: SupabaseClient,
   organizationId: string,
+  options: ListOrgParentFormsOptions = {},
 ): Promise<AdminParentForm[]> {
-  const { data, error } = await admin
+  let query = admin
     .from("teacher_parent_forms")
     .select(TEACHER_PARENT_FORM_SELECT)
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false });
+    .eq("organization_id", organizationId);
+
+  if (options.category) {
+    query = query.eq("form_category", options.category);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw error;
 
@@ -78,13 +91,19 @@ export async function getOrgParentFormById(
   admin: SupabaseClient,
   organizationId: string,
   formId: string,
+  options: ListOrgParentFormsOptions = {},
 ): Promise<AdminParentForm | null> {
-  const { data, error } = await admin
+  let query = admin
     .from("teacher_parent_forms")
     .select(TEACHER_PARENT_FORM_SELECT)
     .eq("organization_id", organizationId)
-    .eq("id", formId)
-    .maybeSingle();
+    .eq("id", formId);
+
+  if (options.category) {
+    query = query.eq("form_category", options.category);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) throw error;
   if (!data) return null;

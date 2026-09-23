@@ -12,6 +12,7 @@ const baseForm: TeacherParentForm = {
   title: "Field Trip Permission Slip",
   description: "",
   formType: "builder",
+  formCategory: "general",
   status: "active",
   audienceType: "classrooms",
   classroomIds: ["classroom-1"],

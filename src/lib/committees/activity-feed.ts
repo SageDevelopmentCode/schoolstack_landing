@@ -40,6 +40,20 @@ export const COMMITTEE_PARENT_ACTIVITY_ACTIONS: string[] = [
   ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
 ];
 
+export const COMMITTEE_DIGEST_ACTIONS: string[] = [
+  ...COMMITTEE_PARENT_ACTIVITY_ACTIONS,
+  ACTIVITY_ACTIONS.COMMITTEE_MEMBER_INVITED,
+  ACTIVITY_ACTIONS.COMMITTEE_MEMBER_REMOVED,
+];
+
+const COMMITTEE_DIGEST_CATEGORY_ORDER: CommitteeActivityCategory[] = [
+  "Members",
+  "Tasks",
+  "Resources",
+  "Calendar",
+  "Messages",
+];
+
 export type CommitteeActivityAudience = "admin" | "parent";
 
 export type CommitteeActivityCategory =
@@ -113,7 +127,7 @@ export async function fetchCommitteeActivityEvents(
   return (data ?? []) as CommitteeActivityEventRow[];
 }
 
-function categoryForAction(action: string): CommitteeActivityCategory {
+export function categoryForAction(action: string): CommitteeActivityCategory {
   if (action.includes(".member.") || action.includes(".join_")) return "Members";
   if (action.includes(".task.")) return "Tasks";
   if (action.includes(".resource.")) return "Resources";
@@ -190,6 +204,19 @@ export function mapCommitteeActivityItem(
           )
         : undefined,
   };
+}
+
+export function sortDigestCategories(
+  categories: CommitteeActivityCategory[],
+): CommitteeActivityCategory[] {
+  const order = new Map(
+    COMMITTEE_DIGEST_CATEGORY_ORDER.map((category, index) => [category, index]),
+  );
+  return [...categories].sort(
+    (left, right) =>
+      (order.get(left) ?? Number.MAX_SAFE_INTEGER) -
+      (order.get(right) ?? Number.MAX_SAFE_INTEGER),
+  );
 }
 
 export function mapCommitteeActivityItems(

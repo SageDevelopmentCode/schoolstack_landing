@@ -299,6 +299,7 @@ export async function duplicateAdminParentForm(
     title: `${existing.title} (copy)`.trim(),
     description: existing.description,
     form_type: existing.form_type,
+    form_category: existing.form_category ?? "general",
     status: "draft",
     audience_type: existing.audience_type ?? "unassigned",
     classroom_ids: existing.classroom_ids ?? [],

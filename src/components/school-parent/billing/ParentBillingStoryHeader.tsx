@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import ParentNeedsScheduleBadge from "@/components/school-parent/billing/ParentNeedsScheduleBadge";
 import { parentBillingViewTransition } from "@/components/school-parent/billing/parent-billing-view-transition";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
 import {
+  PARENT_BILLING_AGREEMENTS_TAB,
   PARENT_BILLING_SUMMARY_TAB,
 } from "@/components/school-parent/billing/ParentBillingNav";
 import {
@@ -28,6 +29,8 @@ type ParentBillingStoryHeaderProps = {
   childViews: ParentBillingChildView[];
   openChargeCount: number;
   totalRemainingCents: number;
+  hasAgreements: boolean;
+  pendingAgreementCount: number;
   onSelectTab: (tabKey: string) => void;
 };
 
@@ -63,15 +66,20 @@ export default function ParentBillingStoryHeader({
   childViews,
   openChargeCount,
   totalRemainingCents,
+  hasAgreements,
+  pendingAgreementCount,
   onSelectTab,
 }: ParentBillingStoryHeaderProps) {
   const hasMultipleChildren = childViews.length > 1;
+  const isAgreementsTab = activeTabKey === PARENT_BILLING_AGREEMENTS_TAB;
   const isSummaryTab = activeTabKey === PARENT_BILLING_SUMMARY_TAB;
   const activeChild = childViews.find((child) => child.childKey === activeTabKey);
 
-  const title = isSummaryTab || !activeChild
-    ? "Family tuition"
-    : `${childFirstNameFromFullName(activeChild.studentName)}'s tuition`;
+  const title = isAgreementsTab
+    ? "Forms & agreements"
+    : isSummaryTab || !activeChild
+      ? "Family tuition"
+      : `${childFirstNameFromFullName(activeChild.studentName)}'s tuition`;
 
   const subtitle = resolveSubtitle(openChargeCount, totalRemainingCents);
   const summaryTabLoading = isTabLoading(
@@ -81,8 +89,17 @@ export default function ParentBillingStoryHeader({
   );
 
   const navItems = useMemo(() => {
-    const items = [
-      {
+    const items: Array<{
+      key: string;
+      label: string;
+      disabled: boolean;
+      ariaBusy: boolean;
+      testId: string;
+      suffix?: ReactNode;
+    }> = [];
+
+    if (hasMultipleChildren) {
+      items.push({
         key: PARENT_BILLING_SUMMARY_TAB,
         label: "Family view",
         disabled: summaryTabLoading,
@@ -94,8 +111,8 @@ export default function ParentBillingStoryHeader({
             data-testid="parent-billing-tab-loading"
           />
         ) : undefined,
-      },
-    ];
+      });
+    }
 
     for (const child of childViews) {
       const tabLoading = isTabLoading(child.childKey, pendingTabKey, loadingTabKey);
@@ -116,8 +133,47 @@ export default function ParentBillingStoryHeader({
       });
     }
 
+    if (hasAgreements) {
+      const agreementsTabLoading = isTabLoading(
+        PARENT_BILLING_AGREEMENTS_TAB,
+        pendingTabKey,
+        loadingTabKey,
+      );
+      items.push({
+        key: PARENT_BILLING_AGREEMENTS_TAB,
+        label: "Forms",
+        disabled: agreementsTabLoading,
+        ariaBusy: agreementsTabLoading,
+        testId: "parent-billing-agreements-nav",
+        suffix: agreementsTabLoading ? (
+          <Loader2
+            className="h-3 w-3 animate-spin"
+            data-testid="parent-billing-tab-loading"
+          />
+        ) : pendingAgreementCount > 0 ? (
+          <span
+            className="inline-flex shrink-0 items-center justify-center rounded-full"
+            style={{ color: C.warning }}
+            aria-label={`${pendingAgreementCount} agreement${pendingAgreementCount === 1 ? "" : "s"} need your signature`}
+            title="Signature needed"
+          >
+            <CircleAlert className="h-3.5 w-3.5" aria-hidden />
+          </span>
+        ) : undefined,
+      });
+    }
+
     return items;
-  }, [C, childViews, loadingTabKey, pendingTabKey, summaryTabLoading]);
+  }, [
+    C,
+    childViews,
+    hasAgreements,
+    hasMultipleChildren,
+    loadingTabKey,
+    pendingAgreementCount,
+    pendingTabKey,
+    summaryTabLoading,
+  ]);
 
   return (
     <header
@@ -138,7 +194,7 @@ export default function ParentBillingStoryHeader({
         </p>
       </motion.div>
 
-      {hasMultipleChildren ? (
+      {hasMultipleChildren || hasAgreements ? (
         <ParentStoryPillNav
           theme={theme}
           items={navItems}

@@ -3,12 +3,14 @@
 import { ChevronRight } from "lucide-react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { TeacherFormAudienceType } from "@/lib/school-teacher/forms-documents/types";
+import { formatFamilyAudienceSelectionLabel } from "@/lib/school-teacher/forms-documents/utils";
 
 type TeacherFormAudienceSummaryStripProps = {
   theme: ParentThemeTokens;
   audienceType: TeacherFormAudienceType;
   classroomCount: number;
   familyCount: number;
+  familyNames?: string[];
   onEdit: () => void;
 };
 
@@ -17,6 +19,7 @@ export default function TeacherFormAudienceSummaryStrip({
   audienceType,
   classroomCount,
   familyCount,
+  familyNames = [],
   onEdit,
 }: TeacherFormAudienceSummaryStripProps) {
   if (audienceType !== "classrooms" && audienceType !== "families") {
@@ -30,11 +33,7 @@ export default function TeacherFormAudienceSummaryStrip({
         : classroomCount === 1
           ? "1 classroom selected"
           : `${classroomCount} classrooms selected`
-      : familyCount === 0
-        ? "Choose families"
-        : familyCount === 1
-          ? "1 family selected"
-          : `${familyCount} families selected`;
+      : formatFamilyAudienceSelectionLabel(familyNames);
 
   return (
     <button

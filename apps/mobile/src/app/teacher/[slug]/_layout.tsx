@@ -8,6 +8,7 @@ import { AnimatedTabContent } from '@/components/animated-tab-content';
 import { PortalPreviewBanner } from '@/components/platform-admin/portal-preview-banner';
 import { TeacherMoreMenuSheet } from '@/components/teacher/teacher-more-menu-sheet';
 import { TeacherCalendarProvider } from '@/contexts/teacher-calendar-context';
+import { TeacherCommitteesProvider } from '@/contexts/teacher-committees-context';
 import { TeacherHomeProvider } from '@/contexts/teacher-home-context';
 import {
   TEACHER_FLOATING_TAB_BAR_HEIGHT,
@@ -230,21 +231,23 @@ export default function TeacherLayout() {
     <SchoolAdminThemeProvider branding={branding}>
       <ParentThemeProvider branding={branding}>
         <TeacherHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-          <TeacherCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-            <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
-              <TeacherMessagesInboxProvider
-                organizationId={loadedOrg.id}
-                schoolName={loadedOrg.name}>
-                <MessagesUnreadProvider
+          <TeacherCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+            <TeacherCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+              <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
+                <TeacherMessagesInboxProvider
                   organizationId={loadedOrg.id}
-                  schoolName={loadedOrg.name}
-                  fetchUnreadCount={fetchTeacherMessagesUnreadCount}>
-                  <TeacherMessagesInboxRealtimeBridge />
-                  <TeacherLayoutContent />
-                </MessagesUnreadProvider>
-              </TeacherMessagesInboxProvider>
-            </MessagesRealtimeProvider>
-          </TeacherCalendarProvider>
+                  schoolName={loadedOrg.name}>
+                  <MessagesUnreadProvider
+                    organizationId={loadedOrg.id}
+                    schoolName={loadedOrg.name}
+                    fetchUnreadCount={fetchTeacherMessagesUnreadCount}>
+                    <TeacherMessagesInboxRealtimeBridge />
+                    <TeacherLayoutContent />
+                  </MessagesUnreadProvider>
+                </TeacherMessagesInboxProvider>
+              </MessagesRealtimeProvider>
+            </TeacherCalendarProvider>
+          </TeacherCommitteesProvider>
         </TeacherHomeProvider>
       </ParentThemeProvider>
     </SchoolAdminThemeProvider>

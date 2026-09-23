@@ -34,6 +34,14 @@ const MENU_ITEMS: {
   iconColor: string;
 }[] = [
   {
+    id: 'committees',
+    label: 'Committees',
+    subtitle: 'Volunteer participation',
+    icon: 'heart-outline',
+    iconBg: '#FCE7F3',
+    iconColor: '#DB2777',
+  },
+  {
     id: 'classroom-signups',
     label: 'Classroom signups',
     subtitle: 'Volunteer and event signups',
@@ -82,10 +90,15 @@ export function TeacherMoreMenuSheet({
   const { data } = useTeacherHome();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
+  const committeesEnabled = isTeacherFeatureEnabled(data?.features, 'committees');
   const visibleMenuItems = useMemo(
     () =>
-      MENU_ITEMS.filter((item) => item.id !== 'attendance' || attendanceEnabled),
-    [attendanceEnabled],
+      MENU_ITEMS.filter((item) => {
+        if (item.id === 'attendance') return attendanceEnabled;
+        if (item.id === 'committees') return committeesEnabled;
+        return true;
+      }),
+    [attendanceEnabled, committeesEnabled],
   );
 
   return (

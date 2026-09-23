@@ -298,6 +298,8 @@ export type CatalogTuitionSummary = {
 
 export type TuitionFamilyListVisibility = "active" | "unenrolled";
 
+export type TuitionAgreementFamilyStatus = "none" | "pending" | "overdue" | "signed";
+
 export type FamilyBillingSummary = {
   familyId: string;
   familyName: string;
@@ -328,6 +330,7 @@ export type FamilyBillingSummary = {
   catalogTuition: CatalogTuitionSummary | null;
   tuitionListVisibility: TuitionFamilyListVisibility;
   hasWithdrawnApplication: boolean;
+  tuitionAgreementStatus: TuitionAgreementFamilyStatus;
 };
 
 export type RatePlanWithDetails = TuitionRatePlan & {

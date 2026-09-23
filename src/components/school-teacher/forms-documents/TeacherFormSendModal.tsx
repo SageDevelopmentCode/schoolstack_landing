@@ -25,6 +25,7 @@ type TeacherFormSendModalProps = {
   classroomOptions: TeacherClassroomOption[];
   familySearchApiPath: string;
   allowSelectAllClassrooms?: boolean;
+  audienceMode?: "all" | "families_only";
   loading?: boolean;
   onClose: () => void;
   onSend: (payload: {
@@ -35,7 +36,8 @@ type TeacherFormSendModalProps = {
   }) => void;
 };
 
-const SEND_AUDIENCE_OPTIONS: TeacherFormAudienceType[] = ["classrooms", "families"];
+const SEND_AUDIENCE_OPTIONS_ALL: TeacherFormAudienceType[] = ["classrooms", "families"];
+const SEND_AUDIENCE_OPTIONS_FAMILIES_ONLY: TeacherFormAudienceType[] = ["families"];
 
 type AudiencePickerMode = "classrooms" | "families" | null;
 
@@ -47,12 +49,19 @@ export default function TeacherFormSendModal({
   classroomOptions,
   familySearchApiPath,
   allowSelectAllClassrooms = false,
+  audienceMode = "all",
   loading = false,
   onClose,
   onSend,
 }: TeacherFormSendModalProps) {
+  const sendAudienceOptions =
+    audienceMode === "families_only"
+      ? SEND_AUDIENCE_OPTIONS_FAMILIES_ONLY
+      : SEND_AUDIENCE_OPTIONS_ALL;
   const [audienceType, setAudienceType] = useState<TeacherFormAudienceType>(
-    form.audienceType === "families" ? "families" : "classrooms",
+    audienceMode === "families_only" || form.audienceType === "families"
+      ? "families"
+      : "classrooms",
   );
   const [classroomIds, setClassroomIds] = useState<string[]>(form.classroomIds);
   const [familyIds, setFamilyIds] = useState<string[]>(form.familyIds);
@@ -138,7 +147,7 @@ export default function TeacherFormSendModal({
               </p>
               <TeacherFormAudienceOptionTabs
                 theme={theme}
-                options={SEND_AUDIENCE_OPTIONS}
+                options={sendAudienceOptions}
                 value={audienceType}
                 onChange={handleAudienceChange}
               />
@@ -149,6 +158,7 @@ export default function TeacherFormSendModal({
                   audienceType={audienceType}
                   classroomCount={classroomIds.length}
                   familyCount={familyIds.length}
+                  familyNames={selectedFamilies.map((family) => family.name)}
                   onEdit={() =>
                     setAudiencePicker(
                       audienceType === "classrooms" ? "classrooms" : "families",

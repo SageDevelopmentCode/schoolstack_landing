@@ -954,6 +954,28 @@ async function fetchApplicationStudentLabels(
   return labels;
 }
 
+export function resolveTeacherParentFormPublishedLink(
+  parentBase: string,
+  formId: string | null | undefined,
+  formCategory: string | null | undefined,
+): { href: string; ctaLabel: string } {
+  if (formCategory === "tuition") {
+    return {
+      href: formId
+        ? `${parentBase}/billing?tab=agreements&form=${encodeURIComponent(formId)}`
+        : `${parentBase}/billing?tab=agreements`,
+      ctaLabel: "View agreement",
+    };
+  }
+
+  return {
+    href: formId
+      ? `${parentBase}/forms_documents?form=${encodeURIComponent(formId)}`
+      : `${parentBase}/forms_documents`,
+    ctaLabel: "View form",
+  };
+}
+
 function resolveParentNotificationLink(
   slug: string,
   action: string,
@@ -1022,12 +1044,8 @@ function resolveParentNotificationLink(
 
   if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) {
     const formId = metadataString(event.metadata, "formId") ?? event.entity_id;
-    return {
-      href: formId
-        ? `${parentBase}/forms_documents?form=${encodeURIComponent(formId)}`
-        : `${parentBase}/forms_documents`,
-      ctaLabel: "View form",
-    };
+    const formCategory = metadataString(event.metadata, "formCategory");
+    return resolveTeacherParentFormPublishedLink(parentBase, formId, formCategory);
   }
 
   if (action === SYNTHETIC_BULLETIN_ACTION) {

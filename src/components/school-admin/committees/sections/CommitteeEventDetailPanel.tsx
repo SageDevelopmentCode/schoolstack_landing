@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MapPin, Trash2, X } from "lucide-react";
+import { MapPin, Pencil, Trash2, X } from "lucide-react";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminDisplayHeading from "@/components/school-admin/ui/story/AdminDisplayHeading";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
@@ -31,14 +31,18 @@ export default function CommitteeEventDetailPanel({
   event,
   theme,
   readOnly = false,
+  canManage = false,
   onClose,
+  onEdit,
   onDelete,
   members = [],
 }: {
   event: CommitteeEvent | null;
   theme: ParentThemeTokens;
   readOnly?: boolean;
+  canManage?: boolean;
   onClose: () => void;
+  onEdit?: () => void;
   onDelete?: (eventId: string) => void;
   members?: CommitteeMember[];
 }) {
@@ -137,19 +141,27 @@ export default function CommitteeEventDetailPanel({
                 className="text-xs"
               />
             </div>
-            {!readOnly && onDelete && (
+            {!readOnly && canManage && (onEdit || onDelete) && (
               <div
-                className="px-6 py-4 border-t"
+                className="px-6 py-4 border-t flex flex-col gap-2"
                 style={{ borderColor: "#DCE4DC" }}
               >
-                <AdminButton
-                  theme={theme}
-                  variant="danger"
-                  onClick={() => onDelete(event.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete event
-                </AdminButton>
+                {onEdit ? (
+                  <AdminButton theme={theme} variant="soft" onClick={onEdit}>
+                    <Pencil className="w-4 h-4" />
+                    Edit event
+                  </AdminButton>
+                ) : null}
+                {onDelete ? (
+                  <AdminButton
+                    theme={theme}
+                    variant="danger"
+                    onClick={() => onDelete(event.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete event
+                  </AdminButton>
+                ) : null}
               </div>
             )}
           </motion.div>

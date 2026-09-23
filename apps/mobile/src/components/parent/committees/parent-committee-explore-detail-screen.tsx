@@ -19,6 +19,11 @@ import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentCommittees } from '@/contexts/parent-committees-context';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import type {
+  CommitteesContextValue,
+  CommitteesPortal,
+} from '@/lib/committees/committees-portal-config';
+import { getCommitteesWorkspaceRoute } from '@/lib/committees/committees-portal-config';
 import {
   submitCommitteeJoinRequest,
   withdrawCommitteeJoinRequest,
@@ -28,23 +33,48 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Radius, Spacing } from '@/constants/theme';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
-type ParentCommitteeExploreDetailScreenProps = {
+type CommitteeExploreDetailScreenProps = {
   slug: string;
   organizationId: string;
   schoolName: string;
   committeeId: string;
+  portal: CommitteesPortal;
+  showGradeField: boolean;
+  requesterName: string;
+  useCommittees: () => CommitteesContextValue;
+  onSubmitJoinRequest: (input: {
+    organizationId: string;
+    committeeId: string;
+    schoolSlug: string;
+    schoolName: string;
+    committeeName: string;
+    preferredDutyRoleId?: string | null;
+    grade?: string | null;
+    note?: string | null;
+  }) => Promise<void>;
+  onWithdrawJoinRequest: (input: {
+    requestId: string;
+    organizationId: string;
+    committeeName: string;
+    requesterName: string;
+  }) => Promise<void>;
 };
 
-export function ParentCommitteeExploreDetailScreen({
+function CommitteeExploreDetailScreen({
   slug,
   organizationId,
   schoolName,
   committeeId,
-}: ParentCommitteeExploreDetailScreenProps) {
+  portal,
+  showGradeField,
+  requesterName,
+  useCommittees,
+  onSubmitJoinRequest,
+  onWithdrawJoinRequest,
+}: CommitteeExploreDetailScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
-  const { data: homeData } = useParentHome();
-  const { getBrowseCommittee, ensureLoaded, refresh } = useParentCommittees();
+  const { getBrowseCommittee, ensureLoaded, refresh } = useCommittees();
   const { reportError } = useMobileErrorReporter(organizationId);
 
   const committee = getBrowseCommittee(committeeId);
@@ -61,8 +91,6 @@ export function ParentCommitteeExploreDetailScreen({
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
-
-  const guardianName = homeData?.userProfile.displayName ?? 'Parent';
 
   const showRequestForm = useMemo(
     () =>
@@ -82,14 +110,14 @@ export function ParentCommitteeExploreDetailScreen({
     setSubmitting(true);
     setFeedback(null);
     try {
-      await submitCommitteeJoinRequest({
+      await onSubmitJoinRequest({
         organizationId,
         committeeId: committee.id,
         schoolSlug: slug,
         schoolName,
         committeeName: committee.name,
         preferredDutyRoleId: preferredDutyRoleId || null,
-        grade: grade.trim() || null,
+        grade: showGradeField ? grade.trim() || null : null,
         note: note.trim() || null,
       });
       setFeedback({ type: 'success', message: 'Join request submitted.' });
@@ -107,11 +135,13 @@ export function ParentCommitteeExploreDetailScreen({
     committee,
     grade,
     note,
+    onSubmitJoinRequest,
     organizationId,
     preferredDutyRoleId,
     refresh,
     reportError,
     schoolName,
+    showGradeField,
     slug,
   ]);
 
@@ -120,12 +150,12 @@ export function ParentCommitteeExploreDetailScreen({
     setWithdrawing(true);
     setFeedback(null);
     try {
-      await withdrawCommitteeJoinRequest(
-        committee.requestId,
+      await onWithdrawJoinRequest({
+        requestId: committee.requestId,
         organizationId,
-        committee.name,
-        guardianName,
-      );
+        committeeName: committee.name,
+        requesterName,
+      });
       setFeedback({ type: 'success', message: 'Request withdrawn.' });
       await refresh();
     } catch (err) {
@@ -137,7 +167,7 @@ export function ParentCommitteeExploreDetailScreen({
     } finally {
       setWithdrawing(false);
     }
-  }, [committee, guardianName, organizationId, refresh, reportError]);
+  }, [committee, onWithdrawJoinRequest, organizationId, refresh, reportError, requesterName]);
 
   if (!committee) {
     return (
@@ -171,6 +201,15 @@ export function ParentCommitteeExploreDetailScreen({
         </View>
         <Text style={[styles.description, { color: theme.muted }]}>{committee.description}</Text>
       </View>
+
+      {committee.isMember ? (
+        <StoryButton
+          label="Open workspace"
+          onPress={() =>
+            router.push(getCommitteesWorkspaceRoute(slug, portal, committee.id))
+          }
+        />
+      ) : null}
 
       {feedback ? (
         <View
@@ -257,12 +296,14 @@ export function ParentCommitteeExploreDetailScreen({
             </View>
           ) : null}
 
-          <StoryTextField
-            label="Child's grade (optional)"
-            value={grade}
-            onChangeText={setGrade}
-            placeholder="e.g. 3rd grade"
-          />
+          {showGradeField ? (
+            <StoryTextField
+              label="Child's grade (optional)"
+              value={grade}
+              onChangeText={setGrade}
+              placeholder="e.g. 3rd grade"
+            />
+          ) : null}
 
           <StoryTextField
             label="Note (optional)"
@@ -304,6 +345,42 @@ export function ParentCommitteeExploreDetailScreen({
     </ParentKeyboardAwareScrollView>
   );
 }
+
+type ParentCommitteeExploreDetailScreenProps = {
+  slug: string;
+  organizationId: string;
+  schoolName: string;
+  committeeId: string;
+};
+
+export function ParentCommitteeExploreDetailScreen({
+  slug,
+  organizationId,
+  schoolName,
+  committeeId,
+}: ParentCommitteeExploreDetailScreenProps) {
+  const { data: homeData } = useParentHome();
+  const requesterName = homeData?.userProfile.displayName ?? 'Parent';
+
+  return (
+    <CommitteeExploreDetailScreen
+      slug={slug}
+      organizationId={organizationId}
+      schoolName={schoolName}
+      committeeId={committeeId}
+      portal="parent"
+      showGradeField
+      requesterName={requesterName}
+      useCommittees={useParentCommittees}
+      onSubmitJoinRequest={submitCommitteeJoinRequest}
+      onWithdrawJoinRequest={({ requestId, organizationId, committeeName, requesterName }) =>
+        withdrawCommitteeJoinRequest(requestId, organizationId, committeeName, requesterName)
+      }
+    />
+  );
+}
+
+export { CommitteeExploreDetailScreen };
 
 const styles = StyleSheet.create({
   container: {

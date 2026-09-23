@@ -155,6 +155,7 @@ export async function sendTeacherParentFormPublishedNotifications(
           familyId: family.familyId,
           formId: input.form.id,
           formTitle: input.form.title,
+          formCategory: input.form.formCategory,
           teacherName: input.publisherName,
           staffMemberId: input.staffMemberId,
           dueDate: input.form.dueDate,
@@ -166,7 +167,10 @@ export async function sendTeacherParentFormPublishedNotifications(
   const org = await loadOrganizationContext(supabase, input.organizationId);
   if (!org) return;
 
-  const formUrl = `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
+  const formUrl =
+    input.form.formCategory === "tuition"
+      ? `${SITE_URL}${schoolParentPath(org.schoolSlug, "billing")}?tab=agreements&form=${encodeURIComponent(input.form.id)}`
+      : `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
   const emailSendPromises: Promise<unknown>[] = [];
 
   for (const family of families) {

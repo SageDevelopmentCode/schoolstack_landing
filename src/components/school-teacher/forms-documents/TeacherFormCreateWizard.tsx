@@ -47,6 +47,8 @@ type TeacherFormCreateWizardProps = {
   apiBasePath?: string;
   familySearchApiPath?: string;
   allowSelectAllClassrooms?: boolean;
+  audienceMode?: "all" | "families_only";
+  formCategory?: import("@/lib/school-teacher/forms-documents/types").TeacherParentFormCategory;
   operationalErrorSurface?: "teacher_portal" | "school_admin";
   onCancel: () => void;
   onPublished: (
@@ -201,6 +203,7 @@ function SharedConfigFields({
   organizationId,
   familySearchApiPath,
   allowSelectAllClassrooms = false,
+  audienceOptions = AUDIENCE_MODE_OPTIONS,
   selectedFamilies,
   onSelectedFamiliesChange,
   onUpdate,
@@ -211,6 +214,7 @@ function SharedConfigFields({
   organizationId: string;
   familySearchApiPath: string;
   allowSelectAllClassrooms?: boolean;
+  audienceOptions?: TeacherFormAudienceType[];
   selectedFamilies: FormFamilyOption[];
   onSelectedFamiliesChange: (families: FormFamilyOption[]) => void;
   onUpdate: (patch: Partial<TeacherFormDraft>) => void;
@@ -308,7 +312,7 @@ function SharedConfigFields({
           </p>
           <TeacherFormAudienceOptionTabs
             theme={theme}
-            options={AUDIENCE_MODE_OPTIONS}
+            options={audienceOptions}
             value={draft.audienceType}
             onChange={setAudienceType}
           />
@@ -324,6 +328,7 @@ function SharedConfigFields({
                 audienceType={draft.audienceType}
                 classroomCount={draft.classroomIds.length}
                 familyCount={draft.familyIds.length}
+                familyNames={selectedFamilies.map((family) => family.name)}
                 onEdit={() =>
                   setAudiencePicker(
                     draft.audienceType === "classrooms" ? "classrooms" : "families",
@@ -362,8 +367,15 @@ function SharedConfigFields({
   );
 }
 
-function createInitialDraft(classroomOptions: TeacherClassroomOption[]): TeacherFormDraft {
+function createInitialDraft(
+  classroomOptions: TeacherClassroomOption[],
+  audienceMode: "all" | "families_only" = "all",
+): TeacherFormDraft {
   const draft = createEmptyFormDraft();
+  if (audienceMode === "families_only") {
+    draft.audienceType = "families";
+    return draft;
+  }
   if (classroomOptions.length === 1) {
     draft.classroomIds = [classroomOptions[0].id];
   }
@@ -392,6 +404,8 @@ export default function TeacherFormCreateWizard({
   apiBasePath = "/api/teacher-portal/forms-documents",
   familySearchApiPath = "/api/teacher-portal/forms-documents/families",
   allowSelectAllClassrooms = false,
+  audienceMode = "all",
+  formCategory = "general",
   operationalErrorSurface = "teacher_portal",
   onCancel,
   onPublished,
@@ -401,8 +415,15 @@ export default function TeacherFormCreateWizard({
   const reducedMotion = useReducedMotion() ?? false;
   const [step, setStep] = useState<WizardStep>(1);
   const [direction, setDirection] = useState(1);
+  const audienceOptions = useMemo(
+    () =>
+      audienceMode === "families_only"
+        ? (["unassigned", "families"] as TeacherFormAudienceType[])
+        : AUDIENCE_MODE_OPTIONS,
+    [audienceMode],
+  );
   const [draft, setDraft] = useState<TeacherFormDraft>(() =>
-    createInitialDraft(classroomOptions),
+    createInitialDraft(classroomOptions, audienceMode),
   );
   const [activeFieldId, setActiveFieldId] = useState<string | null>(
     draft.fields[0]?.id ?? null,
@@ -508,6 +529,7 @@ export default function TeacherFormCreateWizard({
         formData.set("requireSignature", String(draft.requireSignature));
         formData.set("uploadFormat", draft.uploadFormat);
         formData.set("status", status);
+        formData.set("formCategory", formCategory);
         formData.set("file", draft.uploadFile);
 
         response = await fetch(apiBasePath, {
@@ -531,6 +553,7 @@ export default function TeacherFormCreateWizard({
             uploadFormat: draft.uploadFormat,
             fields: draft.fields,
             status,
+            formCategory,
           }),
         });
       }
@@ -649,6 +672,7 @@ export default function TeacherFormCreateWizard({
               organizationId={organizationId}
               familySearchApiPath={familySearchApiPath}
               allowSelectAllClassrooms={allowSelectAllClassrooms}
+              audienceOptions={audienceOptions}
               selectedFamilies={selectedFamilies}
               onSelectedFamiliesChange={setSelectedFamilies}
               onUpdate={updateDraft}

@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { loadAdminFormsDocumentsPageData } from "@/lib/school-admin/forms-documents/load-forms-documents-page-data";
-import { listOrgFormResponsesForForm } from "@/lib/school-admin/forms-documents/load-admin-forms";
+import {
+  listOrgFormResponsesByFormIds,
+  listOrgFormResponsesForForm,
+  listOrgParentForms,
+} from "@/lib/school-admin/forms-documents/load-admin-forms";
+import { loadAdminClassroomOptions } from "@/lib/school-admin/forms-documents/load-admin-classroom-options";
+import { parseFormCategoryQuery } from "@/lib/school-admin/forms-documents/parse-form-category";
 import {
   parsePublishInputFromFormData,
   parsePublishInputFromJson,
@@ -23,7 +29,9 @@ const ROUTE = "/api/school-admin/forms-documents";
 
 export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
-  const organizationId = new URL(request.url).searchParams.get("organizationId")?.trim() ?? "";
+  const { searchParams } = new URL(request.url);
+  const organizationId = searchParams.get("organizationId")?.trim() ?? "";
+  const category = parseFormCategoryQuery(searchParams.get("category"));
 
   if (!organizationId) {
     return apiError(ROUTE, {
@@ -43,7 +51,16 @@ export async function GET(request: Request) {
     );
 
     const admin = createAdminClient();
-    const pageData = await loadAdminFormsDocumentsPageData(admin, organizationId);
+    const pageData = category
+      ? await (async () => {
+          const forms = await listOrgParentForms(admin, organizationId, { category });
+          const [responsesByFormId, classroomOptions] = await Promise.all([
+            listOrgFormResponsesByFormIds(admin, organizationId, forms),
+            loadAdminClassroomOptions(admin, organizationId),
+          ]);
+          return { forms, responsesByFormId, classroomOptions };
+        })()
+      : await loadAdminFormsDocumentsPageData(admin, organizationId);
 
     return NextResponse.json({
       ...pageData,

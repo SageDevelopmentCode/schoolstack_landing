@@ -8,6 +8,7 @@ import {
   formatRelativeTime,
   MAX_UNREAD_BADGE_COUNT,
   resolveNotificationSince,
+  resolveTeacherParentFormPublishedLink,
 } from "@/lib/parent-portal/parent-activity-notifications";
 import {
   getActivityNotificationRangeStart,
@@ -57,6 +58,36 @@ describe("getParentActivityNotificationCategory", () => {
       ),
       "other",
     );
+  });
+});
+
+describe("resolveTeacherParentFormPublishedLink", () => {
+  const parentBase = "/school/demo/parent";
+
+  it("routes tuition forms to billing agreements", () => {
+    const link = resolveTeacherParentFormPublishedLink(
+      parentBase,
+      "form-tuition-1",
+      "tuition",
+    );
+    assert.equal(
+      link.href,
+      "/school/demo/parent/billing?tab=agreements&form=form-tuition-1",
+    );
+    assert.equal(link.ctaLabel, "View agreement");
+  });
+
+  it("routes general forms to forms_documents", () => {
+    const link = resolveTeacherParentFormPublishedLink(
+      parentBase,
+      "form-general-1",
+      "general",
+    );
+    assert.equal(
+      link.href,
+      "/school/demo/parent/forms_documents?form=form-general-1",
+    );
+    assert.equal(link.ctaLabel, "View form");
   });
 });
 

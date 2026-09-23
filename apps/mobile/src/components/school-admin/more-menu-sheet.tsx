@@ -25,7 +25,8 @@ export type MoreMenuItemId =
   | 'staff'
   | 'classrooms'
   | 'bulletin'
-  | 'attendance';
+  | 'attendance'
+  | 'committees';
 
 type MoreMenuSheetProps = {
   visible: boolean;
@@ -41,6 +42,14 @@ const MENU_ITEMS: {
   iconBg: string;
   iconColor: string;
 }[] = [
+  {
+    id: 'committees',
+    label: 'Committees',
+    subtitle: 'Volunteer groups and join requests',
+    icon: 'heart-outline',
+    iconBg: '#FCE7F3',
+    iconColor: '#DB2777',
+  },
   {
     id: 'transactions',
     label: 'Transactions',

@@ -337,11 +337,23 @@ export async function notifyTuitionBillingCronSummary(payload: {
   autopayDueCandidates: number;
   autopayLines: AutopayLineItem[];
   autopayLinesTruncated?: boolean;
+  committeeDigestsSent?: number;
+  committeeDigestFailures?: number;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Organizations", String(payload.organizations), true),
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
+    embedField(
+      "Committee digests sent",
+      String(payload.committeeDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Committee digest failures",
+      String(payload.committeeDigestFailures ?? 0),
+      true,
+    ),
     embedField(
       "Incomplete admissions reminders",
       String(payload.incompleteAdmissionsRemindersSent ?? 0),

@@ -4,6 +4,7 @@ import {
   buildApplicationAcceptedEnrollmentHtml,
   buildApplicationSubmittedConfirmationHtml,
   buildApplicationSubmittedOwnerNotificationHtml,
+  buildCommitteeDailyDigestHtml,
   buildCommitteeJoinApprovedNotificationHtml,
   buildCommitteeJoinRequestAdminNotificationHtml,
   buildFridayBranchClassRosterEmailHtml,
@@ -671,6 +672,118 @@ const previews = [
       "Ms. Taylor Reyes",
       "Open committee",
       "/school/rooted-meadows/teacher/committees",
+    ],
+  },
+  {
+    filename: "committee-daily-digest-member.html",
+    html: buildCommitteeDailyDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      recipientName: "Holly Evensen",
+      recipientKind: "member",
+      committeesUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/committees?tab=mine",
+      committees: [
+        {
+          committeeName: "Farm Connection & Development Committee",
+          categories: [
+            {
+              category: "Tasks",
+              items: [
+                {
+                  title: "Order compost",
+                  actionLabel: "Added",
+                  details: ["Status: Open", "Friday, September 26, 2026"],
+                  actorName: "Ms. Taylor Reyes",
+                  occurredAtLabel: "Yesterday at 3:15 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+            {
+              category: "Messages",
+              items: [
+                {
+                  title: "Can someone cover setup?",
+                  actionLabel: "Posted",
+                  details: [],
+                  actorName: "Holly Evensen",
+                  occurredAtLabel: "Today at 8:12 AM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+          ],
+        },
+      ],
+    }),
+    checks: [
+      "Committee Update",
+      "Today's committee activity",
+      "Holly Evensen",
+      "Farm Connection",
+      "Tasks",
+      "Messages",
+      "Order compost",
+      "Can someone cover setup?",
+      "By Ms. Taylor Reyes",
+      "Open committees",
+    ],
+  },
+  {
+    filename: "committee-daily-digest-admin.html",
+    html: buildCommitteeDailyDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      recipientKind: "admin",
+      committeesUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/committees",
+      committees: [
+        {
+          committeeName: "Farm Connection & Development Committee",
+          categories: [
+            {
+              category: "Members",
+              items: [
+                {
+                  title: "Holly Evensen",
+                  actionLabel: "Invited",
+                  details: ["Member"],
+                  actorName: "Julius Cecilia",
+                  occurredAtLabel: "Yesterday at 2:40 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+            {
+              category: "Calendar",
+              items: [
+                {
+                  title: "Harvest festival planning meeting",
+                  actionLabel: "Added",
+                  details: [
+                    "Saturday, September 27, 2026",
+                    "Time: 9:00 AM",
+                    "Location: Main hall",
+                  ],
+                  actorName: "Ms. Taylor Reyes",
+                  occurredAtLabel: "Yesterday at 3:15 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+          ],
+        },
+      ],
+    }),
+    checks: [
+      "Committee Update",
+      "Rooted Meadows Waldorf School",
+      "Members",
+      "Calendar",
+      "Holly Evensen",
+      "Harvest festival planning meeting",
+      "Location: Main hall",
+      "Open committees",
+      "/school/rooted-meadows/admin/committees",
     ],
   },
   {

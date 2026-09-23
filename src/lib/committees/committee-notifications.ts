@@ -240,30 +240,44 @@ export async function sendCommitteeJoinWithdrawnNotifications(
   // Activity log is written in withdrawCommitteeJoinRequest; no Discord for withdraw in v1.
 }
 
-type AssigneeMemberRow = {
+export type AssigneeMemberRow = {
   id: string;
   display_name: string;
   email: string | null;
   user_id: string | null;
   guardian_id: string | null;
+  staff_member_id?: string | null;
 };
 
-async function resolveCommitteeMemberEmail(
+export async function resolveCommitteeMemberEmail(
   supabase: SupabaseClient,
   member: AssigneeMemberRow,
 ): Promise<string | null> {
   if (member.email?.trim()) return member.email.trim();
 
-  if (!member.guardian_id) return null;
+  if (member.guardian_id) {
+    const { data, error } = await supabase
+      .from("guardians")
+      .select("email")
+      .eq("id", member.guardian_id)
+      .maybeSingle();
 
-  const { data, error } = await supabase
-    .from("guardians")
-    .select("email")
-    .eq("id", member.guardian_id)
-    .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (data?.email?.trim()) return data.email.trim();
+  }
 
-  if (error) throw new Error(error.message);
-  return data?.email?.trim() ?? null;
+  if (member.staff_member_id) {
+    const { data, error } = await supabase
+      .from("staff_members")
+      .select("email")
+      .eq("id", member.staff_member_id)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (data?.email?.trim()) return data.email.trim();
+  }
+
+  return null;
 }
 
 function formatTaskDueDateLabel(dueDate: string | null | undefined): string | null {
@@ -363,7 +377,7 @@ export async function loadCommitteeTaskAssigneeMember(
 ): Promise<(AssigneeMemberRow & { email: string }) | null> {
   const { data, error } = await supabase
     .from("committee_members")
-    .select("id, display_name, email, user_id, guardian_id")
+    .select("id, display_name, email, user_id, guardian_id, staff_member_id")
     .eq("id", assigneeMemberId)
     .maybeSingle();
 

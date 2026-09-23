@@ -199,6 +199,7 @@ export async function publishParentFormCore(
       title: input.title.trim(),
       description: input.description.trim(),
       form_type: input.formType,
+      form_category: input.formCategory === "tuition" ? "tuition" : "general",
       status: input.status,
       audience_type: input.audienceType,
       classroom_ids: classroomIds,

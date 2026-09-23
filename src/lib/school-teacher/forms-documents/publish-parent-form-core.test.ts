@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { validatePublishInput } from "./publish-parent-form-core";
 import type { PublishTeacherParentFormInput } from "./types";
-import { formatAudienceLabel } from "./utils";
+import { formatAudienceLabel, formatFamilyAudienceSelectionLabel } from "./utils";
 
 function baseInput(
   overrides: Partial<PublishTeacherParentFormInput> = {},
@@ -80,6 +80,37 @@ describe("validatePublishInput", () => {
   });
 });
 
+describe("formatFamilyAudienceSelectionLabel", () => {
+  it("shows choose families when empty", () => {
+    assert.equal(formatFamilyAudienceSelectionLabel([]), "Choose families");
+  });
+
+  it("shows the family name for a single selection", () => {
+    assert.equal(
+      formatFamilyAudienceSelectionLabel(["Cecilia Family"]),
+      "Cecilia Family",
+    );
+  });
+
+  it("shows first family plus remaining count for multiple selections", () => {
+    assert.equal(
+      formatFamilyAudienceSelectionLabel([
+        "Cecilia Family",
+        "Smith Family",
+        "Jones Family",
+      ]),
+      "Cecilia Family + 2 families selected",
+    );
+  });
+
+  it("uses singular family label when one extra is selected", () => {
+    assert.equal(
+      formatFamilyAudienceSelectionLabel(["Cecilia Family", "Smith Family"]),
+      "Cecilia Family + 1 family selected",
+    );
+  });
+});
+
 describe("formatAudienceLabel", () => {
   it("shows saved for later for unassigned forms", () => {
     const label = formatAudienceLabel({
@@ -87,6 +118,7 @@ describe("formatAudienceLabel", () => {
       title: "Trip",
       description: "",
       formType: "upload",
+      formCategory: "general",
       status: "draft",
       audienceType: "unassigned",
       classroomIds: [],

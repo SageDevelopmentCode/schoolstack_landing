@@ -8,6 +8,7 @@ import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav
 import TuitionSetupButton from "@/components/school-admin/tuition/TuitionSetupButton";
 import {
   TUITION_DASHBOARD_TABS,
+  TUITION_DASHBOARD_TAB_ICON_CLASS,
   type TuitionDashboardTabId,
 } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
 import { formatCents } from "@/lib/tuition/pricing";
@@ -55,6 +56,8 @@ function subtitleForTab(tab: TuitionDashboardTabId, kpis: TuitionKpis): string {
       return "Late fees and tuition adjustment rules";
     case "payment_history":
       return "All tuition payments across families";
+    case "forms":
+      return "Service-for-tuition agreements and family signatures";
   }
 }
 
@@ -82,9 +85,11 @@ export default function TuitionStoryHeader({
 
   const pillItems = TUITION_DASHBOARD_TABS.map((tab) => {
     const tabLoading = isTabLoading(tab.id, pendingTabKey, loadingTabKey);
+    const Icon = tab.icon;
     return {
       key: tab.id,
       label: tab.label,
+      icon: <Icon className={TUITION_DASHBOARD_TAB_ICON_CLASS} aria-hidden />,
       ariaBusy: tabLoading,
       testId: `tuition-tab-${tab.id}`,
       suffix: tabLoading ? (

@@ -1,110 +1,225 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { StoryCard } from '@/components/story/story-card';
-import { StoryChip } from '@/components/story/story-chip';
+import { ParentCommitteeTaskCard } from '@/components/parent/committees/parent-committee-task-card';
+import {
+  ParentCommitteeTaskDetailSheet,
+  type CommitteeTaskFormState,
+} from '@/components/parent/committees/parent-committee-task-detail-sheet';
+import { StoryButton } from '@/components/story/story-button';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import type { Committee, CommitteeTaskStatus } from '@/lib/parent/parent-committees-types';
+import {
+  createCommitteeTask,
+  deleteCommitteeTask,
+  updateCommitteeTask,
+} from '@/lib/parent/committees/mutations';
+import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
+import type { CommitteeTask, CommitteeTaskStatus } from '@/lib/parent/parent-committees-types';
 import { TASK_STATUS_LABELS } from '@/lib/parent/parent-committees-types';
-import type { StoryChipTone } from '@/components/story/story-chip';
-import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 
-type ParentCommitteeTasksSectionProps = {
-  committee: Committee;
-};
+const COLUMNS: CommitteeTaskStatus[] = ['open', 'claimed', 'in_progress', 'done'];
 
-function taskChipTone(status: CommitteeTaskStatus): StoryChipTone {
-  if (status === 'done') return 'success';
-  if (status === 'open') return 'info';
-  if (status === 'claimed' || status === 'in_progress') return 'warning';
-  return 'info';
-}
-
-export function ParentCommitteeTasksSection({ committee }: ParentCommitteeTasksSectionProps) {
+export function ParentCommitteeTasksSection({
+  committee,
+  organizationId,
+  supabase,
+  currentMemberId,
+  readOnly = false,
+  isAdmin = false,
+  onRefresh,
+}: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
-  const tasks = committee.tasks;
+  const { reportError } = useMobileErrorReporter(organizationId);
 
-  if (tasks.length === 0) {
-    return (
-      <StoryDetailSection title="Tasks">
-        <Text style={[styles.emptyCopy, { color: theme.muted }]}>No tasks yet.</Text>
-      </StoryDetailSection>
-    );
-  }
+  const [panelMode, setPanelMode] = useState<'create' | 'edit' | null>(null);
+  const [selectedTask, setSelectedTask] = useState<CommitteeTask | null>(null);
+  const [defaultStatus, setDefaultStatus] = useState<CommitteeTaskStatus>('open');
+  const [saving, setSaving] = useState(false);
 
-  const groups = committee.config.taskGroups ?? [{ id: 'general', label: 'General' }];
+  const taskGroups = committee.config.taskGroups ?? [{ id: 'general', label: 'General' }];
+
+  const tasksByStatus = useMemo(() => {
+    const grouped: Record<CommitteeTaskStatus, CommitteeTask[]> = {
+      open: [],
+      claimed: [],
+      in_progress: [],
+      done: [],
+    };
+    for (const task of committee.tasks) {
+      grouped[task.status].push(task);
+    }
+    return grouped;
+  }, [committee.tasks]);
+
+  const openCreate = useCallback((status: CommitteeTaskStatus = 'open') => {
+    setSelectedTask(null);
+    setDefaultStatus(status);
+    setPanelMode('create');
+  }, []);
+
+  const openEdit = useCallback((task: CommitteeTask) => {
+    setSelectedTask(task);
+    setDefaultStatus(task.status);
+    setPanelMode('edit');
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setPanelMode(null);
+    setSelectedTask(null);
+  }, []);
+
+  const handleSave = useCallback(async (data: CommitteeTaskFormState) => {
+    setSaving(true);
+    try {
+      if (panelMode === 'create') {
+        await createCommitteeTask(supabase, committee.id, {
+          title: data.title.trim(),
+          description: data.description || undefined,
+          group: data.group,
+          status: data.status,
+          assigneeMemberId: data.assigneeMemberId ?? undefined,
+          dueDate: data.dueDate || undefined,
+          createdByMemberId: currentMemberId,
+        });
+      } else if (selectedTask) {
+        await updateCommitteeTask(supabase, selectedTask.id, {
+          title: data.title.trim(),
+          description: data.description,
+          group: data.group,
+          status: data.status,
+          assigneeMemberId: data.assigneeMemberId,
+          dueDate: data.dueDate || null,
+        });
+      }
+      closePanel();
+      await onRefresh();
+    } catch (error) {
+      reportError('committees.tasks.save', error, {
+        entityType: 'committee',
+        entityId: committee.id,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [closePanel, committee.id, currentMemberId, onRefresh, panelMode, reportError, selectedTask, supabase]);
+
+  const handleDelete = useCallback(async () => {
+    if (!selectedTask) return;
+    setSaving(true);
+    try {
+      await deleteCommitteeTask(supabase, selectedTask.id);
+      closePanel();
+      await onRefresh();
+    } catch (error) {
+      reportError('committees.tasks.delete', error, {
+        entityType: 'committee_task',
+        entityId: selectedTask.id,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, [closePanel, onRefresh, reportError, selectedTask, supabase]);
 
   return (
     <View style={styles.container}>
-      {groups.map((group) => {
-        const groupTasks = tasks.filter((task) => task.group === group.id);
-        if (groupTasks.length === 0) return null;
+      <StoryDetailSection title="Tasks">
+        {!readOnly ? (
+          <StoryButton
+            label="Add task"
+            previewSafe
+            onPress={() => openCreate('open')}
+            style={styles.addButton}
+          />
+        ) : null}
 
-        return (
-          <StoryDetailSection key={group.id} title={group.label}>
-            <View style={styles.list}>
-              {groupTasks.map((task) => (
-                <StoryCard key={task.id} compact style={styles.card}>
-                  <View style={styles.headerRow}>
-                    <Text style={[styles.title, { color: theme.ink }]}>{task.title}</Text>
-                    <StoryChip
-                      tone={taskChipTone(task.status)}
-                      label={TASK_STATUS_LABELS[task.status]}
-                    />
-                  </View>
-                  {task.description ? (
-                    <Text style={[styles.description, { color: theme.muted }]}>{task.description}</Text>
-                  ) : null}
-                  <Text style={[styles.meta, { color: theme.muted }]}>
-                    {task.assigneeName ?? 'Unassigned'}
-                    {task.dueDate
-                      ? ` · Due ${new Date(`${task.dueDate}T00:00:00`).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}`
-                      : ''}
+        {committee.tasks.length === 0 ? (
+          <Text style={[styles.emptyCopy, { color: theme.muted }]}>No tasks yet.</Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.board}>
+            {COLUMNS.map((status) => (
+              <View key={status} style={styles.column}>
+                <View style={styles.columnHeader}>
+                  <Text style={[styles.columnTitle, { color: theme.ink }]}>
+                    {TASK_STATUS_LABELS[status]}
                   </Text>
-                </StoryCard>
-              ))}
-            </View>
-          </StoryDetailSection>
-        );
-      })}
+                  <Text style={[styles.columnCount, { color: theme.muted }]}>
+                    {tasksByStatus[status].length}
+                  </Text>
+                </View>
+                <View style={styles.columnList}>
+                  {tasksByStatus[status].map((task) => (
+                    <ParentCommitteeTaskCard key={task.id} task={task} onPress={() => openEdit(task)} />
+                  ))}
+                </View>
+                {!readOnly ? (
+                  <StoryButton
+                    label="Add"
+                    previewSafe
+                    onPress={() => openCreate(status)}
+                    style={styles.columnAdd}
+                  />
+                ) : null}
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </StoryDetailSection>
+
+      <ParentCommitteeTaskDetailSheet
+        visible={panelMode != null}
+        mode={panelMode === 'create' ? 'create' : 'edit'}
+        task={selectedTask}
+        defaultStatus={defaultStatus}
+        taskGroups={taskGroups}
+        members={committee.members}
+        readOnly={readOnly}
+        saving={saving}
+        onClose={closePanel}
+        onSave={handleSave}
+        onDelete={panelMode === 'edit' && !readOnly ? handleDelete : undefined}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.four,
-  },
-  list: {
     gap: Spacing.two,
   },
-  card: {
-    padding: StoryCardPadding,
-    gap: Spacing.one,
+  addButton: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.two,
   },
-  headerRow: {
+  board: {
+    gap: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
+  column: {
+    width: 280,
+    gap: Spacing.two,
+  },
+  columnHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.two,
   },
-  title: {
+  columnTitle: {
     fontFamily: StoryFonts.bodySemiBold,
     fontSize: 14,
-    flex: 1,
   },
-  description: {
-    fontFamily: StoryFonts.body,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  meta: {
+  columnCount: {
     fontFamily: StoryFonts.body,
     fontSize: 12,
+  },
+  columnList: {
+    gap: Spacing.two,
+  },
+  columnAdd: {
+    alignSelf: 'flex-start',
   },
   emptyCopy: {
     fontFamily: StoryFonts.body,

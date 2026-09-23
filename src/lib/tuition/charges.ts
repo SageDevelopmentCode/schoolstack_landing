@@ -27,7 +27,9 @@ import {
   indexApplicationsByFamilyId,
 } from "./tuition-family-application-status";
 import { classifyTuitionFamilyListVisibility } from "./tuition-family-list-visibility";
+import { buildTuitionAgreementStatusByFamilyId } from "./tuition-agreement-status";
 import type { RawKpiChargeRow } from "./kpi-breakdown";
+import type { TeacherFormSignatureStatus } from "@/lib/school-teacher/forms-documents/types";
 import {
   computeOutstandingCentsFromCharges,
   type OutstandingPeriod,
@@ -308,6 +310,7 @@ export async function listFamilyBillingSummaries(
     { data: adjustmentRows },
     { data: organizationSettings },
     { data: applications },
+    { data: tuitionAgreementResponses },
   ] = await Promise.all([
     supabase
       .from("tuition_billing_accounts")
@@ -401,7 +404,38 @@ export async function listFamilyBillingSummaries(
       .from("applications")
       .select("family_id, primary_guardian_id, status")
       .eq("organization_id", organizationId),
+    supabase
+      .from("teacher_parent_form_responses")
+      .select(
+        `
+        family_id,
+        status,
+        teacher_parent_forms!inner (
+          due_date,
+          status,
+          form_category
+        )
+      `,
+      )
+      .eq("organization_id", organizationId)
+      .in("family_id", familyIds)
+      .eq("teacher_parent_forms.status", "active")
+      .eq("teacher_parent_forms.form_category", "tuition"),
   ]);
+
+  const tuitionAgreementStatusByFamilyId = buildTuitionAgreementStatusByFamilyId(
+    (tuitionAgreementResponses ?? []).map((row) => {
+      const form = Array.isArray(row.teacher_parent_forms)
+        ? row.teacher_parent_forms[0]
+        : row.teacher_parent_forms;
+      return {
+        familyId: String(row.family_id),
+        status: String(row.status) as TeacherFormSignatureStatus,
+        dueDate:
+          form && typeof form.due_date === "string" ? form.due_date : null,
+      };
+    }),
+  );
 
   const orgFeatures = mergeFeatures(
     (organizationSettings?.features as Record<string, unknown> | null | undefined) ??
@@ -870,6 +904,8 @@ export async function listFamilyBillingSummaries(
       hasWithdrawnApplication: familyHasWithdrawnApplication(
         applicationsByFamilyId.get(familyId) ?? [],
       ),
+      tuitionAgreementStatus:
+        tuitionAgreementStatusByFamilyId.get(familyId) ?? "none",
       hasBillingRelevance,
     } satisfies FamilyBillingSummary & { hasBillingRelevance: boolean };
   })

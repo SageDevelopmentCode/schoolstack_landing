@@ -10,6 +10,7 @@ export const MOCK_TEACHER_PARENT_FORMS: TeacherParentForm[] = [
     description:
       "Required before students participate in trampoline activities during PE.",
     formType: "upload",
+    formCategory: "general",
     status: "active",
     audienceType: "classrooms",
     classroomIds: ["classroom-butterflies", "classroom-sunflowers"],
@@ -32,6 +33,7 @@ export const MOCK_TEACHER_PARENT_FORMS: TeacherParentForm[] = [
     description:
       "Permission slip for the April 12 visit to the nature center.",
     formType: "builder",
+    formCategory: "general",
     status: "active",
     audienceType: "classrooms",
     classroomIds: ["classroom-butterflies"],
@@ -77,6 +79,7 @@ export const MOCK_TEACHER_PARENT_FORMS: TeacherParentForm[] = [
     title: "Photo release",
     description: "Allow the school to use photos of your child in newsletters.",
     formType: "upload",
+    formCategory: "general",
     status: "draft",
     audienceType: "unassigned",
     classroomIds: [],
@@ -98,6 +101,7 @@ export const MOCK_TEACHER_PARENT_FORMS: TeacherParentForm[] = [
     title: "Summer camp addendum",
     description: "Additional terms for optional summer camp enrollment.",
     formType: "upload",
+    formCategory: "general",
     status: "archived",
     audienceType: "classrooms",
     classroomIds: ["classroom-butterflies", "classroom-sunflowers"],
