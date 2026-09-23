@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { countFamiliesForClassroomIds } from "@/lib/classroom-signups/audience";
+import type { TeacherFormAudienceType } from "./types";
 
 export type FormAudienceFamily = {
   familyId: string;
@@ -103,4 +104,121 @@ export async function countFormAudienceFamilies(
     classroomIds,
   );
   return result.count;
+}
+
+export async function resolveFormAudienceFamiliesByIds(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<FormAudienceFamily[]> {
+  if (familyIds.length === 0) return [];
+
+  const { data: enrollmentRows, error } = await admin
+    .from("enrollments")
+    .select(
+      `
+      student_id,
+      students!inner (
+        id,
+        first_name,
+        last_name,
+        family_id
+      )
+    `,
+    )
+    .eq("organization_id", organizationId)
+    .eq("status", "enrolled")
+    .in("students.family_id", familyIds);
+
+  if (error) throw error;
+
+  const byFamily = new Map<string, { studentIds: string[]; studentNames: string[] }>();
+  for (const row of enrollmentRows ?? []) {
+    const student = row.students as
+      | {
+          id?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          family_id?: string;
+        }
+      | {
+          id?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          family_id?: string;
+        }[]
+      | null;
+    const studentRow = Array.isArray(student) ? student[0] : student;
+    if (!studentRow?.family_id || !studentRow.id) continue;
+
+    const familyId = String(studentRow.family_id);
+    if (!familyIds.includes(familyId)) continue;
+
+    const name = [studentRow.first_name, studentRow.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const existing = byFamily.get(familyId) ?? { studentIds: [], studentNames: [] };
+    if (!existing.studentIds.includes(String(studentRow.id))) {
+      existing.studentIds.push(String(studentRow.id));
+      existing.studentNames.push(name || "Student");
+      byFamily.set(familyId, existing);
+    }
+  }
+
+  return familyIds
+    .filter((familyId) => byFamily.has(familyId))
+    .map((familyId) => {
+      const family = byFamily.get(familyId)!;
+      return {
+        familyId,
+        studentIds: family.studentIds,
+        studentNames: family.studentNames,
+      };
+    });
+}
+
+export async function countFormAudienceFamiliesByIds(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<number> {
+  const families = await resolveFormAudienceFamiliesByIds(
+    admin,
+    organizationId,
+    familyIds,
+  );
+  return families.length;
+}
+
+export async function resolveFormAudienceForType(
+  admin: SupabaseClient,
+  organizationId: string,
+  audienceType: TeacherFormAudienceType,
+  classroomIds: string[],
+  familyIds: string[],
+): Promise<FormAudienceFamily[]> {
+  if (audienceType === "families") {
+    return resolveFormAudienceFamiliesByIds(admin, organizationId, familyIds);
+  }
+  if (audienceType === "classrooms") {
+    return resolveFormAudienceFamilies(admin, organizationId, classroomIds);
+  }
+  return [];
+}
+
+export async function countFormAudienceForType(
+  admin: SupabaseClient,
+  organizationId: string,
+  audienceType: TeacherFormAudienceType,
+  classroomIds: string[],
+  familyIds: string[],
+): Promise<number> {
+  if (audienceType === "families") {
+    return countFormAudienceFamiliesByIds(admin, organizationId, familyIds);
+  }
+  if (audienceType === "classrooms") {
+    return countFormAudienceFamilies(admin, organizationId, classroomIds);
+  }
+  return 0;
 }

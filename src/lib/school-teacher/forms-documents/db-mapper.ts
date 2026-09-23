@@ -1,4 +1,5 @@
 import type {
+  TeacherFormAudienceType,
   TeacherFormConfig,
   TeacherFormField,
   TeacherFormSignatureRow,
@@ -17,7 +18,9 @@ export type TeacherParentFormRow = {
   description: string;
   form_type: TeacherParentFormType;
   status: TeacherParentFormStatus;
+  audience_type?: TeacherFormAudienceType | null;
   classroom_ids: string[] | null;
+  family_ids?: string[] | null;
   due_date: string | null;
   require_signature: boolean;
   config: TeacherFormConfig | null;
@@ -85,7 +88,16 @@ export function mapTeacherParentFormRow(row: TeacherParentFormRow): TeacherParen
   const config = (row.config ?? {}) as TeacherFormConfig;
   const classroomIds = (row.classroom_ids ?? []).map(String);
   const classroomNames = config.classroomNames ?? [];
+  const familyIds = (row.family_ids ?? []).map(String);
+  const familyNames = config.familyNames ?? [];
   const upload = config.upload;
+  const audienceType =
+    row.audience_type ??
+    (familyIds.length > 0
+      ? "families"
+      : classroomIds.length > 0
+        ? "classrooms"
+        : "unassigned");
 
   return {
     id: String(row.id),
@@ -93,8 +105,11 @@ export function mapTeacherParentFormRow(row: TeacherParentFormRow): TeacherParen
     description: String(row.description ?? ""),
     formType: row.form_type,
     status: row.status,
+    audienceType,
     classroomIds,
     classroomNames,
+    familyIds,
+    familyNames,
     dueDate: row.due_date,
     requireSignature: Boolean(row.require_signature),
     uploadFormat: upload?.uploadFormat,

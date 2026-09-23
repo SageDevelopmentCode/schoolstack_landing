@@ -65,6 +65,18 @@ export function formatClassroomNames(names: string[]): string {
   return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
 }
 
+export function formatFamilyNames(names: string[]): string {
+  if (names.length === 0) return "No families";
+  if (names.length <= 2) return names.join(", ");
+  return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+}
+
+export function formatAudienceLabel(form: TeacherParentForm): string {
+  if (form.audienceType === "unassigned") return "Saved for later";
+  if (form.audienceType === "families") return formatFamilyNames(form.familyNames);
+  return formatClassroomNames(form.classroomNames);
+}
+
 export function getFormProgressPercent(form: TeacherParentForm): number {
   if (form.totalFamilies === 0) return 0;
   return Math.round((form.signedFamilies / form.totalFamilies) * 100);
@@ -87,7 +99,9 @@ export function createEmptyFormDraft(): TeacherFormDraft {
     title: "",
     description: "",
     formType: "upload",
+    audienceType: "classrooms",
     classroomIds: [],
+    familyIds: [],
     dueDate: null,
     requireSignature: true,
     uploadFormat: "pdf",
@@ -105,7 +119,7 @@ export function buildStaffPreviewDetailFromDraft(
     const classroom = classroomOptions.find((option) => option.id === classroomId);
     return classroom?.name ?? "Classroom";
   });
-  const form = createFormFromDraft(draft, classroomNames);
+  const form = createFormFromDraft(draft, classroomNames, draft.familyIds.map(() => "Family"));
 
   return {
     form,
@@ -123,9 +137,15 @@ export function buildStaffPreviewDetailFromDraft(
 export function createFormFromDraft(
   draft: TeacherFormDraft,
   classroomNames: string[],
+  familyNames: string[] = [],
 ): TeacherParentForm {
   const now = new Date().toISOString();
-  const totalFamilies = draft.classroomIds.length > 0 ? 12 : 0;
+  const totalFamilies =
+    draft.audienceType === "families"
+      ? draft.familyIds.length
+      : draft.classroomIds.length > 0
+        ? 12
+        : 0;
 
   return {
     id: `form-${Date.now()}`,
@@ -133,8 +153,11 @@ export function createFormFromDraft(
     description: draft.description.trim(),
     formType: draft.formType,
     status: "active",
+    audienceType: draft.audienceType,
     classroomIds: draft.classroomIds,
     classroomNames,
+    familyIds: draft.familyIds,
+    familyNames,
     dueDate: draft.dueDate,
     requireSignature: draft.requireSignature,
     uploadFormat: draft.formType === "upload" ? draft.uploadFormat : undefined,

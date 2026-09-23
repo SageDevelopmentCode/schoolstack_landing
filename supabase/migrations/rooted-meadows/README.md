@@ -31,6 +31,8 @@ Each script is idempotent — it only runs when `jsonb_array_length(schema->'sec
 
 Run after `add_product_organization_progress_log.sql`. Independent of the form seeds.
 
+Agent workflow for catching up daily entries and dashboard cards: [`.agents/skills/mudkitchen-ship-log/SKILL.md`](../../.agents/skills/mudkitchen-ship-log/SKILL.md).
+
 ### Dual org (important)
 
 Rooted Meadows exists as two organization rows:
@@ -74,8 +76,22 @@ Daily `add_organization_progress_log_*.sql` seeds insert into **both** slugs. If
 | `add_organization_progress_log_2026_09_08.sql` | September 8 — multiple curriculum documents and a clearer reading experience |
 | `add_organization_progress_log_2026_09_09.sql` | September 9 — co-op supply list and parent teaching schedule |
 | `add_organization_progress_log_2026_09_10.sql` | September 10 — activity notifications, how-to guides, and tuition charge waiving |
+| `add_organization_progress_log_2026_09_11.sql` | September 11 — classroom volunteer sign-ups |
+| `add_organization_progress_log_2026_09_12.sql` | September 12 — co-op family roster and smarter tuition billing |
+| `add_organization_progress_log_2026_09_13.sql` | September 13 — mobile app redesign |
+| `add_organization_progress_log_2026_09_14.sql` | September 14 — committees, school bulletin, and mobile admin tools |
+| `add_organization_progress_log_2026_09_15.sql` | September 15 — parent broadcasts, forms hub, and teacher mobile portal |
+| `add_organization_progress_log_2026_09_16.sql` | September 16 — admissions reminder emails and bulletin for families |
+| `add_organization_progress_log_2026_09_17.sql` | September 17 — Friday Branch scheduling and parent enrollment |
+| `add_organization_progress_log_2026_09_18.sql` | September 18 — roster emails and faster mobile messaging |
+| `add_organization_progress_log_2026_09_19.sql` | September 19 — enrollment alerts and reminder timing |
+| `add_organization_progress_log_2026_09_20.sql` | September 20 — attendance, push notifications, and activity inbox |
+| `add_organization_progress_log_2026_09_21.sql` | September 21 — committee attachments and parent attendance history |
+| `add_organization_progress_log_2026_09_22.sql` | September 22 — Friday Branch pricing, flyers, and schedule polish |
 
 Batch paste for Sep 5–10: [`migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_05_to_2026_09_10.sql)
+
+Batch paste for Sep 14–22: [`migrations_manual/rooted_meadows_progress_log_2026_09_14_to_2026_09_22.sql`](../migrations_manual/rooted_meadows_progress_log_2026_09_14_to_2026_09_22.sql)
 
 ## Enrollment checklist seeds
 

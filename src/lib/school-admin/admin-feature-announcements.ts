@@ -143,6 +143,66 @@ const STATIC_ADMIN_FEATURE_ANNOUNCEMENTS: StaticAdminFeatureAnnouncement[] = [
     hrefPath: "admissions/submissions",
     publishedAt: "2026-08-29",
   },
+  {
+    id: "committee-workspace",
+    title: "Committee workspaces",
+    description:
+      "Run parent committees with a shared workspace for messages, calendar, resources, and tasks — including file attachments in chat.",
+    ctaLabel: "Try it now",
+    feature: "committees",
+    hrefPath: "committees",
+    publishedAt: "2026-09-21",
+  },
+  {
+    id: "parent-message-broadcasts",
+    title: "Message broadcasts to parents",
+    description:
+      "Send a message to filtered groups of parents; each family gets their own private thread.",
+    ctaLabel: "Try it now",
+    feature: "messages",
+    hrefPath: "messages",
+    publishedAt: "2026-09-15",
+  },
+  {
+    id: "admin-forms-documents",
+    title: "Forms and documents hub",
+    description:
+      "Track every parent form across the school with signature progress and downloads.",
+    ctaLabel: "Open",
+    feature: "my_school",
+    hrefPath: "my_school/forms_documents",
+    publishedAt: "2026-09-15",
+  },
+  {
+    id: "incomplete-admissions-reminders",
+    title: "Admissions reminder emails",
+    description:
+      "Automatic emails when families leave applications or enrollment steps unfinished.",
+    ctaLabel: "View",
+    feature: "admissions",
+    hrefPath: "admissions/submissions",
+    publishedAt: "2026-09-16",
+  },
+  {
+    id: "friday-branch-scheduling",
+    title: "Friday Branch",
+    description:
+      "Build Friday class schedules, email rosters to teachers, and set an optional price and PDF flyer per class. Families enroll or join the waitlist from the parent portal.",
+    ctaLabel: "Try it now",
+    feature: "my_school",
+    hrefPath: "my_school/friday_branch",
+    publishedAt: "2026-09-22",
+  },
+  {
+    id: "mobile-attendance",
+    title: "Mobile attendance",
+    description:
+      "Mark present, absent, or late from the MudKitchen mobile app.",
+    ctaLabel: "Try it now",
+    feature: "my_school",
+    hrefPath: "my_school/attendance",
+    publishedAt: "2026-09-20",
+  },
 ];
 
 export function parseIsoDate(isoDate: string): Date {

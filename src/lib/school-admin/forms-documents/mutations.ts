@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listClassrooms } from "@/lib/school-admin/classrooms";
+import { countFormAudienceForType } from "@/lib/school-teacher/forms-documents/audience";
+import { assertOrgFamilyAccess } from "@/lib/school-teacher/forms-documents/load-form-family-options";
 import {
   fetchClassroomNames,
+  fetchFamilyNames,
   materializeFormResponses,
   publishParentFormCore,
 } from "@/lib/school-teacher/forms-documents/publish-parent-form-core";
@@ -12,6 +15,7 @@ import {
 } from "@/lib/school-teacher/forms-documents/db-mapper";
 import type {
   PublishTeacherParentFormInput,
+  TeacherFormAudienceType,
   TeacherFormConfig,
   TeacherParentForm,
   TeacherParentFormStatus,
@@ -20,7 +24,6 @@ import {
   buildTeacherFormStoragePath,
   copyTeacherFormFile,
 } from "@/lib/school-teacher/forms-documents/teacher-form-file-storage";
-import { countFormAudienceFamilies } from "@/lib/school-teacher/forms-documents/audience";
 import { getOrgParentFormById } from "./load-admin-forms";
 import type { AdminParentForm } from "./types";
 
@@ -41,6 +44,35 @@ async function assertOrgClassroomAccess(
   }
 }
 
+async function assertAudienceAccess(
+  admin: SupabaseClient,
+  organizationId: string,
+  audienceType: TeacherFormAudienceType,
+  classroomIds: string[],
+  familyIds: string[],
+): Promise<void> {
+  if (audienceType === "classrooms") {
+    await assertOrgClassroomAccess(admin, organizationId, classroomIds);
+  }
+  if (audienceType === "families") {
+    await assertOrgFamilyAccess(admin, organizationId, familyIds);
+  }
+}
+
+function resolveAudienceIds(
+  audienceType: TeacherFormAudienceType,
+  classroomIds: string[],
+  familyIds: string[],
+): { classroomIds: string[]; familyIds: string[] } {
+  if (audienceType === "classrooms") {
+    return { classroomIds, familyIds: [] };
+  }
+  if (audienceType === "families") {
+    return { classroomIds: [], familyIds };
+  }
+  return { classroomIds: [], familyIds: [] };
+}
+
 export async function publishAdminParentForm(
   admin: SupabaseClient,
   organizationId: string,
@@ -48,7 +80,16 @@ export async function publishAdminParentForm(
   input: PublishTeacherParentFormInput,
   uploadFile?: File | null,
 ): Promise<AdminParentForm> {
-  await assertOrgClassroomAccess(admin, organizationId, input.classroomIds);
+  if (input.audienceType !== "unassigned") {
+    await assertAudienceAccess(
+      admin,
+      organizationId,
+      input.audienceType,
+      input.classroomIds,
+      input.familyIds,
+    );
+  }
+
   const form = await publishParentFormCore(
     admin,
     organizationId,
@@ -66,7 +107,9 @@ export type UpdateAdminParentFormInput = {
   description?: string;
   dueDate?: string | null;
   requireSignature?: boolean;
+  audienceType?: TeacherFormAudienceType;
   classroomIds?: string[];
+  familyIds?: string[];
   fields?: PublishTeacherParentFormInput["fields"];
   status?: TeacherParentFormStatus;
 };
@@ -93,21 +136,41 @@ export async function updateAdminParentForm(
   const existing = mapTeacherParentFormRow(existingRow as TeacherParentFormRow);
   const now = new Date().toISOString();
 
-  if (input.classroomIds) {
-    await assertOrgClassroomAccess(admin, organizationId, input.classroomIds);
+  const nextAudienceType = input.audienceType ?? existing.audienceType;
+  const nextClassroomIds = input.classroomIds ?? existing.classroomIds;
+  const nextFamilyIds = input.familyIds ?? existing.familyIds;
+
+  if (nextAudienceType !== "unassigned") {
+    await assertAudienceAccess(
+      admin,
+      organizationId,
+      nextAudienceType,
+      nextClassroomIds,
+      nextFamilyIds,
+    );
   }
 
-  const nextClassroomIds = input.classroomIds ?? existing.classroomIds;
+  const resolvedIds = resolveAudienceIds(
+    nextAudienceType,
+    nextClassroomIds,
+    nextFamilyIds,
+  );
   const classroomNames = await fetchClassroomNames(
     admin,
     organizationId,
-    nextClassroomIds,
+    resolvedIds.classroomIds,
+  );
+  const familyNames = await fetchFamilyNames(
+    admin,
+    organizationId,
+    resolvedIds.familyIds,
   );
 
   const existingConfig = (existingRow as TeacherParentFormRow).config ?? {};
   const config: TeacherFormConfig = {
     ...existingConfig,
     classroomNames,
+    familyNames,
     ...(existing.formType === "builder" && input.fields
       ? { fields: input.fields }
       : {}),
@@ -116,12 +179,18 @@ export async function updateAdminParentForm(
   const nextStatus = input.status ?? existing.status;
   const publishing = existing.status === "draft" && nextStatus === "active";
 
+  if (publishing && nextAudienceType === "unassigned") {
+    throw new Error("Choose who should receive this form before sending.");
+  }
+
   let totalFamilies = existing.totalFamilies;
   if (publishing) {
-    totalFamilies = await countFormAudienceFamilies(
+    totalFamilies = await countFormAudienceForType(
       admin,
       organizationId,
-      nextClassroomIds,
+      nextAudienceType,
+      resolvedIds.classroomIds,
+      resolvedIds.familyIds,
     );
   }
 
@@ -130,7 +199,9 @@ export async function updateAdminParentForm(
     .update({
       title: input.title?.trim() ?? existing.title,
       description: input.description?.trim() ?? existing.description,
-      classroom_ids: nextClassroomIds,
+      audience_type: nextAudienceType,
+      classroom_ids: resolvedIds.classroomIds,
+      family_ids: resolvedIds.familyIds,
       due_date: input.dueDate !== undefined ? input.dueDate : existing.dueDate,
       require_signature:
         input.requireSignature !== undefined
@@ -154,7 +225,9 @@ export async function updateAdminParentForm(
       admin,
       organizationId,
       formId,
-      nextClassroomIds,
+      nextAudienceType,
+      resolvedIds.classroomIds,
+      resolvedIds.familyIds,
     );
   }
 
@@ -227,7 +300,9 @@ export async function duplicateAdminParentForm(
     description: existing.description,
     form_type: existing.form_type,
     status: "draft",
+    audience_type: existing.audience_type ?? "unassigned",
     classroom_ids: existing.classroom_ids ?? [],
+    family_ids: existing.family_ids ?? [],
     due_date: existing.due_date,
     require_signature: existing.require_signature,
     config,

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  countFormAudienceFamilies,
-  resolveFormAudienceFamilies,
+  countFormAudienceForType,
+  resolveFormAudienceForType,
 } from "./audience";
 import {
   mapTeacherParentFormRow,
@@ -10,6 +10,7 @@ import {
 } from "./db-mapper";
 import type {
   PublishTeacherParentFormInput,
+  TeacherFormAudienceType,
   TeacherFormConfig,
   TeacherParentForm,
 } from "./types";
@@ -39,10 +40,48 @@ export async function fetchClassroomNames(
     .filter((name): name is string => Boolean(name));
 }
 
+export async function fetchFamilyNames(
+  admin: SupabaseClient,
+  organizationId: string,
+  familyIds: string[],
+): Promise<string[]> {
+  if (familyIds.length === 0) return [];
+
+  const { data, error } = await admin
+    .from("families")
+    .select("id, name")
+    .eq("organization_id", organizationId)
+    .in("id", familyIds);
+
+  if (error) throw error;
+
+  const nameById = new Map(
+    (data ?? []).map((row) => [String(row.id), String(row.name ?? "Family")]),
+  );
+
+  return familyIds
+    .map((id) => nameById.get(id))
+    .filter((name): name is string => Boolean(name));
+}
+
+function requiresAudience(input: PublishTeacherParentFormInput): boolean {
+  if (input.status === "active") return true;
+  return input.audienceType !== "unassigned";
+}
+
 export function validatePublishInput(input: PublishTeacherParentFormInput): void {
   if (!input.title.trim()) throw new Error("Title is required.");
-  if (input.classroomIds.length === 0) {
-    throw new Error("Select at least one classroom.");
+
+  if (requiresAudience(input)) {
+    if (input.audienceType === "classrooms" && input.classroomIds.length === 0) {
+      throw new Error("Select at least one classroom.");
+    }
+    if (input.audienceType === "families" && input.familyIds.length === 0) {
+      throw new Error("Select at least one family.");
+    }
+    if (input.audienceType === "unassigned") {
+      throw new Error("Choose who should receive this form before sending.");
+    }
   }
 
   if (input.formType === "upload") {
@@ -63,12 +102,16 @@ export async function materializeFormResponses(
   admin: SupabaseClient,
   organizationId: string,
   formId: string,
+  audienceType: TeacherFormAudienceType,
   classroomIds: string[],
+  familyIds: string[],
 ): Promise<void> {
-  const families = await resolveFormAudienceFamilies(
+  const families = await resolveFormAudienceForType(
     admin,
     organizationId,
+    audienceType,
     classroomIds,
+    familyIds,
   );
 
   if (families.length === 0) return;
@@ -97,14 +140,15 @@ export async function publishParentFormCore(
 
   const formId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const classroomNames = await fetchClassroomNames(
-    admin,
-    organizationId,
-    input.classroomIds,
-  );
+  const classroomIds =
+    input.audienceType === "classrooms" ? input.classroomIds : [];
+  const familyIds = input.audienceType === "families" ? input.familyIds : [];
+  const classroomNames = await fetchClassroomNames(admin, organizationId, classroomIds);
+  const familyNames = await fetchFamilyNames(admin, organizationId, familyIds);
 
   let config: TeacherFormConfig = {
     classroomNames,
+    familyNames,
   };
 
   if (input.formType === "builder") {
@@ -137,7 +181,13 @@ export async function publishParentFormCore(
 
   const isActive = input.status === "active";
   const totalFamilies = isActive
-    ? await countFormAudienceFamilies(admin, organizationId, input.classroomIds)
+    ? await countFormAudienceForType(
+        admin,
+        organizationId,
+        input.audienceType,
+        classroomIds,
+        familyIds,
+      )
     : 0;
 
   const { data, error } = await admin
@@ -150,7 +200,9 @@ export async function publishParentFormCore(
       description: input.description.trim(),
       form_type: input.formType,
       status: input.status,
-      classroom_ids: input.classroomIds,
+      audience_type: input.audienceType,
+      classroom_ids: classroomIds,
+      family_ids: familyIds,
       due_date: input.dueDate,
       require_signature: input.requireSignature,
       config,
@@ -169,7 +221,9 @@ export async function publishParentFormCore(
       admin,
       organizationId,
       formId,
-      input.classroomIds,
+      input.audienceType,
+      classroomIds,
+      familyIds,
     );
   }
 

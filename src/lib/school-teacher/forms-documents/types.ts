@@ -2,6 +2,8 @@ import type { TeacherClassroomOption } from "@/lib/classroom-signups/types";
 
 export type TeacherParentFormStatus = "draft" | "active" | "archived";
 
+export type TeacherFormAudienceType = "unassigned" | "classrooms" | "families";
+
 export type TeacherParentFormType = "upload" | "builder";
 
 export type UploadFileFormat = "pdf" | "docx";
@@ -29,8 +31,11 @@ export type TeacherParentForm = {
   description: string;
   formType: TeacherParentFormType;
   status: TeacherParentFormStatus;
+  audienceType: TeacherFormAudienceType;
   classroomIds: string[];
   classroomNames: string[];
+  familyIds: string[];
+  familyNames: string[];
   dueDate: string | null;
   requireSignature: boolean;
   uploadFormat?: UploadFileFormat;
@@ -76,13 +81,16 @@ export type TeacherFormConfig = {
   fields?: TeacherFormField[];
   upload?: TeacherFormUploadConfig;
   classroomNames?: string[];
+  familyNames?: string[];
 };
 
 export type TeacherFormDraft = {
   title: string;
   description: string;
   formType: TeacherFormCreateType;
+  audienceType: TeacherFormAudienceType;
   classroomIds: string[];
+  familyIds: string[];
   dueDate: string | null;
   requireSignature: boolean;
   uploadFormat: UploadFileFormat;
@@ -103,6 +111,12 @@ export const FORM_STATUS_LABELS: Record<TeacherParentFormStatus, string> = {
   draft: "Draft",
   active: "Active",
   archived: "Archived",
+};
+
+export const FORM_AUDIENCE_TYPE_LABELS: Record<TeacherFormAudienceType, string> = {
+  unassigned: "Saved for later",
+  classrooms: "Classrooms",
+  families: "Specific families",
 };
 
 export const FORM_TYPE_LABELS: Record<TeacherParentFormType, string> = {

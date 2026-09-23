@@ -103,8 +103,8 @@ describe("parent-feature-announcements", () => {
       { sinceDays: 14, now: SEP_10 },
     );
 
-    assert.equal(announcements.length, 12);
-    assert.equal(announcements[0]?.id, "activity-notifications");
+    assert.equal(announcements.length, 18);
+    assert.equal(announcements[0]?.id, "friday-branch-enrollment");
   });
 
   it("filters coop-only cards on the main school portal", () => {

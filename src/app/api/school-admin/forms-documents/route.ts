@@ -3,7 +3,10 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { loadAdminFormsDocumentsPageData } from "@/lib/school-admin/forms-documents/load-forms-documents-page-data";
 import { listOrgFormResponsesForForm } from "@/lib/school-admin/forms-documents/load-admin-forms";
-import { parsePublishInputFromFormData } from "@/lib/school-admin/forms-documents/parse-publish-input";
+import {
+  parsePublishInputFromFormData,
+  parsePublishInputFromJson,
+} from "@/lib/school-admin/forms-documents/parse-publish-input";
 import { publishAdminParentForm } from "@/lib/school-admin/forms-documents/mutations";
 import { requireSchoolAdminUser, SchoolAdminAuthError } from "@/lib/school-admin/access";
 import type { PublishTeacherParentFormInput } from "@/lib/school-teacher/forms-documents/types";
@@ -86,19 +89,7 @@ export async function POST(request: Request) {
         organizationId?: string;
       };
       organizationId = body.organizationId?.trim() ?? "";
-      publishInput = {
-        title: body.title ?? "",
-        description: body.description ?? "",
-        formType: body.formType ?? "builder",
-        classroomIds: body.classroomIds ?? [],
-        dueDate: body.dueDate ?? null,
-        requireSignature: body.requireSignature ?? true,
-        uploadFormat: body.uploadFormat ?? "pdf",
-        uploadFileName: body.uploadFileName ?? null,
-        uploadFileSize: body.uploadFileSize ?? null,
-        fields: body.fields ?? [],
-        status: body.status ?? "active",
-      };
+      publishInput = parsePublishInputFromJson(body);
     }
   } catch {
     return apiError(ROUTE, {

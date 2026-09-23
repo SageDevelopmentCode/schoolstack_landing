@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { FileText, Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentChip from "@/components/school-parent/ui/ParentChip";
 import TeacherFormCreateWizard from "./TeacherFormCreateWizard";
 import TeacherFormDetailSidebar from "./TeacherFormDetailSidebar";
+import TeacherFormSendModal from "./TeacherFormSendModal";
 import TeacherFormsDocumentsEmptyState from "./TeacherFormsDocumentsEmptyState";
 import TeacherFormsDocumentsStoryHeader from "./TeacherFormsDocumentsStoryHeader";
 import TeacherFormFilterPill from "./teacher-form-filter-pill";
@@ -27,13 +28,20 @@ import {
 } from "@/lib/school-teacher/forms-documents/types";
 import { fetchTeacherFormDownloadUrl } from "@/lib/school-teacher/forms-documents/fetch-teacher-form-download-url";
 import {
+  readFormIdFromUrl,
+  resolveValidFormId,
+  syncFormDetailUrl,
+} from "@/lib/school-teacher/forms-documents/sync-form-url";
+import {
   computeFormMetrics,
   filterFormsByStatus,
-  formatClassroomNames,
+  formatAudienceLabel,
   formatFormDueDate,
   getFormProgressPercent,
   getSignatureRowsForForm,
 } from "@/lib/school-teacher/forms-documents/utils";
+
+const API_BASE = "/api/teacher-portal/forms-documents";
 
 type TeacherFormsDocumentsPageProps = {
   organizationId: string;
@@ -114,7 +122,7 @@ function FormListRow({
           {form.title}
         </p>
         <p className="mt-0.5 text-xs" style={{ color: theme.muted }}>
-          {formatClassroomNames(form.classroomNames)}
+          {formatAudienceLabel(form)}
         </p>
       </div>
       <ParentChip theme={theme} tone="info">{typeLabel(form)}</ParentChip>
@@ -179,7 +187,7 @@ function FormListCard({
         </div>
       </div>
       <p className="mt-1 text-xs" style={{ color: theme.muted }}>
-        {formatClassroomNames(form.classroomNames)} · Due {formatFormDueDate(form.dueDate)}
+        {formatAudienceLabel(form)} · Due {formatFormDueDate(form.dueDate)}
       </p>
       <p className="mt-3 text-xs font-medium" style={{ color: theme.ink }}>
         {form.signedFamilies} / {form.totalFamilies} families signed
@@ -233,7 +241,6 @@ function TeacherFormsDocumentsPageContent({
 }: TeacherFormsDocumentsPageProps) {
   const { theme } = useParentTheme();
   const reducedMotion = useReducedMotion() ?? false;
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -245,28 +252,17 @@ function TeacherFormsDocumentsPageContent({
   const [creating, setCreating] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-
-  const formParam = searchParams.get("form") ?? initialFormId ?? null;
-
-  const selectedFormId = useMemo(() => {
-    if (!formParam) return null;
-    return forms.some((form) => form.id === formParam) ? formParam : null;
-  }, [formParam, forms]);
-
-  const setFormParam = useCallback(
-    (formId: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (formId) params.set("form", formId);
-      else params.delete("form");
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
-    },
-    [pathname, router, searchParams],
+  const [sendForm, setSendForm] = useState<TeacherParentForm | null>(null);
+  const [sidebarFormId, setSidebarFormId] = useState<string | null>(() =>
+    resolveValidFormId(
+      searchParams.get("form") ?? initialFormId ?? null,
+      initialForms,
+    ),
   );
 
   const selectedForm = useMemo(
-    () => forms.find((form) => form.id === selectedFormId) ?? null,
-    [forms, selectedFormId],
+    () => forms.find((form) => form.id === sidebarFormId) ?? null,
+    [forms, sidebarFormId],
   );
 
   const metrics = useMemo(() => computeFormMetrics(forms), [forms]);
@@ -300,9 +296,10 @@ function TeacherFormsDocumentsPageContent({
         [form.id]: signatureRows,
       }));
       setCreating(false);
-      setFormParam(form.id);
+      setSidebarFormId(form.id);
+      syncFormDetailUrl(pathname, form.id);
     },
-    [setFormParam],
+    [pathname],
   );
 
   const handleFormSavedDraft = useCallback((form: TeacherParentForm) => {
@@ -355,23 +352,32 @@ function TeacherFormsDocumentsPageContent({
 
   const openSidebar = useCallback(
     (formId: string) => {
-      setFormParam(formId);
+      setSidebarFormId(formId);
+      syncFormDetailUrl(pathname, formId);
       const hasSignatureRows = (signatureRowsByFormId[formId] ?? []).length > 0;
       if (!hasSignatureRows) {
         void refreshFormDetail(formId);
       }
     },
-    [refreshFormDetail, setFormParam, signatureRowsByFormId],
+    [pathname, refreshFormDetail, signatureRowsByFormId],
   );
 
   useEffect(() => {
-    if (!selectedFormId || previewMode) return;
-    const hasSignatureRows = (signatureRowsByFormId[selectedFormId] ?? []).length > 0;
+    const onPopState = () => {
+      setSidebarFormId(resolveValidFormId(readFormIdFromUrl(), forms));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [forms]);
+
+  useEffect(() => {
+    if (!sidebarFormId || previewMode) return;
+    const hasSignatureRows = (signatureRowsByFormId[sidebarFormId] ?? []).length > 0;
     if (hasSignatureRows) return;
     queueMicrotask(() => {
-      void refreshFormDetail(selectedFormId);
+      void refreshFormDetail(sidebarFormId);
     });
-  }, [selectedFormId, previewMode, refreshFormDetail, signatureRowsByFormId]);
+  }, [sidebarFormId, previewMode, refreshFormDetail, signatureRowsByFormId]);
 
   const handleArchive = useCallback(
     async (formId: string) => {
@@ -434,7 +440,8 @@ function TeacherFormsDocumentsPageContent({
           throw new Error(payload.error ?? "Failed to duplicate form.");
         }
         setForms((current) => [payload.form!, ...current]);
-        setFormParam(payload.form!.id);
+        setSidebarFormId(payload.form!.id);
+        syncFormDetailUrl(pathname, payload.form!.id);
       } catch (error) {
         void reportPortalOperationalError(
           "teacher_portal",
@@ -449,7 +456,7 @@ function TeacherFormsDocumentsPageContent({
         setActionLoading(false);
       }
     },
-    [actionLoading, organizationId, previewMode, setFormParam],
+    [actionLoading, organizationId, pathname, previewMode],
   );
 
   const handleDownload = useCallback(
@@ -474,8 +481,123 @@ function TeacherFormsDocumentsPageContent({
   );
 
   const closeSidebar = useCallback(() => {
-    setFormParam(null);
-  }, [setFormParam]);
+    setSidebarFormId(null);
+    syncFormDetailUrl(pathname, null);
+  }, [pathname]);
+
+  const handleSendRequest = useCallback(
+    (form: TeacherParentForm) => {
+      if (previewMode) return;
+      if (form.audienceType === "unassigned") {
+        setSendForm(form);
+        return;
+      }
+
+      void (async () => {
+        if (actionLoading) return;
+        setActionLoading(true);
+        try {
+          const response = await fetch(`${API_BASE}/${form.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              organizationId,
+              update: { status: "active" },
+            }),
+          });
+          const payload = (await response.json()) as {
+            form?: TeacherParentForm;
+            signatureRows?: TeacherFormSignatureRow[];
+            error?: string;
+          };
+          if (!response.ok || !payload.form) {
+            throw new Error(payload.error ?? "Failed to send form.");
+          }
+          setForms((current) =>
+            current.map((entry) => (entry.id === form.id ? payload.form! : entry)),
+          );
+          if (payload.signatureRows) {
+            setSignatureRowsByFormId((current) => ({
+              ...current,
+              [form.id]: payload.signatureRows!,
+            }));
+          }
+        } catch (error) {
+          void reportPortalOperationalError(
+            "teacher_portal",
+            {
+              organizationId,
+              operation: "forms_documents.send",
+              error: "",
+            },
+            error,
+          );
+        } finally {
+          setActionLoading(false);
+        }
+      })();
+    },
+    [actionLoading, organizationId, previewMode],
+  );
+
+  const handleSendConfirm = useCallback(
+    async (payload: {
+      audienceType: import("@/lib/school-teacher/forms-documents/types").TeacherFormAudienceType;
+      classroomIds: string[];
+      familyIds: string[];
+      dueDate: string | null;
+    }) => {
+      if (!sendForm || previewMode || actionLoading) return;
+      setActionLoading(true);
+      try {
+        const response = await fetch(`${API_BASE}/${sendForm.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId,
+            update: {
+              status: "active",
+              audienceType: payload.audienceType,
+              classroomIds: payload.classroomIds,
+              familyIds: payload.familyIds,
+              dueDate: payload.dueDate,
+            },
+          }),
+        });
+        const result = (await response.json()) as {
+          form?: TeacherParentForm;
+          signatureRows?: TeacherFormSignatureRow[];
+          error?: string;
+        };
+        if (!response.ok || !result.form) {
+          throw new Error(result.error ?? "Failed to send form.");
+        }
+        setForms((current) =>
+          current.map((entry) => (entry.id === sendForm.id ? result.form! : entry)),
+        );
+        if (result.signatureRows) {
+          setSignatureRowsByFormId((current) => ({
+            ...current,
+            [sendForm.id]: result.signatureRows!,
+          }));
+        }
+        setSendForm(null);
+      } catch (error) {
+        void reportPortalOperationalError(
+          "teacher_portal",
+          {
+            organizationId,
+            operation: "forms_documents.send",
+            error: "",
+          },
+          error,
+        );
+      } finally {
+        setActionLoading(false);
+      }
+    },
+    [actionLoading, organizationId, previewMode, sendForm],
+  );
 
   return (
     <div className={PORTAL_HOME_CONTAINER_CLASS}>
@@ -491,6 +613,8 @@ function TeacherFormsDocumentsPageContent({
             <TeacherFormCreateWizard
               organizationId={organizationId}
               classroomOptions={classroomOptions}
+              apiBasePath={API_BASE}
+              familySearchApiPath={`${API_BASE}/families`}
               onCancel={() => setCreating(false)}
               onPublished={handleFormPublished}
               onSaveDraft={handleFormSavedDraft}
@@ -588,7 +712,7 @@ function TeacherFormsDocumentsPageContent({
                     <FormListRow
                       key={form.id}
                       form={form}
-                      active={form.id === selectedFormId}
+                      active={form.id === sidebarFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -599,7 +723,7 @@ function TeacherFormsDocumentsPageContent({
                     <FormListCard
                       key={form.id}
                       form={form}
-                      active={form.id === selectedFormId}
+                      active={form.id === sidebarFormId}
                       onOpen={() => openSidebar(form.id)}
                     />
                   ))}
@@ -612,27 +736,42 @@ function TeacherFormsDocumentsPageContent({
 
       <TeacherFormDetailSidebar
         theme={theme}
-        open={selectedFormId != null}
+        open={sidebarFormId != null}
         form={selectedForm}
         organizationId={organizationId}
         detailLoading={detailLoading}
         signatureRows={
-          selectedFormId
-            ? getSignatureRowsForForm(selectedFormId, signatureRowsByFormId)
+          sidebarFormId
+            ? getSignatureRowsForForm(sidebarFormId, signatureRowsByFormId)
             : []
         }
         previewMode={previewMode}
         previewUrl={
-          selectedFormId
-            ? (uploadPreviewUrlsByFormId?.[selectedFormId] ?? null)
+          sidebarFormId
+            ? (uploadPreviewUrlsByFormId?.[sidebarFormId] ?? null)
             : null
         }
         actionLoading={actionLoading}
         onClose={closeSidebar}
-        onArchive={handleArchive}
-        onDuplicate={handleDuplicate}
-        onDownload={handleDownload}
+        onArchive={previewMode ? undefined : handleArchive}
+        onDuplicate={previewMode ? undefined : handleDuplicate}
+        onDownload={previewMode ? undefined : handleDownload}
+        onSend={previewMode ? undefined : handleSendRequest}
       />
+
+      {sendForm ? (
+        <TeacherFormSendModal
+          theme={theme}
+          open={sendForm != null}
+          form={sendForm}
+          organizationId={organizationId}
+          classroomOptions={classroomOptions}
+          familySearchApiPath={`${API_BASE}/families`}
+          loading={actionLoading}
+          onClose={() => setSendForm(null)}
+          onSend={handleSendConfirm}
+        />
+      ) : null}
     </div>
   );
 }
