@@ -1,5 +1,5 @@
 -- Add form_category to teacher_parent_forms for tuition vs general forms.
--- Run after: 20261023_add_parent_feature_announcements_sep_14_22.sql
+-- Run after: 20261025_add_public_support_requests.sql
 
 alter table public.teacher_parent_forms
   add column if not exists form_category text not null default 'general'

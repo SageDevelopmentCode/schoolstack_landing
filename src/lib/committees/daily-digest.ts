@@ -270,11 +270,11 @@ export async function sendCommitteeDailyDigestsForOrganization(
     });
   }
 
-  const sentEmails = new Set<string>();
+  const memberSentEmails = new Set<string>();
 
   for (const recipient of recipientsByEmail.values()) {
     const normalizedEmail = recipient.email.trim().toLowerCase();
-    if (sentEmails.has(normalizedEmail)) continue;
+    if (memberSentEmails.has(normalizedEmail)) continue;
 
     const filteredEvents = filterDigestEventsForMember(events, {
       memberIds: recipient.memberIds,
@@ -294,7 +294,7 @@ export async function sendCommitteeDailyDigestsForOrganization(
       committeesUrl: memberPortalUrl(schoolSlug, recipient.portalMember),
     });
 
-    sentEmails.add(normalizedEmail);
+    memberSentEmails.add(normalizedEmail);
     if (sent) {
       digestsSent += 1;
       memberDigestsSent += 1;
@@ -305,10 +305,11 @@ export async function sendCommitteeDailyDigestsForOrganization(
 
   const adminEmails = await resolveCommitteeNotificationEmails(admin, organizationId);
   const adminCommittees = buildDigestCommitteeGroups(events, referenceDate);
+  const adminSentEmails = new Set<string>();
 
   for (const email of adminEmails) {
     const normalizedEmail = email.trim().toLowerCase();
-    if (sentEmails.has(normalizedEmail)) continue;
+    if (adminSentEmails.has(normalizedEmail)) continue;
 
     const sent = await sendDigestToRecipient(admin, {
       organizationId,
@@ -320,7 +321,7 @@ export async function sendCommitteeDailyDigestsForOrganization(
       committeesUrl: adminPortalUrl(schoolSlug),
     });
 
-    sentEmails.add(normalizedEmail);
+    adminSentEmails.add(normalizedEmail);
     if (sent) {
       digestsSent += 1;
       adminDigestsSent += 1;

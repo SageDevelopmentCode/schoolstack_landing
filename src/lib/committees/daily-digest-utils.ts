@@ -436,3 +436,33 @@ export function formatCommitteeDigestGroupsForDiscord(
 
   return sections.join("\n").trim();
 }
+
+export type PlannedCommitteeDigestSend = {
+  email: string;
+  recipientKind: "member" | "admin";
+};
+
+export function planCommitteeDigestRecipientSends(input: {
+  memberRecipientEmails: string[];
+  adminEmails: string[];
+}): PlannedCommitteeDigestSend[] {
+  const planned: PlannedCommitteeDigestSend[] = [];
+  const memberSentEmails = new Set<string>();
+
+  for (const email of input.memberRecipientEmails) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (memberSentEmails.has(normalizedEmail)) continue;
+    memberSentEmails.add(normalizedEmail);
+    planned.push({ email, recipientKind: "member" });
+  }
+
+  const adminSentEmails = new Set<string>();
+  for (const email of input.adminEmails) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (adminSentEmails.has(normalizedEmail)) continue;
+    adminSentEmails.add(normalizedEmail);
+    planned.push({ email, recipientKind: "admin" });
+  }
+
+  return planned;
+}

@@ -14,6 +14,7 @@ export function TeacherCommitteeWorkspaceScreen({
     <CommitteeWorkspaceScreen
       organizationId={organizationId}
       committeeId={committeeId}
+      portalApiNamespace="teacher-portal"
       fetchWorkspace={fetchTeacherCommitteeWorkspace}
     />
   );

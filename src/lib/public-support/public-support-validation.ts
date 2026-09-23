@@ -1,9 +1,18 @@
 import {
+  exceedsMaxLength,
+  fieldTooLongLabel,
+  MAX_PUBLIC_FORM_EMAIL_LENGTH,
+  MAX_PUBLIC_FORM_MESSAGE_LENGTH,
+  MAX_PUBLIC_FORM_NAME_LENGTH,
+  MAX_PUBLIC_FORM_SOURCE_PAGE_PATH_LENGTH,
+} from "@/lib/public-forms/field-limits";
+import {
   PUBLIC_SUPPORT_REQUEST_TOPICS,
   type PublicSupportRequestTopic,
 } from "@/lib/public-support/public-support-types";
 
-export const MAX_PUBLIC_SUPPORT_DESCRIPTION_LENGTH = 5000;
+export const MAX_PUBLIC_SUPPORT_DESCRIPTION_LENGTH =
+  MAX_PUBLIC_FORM_MESSAGE_LENGTH;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,6 +22,7 @@ export type PublicSupportRequestBody = {
   topic: PublicSupportRequestTopic;
   message: string;
   sourcePagePath?: string | null;
+  turnstileToken?: string | null;
 };
 
 export type PublicSupportRequestValidationResult =
@@ -35,9 +45,26 @@ export function validatePublicSupportRequestBody(
     typeof record.sourcePagePath === "string"
       ? record.sourcePagePath.trim()
       : "";
+  const turnstileToken =
+    typeof record.turnstileToken === "string" ? record.turnstileToken : null;
 
   if (!name || !email || !topic || !message) {
     return { ok: false, error: "Missing required fields." };
+  }
+
+  if (exceedsMaxLength(name, MAX_PUBLIC_FORM_NAME_LENGTH)) {
+    return { ok: false, error: fieldTooLongLabel("Name") };
+  }
+
+  if (exceedsMaxLength(email, MAX_PUBLIC_FORM_EMAIL_LENGTH)) {
+    return { ok: false, error: fieldTooLongLabel("Email") };
+  }
+
+  if (
+    sourcePagePathRaw &&
+    exceedsMaxLength(sourcePagePathRaw, MAX_PUBLIC_FORM_SOURCE_PAGE_PATH_LENGTH)
+  ) {
+    return { ok: false, error: fieldTooLongLabel("Source page path") };
   }
 
   if (!EMAIL_RE.test(email)) {
@@ -62,6 +89,7 @@ export function validatePublicSupportRequestBody(
       topic: topic as PublicSupportRequestTopic,
       message,
       sourcePagePath: sourcePagePathRaw || null,
+      turnstileToken,
     },
   };
 }

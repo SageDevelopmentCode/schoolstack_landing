@@ -28,6 +28,10 @@ async function loadEnrolledFamilyOptions(
   const limit = Math.min(Math.max(options?.limit ?? 25, 1), 100);
   const query = options?.query?.trim().toLowerCase() ?? "";
 
+  if (options?.classroomIds !== undefined && options.classroomIds.length === 0) {
+    return [];
+  }
+
   let enrollmentQuery = admin
     .from("enrollments")
     .select(
@@ -102,7 +106,7 @@ async function loadEnrolledFamilyOptions(
 
   let families = [...byFamily.values()];
 
-  if (options?.classroomIds?.length) {
+  if (options?.classroomIds !== undefined) {
     const classroomFamilyIds = await loadFamilyIdsForClassrooms(
       admin,
       organizationId,

@@ -128,6 +128,7 @@ export function SchoolAdminCommitteeWorkspaceScreen({
         supabase,
         readOnly: false,
         isAdmin: true,
+        portalApiNamespace: 'school-admin',
         schoolSlug: slug,
         onCommitteeChange: setCommittee,
         onRefresh,

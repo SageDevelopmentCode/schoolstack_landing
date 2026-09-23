@@ -69,17 +69,15 @@ export default function TeacherFormClassroomPickerSheet({
   onClose,
   onChange,
 }: TeacherFormClassroomPickerSheetProps) {
-  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [skeletonPhase, setSkeletonPhase] = useState(false);
+  const showSkeleton = open && skeletonPhase;
 
   useEffect(() => {
-    if (!open) {
-      setShowSkeleton(false);
-      return;
-    }
+    if (!open) return;
 
-    setShowSkeleton(true);
+    queueMicrotask(() => setSkeletonPhase(true));
     const timeout = window.setTimeout(() => {
-      setShowSkeleton(false);
+      setSkeletonPhase(false);
     }, 120);
 
     return () => window.clearTimeout(timeout);

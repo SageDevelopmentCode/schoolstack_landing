@@ -22,6 +22,20 @@ describe('friday-branch-utils', () => {
     expect(copy.slots[0].classes[0].name).toBe('Art');
   });
 
+  it('strips flyer fields when duplicating a block', () => {
+    const block = createEmptyBlock(1);
+    block.slots[0].classes[0].flyerStoragePath = 'org/classes/class-1/flyer.pdf';
+    block.slots[0].classes[0].flyerFileName = 'Flyer.pdf';
+    block.slots[0].classes[0].flyerFileSizeBytes = 2048;
+
+    const copy = duplicateBlock(block);
+
+    expect(copy.slots[0].classes[0].flyerStoragePath).toBeNull();
+    expect(copy.slots[0].classes[0].flyerFileName).toBeNull();
+    expect(copy.slots[0].classes[0].flyerFileSizeBytes).toBeNull();
+    expect(block.slots[0].classes[0].flyerStoragePath).toBe('org/classes/class-1/flyer.pdf');
+  });
+
   it('detects schedule gaps for missing location and age group', () => {
     const block = createEmptyBlock(1);
     block.slots[0].classes[0].name = 'Dance';

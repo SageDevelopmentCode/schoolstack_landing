@@ -13,6 +13,7 @@ import type {
   TeacherFormAudienceType,
   TeacherFormConfig,
   TeacherParentForm,
+  TeacherParentFormStatus,
 } from "./types";
 import { uploadTeacherFormFile } from "./teacher-form-file-storage";
 
@@ -98,6 +99,58 @@ export function validatePublishInput(input: PublishTeacherParentFormInput): void
   }
 }
 
+export type MaterializeFormResponsesResult = {
+  expectedCount: number;
+  insertedCount: number;
+};
+
+export type MaterializeFormResponsesOptions = {
+  minExpectedCount?: number;
+};
+
+export async function revertFormToDraft(
+  admin: SupabaseClient,
+  organizationId: string,
+  formId: string,
+): Promise<void> {
+  const { error } = await admin
+    .from("teacher_parent_forms")
+    .update({
+      status: "draft",
+      published_at: null,
+      total_families: 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId)
+    .eq("id", formId);
+
+  if (error) throw error;
+}
+
+export async function revertFormPublishState(
+  admin: SupabaseClient,
+  organizationId: string,
+  formId: string,
+  snapshot: {
+    status: TeacherParentFormStatus;
+    totalFamilies: number;
+    publishedAt: string | null;
+  },
+): Promise<void> {
+  const { error } = await admin
+    .from("teacher_parent_forms")
+    .update({
+      status: snapshot.status,
+      published_at: snapshot.publishedAt,
+      total_families: snapshot.totalFamilies,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", organizationId)
+    .eq("id", formId);
+
+  if (error) throw error;
+}
+
 export async function materializeFormResponses(
   admin: SupabaseClient,
   organizationId: string,
@@ -105,7 +158,8 @@ export async function materializeFormResponses(
   audienceType: TeacherFormAudienceType,
   classroomIds: string[],
   familyIds: string[],
-): Promise<void> {
+  options: MaterializeFormResponsesOptions = {},
+): Promise<MaterializeFormResponsesResult> {
   const families = await resolveFormAudienceForType(
     admin,
     organizationId,
@@ -113,8 +167,19 @@ export async function materializeFormResponses(
     classroomIds,
     familyIds,
   );
+  const expectedCount = families.length;
 
-  if (families.length === 0) return;
+  if (
+    options.minExpectedCount != null &&
+    options.minExpectedCount > 0 &&
+    expectedCount === 0
+  ) {
+    throw new Error("Failed to materialize form responses for the selected audience.");
+  }
+
+  if (expectedCount === 0) {
+    return { expectedCount: 0, insertedCount: 0 };
+  }
 
   const rows = families.map((family) => ({
     organization_id: organizationId,
@@ -125,8 +190,17 @@ export async function materializeFormResponses(
     responses: {},
   }));
 
-  const { error } = await admin.from("teacher_parent_form_responses").insert(rows);
+  const { data, error } = await admin
+    .from("teacher_parent_form_responses")
+    .insert(rows, { onConflict: "form_id,family_id", ignoreDuplicates: true })
+    .select("id");
+
   if (error) throw error;
+
+  return {
+    expectedCount,
+    insertedCount: (data ?? []).length,
+  };
 }
 
 export async function publishParentFormCore(
@@ -218,14 +292,20 @@ export async function publishParentFormCore(
   if (error) throw error;
 
   if (isActive) {
-    await materializeFormResponses(
-      admin,
-      organizationId,
-      formId,
-      input.audienceType,
-      classroomIds,
-      familyIds,
-    );
+    try {
+      await materializeFormResponses(
+        admin,
+        organizationId,
+        formId,
+        input.audienceType,
+        classroomIds,
+        familyIds,
+        { minExpectedCount: totalFamilies },
+      );
+    } catch (err) {
+      await revertFormToDraft(admin, organizationId, formId);
+      throw err;
+    }
   }
 
   return mapTeacherParentFormRow(data as TeacherParentFormRow);

@@ -7,6 +7,7 @@ import {
   fetchFamilyNames,
   materializeFormResponses,
   publishParentFormCore,
+  revertFormPublishState,
 } from "@/lib/school-teacher/forms-documents/publish-parent-form-core";
 import {
   mapTeacherParentFormRow,
@@ -221,6 +222,25 @@ export async function updateAdminParentForm(
   if (error) throw error;
 
   if (publishing) {
+    try {
+      await materializeFormResponses(
+        admin,
+        organizationId,
+        formId,
+        nextAudienceType,
+        resolvedIds.classroomIds,
+        resolvedIds.familyIds,
+        { minExpectedCount: totalFamilies },
+      );
+    } catch (err) {
+      await revertFormPublishState(admin, organizationId, formId, {
+        status: existing.status,
+        totalFamilies: existing.totalFamilies,
+        publishedAt: (existingRow as TeacherParentFormRow).published_at ?? null,
+      });
+      throw err;
+    }
+  } else if (nextStatus === "active") {
     await materializeFormResponses(
       admin,
       organizationId,

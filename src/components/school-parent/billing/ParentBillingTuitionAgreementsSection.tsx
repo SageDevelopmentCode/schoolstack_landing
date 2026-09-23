@@ -39,7 +39,7 @@ export default function ParentBillingTuitionAgreementsSection({
     if (!initialFormId) return;
     const match = agreements.find((item) => item.form.id === initialFormId);
     if (match) {
-      setSelectedAgreement(match);
+      queueMicrotask(() => setSelectedAgreement(match));
     }
   }, [agreements, initialFormId]);
 

@@ -7,6 +7,9 @@ import { Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/sections/Navbar";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
+import TurnstileField, {
+  isTurnstileClientConfigured,
+} from "@/components/public-forms/TurnstileField";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -204,6 +207,8 @@ export default function GetStartedPage() {
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileClientConfigured();
 
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -345,6 +350,7 @@ export default function GetStartedPage() {
           prepNotes: form.prepNotes,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
+          turnstileToken,
         }),
       });
 
@@ -746,6 +752,10 @@ export default function GetStartedPage() {
                   </p>
                 </div>
 
+                <div className="mt-6 flex justify-center">
+                  <TurnstileField onTokenChange={setTurnstileToken} />
+                </div>
+
                 {/* Scheduler */}
                 <div className="md:bg-surface md:border md:border-border md:rounded-xl md:overflow-hidden md:shadow-sm">
                   {availabilityLoading ? (
@@ -765,6 +775,7 @@ export default function GetStartedPage() {
                       availabilitySlots={availabilitySlots}
                       onConfirm={handleScheduled}
                       isSubmitting={isSubmitting}
+                      confirmDisabled={turnstileRequired && !turnstileToken}
                     />
                   )}
                 </div>

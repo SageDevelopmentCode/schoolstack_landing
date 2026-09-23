@@ -126,44 +126,14 @@ export default function FridayBranchClassFlyerUpload({
     }
   };
 
-  const handleRemove = async () => {
-    if (!classEntry.flyerStoragePath) {
-      onChange({
-        ...classEntry,
-        flyerStoragePath: null,
-        flyerFileName: null,
-        flyerFileSizeBytes: null,
-      });
-      return;
-    }
-
-    setUploading(true);
-    const previousPath = classEntry.flyerStoragePath;
-
-    try {
-      await removeFridayBranchClassFlyer(supabase, previousPath);
-      onChange({
-        ...classEntry,
-        flyerStoragePath: null,
-        flyerFileName: null,
-        flyerFileSizeBytes: null,
-      });
-      setUploadError(null);
-      adminToast.success("Flyer removed");
-    } catch (err) {
-      adminToast.error(formatActionError(err, "Failed to remove flyer."));
-      void reportPortalOperationalError(
-        "school_admin",
-        {
-          organizationId,
-          operation: "friday_branch.class_flyer.remove",
-          error: "",
-        },
-        err,
-      );
-    } finally {
-      setUploading(false);
-    }
+  const handleRemove = () => {
+    onChange({
+      ...classEntry,
+      flyerStoragePath: null,
+      flyerFileName: null,
+      flyerFileSizeBytes: null,
+    });
+    setUploadError(null);
   };
 
   return (

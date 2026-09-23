@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { schoolDemoRegistry } from "@/data/school-demos";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoFeedback } from "@/lib/discord";
 import { sendDemoFeedbackConfirmation } from "@/lib/emails";
+import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  exceedsMaxLength,
+  fieldTooLongLabel,
+  MAX_PUBLIC_FORM_EMAIL_LENGTH,
+  MAX_PUBLIC_FORM_MESSAGE_LENGTH,
+  MAX_PUBLIC_FORM_NAME_LENGTH,
+  MAX_PUBLIC_FORM_SCHOOL_NAME_LENGTH,
+  MAX_PUBLIC_FORM_SCHOOL_SLUG_LENGTH,
+  MAX_PUBLIC_FORM_SOURCE_LENGTH,
+} from "@/lib/public-forms/field-limits";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/demo-feedback";
-const MAX_MESSAGE_LENGTH = 5000;
 
 interface DemoFeedbackBody {
   schoolSlug?: string;
@@ -18,6 +26,7 @@ interface DemoFeedbackBody {
   email?: string;
   message?: string;
   source?: string;
+  turnstileToken?: string;
 }
 
 export async function POST(request: Request) {
@@ -39,6 +48,30 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: "Missing required fields." });
   }
 
+  if (exceedsMaxLength(schoolSlug, MAX_PUBLIC_FORM_SCHOOL_SLUG_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("School slug"),
+    });
+  }
+
+  if (exceedsMaxLength(schoolName, MAX_PUBLIC_FORM_SCHOOL_NAME_LENGTH)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: fieldTooLongLabel("School name"),
+    });
+  }
+
+  if (name && exceedsMaxLength(name, MAX_PUBLIC_FORM_NAME_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Name") });
+  }
+
+  if (email && exceedsMaxLength(email, MAX_PUBLIC_FORM_EMAIL_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Email") });
+  }
+
   if (!schoolDemoRegistry[schoolSlug]) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid school." });
   }
@@ -47,7 +80,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid email address." });
   }
 
-  if (message.length > MAX_MESSAGE_LENGTH) {
+  if (exceedsMaxLength(message, MAX_PUBLIC_FORM_MESSAGE_LENGTH)) {
     return apiError(ROUTE, { request, status: 400, error: "Message is too long." });
   }
 
@@ -56,10 +89,29 @@ export async function POST(request: Request) {
     body.source?.trim() ||
     (isPrototypeWalkthrough ? "prototype-walkthrough" : "demo-walkthrough");
 
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  if (exceedsMaxLength(source, MAX_PUBLIC_FORM_SOURCE_LENGTH)) {
+    return apiError(ROUTE, { request, status: 400, error: fieldTooLongLabel("Source") });
+  }
 
-  const { error } = await supabase.from("demo_feedback").insert({
+  const protection = await enforcePublicFormSubmission({
+    request,
+    form: "demo_feedback",
+    email,
+    turnstileToken: body.turnstileToken,
+  });
+  if (!protection.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: protection.status,
+      error: protection.error,
+      code: protection.code,
+      notify: false,
+    });
+  }
+
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("demo_feedback").insert({
     school_slug: schoolSlug,
     school_name: schoolName,
     name,
@@ -76,8 +128,6 @@ export async function POST(request: Request) {
       cause: error,
     });
   }
-
-  const admin = createAdminClient();
 
   try {
     await notifyDemoFeedback({

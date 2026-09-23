@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -56,15 +56,19 @@ export function ParentFridayBranchScreen({
 
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [flyerTarget, setFlyerTarget] = useState<ParentFridayBranchFlyerTarget | null>(null);
+  const deepLinkAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
 
   useEffect(() => {
-    if (!bundle) return;
-    setActiveClassId(resolveValidClassId(initialClassId, bundle));
-  }, [bundle, initialClassId]);
+    if (!initialClassId || !bundle) return;
+    if (deepLinkAppliedRef.current === initialClassId) return;
+    const valid = resolveValidClassId(initialClassId, bundle);
+    if (valid) setActiveClassId(valid);
+    deepLinkAppliedRef.current = initialClassId;
+  }, [initialClassId, bundle]);
 
   const initialBlockId = useMemo(() => {
     if (!bundle || bundle.blocks.length === 0) return null;

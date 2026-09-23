@@ -5,6 +5,9 @@ import { Check } from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
+import TurnstileField, {
+  isTurnstileClientConfigured,
+} from "@/components/public-forms/TurnstileField";
 import {
   PUBLIC_SUPPORT_REQUEST_TOPICS,
   PUBLIC_SUPPORT_REQUEST_TOPIC_LABELS,
@@ -26,12 +29,15 @@ export default function PublicSupportForm() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRequired = isTurnstileClientConfigured();
 
   const canSubmit =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     message.trim().length > 0 &&
-    !isSubmitting;
+    !isSubmitting &&
+    (!turnstileRequired || turnstileToken);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +56,7 @@ export default function PublicSupportForm() {
           topic,
           message: message.trim(),
           sourcePagePath: "/support",
+          turnstileToken,
         }),
       });
 
@@ -65,6 +72,7 @@ export default function PublicSupportForm() {
       setEmail("");
       setTopic("general");
       setMessage("");
+      setTurnstileToken(null);
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -178,6 +186,10 @@ export default function PublicSupportForm() {
           {submitError}
         </p>
       ) : null}
+
+      <div className="mt-5">
+        <TurnstileField onTokenChange={setTurnstileToken} />
+      </div>
 
       <button
         type="submit"

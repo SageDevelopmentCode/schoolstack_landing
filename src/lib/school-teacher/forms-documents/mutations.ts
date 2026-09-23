@@ -7,6 +7,7 @@ import {
   fetchFamilyNames,
   materializeFormResponses,
   publishParentFormCore,
+  revertFormPublishState,
 } from "./publish-parent-form-core";
 import {
   mapTeacherParentFormRow,
@@ -91,7 +92,7 @@ export async function publishTeacherParentForm(
     admin,
     organizationId,
     staffMemberId,
-    input,
+    { ...input, formCategory: "general" },
     uploadFile,
   );
 }
@@ -216,6 +217,25 @@ export async function updateTeacherParentForm(
   if (error) throw error;
 
   if (publishing) {
+    try {
+      await materializeFormResponses(
+        admin,
+        organizationId,
+        formId,
+        nextAudienceType,
+        resolvedIds.classroomIds,
+        resolvedIds.familyIds,
+        { minExpectedCount: totalFamilies },
+      );
+    } catch (err) {
+      await revertFormPublishState(admin, organizationId, formId, {
+        status: existing.status,
+        totalFamilies: existing.totalFamilies,
+        publishedAt: (existingRow as TeacherParentFormRow).published_at ?? null,
+      });
+      throw err;
+    }
+  } else if (nextStatus === "active") {
     await materializeFormResponses(
       admin,
       organizationId,
@@ -296,6 +316,7 @@ export async function duplicateTeacherParentForm(
       title: `${existing.title} (copy)`.trim(),
       description: existing.description,
       form_type: existing.form_type,
+      form_category: "general",
       status: "draft",
       audience_type: existing.audience_type ?? "unassigned",
       classroom_ids: existing.classroom_ids ?? [],

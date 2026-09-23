@@ -8,6 +8,7 @@ import {
   formatCommitteeDigestGroupsForDiscord,
   formatDigestOccurredAtLabel,
   mapDigestActivityItem,
+  planCommitteeDigestRecipientSends,
   type CommitteeDigestCommitteeGroup,
 } from "./daily-digest-utils";
 
@@ -473,5 +474,31 @@ describe("formatCommitteeDigestGroupsForDiscord", () => {
     for (const chunk of chunks) {
       assert.ok(chunk.length <= 1024);
     }
+  });
+});
+
+describe("planCommitteeDigestRecipientSends", () => {
+  it("sends both member and admin digests when the same email is in both lists", () => {
+    const planned = planCommitteeDigestRecipientSends({
+      memberRecipientEmails: ["admin@school.com"],
+      adminEmails: ["admin@school.com"],
+    });
+
+    assert.deepEqual(planned, [
+      { email: "admin@school.com", recipientKind: "member" },
+      { email: "admin@school.com", recipientKind: "admin" },
+    ]);
+  });
+
+  it("dedupes repeated emails within each recipient list", () => {
+    const planned = planCommitteeDigestRecipientSends({
+      memberRecipientEmails: ["member@school.com", "member@school.com"],
+      adminEmails: ["admin@school.com", "ADMIN@school.com"],
+    });
+
+    assert.deepEqual(planned, [
+      { email: "member@school.com", recipientKind: "member" },
+      { email: "admin@school.com", recipientKind: "admin" },
+    ]);
   });
 });

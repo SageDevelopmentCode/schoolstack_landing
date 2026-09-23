@@ -17,6 +17,7 @@ import { ParentCommitteeTasksSection } from '@/components/parent/committees/sect
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
+import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
 import { fetchParentCommitteeWorkspace } from '@/lib/parent/parent-portal-api';
 import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
 import { Story, StoryFonts } from '@/constants/story-theme';
@@ -28,6 +29,7 @@ import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 type CommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
+  portalApiNamespace?: CommitteePortalApiNamespace;
   fetchWorkspace: (organizationId: string, committeeId: string) => Promise<Committee>;
 };
 
@@ -43,6 +45,7 @@ function resolveVisibleSection(
 function CommitteeWorkspaceScreen({
   organizationId,
   committeeId,
+  portalApiNamespace = 'parent-portal',
   fetchWorkspace,
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
@@ -122,6 +125,7 @@ function CommitteeWorkspaceScreen({
         supabase,
         currentMemberId,
         readOnly: !currentMemberId,
+        portalApiNamespace,
         onCommitteeChange: setCommittee,
         onRefresh,
         onNavigate: setActiveSection,

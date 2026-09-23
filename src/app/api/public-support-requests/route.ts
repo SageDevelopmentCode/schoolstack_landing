@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyPublicSupportRequest } from "@/lib/discord";
 import { sendPublicSupportRequestConfirmation } from "@/lib/emails";
+import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
 import { validatePublicSupportRequestBody } from "@/lib/public-support/public-support-validation";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/public-support-requests";
 const DEFAULT_SOURCE_PAGE_PATH = "/support";
@@ -25,13 +24,29 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: validation.error });
   }
 
-  const { name, email, topic, message, sourcePagePath } = validation.value;
+  const { name, email, topic, message, sourcePagePath, turnstileToken } =
+    validation.value;
   const resolvedSourcePagePath = sourcePagePath ?? DEFAULT_SOURCE_PAGE_PATH;
 
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const protection = await enforcePublicFormSubmission({
+    request,
+    form: "public_support",
+    email,
+    turnstileToken,
+  });
+  if (!protection.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: protection.status,
+      error: protection.error,
+      code: protection.code,
+      notify: false,
+    });
+  }
 
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
     .from("public_support_requests")
     .insert({
       submitter_name: name,
@@ -52,7 +67,6 @@ export async function POST(request: Request) {
     });
   }
 
-  const admin = createAdminClient();
   const requestId = data.id;
 
   try {

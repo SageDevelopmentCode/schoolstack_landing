@@ -15,12 +15,15 @@ import {
   saveFridayBranchSchedule,
 } from '@/lib/school-admin/friday-branch/friday-branch-api';
 import type { FridayBranchBlock } from '@/lib/school-admin/friday-branch/friday-branch-types';
+import { diffRemovedFridayBranchFlyerPaths } from '@/lib/school-admin/friday-branch/friday-branch-flyer-paths';
+import { removeFridayBranchClassFlyer } from '@/lib/school-admin/friday-branch/friday-branch-flyer-storage';
 import {
   cloneFridayBranchBlocks,
   createEmptyBlock,
   duplicateBlock,
 } from '@/lib/school-admin/friday-branch/friday-branch-utils';
 import { createPortalCache } from '@/lib/portal-cache';
+import { getSupabaseClient } from '@/lib/supabase';
 
 type SchoolAdminFridayBranchContextValue = {
   blocks: FridayBranchBlock[];
@@ -155,10 +158,12 @@ export function SchoolAdminFridayBranchProvider({
 
   const persistSchedule = useCallback(
     async (blocksToSave: FridayBranchBlock[]): Promise<FridayBranchBlock[]> => {
+      const pathsToDelete = diffRemovedFridayBranchFlyerPaths(savedBlocks, blocksToSave);
       setIsSaving(true);
       try {
         const nextBlocks = await saveFridayBranchSchedule(organizationId, blocksToSave);
         const cloned = cloneFridayBranchBlocks(nextBlocks);
+        await scheduleCache.fetchAndCache(key, async () => cloned, { refresh: true });
         setBlocksState(cloned);
         setSavedBlocks(cloneFridayBranchBlocks(cloned));
         setSelectedBlockId((current) => {
@@ -167,6 +172,18 @@ export function SchoolAdminFridayBranchProvider({
           }
           return cloned[0]?.id ?? null;
         });
+
+        if (pathsToDelete.length > 0) {
+          const supabase = getSupabaseClient();
+          for (const path of pathsToDelete) {
+            try {
+              await removeFridayBranchClassFlyer(supabase, path);
+            } catch {
+              // Best-effort cleanup of orphaned flyer files.
+            }
+          }
+        }
+
         return cloned;
       } catch (saveError) {
         reportError('friday_branch.schedule.save', saveError);
@@ -175,7 +192,7 @@ export function SchoolAdminFridayBranchProvider({
         setIsSaving(false);
       }
     },
-    [key, organizationId, reportError],
+    [organizationId, reportError, savedBlocks],
   );
 
   const saveSchedule = useCallback(async () => {

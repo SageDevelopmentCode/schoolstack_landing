@@ -76,4 +76,47 @@ describe("validatePublicSupportRequestBody", () => {
       assert.equal(result.error, "Message is too long.");
     }
   });
+
+  it("rejects names that are too long", () => {
+    const result = validatePublicSupportRequestBody({
+      name: "x".repeat(121),
+      email: "alex@example.com",
+      topic: "general",
+      message: "Hello",
+    });
+
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error, "Name is too long.");
+    }
+  });
+
+  it("rejects emails that are too long", () => {
+    const result = validatePublicSupportRequestBody({
+      name: "Alex Founder",
+      email: `${"a".repeat(250)}@example.com`,
+      topic: "general",
+      message: "Hello",
+    });
+
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error, "Email is too long.");
+    }
+  });
+
+  it("rejects source page paths that are too long", () => {
+    const result = validatePublicSupportRequestBody({
+      name: "Alex Founder",
+      email: "alex@example.com",
+      topic: "general",
+      message: "Hello",
+      sourcePagePath: `/${"x".repeat(500)}`,
+    });
+
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error, "Source page path is too long.");
+    }
+  });
 });

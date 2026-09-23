@@ -223,10 +223,15 @@ export function duplicateBlock(block: FridayBranchBlock): FridayBranchBlock {
     slots: block.slots.map((slot) => ({
       ...slot,
       id: newFridayBranchId(),
-      classes: slot.classes.map((classEntry) => ({
-        ...classEntry,
-        id: newFridayBranchId(),
-      })),
+      classes: slot.classes.map(
+        ({ flyerStoragePath: _flyerPath, flyerFileName: _flyerName, flyerFileSizeBytes: _flyerSize, ...classEntry }) => ({
+          ...classEntry,
+          id: newFridayBranchId(),
+          flyerStoragePath: null,
+          flyerFileName: null,
+          flyerFileSizeBytes: null,
+        }),
+      ),
     })),
   };
 }

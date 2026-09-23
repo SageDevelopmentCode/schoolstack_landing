@@ -1,33 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Cookie } from "lucide-react";
-import {
-  hasCookieConsent,
-  isMarketingRoute,
-  setCookieConsent,
-} from "@/lib/cookie-consent";
+import { useHasCookieConsent } from "@/hooks/useCookieConsent";
+import { isMarketingRoute, setCookieConsent } from "@/lib/cookie-consent";
 
 export default function CookieConsentBanner() {
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!isMarketingRoute(pathname)) {
-      setVisible(false);
-      return;
-    }
-
-    setVisible(!hasCookieConsent());
-  }, [pathname]);
+  const hasConsent = useHasCookieConsent();
+  const visible = isMarketingRoute(pathname) && !hasConsent;
 
   const dismiss = useCallback((level: "essential" | "all") => {
     setCookieConsent(level);
-    setVisible(false);
   }, []);
 
   const transition = reducedMotion

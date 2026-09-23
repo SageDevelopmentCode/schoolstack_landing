@@ -76,7 +76,7 @@ export default function TeacherFormDetailSidebar({
 
   useEffect(() => {
     if (open && form) {
-      setDisplayedForm(form);
+      queueMicrotask(() => setDisplayedForm(form));
     }
   }, [open, form]);
 

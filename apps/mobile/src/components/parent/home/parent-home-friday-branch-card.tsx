@@ -150,8 +150,9 @@ export function ParentHomeFridayBranchCard({
 }: ParentHomeFridayBranchCardProps) {
   const theme = useParentTheme();
   const router = useRouter();
-  const { applyClassDetailUpdate } = useParentFridayBranch();
-  const [bundle, setBundle] = useState(initialBundle);
+  const { bundle: contextBundle, applyClassDetailUpdate, hasLoaded } = useParentFridayBranch();
+  const [localBundle, setLocalBundle] = useState(initialBundle);
+  const bundle = hasLoaded && contextBundle ? contextBundle : localBundle;
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [flyerTarget, setFlyerTarget] = useState<ParentFridayBranchFlyerTarget | null>(null);
 
@@ -196,39 +197,41 @@ export function ParentHomeFridayBranchCard({
 
   const handleEnrollmentChange = useCallback(
     (classId: string, detail: ParentFridayBranchClassDetailBundle) => {
-      setBundle((current) => {
-        const nextBundle = {
-          ...current,
-          blocks: current.blocks.map((entry) => ({
-            ...entry,
-            classes: entry.classes.map((classSummary) => {
-              if (classSummary.classId !== classId) return classSummary;
+      if (!hasLoaded || !contextBundle) {
+        setLocalBundle((current) => {
+          const nextBundle = {
+            ...current,
+            blocks: current.blocks.map((entry) => ({
+              ...entry,
+              classes: entry.classes.map((classSummary) => {
+                if (classSummary.classId !== classId) return classSummary;
 
-              const familyEnrollments = detail.studentStates
-                .filter((student) => student.status && student.enrollmentId)
-                .map((student) => ({
-                  enrollmentId: student.enrollmentId!,
-                  studentId: student.studentId,
-                  status: student.status!,
-                }));
+                const familyEnrollments = detail.studentStates
+                  .filter((student) => student.status && student.enrollmentId)
+                  .map((student) => ({
+                    enrollmentId: student.enrollmentId!,
+                    studentId: student.studentId,
+                    status: student.status!,
+                  }));
 
-              return {
-                ...classSummary,
-                confirmedCount: detail.confirmedCount,
-                spotsRemaining:
-                  detail.capacity == null
-                    ? null
-                    : Math.max(0, detail.capacity - detail.confirmedCount),
-                familyEnrollments,
-              };
-            }),
-          })),
-        };
-        return nextBundle;
-      });
+                return {
+                  ...classSummary,
+                  confirmedCount: detail.confirmedCount,
+                  spotsRemaining:
+                    detail.capacity == null
+                      ? null
+                      : Math.max(0, detail.capacity - detail.confirmedCount),
+                  familyEnrollments,
+                };
+              }),
+            })),
+          };
+          return nextBundle;
+        });
+      }
       applyClassDetailUpdate(classId, detail);
     },
-    [applyClassDetailUpdate],
+    [applyClassDetailUpdate, contextBundle, hasLoaded],
   );
 
   if (!displayBlock || !blockMeta) {

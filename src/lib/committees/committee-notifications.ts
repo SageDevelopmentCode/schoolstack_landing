@@ -11,8 +11,9 @@ import {
   sendCommitteeTaskAssignedNotification,
 } from "@/lib/emails";
 import { resolveCommitteeNotificationEmails } from "@/lib/notifications/org-notification-settings";
+import { committeeTaskAssigneeTasksUrl } from "@/lib/committees/committee-portal-urls";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { schoolParentPath, schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
+import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import { SITE_URL } from "@/lib/site";
 
@@ -313,10 +314,11 @@ export async function sendCommitteeTaskAssignedNotifications(
   },
 ): Promise<void> {
   const dueDateLabel = formatTaskDueDateLabel(input.dueDate);
-  const parentTasksUrl = `${SITE_URL}${schoolParentRootPath(input.schoolSlug)}/committees?committee=${encodeURIComponent(input.committeeId)}&section=tasks&tab=mine`;
-  const adminTasksUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "committees")}?committee=${encodeURIComponent(input.committeeId)}&section=tasks`;
-  const tasksUrl =
-    input.assigneeMember.user_id != null ? parentTasksUrl : adminTasksUrl;
+  const tasksUrl = committeeTaskAssigneeTasksUrl(
+    input.schoolSlug,
+    input.committeeId,
+    input.assigneeMember,
+  );
 
   await logActivityEvent(supabase, {
     organizationId: input.organizationId,

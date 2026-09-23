@@ -8,10 +8,7 @@ import { AdmissionsFilterPill } from '@/components/school-admin/admissions/admis
 import { StoryTextField } from '@/components/story/story-text-field';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { buildFridayBranchClassSavePayload } from '@/lib/school-admin/friday-branch/friday-branch-class-save';
-import {
-  removeFridayBranchClassFlyer,
-  uploadFridayBranchClassFlyer,
-} from '@/lib/school-admin/friday-branch/friday-branch-flyer-storage';
+import { uploadFridayBranchClassFlyer } from '@/lib/school-admin/friday-branch/friday-branch-flyer-storage';
 import type { FridayBranchClass, FridayBranchTimeSlot } from '@/lib/school-admin/friday-branch/friday-branch-types';
 import { formatFridayBranchPriceInput } from '@/lib/school-admin/friday-branch/friday-branch-price-utils';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -122,26 +119,15 @@ export function SchoolAdminFridayBranchClassEditSheet({
     }
   };
 
-  const handleRemoveFlyer = async () => {
+  const handleRemoveFlyer = () => {
     if (!draft.flyerStoragePath) return;
 
-    setFlyerUploading(true);
-    try {
-      await removeFridayBranchClassFlyer(supabase, draft.flyerStoragePath);
-      setDraft({
-        ...draft,
-        flyerStoragePath: null,
-        flyerFileName: null,
-        flyerFileSizeBytes: null,
-      });
-    } catch (error) {
-      Alert.alert(
-        'Remove failed',
-        error instanceof Error ? error.message : 'Failed to remove flyer.',
-      );
-    } finally {
-      setFlyerUploading(false);
-    }
+    setDraft({
+      ...draft,
+      flyerStoragePath: null,
+      flyerFileName: null,
+      flyerFileSizeBytes: null,
+    });
   };
 
   return (

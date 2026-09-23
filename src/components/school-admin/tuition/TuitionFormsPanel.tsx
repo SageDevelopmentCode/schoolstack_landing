@@ -80,7 +80,9 @@ export default function TuitionFormsPanel({
   }, [organizationId]);
 
   useEffect(() => {
-    void loadData();
+    queueMicrotask(() => {
+      void loadData();
+    });
   }, [loadData]);
 
   if (loading) {

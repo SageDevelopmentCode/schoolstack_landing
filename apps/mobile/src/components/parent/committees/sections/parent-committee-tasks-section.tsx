@@ -9,6 +9,7 @@ import {
 import { StoryButton } from '@/components/story/story-button';
 import { StoryDetailSection } from '@/components/school-admin/admissions/story-detail-section';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { notifyCommitteeTaskAssignment } from '@/lib/committees/notify-committee-task-assignment';
 import {
   createCommitteeTask,
   deleteCommitteeTask,
@@ -30,6 +31,7 @@ export function ParentCommitteeTasksSection({
   currentMemberId,
   readOnly = false,
   isAdmin = false,
+  portalApiNamespace = 'parent-portal',
   onRefresh,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
@@ -74,9 +76,11 @@ export function ParentCommitteeTasksSection({
 
   const handleSave = useCallback(async (data: CommitteeTaskFormState) => {
     setSaving(true);
+    const previousAssigneeMemberId = selectedTask?.assigneeId ?? null;
+    let savedTaskId: string | null = null;
     try {
       if (panelMode === 'create') {
-        await createCommitteeTask(supabase, committee.id, {
+        const created = await createCommitteeTask(supabase, committee.id, {
           title: data.title.trim(),
           description: data.description || undefined,
           group: data.group,
@@ -85,6 +89,7 @@ export function ParentCommitteeTasksSection({
           dueDate: data.dueDate || undefined,
           createdByMemberId: currentMemberId,
         });
+        savedTaskId = created.id;
       } else if (selectedTask) {
         await updateCommitteeTask(supabase, selectedTask.id, {
           title: data.title.trim(),
@@ -94,9 +99,24 @@ export function ParentCommitteeTasksSection({
           assigneeMemberId: data.assigneeMemberId,
           dueDate: data.dueDate || null,
         });
+        savedTaskId = selectedTask.id;
       }
       closePanel();
       await onRefresh();
+      if (savedTaskId) {
+        const notifyNamespace = isAdmin ? 'school-admin' : portalApiNamespace;
+        void notifyCommitteeTaskAssignment({
+          portalApiNamespace: notifyNamespace,
+          taskId: savedTaskId,
+          organizationId,
+          previousAssigneeMemberId: panelMode === 'edit' ? previousAssigneeMemberId : null,
+        }).catch((error) => {
+          reportError('committees.tasks.notify_assignment', error, {
+            entityType: 'committee_task',
+            entityId: savedTaskId ?? undefined,
+          });
+        });
+      }
     } catch (error) {
       reportError('committees.tasks.save', error, {
         entityType: 'committee',
@@ -105,7 +125,19 @@ export function ParentCommitteeTasksSection({
     } finally {
       setSaving(false);
     }
-  }, [closePanel, committee.id, currentMemberId, onRefresh, panelMode, reportError, selectedTask, supabase]);
+  }, [
+    closePanel,
+    committee.id,
+    currentMemberId,
+    isAdmin,
+    onRefresh,
+    organizationId,
+    panelMode,
+    portalApiNamespace,
+    reportError,
+    selectedTask,
+    supabase,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedTask) return;
