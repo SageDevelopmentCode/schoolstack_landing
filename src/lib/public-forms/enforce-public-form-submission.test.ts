@@ -6,6 +6,15 @@ import {
   shouldBypassPublicFormProtection,
 } from "@/lib/public-forms/enforce-public-form-submission";
 
+function setNodeEnv(value: string) {
+  Object.defineProperty(process.env, "NODE_ENV", {
+    value,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
+}
+
 describe("enforcePublicFormSubmission", () => {
   const envSnapshot = { ...process.env };
 
@@ -43,7 +52,7 @@ describe("enforcePublicFormSubmission", () => {
   });
 
   it("requires a turnstile token when protection is configured", async () => {
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     process.env.TURNSTILE_SECRET_KEY = "secret";
     process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
     process.env.UPSTASH_REDIS_REST_TOKEN = "token";
@@ -63,7 +72,7 @@ describe("enforcePublicFormSubmission", () => {
   });
 
   it("returns 503 in production when protection is misconfigured", async () => {
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     delete process.env.TURNSTILE_SECRET_KEY;
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;

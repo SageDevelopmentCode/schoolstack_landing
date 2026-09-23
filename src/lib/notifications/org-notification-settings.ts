@@ -365,6 +365,7 @@ export async function maybeMigrateIncompleteAdmissionsReminders(
   const nextSettings: OrganizationNotificationSettings = {
     ...settings,
     parent_reminders: {
+      ...getDefaultNotificationSettings().parent_reminders,
       incomplete_admissions: {
         enabled: true,
       },

@@ -192,7 +192,7 @@ export async function materializeFormResponses(
 
   const { data, error } = await admin
     .from("teacher_parent_form_responses")
-    .insert(rows, { onConflict: "form_id,family_id", ignoreDuplicates: true })
+    .upsert(rows, { onConflict: "form_id,family_id", ignoreDuplicates: true })
     .select("id");
 
   if (error) throw error;

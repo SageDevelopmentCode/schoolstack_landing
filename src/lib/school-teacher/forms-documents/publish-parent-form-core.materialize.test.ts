@@ -31,6 +31,19 @@ function createEnrollmentAudienceMockSupabase(options: {
   };
 
   function createFilterBuilder(table: string) {
+    function captureResponseRows(rows: unknown, opts?: unknown) {
+      capturedInsertRows = rows;
+      capturedInsertOptions = opts;
+      return {
+        select(_columns?: string) {
+          return Promise.resolve({
+            data: (options.insertedResponseIds ?? ["response-1"]).map((id) => ({ id })),
+            error: options.insertError ?? null,
+          });
+        },
+      };
+    }
+
     const builder = {
       select(_columns?: string) {
         return builder;
@@ -43,16 +56,7 @@ function createEnrollmentAudienceMockSupabase(options: {
       },
       insert(rows: unknown, opts?: unknown) {
         if (table === "teacher_parent_form_responses") {
-          capturedInsertRows = rows;
-          capturedInsertOptions = opts;
-          return {
-            select(_columns?: string) {
-              return Promise.resolve({
-                data: (options.insertedResponseIds ?? ["response-1"]).map((id) => ({ id })),
-                error: options.insertError ?? null,
-              });
-            },
-          };
+          return captureResponseRows(rows, opts);
         }
 
         if (table === "teacher_parent_forms") {
@@ -90,6 +94,13 @@ function createEnrollmentAudienceMockSupabase(options: {
         }
 
         throw new Error(`Unexpected insert on ${table}`);
+      },
+      upsert(rows: unknown, opts?: unknown) {
+        if (table === "teacher_parent_form_responses") {
+          return captureResponseRows(rows, opts);
+        }
+
+        throw new Error(`Unexpected upsert on ${table}`);
       },
       update(values: Record<string, unknown>) {
         if (table === "teacher_parent_forms") {
@@ -184,7 +195,7 @@ describe("materializeFormResponses", () => {
     assert.deepEqual(result, { expectedCount: 0, insertedCount: 0 });
   });
 
-  it("inserts responses with ignoreDuplicates on conflict", async () => {
+  it("upserts responses with ignoreDuplicates on conflict", async () => {
     const { supabase, getCapturedInsertOptions, getCapturedInsertRows } =
       createEnrollmentAudienceMockSupabase();
 

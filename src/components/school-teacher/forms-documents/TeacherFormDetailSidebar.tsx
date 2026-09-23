@@ -90,7 +90,7 @@ export default function TeacherFormDetailSidebar({
   }, [open, onClose]);
 
   const contentForm = open ? (form ?? displayedForm) : displayedForm;
-  if (!contentForm && !open) return null;
+  if (!contentForm) return null;
 
   const progressPercent = getFormProgressPercent(contentForm);
   const typeLabel =

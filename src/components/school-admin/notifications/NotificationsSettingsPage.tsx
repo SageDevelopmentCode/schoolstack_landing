@@ -232,6 +232,7 @@ export default function NotificationsSettingsPage({
       const nextSettings: OrganizationNotificationSettings = {
         ...settings,
         parent_reminders: {
+          ...settings.parent_reminders,
           incomplete_admissions: {
             enabled,
           },

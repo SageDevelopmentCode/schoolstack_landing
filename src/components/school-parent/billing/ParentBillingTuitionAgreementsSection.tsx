@@ -95,7 +95,6 @@ export default function ParentBillingTuitionAgreementsSection({
                   <ParentButton
                     theme={theme}
                     variant="primary"
-                    size="sm"
                     disabled={readOnly}
                     onClick={() => setSelectedAgreement(item)}
                   >

@@ -343,7 +343,6 @@ export async function sendCommitteeDailyDigestsForOrganization(
         committees: adminCommittees,
       });
     } catch (error) {
-      console.error("Failed to send committee digest Discord notification", error);
       void reportOperationalError({
         supabase: admin,
         surface: "system",
@@ -352,6 +351,7 @@ export async function sendCommitteeDailyDigestsForOrganization(
         organizationSlug: schoolSlug,
         operation: "committee_daily_digest.discord_notification",
         error: "Failed to send committee digest Discord notification",
+        actor: { type: "system" },
         cause: error,
       });
     }
