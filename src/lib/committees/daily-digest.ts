@@ -14,7 +14,9 @@ import {
   resolveCommitteeMemberEmail,
   type AssigneeMemberRow,
 } from "@/lib/committees/committee-notifications";
+import { notifyCommitteeDailyDigestSent } from "@/lib/discord";
 import { sendCommitteeDailyDigestEmail } from "@/lib/emails";
+import { reportOperationalError } from "@/lib/operational-errors";
 import {
   isCommitteeDailyDigestEnabled,
   resolveCommitteeNotificationEmails,
@@ -155,6 +157,8 @@ export type CommitteeDailyDigestResult = {
   activityCount: number;
   digestsSent: number;
   digestFailures: number;
+  memberDigestsSent: number;
+  adminDigestsSent: number;
 };
 
 export async function sendCommitteeDailyDigestsForOrganization(
@@ -164,7 +168,13 @@ export async function sendCommitteeDailyDigestsForOrganization(
 ): Promise<CommitteeDailyDigestResult> {
   const enabled = await isCommitteeDailyDigestEnabled(admin, organizationId);
   if (!enabled) {
-    return { activityCount: 0, digestsSent: 0, digestFailures: 0 };
+    return {
+      activityCount: 0,
+      digestsSent: 0,
+      digestFailures: 0,
+      memberDigestsSent: 0,
+      adminDigestsSent: 0,
+    };
   }
 
   const events = await fetchDigestActivityEvents(
@@ -174,7 +184,13 @@ export async function sendCommitteeDailyDigestsForOrganization(
   );
 
   if (events.length === 0) {
-    return { activityCount: 0, digestsSent: 0, digestFailures: 0 };
+    return {
+      activityCount: 0,
+      digestsSent: 0,
+      digestFailures: 0,
+      memberDigestsSent: 0,
+      adminDigestsSent: 0,
+    };
   }
 
   const { data: organization, error: organizationError } = await admin
@@ -185,7 +201,13 @@ export async function sendCommitteeDailyDigestsForOrganization(
 
   if (organizationError) throw new Error(organizationError.message);
   if (!organization?.slug || !organization.name) {
-    return { activityCount: events.length, digestsSent: 0, digestFailures: 0 };
+    return {
+      activityCount: events.length,
+      digestsSent: 0,
+      digestFailures: 0,
+      memberDigestsSent: 0,
+      adminDigestsSent: 0,
+    };
   }
 
   const schoolName = String(organization.name);
@@ -200,6 +222,8 @@ export async function sendCommitteeDailyDigestsForOrganization(
 
   let digestsSent = 0;
   let digestFailures = 0;
+  let memberDigestsSent = 0;
+  let adminDigestsSent = 0;
 
   const members = await loadActiveCommitteeMembers(
     admin,
@@ -273,13 +297,14 @@ export async function sendCommitteeDailyDigestsForOrganization(
     sentEmails.add(normalizedEmail);
     if (sent) {
       digestsSent += 1;
+      memberDigestsSent += 1;
     } else {
       digestFailures += 1;
     }
   }
 
   const adminEmails = await resolveCommitteeNotificationEmails(admin, organizationId);
-  const adminCommittees = buildDigestCommitteeGroups(events);
+  const adminCommittees = buildDigestCommitteeGroups(events, referenceDate);
 
   for (const email of adminEmails) {
     const normalizedEmail = email.trim().toLowerCase();
@@ -298,8 +323,36 @@ export async function sendCommitteeDailyDigestsForOrganization(
     sentEmails.add(normalizedEmail);
     if (sent) {
       digestsSent += 1;
+      adminDigestsSent += 1;
     } else {
       digestFailures += 1;
+    }
+  }
+
+  if (digestsSent > 0) {
+    try {
+      await notifyCommitteeDailyDigestSent({
+        organizationId,
+        schoolName,
+        schoolSlug,
+        digestsSent,
+        digestFailures,
+        memberDigestsSent,
+        adminDigestsSent,
+        committees: adminCommittees,
+      });
+    } catch (error) {
+      console.error("Failed to send committee digest Discord notification", error);
+      void reportOperationalError({
+        supabase: admin,
+        surface: "system",
+        organizationId,
+        organizationName: schoolName,
+        organizationSlug: schoolSlug,
+        operation: "committee_daily_digest.discord_notification",
+        error: "Failed to send committee digest Discord notification",
+        cause: error,
+      });
     }
   }
 
@@ -307,5 +360,7 @@ export async function sendCommitteeDailyDigestsForOrganization(
     activityCount: events.length,
     digestsSent,
     digestFailures,
+    memberDigestsSent,
+    adminDigestsSent,
   };
 }

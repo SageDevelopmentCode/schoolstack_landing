@@ -13,6 +13,8 @@ import {
   fetchParentBillingData,
   type ParentBillingData,
 } from '@/lib/parent/parent-portal-api';
+import type { ParentFormDetail } from '@/lib/parent/parent-forms-documents-types';
+import { classifyParentFormListStatus } from '@/lib/parent/parent-forms-documents-utils';
 import {
   createParentPortalCache,
   resolveParentPortalProviderInit,
@@ -27,7 +29,25 @@ type ParentBillingContextValue = {
   hasLoaded: boolean;
   ensureLoaded: () => void;
   refresh: () => Promise<void>;
+  applySignedAgreement: (detail: ParentFormDetail) => void;
 };
+
+function patchParentBillingAfterAgreementSigned(
+  data: ParentBillingData,
+  detail: ParentFormDetail,
+): ParentBillingData {
+  const listStatus = classifyParentFormListStatus(detail.response.status);
+  const tuitionAgreements = (data.tuitionAgreements ?? []).map((item) =>
+    item.form.id === detail.form.id
+      ? { form: detail.form, response: detail.response, listStatus }
+      : item,
+  );
+
+  return {
+    ...data,
+    tuitionAgreements,
+  };
+}
 
 const ParentBillingContext = createContext<ParentBillingContextValue | null>(null);
 
@@ -139,6 +159,12 @@ export function ParentBillingProvider({
     await load({ refresh: true });
   }, [load]);
 
+  const applySignedAgreement = useCallback((detail: ParentFormDetail) => {
+    setData((current) =>
+      current ? patchParentBillingAfterAgreementSigned(current, detail) : current,
+    );
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -197,8 +223,9 @@ export function ParentBillingProvider({
       hasLoaded,
       ensureLoaded,
       refresh,
+      applySignedAgreement,
     }),
-    [data, ensureLoaded, error, hasLoaded, isLoading, isRefreshing, refresh],
+    [applySignedAgreement, data, ensureLoaded, error, hasLoaded, isLoading, isRefreshing, refresh],
   );
 
   return (

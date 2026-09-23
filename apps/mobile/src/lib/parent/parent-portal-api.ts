@@ -27,6 +27,7 @@ import type {
 import type {
   ParentFormDetail,
   ParentFormDownloadPayload,
+  ParentFormListItem,
   ParentFormsDocumentsPageBundle,
   SubmitParentFormInput,
 } from '@/lib/parent/parent-forms-documents-types';
@@ -519,6 +520,7 @@ export type ParentBillingData = {
   hasBillingSplit: boolean;
   initialChildKey: string | null;
   showTaxCreditPaymentBanner: boolean;
+  tuitionAgreements?: ParentFormListItem[];
 };
 
 export type CheckoutPaymentMethod = 'card' | 'us_bank_account';

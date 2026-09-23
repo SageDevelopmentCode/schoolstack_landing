@@ -385,3 +385,54 @@ export function buildDigestCommitteeGroups(
     left.committeeName.localeCompare(right.committeeName),
   );
 }
+
+function formatCommitteeDigestActivityLine(
+  item: CommitteeDigestActivityItem,
+): string {
+  const detailParts: string[] = [];
+  if (item.details[0]) {
+    detailParts.push(item.details[0]);
+  }
+
+  const meta = [
+    item.actorName ? `By ${item.actorName}` : null,
+    item.occurredAtLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (meta) {
+    detailParts.push(meta);
+  }
+
+  const suffix =
+    detailParts.length > 0 ? ` — ${detailParts.join(" — ")}` : "";
+
+  return `• [${item.actionLabel}] ${item.title}${suffix}`;
+}
+
+export function formatCommitteeDigestGroupsForDiscord(
+  committees: CommitteeDigestCommitteeGroup[],
+): string {
+  const sections: string[] = [];
+
+  for (const committee of committees) {
+    sections.push(`**${committee.committeeName}**`);
+
+    for (const category of committee.categories) {
+      for (const item of category.items) {
+        sections.push(formatCommitteeDigestActivityLine(item));
+      }
+
+      if (category.truncatedCount > 0) {
+        sections.push(
+          `• …and ${category.truncatedCount} more ${category.category.toLowerCase()} updates`,
+        );
+      }
+    }
+
+    sections.push("");
+  }
+
+  return sections.join("\n").trim();
+}

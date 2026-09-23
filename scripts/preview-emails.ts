@@ -730,6 +730,99 @@ const previews = [
     ],
   },
   {
+    filename: "committee-daily-digest-member-multi.html",
+    html: buildCommitteeDailyDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      recipientName: "Holly Evensen",
+      recipientKind: "member",
+      committeesUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/committees?tab=mine",
+      committees: [
+        {
+          committeeName: "Farm Connection & Development Committee",
+          categories: [
+            {
+              category: "Tasks",
+              items: [
+                {
+                  title: "Order compost",
+                  actionLabel: "Added",
+                  details: ["Status: Open", "Friday, September 26, 2026"],
+                  actorName: "Ms. Taylor Reyes",
+                  occurredAtLabel: "Yesterday at 3:15 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+            {
+              category: "Messages",
+              items: [
+                {
+                  title: "Can someone cover setup?",
+                  actionLabel: "Posted",
+                  details: [],
+                  actorName: "Holly Evensen",
+                  occurredAtLabel: "Today at 8:12 AM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+          ],
+        },
+        {
+          committeeName: "Garden Committee",
+          categories: [
+            {
+              category: "Calendar",
+              items: [
+                {
+                  title: "Fall planting day",
+                  actionLabel: "Added",
+                  details: [
+                    "Saturday, September 27, 2026",
+                    "Time: 10:00 AM",
+                    "Location: School garden",
+                  ],
+                  actorName: "Julius Cecilia",
+                  occurredAtLabel: "Yesterday at 4:30 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+            {
+              category: "Members",
+              items: [
+                {
+                  title: "Holly Evensen",
+                  actionLabel: "Invited",
+                  details: ["Member"],
+                  actorName: "Julius Cecilia",
+                  occurredAtLabel: "Yesterday at 2:40 PM",
+                },
+              ],
+              truncatedCount: 0,
+            },
+          ],
+        },
+      ],
+    }),
+    checks: [
+      "Committee Update",
+      "Rooted Meadows Waldorf School",
+      "Holly Evensen",
+      "Farm Connection",
+      "Garden Committee",
+      "Tasks",
+      "Messages",
+      "Calendar",
+      "Members",
+      "Order compost",
+      "Can someone cover setup?",
+      "Fall planting day",
+      "Open committees",
+    ],
+  },
+  {
     filename: "committee-daily-digest-admin.html",
     html: buildCommitteeDailyDigestHtml({
       schoolName: "Rooted Meadows Waldorf School",

@@ -21,6 +21,7 @@ import { ParentBillingReadinessBanner } from '@/components/parent/billing/parent
 import { ParentBillingScheduleBanner } from '@/components/parent/billing/parent-billing-schedule-banner';
 import { ParentBillingSkeleton } from '@/components/parent/billing/parent-billing-skeleton';
 import { ParentBillingStoryHeader } from '@/components/parent/billing/parent-billing-story-header';
+import { ParentBillingTuitionAgreementsPanel } from '@/components/parent/billing/parent-billing-tuition-agreements-panel';
 import { ParentBillingSummaryPanel } from '@/components/parent/billing/parent-billing-summary-panel';
 import { ParentBillingTaxCreditBanner } from '@/components/parent/billing/parent-billing-tax-credit-banner';
 import { ParentPaymentMethodSheet } from '@/components/parent/billing/parent-payment-method-sheet';
@@ -51,9 +52,11 @@ import {
   filterChargesForChild,
   filterOpenCharges,
   listOpenChargesOnEarliestDueDate,
+  PARENT_BILLING_AGREEMENTS_TAB,
   PARENT_BILLING_SUMMARY_TAB,
   resolveFamilyPayNowLabel,
 } from '@/lib/tuition/billing-helpers';
+import { parentFormDetailRoute } from '@/lib/parent/parent-nav';
 import { formatCents } from '@/lib/tuition/format-cents';
 import { formatCentsForInput } from '@/lib/tuition/tuition-pay-amount';
 import { pickRecentLateFeeNotice } from '@/lib/tuition/late-fee-notice';
@@ -66,6 +69,8 @@ import type { TuitionPayAmountMode } from '@/lib/tuition/tuition-pay-amount';
 
 type ParentBillingScreenProps = {
   slug: string;
+  initialTab?: string;
+  initialFormId?: string;
 };
 
 type PendingPayment =
@@ -86,7 +91,11 @@ function resolveNextChargeId(
   return match?.id ?? null;
 }
 
-export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
+export function ParentBillingScreen({
+  slug,
+  initialTab,
+  initialFormId,
+}: ParentBillingScreenProps) {
   const router = useRouter();
   const theme = useParentTheme();
   const { data, isLoading, isRefreshing, error, refresh } = useParentBilling();
@@ -110,15 +119,35 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
   const pendingPaymentRef = useRef<PendingPayment | null>(null);
   const paymentSheetDismissRef = useRef<(() => void) | null>(null);
   const checkoutBrowserOpenRef = useRef(false);
+  const openedInitialFormRef = useRef(false);
+
+  const tuitionAgreements = data?.tuitionAgreements ?? [];
+  const hasAgreements = tuitionAgreements.length > 0;
+  const pendingAgreementCount = useMemo(
+    () => tuitionAgreements.filter((item) => item.listStatus === 'needs_action').length,
+    [tuitionAgreements],
+  );
 
   useEffect(() => {
     if (!data) return;
+    if (initialTab === PARENT_BILLING_AGREEMENTS_TAB && hasAgreements) {
+      setActiveChildKey(PARENT_BILLING_AGREEMENTS_TAB);
+      return;
+    }
     if (data.familySummary.children.length <= 1) {
       setActiveChildKey(data.familySummary.children[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB);
       return;
     }
     setActiveChildKey(PARENT_BILLING_SUMMARY_TAB);
-  }, [data?.familyId]);
+  }, [data?.familyId, hasAgreements, initialTab]);
+
+  useEffect(() => {
+    if (!initialFormId || openedInitialFormRef.current) return;
+    const match = tuitionAgreements.find((item) => item.form.id === initialFormId);
+    if (!match) return;
+    openedInitialFormRef.current = true;
+    router.push(parentFormDetailRoute(slug, initialFormId));
+  }, [initialFormId, router, slug, tuitionAgreements]);
 
   useEffect(() => {
     setChargesSheetOpen(false);
@@ -126,8 +155,9 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
 
   const childViews = data?.familySummary.children ?? [];
   const hasMultipleChildren = childViews.length > 1;
+  const isAgreementsTab = activeChildKey === PARENT_BILLING_AGREEMENTS_TAB;
   const isSummaryTab = hasMultipleChildren && activeChildKey === PARENT_BILLING_SUMMARY_TAB;
-  const activeChild = isSummaryTab
+  const activeChild = isSummaryTab || isAgreementsTab
     ? null
     : (childViews.find((child) => child.childKey === activeChildKey) ?? childViews[0] ?? null);
 
@@ -457,14 +487,12 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
           />
         }>
         <ParentBillingStoryHeader
-          activeTabKey={
-            hasMultipleChildren
-              ? activeChildKey
-              : (childViews[0]?.childKey ?? PARENT_BILLING_SUMMARY_TAB)
-          }
+          activeTabKey={activeChildKey}
           childViews={childViews}
           openChargeCount={openCharges.length}
           totalRemainingCents={totalRemainingCents}
+          hasAgreements={hasAgreements}
+          pendingAgreementCount={pendingAgreementCount}
           onSelectTab={setActiveChildKey}
         />
 
@@ -502,7 +530,12 @@ export function ParentBillingScreen({ slug }: ParentBillingScreenProps) {
         ) : null}
 
         <Animated.View key={activeChildKey} entering={FadeIn.duration(220)}>
-          {isSummaryTab ? (
+          {isAgreementsTab ? (
+            <ParentBillingTuitionAgreementsPanel
+              agreements={tuitionAgreements}
+              onOpenAgreement={(formId) => router.push(parentFormDetailRoute(slug, formId))}
+            />
+          ) : isSummaryTab ? (
             <ParentBillingSummaryPanel
               summary={familySummary}
               childViews={childViews}

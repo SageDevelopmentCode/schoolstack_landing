@@ -1,5 +1,7 @@
 import { SITE_URL } from "@/lib/site";
 import { DRAFT_REMINDER_DELAY_PRESETS } from "@/lib/admissions/application-form-schema";
+import type { CommitteeDigestCommitteeGroup } from "@/lib/committees/daily-digest-utils";
+import { formatCommitteeDigestGroupsForDiscord } from "@/lib/committees/daily-digest-utils";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   formatAutopayLineItems,
@@ -304,6 +306,56 @@ async function sendTuitionBillingDiscordEmbed(
   }
 
   await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+async function sendDigestNotificationsDiscordEmbed(
+  embed: DiscordEmbed,
+  options?: { content?: string },
+) {
+  const webhookUrl = process.env.DISCORD_DIGEST_NOTIFICATIONS_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    console.warn(
+      "DISCORD_DIGEST_NOTIFICATIONS_WEBHOOK_URL is not set; skipping Discord notification.",
+    );
+    return;
+  }
+
+  await sendDiscordEmbedToWebhook(webhookUrl, embed, options);
+}
+
+function splitDiscordFieldValue(text: string, max = 1024): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= max) return [trimmed];
+
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const line of trimmed.split("\n")) {
+    const candidate = current ? `${current}\n${line}` : line;
+    if (candidate.length > max) {
+      if (current) {
+        chunks.push(current);
+        current = "";
+      }
+
+      if (line.length > max) {
+        chunks.push(truncate(line, max));
+        continue;
+      }
+
+      current = line;
+      continue;
+    }
+
+    current = candidate;
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+
+  return chunks;
 }
 
 export async function sendPerformanceChecksDiscordEmbed(
@@ -1521,4 +1573,51 @@ export async function notifyCustomerBillingInvoicePaid(payload: {
     },
     { content: preview },
   );
+}
+
+export async function notifyCommitteeDailyDigestSent(payload: {
+  organizationId: string;
+  schoolName: string;
+  schoolSlug: string;
+  digestsSent: number;
+  digestFailures: number;
+  memberDigestsSent: number;
+  adminDigestsSent: number;
+  committees: CommitteeDigestCommitteeGroup[];
+}) {
+  const adminUrl = `${SITE_URL}${schoolAdminPath(payload.schoolSlug, "committees")}`;
+  const fields: DiscordEmbedField[] = [
+    embedField(
+      "School",
+      truncate(
+        `${payload.schoolName}\n(${payload.schoolSlug})\n${adminUrl}`,
+      ),
+    ),
+    embedField("Digests sent", String(payload.digestsSent), true),
+    embedField("Failures", String(payload.digestFailures), true),
+    embedField("Member emails", String(payload.memberDigestsSent), true),
+    embedField("Admin emails", String(payload.adminDigestsSent), true),
+  ];
+
+  const activityChunks = splitDiscordFieldValue(
+    formatCommitteeDigestGroupsForDiscord(payload.committees),
+  );
+
+  if (activityChunks.length === 0) {
+    fields.push(embedField("Activity", "—"));
+  } else {
+    activityChunks.forEach((chunk, index) => {
+      const name =
+        activityChunks.length === 1
+          ? "Activity"
+          : `Activity (${index + 1}/${activityChunks.length})`;
+      fields.push(embedField(name, truncate(chunk)));
+    });
+  }
+
+  await sendDigestNotificationsDiscordEmbed({
+    title: `Committee digest sent — ${payload.schoolName}`,
+    color: DISCORD_EMBED_COLORS.ops,
+    fields,
+  });
 }

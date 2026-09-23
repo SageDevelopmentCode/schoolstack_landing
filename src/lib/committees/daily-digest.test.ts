@@ -5,8 +5,10 @@ import type { CommitteeActivityEventRow } from "@/lib/committees/activity-feed";
 import {
   buildDigestCommitteeGroups,
   filterDigestEventsForMember,
+  formatCommitteeDigestGroupsForDiscord,
   formatDigestOccurredAtLabel,
   mapDigestActivityItem,
+  type CommitteeDigestCommitteeGroup,
 } from "./daily-digest-utils";
 
 const REFERENCE_DATE = new Date("2026-09-22T20:00:00.000Z");
@@ -304,5 +306,172 @@ describe("buildDigestCommitteeGroups", () => {
 
   it("returns an empty array when there is no activity", () => {
     assert.deepEqual(buildDigestCommitteeGroups([]), []);
+  });
+});
+
+describe("formatCommitteeDigestGroupsForDiscord", () => {
+  const sampleCommittees: CommitteeDigestCommitteeGroup[] = [
+    {
+      committeeId: "committee-1",
+      committeeName: "Farm Connection Committee",
+      categories: [
+        {
+          category: "Tasks",
+          items: [
+            {
+              title: "Order compost",
+              actionLabel: "Added",
+              details: ["Status: Open"],
+              actorName: "Ms. Taylor Reyes",
+              occurredAtLabel: "Yesterday at 3:15 PM",
+            },
+          ],
+          truncatedCount: 0,
+        },
+        {
+          category: "Messages",
+          items: [
+            {
+              title: "Can someone cover setup?",
+              actionLabel: "Posted",
+              details: [],
+              actorName: "Holly Evensen",
+              occurredAtLabel: "Today at 8:12 AM",
+            },
+          ],
+          truncatedCount: 0,
+        },
+      ],
+    },
+    {
+      committeeId: "committee-2",
+      committeeName: "Garden Committee",
+      categories: [
+        {
+          category: "Members",
+          items: [
+            {
+              title: "Holly Evensen",
+              actionLabel: "Invited",
+              details: ["Member"],
+              actorName: "Julius Cecilia",
+              occurredAtLabel: "Yesterday at 2:40 PM",
+            },
+          ],
+          truncatedCount: 0,
+        },
+      ],
+    },
+  ];
+
+  it("formats multiple committees with action badges and metadata", () => {
+    const formatted = formatCommitteeDigestGroupsForDiscord(sampleCommittees);
+
+    assert.match(formatted, /\*\*Farm Connection Committee\*\*/);
+    assert.match(
+      formatted,
+      /\[Added\] Order compost — Status: Open — By Ms\. Taylor Reyes · Yesterday at 3:15 PM/,
+    );
+    assert.match(
+      formatted,
+      /\[Posted\] Can someone cover setup\? — By Holly Evensen · Today at 8:12 AM/,
+    );
+    assert.match(formatted, /\*\*Garden Committee\*\*/);
+    assert.match(
+      formatted,
+      /\[Invited\] Holly Evensen — Member — By Julius Cecilia · Yesterday at 2:40 PM/,
+    );
+  });
+
+  it("includes truncated category counts", () => {
+    const formatted = formatCommitteeDigestGroupsForDiscord([
+      {
+        committeeId: "committee-1",
+        committeeName: "Farm Committee",
+        categories: [
+          {
+            category: "Tasks",
+            items: [
+              {
+                title: "Order compost",
+                actionLabel: "Added",
+                details: [],
+                occurredAtLabel: "Today at 9:00 AM",
+              },
+            ],
+            truncatedCount: 3,
+          },
+        ],
+      },
+    ]);
+
+    assert.match(formatted, /…and 3 more tasks updates/);
+  });
+
+  it("returns an empty string when there are no committees", () => {
+    assert.equal(formatCommitteeDigestGroupsForDiscord([]), "");
+  });
+
+  it("produces output that can be split for Discord field limits", () => {
+    const longTitle = "A".repeat(900);
+    const formatted = formatCommitteeDigestGroupsForDiscord([
+      {
+        committeeId: "committee-1",
+        committeeName: "Farm Committee",
+        categories: [
+          {
+            category: "Tasks",
+            items: [
+              {
+                title: longTitle,
+                actionLabel: "Added",
+                details: ["Status: Open"],
+                actorName: "Ms. Taylor Reyes",
+                occurredAtLabel: "Yesterday at 3:15 PM",
+              },
+            ],
+            truncatedCount: 0,
+          },
+        ],
+      },
+      {
+        committeeId: "committee-2",
+        committeeName: "Garden Committee",
+        categories: [
+          {
+            category: "Members",
+            items: [
+              {
+                title: "Holly Evensen",
+                actionLabel: "Invited",
+                details: ["Member"],
+                occurredAtLabel: "Yesterday at 2:40 PM",
+              },
+            ],
+            truncatedCount: 0,
+          },
+        ],
+      },
+    ]);
+
+    assert.ok(formatted.length > 1024);
+
+    const chunks: string[] = [];
+    let current = "";
+    for (const line of formatted.split("\n")) {
+      const candidate = current ? `${current}\n${line}` : line;
+      if (candidate.length > 1024) {
+        if (current) chunks.push(current);
+        current = line;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) chunks.push(current);
+
+    assert.ok(chunks.length > 1);
+    for (const chunk of chunks) {
+      assert.ok(chunk.length <= 1024);
+    }
   });
 });

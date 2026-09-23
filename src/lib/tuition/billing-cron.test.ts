@@ -91,6 +91,8 @@ describe("runTuitionBillingCron", () => {
           activityCount: organizationId === "org-1" ? 2 : 0,
           digestsSent: organizationId === "org-1" ? 1 : 0,
           digestFailures: 0,
+          memberDigestsSent: organizationId === "org-1" ? 1 : 0,
+          adminDigestsSent: 0,
         };
       },
       notifySummary: async (payload) => {
@@ -178,6 +180,8 @@ describe("runTuitionBillingCron", () => {
         activityCount: 0,
         digestsSent: 0,
         digestFailures: 0,
+        memberDigestsSent: 0,
+        adminDigestsSent: 0,
       }),
       notifySummary: async () => {},
     });

@@ -22,6 +22,7 @@ import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
+import { useParentBilling } from '@/contexts/parent-billing-context';
 import { useParentFormsDocuments } from '@/contexts/parent-forms-documents-context';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -58,6 +59,7 @@ export function ParentFormDetailScreen({
   const router = useRouter();
   const { applySubmittedForm } = useParentFormsDocuments();
   const { applySignedForm } = useParentHome();
+  const { applySignedAgreement } = useParentBilling();
   const { reportError } = useMobileErrorReporter(organizationId);
 
   const [detail, setDetail] = useState<ParentFormDetail | null>(null);
@@ -178,6 +180,7 @@ export function ParentFormDetailScreen({
       setDetail(payload);
       applySubmittedForm(payload);
       applySignedForm(payload);
+      applySignedAgreement(payload);
       Alert.alert('Form signed', 'Your response has been saved.');
       router.back();
     } catch (submitError) {
