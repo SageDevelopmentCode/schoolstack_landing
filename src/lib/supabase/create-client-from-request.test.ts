@@ -13,10 +13,21 @@ const nodeRequire = createRequire(import.meta.url);
 const SUPABASE_URL = "https://test.supabase.co";
 const SUPABASE_KEY = "publishable-key";
 
-const originalResolveFilename = Module._resolveFilename;
+type ResolveFilename = (
+  request: string,
+  parent: NodeModule,
+  isMain: boolean,
+  options?: { paths?: string[] },
+) => string;
+
+const moduleWithInternals = Module as typeof Module & {
+  _resolveFilename: ResolveFilename;
+};
+
+const originalResolveFilename = moduleWithInternals._resolveFilename;
 
 function installModuleMocks() {
-  Module._resolveFilename = function (
+  moduleWithInternals._resolveFilename = function (
     request: string,
     parent: NodeModule,
     isMain: boolean,
@@ -64,7 +75,7 @@ describe("createClientFromRequest", () => {
   });
 
   after(() => {
-    Module._resolveFilename = originalResolveFilename;
+    moduleWithInternals._resolveFilename = originalResolveFilename;
     clearSupabaseClientModuleCache();
   });
 
