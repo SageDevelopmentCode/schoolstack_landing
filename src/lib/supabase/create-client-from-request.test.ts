@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import Module from "node:module";
+import Module, { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
 
@@ -8,6 +8,7 @@ const mockNextHeadersPath = path.join(fixturesDir, "mock-next-headers.cjs");
 const mockSupabaseJsPath = path.join(fixturesDir, "mock-supabase-js.cjs");
 const mockSupabaseSsrPath = path.join(fixturesDir, "mock-supabase-ssr.cjs");
 const requestClientPath = path.join(__dirname, "request-client.ts");
+const nodeRequire = createRequire(import.meta.url);
 
 const SUPABASE_URL = "https://test.supabase.co";
 const SUPABASE_KEY = "publishable-key";
@@ -36,13 +37,15 @@ function installModuleMocks() {
 }
 
 function clearSupabaseClientModuleCache() {
-  for (const key of Object.keys(require.cache)) {
+  for (const key of Object.keys(nodeRequire.cache)) {
     if (
       key === requestClientPath ||
       key.endsWith("/request-client.ts") ||
-      key.endsWith("/bearer-token.ts")
+      key.endsWith("/bearer-token.ts") ||
+      key.endsWith("/resolve-request-access-token.ts") ||
+      key.endsWith("/get-user-from-request.ts")
     ) {
-      delete require.cache[key];
+      delete nodeRequire.cache[key];
     }
   }
 }
@@ -54,7 +57,7 @@ describe("createClientFromRequest", () => {
     installModuleMocks();
     clearSupabaseClientModuleCache();
 
-    const mockSupabase = require(mockSupabaseJsPath) as {
+    const mockSupabase = nodeRequire(mockSupabaseJsPath) as {
       __createClientCalls: unknown[][];
     };
     mockSupabase.__createClientCalls.length = 0;
@@ -67,10 +70,10 @@ describe("createClientFromRequest", () => {
 
   it("uses bearer client when token is only available via next/headers()", async () => {
     const { createClientFromRequest } = await import("./request-client");
-    const { __ACCESS_TOKEN } = require(mockNextHeadersPath) as {
+    const { __ACCESS_TOKEN } = nodeRequire(mockNextHeadersPath) as {
       __ACCESS_TOKEN: string;
     };
-    const { __createClientCalls } = require(mockSupabaseJsPath) as {
+    const { __createClientCalls } = nodeRequire(mockSupabaseJsPath) as {
       __createClientCalls: Array<
         [string, string, { global: { headers: { Authorization: string } } }]
       >;

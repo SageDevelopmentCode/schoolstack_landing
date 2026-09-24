@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { ChargeWaiveError, waiveCharge } from "@/lib/tuition/charge-waive";
 import { getChargeById } from "@/lib/tuition/charges";
 import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";

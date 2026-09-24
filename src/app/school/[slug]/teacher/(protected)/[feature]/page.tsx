@@ -19,8 +19,8 @@ import { loadTeacherFormsDocumentsPageData } from "@/lib/school-teacher/forms-do
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
-  requireTeacherPortalUser,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";

@@ -2,9 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   AuthError,
-  requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";

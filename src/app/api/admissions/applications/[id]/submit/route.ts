@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { runAfterResponse } from "@/lib/next/run-after-response";
 import {
   AuthError,
-  requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import {
   ApplicationMaterializationError,
   materializeApplicationStudent,

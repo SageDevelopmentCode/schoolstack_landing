@@ -3,9 +3,9 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { getTeacherCommitteeWorkspace } from "@/lib/committees/teacher-committees";
 import {
-  requireTeacherPortalUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 

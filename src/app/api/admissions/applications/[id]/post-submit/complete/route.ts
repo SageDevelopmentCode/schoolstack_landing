@@ -9,8 +9,8 @@ import { postSubmitActionLabel } from "@/lib/admissions/post-submit-templates";
 import { parseApplicationFormPostSubmitConfig } from "@/lib/admissions/application-form-schema";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import {
   ACTIVITY_ACTIONS,
   logActivityEvent,

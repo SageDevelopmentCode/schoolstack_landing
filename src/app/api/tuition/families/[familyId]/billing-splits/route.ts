@@ -13,7 +13,7 @@ import {
 } from "@/lib/tuition/billing-splits";
 import { regenerateFutureCharges } from "@/lib/tuition/charge-generator";
 import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
-import { requireAuthenticatedUser } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 

@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { previewRuleMatches } from "@/lib/tuition/rules-engine";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";

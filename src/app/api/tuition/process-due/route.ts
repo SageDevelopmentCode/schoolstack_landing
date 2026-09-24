@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { requireTuitionOrgAdmin } from "@/lib/tuition/api-auth";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { applyLateFeesForOrganization, getGraceDaysForSettings } from "@/lib/tuition/late-fees";

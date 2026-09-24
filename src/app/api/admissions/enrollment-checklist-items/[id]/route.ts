@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
   AuthError,
-  requireAuthenticatedUser,
   userIsOrgAdmin,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import {
   completeChecklistItem,
   acknowledgeAgreementAmendmentReview,

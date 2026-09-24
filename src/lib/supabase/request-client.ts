@@ -4,10 +4,13 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-import { resolveRequestAccessToken } from '@/lib/supabase/bearer-token';
+import {
+  resolveRequestAccessToken,
+  signedInErrorForRequest,
+} from '@/lib/supabase/resolve-request-access-token';
 
 export { getUserFromRequest } from '@/lib/supabase/get-user-from-request';
-export { signedInErrorForRequest } from '@/lib/supabase/bearer-token';
+export { signedInErrorForRequest };
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

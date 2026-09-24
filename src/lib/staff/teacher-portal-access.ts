@@ -1,6 +1,4 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { signedInErrorForRequest } from "@/lib/supabase/bearer-token";
-import { getUserFromRequest } from "@/lib/supabase/get-user-from-request";
 
 export type StaffUserProfile = {
   email: string;
@@ -101,45 +99,6 @@ export async function getStaffUserProfile(
       : null;
 
   return { email, displayName, profilePhotoUrl };
-}
-
-export async function requireTeacherPortalUser(
-  supabase: SupabaseClient,
-  organizationId: string,
-  request?: Request,
-): Promise<User> {
-  const {
-    data: { user },
-    error,
-  } = request
-    ? await getUserFromRequest(supabase, request)
-    : await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new TeacherPortalAuthError(
-      request
-        ? await signedInErrorForRequest(request, error)
-        : "You must be signed in to continue. (missing_token)",
-      "unauthenticated",
-      401,
-    );
-  }
-
-  const allowed = await userHasTeacherPortalAccess(
-    supabase,
-    user.id,
-    organizationId,
-  );
-
-  if (!allowed) {
-    throw new TeacherPortalAuthError(
-      "You do not have staff access to this school.",
-      "forbidden",
-      403,
-    );
-  }
-
-  return user;
 }
 
 export function isTeacherPortalRole(role: string): boolean {

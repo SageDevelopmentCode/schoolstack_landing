@@ -1,5 +1,3 @@
-import { headers as getNextHeaders } from "next/headers";
-
 export const MOBILE_ACCESS_TOKEN_HEADER = "x-schoolstack-access-token";
 
 type HeaderReader = {
@@ -21,22 +19,6 @@ export function getBearerAccessToken(request: Request): string | null {
   return readAccessTokenFromHeaders(request.headers);
 }
 
-/**
- * Bearer JWT from the request, then from Next.js `headers()` when the
- * Authorization header is hidden from the route `Request` object.
- */
-export async function resolveRequestAccessToken(request: Request): Promise<string | null> {
-  const fromRequest = getBearerAccessToken(request);
-  if (fromRequest) return fromRequest;
-
-  try {
-    const headerStore = await getNextHeaders();
-    return readAccessTokenFromHeaders(headerStore);
-  } catch {
-    return null;
-  }
-}
-
 type AuthFailure = {
   message?: string;
   code?: string;
@@ -53,12 +35,4 @@ export function signedInErrorMessage(
   const raw = authError?.code?.trim() || authError?.message?.trim() || "unknown";
   const safe = raw.replace(/[^a-zA-Z0-9_:-]/g, "_").slice(0, 80);
   return `You must be signed in to continue. (rejected_token:${safe})`;
-}
-
-export async function signedInErrorForRequest(
-  request: Request,
-  authError?: AuthFailure,
-): Promise<string> {
-  const accessToken = await resolveRequestAccessToken(request);
-  return signedInErrorMessage(accessToken, authError);
 }

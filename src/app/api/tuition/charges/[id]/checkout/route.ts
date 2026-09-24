@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { getChargeById, listChargesForAssignment, markChargeSent } from "@/lib/tuition/charges";
 import { chargeRemainingCents } from "@/lib/tuition/billing-splits";
 import { isChargePayable } from "@/lib/tuition/charge-payability";

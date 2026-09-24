@@ -1,7 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 import {
-  resolveRequestAccessToken,
+  getBearerAccessToken,
   signedInErrorMessage,
 } from "@/lib/supabase/bearer-token";
 import {
@@ -114,7 +114,7 @@ export async function requireCanManageOrganizationEvents(
   organizationId: string,
   request?: Request,
 ): Promise<User> {
-  const accessToken = request ? await resolveRequestAccessToken(request) : null;
+  const accessToken = request ? getBearerAccessToken(request) : null;
   const {
     data: { user },
     error,

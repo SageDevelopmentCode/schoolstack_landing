@@ -7,9 +7,9 @@ import {
 import {
   getStaffMemberIdForUser,
   getStaffUserProfile,
-  requireTeacherPortalUser,
   type StaffUserProfile,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 
 export async function authorizeTeacherStudentHealthAccess(
   supabase: SupabaseClient,

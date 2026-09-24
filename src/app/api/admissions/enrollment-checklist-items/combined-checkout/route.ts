@@ -6,8 +6,8 @@ import {
 } from "@/lib/admissions/combined-enrollment-payment";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { EnrollmentMaterializationError } from "@/lib/admissions/enrollment-checklist-materialization";
 import { reportEnrollmentChecklistItemApiFailure } from "@/lib/admissions/enrollment-checklist-operational-errors";
 import {

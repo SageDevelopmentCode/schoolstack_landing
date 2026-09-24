@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   AuthError,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { apiError } from "@/lib/api/route-errors";
 import {
   attachCheckoutSessionToPayments,

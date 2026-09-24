@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
-import { requireAuthenticatedUser } from "./application-auth";
+import { requireAuthenticatedUser } from "./application-auth-server";
 
 const ACCESS_TOKEN = "mobile-access-token";
 const USER = { id: "user-1", email: "parent@test.com" } as User;

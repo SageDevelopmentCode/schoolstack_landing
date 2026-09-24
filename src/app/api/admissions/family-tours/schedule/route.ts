@@ -11,8 +11,8 @@ import {
 import {
   AuthError,
   getFamilyIdsForUser,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { sendPreApplicationCampusTourAdminNotifications } from "@/lib/admissions/application-notifications";
 import { listFamilyApplications } from "@/lib/admissions/parent-portal-access";
 import {

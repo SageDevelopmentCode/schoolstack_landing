@@ -13,8 +13,8 @@ import {
 import type { MessageContactInput, MessageParticipantInput } from "@/lib/messages/types";
 import {
   getStaffMemberIdForUser,
-  requireTeacherPortalUser,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { requireSchoolAdminUser } from "@/lib/school-admin/access";
 
 export async function assertParentCanAccessThread(
