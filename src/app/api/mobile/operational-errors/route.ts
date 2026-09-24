@@ -11,6 +11,7 @@ import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -77,13 +78,14 @@ export async function POST(request: Request) {
   try {
     const {
       data: { user },
+      error: authError,
     } = await getUserFromRequest(supabase, request);
 
     if (!user) {
       return apiError(ROUTE, {
         request,
         status: 401,
-        error: "You must be signed in.",
+        error: await signedInErrorForRequest(request, authError),
         code: "unauthorized",
       });
     }

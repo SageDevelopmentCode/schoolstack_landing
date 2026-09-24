@@ -13,6 +13,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 import { authorizeMobileActivityEvent } from "./authorize-mobile-activity";
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in to log this activity.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthenticated",
     });
   }

@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { signedInErrorForRequest } from "@/lib/supabase/bearer-token";
 import { getUserFromRequest } from "@/lib/supabase/get-user-from-request";
 
 export type StaffUserProfile = {
@@ -116,7 +117,9 @@ export async function requireTeacherPortalUser(
 
   if (error || !user) {
     throw new TeacherPortalAuthError(
-      "You must be signed in to continue.",
+      request
+        ? await signedInErrorForRequest(request, error)
+        : "You must be signed in to continue. (missing_token)",
       "unauthenticated",
       401,
     );

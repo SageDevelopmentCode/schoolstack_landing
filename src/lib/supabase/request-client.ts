@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { getBearerAccessToken } from '@/lib/supabase/bearer-token';
 
 export { getUserFromRequest } from '@/lib/supabase/get-user-from-request';
+export { signedInErrorForRequest } from '@/lib/supabase/bearer-token';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

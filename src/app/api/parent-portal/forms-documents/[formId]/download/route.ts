@@ -5,7 +5,7 @@ import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { assertParentFormAccess } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { getParentFormUploadStoragePath } from "@/lib/school-parent/forms-documents/mutations";
 import { createTeacherFormSignedUrl } from "@/lib/school-teacher/forms-documents/teacher-form-file-storage";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/forms-documents/[formId]/download";
@@ -30,13 +30,14 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

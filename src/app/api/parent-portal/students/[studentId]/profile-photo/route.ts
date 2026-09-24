@@ -7,7 +7,7 @@ import {
   StudentPhotoUploadError,
   uploadStudentProfilePhoto,
 } from "@/lib/students/student-photo-storage";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/profile-photo";
@@ -22,13 +22,14 @@ export async function POST(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in to upload a profile photo.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

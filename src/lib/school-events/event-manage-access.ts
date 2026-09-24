@@ -1,6 +1,9 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
-import { getBearerAccessToken } from "@/lib/supabase/bearer-token";
+import {
+  resolveRequestAccessToken,
+  signedInErrorMessage,
+} from "@/lib/supabase/bearer-token";
 import {
   loadOrganizationScheduleSettings,
   userCanManageOrganizationEvents,
@@ -111,7 +114,7 @@ export async function requireCanManageOrganizationEvents(
   organizationId: string,
   request?: Request,
 ): Promise<User> {
-  const accessToken = request ? getBearerAccessToken(request) : null;
+  const accessToken = request ? await resolveRequestAccessToken(request) : null;
   const {
     data: { user },
     error,
@@ -121,7 +124,7 @@ export async function requireCanManageOrganizationEvents(
 
   if (error || !user) {
     throw new OrganizationEventManageAuthError(
-      "You must be signed in to continue.",
+      signedInErrorMessage(accessToken, error),
       "unauthenticated",
       401,
     );
