@@ -22,6 +22,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/health/[itemId]";
@@ -55,13 +56,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }
@@ -170,13 +172,14 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

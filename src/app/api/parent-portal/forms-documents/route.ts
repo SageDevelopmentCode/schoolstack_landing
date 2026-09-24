@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/forms-documents";
@@ -23,13 +23,14 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

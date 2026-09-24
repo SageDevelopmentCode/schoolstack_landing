@@ -9,9 +9,9 @@ import {
 import { formatScheduledVisitWhenLabel } from "@/lib/admissions/admissions-availability";
 import {
   AuthError,
-  requireAuthenticatedUser,
   userOwnsApplication,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { sendPostSubmitVisitScheduledNotifications } from "@/lib/admissions/application-notifications";
 import {
   ACTIVITY_ACTIONS,

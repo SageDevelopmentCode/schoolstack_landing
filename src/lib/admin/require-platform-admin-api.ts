@@ -1,5 +1,8 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { AuthError, requireAuthenticatedUser } from "@/lib/admissions/application-auth";
+import {
+  AuthError,
+} from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 
 export async function requirePlatformAdminUser(
   supabase: SupabaseClient,

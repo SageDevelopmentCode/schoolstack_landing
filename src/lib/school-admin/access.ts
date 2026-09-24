@@ -1,6 +1,9 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
-import { getBearerAccessToken } from "@/lib/supabase/bearer-token";
+import {
+  getBearerAccessToken,
+  signedInErrorMessage,
+} from "@/lib/supabase/bearer-token";
 
 export class SchoolAdminAuthError extends Error {
   code: "unauthenticated" | "forbidden";
@@ -68,7 +71,7 @@ export async function requireSchoolAdminUser(
 
   if (error || !user) {
     throw new SchoolAdminAuthError(
-      "You must be signed in to continue.",
+      signedInErrorMessage(accessToken, error),
       "unauthenticated",
       401,
     );

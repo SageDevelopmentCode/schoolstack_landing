@@ -6,7 +6,7 @@ import {
   uploadGuardianProfilePhoto,
 } from "@/lib/guardians/guardian-photo-storage";
 import { logParentPortalActivity } from "@/lib/parent-portal/parent-portal-activity";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/profile-photo";
@@ -16,13 +16,14 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in to upload a profile photo.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

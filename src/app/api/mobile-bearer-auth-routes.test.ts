@@ -15,10 +15,7 @@ describe("mobile bearer auth route wiring", () => {
       "app/api/parent-portal/classroom-signups/[signupId]/route.ts",
     );
 
-    assert.match(
-      source,
-      /import \{ createClientFromRequest(?:, getUserFromRequest)? \} from "@\/lib\/supabase\/request-client"/,
-    );
+    assert.match(source, /createClientFromRequest/);
     assert.equal(
       (source.match(/await createClientFromRequest\(request\)/g) ?? []).length,
       3,

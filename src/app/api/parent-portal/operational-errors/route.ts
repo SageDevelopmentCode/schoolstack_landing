@@ -6,6 +6,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/operational-errors";
@@ -53,13 +54,14 @@ export async function POST(request: Request) {
   try {
     const {
       data: { user },
+      error: authError,
     } = await getUserFromRequest(supabase, request);
 
     if (!user) {
       return apiError(ROUTE, {
         request,
         status: 401,
-        error: "You must be signed in.",
+        error: await signedInErrorForRequest(request, authError),
         code: "unauthorized",
       });
     }

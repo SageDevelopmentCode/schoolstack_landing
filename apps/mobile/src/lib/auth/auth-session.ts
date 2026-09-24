@@ -163,6 +163,7 @@ function buildAuthHeaders(
 ): Record<string, string> {
   return {
     Authorization: `Bearer ${accessToken}`,
+    'X-Schoolstack-Access-Token': accessToken,
     ...mobileClientHeaders(),
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
   };

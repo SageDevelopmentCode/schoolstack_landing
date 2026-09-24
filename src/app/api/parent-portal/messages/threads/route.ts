@@ -9,7 +9,7 @@ import {
   resolveParticipantsForContact,
 } from "@/lib/messages/api-helpers";
 import { userHasAccessForOptionalProgramScope } from "@/lib/admissions/program-parent-portal-access";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/messages/threads";
@@ -32,13 +32,14 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }
@@ -86,13 +87,14 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

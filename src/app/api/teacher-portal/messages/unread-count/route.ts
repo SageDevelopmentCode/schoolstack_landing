@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getTeacherMessagesUnreadCount } from "@/lib/messages/unread-count-api";
-import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";

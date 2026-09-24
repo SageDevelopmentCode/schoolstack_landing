@@ -44,6 +44,19 @@ describe("getUserFromRequest", () => {
     assert.deepEqual(getUserCalls, [ACCESS_TOKEN]);
   });
 
+  it("passes a custom mobile access-token header to supabase.auth.getUser(accessToken)", async () => {
+    const getUserCalls: string[] = [];
+    const supabase = createMockSupabase({ user: USER, getUserCalls });
+    const request = new Request("https://example.com/api/parent-portal/home", {
+      headers: { "X-Schoolstack-Access-Token": ACCESS_TOKEN },
+    });
+
+    const { data } = await getUserFromRequest(supabase, request);
+
+    assert.equal(data.user?.id, USER.id);
+    assert.deepEqual(getUserCalls, [ACCESS_TOKEN]);
+  });
+
   it("falls back to cookie session lookup when Authorization is missing", async () => {
     const getUserCalls: string[] = [];
     const supabase = createMockSupabase({ user: USER, getUserCalls });

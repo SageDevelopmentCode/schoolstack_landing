@@ -2,9 +2,9 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { mergeFeatures } from "@/lib/organization-settings/merge";
 import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-routes";
 import {
-  requireTeacherPortalUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 
 export { TeacherPortalAuthError };
 

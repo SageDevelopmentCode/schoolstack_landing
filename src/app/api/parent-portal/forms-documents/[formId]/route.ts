@@ -13,7 +13,7 @@ import {
 import { getParentFormDetail } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { submitParentFormResponse } from "@/lib/school-parent/forms-documents/mutations";
 import type { SubmitParentFormInput } from "@/lib/school-parent/forms-documents/types";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/forms-documents/[formId]";
@@ -38,13 +38,14 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }
@@ -104,13 +105,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

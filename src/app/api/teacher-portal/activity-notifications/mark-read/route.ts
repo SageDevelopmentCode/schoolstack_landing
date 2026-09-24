@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { markTeacherActivityNotificationsRead } from "@/lib/school-teacher/activity-notifications";
 import {
-  requireTeacherPortalUser,
   TeacherPortalAuthError,
 } from "@/lib/staff/teacher-portal-access";
+import { requireTeacherPortalUser } from "@/lib/staff/teacher-portal-access-server";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 

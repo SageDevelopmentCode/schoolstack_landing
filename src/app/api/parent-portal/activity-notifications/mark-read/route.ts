@@ -3,7 +3,7 @@ import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { apiError } from "@/lib/api/route-errors";
 import { markParentActivityNotificationsRead } from "@/lib/parent-portal/parent-activity-notifications";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/activity-notifications/mark-read";
 
@@ -11,13 +11,14 @@ export async function POST(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

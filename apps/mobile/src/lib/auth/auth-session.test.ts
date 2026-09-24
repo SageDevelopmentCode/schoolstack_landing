@@ -145,6 +145,7 @@ describe('getApiAuthHeaders', () => {
 
     await expect(getApiAuthHeaders(true)).resolves.toEqual({
       Authorization: 'Bearer token-123',
+      'X-Schoolstack-Access-Token': 'token-123',
       [MOBILE_CLIENT_HEADER]: 'mobile',
       [MOBILE_PLATFORM_HEADER]: 'ios',
       'X-Schoolstack-App-Version': '1.2.3',

@@ -16,6 +16,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/health";
@@ -30,13 +31,14 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }
@@ -93,13 +95,14 @@ export async function POST(request: Request, context: RouteContext) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

@@ -4,7 +4,7 @@ import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { loadParentBillingInitialDataWithClient } from "@/lib/tuition/load-parent-billing-data";
-import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/billing";
 
@@ -12,13 +12,14 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

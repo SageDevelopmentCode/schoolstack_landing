@@ -8,8 +8,8 @@ import {
 import {
   AuthError,
   canAccessApplicationPostSubmit,
-  requireAuthenticatedUser,
 } from "@/lib/admissions/application-auth";
+import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-server";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";

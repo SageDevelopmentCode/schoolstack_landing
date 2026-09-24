@@ -7,6 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import {
   createClientFromRequest,
   getUserFromRequest,
+  signedInErrorForRequest,
 } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/feedback";
@@ -34,13 +35,14 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: "You must be signed in to submit feedback.",
+      error: await signedInErrorForRequest(request, authError),
       code: "unauthorized",
     });
   }

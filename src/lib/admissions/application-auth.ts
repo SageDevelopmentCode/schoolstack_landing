@@ -1,6 +1,5 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlatformAdmin } from "@/lib/school-admin/access";
-import { getUserFromRequest } from "@/lib/supabase/get-user-from-request";
 
 export async function userIsOrgAdmin(
   supabase: SupabaseClient,
@@ -107,24 +106,6 @@ export async function canAccessApplicationPostSubmit(
     (await userOwnsApplication(supabase, userId, applicationId)) ||
     (await isPlatformAdmin(supabase, userId))
   );
-}
-
-export async function requireAuthenticatedUser(
-  supabase: SupabaseClient,
-  request?: Request,
-): Promise<User> {
-  const {
-    data: { user },
-    error,
-  } = request
-    ? await getUserFromRequest(supabase, request)
-    : await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new AuthError("You must be signed in to continue.", "unauthenticated", 401);
-  }
-
-  return user;
 }
 
 export class AuthError extends Error {
