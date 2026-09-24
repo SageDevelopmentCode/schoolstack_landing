@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getParentCommitteeWorkspace } from "@/lib/committees/parent-committees";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/[committeeId]";
@@ -26,7 +26,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

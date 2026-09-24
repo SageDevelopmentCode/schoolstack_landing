@@ -19,13 +19,13 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: organization, error: organizationError } = await admin
@@ -85,7 +85,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: Partial<ParentFeatureAnnouncementInput>;
     try {

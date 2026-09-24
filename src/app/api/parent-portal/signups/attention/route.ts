@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { loadParentSignupAttentionItems } from "@/lib/classroom-signups/load-parent-signups";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { resolveSignupAttentionFamilyId } from "./resolve-family-id";
 
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { withdrawCommitteeJoinRequest } from "@/lib/committees/join-requests";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/join-requests/[id]";
@@ -27,7 +27,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

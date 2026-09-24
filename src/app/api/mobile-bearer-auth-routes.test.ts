@@ -15,7 +15,10 @@ describe("mobile bearer auth route wiring", () => {
       "app/api/parent-portal/classroom-signups/[signupId]/route.ts",
     );
 
-    assert.match(source, /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/);
+    assert.match(
+      source,
+      /import \{ createClientFromRequest(?:, getUserFromRequest)? \} from "@\/lib\/supabase\/request-client"/,
+    );
     assert.equal(
       (source.match(/await createClientFromRequest\(request\)/g) ?? []).length,
       3,
@@ -179,7 +182,63 @@ describe("mobile bearer auth route wiring", () => {
         /import \{ createClientFromRequest \} from "@\/lib\/supabase\/request-client"/,
       );
       assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
-      assert.match(source, /requirePlatformAdminUser\(supabase\)/);
+      assert.match(source, /requirePlatformAdminUser\(supabase, request\)/);
+      assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+      assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+    });
+  }
+
+  const mobileAccountRoutes = [
+    "app/api/mobile/activity-events/route.ts",
+    "app/api/mobile/operational-errors/route.ts",
+    "app/api/account/expo-push/register/route.ts",
+  ];
+
+  for (const routePath of mobileAccountRoutes) {
+    it(`${routePath} uses getUserFromRequest for bearer auth`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(source, /createClientFromRequest/);
+      assert.match(source, /getUserFromRequest\(supabase, request\)/);
+      assert.doesNotMatch(source, /await supabase\.auth\.getUser\(\)/);
+    });
+  }
+
+  const parentTuitionRoutes = [
+    "app/api/tuition/autopay/route.ts",
+    "app/api/tuition/charges/[id]/checkout/route.ts",
+    "app/api/tuition/charges/combined-checkout/route.ts",
+    "app/api/tuition/payment-method/setup/route.ts",
+    "app/api/tuition/enrollments/[enrollmentId]/payment-plan/route.ts",
+    "app/api/admissions/enrollment-checklist-items/[id]/route.ts",
+    "app/api/admissions/enrollment-checklist-items/[id]/checkout/route.ts",
+    "app/api/admissions/enrollment-checklists/[id]/route.ts",
+    "app/api/stripe/connect/status/route.ts",
+  ];
+
+  for (const routePath of parentTuitionRoutes) {
+    it(`${routePath} passes request into requireAuthenticatedUser`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(source, /createClientFromRequest/);
+      assert.match(source, /requireAuthenticatedUser\(supabase, request\)/);
+      assert.doesNotMatch(source, /await supabase\.auth\.getUser\(\)/);
+    });
+  }
+
+  const bearerMigratedPortalRoutes = [
+    "app/api/school-admin/operational-errors/route.ts",
+    "app/api/teacher-portal/operational-errors/route.ts",
+    "app/api/teacher-portal/profile-photo/route.ts",
+    "app/api/parent-portal/students/[studentId]/health/route.ts",
+    "app/api/teacher-portal/forms-documents/route.ts",
+  ];
+
+  for (const routePath of bearerMigratedPortalRoutes) {
+    it(`${routePath} uses createClientFromRequest instead of cookie client`, () => {
+      const source = readRoute(routePath);
+
+      assert.match(source, /createClientFromRequest/);
       assert.doesNotMatch(source, /createClient\(cookieStore\)/);
       assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
     });

@@ -28,6 +28,7 @@ const ALLOWED_TOPICS = new Set([
   "enrollment",
   "billing",
   "feature",
+  "account-deletion",
   "other",
 ]);
 

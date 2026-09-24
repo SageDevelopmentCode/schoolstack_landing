@@ -1,9 +1,13 @@
-import { resolveAccessToken } from '@/lib/auth/auth-session';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export type AuthRecoveryRoute = '/portal' | '/';
 
-/** Prefer /portal when a session can still be recovered; otherwise send to intro. */
+/** Prefer /portal when a session exists; otherwise send to intro. Does not sign out. */
 export async function resolveAuthRecoveryRoute(): Promise<AuthRecoveryRoute> {
-  const accessToken = await resolveAccessToken();
-  return accessToken ? '/portal' : '/';
+  const supabase = getSupabaseClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  return session?.access_token ? '/portal' : '/';
 }

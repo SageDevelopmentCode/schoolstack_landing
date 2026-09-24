@@ -24,7 +24,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const url = new URL(request.url);
     const summary = url.searchParams.get("summary") === "1";

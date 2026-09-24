@@ -87,6 +87,12 @@ export default function Footer() {
                 Support
               </Link>
               <Link
+                href="/account-deletion"
+                className="text-xs text-white/70 hover:text-white/90 transition-colors"
+              >
+                Delete account
+              </Link>
+              <Link
                 href="/privacy"
                 className="text-xs text-white/70 hover:text-white/90 transition-colors"
               >

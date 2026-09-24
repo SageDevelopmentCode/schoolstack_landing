@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get("organizationId")?.trim();
 

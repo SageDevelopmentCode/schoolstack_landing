@@ -194,6 +194,32 @@ describe("authorizeMobileActivityEvent", () => {
     assert.deepEqual(result, { ok: true, actorType: "parent" });
   });
 
+  it("allows teacher on teacher_portal surface", async () => {
+    const supabase = createMockSupabase({
+      user: { id: USER_ID },
+      tables: {
+        organization_memberships: [
+          {
+            id: "membership-1",
+            organization_id: ORG_ID,
+            user_id: USER_ID,
+            status: "active",
+            role: "teacher",
+          },
+        ],
+      },
+    });
+
+    const result = await authorizeMobileActivityEvent(
+      supabase,
+      USER_ID,
+      ORG_ID,
+      "teacher_portal",
+    );
+
+    assert.deepEqual(result, { ok: true, actorType: "teacher" });
+  });
+
   it("allows enrolled parent on parent_portal surface", async () => {
     const supabase = createMockSupabase({
       user: { id: USER_ID },

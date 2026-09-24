@@ -86,7 +86,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { familyId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const auth = await requireFamilySchoolAdmin(supabase, admin, familyId, request);
     if (auth.error) return auth.error;

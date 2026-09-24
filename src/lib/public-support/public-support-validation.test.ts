@@ -22,6 +22,22 @@ describe("validatePublicSupportRequestBody", () => {
     }
   });
 
+  it("accepts account-deletion topic", () => {
+    const result = validatePublicSupportRequestBody({
+      name: "Alex Founder",
+      email: "alex@example.com",
+      topic: "account-deletion",
+      message: "Please delete my MudKitchen account.",
+      sourcePagePath: "/account-deletion",
+    });
+
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.value.topic, "account-deletion");
+      assert.equal(result.value.sourcePagePath, "/account-deletion");
+    }
+  });
+
   it("rejects missing required fields", () => {
     const result = validatePublicSupportRequestBody({
       name: "Alex Founder",

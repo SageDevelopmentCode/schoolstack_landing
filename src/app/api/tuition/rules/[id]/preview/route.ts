@@ -19,7 +19,7 @@ export async function GET(
   const supabase = createClient(cookieStore);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const { id: ruleId } = await context.params;
     const admin = createAdminClient();
 

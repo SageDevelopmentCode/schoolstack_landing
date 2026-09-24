@@ -39,7 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: applicationId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const ownsApplication = await userOwnsApplication(
       supabase,
       user.id,

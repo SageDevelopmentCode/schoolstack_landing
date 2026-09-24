@@ -62,7 +62,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   let actorEmail: string | null = null;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     actorUserId = user.id;
     actorEmail = user.email ?? null;
     const admin = createAdminClient();
@@ -116,7 +116,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (isAdmin) {
-      await requireSchoolAdminUser(supabase, organizationId);
+      await requireSchoolAdminUser(supabase, organizationId, request);
     }
 
     if (body.agreementSection) {

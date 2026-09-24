@@ -20,7 +20,7 @@ import {
   upsertClassroomSignupResponse,
   withdrawClassroomSignupResponse,
 } from "@/lib/classroom-signups/mutations";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/classroom-signups/[signupId]";
@@ -34,7 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -134,7 +134,7 @@ export async function POST(request: Request, context: RouteContext) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -258,7 +258,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

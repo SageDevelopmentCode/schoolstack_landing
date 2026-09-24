@@ -209,25 +209,42 @@ export default function ParentLayout() {
   }, [selectedSchool, slug]);
 
   const [loadedOrg, setLoadedOrg] = useState(organization);
+  const [orgLoadState, setOrgLoadState] = useState<'loading' | 'ready' | 'failed'>(
+    organization ? 'ready' : 'loading',
+  );
 
   useRecoverableAuthRedirect(!user, isLoading);
 
   useEffect(() => {
     if (!user) {
       setLoadedOrg(null);
+      setOrgLoadState('loading');
     }
   }, [user]);
 
   useEffect(() => {
     if (organization) {
       setLoadedOrg(organization);
+      setOrgLoadState('ready');
       return;
     }
     if (!slug) return;
+
+    setOrgLoadState('loading');
     void fetchOrganizationBySlug(slug).then((org) => {
-      if (org) setLoadedOrg(org);
+      if (org) {
+        setLoadedOrg(org);
+        setOrgLoadState('ready');
+        return;
+      }
+      setOrgLoadState('failed');
     });
   }, [organization, slug]);
+
+  useEffect(() => {
+    if (orgLoadState !== 'failed') return;
+    router.replace('/portal');
+  }, [orgLoadState, router]);
 
   if (!loadedOrg) {
     return (
@@ -238,21 +255,44 @@ export default function ParentLayout() {
   }
 
   const branding = toOrganizationBranding(loadedOrg.branding);
+  const authReady = !isLoading && Boolean(user);
 
   return (
     <SchoolAdminThemeProvider branding={branding}>
       <ParentThemeProvider branding={branding}>
-        <ParentHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-          <ParentBillingProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-            <ParentCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-              <ParentClassroomSignupsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-                <ParentFridayBranchProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-                <ParentFormsDocumentsProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
-                <ParentCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+        <ParentHomeProvider
+          organizationId={loadedOrg.id}
+          slug={loadedOrg.slug}
+          authReady={authReady}>
+          <ParentBillingProvider
+            organizationId={loadedOrg.id}
+            slug={loadedOrg.slug}
+            authReady={authReady}>
+            <ParentCommitteesProvider
+              organizationId={loadedOrg.id}
+              slug={loadedOrg.slug}
+              authReady={authReady}>
+              <ParentClassroomSignupsProvider
+                organizationId={loadedOrg.id}
+                slug={loadedOrg.slug}
+                authReady={authReady}>
+                <ParentFridayBranchProvider
+                  organizationId={loadedOrg.id}
+                  slug={loadedOrg.slug}
+                  authReady={authReady}>
+                <ParentFormsDocumentsProvider
+                  organizationId={loadedOrg.id}
+                  slug={loadedOrg.slug}
+                  authReady={authReady}>
+                <ParentCalendarProvider
+                  organizationId={loadedOrg.id}
+                  slug={loadedOrg.slug}
+                  authReady={authReady}>
                   <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>
                     <ParentMessagesInboxProvider
                       organizationId={loadedOrg.id}
-                      schoolName={loadedOrg.name}>
+                      schoolName={loadedOrg.name}
+                      authReady={authReady}>
                       <MessagesUnreadProvider
                         organizationId={loadedOrg.id}
                         schoolName={loadedOrg.name}

@@ -6,7 +6,7 @@ import {
   mainPortalAudienceScope,
   programPortalAudienceScope,
 } from "@/lib/school-events/event-audience";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/calendar/events";
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

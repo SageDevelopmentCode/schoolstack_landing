@@ -22,7 +22,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: paymentId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: payment, error: paymentError } = await admin

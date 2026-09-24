@@ -262,7 +262,7 @@ export function StudentClassroomAssignPicker({
 
           {showNoAssignable ? (
             <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-              No classrooms available for this student's programs.
+              No classrooms available for this student&apos;s programs.
             </Text>
           ) : (
             <FlatList

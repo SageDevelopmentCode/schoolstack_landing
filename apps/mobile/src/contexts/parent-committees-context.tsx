@@ -75,12 +75,14 @@ type ParentCommitteesProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentCommitteesProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentCommitteesProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = committeesCache.get(key);
@@ -157,6 +159,10 @@ export function ParentCommitteesProvider({
   }, [load]);
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -203,7 +209,7 @@ export function ParentCommitteesProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyData, key, organizationId, reportError, slug]);
+  }, [applyData, authReady, key, organizationId, reportError, slug]);
 
   const getBrowseCommittee = useCallback(
     (committeeId: string) => browseCommittees.find((committee) => committee.id === committeeId) ?? null,

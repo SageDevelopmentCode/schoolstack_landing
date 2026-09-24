@@ -10,6 +10,7 @@ export const SUPPORT_REQUEST_TOPIC_OPTIONS = [
   { value: 'enrollment', label: 'Enrollment' },
   { value: 'billing', label: 'Billing' },
   { value: 'feature', label: 'Feature request' },
+  { value: 'account-deletion', label: 'Delete my account' },
   { value: 'other', label: 'Other' },
 ] as const;
 

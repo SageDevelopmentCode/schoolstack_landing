@@ -5,7 +5,7 @@ import {
   PROGRAM_COOP_CURRICULUM_BUCKET,
 } from "@/lib/admissions/program-coop-curriculum-storage";
 import { userHasAccessForProgramPortal } from "@/lib/admissions/program-parent-portal-access";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/curriculum/pdf";
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

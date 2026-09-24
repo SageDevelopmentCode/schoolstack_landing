@@ -3,10 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import {
-  assertApiAuthenticated,
-  getApiAuthHeaders,
-} from '@/lib/auth/auth-session';
+import { fetchWithAuth } from '@/lib/auth/auth-session';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
@@ -72,16 +69,16 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 }
 
 export async function saveExpoPushToken(pushToken: string): Promise<void> {
-  const response = await fetch(`${siteUrl}/api/account/expo-push/register`, {
+  const response = await fetchWithAuth(`${siteUrl}/api/account/expo-push/register`, {
     method: 'POST',
-    headers: await getApiAuthHeaders(true),
     body: JSON.stringify({
       pushToken,
       platform: Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : undefined,
     }),
+    includeJson: true,
+    signOutOnFailure: false,
   });
 
-  await assertApiAuthenticated(response);
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Failed to save push token.');
@@ -97,13 +94,12 @@ export async function clearExpoPushToken(): Promise<void> {
     const pushToken = await registerForPushNotificationsAsync();
     if (!pushToken) return;
 
-    const response = await fetch(`${siteUrl}/api/account/expo-push/register`, {
+    await fetchWithAuth(`${siteUrl}/api/account/expo-push/register`, {
       method: 'DELETE',
-      headers: await getApiAuthHeaders(true),
       body: JSON.stringify({ pushToken }),
+      includeJson: true,
+      signOutOnFailure: false,
     });
-
-    await assertApiAuthenticated(response);
   } catch {
     // Best-effort cleanup during sign-out.
   }

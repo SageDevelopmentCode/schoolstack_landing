@@ -43,7 +43,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const admin = createAdminClient();
     const { data: organization, error: organizationError } = await admin

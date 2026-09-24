@@ -3,8 +3,9 @@ import { AuthError, requireAuthenticatedUser } from "@/lib/admissions/applicatio
 
 export async function requirePlatformAdminUser(
   supabase: SupabaseClient,
+  request?: Request,
 ): Promise<User> {
-  const user = await requireAuthenticatedUser(supabase);
+  const user = await requireAuthenticatedUser(supabase, request);
 
   const { data, error } = await supabase
     .from("profiles")

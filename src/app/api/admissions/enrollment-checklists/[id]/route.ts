@@ -54,7 +54,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: checklist, error: checklistError } = await admin
@@ -93,7 +93,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (isAdmin) {
-      await requireSchoolAdminUser(supabase, organizationId);
+      await requireSchoolAdminUser(supabase, organizationId, request);
     }
 
     await saveEnrollmentChecklistActiveItem(admin, {

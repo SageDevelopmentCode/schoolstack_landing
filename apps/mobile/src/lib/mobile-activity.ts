@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-import { getApiAuthHeaders } from '@/lib/auth/auth-session';
+import { fetchWithAuth } from '@/lib/auth/auth-session';
 import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
@@ -58,10 +58,11 @@ export function mobileClientMetadata(): Record<string, unknown> {
 
 async function postMobileApi(path: string, body: Record<string, unknown>): Promise<void> {
   try {
-    await fetch(`${siteUrl}${path}`, {
+    await fetchWithAuth(`${siteUrl}${path}`, {
       method: 'POST',
-      headers: await getApiAuthHeaders(true),
       body: JSON.stringify(body),
+      includeJson: true,
+      signOutOnFailure: false,
     });
   } catch (reportError) {
     console.error(`[mobile-activity] ${path} report failed:`, reportError);

@@ -56,12 +56,14 @@ type ParentFormsDocumentsProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentFormsDocumentsProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentFormsDocumentsProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = formsCache.get(key);
@@ -88,6 +90,10 @@ export function ParentFormsDocumentsProvider({
       }
 
       const run = async () => {
+        if (!authReady) {
+          return;
+        }
+
         const hasCachedData = Boolean(formsCache.get(key));
         if (isRefresh) {
           setIsRefreshing(true);
@@ -116,14 +122,14 @@ export function ParentFormsDocumentsProvider({
       fetchPromiseRef.current = promise;
       await promise;
     },
-    [key, organizationId, reportError, slug],
+    [authReady, key, organizationId, reportError, slug],
   );
 
   const ensureLoaded = useCallback(() => {
-    if (loadRequestedRef.current) return;
+    if (!authReady || loadRequestedRef.current) return;
     loadRequestedRef.current = true;
     void load();
-  }, [load]);
+  }, [authReady, load]);
 
   const refresh = useCallback(async () => {
     await load({ refresh: true });

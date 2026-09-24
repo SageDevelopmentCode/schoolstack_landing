@@ -19,7 +19,7 @@ import {
   validateHealthItemInput,
 } from "@/lib/student-health/validate";
 import { TeacherPortalAuthError } from "@/lib/staff/teacher-portal-access";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/teacher-portal/students/[studentId]/health/[itemId]";
@@ -53,7 +53,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -178,7 +178,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

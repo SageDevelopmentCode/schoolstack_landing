@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.mudkitchen.schoolstack.mobile",
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.mudkitchen.schoolstack.mobile",
@@ -56,6 +59,13 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "autolinkingModuleResolution": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ad714022-2c84-4a66-b28e-49866d1f9878"
+      }
+    },
+    "owner": "juliusscecilia33"
   }
 }

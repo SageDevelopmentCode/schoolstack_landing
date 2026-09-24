@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await requireTeacherPortalUser(supabase, organizationId);
+    const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const admin = createAdminClient();
     const lastReadAt = await markTeacherActivityNotificationsRead(
       admin,

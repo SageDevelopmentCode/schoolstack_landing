@@ -42,7 +42,7 @@ export async function POST(request: Request, context: RouteContext) {
   let actorEmail: string | null = null;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     actorUserId = user.id;
     actorEmail = user.email ?? null;
     const admin = createAdminClient();

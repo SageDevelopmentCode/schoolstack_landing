@@ -10,7 +10,7 @@ import {
   getFamilyNotificationEmailSettings,
   updateFamilyNotificationEmails,
 } from "@/lib/notifications/family-notification-emails";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/notification-settings";
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -106,7 +106,7 @@ export async function PATCH(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

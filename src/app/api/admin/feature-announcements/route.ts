@@ -13,12 +13,12 @@ import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/feature-announcements";
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
     const announcements = await listGlobalAdminFeatureAnnouncements(admin);
     return NextResponse.json({ announcements });
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: Partial<AdminFeatureAnnouncementInput>;
     try {

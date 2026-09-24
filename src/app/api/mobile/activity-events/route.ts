@@ -10,12 +10,15 @@ import {
 } from "@/lib/activity-log";
 import { apiError } from "@/lib/api/route-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 import { authorizeMobileActivityEvent } from "./authorize-mobile-activity";
 
 const ROUTE = "/api/mobile/activity-events";
 
-type MobilePortalSurface = "parent_portal" | "school_admin";
+type MobilePortalSurface = "parent_portal" | "school_admin" | "teacher_portal";
 
 type MobileActivityBody = {
   action?: string;
@@ -27,6 +30,7 @@ type MobileActivityBody = {
 const VALID_SURFACES = new Set<ActivitySurface>([
   "parent_portal",
   "school_admin",
+  "teacher_portal",
 ]);
 
 export async function POST(request: Request) {
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (authError || !user) {
     return apiError(ROUTE, {

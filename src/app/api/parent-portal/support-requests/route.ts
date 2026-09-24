@@ -14,7 +14,7 @@ import {
   uploadSupportRequestFile,
   type SupportRequestAttachmentMeta,
 } from "@/lib/school-admin/support-request-storage";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/support-requests";
@@ -27,6 +27,7 @@ const ALLOWED_TOPICS = new Set([
   "enrollment",
   "billing",
   "feature",
+  "account-deletion",
   "other",
 ]);
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

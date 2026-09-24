@@ -103,7 +103,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const organizationId = await loadApplicationOrganizationId(admin, applicationId);
 
@@ -212,7 +212,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const organizationId = await loadApplicationOrganizationId(admin, applicationId);
 

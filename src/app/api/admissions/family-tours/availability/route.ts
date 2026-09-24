@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const familyIds = await getFamilyIdsForUser(
       supabase,
       user.id,

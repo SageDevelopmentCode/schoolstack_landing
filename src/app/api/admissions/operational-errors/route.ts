@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const canReport = await userCanReportApplyError(
       supabase,
       user.id,

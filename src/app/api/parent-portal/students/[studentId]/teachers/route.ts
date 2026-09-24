@@ -4,7 +4,7 @@ import {
   loadAssignedTeachersForStudent,
   userIsGuardianForStudent,
 } from "@/lib/admissions/parent-portal-access";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/teachers";
@@ -19,7 +19,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

@@ -50,7 +50,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireTeacherPortalUser(supabase, organizationId);
+    const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const profile = await getStaffUserProfile(supabase, user.id, organizationId, user);
     const admin = createAdminClient();
     const staff = await resolveTeacherStaffForOrg(

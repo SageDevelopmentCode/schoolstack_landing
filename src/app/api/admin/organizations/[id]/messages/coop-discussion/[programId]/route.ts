@@ -21,7 +21,7 @@ export async function GET(request: Request, context: RouteContext) {
   const curriculumId = searchParams.get("curriculumId");
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const admin = createAdminClient();
     const messages = await getOrganizationCoopDiscussionMessages(

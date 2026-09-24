@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { sendAuthorizedPickupContactNotifications } from "@/lib/authorized-pickup/authorized-pickup-notifications";
@@ -15,7 +14,10 @@ import type { AuthorizedPickupContactInput } from "@/lib/authorized-pickup/types
 import { reportOperationalError } from "@/lib/operational-errors";
 import { getStudentDisplayName } from "@/lib/student-health/mutations";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/students/[studentId]/authorized-pickup";
 
@@ -25,12 +27,11 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { studentId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -91,12 +92,11 @@ type CreateBody = AuthorizedPickupContactInput & {
 
 export async function POST(request: Request, context: RouteContext) {
   const { studentId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

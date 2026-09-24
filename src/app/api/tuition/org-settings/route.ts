@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get("organizationId");
@@ -58,7 +58,7 @@ export async function PUT(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const body = (await request.json()) as {
       organizationId?: string;

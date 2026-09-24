@@ -26,7 +26,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
     const memberships = await listOrganizationMemberships(admin, organizationId);
     return NextResponse.json({ memberships });
@@ -54,7 +54,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: CreateMembershipBody;
     try {

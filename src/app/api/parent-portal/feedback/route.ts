@@ -1,11 +1,13 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { notifyParentPortalFeedback } from "@/lib/discord";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/feedback";
 const MAX_MESSAGE_LENGTH = 5000;
@@ -28,12 +30,11 @@ interface ParentPortalFeedbackBody {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

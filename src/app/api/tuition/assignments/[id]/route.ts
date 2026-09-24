@@ -29,7 +29,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id: assignmentId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const assignment = await getAssignmentById(admin, assignmentId);
 

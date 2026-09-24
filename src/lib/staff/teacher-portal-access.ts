@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getUserFromRequest } from "@/lib/supabase/get-user-from-request";
 
 export type StaffUserProfile = {
   email: string;
@@ -104,11 +105,14 @@ export async function getStaffUserProfile(
 export async function requireTeacherPortalUser(
   supabase: SupabaseClient,
   organizationId: string,
+  request?: Request,
 ): Promise<User> {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = request
+    ? await getUserFromRequest(supabase, request)
+    : await supabase.auth.getUser();
 
   if (error || !user) {
     throw new TeacherPortalAuthError(

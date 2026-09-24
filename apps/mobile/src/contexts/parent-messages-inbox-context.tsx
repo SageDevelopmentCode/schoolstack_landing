@@ -92,12 +92,14 @@ type ParentMessagesInboxProviderProps = {
   children: ReactNode;
   organizationId: string;
   schoolName: string;
+  authReady?: boolean;
 };
 
 export function ParentMessagesInboxProvider({
   children,
   organizationId,
   schoolName,
+  authReady = true,
 }: ParentMessagesInboxProviderProps) {
   const key = cacheKey(organizationId, schoolName);
   const cached = messagesInboxCache.get(key);
@@ -175,6 +177,10 @@ export function ParentMessagesInboxProvider({
   );
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -221,7 +227,7 @@ export function ParentMessagesInboxProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyInboxData, key, organizationId, reportError, schoolName]);
+  }, [applyInboxData, authReady, key, organizationId, reportError, schoolName]);
 
   const value = useMemo(
     () => ({

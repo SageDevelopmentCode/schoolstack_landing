@@ -91,6 +91,39 @@ EAS injects these into production builds together with profile env from [`eas.js
 - **iOS:** `eas credentials` — EAS can manage distribution cert + provisioning, or upload your own. App Store Connect app for bundle ID `com.mudkitchen.schoolstack.mobile` ([`app.json`](app.json)).
 - **Android:** EAS default signing is typical for first releases; configure in `eas credentials` if needed. Package `com.mudkitchen.schoolstack.mobile`.
 
+### 4. Push notification credentials (required for notifications to arrive)
+
+Store signing credentials and push delivery credentials are separate. The app will not crash without push credentials, but notifications stay silent until these are uploaded.
+
+**iOS — APNs key (.p8)**
+
+1. Apple Developer → Certificates, Identifiers & Profiles → Keys → create key with **Apple Push Notifications service (APNs)**
+2. Download the `.p8` file (one-time download; note Key ID and Team ID)
+3. Upload via Expo:
+   ```bash
+   cd apps/mobile
+   eas credentials -p ios
+   ```
+   Navigate: **Push Notifications → Upload an APNs Key**
+
+**Android — FCM v1 service account**
+
+1. Firebase Console → your Android app (`com.mudkitchen.schoolstack.mobile`) → Project settings
+2. Ensure **Firebase Cloud Messaging API** is enabled (Google Cloud Console)
+3. Create a service account with **Firebase Cloud Messaging Admin** role; download JSON key
+4. Upload via Expo:
+   ```bash
+   cd apps/mobile
+   eas credentials -p android
+   ```
+   Navigate: **Google Service Account → Manage your Google Service Account Key for Push Notifications (FCM V1) → Upload a new service account key**
+
+You can also upload both from [expo.dev](https://expo.dev) → project → Credentials.
+
+**Optional — server Expo access token**
+
+Add `EXPO_ACCESS_TOKEN` to Vercel production env (create at expo.dev → Access Tokens). Improves reliability for the Expo Push API sender in `src/lib/messages/expo-push.ts`.
+
 ## Release checklist
 
 Before each store release:
@@ -141,6 +174,19 @@ eas submit --platform android  # Google Play
 
 First submit may prompt for Apple App Store Connect API key or Google service account. Optional later: add `submit.production` in `eas.json` to pin ASC app ID / Play track.
 
+### Store console checklist (before first submit)
+
+Set these URLs in App Store Connect and Google Play Console:
+
+| Field | URL |
+|-------|-----|
+| Privacy policy | `https://trymudkitchen.com/privacy` |
+| Account deletion | `https://trymudkitchen.com/account-deletion` |
+
+**Export compliance:** `ITSAppUsesNonExemptEncryption: false` is set in [`app.json`](app.json) for HTTPS-only apps. Rebuild production IPA after changing this flag — it is baked in at build time.
+
+**Deploy order for account deletion:** ship the web page and API topic allowlists to production **before** the mobile build that adds in-app deletion requests.
+
 **CI note:** [`.github/workflows/mobile.yml`](../../.github/workflows/mobile.yml) runs lint, typecheck, Jest, and Maestro E2E — **no EAS builds**. Releases are manual via EAS CLI today (future: GitHub Actions + `EXPO_TOKEN`).
 
 ## Troubleshooting
@@ -151,7 +197,8 @@ First submit may prompt for Apple App Store Connect API key or Google service ac
 | Assert blocks localhost / `:3000` | Expected if `.env` leaked into shell; unset or use npm scripts |
 | Build succeeds but app can't reach API | Confirm Vercel prod deployed; verify `EXPO_PUBLIC_SITE_URL` in build logs |
 | Auth fails in production build | Re-check EAS secrets match **production** Supabase, not local |
-| Missing Supabase env in build | Run `eas secret:list`; recreate `EXPO_PUBLIC_SUPABASE_*` secrets |
+| Missing Supabase env in build | Run `eas env:list --environment production`; recreate `EXPO_PUBLIC_SUPABASE_*` if missing |
+| Login works but all tabs show "You must be signed in" | Confirm EAS `EXPO_PUBLIC_SUPABASE_URL` / publishable key match Vercel `NEXT_PUBLIC_SUPABASE_*` (same project ref). Rebuild after fixing env. |
 | `eas build` asks to configure project | Run from `apps/mobile`; complete `eas build:configure` / link flow |
 | API 404 on new feature | Web not deployed yet — ship Next.js production first |
 

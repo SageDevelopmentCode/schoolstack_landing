@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { AccountDeletionRequest } from '@/components/account-deletion-request';
+import { AccountLegalLinks } from '@/components/account-legal-links';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { OrganizationLogo } from '@/components/organization-logo';
 import { StoryCard } from '@/components/story/story-card';
@@ -223,6 +225,14 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
               style={styles.signOutLink}
             />
           </View>
+          {selectedSchool?.id ? (
+            <AccountDeletionRequest
+              organizationId={selectedSchool.id}
+              portal="admin"
+              sourcePagePath="/school-admin/more"
+            />
+          ) : null}
+          <AccountLegalLinks />
         </StoryCard>
       ) : null}
     </StoryMoreMenuSheetShell>

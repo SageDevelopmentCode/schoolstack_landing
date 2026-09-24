@@ -7,7 +7,7 @@ import {
   getParentCommitteeWorkspace,
   resolveParentGuardianForOrg,
 } from "@/lib/committees/parent-committees";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/tasks/[taskId]/notify-assignment";
@@ -25,7 +25,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

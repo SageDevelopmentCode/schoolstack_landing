@@ -39,7 +39,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const canAccess = await canAccessApplicationPostSubmit(
       supabase,
       user.id,

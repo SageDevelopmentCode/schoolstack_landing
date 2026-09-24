@@ -6,7 +6,7 @@ import { isTeacherFeatureEnabled } from "@/lib/organization-settings/teacher-rou
 import { userHasOrganizationEventManageAccess } from "@/lib/school-events/event-manage-access";
 import { listEventsForOrg } from "@/lib/school-events/events";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/teacher-portal/calendar";
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

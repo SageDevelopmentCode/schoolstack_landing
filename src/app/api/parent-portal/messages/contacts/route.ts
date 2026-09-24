@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { userHasAccessForOptionalProgramScope } from "@/lib/admissions/program-parent-portal-access";
 import { loadParentMessagesContacts } from "@/lib/messages/parent-messages";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/messages/contacts";
 
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

@@ -317,6 +317,22 @@ export const PRIVACY_POLICY: LegalDocument = {
       ],
     },
     {
+      id: "account-deletion",
+      title: "Account deletion",
+      blocks: [
+        {
+          type: "paragraph",
+          text:
+            "If you have a MudKitchen login (for example, as a parent, teacher, or school administrator), you can request deletion of your account from the Account screen in the MudKitchen mobile app or at trymudkitchen.com/account-deletion.",
+        },
+        {
+          type: "paragraph",
+          text:
+            "When we complete an account deletion request, MudKitchen removes your login access, push notification tokens, and profile photo stored in MudKitchen. School-controlled records — such as applications, enrollment information, student records, messages, and billing history — are not deleted automatically and should be requested from the school. MudKitchen can assist when a school asks us to help.",
+        },
+      ],
+    },
+    {
       id: "california",
       title: "California residents",
       blocks: [

@@ -8,7 +8,7 @@ import {
   ParentFridayBranchAuthError,
   requireParentFridayBranchAccess,
 } from "@/lib/parent-portal/friday-branch/parent-friday-branch-auth";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/friday-branch/flyer";
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
