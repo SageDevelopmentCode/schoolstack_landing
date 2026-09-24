@@ -1,3 +1,5 @@
+import { headers as getNextHeaders } from "next/headers";
+
 export const MOBILE_ACCESS_TOKEN_HEADER = "x-schoolstack-access-token";
 
 type HeaderReader = {
@@ -28,8 +30,7 @@ export async function resolveRequestAccessToken(request: Request): Promise<strin
   if (fromRequest) return fromRequest;
 
   try {
-    const { headers } = await import("next/headers");
-    const headerStore = await headers();
+    const headerStore = await getNextHeaders();
     return readAccessTokenFromHeaders(headerStore);
   } catch {
     return null;

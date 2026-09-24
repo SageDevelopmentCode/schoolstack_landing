@@ -4,7 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-import { getBearerAccessToken } from '@/lib/supabase/bearer-token';
+import { resolveRequestAccessToken } from '@/lib/supabase/bearer-token';
 
 export { getUserFromRequest } from '@/lib/supabase/get-user-from-request';
 export { signedInErrorForRequest } from '@/lib/supabase/bearer-token';
@@ -13,7 +13,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export async function createClientFromRequest(request: Request) {
-  const accessToken = getBearerAccessToken(request);
+  const accessToken = await resolveRequestAccessToken(request);
   if (accessToken && supabaseUrl && supabaseKey) {
     return createSupabaseClient(supabaseUrl, supabaseKey, {
       global: {

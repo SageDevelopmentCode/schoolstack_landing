@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { getBearerAccessToken } from "./bearer-token";
+import {
+  getBearerAccessToken,
+  MOBILE_ACCESS_TOKEN_HEADER,
+} from "./bearer-token";
 
 describe("getBearerAccessToken", () => {
   it("returns the token when Authorization uses Bearer scheme", () => {
@@ -32,5 +35,13 @@ describe("getBearerAccessToken", () => {
     });
 
     assert.equal(getBearerAccessToken(request), null);
+  });
+
+  it("returns the token from the mobile access-token header", () => {
+    const request = new Request("https://example.com/api/test", {
+      headers: { [MOBILE_ACCESS_TOKEN_HEADER]: "mobile-token-456" },
+    });
+
+    assert.equal(getBearerAccessToken(request), "mobile-token-456");
   });
 });
