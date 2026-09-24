@@ -13,7 +13,7 @@ import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/admin/parent-feature-announcements";
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 

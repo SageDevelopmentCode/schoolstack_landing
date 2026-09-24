@@ -28,7 +28,7 @@ function parseAttachments(value: unknown): SupportRequestAttachmentMeta[] {
   );
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { id: requestId } = await context.params;

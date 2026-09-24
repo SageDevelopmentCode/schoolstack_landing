@@ -3,6 +3,7 @@ import {
   ACTIVITY_ACTIONS,
   logAuthActivity,
   type ActivitySurface,
+  type ActorType,
   type AuthActivityMetadata,
 } from "@/lib/activity-log";
 
@@ -112,7 +113,7 @@ export async function recordAuthActivity(
     organizationId?: string | null;
     actorUserId?: string | null;
     actorEmail?: string | null;
-    actorType?: "parent" | "school_admin" | "platform_admin";
+    actorType?: ActorType;
     surface: ActivitySurface;
     action: string;
     metadata?: AuthActivityMetadata;

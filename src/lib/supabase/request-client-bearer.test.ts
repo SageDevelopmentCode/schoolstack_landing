@@ -54,4 +54,18 @@ describe("getUserFromRequest", () => {
     assert.equal(data.user?.id, USER.id);
     assert.deepEqual(getUserCalls, [""]);
   });
+
+  it("returns no user when Bearer token is invalid", async () => {
+    const supabase = createMockSupabase({ user: null });
+    const request = new Request("https://example.com/api/mobile/activity-events", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ACCESS_TOKEN}` },
+    });
+
+    const {
+      data: { user },
+    } = await getUserFromRequest(supabase, request);
+
+    assert.equal(user, null);
+  });
 });

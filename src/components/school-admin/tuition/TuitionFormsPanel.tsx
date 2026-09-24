@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import FormsDocumentsWorkspace from "@/components/school-admin/forms-documents/FormsDocumentsWorkspace";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
@@ -88,6 +88,7 @@ export default function TuitionFormsPanel({
   if (loading) {
     return (
       <div
+        data-testid="tuition-forms-loading"
         className="flex items-center justify-center gap-2 py-16 text-sm"
         style={{ color: theme.muted }}
       >
@@ -109,48 +110,65 @@ export default function TuitionFormsPanel({
 
   return (
     <ParentThemeProvider branding={branding}>
-      <FormsDocumentsWorkspace
-        organizationId={organizationId}
-        staffMemberId={data.staffMemberId}
-        initialForms={data.forms}
-        initialResponsesByFormId={data.responsesByFormId}
-        classroomOptions={data.classroomOptions}
-        category="tuition"
-        audienceMode="families_only"
-        syncUrl={false}
-        showCreatorFilter={false}
-        containerClassName=""
-        metricsLabels={{
-          active: "Active agreements",
-          pending: "Pending signatures",
-          completed: "Signed this month",
-        }}
-        emptyState={{
-          kicker: "Tuition agreements",
-          title: "Create your first agreement",
-          description:
-            "Upload a service-for-tuition agreement or build a custom form, then assign it to specific families.",
-          createLabel: "New agreement",
-        }}
-        onFamiliesChanged={onFamiliesChanged}
-        header={({ onCreate }) => (
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <AdminSectionKicker theme={theme}>Tuition</AdminSectionKicker>
-              <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
-                Agreements
-              </AdminDisplayHeading>
-              <p className="mt-2 text-sm" style={{ color: theme.muted }}>
-                Publish agreements for families to review and sign from billing.
-              </p>
-            </div>
-            <AdminButton theme={theme} variant="primary" onClick={onCreate}>
-              <Plus className="h-4 w-4" />
-              New agreement
-            </AdminButton>
+      <Suspense
+        fallback={
+          <div
+            className="flex items-center justify-center gap-2 py-12 text-sm"
+            style={{ color: theme.muted }}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading agreements…
           </div>
-        )}
-      />
+        }
+      >
+        <FormsDocumentsWorkspace
+          organizationId={organizationId}
+          staffMemberId={data.staffMemberId}
+          initialForms={data.forms}
+          initialResponsesByFormId={data.responsesByFormId}
+          classroomOptions={data.classroomOptions}
+          category="tuition"
+          audienceMode="families_only"
+          syncUrl={false}
+          showCreatorFilter={false}
+          containerClassName=""
+          metricsLabels={{
+            active: "Active agreements",
+            pending: "Pending signatures",
+            completed: "Signed this month",
+          }}
+          emptyState={{
+            kicker: "Tuition agreements",
+            title: "Create your first agreement",
+            description:
+              "Upload a service-for-tuition agreement or build a custom form, then assign it to specific families.",
+            createLabel: "New agreement",
+          }}
+          onFamiliesChanged={onFamiliesChanged}
+          header={({ onCreate }) => (
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <AdminSectionKicker theme={theme}>Tuition</AdminSectionKicker>
+                <AdminDisplayHeading theme={theme} as="h2" size="section" className="mt-1">
+                  Agreements
+                </AdminDisplayHeading>
+                <p className="mt-2 text-sm" style={{ color: theme.muted }}>
+                  Publish agreements for families to review and sign from billing.
+                </p>
+              </div>
+              <AdminButton
+                theme={theme}
+                variant="primary"
+                data-testid="tuition-forms-new-agreement"
+                onClick={onCreate}
+              >
+                <Plus className="h-4 w-4" />
+                New agreement
+              </AdminButton>
+            </div>
+          )}
+        />
+      </Suspense>
     </ParentThemeProvider>
   );
 }

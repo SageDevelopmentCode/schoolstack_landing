@@ -24,6 +24,7 @@ type RouteContext = {
 async function authorizeInvoiceAccess(
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
+  request: Request,
 ) {
   try {
     const user = await requirePlatformAdminUser(supabase, request);
@@ -37,10 +38,10 @@ async function authorizeInvoiceAccess(
     }
   }
 
-  return requireSchoolAdminUser(supabase, organizationId);
+  return requireSchoolAdminUser(supabase, organizationId, request);
 }
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { id: invoiceId } = await context.params;
@@ -57,7 +58,11 @@ export async function POST(_request: Request, context: RouteContext) {
       });
     }
 
-    const user = await authorizeInvoiceAccess(supabase, invoice.organization_id);
+    const user = await authorizeInvoiceAccess(
+      supabase,
+      invoice.organization_id,
+      request,
+    );
 
     if (invoice.status === "paid") {
       return NextResponse.json({ invoice });

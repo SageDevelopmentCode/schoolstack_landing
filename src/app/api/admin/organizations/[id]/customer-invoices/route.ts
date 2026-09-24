@@ -24,7 +24,7 @@ type CreateCustomerInvoiceBody = {
   stripeInvoiceUrl?: string;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   const { id: organizationId } = await context.params;
