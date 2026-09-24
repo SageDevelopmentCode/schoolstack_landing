@@ -32,7 +32,7 @@ export async function GET(request: Request, context: RouteContext) {
   const limit = parseLimit(searchParams.get("limit"));
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const admin = createAdminClient();
     const { data: organization, error: organizationError } = await admin

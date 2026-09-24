@@ -67,12 +67,14 @@ type ParentFridayBranchProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentFridayBranchProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentFridayBranchProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = fridayBranchCache.get(key);
@@ -157,6 +159,10 @@ export function ParentFridayBranchProvider({
   );
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -207,7 +213,7 @@ export function ParentFridayBranchProvider({
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

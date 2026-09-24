@@ -23,7 +23,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: ParentFeatureAnnouncementUpdateInput;
     try {
@@ -67,7 +67,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
     await deleteParentFeatureAnnouncement(admin, id);
     return NextResponse.json({ ok: true });

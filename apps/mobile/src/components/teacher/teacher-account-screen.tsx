@@ -4,6 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AccountDeletionRequest } from '@/components/account-deletion-request';
+import { AccountLegalLinks } from '@/components/account-legal-links';
 import { TEACHER_FLOATING_TAB_BAR_HEIGHT } from '@/components/teacher/teacher-floating-tab-bar';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
@@ -31,7 +33,7 @@ export function TeacherAccountScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const theme = useAdminTheme();
-  const { user, signOut } = useAuth();
+  const { user, signOut, selectedSchool } = useAuth();
 
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const email = user?.email ?? '';
@@ -92,6 +94,16 @@ export function TeacherAccountScreen() {
           onPress={() => void handleSignOut()}
           style={styles.signOutButton}
         />
+
+        {selectedSchool?.id ? (
+          <AccountDeletionRequest
+            organizationId={selectedSchool.id}
+            portal="teacher"
+            sourcePagePath="/teacher/account"
+          />
+        ) : null}
+
+        <AccountLegalLinks />
       </ScrollView>
     </View>
   );

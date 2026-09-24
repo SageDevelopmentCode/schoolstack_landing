@@ -226,11 +226,15 @@ export default function TeacherLayout() {
   }
 
   const branding = toOrganizationBranding(loadedOrg.branding);
+  const authReady = !isLoading && Boolean(user);
 
   return (
     <SchoolAdminThemeProvider branding={branding}>
       <ParentThemeProvider branding={branding}>
-        <TeacherHomeProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
+        <TeacherHomeProvider
+          organizationId={loadedOrg.id}
+          slug={loadedOrg.slug}
+          authReady={authReady}>
           <TeacherCommitteesProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
             <TeacherCalendarProvider organizationId={loadedOrg.id} slug={loadedOrg.slug}>
               <MessagesRealtimeProvider organizationId={loadedOrg.id} enabled={!isPreview}>

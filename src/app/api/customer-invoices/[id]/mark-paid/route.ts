@@ -26,7 +26,7 @@ async function authorizeInvoiceAccess(
   organizationId: string,
 ) {
   try {
-    const user = await requirePlatformAdminUser(supabase);
+    const user = await requirePlatformAdminUser(supabase, request);
     return user;
   } catch (platformError) {
     if (

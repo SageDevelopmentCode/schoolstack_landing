@@ -28,7 +28,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { enrollmentId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: enrollment, error: enrollmentError } = await admin

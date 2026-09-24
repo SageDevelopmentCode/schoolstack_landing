@@ -28,7 +28,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id: organizationId, membershipId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: UpdateMembershipBody;
     try {

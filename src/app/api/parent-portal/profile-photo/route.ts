@@ -6,7 +6,7 @@ import {
   uploadGuardianProfilePhoto,
 } from "@/lib/guardians/guardian-photo-storage";
 import { logParentPortalActivity } from "@/lib/parent-portal/parent-portal-activity";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/profile-photo";
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

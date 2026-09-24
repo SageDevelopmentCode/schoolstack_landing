@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const user = await requirePlatformAdminUser(supabase);
+    const user = await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: organization, error: organizationError } = await admin

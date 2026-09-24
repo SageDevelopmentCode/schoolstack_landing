@@ -66,12 +66,14 @@ type ParentCalendarProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentCalendarProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentCalendarProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = calendarCache.get(key);
@@ -140,6 +142,10 @@ export function ParentCalendarProvider({
   }, [load]);
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -186,7 +192,7 @@ export function ParentCalendarProvider({
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

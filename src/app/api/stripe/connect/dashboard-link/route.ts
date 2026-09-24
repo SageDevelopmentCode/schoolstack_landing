@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
 
     let body: DashboardLinkRequestBody;
     try {

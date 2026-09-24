@@ -72,9 +72,15 @@ type ParentHomeProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
-export function ParentHomeProvider({ children, organizationId, slug }: ParentHomeProviderProps) {
+export function ParentHomeProvider({
+  children,
+  organizationId,
+  slug,
+  authReady = true,
+}: ParentHomeProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = homeCache.get(key);
   const normalizedCached = cached ? normalizeParentHomeData(cached) : null;
@@ -145,6 +151,10 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
   }, []);
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -192,7 +202,7 @@ export function ParentHomeProvider({ children, organizationId, slug }: ParentHom
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

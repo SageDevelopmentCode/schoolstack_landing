@@ -34,7 +34,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id: requestId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const admin = createAdminClient();
     const { data: ticket, error } = await admin

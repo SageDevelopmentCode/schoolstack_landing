@@ -3,7 +3,7 @@ import { apiError } from "@/lib/api/route-errors";
 import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { claimProgramCoopSupplyItemForParent } from "@/lib/admissions/program-coop-supply-list-claim";
 import { ProgramCoopSignupConflictError } from "@/lib/admissions/program-coop-storage-errors";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/supply-list/claim";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

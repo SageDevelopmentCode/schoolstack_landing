@@ -34,7 +34,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const user = await requireTeacherPortalUser(supabase, organizationId);
+    const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const staffMemberId = await getStaffMemberIdForUser(
       supabase,
       user.id,

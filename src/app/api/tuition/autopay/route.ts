@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   const supabase = await createClientFromRequest(request);
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
 
     const body = (await request.json()) as {

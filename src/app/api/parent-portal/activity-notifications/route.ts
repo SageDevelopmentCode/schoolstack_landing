@@ -6,7 +6,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { fetchParentActivityNotifications } from "@/lib/parent-portal/parent-activity-notifications";
 import { resolveParentNotificationContextForApi } from "@/lib/parent-portal/parent-notification-context";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/activity-notifications";
 const DEFAULT_LIMIT = 15;
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

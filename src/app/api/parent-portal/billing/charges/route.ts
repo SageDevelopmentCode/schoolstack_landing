@@ -7,7 +7,7 @@ import {
 } from "@/lib/tuition/charges";
 import { listBillingSplits } from "@/lib/tuition/billing-splits";
 import { resolveGuardianIdForUser } from "@/lib/tuition/payment-settlement";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/billing/charges";
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

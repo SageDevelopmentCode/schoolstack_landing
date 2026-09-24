@@ -16,7 +16,7 @@ import {
   notifyFridayBranchWithdrawalFromParentPortal,
 } from "@/lib/friday-branch/friday-branch-admin-notifications";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/friday-branch/classes/[classId]";
@@ -41,7 +41,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -110,7 +110,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -228,7 +228,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

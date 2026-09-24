@@ -1,10 +1,12 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/operational-errors";
 
@@ -21,8 +23,7 @@ type OperationalErrorBody = {
 };
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
 
   let body: OperationalErrorBody;
   try {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUserFromRequest(supabase, request);
 
     if (!user) {
       return apiError(ROUTE, {

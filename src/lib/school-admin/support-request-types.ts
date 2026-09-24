@@ -40,6 +40,7 @@ export const SUPPORT_REQUEST_TOPIC_LABELS: Record<string, string> = {
   enrollment: "Enrollment",
   billing: "Billing",
   feature: "Feature request",
+  "account-deletion": "Delete my account",
   other: "Other",
 };
 

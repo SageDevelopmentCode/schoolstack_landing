@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const user = await requireTeacherPortalUser(supabase, organizationId);
+    const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const admin = createAdminClient();
     const unreadCount = await getTeacherMessagesUnreadCount(
       admin,

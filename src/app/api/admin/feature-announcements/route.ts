@@ -18,7 +18,7 @@ export async function GET() {
   const supabase = createClient(cookieStore);
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
     const announcements = await listGlobalAdminFeatureAnnouncements(admin);
     return NextResponse.json({ announcements });
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: Partial<AdminFeatureAnnouncementInput>;
     try {

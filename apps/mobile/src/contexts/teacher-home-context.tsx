@@ -63,9 +63,15 @@ type TeacherHomeProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
-export function TeacherHomeProvider({ children, organizationId, slug }: TeacherHomeProviderProps) {
+export function TeacherHomeProvider({
+  children,
+  organizationId,
+  slug,
+  authReady = true,
+}: TeacherHomeProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = homeCache.get(key);
 
@@ -153,6 +159,10 @@ export function TeacherHomeProvider({ children, organizationId, slug }: TeacherH
   );
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -199,7 +209,7 @@ export function TeacherHomeProvider({ children, organizationId, slug }: TeacherH
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

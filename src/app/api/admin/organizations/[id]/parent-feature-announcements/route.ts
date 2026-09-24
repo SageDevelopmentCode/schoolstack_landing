@@ -25,7 +25,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
 
     const { data: organization, error: organizationError } = await admin
@@ -85,7 +85,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     let body: Partial<ParentFeatureAnnouncementInput>;
     try {

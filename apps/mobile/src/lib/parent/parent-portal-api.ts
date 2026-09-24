@@ -1,8 +1,4 @@
-import {
-  assertApiAuthenticated,
-  getApiAuthHeaders,
-  throwUnauthorized,
-} from '@/lib/auth/auth-session';
+import { fetchWithAuth, getApiAuthHeaders, throwUnauthorized } from '@/lib/auth/auth-session';
 import {
   assertPreviewWriteAllowed,
   isPreviewSessionActive,
@@ -61,14 +57,14 @@ export async function fetchParentApi<T>(
     throw new Error('Preview mode could not load this screen.');
   }
 
-  const response = await fetch(`${siteUrl}${path}`, {
+  const response = await fetchWithAuth(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: await getApiAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    includeJson: options.body !== undefined,
+    signOutOnFailure: false,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
-  await assertApiAuthenticated(response);
   if (!response.ok) {
     throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
   }
@@ -90,10 +86,11 @@ export async function fetchParentApiSoft<T>(
     throw new Error('Preview mode could not load this screen.');
   }
 
-  const response = await fetch(`${siteUrl}${path}`, {
+  const response = await fetchWithAuth(`${siteUrl}${path}`, {
     method: options.method ?? 'GET',
-    headers: await getApiAuthHeaders(options.body !== undefined),
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    includeJson: options.body !== undefined,
+    signOutOnFailure: false,
   });
 
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };

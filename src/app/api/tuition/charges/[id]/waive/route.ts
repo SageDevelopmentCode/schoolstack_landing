@@ -23,7 +23,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: chargeId } = await context.params;
 
   try {
-    const user = await requireAuthenticatedUser(supabase);
+    const user = await requireAuthenticatedUser(supabase, request);
     const admin = createAdminClient();
     const charge = await getChargeById(admin, chargeId);
 

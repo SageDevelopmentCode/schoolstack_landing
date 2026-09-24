@@ -30,7 +30,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
     const admin = createAdminClient();
     const invoices = await fetchOrganizationCustomerInvoices(
       admin,
@@ -62,7 +62,7 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    const user = await requirePlatformAdminUser(supabase);
+    const user = await requirePlatformAdminUser(supabase, request);
 
     let body: CreateCustomerInvoiceBody;
     try {

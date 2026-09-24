@@ -31,7 +31,7 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    const user = await requireTeacherPortalUser(supabase, organizationId);
+    const user = await requireTeacherPortalUser(supabase, organizationId, request);
     const staffMemberId = await getStaffMemberIdForUser(
       supabase,
       user.id,

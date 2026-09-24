@@ -20,7 +20,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { id: organizationId } = await context.params;
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const admin = createAdminClient();
     const statuses = await listOrgParentPortalLoginStatus(admin, organizationId);

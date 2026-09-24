@@ -92,12 +92,14 @@ type ParentClassroomSignupsProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentClassroomSignupsProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentClassroomSignupsProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = signupsCache.get(key);
@@ -201,6 +203,10 @@ export function ParentClassroomSignupsProvider({
   }, []);
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -249,7 +255,7 @@ export function ParentClassroomSignupsProvider({
     return () => {
       cancelled = true;
     };
-  }, [applyData, key, organizationId, reportError, slug]);
+  }, [applyData, authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

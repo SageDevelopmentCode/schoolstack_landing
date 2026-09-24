@@ -8,7 +8,10 @@ import {
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/mobile/operational-errors";
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUserFromRequest(supabase, request);
 
     if (!user) {
       return apiError(ROUTE, {
@@ -116,7 +119,7 @@ export async function POST(request: Request) {
         });
       }
     } else {
-      await requireSchoolAdminUser(supabase, organizationId);
+      await requireSchoolAdminUser(supabase, organizationId, request);
     }
 
     const { data: organization } = await supabase

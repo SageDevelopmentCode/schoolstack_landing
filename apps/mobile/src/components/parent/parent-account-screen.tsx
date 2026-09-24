@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AccountDeletionRequest } from '@/components/account-deletion-request';
+import { AccountLegalLinks } from '@/components/account-legal-links';
 import { EditableProfilePhoto } from '@/components/parent/children/editable-profile-photo';
 import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
 import { PrimaryButton } from '@/components/primary-button';
@@ -151,6 +153,16 @@ export function ParentAccountScreen() {
           onPress={() => void handleSignOut()}
           style={styles.signOutButton}
         />
+
+        {selectedSchool?.id ? (
+          <AccountDeletionRequest
+            organizationId={selectedSchool.id}
+            portal="parent"
+            sourcePagePath="/parent/account"
+          />
+        ) : null}
+
+        <AccountLegalLinks />
       </ScrollView>
     </View>
   );

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/account/expo-push/register";
 
@@ -18,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {
@@ -92,7 +95,7 @@ export async function DELETE(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

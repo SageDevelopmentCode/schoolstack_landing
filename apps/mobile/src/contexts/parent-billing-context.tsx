@@ -86,12 +86,14 @@ type ParentBillingProviderProps = {
   children: ReactNode;
   organizationId: string;
   slug: string;
+  authReady?: boolean;
 };
 
 export function ParentBillingProvider({
   children,
   organizationId,
   slug,
+  authReady = true,
 }: ParentBillingProviderProps) {
   const key = cacheKey(organizationId, slug);
   const cached = billingCache.get(key);
@@ -166,6 +168,10 @@ export function ParentBillingProvider({
   }, []);
 
   useEffect(() => {
+    if (!authReady) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -212,7 +218,7 @@ export function ParentBillingProvider({
     return () => {
       cancelled = true;
     };
-  }, [key, organizationId, reportError, slug]);
+  }, [authReady, key, organizationId, reportError, slug]);
 
   const value = useMemo(
     () => ({

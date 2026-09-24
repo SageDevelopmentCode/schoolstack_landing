@@ -1,11 +1,13 @@
 import {
   AUTH_REQUIRED_MESSAGE,
-  assertApiAuthenticated,
+  clearCachedAccessToken,
+  fetchWithAuth,
   getApiAuthHeaders,
   isAuthRequiredError,
   MOBILE_CLIENT_HEADER,
   MOBILE_PLATFORM_HEADER,
   resolveAccessToken,
+  setCachedAccessToken,
 } from '@/lib/auth/auth-session';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -26,6 +28,16 @@ jest.mock('expo-constants', () => ({
 
 const mockGetSupabaseClient = getSupabaseClient as jest.MockedFunction<typeof getSupabaseClient>;
 
+function unauthorizedResponse(error = 'You must be signed in.'): Response {
+  return {
+    status: 401,
+    clone: () =>
+      ({
+        json: async () => ({ error }),
+      }) as Response,
+  } as Response;
+}
+
 describe('isAuthRequiredError', () => {
   it('matches the shared auth-required message', () => {
     expect(isAuthRequiredError(new Error(AUTH_REQUIRED_MESSAGE))).toBe(true);
@@ -42,6 +54,18 @@ describe('resolveAccessToken', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clearCachedAccessToken();
+  });
+
+  it('uses the in-memory cached token before reading storage', async () => {
+    setCachedAccessToken('memory-token');
+    const getSession = jest.fn();
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession: jest.fn(), signOut },
+    } as never);
+
+    await expect(resolveAccessToken()).resolves.toBe('memory-token');
+    expect(getSession).not.toHaveBeenCalled();
   });
 
   it('returns the cached session token when available', async () => {
@@ -72,7 +96,7 @@ describe('resolveAccessToken', () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it('signs out when refresh does not produce a token', async () => {
+  it('does not sign out by default when refresh does not produce a token', async () => {
     const getSession = jest.fn().mockResolvedValue({
       data: { session: null },
     });
@@ -84,6 +108,21 @@ describe('resolveAccessToken', () => {
     } as never);
 
     await expect(resolveAccessToken()).resolves.toBeNull();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out when signOutOnFailure is true', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    await expect(resolveAccessToken({ signOutOnFailure: true })).resolves.toBeNull();
     expect(signOut).toHaveBeenCalledTimes(1);
   });
 });
@@ -93,6 +132,7 @@ describe('getApiAuthHeaders', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clearCachedAccessToken();
   });
 
   it('returns auth headers when a session token exists', async () => {
@@ -113,28 +153,7 @@ describe('getApiAuthHeaders', () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it('refreshes before returning headers when the cached session is empty', async () => {
-    const getSession = jest.fn().mockResolvedValue({
-      data: { session: null },
-    });
-    const refreshSession = jest.fn().mockResolvedValue({
-      data: { session: { access_token: 'refreshed-token' } },
-    });
-    mockGetSupabaseClient.mockReturnValue({
-      auth: { getSession, refreshSession, signOut },
-    } as never);
-
-    await expect(getApiAuthHeaders()).resolves.toEqual({
-      Authorization: 'Bearer refreshed-token',
-      [MOBILE_CLIENT_HEADER]: 'mobile',
-      [MOBILE_PLATFORM_HEADER]: 'ios',
-      'X-Schoolstack-App-Version': '1.2.3',
-    });
-    expect(refreshSession).toHaveBeenCalledTimes(1);
-    expect(signOut).not.toHaveBeenCalled();
-  });
-
-  it('throws when refresh does not produce a token', async () => {
+  it('throws without signing out when refresh does not produce a token', async () => {
     const getSession = jest.fn().mockResolvedValue({
       data: { session: null },
     });
@@ -146,51 +165,102 @@ describe('getApiAuthHeaders', () => {
     } as never);
 
     await expect(getApiAuthHeaders()).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
-    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(signOut).not.toHaveBeenCalled();
   });
 });
 
-describe('assertApiAuthenticated', () => {
+describe('fetchWithAuth', () => {
   const signOut = jest.fn().mockResolvedValue(undefined);
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetSupabaseClient.mockReturnValue({
-      auth: { refreshSession: jest.fn(), signOut },
-    } as never);
+    clearCachedAccessToken();
+    global.fetch = jest.fn();
   });
 
-  it('does nothing for non-401 responses', async () => {
-    await expect(assertApiAuthenticated({ status: 403 } as Response)).resolves.toBeUndefined();
-    expect(signOut).not.toHaveBeenCalled();
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
-  it('does not sign out when refresh recovers a session after 401', async () => {
+  it('retries once after refreshing on 401', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'token-123' } },
+    });
     const refreshSession = jest.fn().mockResolvedValue({
       data: { session: { access_token: 'refreshed-token' } },
     });
     mockGetSupabaseClient.mockReturnValue({
-      auth: { refreshSession, signOut },
+      auth: { getSession, refreshSession, signOut },
     } as never);
 
-    await expect(assertApiAuthenticated({ status: 401 } as Response)).rejects.toThrow(
-      AUTH_REQUIRED_MESSAGE,
-    );
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ status: 401 })
+      .mockResolvedValueOnce({ status: 200 });
+
+    const response = await fetchWithAuth('https://example.com/api/parent-portal/home');
+    expect(response.status).toBe(200);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
     expect(refreshSession).toHaveBeenCalledTimes(1);
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it('signs out when refresh fails after 401', async () => {
+  it('throws the API unauthorized message when retry still returns 401', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'token-123' } },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(unauthorizedResponse())
+      .mockResolvedValueOnce(unauthorizedResponse());
+
+    await expect(fetchWithAuth('https://example.com/api/parent-portal/home')).rejects.toThrow(
+      'You must be signed in.',
+    );
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('signs out when signOutOnFailure is true and retry still returns 401', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'token-123' } },
+    });
+    const refreshSession = jest.fn().mockResolvedValue({
+      data: { session: { access_token: 'refreshed-token' } },
+    });
+    mockGetSupabaseClient.mockReturnValue({
+      auth: { getSession, refreshSession, signOut },
+    } as never);
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(unauthorizedResponse())
+      .mockResolvedValueOnce(unauthorizedResponse());
+
+    await expect(
+      fetchWithAuth('https://example.com/api/parent-portal/home', { signOutOnFailure: true }),
+    ).rejects.toThrow('You must be signed in.');
+    expect(signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not sign out on failure when signOutOnFailure is false', async () => {
+    const getSession = jest.fn().mockResolvedValue({
+      data: { session: null },
+    });
     const refreshSession = jest.fn().mockResolvedValue({
       data: { session: null },
     });
     mockGetSupabaseClient.mockReturnValue({
-      auth: { refreshSession, signOut },
+      auth: { getSession, refreshSession, signOut },
     } as never);
 
-    await expect(assertApiAuthenticated({ status: 401 } as Response)).rejects.toThrow(
-      AUTH_REQUIRED_MESSAGE,
-    );
-    expect(signOut).toHaveBeenCalledTimes(1);
+    await expect(
+      fetchWithAuth('https://example.com/api/parent-portal/home', { signOutOnFailure: false }),
+    ).rejects.toThrow(AUTH_REQUIRED_MESSAGE);
+    expect(signOut).not.toHaveBeenCalled();
   });
 });

@@ -4,7 +4,7 @@ import { portalRouteErrorStatus } from "@/lib/api/portal-route-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { createCommitteeJoinRequest } from "@/lib/committees/join-requests";
 import { resolveParentGuardianForOrg } from "@/lib/committees/parent-committees";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/committees/join-requests";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getTeacherParentFormById } from "@/lib/school-teacher/forms-documents/load-teacher-forms";
@@ -6,7 +5,10 @@ import { createTeacherFormSignedUrl } from "@/lib/school-teacher/forms-documents
 import type { TeacherFormConfig } from "@/lib/school-teacher/forms-documents/types";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { createClient } from "@/utils/supabase/server";
+import {
+  createClientFromRequest,
+  getUserFromRequest,
+} from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/teacher-portal/forms-documents/[formId]/download";
 
@@ -16,11 +18,10 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { formId } = await context.params;
-  const cookieStore = await cookies();
-  const supabase = createClient(cookieStore);
+  const supabase = await createClientFromRequest(request);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

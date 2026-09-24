@@ -72,7 +72,7 @@ export async function GET(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    await requirePlatformAdminUser(supabase);
+    await requirePlatformAdminUser(supabase, request);
 
     const url = new URL(request.url);
     const environmentParam = url.searchParams.get("environment");

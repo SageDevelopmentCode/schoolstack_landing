@@ -35,7 +35,8 @@ import type {
   StartPortalPreviewInput,
 } from '@/lib/platform-admin/preview-session-types';
 import { setActivePreviewSession } from '@/lib/platform-admin/preview-session-store';
-import { getSupabaseClient } from '@/lib/supabase';
+import { setCachedAccessToken } from '@/lib/auth/auth-session';
+import { ensureSupabaseAuthStorageReady, getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
 const SELECTED_SCHOOL_KEY = 'mobile_auth_selected_school';
@@ -61,29 +62,49 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function whenSessionReady(run: () => void): Promise<void> {
+  const supabase = getSupabaseClient();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      run();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+  }
+}
+
 function prefetchParentPortalData(school: LiveOrganization): void {
-  void Promise.all([
-    prefetchParentHome(school.id, school.slug),
-    prefetchParentCalendar(school.id, school.slug),
-    prefetchParentBilling(school.id, school.slug),
-    prefetchParentMessagesInbox(school.id, school.name),
-  ]);
+  void whenSessionReady(() => {
+    void Promise.all([
+      prefetchParentHome(school.id, school.slug),
+      prefetchParentCalendar(school.id, school.slug),
+      prefetchParentBilling(school.id, school.slug),
+      prefetchParentMessagesInbox(school.id, school.name),
+    ]);
+  });
 }
 
 function prefetchSchoolAdminPortalData(school: LiveOrganization): void {
-  void Promise.all([
-    prefetchSchoolAdminSubmissions(school.id),
-    prefetchSchoolAdminStudents(school.id),
-    prefetchSchoolAdminMessagesInbox(school.id, school.name),
-    prefetchSchoolAdminMessagesContacts(school.id, school.name),
-  ]);
+  void whenSessionReady(() => {
+    void Promise.all([
+      prefetchSchoolAdminSubmissions(school.id),
+      prefetchSchoolAdminStudents(school.id),
+      prefetchSchoolAdminMessagesInbox(school.id, school.name),
+      prefetchSchoolAdminMessagesContacts(school.id, school.name),
+    ]);
+  });
 }
 
 function prefetchTeacherPortalData(school: LiveOrganization): void {
-  void Promise.all([
-    prefetchTeacherHome(school.id, school.slug),
-    prefetchTeacherMessagesInbox(school.id, school.name),
-  ]);
+  void whenSessionReady(() => {
+    void Promise.all([
+      prefetchTeacherHome(school.id, school.slug),
+      prefetchTeacherMessagesInbox(school.id, school.name),
+    ]);
+  });
 }
 
 async function persistPreviewSession(session: PortalPreviewSession | null) {
@@ -165,7 +186,6 @@ async function readPersistedPortalState(): Promise<{
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const supabase = useMemo(() => getSupabaseClient(), []);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [portalType, setPortalType] = useState<PortalType | null>(null);
@@ -204,15 +224,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     async function init() {
       try {
+        await ensureSupabaseAuthStorageReady();
+        const supabase = getSupabaseClient();
+
+        const {
+          data: { subscription: authSubscription },
+        } = supabase.auth.onAuthStateChange((event, nextSession) => {
+          setCachedAccessToken(nextSession?.access_token ?? null);
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
+
+          if (!nextSession) {
+            setPortalType(null);
+            setSelectedSchool(null);
+            setIsPlatformAdminSession(false);
+            setPreviewSession(null);
+            void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
+            return;
+          }
+
+          if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+            void restorePortalState();
+          }
+        });
+        subscription = authSubscription;
+
         const {
           data: { session: initialSession },
         } = await supabase.auth.getSession();
 
         if (cancelled) return;
 
+        setCachedAccessToken(initialSession?.access_token ?? null);
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
 
@@ -235,31 +282,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void init();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-
-      if (!nextSession) {
-        setPortalType(null);
-        setSelectedSchool(null);
-        setIsPlatformAdminSession(false);
-        setPreviewSession(null);
-        void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
-        return;
-      }
-
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        void restorePortalState();
-      }
-    });
-
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, [restorePortalState, supabase.auth]);
+  }, [restorePortalState]);
 
   const setResolvedPortal = useCallback(async (portal: ResolvedPortal) => {
     const platformAdminSession = portal.portalType === 'platform_admin';
@@ -363,14 +390,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     void logMobileAuthSignedOut(portalType, selectedSchool?.id);
     await clearExpoPushToken();
-    await supabase.auth.signOut();
+    await getSupabaseClient().auth.signOut();
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);
     setActivePreviewSession(null);
     setPreviewSession(null);
     await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
-  }, [portalType, selectedSchool?.id, supabase.auth]);
+  }, [portalType, selectedSchool?.id]);
 
   const value = useMemo(
     () => ({

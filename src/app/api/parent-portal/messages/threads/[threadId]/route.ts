@@ -8,7 +8,7 @@ import {
   markThreadRead,
   userHasEnrolledAccess,
 } from "@/lib/messages/api-helpers";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/messages/threads/[threadId]";
@@ -33,7 +33,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

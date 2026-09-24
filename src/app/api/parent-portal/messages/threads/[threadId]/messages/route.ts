@@ -9,7 +9,7 @@ import { sendMessageForViewer } from "@/lib/messages/api-helpers-server";
 import { parseMessagePostRequest } from "@/lib/messages/parse-message-post-request";
 import { MAX_MESSAGE_ATTACHMENTS } from "@/lib/messages/message-attachment-storage";
 import { activityClientMetadataFromRequest } from "@/lib/activity-client";
-import { createClientFromRequest } from "@/lib/supabase/request-client";
+import { createClientFromRequest, getUserFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/parent-portal/messages/threads/[threadId]/messages";
@@ -22,7 +22,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUserFromRequest(supabase, request);
 
   if (!user) {
     return apiError(ROUTE, {

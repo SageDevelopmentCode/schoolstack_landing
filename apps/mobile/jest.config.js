@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
+  setupFiles: ['<rootDir>/test/jest-setup.js'],
   moduleNameMapper: {
     '^@/global\\.css$': '<rootDir>/test/style-mock.js',
     '^@/(.*)$': '<rootDir>/src/$1',

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore);
 
   try {
-    const user = await requirePlatformAdminUser(supabase);
+    const user = await requirePlatformAdminUser(supabase, request);
     const body = (await request.json()) as {
       environment?: string;
       pageIds?: unknown;

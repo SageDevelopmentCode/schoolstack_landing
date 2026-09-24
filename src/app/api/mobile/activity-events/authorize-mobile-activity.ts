@@ -5,13 +5,17 @@ import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
 } from "@/lib/school-admin/access";
+import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 
-export type MobilePortalSurface = "parent_portal" | "school_admin";
+export type MobilePortalSurface =
+  | "parent_portal"
+  | "school_admin"
+  | "teacher_portal";
 
 export type MobileActivityAuthResult =
   | {
       ok: true;
-      actorType: "parent" | "school_admin" | "platform_admin";
+      actorType: "parent" | "school_admin" | "platform_admin" | "teacher";
     }
   | {
       ok: false;
@@ -45,6 +49,25 @@ export async function authorizeMobileActivityEvent(
     }
 
     return { ok: true, actorType: "parent" };
+  }
+
+  if (surface === "teacher_portal") {
+    const allowed = await userHasTeacherPortalAccess(
+      supabase,
+      userId,
+      organizationId,
+    );
+
+    if (!allowed) {
+      return {
+        ok: false,
+        status: 403,
+        error: "You do not have teacher portal access to this school.",
+        code: "forbidden",
+      };
+    }
+
+    return { ok: true, actorType: "teacher" };
   }
 
   try {

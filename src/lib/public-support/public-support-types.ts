@@ -9,6 +9,7 @@ export type PublicSupportRequestTopic =
   | "bug"
   | "billing"
   | "feature"
+  | "account-deletion"
   | "other";
 
 export const PUBLIC_SUPPORT_REQUEST_TOPICS: PublicSupportRequestTopic[] = [
@@ -16,6 +17,7 @@ export const PUBLIC_SUPPORT_REQUEST_TOPICS: PublicSupportRequestTopic[] = [
   "bug",
   "billing",
   "feature",
+  "account-deletion",
   "other",
 ];
 
@@ -27,6 +29,7 @@ export const PUBLIC_SUPPORT_REQUEST_TOPIC_LABELS: Record<
   bug: "Something isn't working",
   billing: "Billing",
   feature: "Feature request",
+  "account-deletion": "Delete my account",
   other: "Other",
 };
 
