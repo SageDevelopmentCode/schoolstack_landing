@@ -10,6 +10,7 @@
       "channel": "development"
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SITE_URL": "https://trymudkitchen.com"

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -36,13 +36,14 @@ import {
   waitBeforeStripeCheckout,
 } from '@/lib/parent/open-stripe-checkout';
 import {
-  isStripeCheckoutSuccess,
-  type StripeCheckoutOutcome,
-} from '@/lib/parent/stripe-checkout-outcome';
+  consumeCheckoutReturn,
+  stageCheckoutBaseline,
+  wasCheckoutReturnConsumed,
+} from '@/lib/parent/stripe-checkout-return-handoff';
+import type { StripeCheckoutOutcome } from '@/lib/parent/stripe-checkout-outcome';
 import {
   captureCheckoutSettlementBaseline,
-  CHECKOUT_SETTLE_REFRESH_DELAYS_MS,
-  hasCheckoutSettled,
+  runCheckoutSettlement,
   type CheckoutSettlementBaseline,
 } from '@/lib/tuition/checkout-settlement';
 import { parentEnrollmentItemRoute, parseEnrollmentHref } from '@/lib/parent/parent-nav';
@@ -87,12 +88,6 @@ type PendingPayment =
   | { type: 'single'; charge: TuitionCharge; extra?: boolean }
   | { type: 'combined'; charges: TuitionCharge[] };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 function resolveNextChargeId(
   charges: TuitionCharge[],
   nextCharge: { dueDate: string; label: string } | null,
@@ -135,6 +130,7 @@ export function ParentBillingScreen({
   const pendingPaymentRef = useRef<PendingPayment | null>(null);
   const paymentSheetDismissRef = useRef<(() => void) | null>(null);
   const checkoutBrowserOpenRef = useRef(false);
+  const checkoutSettlementDoneRef = useRef(false);
   const openedInitialFormRef = useRef(false);
 
   const tuitionAgreements = data?.tuitionAgreements ?? [];
@@ -272,35 +268,40 @@ export function ParentBillingScreen({
     paymentSheetDismissRef.current = null;
   }, []);
 
-  const settleAfterCheckout = useCallback(
+  const settleCheckoutOnce = useCallback(
     async (outcome: StripeCheckoutOutcome, baseline: CheckoutSettlementBaseline) => {
-      let latest = await refresh();
-      if (!isStripeCheckoutSuccess(outcome)) return;
-
-      for (const delayMs of CHECKOUT_SETTLE_REFRESH_DELAYS_MS) {
-        if (hasCheckoutSettled(outcome, baseline, latest)) break;
-        await sleep(delayMs);
-        latest = await refresh();
-      }
-
-      const settled = hasCheckoutSettled(outcome, baseline, latest);
-      if (outcome === 'paid') {
-        Alert.alert(
-          'Payment received',
-          settled
-            ? 'Thank you! Your payment has been recorded.'
-            : 'Thank you! Your payment is processing and will appear here shortly.',
-        );
-      } else {
-        Alert.alert(
-          'Card saved',
-          settled
-            ? 'Your card is saved for future payments.'
-            : 'Your card is being saved and will appear here shortly.',
-        );
-      }
+      if (checkoutSettlementDoneRef.current) return;
+      checkoutSettlementDoneRef.current = true;
+      await runCheckoutSettlement({ refresh, outcome, baseline });
     },
     [refresh],
+  );
+
+  const trySettleFromReturnHandoff = useCallback(async () => {
+    const handedOff = consumeCheckoutReturn(slug);
+    if (!handedOff) return;
+    const baseline = handedOff.baseline ?? captureCheckoutSettlementBaseline(data);
+    await settleCheckoutOnce(handedOff.outcome, baseline);
+  }, [data, settleCheckoutOnce, slug]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void trySettleFromReturnHandoff();
+    }, [trySettleFromReturnHandoff]),
+  );
+
+  const finishCheckoutSession = useCallback(
+    async (sessionOutcome: StripeCheckoutOutcome, capturedBaseline: CheckoutSettlementBaseline) => {
+      const handedOff = consumeCheckoutReturn(slug);
+      if (handedOff) {
+        const baseline = handedOff.baseline ?? capturedBaseline;
+        await settleCheckoutOnce(handedOff.outcome, baseline);
+        return;
+      }
+      if (wasCheckoutReturnConsumed(slug)) return;
+      await settleCheckoutOnce(sessionOutcome, capturedBaseline);
+    },
+    [settleCheckoutOnce, slug],
   );
 
   const handleFamilyPay = () => {
@@ -371,7 +372,9 @@ export function ParentBillingScreen({
       await waitForPaymentSheetDismiss();
       await waitBeforeStripeCheckout();
 
+      checkoutSettlementDoneRef.current = false;
       const baseline = captureCheckoutSettlementBaseline(data);
+      stageCheckoutBaseline(slug, baseline);
       checkoutBrowserOpenRef.current = true;
       let outcome: StripeCheckoutOutcome;
       try {
@@ -379,7 +382,7 @@ export function ParentBillingScreen({
       } finally {
         checkoutBrowserOpenRef.current = false;
       }
-      await settleAfterCheckout(outcome, baseline);
+      await finishCheckoutSession(outcome, baseline);
     } catch (checkoutError) {
       reportError('parent_billing_checkout', checkoutError);
       Alert.alert(
@@ -465,7 +468,9 @@ export function ParentBillingScreen({
         throw new Error('Failed to start card setup.');
       }
 
+      checkoutSettlementDoneRef.current = false;
       const baseline = captureCheckoutSettlementBaseline(data);
+      stageCheckoutBaseline(slug, baseline);
       checkoutBrowserOpenRef.current = true;
       let outcome: StripeCheckoutOutcome;
       try {
@@ -473,7 +478,7 @@ export function ParentBillingScreen({
       } finally {
         checkoutBrowserOpenRef.current = false;
       }
-      await settleAfterCheckout(outcome, baseline);
+      await finishCheckoutSession(outcome, baseline);
     } catch (setupError) {
       reportError('parent_billing_payment_method_setup', setupError);
       Alert.alert(

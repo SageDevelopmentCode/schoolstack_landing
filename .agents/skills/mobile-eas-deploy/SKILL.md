@@ -17,9 +17,9 @@ Local Maestro testing is separate — see [`.agents/skills/mobile-e2e-local/SKIL
 
 ## Safety rules (follow first)
 
-1. **Do not edit `apps/mobile/.env` for a release** — that file is for day-to-day dev (LAN IP + remote Supabase). Production values come from **`eas.json`** + **EAS secrets**.
+1. **Do not edit `apps/mobile/.env` for a release** — that file is for day-to-day dev (LAN IP + remote Supabase). Production `EXPO_PUBLIC_*` values live on the **EAS `production` environment** (same source for store builds and OTA).
 2. **Never use `.env.e2e.local` for production builds** — E2E only (local Supabase + port 3100).
-3. **Do not put Supabase keys in `eas.json`** — use `eas secret:create` (or `eas env:create`) on the Expo project.
+3. **Do not put Supabase keys in `eas.json`** — use `eas env:create` on the **`production`** environment with **`plaintext` or `sensitive`** visibility (not `secret`; secrets are not inlined into OTA JS bundles).
 4. **Deploy web before mobile** when the release depends on new API routes or server logic — production mobile hits `https://trymudkitchen.com`.
 5. **Run assert before cloud build** — `assert-production-mobile-env.sh` blocks localhost, `192.168.x.x`, dev ports (`:3000`, `:3100`), and URLs whose `/api/health` redirects (redirects strip the auth header). Production npm scripts set `EXPO_PUBLIC_SITE_URL` for this check automatically.
 
@@ -29,7 +29,7 @@ Local Maestro testing is separate — see [`.agents/skills/mobile-e2e-local/SKIL
 |---------|------------------------|----------|--------|
 | Day-to-day dev | Mac LAN IP `:3000` | Same project as web | [`apps/mobile/.env`](../../apps/mobile/.env) |
 | Maestro E2E | `127.0.0.1` / `10.0.2.2` `:3100` | Local Supabase | `.env.e2e.local` |
-| EAS production | `https://trymudkitchen.com` | Production Supabase | [`eas.json`](../../apps/mobile/eas.json) `production.env` + EAS secrets |
+| EAS production (build + OTA) | `https://trymudkitchen.com` | Production Supabase | EAS **`production`** environment; [`eas.json`](../../apps/mobile/eas.json) `production.environment` |
 
 Documented production values (reference only — not loaded from a file during EAS build): [`apps/mobile/.env.production.example`](../../apps/mobile/.env.production.example).
 
@@ -54,17 +54,18 @@ eas build --profile production --platform ios   # first run prompts to create/li
 
 Accept linking; Expo may add `extra.eas.projectId` to app config.
 
-### 2. EAS secrets (Supabase)
+### 2. EAS production environment (`EXPO_PUBLIC_*`)
 
-Set once per Expo project (values from production Supabase / Vercel env):
+Set once per Expo project on the **`production`** environment (values from production Supabase / Vercel `NEXT_PUBLIC_*`). Use **`plaintext` or `sensitive`** visibility.
 
 ```bash
 cd apps/mobile
-eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://<project-ref>.supabase.co"
-eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publishable-key>"
+eas env:create production --name EXPO_PUBLIC_SITE_URL --value "https://trymudkitchen.com" --visibility plaintext
+eas env:create production --name EXPO_PUBLIC_SUPABASE_URL --value "https://<project-ref>.supabase.co" --visibility plaintext
+eas env:create production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publishable-key>" --visibility sensitive
 ```
 
-EAS injects these into production builds together with profile env from [`eas.json`](../../apps/mobile/eas.json).
+Verify: `eas env:list production` or `npm run assert:production-eas-env` from `apps/mobile`. [`eas.json`](../../apps/mobile/eas.json) `build.production.environment` is `production`.
 
 ### 3. Store credentials
 
@@ -95,7 +96,7 @@ Before each store release:
 | Profile | Channel | Use |
 |---------|---------|-----|
 | `development` | `development` | Dev client, internal distribution |
-| `production` | `production` | Store / TestFlight builds; sets `EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com` on EAS workers |
+| `production` | `production` | Store / TestFlight builds; `environment: production` + EAS `production` env vars |
 
 From `apps/mobile`:
 
@@ -115,7 +116,7 @@ Monitor: [expo.dev](https://expo.dev) → project → Builds.
 
 **Cutover:** one new `build:production:*` + submit after OTA is first merged — older store binaries without `expo-updates` ignore `eas update`.
 
-JS-only fixes (no native / env / `expo.version` change):
+JS-only fixes (no native / `expo.version` change). `update:production` runs `assert-production-eas-env.sh` then `eas update --environment production` so `EXPO_PUBLIC_*` match store builds:
 
 ```bash
 cd apps/mobile
@@ -145,8 +146,8 @@ First submit may prompt for Apple App Store Connect API key or Google service ac
 | `EXPO_PUBLIC_SITE_URL is not set` (assert) | Use `npm run build:production:*` (sets URL in script) — do not rely on `.env` alone |
 | Assert blocks localhost / `:3000` | Expected if `.env` leaked into shell; unset or use npm scripts |
 | Build succeeds but app can't reach API | Confirm Vercel prod deployed; verify `EXPO_PUBLIC_SITE_URL` in build logs |
-| Auth fails in production build | Re-check EAS secrets match **production** Supabase, not local |
-| Missing Supabase env in build | Run `eas secret:list`; recreate `EXPO_PUBLIC_SUPABASE_*` secrets |
+| Auth fails in production build | Re-check EAS `production` env vars match **production** Supabase, not local |
+| Missing Supabase env in build or OTA | Run `eas env:list production` or `npm run assert:production-eas-env` |
 | `eas build` asks to configure project | Run from `apps/mobile`; complete `eas build:configure` / link flow |
 | API 404 on new feature | Web not deployed yet — ship Next.js production first |
 

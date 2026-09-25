@@ -45,6 +45,7 @@ import {
   consumeExplicitMobileSignOut,
   markExplicitMobileSignOut,
 } from '@/lib/auth/mobile-explicit-sign-out';
+import { shouldClearPersistedPortalOnAuthEvent } from '@/lib/auth/should-clear-persisted-portal';
 import { ensureSupabaseAuthStorageReady, getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -204,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const explicitSignOutRef = useRef(false);
+  const hadEstablishedSessionRef = useRef(false);
   const portalTypeRef = useRef(portalType);
   const selectedSchoolIdRef = useRef(selectedSchool?.id ?? null);
 
@@ -260,7 +262,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               explicitSignOutRef.current || consumeExplicitMobileSignOut();
             explicitSignOutRef.current = false;
 
-            if (!wasExplicitSignOut) {
+            const shouldClearPersistedPortal = shouldClearPersistedPortalOnAuthEvent({
+              event,
+              wasExplicitSignOut,
+              hadEstablishedSession: hadEstablishedSessionRef.current,
+            });
+
+            if (shouldClearPersistedPortal && !wasExplicitSignOut) {
               void logMobileAuthSessionCleared({
                 accessToken: getCachedAccessToken(),
                 event,
@@ -276,10 +284,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSelectedSchool(null);
             setIsPlatformAdminSession(false);
             setPreviewSession(null);
-            void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
+
+            if (shouldClearPersistedPortal) {
+              hadEstablishedSessionRef.current = false;
+              void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
+            }
             return;
           }
 
+          hadEstablishedSessionRef.current = true;
           setCachedAccessToken(nextSession.access_token ?? null);
           setSession(nextSession);
           setUser(nextSession.user ?? null);
@@ -301,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
 
         if (initialSession?.user) {
+          hadEstablishedSessionRef.current = true;
           const persisted = await readPersistedPortalState();
           await restorePortalState();
           if (persisted.selectedSchool?.id && persisted.portalType) {
