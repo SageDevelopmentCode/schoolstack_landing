@@ -7,6 +7,7 @@
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/lora": "^0.4.2",
     "@expo-google-fonts/poppins": "^0.4.1",
+    "@expo/metro-runtime": "~57.0.16",
     "@expo/ui": "~57.0.11",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -30,6 +31,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.2",
     "expo-system-ui": "~57.0.2",
+    "expo-updates": "~57.0.23",
     "expo-web-browser": "~57.0.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -73,7 +75,8 @@
     "generate:icons": "tsx scripts/generate-app-icons.ts",
     "assert:production-env": "bash scripts/assert-production-mobile-env.sh",
     "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
-    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android"
+    "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android",
+    "update:production": "eas update --channel production --environment production --platform ios"
   },
   "private": true,
   "expo": {

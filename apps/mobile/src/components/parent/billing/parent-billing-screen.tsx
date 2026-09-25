@@ -35,6 +35,16 @@ import {
   openStripeCheckout,
   waitBeforeStripeCheckout,
 } from '@/lib/parent/open-stripe-checkout';
+import {
+  isStripeCheckoutSuccess,
+  type StripeCheckoutOutcome,
+} from '@/lib/parent/stripe-checkout-outcome';
+import {
+  captureCheckoutSettlementBaseline,
+  CHECKOUT_SETTLE_REFRESH_DELAYS_MS,
+  hasCheckoutSettled,
+  type CheckoutSettlementBaseline,
+} from '@/lib/tuition/checkout-settlement';
 import { parentEnrollmentItemRoute, parseEnrollmentHref } from '@/lib/parent/parent-nav';
 import {
   createCombinedTuitionCheckout,
@@ -76,6 +86,12 @@ type ParentBillingScreenProps = {
 type PendingPayment =
   | { type: 'single'; charge: TuitionCharge; extra?: boolean }
   | { type: 'combined'; charges: TuitionCharge[] };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function resolveNextChargeId(
   charges: TuitionCharge[],
@@ -256,6 +272,37 @@ export function ParentBillingScreen({
     paymentSheetDismissRef.current = null;
   }, []);
 
+  const settleAfterCheckout = useCallback(
+    async (outcome: StripeCheckoutOutcome, baseline: CheckoutSettlementBaseline) => {
+      let latest = await refresh();
+      if (!isStripeCheckoutSuccess(outcome)) return;
+
+      for (const delayMs of CHECKOUT_SETTLE_REFRESH_DELAYS_MS) {
+        if (hasCheckoutSettled(outcome, baseline, latest)) break;
+        await sleep(delayMs);
+        latest = await refresh();
+      }
+
+      const settled = hasCheckoutSettled(outcome, baseline, latest);
+      if (outcome === 'paid') {
+        Alert.alert(
+          'Payment received',
+          settled
+            ? 'Thank you! Your payment has been recorded.'
+            : 'Thank you! Your payment is processing and will appear here shortly.',
+        );
+      } else {
+        Alert.alert(
+          'Card saved',
+          settled
+            ? 'Your card is saved for future payments.'
+            : 'Your card is being saved and will appear here shortly.',
+        );
+      }
+    },
+    [refresh],
+  );
+
   const handleFamilyPay = () => {
     if (combinedChargesOnEarliestDueDate.length > 1) {
       openPaymentSheet({ type: 'combined', charges: combinedChargesOnEarliestDueDate });
@@ -324,13 +371,15 @@ export function ParentBillingScreen({
       await waitForPaymentSheetDismiss();
       await waitBeforeStripeCheckout();
 
+      const baseline = captureCheckoutSettlementBaseline(data);
       checkoutBrowserOpenRef.current = true;
+      let outcome: StripeCheckoutOutcome;
       try {
-        await openStripeCheckout(checkoutUrl);
-        await refresh();
+        outcome = await openStripeCheckout(checkoutUrl);
       } finally {
         checkoutBrowserOpenRef.current = false;
       }
+      await settleAfterCheckout(outcome, baseline);
     } catch (checkoutError) {
       reportError('parent_billing_checkout', checkoutError);
       Alert.alert(
@@ -416,13 +465,15 @@ export function ParentBillingScreen({
         throw new Error('Failed to start card setup.');
       }
 
+      const baseline = captureCheckoutSettlementBaseline(data);
       checkoutBrowserOpenRef.current = true;
+      let outcome: StripeCheckoutOutcome;
       try {
-        await openStripeCheckout(checkoutUrl);
-        await refresh();
+        outcome = await openStripeCheckout(checkoutUrl);
       } finally {
         checkoutBrowserOpenRef.current = false;
       }
+      await settleAfterCheckout(outcome, baseline);
     } catch (setupError) {
       reportError('parent_billing_payment_method_setup', setupError);
       Alert.alert(

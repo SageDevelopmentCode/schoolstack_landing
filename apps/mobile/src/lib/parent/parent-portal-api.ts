@@ -1,4 +1,9 @@
-import { fetchWithAuth, getApiAuthHeaders, throwUnauthorized } from '@/lib/auth/auth-session';
+import {
+  assertApiAuthenticated,
+  fetchWithAuth,
+  getApiAuthHeaders,
+  throwUnauthorized,
+} from '@/lib/auth/auth-session';
 import {
   assertPreviewWriteAllowed,
   isPreviewSessionActive,
