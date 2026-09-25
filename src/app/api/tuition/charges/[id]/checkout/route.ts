@@ -11,6 +11,7 @@ import { getAssignmentPaymentContext } from "@/lib/tuition/family-checklist-resp
 import { maxTuitionPayCents } from "@/lib/tuition/tuition-pay-amount";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { getStudentNameForCharge } from "@/lib/tuition/tuition-charge-student";
+import { markCheckoutPaymentsFailed } from "@/lib/tuition/checkout-session-failure";
 import { buildTuitionCheckoutLineItem, buildTuitionCheckoutLineItems } from "@/lib/tuition/tuition-checkout-line-item";
 import { createAdmissionsCheckoutSession, createTuitionCheckoutSession } from "@/lib/stripe/checkout-session";
 import { getOrCreateStripeCustomer } from "@/lib/stripe/customer";
@@ -31,6 +32,10 @@ import {
   expireOpenCheckoutSession,
   pendingCheckoutMatchesRequest,
 } from "@/lib/stripe/pending-checkout-session";
+import {
+  isStripeMissingDestinationError,
+  PAYMENT_ACCOUNT_UNAVAILABLE_MESSAGE,
+} from "@/lib/stripe/stripe-errors";
 import { activityClientMetadataForStripeSession } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -283,60 +288,79 @@ export async function POST(request: Request, context: RouteContext) {
     let processingFeeCents: number;
     let grossAmountCents: number;
 
-    if (isLumpSum) {
-      const breakdown = buildTuitionCheckoutLineItems({
-        studentName,
-        chargeLabel: charge.label,
-        remainingCents,
-        requestedAmountCents,
-        processingFeeCents: quote.processingFeeCents,
-        paymentMethod: body.paymentMethod,
+    try {
+      if (isLumpSum) {
+        const breakdown = buildTuitionCheckoutLineItems({
+          studentName,
+          chargeLabel: charge.label,
+          remainingCents,
+          requestedAmountCents,
+          processingFeeCents: quote.processingFeeCents,
+          paymentMethod: body.paymentMethod,
+        });
+
+        const result = await createTuitionCheckoutSession({
+          lineItems: breakdown.lineItems,
+          netToSchoolCents: breakdown.netToSchoolCents,
+          paymentMethod: body.paymentMethod,
+          stripeConnectAccountId,
+          stripeCustomerId,
+          payerUserId: user.id,
+          successUrl,
+          cancelUrl,
+          paymentId: payment.id,
+          paymentIntentMetadata: tuitionMetadata,
+          sessionMetadata: tuitionMetadata,
+        });
+
+        session = result.session;
+        processingFeeCents = result.processingFeeCents;
+        grossAmountCents = result.grossAmountCents;
+      } else {
+        const checkoutLineItem = buildTuitionCheckoutLineItem({
+          studentName,
+          chargeLabel: charge.label,
+          remainingCents,
+          requestedAmountCents,
+          processingFeeCents: quote.processingFeeCents,
+        });
+
+        const result = await createAdmissionsCheckoutSession({
+          netAmountCents: requestedAmountCents,
+          paymentMethod: body.paymentMethod,
+          label: checkoutLineItem.label,
+          description: checkoutLineItem.description,
+          stripeConnectAccountId,
+          stripeCustomerId,
+          payerUserId: user.id,
+          successUrl,
+          cancelUrl,
+          paymentId: payment.id,
+          paymentIntentMetadata: tuitionMetadata,
+          sessionMetadata: tuitionMetadata,
+        });
+
+        session = result.session;
+        processingFeeCents = result.quote.processingFeeCents;
+        grossAmountCents = result.quote.grossAmountCents;
+      }
+    } catch (sessionError) {
+      await markCheckoutPaymentsFailed(admin, {
+        route: ROUTE,
+        organizationId: charge.organizationId,
+        paymentIds: [payment.id],
       });
 
-      const result = await createTuitionCheckoutSession({
-        lineItems: breakdown.lineItems,
-        netToSchoolCents: breakdown.netToSchoolCents,
-        paymentMethod: body.paymentMethod,
-        stripeConnectAccountId,
-        stripeCustomerId,
-        payerUserId: user.id,
-        successUrl,
-        cancelUrl,
-        paymentId: payment.id,
-        paymentIntentMetadata: tuitionMetadata,
-        sessionMetadata: tuitionMetadata,
-      });
-
-      session = result.session;
-      processingFeeCents = result.processingFeeCents;
-      grossAmountCents = result.grossAmountCents;
-    } else {
-      const checkoutLineItem = buildTuitionCheckoutLineItem({
-        studentName,
-        chargeLabel: charge.label,
-        remainingCents,
-        requestedAmountCents,
-        processingFeeCents: quote.processingFeeCents,
-      });
-
-      const result = await createAdmissionsCheckoutSession({
-        netAmountCents: requestedAmountCents,
-        paymentMethod: body.paymentMethod,
-        label: checkoutLineItem.label,
-        description: checkoutLineItem.description,
-        stripeConnectAccountId,
-        stripeCustomerId,
-        payerUserId: user.id,
-        successUrl,
-        cancelUrl,
-        paymentId: payment.id,
-        paymentIntentMetadata: tuitionMetadata,
-        sessionMetadata: tuitionMetadata,
-      });
-
-      session = result.session;
-      processingFeeCents = result.quote.processingFeeCents;
-      grossAmountCents = result.quote.grossAmountCents;
+      if (isStripeMissingDestinationError(sessionError)) {
+        return apiError(ROUTE, {
+          request,
+          status: 503,
+          error: PAYMENT_ACCOUNT_UNAVAILABLE_MESSAGE,
+          code: "payment_account_unavailable",
+          cause: sessionError,
+        });
+      }
+      throw sessionError;
     }
 
     if (

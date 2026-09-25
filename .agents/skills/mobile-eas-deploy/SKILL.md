@@ -21,7 +21,7 @@ Local Maestro testing is separate — see [`.agents/skills/mobile-e2e-local/SKIL
 2. **Never use `.env.e2e.local` for production builds** — E2E only (local Supabase + port 3100).
 3. **Do not put Supabase keys in `eas.json`** — use `eas secret:create` (or `eas env:create`) on the Expo project.
 4. **Deploy web before mobile** when the release depends on new API routes or server logic — production mobile hits `https://trymudkitchen.com`.
-5. **Run assert before cloud build** — `assert-production-mobile-env.sh` blocks localhost, `192.168.x.x`, and dev ports (`:3000`, `:3100`). Production npm scripts set `EXPO_PUBLIC_SITE_URL` for this check automatically.
+5. **Run assert before cloud build** — `assert-production-mobile-env.sh` blocks localhost, `192.168.x.x`, dev ports (`:3000`, `:3100`), and URLs whose `/api/health` redirects (redirects strip the auth header). Production npm scripts set `EXPO_PUBLIC_SITE_URL` for this check automatically.
 
 ## Env matrix
 
@@ -92,10 +92,10 @@ Before each store release:
 
 [`eas.json`](../../apps/mobile/eas.json) profiles:
 
-| Profile | Use |
-|---------|-----|
-| `development` | Dev client, internal distribution |
-| `production` | Store builds; sets `EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com` on EAS workers |
+| Profile | Channel | Use |
+|---------|---------|-----|
+| `development` | `development` | Dev client, internal distribution |
+| `production` | `production` | Store / TestFlight builds; sets `EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com` on EAS workers |
 
 From `apps/mobile`:
 
@@ -108,6 +108,21 @@ npm run build:production:android
 Scripts run [`assert-production-mobile-env.sh`](../../apps/mobile/scripts/assert-production-mobile-env.sh) with production `EXPO_PUBLIC_SITE_URL`, then `eas build --profile production`.
 
 Monitor: [expo.dev](https://expo.dev) → project → Builds.
+
+## EAS Update (OTA)
+
+[`app.json`](../../apps/mobile/app.json) configures `expo-updates` (`runtimeVersion` policy `appVersion`, updates URL for project `ad714022-2c84-4a66-b28e-49866d1f9878`). Production builds on channel `production` receive OTA bundles.
+
+**Cutover:** one new `build:production:*` + submit after OTA is first merged — older store binaries without `expo-updates` ignore `eas update`.
+
+JS-only fixes (no native / env / `expo.version` change):
+
+```bash
+cd apps/mobile
+npm run update:production -- --message "fix: description"   # iOS only; skips web export
+```
+
+Deploy Vercel first when the fix needs new API behavior. Full runbook: [`DEPLOY.md`](../../apps/mobile/DEPLOY.md) § EAS Update.
 
 ## Submit to stores
 
@@ -145,6 +160,5 @@ First submit may prompt for Apple App Store Connect API key or Google service ac
 
 ## Out of scope (future)
 
-- GitHub Actions `eas build` on merge to `main` (`EXPO_TOKEN`, Apple API key in repo secrets)
-- `eas update` / OTA for JS-only hotfixes
-- Staging EAS profile (e.g. Vercel preview URL)
+- GitHub Actions `eas build` / `eas update` on merge to `main` (`EXPO_TOKEN`, Apple API key in repo secrets)
+- Staging EAS profile (e.g. Vercel preview URL + `preview` channel)

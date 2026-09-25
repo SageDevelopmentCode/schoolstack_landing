@@ -30,6 +30,11 @@ import {
   validateCombinedTuitionChargeIds,
 } from "@/lib/tuition/combined-tuition-payment";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { markCheckoutPaymentsFailed } from "@/lib/tuition/checkout-session-failure";
+import {
+  isStripeMissingDestinationError,
+  PAYMENT_ACCOUNT_UNAVAILABLE_MESSAGE,
+} from "@/lib/stripe/stripe-errors";
 import { activityClientMetadataForStripeSession } from "@/lib/activity-client";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -263,32 +268,52 @@ export async function POST(request: Request) {
       flow: "payment",
     });
 
-    const { session } = await createCombinedAdmissionsCheckoutSession({
-      lineItems: candidates.map((candidate) => ({
-        label: `${candidate.studentName} — ${candidate.charge.label}`,
-        netAmountCents: candidate.amountCents,
-      })),
-      paymentMethod: body.paymentMethod,
-      stripeConnectAccountId,
-      stripeCustomerId,
-      payerUserId: user.id,
-      successUrl,
-      cancelUrl,
-      paymentIds,
-      paymentIntentMetadata: {
-        organization_id: firstCharge.organizationId,
-        tuition_charge_ids: tuitionChargeIdsValue,
-        payment_ids: paymentIdsValue,
-        payment_type: "tuition_combined",
-      },
-      sessionMetadata: {
-        organization_id: firstCharge.organizationId,
-        tuition_charge_ids: tuitionChargeIdsValue,
-        payment_ids: paymentIdsValue,
-        payment_type: "tuition_combined",
-        ...activityClientMetadataForStripeSession(request),
-      },
-    });
+    let session;
+    try {
+      ({ session } = await createCombinedAdmissionsCheckoutSession({
+        lineItems: candidates.map((candidate) => ({
+          label: `${candidate.studentName} — ${candidate.charge.label}`,
+          netAmountCents: candidate.amountCents,
+        })),
+        paymentMethod: body.paymentMethod,
+        stripeConnectAccountId,
+        stripeCustomerId,
+        payerUserId: user.id,
+        successUrl,
+        cancelUrl,
+        paymentIds,
+        paymentIntentMetadata: {
+          organization_id: firstCharge.organizationId,
+          tuition_charge_ids: tuitionChargeIdsValue,
+          payment_ids: paymentIdsValue,
+          payment_type: "tuition_combined",
+        },
+        sessionMetadata: {
+          organization_id: firstCharge.organizationId,
+          tuition_charge_ids: tuitionChargeIdsValue,
+          payment_ids: paymentIdsValue,
+          payment_type: "tuition_combined",
+          ...activityClientMetadataForStripeSession(request),
+        },
+      }));
+    } catch (sessionError) {
+      await markCheckoutPaymentsFailed(admin, {
+        route: ROUTE,
+        organizationId: firstCharge.organizationId,
+        paymentIds,
+      });
+
+      if (isStripeMissingDestinationError(sessionError)) {
+        return apiError(ROUTE, {
+          request,
+          status: 503,
+          error: PAYMENT_ACCOUNT_UNAVAILABLE_MESSAGE,
+          code: "payment_account_unavailable",
+          cause: sessionError,
+        });
+      }
+      throw sessionError;
+    }
 
     if (session.id) {
       await attachCheckoutSessionToPayments(admin, paymentIds, session.id);
