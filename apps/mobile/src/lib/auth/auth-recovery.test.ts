@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 jest.mock('@/lib/supabase', () => ({
   getSupabaseClient: jest.fn(),
+  ensureSupabaseAuthStorageReady: jest.fn().mockResolvedValue(undefined),
 }));
 
 const mockGetSupabaseClient = getSupabaseClient as jest.MockedFunction<typeof getSupabaseClient>;

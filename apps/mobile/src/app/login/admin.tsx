@@ -11,6 +11,7 @@ import {
   completePlatformAdminSignIn,
   useAuth,
 } from '@/contexts/auth-context';
+import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Story } from '@/constants/story-theme';
@@ -60,6 +61,7 @@ export default function AdminLoginScreen() {
       await setResolvedPortal(portal);
       router.replace('/platform-admin/organizations');
     } catch (submitError) {
+      markExplicitMobileSignOut();
       await supabase.auth.signOut();
       setError(
         submitError instanceof PortalAccessError || submitError instanceof Error

@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import aesjs from 'aes-js';
 import * as SecureStore from 'expo-secure-store';
 
+import { recordPendingAuthDiagnostic } from '@/lib/mobile-auth-diagnostics';
+
 const ENCRYPTION_KEY_SUFFIX = '_encryption_key';
 
 /**
@@ -45,10 +47,20 @@ export class LargeSecureStore {
       return null;
     }
 
+    const keyHex = await SecureStore.getItemAsync(this.encryptionKeyStorageKey(key));
+    if (!keyHex) {
+      void recordPendingAuthDiagnostic('auth.storage_decrypt_failed', {
+        reason: 'missing_encryption_key',
+      });
+      return null;
+    }
+
     try {
       return await this.decrypt(key, encrypted);
     } catch {
-      await this.removeItem(key);
+      void recordPendingAuthDiagnostic('auth.storage_decrypt_failed', {
+        reason: 'decrypt_failed',
+      });
       return null;
     }
   }

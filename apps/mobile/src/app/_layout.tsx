@@ -20,6 +20,7 @@ import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
 import { OtaUpdateManager } from '@/components/ota-update-manager';
+import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
@@ -52,6 +53,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <AuthSessionGuard />
+      <SupabaseAuthLifecycle />
       <OtaUpdateManager />
       <PushNotificationManager />
       <SplashOverlay />

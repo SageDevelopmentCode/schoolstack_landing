@@ -243,6 +243,17 @@ Set these URLs in App Store Connect and Google Play Console:
 | OTA published but app unchanged | Installed build predates `expo-updates`, or runtime/channel mismatch — rebuild once, then verify Updates dashboard |
 | OTA published but env wrong in bundle | Use `update:production` (includes `--environment production`), not bare `eas update` without environment |
 | `eas update` / export fails: `Unable to resolve module @expo/metro-runtime` | Default `eas update` bundles **web** too; [`app.json`](app.json) `web.output: static` needs that package. Use `npm run update:production` (`--platform ios`) or install `@expo/metro-runtime` in the mobile workspace |
+| Keeps returning to intro / welcome (logged out) on iOS | Ship a build with `SupabaseAuthLifecycle` (AppState refresh). After TestFlight install: login → background 30+ min → foreground (stay signed in); force-quit → reopen (stay signed in). If still failing, check `activity_events` for `auth.session_cleared` vs `pendingAuthDiagnostics` on next `auth.signed_in` |
+
+## Session persistence verification (TestFlight)
+
+After shipping a production iOS build or OTA that includes auth lifecycle fixes:
+
+1. Sign in as a parent (or your usual portal).
+2. Background the app for 30+ minutes, then foreground — you should remain in the portal, not the intro.
+3. Force-quit and reopen — session should restore without the intro.
+4. Tap Sign out — intro is expected; `auth.signed_out` should appear in activity events.
+5. If unexpected logouts continue, look for `auth.session_cleared` (unexpected loss) or `pendingAuthDiagnostics` with `auth.storage_decrypt_failed` on the next sign-in.
 
 ## References
 

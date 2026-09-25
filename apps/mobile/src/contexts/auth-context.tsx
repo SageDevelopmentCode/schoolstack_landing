@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -28,14 +29,22 @@ import {
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
-import { logMobileAuthSessionRestored, logMobileAuthSignedOut } from '@/lib/mobile-activity';
+import {
+  logMobileAuthSessionCleared,
+  logMobileAuthSessionRestored,
+  logMobileAuthSignedOut,
+} from '@/lib/mobile-activity';
 import { clearExpoPushToken } from '@/lib/push-notifications';
 import type {
   PortalPreviewSession,
   StartPortalPreviewInput,
 } from '@/lib/platform-admin/preview-session-types';
 import { setActivePreviewSession } from '@/lib/platform-admin/preview-session-store';
-import { setCachedAccessToken } from '@/lib/auth/auth-session';
+import { getCachedAccessToken, setCachedAccessToken } from '@/lib/auth/auth-session';
+import {
+  consumeExplicitMobileSignOut,
+  markExplicitMobileSignOut,
+} from '@/lib/auth/mobile-explicit-sign-out';
 import { ensureSupabaseAuthStorageReady, getSupabaseClient } from '@/lib/supabase';
 
 const PORTAL_TYPE_KEY = 'mobile_auth_portal_type';
@@ -194,6 +203,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [previewSession, setPreviewSession] = useState<PortalPreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const explicitSignOutRef = useRef(false);
+  const portalTypeRef = useRef(portalType);
+  const selectedSchoolIdRef = useRef(selectedSchool?.id ?? null);
+
+  useEffect(() => {
+    portalTypeRef.current = portalType;
+  }, [portalType]);
+
+  useEffect(() => {
+    selectedSchoolIdRef.current = selectedSchool?.id ?? null;
+  }, [selectedSchool?.id]);
+
   useEffect(() => {
     setActivePreviewSession(previewSession);
   }, [previewSession]);
@@ -234,11 +255,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const {
           data: { subscription: authSubscription },
         } = supabase.auth.onAuthStateChange((event, nextSession) => {
-          setCachedAccessToken(nextSession?.access_token ?? null);
-          setSession(nextSession);
-          setUser(nextSession?.user ?? null);
-
           if (!nextSession) {
+            const wasExplicitSignOut =
+              explicitSignOutRef.current || consumeExplicitMobileSignOut();
+            explicitSignOutRef.current = false;
+
+            if (!wasExplicitSignOut) {
+              void logMobileAuthSessionCleared({
+                accessToken: getCachedAccessToken(),
+                event,
+                portalType: portalTypeRef.current,
+                organizationId: selectedSchoolIdRef.current,
+              });
+            }
+
+            setCachedAccessToken(null);
+            setSession(null);
+            setUser(null);
             setPortalType(null);
             setSelectedSchool(null);
             setIsPlatformAdminSession(false);
@@ -246,6 +279,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             void Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
             return;
           }
+
+          setCachedAccessToken(nextSession.access_token ?? null);
+          setSession(nextSession);
+          setUser(nextSession.user ?? null);
 
           if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
             void restorePortalState();
@@ -388,6 +425,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [exitPortalPreview, previewSession]);
 
   const signOut = useCallback(async () => {
+    explicitSignOutRef.current = true;
+    markExplicitMobileSignOut();
     void logMobileAuthSignedOut(portalType, selectedSchool?.id);
     await clearExpoPushToken();
     await getSupabaseClient().auth.signOut();
