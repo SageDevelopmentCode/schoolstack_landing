@@ -46,6 +46,18 @@ describe('LargeSecureStore', () => {
     expect(AsyncStorage.setItem).toHaveBeenCalled();
   });
 
+  it('returns null without deleting ciphertext when the encryption key is missing', async () => {
+    const key = 'sb-test-auth-token';
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('encrypted-ciphertext');
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+
+    const restored = await store.getItem(key);
+
+    expect(restored).toBeNull();
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+
   it('removes encrypted values and encryption keys', async () => {
     const key = 'sb-test-auth-token';
     (AsyncStorage.removeItem as jest.Mock).mockResolvedValue(undefined);

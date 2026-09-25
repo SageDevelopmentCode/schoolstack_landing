@@ -15,6 +15,7 @@ import {
 } from '@/contexts/auth-context';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import { listLiveOrganizations, type LiveOrganization } from '@/lib/organizations';
+import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Spacing } from '@/constants/theme';
@@ -127,6 +128,7 @@ export function SchoolLoginExperience() {
         goToPhase('email');
       } catch (selectError) {
         if (selectError instanceof PortalAccessError) {
+          markExplicitMobileSignOut();
           await supabase.auth.signOut();
         }
         setError(
@@ -207,6 +209,7 @@ export function SchoolLoginExperience() {
       router.replace('/portal');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {
+        markExplicitMobileSignOut();
         await supabase.auth.signOut();
       }
       setError(
@@ -249,6 +252,7 @@ export function SchoolLoginExperience() {
       router.replace('/portal');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {
+        markExplicitMobileSignOut();
         await supabase.auth.signOut();
       }
       setError(

@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { Mail, Phone } from "lucide-react";
 import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import PublicSupportForm from "@/components/support/PublicSupportForm";
 import { Badge } from "@/components/ui/Badge";
+import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
+
+const { contact } = mudkitchenDemoContact;
 
 export const metadata: Metadata = pageMetadata({
   title: "Support",
@@ -39,6 +43,30 @@ export default function SupportPage() {
 
             <div className="mt-10 max-w-[720px]">
               <PublicSupportForm />
+            </div>
+
+            <div className="mt-8 max-w-[720px] rounded-2xl border border-black/[0.08] bg-white px-6 py-5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-text-faint font-secondary">
+                {contact.eyebrow}
+              </p>
+              <a
+                href={`mailto:${contact.email}`}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-text font-secondary hover:text-clay transition-colors"
+              >
+                <Mail className="h-4 w-4 shrink-0" aria-hidden />
+                {contact.email}
+              </a>
+              <a
+                href={contact.phoneHref}
+                className="mt-2 flex items-center gap-2 text-sm font-semibold text-text font-secondary hover:text-clay transition-colors"
+              >
+                <Phone className="h-4 w-4 shrink-0" aria-hidden />
+                {contact.phone}
+                <span className="font-normal text-text-muted">· text or call</span>
+              </a>
+              <p className="mt-2 text-xs text-text-muted font-secondary">
+                {contact.blurb}
+              </p>
             </div>
           </div>
         </section>

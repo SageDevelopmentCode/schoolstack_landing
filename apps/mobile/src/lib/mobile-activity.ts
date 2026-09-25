@@ -1,7 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-import { fetchWithAuth } from '@/lib/auth/auth-session';
+import { fetchWithAuth, postJsonWithAccessToken } from '@/lib/auth/auth-session';
+import { consumePendingAuthDiagnostics } from '@/lib/mobile-auth-diagnostics';
 import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
 
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
@@ -24,7 +25,8 @@ export type MobileOperationalErrorPayload = {
 export type MobileAuthActivityAction =
   | 'auth.signed_in'
   | 'auth.signed_out'
-  | 'auth.session_restored';
+  | 'auth.session_restored'
+  | 'auth.session_cleared';
 
 type MobileActivityPayload = {
   organizationId?: string;
@@ -132,16 +134,44 @@ export async function reportMobileOperationalError(
   });
 }
 
+async function mergeActivityMetadata(
+  metadata?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const pendingDiagnostics = await consumePendingAuthDiagnostics();
+  return {
+    ...mobileClientMetadata(),
+    ...(metadata ?? {}),
+    ...(pendingDiagnostics ? { pendingAuthDiagnostics: pendingDiagnostics } : {}),
+  };
+}
+
 export async function reportMobileActivity(payload: MobileActivityPayload): Promise<void> {
   await postMobileApi('/api/mobile/activity-events', {
     action: payload.action,
     surface: payload.surface,
     organizationId: payload.organizationId,
-    metadata: {
-      ...mobileClientMetadata(),
-      ...(payload.metadata ?? {}),
-    },
+    metadata: await mergeActivityMetadata(payload.metadata),
   });
+}
+
+async function postMobileActivityWithAccessToken(
+  accessToken: string,
+  payload: MobileActivityPayload,
+): Promise<void> {
+  try {
+    await postJsonWithAccessToken(
+      `${siteUrl}/api/mobile/activity-events`,
+      accessToken,
+      JSON.stringify({
+        action: payload.action,
+        surface: payload.surface,
+        organizationId: payload.organizationId,
+        metadata: await mergeActivityMetadata(payload.metadata),
+      }),
+    );
+  } catch (reportError) {
+    console.error('[mobile-activity] activity-events report failed:', reportError);
+  }
 }
 
 export function portalTypeToMobileSurface(
@@ -205,5 +235,28 @@ export async function logMobileAuthSessionRestored(
     action: 'auth.session_restored',
     surface,
     organizationId,
+  });
+}
+
+export async function logMobileAuthSessionCleared(input: {
+  accessToken: string | null;
+  event: string;
+  portalType: PortalType | null;
+  organizationId: string | null | undefined;
+}): Promise<void> {
+  const surface = portalTypeToMobileSurface(input.portalType) ?? 'parent_portal';
+  const token = input.accessToken?.trim();
+  if (!token) {
+    return;
+  }
+
+  await postMobileActivityWithAccessToken(token, {
+    action: 'auth.session_cleared',
+    surface,
+    organizationId: input.organizationId ?? undefined,
+    metadata: {
+      event: input.event,
+      hadPortalType: Boolean(input.portalType),
+    },
   });
 }

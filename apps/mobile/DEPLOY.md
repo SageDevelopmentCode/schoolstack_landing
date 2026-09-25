@@ -16,32 +16,35 @@ flowchart LR
     MobileDev --> SupabaseRemote
   end
 
-  subgraph easBuild [EAS production build]
-    EASWorker["EAS build worker"]
-    EnvProfile["eas.json production.env"]
-    EASSecrets["EAS project secrets"]
-    EASWorker --> EnvProfile
-    EASWorker --> EASSecrets
+  subgraph easCloud [EAS production]
+    ProdEnv["EAS environment production"]
+    EASBuild["eas build profile production"]
+    EASUpdate["eas update --environment production"]
+    ProdEnv --> EASBuild
+    ProdEnv --> EASUpdate
   end
 
   subgraph prodRuntime [Production runtime]
     StoreApp["TestFlight / Play build"]
+    OTABundle["OTA JS bundle"]
     ProdWeb["https://trymudkitchen.com"]
     SupabaseProd["Supabase prod"]
     StoreApp --> ProdWeb
     StoreApp --> SupabaseProd
+    OTABundle --> StoreApp
   end
 
-  EASWorker --> StoreApp
+  EASBuild --> StoreApp
+  EASUpdate --> OTABundle
 ```
 
 ## Safety rules (follow first)
 
-1. **Do not edit `.env` for a release** — that file is for day-to-day dev (LAN IP + remote Supabase). Production values come from **`eas.json`** + **EAS secrets**.
+1. **Do not edit `.env` for a release** — that file is for day-to-day dev (LAN IP + remote Supabase). Production `EXPO_PUBLIC_*` values live on the **EAS `production` environment** (same source for store builds and OTA).
 2. **Never use `.env.e2e.local` for production builds** — E2E only (local Supabase + port 3100).
-3. **Do not put Supabase keys in `eas.json`** — use `eas secret:create` (or `eas env:create`) on the Expo project.
+3. **Do not put Supabase keys in `eas.json`** — use `eas env:create` on the **`production`** environment with **`plaintext` or `sensitive`** visibility (not `secret`; secrets are not inlined into OTA JS bundles).
 4. **Deploy web before mobile** when the release depends on new API routes or server logic — production mobile hits `https://trymudkitchen.com`.
-5. **Run assert before cloud build** — `scripts/assert-production-mobile-env.sh` blocks localhost, `192.168.x.x`, and dev ports (`:3000`, `:3100`). Production npm scripts set `EXPO_PUBLIC_SITE_URL` for this check automatically.
+5. **Run assert before cloud build** — `scripts/assert-production-mobile-env.sh` blocks localhost, `192.168.x.x`, dev ports (`:3000`, `:3100`), and URLs whose `/api/health` redirects (redirects strip the auth header). Production npm scripts set `EXPO_PUBLIC_SITE_URL` for this check automatically.
 
 ## Env matrix
 
@@ -49,7 +52,7 @@ flowchart LR
 |---------|------------------------|----------|--------|
 | Day-to-day dev | Mac LAN IP `:3000` | Same project as web | `.env` |
 | Maestro E2E | `127.0.0.1` / `10.0.2.2` `:3100` | Local Supabase | `.env.e2e.local` |
-| EAS production | `https://trymudkitchen.com` | Production Supabase | [`eas.json`](eas.json) `production.env` + EAS secrets |
+| EAS production (build + OTA) | `https://trymudkitchen.com` | Production Supabase | EAS **`production`** environment; [`eas.json`](eas.json) `production.environment` + optional `production.env` duplicate for site URL |
 
 Documented production values (reference only — not loaded during EAS build): [`.env.production.example`](.env.production.example).
 
@@ -74,17 +77,25 @@ eas build --profile production --platform ios   # first run prompts to create/li
 
 Accept linking; Expo may add `extra.eas.projectId` to app config.
 
-### 2. EAS secrets (Supabase)
+### 2. EAS production environment (`EXPO_PUBLIC_*`)
 
-Set once per Expo project (values from production Supabase / Vercel env):
+Set once per Expo project on the **`production`** environment (values from production Supabase / Vercel `NEXT_PUBLIC_*`). Use **`plaintext` or `sensitive`** visibility — **`secret` is not inlined** into JavaScript for `eas update`.
 
 ```bash
 cd apps/mobile
-eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://<project-ref>.supabase.co"
-eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publishable-key>"
+eas env:create production --name EXPO_PUBLIC_SITE_URL --value "https://trymudkitchen.com" --visibility plaintext
+eas env:create production --name EXPO_PUBLIC_SUPABASE_URL --value "https://<project-ref>.supabase.co" --visibility plaintext
+eas env:create production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "<publishable-key>" --visibility sensitive
 ```
 
-EAS injects these into production builds together with profile env from [`eas.json`](eas.json).
+Verify before the first OTA:
+
+```bash
+eas env:list production
+npm run assert:production-eas-env   # same check as update:production
+```
+
+[`eas.json`](eas.json) `build.production.environment` is `production` so **store builds and OTA use the same variables**. Legacy `eas secret:create` is deprecated; migrate to `eas env` if you still have old secrets.
 
 ### 3. Store credentials
 
@@ -145,10 +156,10 @@ Before each store release:
 
 [`eas.json`](eas.json) profiles:
 
-| Profile | Use |
-|---------|-----|
-| `development` | Dev client, internal distribution |
-| `production` | Store builds; sets `EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com` on EAS workers |
+| Profile | Channel | Use |
+|---------|---------|-----|
+| `development` | `development` | Dev client, internal distribution |
+| `production` | `production` | Store / TestFlight builds; `environment: production` + EAS `production` env vars |
 
 From `apps/mobile`:
 
@@ -161,6 +172,44 @@ npm run build:production:android
 Scripts run [`scripts/assert-production-mobile-env.sh`](scripts/assert-production-mobile-env.sh) with production `EXPO_PUBLIC_SITE_URL`, then `eas build --profile production`.
 
 Monitor: [expo.dev](https://expo.dev) → project → Builds.
+
+## EAS Update (OTA)
+
+Production builds include **`expo-updates`** and listen on the **`production`** channel ([`app.json`](app.json) `runtimeVersion` policy `appVersion`, [`eas.json`](eas.json) `production.channel`).
+
+**First time after enabling OTA:** existing TestFlight installs **cannot** receive updates until you ship **one new** iOS production build + submit. Only binaries built with `expo-updates` baked in can load OTA bundles.
+
+### What OTA can vs cannot change
+
+| Ship with `npm run update:production` | Still needs `eas build` + store submit |
+|---------------------------------------|----------------------------------------|
+| React/TS bug fixes, UI, copy | New native modules or Expo plugins |
+| JS business logic | Expo SDK upgrade |
+| Most navigation / screen changes | `app.json` permission or push config changes |
+| Change `EXPO_PUBLIC_*` (update EAS `production` env, then publish OTA — values are re-inlined in the JS bundle) | Bump `expo.version` (new runtime — pair with a new native build) |
+
+API-only fixes: deploy **Vercel production** only — no OTA.
+
+### Publish a JS-only update
+
+After testers are on an OTA-capable build:
+
+1. Deploy web first if the change depends on new API routes or server logic.
+2. From `apps/mobile`:
+
+```bash
+npm run update:production -- --message "fix: short description"
+```
+
+Runs [`assert-production-eas-env.sh`](scripts/assert-production-eas-env.sh), then `eas update` with **`--environment production`** (same EAS env as store builds) and **`--platform ios`** so publish skips web static export (TestFlight OTA is iOS-only today). For Android later: `eas update --channel production --environment production --platform android`.
+
+**Before the first OTA:** confirm `eas env:list production` shows all three `EXPO_PUBLIC_*` variables. Publishing without them inlines empty Supabase config and breaks auth after restart.
+
+**In-app prompt:** production builds run [`OtaUpdateManager`](src/components/ota-update-manager.tsx) on launch and when returning to the app. After an OTA bundle downloads, testers see **Update available** with **Restart now** / **Later** — no force-quit required. If they tap **Later**, the new bundle applies on the next restart.
+
+Check [expo.dev](https://expo.dev) → project → Updates for channel `production` and runtime matching `app.json` `version` (e.g. `1.0.0`).
+
+**Channel discipline:** only publish TestFlight/App Store OTAs to `production`. Dev clients use the `development` channel.
 
 ## Submit to stores
 
@@ -182,6 +231,7 @@ Set these URLs in App Store Connect and Google Play Console:
 |-------|-----|
 | Privacy policy | `https://trymudkitchen.com/privacy` |
 | Account deletion | `https://trymudkitchen.com/account-deletion` |
+| Subtitle, keywords, description | [APP_STORE_METADATA.md](APP_STORE_METADATA.md) (paste into App Store Connect) |
 
 **Export compliance:** `ITSAppUsesNonExemptEncryption: false` is set in [`app.json`](app.json) for HTTPS-only apps. Rebuild production IPA after changing this flag — it is baked in at build time.
 
@@ -196,11 +246,28 @@ Set these URLs in App Store Connect and Google Play Console:
 | `EXPO_PUBLIC_SITE_URL is not set` (assert) | Use `npm run build:production:*` (sets URL in script) — do not rely on `.env` alone |
 | Assert blocks localhost / `:3000` | Expected if `.env` leaked into shell; unset or use npm scripts |
 | Build succeeds but app can't reach API | Confirm Vercel prod deployed; verify `EXPO_PUBLIC_SITE_URL` in build logs |
-| Auth fails in production build | Re-check EAS secrets match **production** Supabase, not local |
-| Missing Supabase env in build | Run `eas env:list --environment production`; recreate `EXPO_PUBLIC_SUPABASE_*` if missing |
-| Login works but all tabs show "You must be signed in" | Confirm EAS `EXPO_PUBLIC_SUPABASE_URL` / publishable key match Vercel `NEXT_PUBLIC_SUPABASE_*` (same project ref). Rebuild after fixing env. |
+| Auth fails in production build | Re-check EAS `production` env vars match **production** Supabase, not local |
+| Missing Supabase env in build or OTA | Run `eas env:list production` or `npm run assert:production-eas-env`; recreate `EXPO_PUBLIC_*` with plaintext/sensitive visibility |
+| Login works but every tab shows "You must be signed in" / `(missing_token)` | Usually the site URL redirects (apex ↔ `www`), and the redirect drops the `Authorization` header. `curl -s -o /dev/null -w '%{http_code}\n' https://trymudkitchen.com/api/health` must print `200`, not `308`. Fix in Vercel → Settings → Domains: `trymudkitchen.com` serves production, `www` redirects to it. No rebuild needed. |
+| Assert says `EXPO_PUBLIC_SITE_URL redirects` | Same cause as above — fix the Vercel primary domain before building |
+| Login works but all tabs show "You must be signed in" / `(rejected_token:…)` | Confirm EAS `EXPO_PUBLIC_SUPABASE_URL` / publishable key match Vercel `NEXT_PUBLIC_SUPABASE_*` (same project ref). Rebuild after fixing env. |
 | `eas build` asks to configure project | Run from `apps/mobile`; complete `eas build:configure` / link flow |
 | API 404 on new feature | Web not deployed yet — ship Next.js production first |
+| OTA published but app unchanged | Installed build predates `expo-updates`, or runtime/channel mismatch — rebuild once, then verify Updates dashboard |
+| OTA published but app crashes / missing Supabase after restart | EAS `production` env missing `EXPO_PUBLIC_SUPABASE_*` or vars use `secret` visibility — fix env, republish OTA |
+| OTA published but env wrong in bundle | Use `update:production` (assert + `--environment production`); ensure EAS `production` env matches store build |
+| `eas update` / export fails: `Unable to resolve module @expo/metro-runtime` | Default `eas update` bundles **web** too; [`app.json`](app.json) `web.output: static` needs that package. Use `npm run update:production` (`--platform ios`) or install `@expo/metro-runtime` in the mobile workspace |
+| Keeps returning to intro / welcome (logged out) on iOS | Ship a build with `SupabaseAuthLifecycle` (AppState refresh). After TestFlight install: login → background 30+ min → foreground (stay signed in); force-quit → reopen (stay signed in). If still failing, check `activity_events` for `auth.session_cleared` vs `pendingAuthDiagnostics` on next `auth.signed_in` |
+
+## Session persistence verification (TestFlight)
+
+After shipping a production iOS build or OTA that includes auth lifecycle fixes:
+
+1. Sign in as a parent (or your usual portal).
+2. Background the app for 30+ minutes, then foreground — you should remain in the portal, not the intro.
+3. Force-quit and reopen — session should restore without the intro.
+4. Tap Sign out — intro is expected; `auth.signed_out` should appear in activity events.
+5. If unexpected logouts continue, look for `auth.session_cleared` (unexpected loss) or `pendingAuthDiagnostics` with `auth.storage_decrypt_failed` on the next sign-in.
 
 ## References
 
@@ -212,6 +279,5 @@ Set these URLs in App Store Connect and Google Play Console:
 
 ## Out of scope (future)
 
-- GitHub Actions `eas build` on merge to `main` (`EXPO_TOKEN`, Apple API key in repo secrets)
-- `eas update` / OTA for JS-only hotfixes
-- Staging EAS profile (e.g. Vercel preview URL)
+- GitHub Actions `eas build` / `eas update` on merge to `main` (`EXPO_TOKEN`, Apple API key in repo secrets)
+- Staging EAS profile (e.g. Vercel preview URL + `preview` channel)

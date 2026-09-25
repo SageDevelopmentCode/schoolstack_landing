@@ -32,18 +32,20 @@ You do **not** need `.env.e2e` or `.env.e2e.local` for normal development, lint,
 
 ## Releasing (TestFlight / App Store)
 
-**Runbook:** [DEPLOY.md](DEPLOY.md) (human reference). Agent skill: [`.agents/skills/mobile-eas-deploy/SKILL.md`](../../.agents/skills/mobile-eas-deploy/SKILL.md).
+**Runbook:** [DEPLOY.md](DEPLOY.md) (human reference). **App Store copy:** [APP_STORE_METADATA.md](APP_STORE_METADATA.md). Agent skill: [`.agents/skills/mobile-eas-deploy/SKILL.md`](../../.agents/skills/mobile-eas-deploy/SKILL.md).
 
 Do **not** change `.env` before a production build. Use EAS build profiles in [`eas.json`](eas.json):
 
 1. Install EAS CLI: `npm i -g eas-cli` and `eas login`
-2. Set production Supabase secrets (once per project):
+2. Set production `EXPO_PUBLIC_*` on the EAS **`production`** environment (once per project; `plaintext` or `sensitive`, not `secret`):
    ```bash
    cd apps/mobile
-   eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://..."
-   eas secret:create --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "..."
+   eas env:create production --name EXPO_PUBLIC_SITE_URL --value "https://trymudkitchen.com" --visibility plaintext
+   eas env:create production --name EXPO_PUBLIC_SUPABASE_URL --value "https://..." --visibility plaintext
+   eas env:create production --name EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY --value "..." --visibility sensitive
    ```
-3. Build for production (`npm run build:production:*` sets `EXPO_PUBLIC_SITE_URL` for the local assert step; EAS workers also get it from `eas.json`):
+   Verify: `npm run assert:production-eas-env` (also runs before `update:production`).
+3. Build for production (`npm run build:production:*` sets `EXPO_PUBLIC_SITE_URL` for the local assert step; EAS uses `production.environment` + EAS env vars):
    ```bash
    cd apps/mobile
    npm run build:production:ios

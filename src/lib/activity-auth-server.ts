@@ -15,6 +15,7 @@ export const AUTHENTICATED_AUTH_ACTIONS = new Set<string>([
   ACTIVITY_ACTIONS.AUTH_SIGNED_IN,
   ACTIVITY_ACTIONS.AUTH_SIGNED_OUT,
   ACTIVITY_ACTIONS.AUTH_SESSION_RESTORED,
+  ACTIVITY_ACTIONS.AUTH_SESSION_CLEARED,
 ]);
 
 export function isValidAuthEmail(email: string | undefined): email is string {

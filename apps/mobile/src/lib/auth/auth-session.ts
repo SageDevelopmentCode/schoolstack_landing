@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { agentLog } from '@/lib/debug-agent-log';
+import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export const AUTH_REQUIRED_MESSAGE = 'You must be signed in to continue.';
@@ -30,6 +31,10 @@ export function setCachedAccessToken(accessToken: string | null): void {
   cachedAccessToken = accessToken?.trim() ? accessToken : null;
 }
 
+export function getCachedAccessToken(): string | null {
+  return cachedAccessToken;
+}
+
 export function clearCachedAccessToken(): void {
   cachedAccessToken = null;
 }
@@ -39,6 +44,7 @@ export function isAuthRequiredError(error: unknown): boolean {
 }
 
 function signOutStaleSession(): void {
+  markExplicitMobileSignOut();
   clearCachedAccessToken();
   const supabase = getSupabaseClient();
   void supabase.auth.signOut();
@@ -167,6 +173,18 @@ function buildAuthHeaders(
     ...mobileClientHeaders(),
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
   };
+}
+
+export async function postJsonWithAccessToken(
+  url: string,
+  accessToken: string,
+  body: string,
+): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: buildAuthHeaders(accessToken, true),
+    body,
+  });
 }
 
 export async function getApiAuthHeaders(includeJson = false): Promise<Record<string, string>> {

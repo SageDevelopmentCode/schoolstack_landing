@@ -28,7 +28,7 @@ type ParentBillingContextValue = {
   error: string | null;
   hasLoaded: boolean;
   ensureLoaded: () => void;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<ParentBillingData | null>;
   applySignedAgreement: (detail: ParentFormDetail) => void;
 };
 
@@ -103,22 +103,21 @@ export function ParentBillingProvider({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(Boolean(cached));
-  const fetchPromiseRef = useRef<Promise<void> | null>(null);
+  const fetchPromiseRef = useRef<Promise<ParentBillingData | null> | null>(null);
   const reportError = useMemo(
     () => createParentPortalErrorReporter(organizationId),
     [organizationId],
   );
 
   const load = useCallback(
-    async (options?: { refresh?: boolean }) => {
+    async (options?: { refresh?: boolean }): Promise<ParentBillingData | null> => {
       const isRefresh = options?.refresh ?? false;
 
       if (fetchPromiseRef.current && !isRefresh) {
-        await fetchPromiseRef.current;
-        return;
+        return fetchPromiseRef.current;
       }
 
-      const run = async () => {
+      const run = async (): Promise<ParentBillingData | null> => {
         const hasCachedData = Boolean(billingCache.get(key) ?? data);
         if (isRefresh) {
           setIsRefreshing(true);
@@ -133,9 +132,11 @@ export function ParentBillingProvider({
           });
           setData(nextData);
           setHasLoaded(true);
+          return nextData;
         } catch (loadError) {
           reportError('parent_billing_load', loadError);
           setError(loadError instanceof Error ? loadError.message : 'Failed to load billing.');
+          return null;
         } finally {
           setIsLoading(false);
           setIsRefreshing(false);
@@ -147,7 +148,7 @@ export function ParentBillingProvider({
       if (!isRefresh) {
         fetchPromiseRef.current = promise;
       }
-      await promise;
+      return promise;
     },
     [data, key, organizationId, reportError, slug],
   );
@@ -157,9 +158,7 @@ export function ParentBillingProvider({
     void load();
   }, [hasLoaded, load]);
 
-  const refresh = useCallback(async () => {
-    await load({ refresh: true });
-  }, [load]);
+  const refresh = useCallback(() => load({ refresh: true }), [load]);
 
   const applySignedAgreement = useCallback((detail: ParentFormDetail) => {
     setData((current) =>

@@ -22,3 +22,4 @@
 {"sessionId":"4090ee","timestamp":1790223545173,"location":"auth-session.ts:fetchWithAuth","message":"parent API response","hypothesisId":"H2","data":{"status":401,"urlHost":"127.0.0.1:3000","hasToken":true,"tokenLength":999}}
 {"sessionId":"4090ee","timestamp":1790223545340,"location":"auth-session.ts:fetchWithAuth","message":"parent API response","hypothesisId":"H2","data":{"status":401,"urlHost":"127.0.0.1:3000","hasToken":true,"tokenLength":999}}
 {"sessionId":"4090ee","timestamp":1790223545356,"location":"auth-session.ts:fetchWithAuth","message":"parent API response","hypothesisId":"H2","data":{"status":401,"urlHost":"127.0.0.1:3000","hasToken":true,"tokenLength":999}}
+{"sessionId":"4090ee","timestamp":1790286313382,"location":"auth-session.ts:fetchWithAuth","message":"parent API response","hypothesisId":"H5","data":{"status":204,"urlHost":"127.0.0.1:3000","hasToken":true,"tokenLength":804}}

@@ -19,6 +19,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { LogBox, View } from 'react-native';
 
 import { AuthSessionGuard } from '@/components/auth-session-guard';
+import { OtaUpdateManager } from '@/components/ota-update-manager';
+import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
@@ -51,6 +53,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <AuthSessionGuard />
+      <SupabaseAuthLifecycle />
+      <OtaUpdateManager />
       <PushNotificationManager />
       <SplashOverlay />
       <Stack
@@ -85,6 +89,7 @@ export default function RootLayout() {
           name="teacher/[slug]"
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
+        <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
       </Stack>
     </AuthProvider>
   );
