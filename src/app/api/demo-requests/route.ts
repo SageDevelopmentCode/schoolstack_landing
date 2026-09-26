@@ -15,6 +15,7 @@ import {
   MAX_PUBLIC_FORM_SCHOOL_NAME_FIELD_LENGTH,
   MAX_PUBLIC_FORM_SHORT_TEXT_LENGTH,
 } from "@/lib/public-forms/field-limits";
+import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/demo-requests";
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid role." });
   }
 
-  if (priorities.length === 0 || !priorities.every((p) => VALID_PRIORITIES.has(p))) {
+  if (priorities.length > 0 && !priorities.every((p) => VALID_PRIORITIES.has(p))) {
     return apiError(ROUTE, { request, status: 400, error: "Invalid priorities." });
   }
 
@@ -292,6 +293,8 @@ export async function POST(request: Request) {
       name,
       email,
       schoolName,
+      role,
+      roleLabel: demoRequestRoleLabel(role),
       scheduledDate,
       scheduledTime,
     });

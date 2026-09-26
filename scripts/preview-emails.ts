@@ -86,10 +86,17 @@ const previews = [
     html: buildDemoBookingConfirmationHtml({
       name: "Jane Smith",
       schoolName: "Oak Grove Microschool",
+      roleLabel: "Exploring or starting a microschool",
       scheduledDate: "2026-06-20",
       scheduledTime: "10:00 AM",
     }),
-    checks: ["Demo Confirmed", "You're all set", "Visit MudKitchen", "trymudkitchen.com/images/Logo.png"],
+    checks: [
+      "Demo Confirmed",
+      "You're all set",
+      "Where you are today",
+      "Visit MudKitchen",
+      "trymudkitchen.com/images/Logo.png",
+    ],
   },
   {
     filename: "homepage-question.html",

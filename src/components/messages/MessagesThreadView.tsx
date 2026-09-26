@@ -10,7 +10,7 @@ import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
-import MessageAttachments from "./MessageAttachments";
+import MessageBubbleBody from "./MessageBubbleBody";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
 import {
   isSplitPaneMessagesVariant,
@@ -39,6 +39,7 @@ export default function MessagesThreadView({
   composeBanner = null,
   onStudentClick,
   schoolName,
+  onEditMessage,
 }: {
   thread: MessageThreadDetail | null;
   input: string;
@@ -56,6 +57,7 @@ export default function MessagesThreadView({
   composeBanner?: MessagesComposeBanner | null;
   onStudentClick?: (studentId: string) => void;
   schoolName?: string;
+  onEditMessage?: (messageId: string, body: string) => Promise<void>;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -266,28 +268,16 @@ export default function MessagesThreadView({
                           {senderLabel}
                         </p>
                       ) : null}
-                      {message.body ? (
-                        <p
-                          className="whitespace-pre-wrap text-sm"
-                          style={{ color: message.isOwn ? "#ffffff" : theme.ink }}
-                        >
-                          {message.body}
-                        </p>
-                      ) : null}
-                      <MessageAttachments
-                        attachments={message.attachments}
+                      <MessageBubbleBody
+                        message={message}
                         C={C}
+                        theme={theme}
                         splitPane={splitPane}
-                        isOwn={message.isOwn}
+                        ownBubble={Boolean(message.isOwn)}
+                        bodyColor={message.isOwn ? "#ffffff" : theme.ink}
+                        readOnly={readOnly}
+                        onEditMessage={onEditMessage}
                       />
-                      <p
-                        className={`mt-1 text-right text-[10px] ${
-                          message.isOwn ? "text-white/70" : ""
-                        }`}
-                        style={message.isOwn ? undefined : { color: theme.muted }}
-                      >
-                        {message.pending ? "Sending…" : message.timeLabel}
-                      </p>
                     </div>
                   </div>
                 );
@@ -337,30 +327,16 @@ export default function MessagesThreadView({
                         {message.senderName}
                       </p>
                     )}
-                    {message.body ? (
-                      <p
-                        className="text-sm whitespace-pre-wrap"
-                        style={{
-                          color: ownBubble ? "#ffffff" : C.textSecondary,
-                        }}
-                      >
-                        {message.body}
-                      </p>
-                    ) : null}
-                    <MessageAttachments
-                      attachments={message.attachments}
+                    <MessageBubbleBody
+                      message={message}
                       C={C}
+                      theme={theme}
                       splitPane={splitPane}
-                      isOwn={message.isOwn}
+                      ownBubble={ownBubble}
+                      bodyColor={ownBubble ? "#ffffff" : C.textSecondary}
+                      readOnly={readOnly}
+                      onEditMessage={onEditMessage}
                     />
-                    <p
-                      className={`text-[10px] mt-1 text-right ${
-                        ownBubble ? "text-white/75" : ""
-                      }`}
-                      style={ownBubble ? undefined : { color: C.textTertiary }}
-                    >
-                      {message.pending ? "Sending…" : message.timeLabel}
-                    </p>
                   </div>
                 </div>
               );

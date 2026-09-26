@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { PortalRouteError } from "@/lib/api/portal-route-errors";
 import {
   buildMessageAttachmentStoragePath,
   copyMessageAttachment,
@@ -9,6 +10,14 @@ import {
 } from "./message-attachment-storage";
 import { mapMessageRow, type ParticipantDisplayContext, type PortalMessageRow } from "./mappers";
 import type { PortalMessage, PortalMessageSenderKind } from "./types";
+
+export type EditPortalMessageInput = {
+  organizationId: string;
+  threadId: string;
+  messageId: string;
+  userId: string;
+  body: string;
+};
 
 export type PostMessageInput = {
   organizationId: string;
@@ -161,6 +170,66 @@ export async function postPortalMessageWithStagingAttachments(
   }));
 
   return message;
+}
+
+export async function editPortalMessage(
+  admin: SupabaseClient,
+  input: EditPortalMessageInput,
+): Promise<void> {
+  const body = input.body.trim();
+  if (!body) {
+    throw new PortalRouteError("Message cannot be empty.", 400, "invalid_request");
+  }
+
+  const { data: row, error } = await admin
+    .from("portal_messages")
+    .select("*")
+    .eq("id", input.messageId)
+    .eq("thread_id", input.threadId)
+    .eq("organization_id", input.organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) {
+    throw new PortalRouteError("Message not found.", 404, "not_found");
+  }
+
+  const messageRow = row as PortalMessageRow;
+  if (String(messageRow.sender_user_id) !== input.userId) {
+    throw new PortalRouteError("You can only edit your own messages.", 403, "forbidden");
+  }
+
+  const { count, error: attachmentCountError } = await admin
+    .from("portal_message_attachments")
+    .select("id", { count: "exact", head: true })
+    .eq("message_id", input.messageId);
+
+  if (attachmentCountError) throw new Error(attachmentCountError.message);
+  if ((count ?? 0) > 0) {
+    throw new PortalRouteError(
+      "Messages with attachments cannot be edited.",
+      400,
+      "not_editable",
+    );
+  }
+
+  if (!messageRow.body.trim()) {
+    throw new PortalRouteError("This message cannot be edited.", 400, "not_editable");
+  }
+
+  if (messageRow.body.trim() === body) {
+    return;
+  }
+
+  const { error: updateError } = await admin
+    .from("portal_messages")
+    .update({
+      body,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("id", input.messageId);
+
+  if (updateError) throw new Error(updateError.message);
 }
 
 export async function getGuardianIdForUser(

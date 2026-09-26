@@ -46,6 +46,23 @@ export function useMessageRealtime({
         {
           event: "UPDATE",
           schema: "public",
+          table: "portal_messages",
+          filter: `organization_id=eq.${organizationId}`,
+        },
+        (payload: { new: { thread_id?: string } }) => {
+          const threadId = String(
+            (payload.new as { thread_id?: string }).thread_id ?? "",
+          );
+          if (!threadId) return;
+          onInboxChange();
+          onThreadMessage(threadId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
           table: "message_threads",
           filter: `organization_id=eq.${organizationId}`,
         },

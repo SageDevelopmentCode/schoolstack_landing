@@ -8,13 +8,13 @@ import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 export default function AdminGrowthSection() {
   return (
     <section className="bg-surface py-24 overflow-x-hidden overflow-y-hidden lg:overflow-hidden">
-      <div className="max-w-[1200px] mx-auto pl-6 pr-0 lg:pr-12 lg:pl-0 overflow-x-hidden">
+      <div className="max-w-[1200px] mx-auto pl-0 pr-6 lg:pr-12 lg:pl-0 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-center">
 
           {/* Left — AdminDashboardDemo, scaled down with fixed height + internal scroll */}
           <FadeInView delay={0.1} className="order-2 lg:order-1">
-            <div className="max-lg:-ml-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
-              <LandingScaledDemoFrame preventHorizontalScroll>
+            <div className="max-lg:-mr-6 max-lg:overflow-x-hidden max-lg:overscroll-x-none">
+              <LandingScaledDemoFrame preventHorizontalScroll mobileAlign="right">
                 <InViewDemoGate>
                   <LazyAdminDashboardDemo disableTour={true} />
                 </InViewDemoGate>
@@ -23,7 +23,7 @@ export default function AdminGrowthSection() {
           </FadeInView>
 
           {/* Right — text content */}
-          <div className="order-1 lg:order-2 pr-4 lg:pr-0 lg:pl-6">
+          <div className="order-1 lg:order-2 pl-4 pr-4 max-lg:text-right lg:pr-0 lg:pl-6 lg:text-left">
             <FadeInView>
               <p className="text-[13px] font-medium uppercase tracking-widest text-text-muted mb-4">
                 Growing operations
@@ -50,7 +50,7 @@ export default function AdminGrowthSection() {
             </FadeInView>
 
             <FadeInView delay={0.18}>
-              <div className="mt-8">
+              <div className="mt-8 max-lg:flex max-lg:justify-end">
                 <a
                   href="/get-started"
                   className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"

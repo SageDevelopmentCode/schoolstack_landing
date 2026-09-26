@@ -29,6 +29,7 @@ const sampleDetail: MessageThreadDetail = {
       isOwn: true,
       createdAt: "2026-09-05T05:17:17.727Z",
       timeLabel: "10:17 PM",
+      editedAt: null,
       attachments: [],
     },
   ],

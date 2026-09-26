@@ -6,6 +6,7 @@ import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { userIsOrgAdmin } from "@/lib/admissions/application-auth";
 import { dispatchMessageNotifications } from "@/lib/messages/message-notifications";
 import {
+  editPortalMessage,
   getGuardianIdForUser,
   postPortalMessage,
 } from "@/lib/messages/messages";
@@ -204,6 +205,62 @@ export async function sendMessageForViewer(
         entityId: input.threadId,
       });
     });
+  }
+
+  return message;
+}
+
+export async function editMessageForViewer(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    threadId: string;
+    messageId: string;
+    body: string;
+    userId: string;
+    viewer: "parent" | "teacher" | "admin";
+    schoolOfficeLabel: string;
+    currentStaffMemberId?: string | null;
+  },
+) {
+  const thread = await getThreadDetail(
+    admin,
+    input.organizationId,
+    input.threadId,
+    input.userId,
+    input.schoolOfficeLabel,
+    input.viewer,
+    { currentStaffMemberId: input.currentStaffMemberId ?? null },
+  );
+  if (!thread) {
+    throw new PortalRouteError("Thread not found.", 404, "not_found");
+  }
+
+  const existing = thread.messages.find((message) => message.id === input.messageId);
+  if (!existing) {
+    throw new PortalRouteError("Message not found.", 404, "not_found");
+  }
+
+  await editPortalMessage(admin, {
+    organizationId: input.organizationId,
+    threadId: input.threadId,
+    messageId: input.messageId,
+    userId: input.userId,
+    body: input.body,
+  });
+
+  const updatedThread = await getThreadDetail(
+    admin,
+    input.organizationId,
+    input.threadId,
+    input.userId,
+    input.schoolOfficeLabel,
+    input.viewer,
+    { currentStaffMemberId: input.currentStaffMemberId ?? null },
+  );
+  const message = updatedThread?.messages.find((item) => item.id === input.messageId);
+  if (!message) {
+    throw new Error("Message not found after update.");
   }
 
   return message;

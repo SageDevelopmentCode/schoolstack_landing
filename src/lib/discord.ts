@@ -2,6 +2,7 @@ import { SITE_URL } from "@/lib/site";
 import { DRAFT_REMINDER_DELAY_PRESETS } from "@/lib/admissions/application-form-schema";
 import type { CommitteeDigestCommitteeGroup } from "@/lib/committees/daily-digest-utils";
 import { formatCommitteeDigestGroupsForDiscord } from "@/lib/committees/daily-digest-utils";
+import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   formatAutopayLineItems,
@@ -1154,14 +1155,6 @@ export async function notifyPostSubmitVisitScheduled(payload: {
   );
 }
 
-const ROLES: Record<string, string> = {
-  starting: "Starting a microschool",
-  running: "Already running one",
-  private: "Private school operator",
-  program: "Program / enrichment model",
-  other: "Other",
-};
-
 const PRIORITIES: Record<string, string> = {
   enrollment: "Enrollment & inquiries",
   communication: "Family communication",
@@ -1234,7 +1227,7 @@ export async function notifyDemoBooking(payload: {
   scheduledDate: string;
   scheduledTime: string;
 }) {
-  const roleLabel = ROLES[payload.role] ?? payload.role;
+  const roleLabel = demoRequestRoleLabel(payload.role);
   const priorityLabels = payload.priorities
     .map((id) => PRIORITIES[id] ?? id)
     .join(", ");
@@ -1313,8 +1306,10 @@ export async function notifyDemoBooking(payload: {
       ),
       ...conceptDemoField,
       embedField("When", when, true),
-      embedField("Role", roleLabel, true),
-      embedField("Priorities", truncate(priorityLabels || "—")),
+      embedField("Where today", roleLabel, true),
+      ...(priorityLabels
+        ? [embedField("Priorities", truncate(priorityLabels))]
+        : []),
       ...branchFields,
       ...optionalFields,
     ],

@@ -19,6 +19,7 @@ function message(
     isOwn: true,
     createdAt: "2026-09-19T12:00:00.000Z",
     timeLabel: "12:00 PM",
+    editedAt: null,
     attachments: [],
     ...overrides,
   };

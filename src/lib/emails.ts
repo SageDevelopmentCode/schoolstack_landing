@@ -34,10 +34,21 @@ function firstName(name: string): string {
 export function buildDemoBookingConfirmationHtml(payload: {
   name: string;
   schoolName: string;
+  roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
 }): string {
   const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
+  const detailRows = [
+    { label: "When", value: when },
+    { label: "School / program", value: payload.schoolName },
+  ];
+  if (payload.roleLabel?.trim()) {
+    detailRows.push({
+      label: "Where you are today",
+      value: payload.roleLabel.trim(),
+    });
+  }
 
   return composeEmail({
     preheader: "Your demo is confirmed — we'll be in touch soon.",
@@ -45,12 +56,9 @@ export function buildDemoBookingConfirmationHtml(payload: {
       ${emailBadge("Demo Confirmed")}
       ${emailHeading(`You're all set, ${firstName(payload.name)}.`)}
       ${emailParagraph(
-        `Thanks for booking a demo with ${escapeHtml(SITE_NAME)}. We received your request and look forward to walking you through how we help microschool founders run enrollment, billing, and daily operations in one place.`
+        `Thanks for booking a demo with ${escapeHtml(SITE_NAME)}. We look forward to showing you how ${escapeHtml(SITE_NAME)} can simplify enrollment, billing, family communication, and daily operations for your school.`
       )}
-      ${emailDetailCard([
-        { label: "When", value: when },
-        { label: "School", value: payload.schoolName },
-      ])}
+      ${emailDetailCard(detailRows)}
       ${emailParagraph(
         "We'll send a calendar invite or follow up shortly if we need anything else before your session."
       )}
@@ -100,6 +108,8 @@ export async function sendDemoBookingConfirmation(payload: {
   name: string;
   email: string;
   schoolName: string;
+  role?: string;
+  roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
 }): Promise<void> {

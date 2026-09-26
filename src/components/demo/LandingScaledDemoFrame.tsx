@@ -10,6 +10,8 @@ interface LandingScaledDemoFrameProps {
   className?: string
   gate?: boolean
   preventHorizontalScroll?: boolean
+  /** Below `lg`, anchor the scaled demo to the right instead of the left. */
+  mobileAlign?: 'left' | 'right'
 }
 
 export function LandingScaledDemoFrame({
@@ -17,18 +19,23 @@ export function LandingScaledDemoFrame({
   className = '',
   gate = true,
   preventHorizontalScroll = false,
+  mobileAlign = 'left',
 }: LandingScaledDemoFrameProps) {
   const scrollLockClass = preventHorizontalScroll
     ? 'overflow-x-hidden overscroll-x-none touch-pan-y'
     : ''
 
+  const horizontalAnchorClass =
+    mobileAlign === 'right'
+      ? 'right-0 left-auto origin-top-right lg:left-0 lg:right-auto lg:origin-top-left'
+      : 'left-0 origin-top-left'
+
   const scaledShell = (
     <div
-      className={`absolute top-0 left-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden ${scrollLockClass}`}
+      className={`absolute top-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden ${horizontalAnchorClass} ${scrollLockClass}`}
       style={{
         height: `calc(${LANDING_DEMO_VISIBLE_HEIGHT}px / ${LANDING_DEMO_SCALE})`,
         transform: `scale(${LANDING_DEMO_SCALE})`,
-        transformOrigin: 'top left',
       }}
     >
       {children}

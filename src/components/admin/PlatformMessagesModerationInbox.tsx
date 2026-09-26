@@ -114,6 +114,7 @@ function MessageBubble({ message }: { message: PortalMessage }) {
       senderName={message.senderName}
       roleLabel={senderKindLabel(message.senderKind)}
       timestamp={formatMessageTimestamp(message.createdAt)}
+      edited={Boolean(message.editedAt)}
       body={message.body}
       metadata={<MessageAttachments attachments={message.attachments} />}
     />

@@ -447,6 +447,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: false,
         createdAt: "2026-09-20T13:10:00.000Z",
         timeLabel: "1:10 PM",
+        editedAt: null,
         attachments: [],
       },
       {
@@ -459,6 +460,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: true,
         createdAt: "2026-09-20T13:25:00.000Z",
         timeLabel: "1:25 PM",
+        editedAt: null,
         attachments: [],
       },
       {
@@ -471,6 +473,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: false,
         createdAt: "2026-09-20T13:45:00.000Z",
         timeLabel: "1:45 PM",
+        editedAt: null,
         attachments: [],
       },
     ],
@@ -485,6 +488,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: true,
         createdAt: "2026-09-19T15:30:00.000Z",
         timeLabel: "3:30 PM",
+        editedAt: null,
         attachments: [],
       },
       {
@@ -497,6 +501,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: false,
         createdAt: "2026-09-19T16:20:00.000Z",
         timeLabel: "4:20 PM",
+        editedAt: null,
         attachments: [],
       },
     ],
@@ -511,6 +516,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: false,
         createdAt: "2026-09-18T09:45:00.000Z",
         timeLabel: "9:45 AM",
+        editedAt: null,
         attachments: [],
       },
       {
@@ -523,6 +529,7 @@ export function buildDemoTeacherMessageThreadDetails(): Record<
         isOwn: false,
         createdAt: "2026-09-18T10:05:00.000Z",
         timeLabel: "10:05 AM",
+        editedAt: null,
         attachments: [],
       },
     ],

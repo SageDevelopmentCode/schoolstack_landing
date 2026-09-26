@@ -514,6 +514,7 @@ export default function MessagesInboxLayout({
       isOwn: true,
       createdAt: new Date().toISOString(),
       timeLabel: "Now",
+      editedAt: null,
       attachments: stagedFiles.map((file, index) => ({
         id: `pending-file-${index}`,
         fileName: file.name,
@@ -607,6 +608,50 @@ export default function MessagesInboxLayout({
     reportMessagesError,
     stagedFiles,
   ]);
+
+  const handleEditMessage = useCallback(
+    async (messageId: string, body: string) => {
+      if (!activeThreadId || readOnly) {
+        throw new Error("Cannot edit message.");
+      }
+
+      const response = await fetch(
+        `${api.basePath}/threads/${activeThreadId}/messages/${messageId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId: api.organizationId,
+            schoolName: api.schoolName,
+            body,
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to edit message.");
+      }
+
+      const serverMessage = data.message as PortalMessage;
+      setActiveThread((prev) => {
+        if (!prev) return prev;
+        const messages = mergeMessages(
+          prev.messages.filter((message) => message.id !== messageId),
+          [serverMessage],
+        );
+        if (messages.at(-1)?.id === messageId) {
+          setThreads((threadList) =>
+            upsertThreadSummary(threadList, {
+              ...threadSummaryFromDetail({ ...prev, messages }),
+              lastMessagePreview: serverMessage.body,
+            }),
+          );
+        }
+        return { ...prev, messages };
+      });
+    },
+    [activeThreadId, api.basePath, api.organizationId, api.schoolName, readOnly],
+  );
 
   const onThreadMessage = useCallback(
     (threadId: string) => {
@@ -1081,6 +1126,7 @@ export default function MessagesInboxLayout({
                 ? handleStudentClick
                 : undefined
             }
+            onEditMessage={readOnly ? undefined : handleEditMessage}
           />
         </motion.div>
       </div>

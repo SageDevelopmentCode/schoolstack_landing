@@ -46,6 +46,7 @@ export type PortalMessageRow = {
   sender_guardian_id: string | null;
   sender_staff_member_id: string | null;
   created_at: string;
+  edited_at?: string | null;
 };
 
 export type ParticipantDisplayContext = {
@@ -583,6 +584,7 @@ export function mapMessageRow(
     isOwn: row.sender_user_id === context.currentUserId,
     createdAt: row.created_at,
     timeLabel: formatMessageTime(row.created_at),
+    editedAt: row.edited_at ? String(row.edited_at) : null,
     attachments: [],
   };
 }
