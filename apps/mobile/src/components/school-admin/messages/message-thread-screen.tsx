@@ -6,6 +6,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -29,7 +30,10 @@ import {
   hydrateSchoolAdminMessageThreadFromDisk,
   isSchoolAdminMessageThreadStale,
 } from '@/lib/messages/message-thread-cache';
-import { mergeMessages, sendMessage } from '@/lib/messages/api';
+import { deleteMessage, editMessage, mergeMessages, sendMessage } from '@/lib/messages/api';
+import { MessageThreadMutationOverlays } from '@/components/messages/message-thread-mutation-overlays';
+import { portalMessageSupportsTextMutation } from '@/lib/messages/message-mutation-eligibility';
+import { useMessageThreadMutations } from '@/lib/messages/use-message-thread-mutations';
 import {
   createLoadGenerationGuard,
   createOptimisticSendTracker,
@@ -89,6 +93,7 @@ export function MessageThreadScreen({
   const [stagedFiles, setStagedFiles] = useState<StagedMessageFile[]>([]);
   const [sending, setSending] = useState(false);
   const listRef = useRef<FlatList<RenderMessageItem>>(null);
+  const composeInputRef = useRef<TextInput>(null);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
 
@@ -192,6 +197,29 @@ export function MessageThreadScreen({
     return resolveAdminComposeState(thread, readOnly, staffDisplayName);
   }, [readOnly, staffDisplayName, thread]);
 
+  const messageMutations = useMessageThreadMutations({
+    threadId,
+    organizationId,
+    schoolName,
+    readOnly,
+    setThread,
+    mergeMessages,
+    editMessage,
+    deleteMessage,
+    onError: (message) => setError(message),
+  });
+  const { handleMessageLongPress, editingMessage, saveEdit, cancelEdit, savingEdit } =
+    messageMutations;
+
+  useEffect(() => {
+    if (!editingMessage) return;
+    setInput(editingMessage.body);
+    setStagedFiles([]);
+    requestAnimationFrame(() => {
+      composeInputRef.current?.focus();
+    });
+  }, [editingMessage?.id]);
+
   useEffect(() => {
     if (renderItems.length === 0) return;
     requestAnimationFrame(() => {
@@ -200,7 +228,18 @@ export function MessageThreadScreen({
   }, [renderItems.length, thread?.messages.length]);
 
   const handleSend = async () => {
-    if (!thread || composeState.disabled) return;
+    if (!thread) return;
+
+    if (editingMessage) {
+      if (savingEdit) return;
+      const editBody = input.trim();
+      if (!editBody) return;
+      const saved = await saveEdit(editBody);
+      if (saved) setInput('');
+      return;
+    }
+
+    if (composeState.disabled) return;
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
@@ -281,12 +320,17 @@ export function MessageThreadScreen({
       );
     }
 
+    const message = item.message;
+    const canMutate =
+      !readOnly && portalMessageSupportsTextMutation(message);
+
     return (
       <MessageBubble
-        message={item.message}
+        message={message}
         showSenderName={item.showSenderName}
         isGroupedWithPrevious={item.isGroupedWithPrevious}
         variant="admin-story"
+        onLongPress={canMutate ? () => handleMessageLongPress(message) : undefined}
       />
     );
   };
@@ -378,10 +422,18 @@ export function MessageThreadScreen({
         onSend={() => {
           void handleSend();
         }}
-        sending={sending}
-        disabled={composeState.disabled}
+        sending={sending || savingEdit}
+        disabled={composeState.disabled && !editingMessage}
+        editMode={editingMessage !== null}
+        onCancelEdit={() => {
+          cancelEdit();
+          setInput('');
+        }}
+        inputRef={composeInputRef}
         variant="admin-story"
       />
+
+      <MessageThreadMutationOverlays {...messageMutations} />
     </KeyboardAvoidingView>
   );
 }

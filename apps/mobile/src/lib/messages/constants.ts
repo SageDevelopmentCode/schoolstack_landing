@@ -1,3 +1,5 @@
+export const PORTAL_MESSAGE_DELETED_PREVIEW = 'Message has been deleted';
+
 export const MAX_MESSAGE_ATTACHMENTS = 5;
 export const MAX_MESSAGE_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 

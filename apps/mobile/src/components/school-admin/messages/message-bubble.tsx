@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
+import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
@@ -9,6 +10,7 @@ import { StoryFonts } from '@/constants/story-theme';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { useOptionalParentTheme } from '@/contexts/parent-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
+import { PORTAL_MESSAGE_DELETED_PREVIEW } from '@/lib/messages/constants';
 import { colorForKey } from '@/lib/messages/format';
 import type { MessagesLayoutVariant } from '@/lib/messages/messages-layout-variant';
 import { isStoryMessagesVariant } from '@/lib/messages/messages-layout-variant';
@@ -54,11 +56,38 @@ function MessageTimeFooter({
   );
 }
 
+function formatMessageTimeLabel(message: PortalMessage): string {
+  if (message.pending) return 'Sending…';
+  if (message.editedAt && !message.deletedAt) {
+    return `${message.timeLabel} (Edited)`;
+  }
+  return message.timeLabel;
+}
+
+function BubbleLongPressWrap({
+  onLongPress,
+  children,
+}: {
+  onLongPress?: () => void;
+  children: ReactNode;
+}) {
+  if (!onLongPress) {
+    return children;
+  }
+
+  return (
+    <Pressable onLongPress={onLongPress} delayLongPress={400}>
+      {children}
+    </Pressable>
+  );
+}
+
 type MessageBubbleProps = {
   message: PortalMessage;
   showSenderName: boolean;
   isGroupedWithPrevious: boolean;
   variant?: MessagesLayoutVariant;
+  onLongPress?: () => void;
 };
 
 export function MessageBubble({
@@ -66,16 +95,20 @@ export function MessageBubble({
   showSenderName,
   isGroupedWithPrevious,
   variant = 'default',
+  onLongPress,
 }: MessageBubbleProps) {
   const theme = useAdminTheme();
   const parentTheme = useOptionalParentTheme();
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const isOwn = message.isOwn;
   const showSentCheck = isOwn && !message.pending;
+  const isDeleted = Boolean(message.deletedAt);
+  const timeLabel = formatMessageTimeLabel(message);
 
   if (parentStory) {
     const displaySenderName = true;
     const grouped = false;
+    const deletedMuted = parentTheme.muted;
 
     return (
       <View
@@ -90,53 +123,72 @@ export function MessageBubble({
           photoUrl={message.profilePhotoUrl}
           size="sm"
         />
-        <View
-          style={[
-            styles.storyBubble,
-            {
-              backgroundColor: isOwn ? parentTheme.primary : parentTheme.white,
-              borderColor: isOwn ? 'transparent' : parentTheme.line,
-              borderWidth: isOwn ? 0 : StyleSheet.hairlineWidth,
-            },
-          ]}>
-          {displaySenderName ? (
-            <Text
-              style={[
-                styles.storySenderName,
-                { color: isOwn ? 'rgba(255,255,255,0.75)' : parentTheme.primary },
-              ]}>
-              {message.senderName}
-            </Text>
-          ) : null}
-          {message.body ? (
-            <Text
-              style={[
-                styles.storyBody,
-                { color: isOwn ? '#FFFFFF' : parentTheme.ink },
-              ]}>
-              {message.body}
-            </Text>
-          ) : null}
-          {message.attachments.length > 0 ? (
-            <View style={styles.attachments}>
-              {message.attachments.map((attachment) => (
-                <AttachmentRow
-                  key={attachment.id}
-                  attachment={attachment}
-                  isOwn={isOwn}
-                  accentColor={parentTheme.primary}
-                  labelColor={isOwn ? '#FFFFFF' : parentTheme.primary}
-                />
-              ))}
-            </View>
-          ) : null}
-          <MessageTimeFooter
-            timeLabel={message.timeLabel}
-            timeColor={isOwn ? 'rgba(255,255,255,0.7)' : parentTheme.muted}
-            showSentCheck={showSentCheck}
-            variant="story"
-          />
-        </View>
+        <BubbleLongPressWrap onLongPress={onLongPress}>
+          <View
+            style={[
+              styles.storyBubble,
+              isDeleted
+                ? {
+                    backgroundColor: parentTheme.white,
+                    borderColor: parentTheme.line,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderStyle: 'dashed',
+                  }
+                : {
+                    backgroundColor: isOwn ? parentTheme.primary : parentTheme.white,
+                    borderColor: isOwn ? 'transparent' : parentTheme.line,
+                    borderWidth: isOwn ? 0 : StyleSheet.hairlineWidth,
+                  },
+            ]}>
+            {isDeleted ? (
+              <Text style={[styles.deletedBody, { color: deletedMuted }]}>
+                {PORTAL_MESSAGE_DELETED_PREVIEW}
+              </Text>
+            ) : (
+              <>
+                {displaySenderName ? (
+                  <Text
+                    style={[
+                      styles.storySenderName,
+                      { color: isOwn ? 'rgba(255,255,255,0.75)' : parentTheme.primary },
+                    ]}>
+                    {message.senderName}
+                  </Text>
+                ) : null}
+                {message.body ? (
+                  <Text
+                    style={[
+                      styles.storyBody,
+                      { color: isOwn ? '#FFFFFF' : parentTheme.ink },
+                    ]}>
+                    {message.body}
+                  </Text>
+                ) : null}
+                {message.attachments.length > 0 ? (
+                  <View style={styles.attachments}>
+                    {message.attachments.map((attachment) => (
+                      <AttachmentRow
+                        key={attachment.id}
+                        attachment={attachment}
+                        isOwn={isOwn}
+                        accentColor={parentTheme.primary}
+                        labelColor={isOwn ? '#FFFFFF' : parentTheme.primary}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            )}
+            <MessageTimeFooter
+              timeLabel={timeLabel}
+              timeColor={
+                isDeleted ? deletedMuted : isOwn ? 'rgba(255,255,255,0.7)' : parentTheme.muted
+              }
+              showSentCheck={isDeleted ? false : showSentCheck}
+              variant="story"
+            />
+          </View>
+        </BubbleLongPressWrap>
       </View>
     );
   }
@@ -163,6 +215,21 @@ export function MessageBubble({
   const bodyColor = isOwn ? '#FFFFFF' : theme.textSecondary;
   const timeColor = isOwn ? 'rgba(255,255,255,0.75)' : theme.textTertiary;
 
+  const defaultBubbleStyle = isDeleted
+    ? {
+        backgroundColor: theme.surface,
+        borderTopLeftRadius: BUBBLE_RADIUS,
+        borderTopRightRadius: BUBBLE_RADIUS,
+        borderBottomLeftRadius: isOwn ? BUBBLE_RADIUS : BUBBLE_TAIL_RADIUS,
+        borderBottomRightRadius: isOwn ? BUBBLE_TAIL_RADIUS : BUBBLE_RADIUS,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.border,
+        borderStyle: 'dashed' as const,
+      }
+    : bubbleStyle;
+
+  const defaultTimeColor = isDeleted ? theme.textTertiary : timeColor;
+
   return (
     <View
       style={[
@@ -170,42 +237,47 @@ export function MessageBubble({
         isOwn ? styles.wrapperOwn : styles.wrapperOther,
         isGroupedWithPrevious ? styles.grouped : null,
       ]}>
-      <View
-        style={[
-          styles.bubble,
-          styles.bubbleShadow,
-          bubbleStyle,
-        ]}>
-        {showSenderName ? (
-          <ThemedText type="smallBold" color={theme.accent} style={styles.senderName}>
-            {message.senderName}
-          </ThemedText>
-        ) : null}
-        {message.body ? (
-          <ThemedText type="default" color={bodyColor} style={styles.body}>
-            {message.body}
-          </ThemedText>
-        ) : null}
-        {message.attachments.length > 0 ? (
-          <View style={styles.attachments}>
-            {message.attachments.map((attachment) => (
-              <AttachmentRow
-                key={attachment.id}
-                attachment={attachment}
-                isOwn={isOwn}
-                accentColor={theme.accent}
-                labelColor={isOwn ? '#FFFFFF' : theme.accent}
-              />
-            ))}
-          </View>
-        ) : null}
-        <MessageTimeFooter
-          timeLabel={message.timeLabel}
-          timeColor={timeColor}
-          showSentCheck={showSentCheck}
-          variant="default"
-        />
-      </View>
+      <BubbleLongPressWrap onLongPress={onLongPress}>
+        <View style={[styles.bubble, styles.bubbleShadow, defaultBubbleStyle]}>
+          {isDeleted ? (
+            <ThemedText type="default" color={theme.textTertiary} style={styles.deletedBody}>
+              {PORTAL_MESSAGE_DELETED_PREVIEW}
+            </ThemedText>
+          ) : (
+            <>
+              {showSenderName ? (
+                <ThemedText type="smallBold" color={theme.accent} style={styles.senderName}>
+                  {message.senderName}
+                </ThemedText>
+              ) : null}
+              {message.body ? (
+                <ThemedText type="default" color={bodyColor} style={styles.body}>
+                  {message.body}
+                </ThemedText>
+              ) : null}
+              {message.attachments.length > 0 ? (
+                <View style={styles.attachments}>
+                  {message.attachments.map((attachment) => (
+                    <AttachmentRow
+                      key={attachment.id}
+                      attachment={attachment}
+                      isOwn={isOwn}
+                      accentColor={theme.accent}
+                      labelColor={isOwn ? '#FFFFFF' : theme.accent}
+                    />
+                  ))}
+                </View>
+              ) : null}
+            </>
+          )}
+          <MessageTimeFooter
+            timeLabel={timeLabel}
+            timeColor={defaultTimeColor}
+            showSentCheck={isDeleted ? false : showSentCheck}
+            variant="default"
+          />
+        </View>
+      </BubbleLongPressWrap>
     </View>
   );
 }
@@ -296,6 +368,12 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 15,
     lineHeight: 22,
+  },
+  deletedBody: {
+    fontFamily: StoryFonts.body,
+    fontSize: 15,
+    lineHeight: 22,
+    fontStyle: 'italic',
   },
   timeFooter: {
     flexDirection: 'row',

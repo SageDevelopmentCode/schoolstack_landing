@@ -33,6 +33,8 @@ export function mapCommitteeMessageToPortalMessage(
     isOwn,
     createdAt: parseMessageTimestamp(message.time),
     timeLabel: message.time,
+    editedAt: null,
+    deletedAt: null,
     attachments: (message.attachments ?? []).map((attachment) => ({
       id: attachment.id,
       fileName: attachment.fileName,

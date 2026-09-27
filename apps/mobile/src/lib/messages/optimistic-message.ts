@@ -71,6 +71,8 @@ export function buildOptimisticPortalMessage({
     isOwn: true,
     createdAt,
     timeLabel: formatMessageTime(createdAt),
+    editedAt: null,
+    deletedAt: null,
     attachments: files.map((file, index) => ({
       id: `pending-file-${index}`,
       fileName: file.name,

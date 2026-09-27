@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import type { RefObject } from 'react';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -32,6 +33,9 @@ type MessageComposeBarProps = {
   /** When false, parent SafeAreaView already handles the home indicator inset. */
   applyBottomSafeArea?: boolean;
   variant?: MessagesLayoutVariant;
+  editMode?: boolean;
+  onCancelEdit?: () => void;
+  inputRef?: RefObject<TextInput | null>;
 };
 
 export function MessageComposeBar({
@@ -44,6 +48,9 @@ export function MessageComposeBar({
   disabled = false,
   applyBottomSafeArea = false,
   variant = 'default',
+  editMode = false,
+  onCancelEdit,
+  inputRef,
 }: MessageComposeBarProps) {
   const theme = useAdminTheme();
   const parentTheme = useOptionalParentTheme();
@@ -51,7 +58,9 @@ export function MessageComposeBar({
   const composeDisabled = disabled || readOnly;
   const parentStory = isStoryMessagesVariant(variant) && parentTheme;
   const insets = useSafeAreaInsets();
-  const canSend = Boolean(value.trim() || files.length > 0);
+  const canSend = editMode ? Boolean(value.trim()) : Boolean(value.trim() || files.length > 0);
+  const attachDisabled =
+    composeDisabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS || editMode;
   const bottomPadding = applyBottomSafeArea
     ? Math.max(insets.bottom, Spacing.two)
     : composeDisabled
@@ -95,7 +104,22 @@ export function MessageComposeBar({
           paddingBottom: bottomPadding,
         },
       ]}>
-      {files.length > 0 ? (
+      {editMode ? (
+        <View style={styles.editBanner}>
+          <Text style={[styles.editBannerLabel, { color: textSecondary }]}>Editing message</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel edit"
+            onPress={onCancelEdit}
+            disabled={sending}
+            hitSlop={8}
+            style={({ pressed }) => [styles.editCancelButton, pressed && { opacity: 0.7 }]}>
+            <Ionicons name="close" size={20} color={textSecondary} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      {!editMode && files.length > 0 ? (
         <View style={styles.fileChips}>
           {files.map((file, index) => (
             <View
@@ -122,22 +146,27 @@ export function MessageComposeBar({
           parentStory ? styles.inputRowParentStory : null,
           { borderColor, backgroundColor: fieldBg },
         ]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Attach photo or file"
-          disabled={composeDisabled || sending || files.length >= MAX_MESSAGE_ATTACHMENTS}
-          onPress={handlePickAttachment}
-          style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
-          <Ionicons name="attach" size={22} color={textSecondary} />
-        </Pressable>
+        {!editMode ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Attach photo or file"
+            disabled={attachDisabled}
+            onPress={handlePickAttachment}
+            style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}>
+            <Ionicons name="attach" size={22} color={textSecondary} />
+          </Pressable>
+        ) : (
+          <View style={styles.iconButton} />
+        )}
 
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChange}
-          placeholder="Write a message..."
+          placeholder={editMode ? 'Edit message…' : 'Write a message...'}
           placeholderTextColor={textTertiary}
           multiline
-          editable={!composeDisabled}
+          editable={!composeDisabled && !sending}
           style={[
             styles.input,
             {
@@ -149,7 +178,7 @@ export function MessageComposeBar({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Send message"
+          accessibilityLabel={editMode ? 'Save edit' : 'Send message'}
           disabled={composeDisabled || sending || !canSend}
           onPress={onSend}
           style={({ pressed }) => [
@@ -175,6 +204,21 @@ const styles = StyleSheet.create({
   },
   containerParentStory: {
     borderTopWidth: 0,
+  },
+  editBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.one,
+  },
+  editBannerLabel: {
+    fontFamily: StoryFonts.bodyMedium,
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  editCancelButton: {
+    padding: Spacing.one,
   },
   fileChips: {
     flexDirection: 'row',

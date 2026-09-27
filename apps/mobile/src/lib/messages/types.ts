@@ -64,6 +64,8 @@ export type PortalMessage = {
   isOwn: boolean;
   createdAt: string;
   timeLabel: string;
+  editedAt: string | null;
+  deletedAt: string | null;
   attachments: MessageAttachment[];
   pending?: boolean;
 };
