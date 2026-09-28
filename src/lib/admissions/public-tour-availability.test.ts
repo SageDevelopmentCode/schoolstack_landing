@@ -4,6 +4,7 @@ import type { AdmissionsAvailabilitySlotRecord } from "./admissions-availability
 import {
   buildPublicTourOccupiedSlotKeys,
   computePublicTourAvailability,
+  describeCampusTourSlotForDiscord,
 } from "./public-tour-availability";
 import { FAMILY_TOUR_ACTION_TYPE } from "./family-tour-booking";
 import { validatePublicTourAnswers } from "./public-tour-validation";
@@ -113,6 +114,115 @@ describe("computePublicTourAvailability", () => {
     assert.equal(result.availability["2026-10-01"], undefined);
   });
 
+  it("blocks overlapping exclusive slots when a group tour is partially full", () => {
+    const slots = [
+      exclusiveSlot("2026-10-01", "9:30 AM"),
+      groupSlot("2026-10-01", "10:00 AM", 10),
+      groupSlot("2026-10-01", "10:30 AM", 10),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const result = computePublicTourAvailability({
+      slotRecords: slots,
+      visits,
+      startDate: "2026-10-01",
+      endDate: "2026-10-01",
+    });
+
+    assert.deepEqual(result.availability["2026-10-01"], ["10:00 AM"]);
+    assert.equal(result.slotMeta["2026-10-01|10:00 AM"]?.remaining, 9);
+  });
+
+  it("blocks a different group start that overlaps a partial group tour", () => {
+    const slots = [
+      groupSlot("2026-10-01", "10:00 AM", 3),
+      groupSlot("2026-10-01", "10:30 AM", 3),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const result = computePublicTourAvailability({
+      slotRecords: slots,
+      visits,
+      startDate: "2026-10-01",
+      endDate: "2026-10-01",
+    });
+
+    assert.deepEqual(result.availability["2026-10-01"], ["10:00 AM"]);
+  });
+
+  it("keeps other day-pool group starts open until the pool is full", () => {
+    const slots = [
+      exclusiveSlot("2026-10-01", "9:30 AM"),
+      groupSlot("2026-10-01", "10:00 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "10:30 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "11:00 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "11:30 AM", 2, "2026-10-01"),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const result = computePublicTourAvailability({
+      slotRecords: slots,
+      visits,
+      startDate: "2026-10-01",
+      endDate: "2026-10-01",
+    });
+
+    assert.deepEqual(result.availability["2026-10-01"], [
+      "10:00 AM",
+      "10:30 AM",
+      "11:00 AM",
+      "11:30 AM",
+    ]);
+    assert.equal(result.slotMeta["2026-10-01|11:00 AM"]?.remaining, 1);
+    assert.equal(result.slotMeta["2026-10-01|11:30 AM"]?.remaining, 1);
+    assert.ok(!result.availability["2026-10-01"]?.includes("9:30 AM"));
+  });
+
+  it("records group tour duration in occupied slot keys", () => {
+    const slots = [groupSlot("2026-10-01", "10:00 AM", 10)];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const occupied = buildPublicTourOccupiedSlotKeys(slots, visits);
+    assert.ok(occupied.has("2026-10-01|10:00 AM"));
+    assert.ok(occupied.has("2026-10-01|10:30 AM"));
+  });
+
   it("blocks exclusive campus tours from overlapping slots", () => {
     const slots = [
       exclusiveSlot("2026-10-01", "10:00 AM"),
@@ -135,6 +245,97 @@ describe("computePublicTourAvailability", () => {
   });
 });
 
+describe("computePublicTourAvailability start-only open cells", () => {
+  it("lists a single admin-open start without trailing half-hours", () => {
+    const result = computePublicTourAvailability({
+      slotRecords: [exclusiveSlot("2026-09-29", "1:30 PM")],
+      visits: [],
+      startDate: "2026-09-29",
+      endDate: "2026-09-29",
+    });
+    assert.deepEqual(result.availability["2026-09-29"], ["1:30 PM"]);
+  });
+
+  it("keeps group start open after exclusive overlap blocks later starts", () => {
+    const slots = [
+      groupSlot("2026-09-30", "1:00 PM", 10),
+      exclusiveSlot("2026-09-30", "2:30 PM"),
+      exclusiveSlot("2026-09-30", "3:00 PM"),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-09-30",
+        startTimeSlot: "2:30 PM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const result = computePublicTourAvailability({
+      slotRecords: slots,
+      visits,
+      startDate: "2026-09-30",
+      endDate: "2026-09-30",
+    });
+
+    assert.deepEqual(result.availability["2026-09-30"], ["1:00 PM"]);
+  });
+});
+
+describe("describeCampusTourSlotForDiscord", () => {
+  it("labels exclusive slots as 1:1 tour", () => {
+    const label = describeCampusTourSlotForDiscord(
+      [exclusiveSlot("2026-10-01", "10:00 AM")],
+      [],
+      "2026-10-01",
+      "10:00 AM",
+    );
+    assert.equal(label, "1:1 tour");
+  });
+
+  it("labels group slots with booked and capacity counts", () => {
+    const slots = [groupSlot("2026-10-01", "10:00 AM", 4)];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const label = describeCampusTourSlotForDiscord(
+      slots,
+      visits,
+      "2026-10-01",
+      "10:00 AM",
+    );
+    assert.equal(label, "Group tour (2/4)");
+  });
+
+  it("returns null when the slot record is missing", () => {
+    const label = describeCampusTourSlotForDiscord(
+      [],
+      [],
+      "2026-10-01",
+      "10:00 AM",
+    );
+    assert.equal(label, null);
+  });
+});
+
 describe("validatePublicTourAnswers", () => {
   it("requires email and contact name by default", () => {
     const missing = validatePublicTourAnswers(DEFAULT_PUBLIC_TOUR_FIELDS, {});
@@ -147,6 +348,30 @@ describe("validatePublicTourAnswers", () => {
     assert.equal(ok.ok, true);
     if (ok.ok) {
       assert.equal(ok.registrant.contactEmail, "jordan@example.com");
+    }
+  });
+
+  it("rejects incomplete phone numbers when phone is provided", () => {
+    const incomplete = validatePublicTourAnswers(DEFAULT_PUBLIC_TOUR_FIELDS, {
+      contact_name: "Jordan Lee",
+      email: "jordan@example.com",
+      phone: "(562) - 332 - 468",
+    });
+    assert.equal(incomplete.ok, false);
+    if (!incomplete.ok) {
+      assert.match(incomplete.error, /10-digit/);
+    }
+  });
+
+  it("accepts a complete formatted phone number", () => {
+    const ok = validatePublicTourAnswers(DEFAULT_PUBLIC_TOUR_FIELDS, {
+      contact_name: "Jordan Lee",
+      email: "jordan@example.com",
+      phone: "(562) - 332 - 4687",
+    });
+    assert.equal(ok.ok, true);
+    if (ok.ok) {
+      assert.equal(ok.registrant.answers.phone, "(562) - 332 - 4687");
     }
   });
 });

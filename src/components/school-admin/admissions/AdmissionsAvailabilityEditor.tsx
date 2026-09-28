@@ -41,6 +41,30 @@ type AdmissionsAvailabilityEditorProps = {
   onLoadingChange?: (loading: boolean) => void;
 };
 
+function wholeDayGroupStateFromSlots(
+  openSlots: Set<AdmissionsAvailabilitySlotKey>,
+  selectedDate: string | null,
+  slotRecords: Map<AdmissionsAvailabilitySlotKey, AdmissionsAvailabilitySlotRecord>,
+): { active: boolean; capacity: number | null } {
+  if (!selectedDate) {
+    return { active: false, capacity: null };
+  }
+
+  for (const key of openSlots) {
+    const [slotDate] = key.split("|");
+    if (slotDate !== selectedDate) continue;
+    const record = slotRecords.get(key);
+    if (
+      record?.tourBookingMode === "group" &&
+      record.groupDayKey === selectedDate
+    ) {
+      return { active: true, capacity: record.groupCapacity };
+    }
+  }
+
+  return { active: false, capacity: null };
+}
+
 export default function AdmissionsAvailabilityEditor({
   C,
   organizationId,
@@ -161,25 +185,11 @@ export default function AdmissionsAvailabilityEditor({
     [occupiedSlots],
   );
 
-  const wholeDayGroupState = useMemo(() => {
-    if (!selectedDate) {
-      return { active: false, capacity: null as number | null };
-    }
-
-    for (const key of openSlots) {
-      const [slotDate] = key.split("|");
-      if (slotDate !== selectedDate) continue;
-      const record = slotRecords.get(key);
-      if (
-        record?.tourBookingMode === "group" &&
-        record.groupDayKey === selectedDate
-      ) {
-        return { active: true, capacity: record.groupCapacity };
-      }
-    }
-
-    return { active: false, capacity: null as number | null };
-  }, [openSlots, selectedDate, slotRecords]);
+  const wholeDayGroupState = wholeDayGroupStateFromSlots(
+    openSlots,
+    selectedDate,
+    slotRecords,
+  );
 
   function handleSelectDate(date: string) {
     setSelectedDate(date);

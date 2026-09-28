@@ -16,9 +16,13 @@ import {
   buildEnrollmentCompletedConfirmationHtml,
   buildHomepageQuestionConfirmationHtml,
   buildNewMessageEmailHtml,
+  buildUnreadMessagesDigestEmailHtml,
   buildPaymentReceiptConfirmationHtml,
   buildPaymentReceivedAdminNotificationHtml,
   buildPostSubmitVisitOwnerNotificationHtml,
+  buildPublicCampusTourConfirmationHtml,
+  buildScheduledVisitAdminDigestHtml,
+  buildScheduledVisitDayBeforeReminderHtml,
   buildTeacherParentFormPublishedEmailHtml,
   buildTeacherParentFormResponseSignedEmailHtml,
   buildTuitionDueReminderHtml,
@@ -438,6 +442,36 @@ const previews = [
     ],
   },
   {
+    filename: "unread-messages-digest.html",
+    html: buildUnreadMessagesDigestEmailHtml({
+      schoolName: "Rooted Meadows",
+      recipientPortal: "parent",
+      totalUnread: 3,
+      messagesUrl: "/school/rooted-meadows/parent/messages",
+      threads: [
+        {
+          unreadCount: 2,
+          preview: "Can we reschedule the shadow day to next Tuesday?",
+          senderName: "Jane Smith",
+          threadUrl: "/school/rooted-meadows/parent/messages?thread=abc-123",
+        },
+        {
+          unreadCount: 1,
+          preview: "Thanks — we will see you at pickup.",
+          senderName: "Rooted Meadows Office",
+          threadUrl: "/school/rooted-meadows/parent/messages?thread=def-456",
+        },
+      ],
+    }),
+    checks: [
+      "Message Reminder",
+      "Unread messages at Rooted Meadows",
+      "2 unread messages",
+      "Open messages",
+      "/school/rooted-meadows/parent/messages",
+    ],
+  },
+  {
     filename: "admin-application-submitted.html",
     html: buildApplicationSubmittedOwnerNotificationHtml({
       schoolName: "Rooted Meadows Waldorf School",
@@ -539,6 +573,88 @@ const previews = [
       "parent@example.com",
       "Student Evensen",
       "View submission",
+    ],
+  },
+  {
+    filename: "public-campus-tour-confirmation.html",
+    html: buildPublicCampusTourConfirmationHtml({
+      name: "Jordan Lee",
+      schoolName: "Rooted Meadows Waldorf School",
+      whenLabel: "Wed, August 26 at 10:00 AM",
+      timezoneLabel: "Central Time",
+      durationLabel: "45 minutes",
+    }),
+    checks: [
+      "Visit Confirmed",
+      "campus tour is confirmed",
+      "Wed, August 26 at 10:00 AM",
+      "45 minutes",
+      "contact Rooted Meadows Waldorf School directly",
+    ],
+  },
+  {
+    filename: "scheduled-visit-day-before-reminder.html",
+    html: buildScheduledVisitDayBeforeReminderHtml({
+      name: "Holly Evensen",
+      schoolName: "Rooted Meadows Waldorf School",
+      stepTitle: "Campus tour",
+      whenLabel: "Tue, September 29 at 10:00 AM",
+      timezoneLabel: "Central Time",
+      durationLabel: "45 minutes",
+      optionalLink: {
+        label: "View apply dashboard",
+        href: "https://trymudkitchen.com/school/rooted-meadows/apply/app-1",
+      },
+    }),
+    checks: [
+      "Visit Tomorrow",
+      "See you tomorrow",
+      "Campus tour",
+      "View apply dashboard",
+    ],
+  },
+  {
+    filename: "scheduled-visit-admin-weekly-digest.html",
+    html: buildScheduledVisitAdminDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      digestKind: "weekly",
+      scheduleAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/schedule?tab=visits",
+      rows: [
+        {
+          whenLabel: "Tue, September 29 at 10:00 AM",
+          stepTitle: "Campus tour",
+          contactLabel: "Holly Evensen",
+          bookingSourceLabel: "Post-submit",
+        },
+      ],
+    }),
+    checks: [
+      "Upcoming visits this week",
+      "Open schedule",
+      "Campus tour",
+    ],
+  },
+  {
+    filename: "scheduled-visit-admin-day-before-digest.html",
+    html: buildScheduledVisitAdminDigestHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      digestKind: "day_before",
+      scheduleAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/schedule?tab=visits",
+      rows: [
+        {
+          whenLabel: "Tue, September 29 at 10:00 AM",
+          stepTitle: "Family interview",
+          contactLabel: "Jordan Lee",
+          bookingSourceLabel: "Public",
+        },
+      ],
+    }),
+    checks: [
+      "Visits scheduled for tomorrow",
+      "Family interview",
+      "Open schedule",
     ],
   },
   {

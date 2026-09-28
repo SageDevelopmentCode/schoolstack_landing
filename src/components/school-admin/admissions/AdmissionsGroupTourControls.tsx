@@ -110,11 +110,13 @@ export default function AdmissionsGroupTourDayControls({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (wholeDayCapacity != null && wholeDayCapacity > 0) {
-      setCapacity(String(wholeDayCapacity));
-    } else if (!isWholeDayActive) {
-      setCapacity(String(DEFAULT_GROUP_CAPACITY));
-    }
+    queueMicrotask(() => {
+      if (wholeDayCapacity != null && wholeDayCapacity > 0) {
+        setCapacity(String(wholeDayCapacity));
+      } else if (!isWholeDayActive) {
+        setCapacity(String(DEFAULT_GROUP_CAPACITY));
+      }
+    });
   }, [date, isWholeDayActive, wholeDayCapacity]);
 
   if (!date) return null;

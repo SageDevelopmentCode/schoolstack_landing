@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import AdmissionsDateTimePickerSkeleton from "@/components/admissions/AdmissionsDateTimePickerSkeleton";
 import AdmissionsTimePeriodTabBar from "@/components/admissions/AdmissionsTimePeriodTabBar";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
   ADMISSIONS_TIME_SLOT_GROUPS,
+  pickFirstBookableSlotForDay,
   type AdmissionsTimeSlotPeriod,
   todayKeyInTimezone,
   todayMonthYearInTimezone,
@@ -68,6 +69,11 @@ export default function AdmissionsDateTimePicker({
   const [error, setError] = useState<string | null>(null);
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>("morning");
 
+  const availabilityEndpointBuilderRef = useRef(availabilityEndpointBuilder);
+  availabilityEndpointBuilderRef.current = availabilityEndpointBuilder;
+  const onTimezoneLoadedRef = useRef(onTimezoneLoaded);
+  onTimezoneLoadedRef.current = onTimezoneLoaded;
+
   const today = todayKeyInTimezone(timezone);
   const availableDates = useMemo(
     () => new Set(Object.keys(availabilitySlots)),
@@ -97,8 +103,9 @@ export default function AdmissionsDateTimePicker({
       params.set("actionId", actionId);
     }
 
-    const endpoint = availabilityEndpointBuilder
-      ? availabilityEndpointBuilder(start, end)
+    const buildEndpoint = availabilityEndpointBuilderRef.current;
+    const endpoint = buildEndpoint
+      ? buildEndpoint(start, end)
       : `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`;
 
     let responseStatus: number | undefined;
@@ -121,7 +128,7 @@ export default function AdmissionsDateTimePicker({
       }
 
       if (typeof payload.timezone === "string" && payload.timezone.trim()) {
-        onTimezoneLoaded?.(payload.timezone.trim());
+        onTimezoneLoadedRef.current?.(payload.timezone.trim());
       }
 
       if (payload.mode === "whole_day") {
@@ -143,7 +150,7 @@ export default function AdmissionsDateTimePicker({
     } finally {
       setLoading(false);
     }
-  }, [actionId, applicationId, availabilityEndpointBuilder, onTimezoneLoaded, organizationId, viewMonth, viewYear]);
+  }, [actionId, applicationId, organizationId, viewMonth, viewYear]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -161,8 +168,15 @@ export default function AdmissionsDateTimePicker({
 
   function handleDateSelect(date: string) {
     onDateChange(date);
-    onTimeChange(null);
-    setActivePeriod("morning");
+    const daySlots = availabilitySlots[date] ?? [];
+    const first = pickFirstBookableSlotForDay(daySlots);
+    if (first) {
+      setActivePeriod(first.period);
+      onTimeChange(first.slot);
+    } else {
+      onTimeChange(null);
+      setActivePeriod("morning");
+    }
   }
 
   function prevMonth() {
@@ -189,7 +203,7 @@ export default function AdmissionsDateTimePicker({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs" style={{ color: C.textTertiary }}>
+      <p className="break-words text-xs" style={{ color: C.textTertiary }}>
         Times are in {timezoneLabel}.
       </p>
 
@@ -203,11 +217,11 @@ export default function AdmissionsDateTimePicker({
       ) : null}
 
       <div
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]"
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,240px)]"
         style={{ borderColor: C.border }}
       >
         <div
-          className="rounded-sm border p-4"
+          className="min-w-0 rounded-sm border p-3 sm:p-4"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
           <div className="mb-4 flex items-center justify-between">
@@ -250,7 +264,7 @@ export default function AdmissionsDateTimePicker({
         </div>
 
         <div
-          className="flex min-h-[280px] flex-col rounded-sm border"
+          className="flex min-h-[280px] w-full min-w-0 flex-col rounded-sm border"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
           {loading ? (

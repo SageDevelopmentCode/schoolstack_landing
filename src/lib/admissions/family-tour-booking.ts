@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   AdmissionsBookingError,
   getBookableAvailabilityForAction,
+  throwIfAdmissionsVisitSlotUnavailable,
   type ScheduledVisitRecord,
 } from "./admissions-booking";
 import {
@@ -242,6 +243,7 @@ export async function bookFamilyCampusTour(
         "already_scheduled",
       );
     }
+    throwIfAdmissionsVisitSlotUnavailable(error);
     throw error;
   }
 

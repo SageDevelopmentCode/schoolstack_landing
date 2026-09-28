@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Globe } from "lucide-react";
+import { CalendarDays, ClipboardList, Globe } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
 import PublicTourSchoolSettingsPanel from "@/components/school-admin/admissions/PublicTourSchoolSettingsPanel";
+import PublicTourSubmissionsPanel from "@/components/school-admin/admissions/PublicTourSubmissionsPanel";
 import TuitionSubTabBar from "@/components/school-admin/tuition/TuitionSubTabBar";
 import { parseToursSubtab, type ToursSubtabId } from "@/components/school-admin/schedule/schedule-tabs";
 import PublicTourVisibilityBadge from "@/components/school-admin/admissions/PublicTourVisibilityBadge";
@@ -17,6 +18,7 @@ type ToursInterviewsTabContentProps = {
   schoolSlug: string;
   onMonthSlotCountChange?: (count: number) => void;
   onLoadingChange?: (loading: boolean) => void;
+  visitsDeferred?: boolean;
 };
 
 const TOURS_SUBTABS: ReadonlyArray<{
@@ -25,6 +27,7 @@ const TOURS_SUBTABS: ReadonlyArray<{
   icon: typeof CalendarDays;
 }> = [
   { id: "availability", label: "Availability", icon: CalendarDays },
+  { id: "submissions", label: "Tour submissions", icon: ClipboardList },
   { id: "public-tour", label: "Public tour page", icon: Globe },
 ];
 
@@ -34,6 +37,7 @@ export default function ToursInterviewsTabContent({
   schoolSlug,
   onMonthSlotCountChange,
   onLoadingChange,
+  visitsDeferred = false,
 }: ToursInterviewsTabContentProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const router = useRouter();
@@ -118,6 +122,12 @@ export default function ToursInterviewsTabContent({
             storySurface
             onLoadingChange={onLoadingChange}
           />
+        </div>
+      ) : null}
+
+      {visitedSubtabs.has("submissions") ? (
+        <div hidden={activeSubtab !== "submissions"}>
+          <PublicTourSubmissionsPanel C={C} visitsDeferred={visitsDeferred} />
         </div>
       ) : null}
 

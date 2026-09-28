@@ -40,6 +40,8 @@ export type PublicTourAvailabilityResult = {
 const CAMPUS_TOUR = FAMILY_TOUR_ACTION_TYPE;
 const FAMILY_INTERVIEW = "schedule_family_interview";
 
+const FIRST_SLOT_MINUTES = 6 * 60;
+
 function slotRecordByKey(
   records: AdmissionsAvailabilitySlotRecord[],
 ): Map<AdmissionsAvailabilitySlotKey, AdmissionsAvailabilitySlotRecord> {
@@ -82,22 +84,6 @@ function resolveGroupCapacity(record: AdmissionsAvailabilitySlotRecord): number 
   return record.groupCapacity ?? 0;
 }
 
-function isGroupSlotFull(
-  record: AdmissionsAvailabilitySlotRecord,
-  visits: PublicTourVisitForAvailability[],
-): boolean {
-  const capacity = resolveGroupCapacity(record);
-  if (capacity <= 0) return true;
-
-  if (record.groupDayKey) {
-    return countCampusToursOnDate(visits, record.groupDayKey) >= capacity;
-  }
-
-  return (
-    countCampusToursAtSlot(visits, record.date, record.timeSlot) >= capacity
-  );
-}
-
 function remainingForGroupSlot(
   record: AdmissionsAvailabilitySlotRecord,
   visits: PublicTourVisitForAvailability[],
@@ -115,11 +101,106 @@ function remainingForGroupSlot(
   );
 }
 
+function timeSlotStartMinutes(timeSlot: string): number | null {
+  const index = ADMISSIONS_TIME_SLOTS.indexOf(timeSlot as AdmissionsTimeSlot);
+  if (index < 0) return null;
+  return FIRST_SLOT_MINUTES + index * 30;
+}
+
+type VisitTimeRange = {
+  scheduledDate: string;
+  startTimeSlot: string;
+  durationMinutes: number;
+};
+
+function visitTimeRangesOverlap(a: VisitTimeRange, b: VisitTimeRange): boolean {
+  if (a.scheduledDate !== b.scheduledDate) return false;
+
+  const aStart = timeSlotStartMinutes(a.startTimeSlot);
+  const bStart = timeSlotStartMinutes(b.startTimeSlot);
+  if (aStart === null || bStart === null) return false;
+
+  return (
+    aStart < bStart + b.durationMinutes && bStart < aStart + a.durationMinutes
+  );
+}
+
+export function sharesGroupPool(
+  candidate: AdmissionsAvailabilitySlotRecord,
+  other: AdmissionsAvailabilitySlotRecord,
+): boolean {
+  if (candidate.tourBookingMode !== "group" || other.tourBookingMode !== "group") {
+    return false;
+  }
+
+  if (candidate.groupDayKey && other.groupDayKey) {
+    return candidate.groupDayKey === other.groupDayKey;
+  }
+
+  if (candidate.groupDayKey || other.groupDayKey) {
+    return false;
+  }
+
+  return candidate.date === other.date && candidate.timeSlot === other.timeSlot;
+}
+
+function isPublicTourStartBookable(
+  openSlots: Set<AdmissionsAvailabilitySlotKey>,
+  recordByKey: Map<AdmissionsAvailabilitySlotKey, AdmissionsAvailabilitySlotRecord>,
+  visits: PublicTourVisitForAvailability[],
+  date: string,
+  timeSlot: string,
+  durationMinutes: number,
+  candidateRecord: AdmissionsAvailabilitySlotRecord,
+): boolean {
+  if (
+    !isStartTimeBookable(openSlots, date, timeSlot, durationMinutes, new Set(), {
+      requireConsecutiveOpenCells: false,
+    })
+  ) {
+    return false;
+  }
+
+  const candidateRange: VisitTimeRange = {
+    scheduledDate: date,
+    startTimeSlot: timeSlot,
+    durationMinutes,
+  };
+
+  for (const visit of visits) {
+    if (visit.status === "cancelled" || visit.schedulingMode === "whole_day") {
+      continue;
+    }
+    if (!visitTimeRangesOverlap(visit, candidateRange)) continue;
+
+    if (visit.actionType === FAMILY_INTERVIEW) return false;
+
+    if (visit.actionType !== CAMPUS_TOUR) continue;
+
+    const visitKey = availabilitySlotKey(visit.scheduledDate, visit.startTimeSlot);
+    const visitSlotRecord = recordByKey.get(visitKey);
+    if (!visitSlotRecord || visitSlotRecord.tourBookingMode === "exclusive") {
+      return false;
+    }
+
+    if (sharesGroupPool(candidateRecord, visitSlotRecord)) {
+      continue;
+    }
+
+    return false;
+  }
+
+  if (candidateRecord.tourBookingMode === "group") {
+    return remainingForGroupSlot(candidateRecord, visits) > 0;
+  }
+
+  return true;
+}
+
 export function buildPublicTourOccupiedSlotKeys(
-  slotRecords: AdmissionsAvailabilitySlotRecord[],
+  _slotRecords: AdmissionsAvailabilitySlotRecord[],
   visits: PublicTourVisitForAvailability[],
 ): Set<AdmissionsAvailabilitySlotKey> {
-  const recordByKey = slotRecordByKey(slotRecords);
   const occupied = new Set<AdmissionsAvailabilitySlotKey>();
 
   for (const visit of visits) {
@@ -134,16 +215,7 @@ export function buildPublicTourOccupiedSlotKeys(
 
     if (visit.actionType !== CAMPUS_TOUR) continue;
 
-    const key = availabilitySlotKey(visit.scheduledDate, visit.startTimeSlot);
-    const slotRecord = recordByKey.get(key);
-    if (!slotRecord || slotRecord.tourBookingMode === "exclusive") {
-      addVisitOccupancy(occupied, visit);
-      continue;
-    }
-
-    if (isGroupSlotFull(slotRecord, visits)) {
-      addVisitOccupancy(occupied, visit);
-    }
+    addVisitOccupancy(occupied, visit);
   }
 
   return occupied;
@@ -181,10 +253,6 @@ export function computePublicTourAvailability(params: {
     params.slotRecords.map((row) => availabilitySlotKey(row.date, row.timeSlot)),
   );
   const recordByKey = slotRecordByKey(params.slotRecords);
-  const occupiedSlots = buildPublicTourOccupiedSlotKeys(
-    params.slotRecords,
-    params.visits,
-  );
 
   const availability: Record<string, string[]> = {};
   const slotMeta: Record<string, PublicTourSlotMeta> = {};
@@ -193,25 +261,26 @@ export function computePublicTourAvailability(params: {
     const starts: string[] = [];
 
     for (const timeSlot of ADMISSIONS_TIME_SLOTS) {
+      const key = availabilitySlotKey(date, timeSlot);
+      const record = recordByKey.get(key);
+      if (!record) continue;
+
       if (
-        !isStartTimeBookable(
+        !isPublicTourStartBookable(
           openSlots,
+          recordByKey,
+          params.visits,
           date,
           timeSlot,
           durationMinutes,
-          occupiedSlots,
+          record,
         )
       ) {
         continue;
       }
 
-      const key = availabilitySlotKey(date, timeSlot);
-      const record = recordByKey.get(key);
-      if (!record) continue;
-
       if (record.tourBookingMode === "group") {
         const remaining = remainingForGroupSlot(record, params.visits);
-        if (remaining <= 0) continue;
         slotMeta[key] = {
           mode: "group",
           capacity: resolveGroupCapacity(record),
@@ -258,4 +327,31 @@ export function isPublicTourSlotBookable(params: {
   return (result.availability[params.scheduledDate] ?? []).includes(
     params.startTimeSlot,
   );
+}
+
+export function describeCampusTourSlotForDiscord(
+  slotRecords: AdmissionsAvailabilitySlotRecord[],
+  visits: PublicTourVisitForAvailability[],
+  scheduledDate: string,
+  startTimeSlot: string,
+): string | null {
+  const record = slotRecordByKey(slotRecords).get(
+    availabilitySlotKey(scheduledDate, startTimeSlot),
+  );
+  if (!record) {
+    return null;
+  }
+
+  if (record.tourBookingMode === "exclusive") {
+    return "1:1 tour";
+  }
+
+  const capacity = resolveGroupCapacity(record);
+  if (capacity <= 0) {
+    return "Group tour";
+  }
+
+  const remaining = remainingForGroupSlot(record, visits);
+  const booked = Math.max(0, capacity - remaining);
+  return `Group tour (${booked}/${capacity})`;
 }

@@ -3,10 +3,11 @@ import { apiError } from "@/lib/api/route-errors";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { fetchTeacherDashboardSummary } from "@/lib/school-teacher/teacher-dashboard-summary";
 import {
+  getStaffMemberIdForUser,
+  getStaffPortalRoleForUser,
   getStaffUserProfile,
   userHasTeacherPortalAccess,
 } from "@/lib/staff/teacher-portal-access";
-import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -68,7 +69,13 @@ export async function GET(request: Request) {
 
     const admin = createAdminClient();
 
-    const [userProfile, summary, staffMemberResult, membershipResult] =
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      user.id,
+      organizationId,
+    );
+
+    const [userProfile, summary, staffMemberResult, portalRole] =
       await Promise.all([
         getStaffUserProfile(supabase, user.id, organizationId, user),
         fetchTeacherDashboardSummary(
@@ -82,33 +89,21 @@ export async function GET(request: Request) {
             userId: user.id,
           },
         ),
-        supabase
-          .from("staff_members")
-          .select("role_title")
-          .eq("organization_id", organizationId)
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("organization_memberships")
-          .select("role")
-          .eq("organization_id", organizationId)
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .maybeSingle(),
+        staffMemberId
+          ? supabase
+              .from("staff_members")
+              .select("role_title")
+              .eq("id", staffMemberId)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        getStaffPortalRoleForUser(supabase, user.id, organizationId),
       ]);
 
     if (staffMemberResult.error) throw staffMemberResult.error;
-    if (membershipResult.error) throw membershipResult.error;
 
     const roleTitle =
       typeof staffMemberResult.data?.role_title === "string"
         ? staffMemberResult.data.role_title
-        : null;
-
-    const portalRole: StaffPortalRole | null =
-      membershipResult.data?.role === "teacher" ||
-      membershipResult.data?.role === "staff"
-        ? (membershipResult.data.role as StaffPortalRole)
         : null;
 
     return NextResponse.json({

@@ -22,11 +22,22 @@ export type NotificationChannelSettings = {
   additional_emails: string[];
 };
 
+export type ScheduledVisitReminderState = {
+  last_weekly_admin_digest_week_start?: string;
+  last_day_before_admin_digest_for_date?: string;
+};
+
 export type ParentReminderSettings = {
   incomplete_admissions: {
     enabled: boolean;
   };
   committee_daily_digest: {
+    enabled: boolean;
+  };
+  unread_messages_daily_digest: {
+    enabled: boolean;
+  };
+  scheduled_visit_day_before: {
     enabled: boolean;
   };
 };
@@ -38,6 +49,7 @@ export type OrganizationNotificationSettings = {
   committees: NotificationChannelSettings;
   program_signups: NotificationChannelSettings;
   parent_reminders: ParentReminderSettings;
+  scheduled_visit_reminders: ScheduledVisitReminderState;
 };
 
 export type RecipientSummary = {
@@ -101,7 +113,41 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       committee_daily_digest: {
         enabled: true,
       },
+      unread_messages_daily_digest: {
+        enabled: true,
+      },
+      scheduled_visit_day_before: {
+        enabled: true,
+      },
     },
+    scheduled_visit_reminders: {},
+  };
+}
+
+function parseScheduledVisitReminderState(
+  raw: Record<string, unknown> | undefined,
+): ScheduledVisitReminderState {
+  const state =
+    raw?.scheduled_visit_reminders &&
+    typeof raw.scheduled_visit_reminders === "object" &&
+    !Array.isArray(raw.scheduled_visit_reminders)
+      ? (raw.scheduled_visit_reminders as Record<string, unknown>)
+      : undefined;
+
+  const lastWeekly =
+    typeof state?.last_weekly_admin_digest_week_start === "string"
+      ? state.last_weekly_admin_digest_week_start.trim()
+      : undefined;
+  const lastDayBefore =
+    typeof state?.last_day_before_admin_digest_for_date === "string"
+      ? state.last_day_before_admin_digest_for_date.trim()
+      : undefined;
+
+  return {
+    ...(lastWeekly ? { last_weekly_admin_digest_week_start: lastWeekly } : {}),
+    ...(lastDayBefore
+      ? { last_day_before_admin_digest_for_date: lastDayBefore }
+      : {}),
   };
 }
 
@@ -123,6 +169,20 @@ function parseParentReminderSettings(
       ? (raw.committee_daily_digest as Record<string, unknown>)
       : undefined;
 
+  const unreadMessagesDigestRaw =
+    raw?.unread_messages_daily_digest &&
+    typeof raw.unread_messages_daily_digest === "object" &&
+    !Array.isArray(raw.unread_messages_daily_digest)
+      ? (raw.unread_messages_daily_digest as Record<string, unknown>)
+      : undefined;
+
+  const scheduledVisitDayBeforeRaw =
+    raw?.scheduled_visit_day_before &&
+    typeof raw.scheduled_visit_day_before === "object" &&
+    !Array.isArray(raw.scheduled_visit_day_before)
+      ? (raw.scheduled_visit_day_before as Record<string, unknown>)
+      : undefined;
+
   return {
     incomplete_admissions: {
       enabled:
@@ -135,6 +195,18 @@ function parseParentReminderSettings(
         typeof committeeDigestRaw?.enabled === "boolean"
           ? committeeDigestRaw.enabled
           : defaults.committee_daily_digest.enabled,
+    },
+    unread_messages_daily_digest: {
+      enabled:
+        typeof unreadMessagesDigestRaw?.enabled === "boolean"
+          ? unreadMessagesDigestRaw.enabled
+          : defaults.unread_messages_daily_digest.enabled,
+    },
+    scheduled_visit_day_before: {
+      enabled:
+        typeof scheduledVisitDayBeforeRaw?.enabled === "boolean"
+          ? scheduledVisitDayBeforeRaw.enabled
+          : defaults.scheduled_visit_day_before.enabled,
     },
   };
 }
@@ -202,7 +274,30 @@ export function parseOrganizationNotificationSettings(
       parentRemindersRaw,
       defaults.parent_reminders,
     ),
+    scheduled_visit_reminders: parseScheduledVisitReminderState(stored),
   };
+}
+
+export async function persistScheduledVisitReminderState(
+  admin: SupabaseClient,
+  organizationId: string,
+  patch: Partial<ScheduledVisitReminderState>,
+): Promise<void> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  const nextSettings: OrganizationNotificationSettings = {
+    ...settings,
+    scheduled_visit_reminders: {
+      ...settings.scheduled_visit_reminders,
+      ...patch,
+    },
+  };
+
+  const { error } = await admin
+    .from("organization_settings")
+    .update({ notifications: nextSettings })
+    .eq("organization_id", organizationId);
+
+  if (error) throw error;
 }
 
 function validateChannelEmails(
@@ -509,6 +604,22 @@ export async function isCommitteeDailyDigestEnabled(
 ): Promise<boolean> {
   const settings = await loadOrganizationNotificationSettings(admin, organizationId);
   return settings.parent_reminders.committee_daily_digest.enabled;
+}
+
+export async function isUnreadMessagesDailyDigestEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.unread_messages_daily_digest.enabled;
+}
+
+export async function isScheduledVisitDayBeforeReminderEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.scheduled_visit_day_before.enabled;
 }
 
 export async function resolveApplicationNotificationEmails(

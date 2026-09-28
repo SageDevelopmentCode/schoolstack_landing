@@ -805,6 +805,195 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   });
 }
 
+export function buildPublicCampusTourConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+}): string {
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+
+  return composeEmail({
+    preheader: `Your campus tour at ${payload.schoolName} is confirmed.`,
+    contentHtml: `
+      ${emailBadge("Visit Confirmed")}
+      ${emailHeading(`Your campus tour is confirmed, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Thank you for scheduling with ${escapeHtml(payload.schoolName)}. We look forward to seeing your family.`,
+      )}
+      ${emailDetailCard([
+        { label: "When", value: when },
+        { label: "School", value: payload.schoolName },
+        { label: "Duration", value: payload.durationLabel },
+      ])}
+      ${emailParagraph(
+        `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendPublicCampusTourConfirmation(payload: {
+  name: string;
+  email: string;
+  schoolName: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+}): Promise<void> {
+  const content = buildPublicCampusTourConfirmationHtml(payload);
+  await deliverZohoEmail({
+    channel: "Public campus tour confirmation",
+    toAddress: payload.email,
+    subject: `Campus tour confirmed — ${payload.schoolName}`,
+    content,
+  });
+}
+
+export function buildScheduledVisitDayBeforeReminderHtml(payload: {
+  name: string;
+  schoolName: string;
+  stepTitle: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  optionalLink?: { label: string; href: string };
+}): string {
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+  const linkBlock = payload.optionalLink
+    ? emailCta({ label: payload.optionalLink.label, href: payload.optionalLink.href })
+    : emailParagraph(
+        `If you need to change your visit, contact ${escapeHtml(payload.schoolName)} directly.`,
+      );
+
+  return composeEmail({
+    preheader: `Reminder: your ${payload.stepTitle} at ${payload.schoolName} is tomorrow.`,
+    contentHtml: `
+      ${emailBadge("Visit Tomorrow")}
+      ${emailHeading(`See you tomorrow, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `This is a friendly reminder about your upcoming ${escapeHtml(payload.stepTitle)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard([
+        { label: "When", value: when },
+        { label: "School", value: payload.schoolName },
+        { label: "Duration", value: payload.durationLabel },
+      ])}
+      ${linkBlock}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendScheduledVisitDayBeforeReminderEmail(payload: {
+  email: string;
+  schoolName: string;
+  stepTitle: string;
+  name: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel: string;
+  optionalLink?: { label: string; href: string };
+}): Promise<{ ok: boolean }> {
+  const content = buildScheduledVisitDayBeforeReminderHtml(payload);
+  try {
+    await deliverZohoEmail({
+      channel: "Scheduled visit day-before reminder",
+      toAddress: payload.email,
+      subject: `Reminder: ${payload.stepTitle} tomorrow — ${payload.schoolName}`,
+      content,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export type ScheduledVisitAdminDigestRow = {
+  whenLabel: string;
+  stepTitle: string;
+  contactLabel: string;
+  bookingSourceLabel: string;
+};
+
+export function buildScheduledVisitAdminDigestHtml(payload: {
+  schoolName: string;
+  digestKind: "weekly" | "day_before";
+  scheduleAdminUrl: string;
+  rows: ScheduledVisitAdminDigestRow[];
+}): string {
+  const heading =
+    payload.digestKind === "weekly"
+      ? "Upcoming visits this week"
+      : "Visits scheduled for tomorrow";
+  const preheader =
+    payload.digestKind === "weekly"
+      ? `Scheduled visits coming up at ${payload.schoolName}.`
+      : `Visits tomorrow at ${payload.schoolName}.`;
+
+  const listItems = payload.rows.map((row) => {
+    const parts = [
+      escapeHtml(row.whenLabel),
+      escapeHtml(row.stepTitle),
+      escapeHtml(row.contactLabel),
+      `(${escapeHtml(row.bookingSourceLabel)})`,
+    ];
+    return parts.join(" — ");
+  });
+
+  return composeEmail({
+    preheader,
+    contentHtml: `
+      ${emailBadge("Visit Reminder")}
+      ${emailHeading(`${heading} — ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        payload.digestKind === "weekly"
+          ? "Here are scheduled admissions visits in the next seven days."
+          : "Here are admissions visits scheduled for tomorrow.",
+      )}
+      ${emailBulletList(listItems)}
+      ${emailCta({ label: "Open schedule", href: payload.scheduleAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export function buildScheduledVisitAdminDigestSubject(payload: {
+  schoolName: string;
+  digestKind: "weekly" | "day_before";
+}): string {
+  return payload.digestKind === "weekly"
+    ? `Upcoming visits this week — ${payload.schoolName}`
+    : `Visits tomorrow — ${payload.schoolName}`;
+}
+
+export async function sendScheduledVisitAdminDigestEmail(payload: {
+  email: string;
+  schoolName: string;
+  digestKind: "weekly" | "day_before";
+  scheduleAdminUrl: string;
+  rows: ScheduledVisitAdminDigestRow[];
+}): Promise<{ ok: boolean }> {
+  const content = buildScheduledVisitAdminDigestHtml(payload);
+  const subject = buildScheduledVisitAdminDigestSubject({
+    schoolName: payload.schoolName,
+    digestKind: payload.digestKind,
+  });
+  try {
+    await deliverZohoEmail({
+      channel: "Scheduled visit admin digest",
+      toAddress: payload.email,
+      subject,
+      content,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export function buildPaymentReceiptConfirmationHtml(payload: {
   name: string;
   schoolName: string;
@@ -1956,6 +2145,107 @@ export async function sendNewMessageEmail(payload: {
   }
 
   return { ok: true };
+}
+
+export function buildUnreadMessagesDigestEmailHtml(payload: {
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  threads: Array<{
+    unreadCount: number;
+    preview: string;
+    senderName: string;
+    threadUrl: string;
+  }>;
+  totalUnread: number;
+  messagesUrl: string;
+}): string {
+  const portalLabel = payload.recipientPortal === "teacher" ? "staff" : "family";
+  const absoluteInboxUrl = payload.messagesUrl.startsWith("http")
+    ? payload.messagesUrl
+    : `${SITE_URL}${payload.messagesUrl}`;
+
+  const threadSections = payload.threads
+    .map((thread) => {
+      const threadUrl = thread.threadUrl.startsWith("http")
+        ? thread.threadUrl
+        : `${SITE_URL}${thread.threadUrl}`;
+      const unreadLabel =
+        thread.unreadCount === 1
+          ? "1 unread message"
+          : `${thread.unreadCount} unread messages`;
+
+      return `
+        ${emailDetailCard([
+          { label: "From", value: escapeHtml(thread.senderName) },
+          {
+            label: "Unread",
+            value: escapeHtml(unreadLabel),
+          },
+          {
+            label: "Preview",
+            value: escapeHtml(thread.preview.slice(0, 200)),
+          },
+        ])}
+        ${emailCta({ label: "Open conversation", href: threadUrl })}
+      `;
+    })
+    .join("");
+
+  const totalLabel =
+    payload.totalUnread === 1
+      ? "1 unread message"
+      : `${payload.totalUnread} unread messages`;
+
+  return composeEmail({
+    preheader: `You still have ${totalLabel} at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Message Reminder")}
+      ${emailHeading(`Unread messages at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `You still have <strong>${escapeHtml(totalLabel)}</strong> waiting in your ${portalLabel} portal. Here is what you may have missed:`,
+      )}
+      ${threadSections}
+      ${emailCta({ label: "Open messages", href: absoluteInboxUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendUnreadMessagesDigestEmail(payload: {
+  email: string;
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  threads: Array<{
+    threadId: string;
+    unreadCount: number;
+    preview: string;
+    senderName: string;
+    threadUrl: string;
+  }>;
+  totalUnread: number;
+  messagesUrl: string;
+}): Promise<boolean> {
+  if (payload.threads.length === 0) {
+    return false;
+  }
+
+  if (!(await isZohoConfigured())) {
+    return false;
+  }
+
+  const html = buildUnreadMessagesDigestEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `You still have unread messages — ${payload.schoolName}`,
+    content: html,
+  });
+
+  if (!result.success) {
+    console.error("Unread messages digest email failed:", result.error);
+    return false;
+  }
+
+  return true;
 }
 
 export function buildTeacherParentFormPublishedEmailHtml(payload: {

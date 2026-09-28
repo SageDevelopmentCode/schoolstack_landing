@@ -29,7 +29,7 @@ function PublicTourStoryShellInner({
 
   return (
     <div
-      className={`${fraunces.variable} ${dmSans.variable} min-h-screen px-4 pb-10 pt-8 sm:px-6 sm:pb-12 sm:pt-12 [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
+      className={`${fraunces.variable} ${dmSans.variable} min-h-screen min-w-0 overflow-x-hidden px-4 pb-10 pt-8 sm:px-6 sm:pb-12 sm:pt-12 [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
       style={{
         ...parentThemeCssVars(theme),
         backgroundColor: theme.paper,
@@ -37,7 +37,7 @@ function PublicTourStoryShellInner({
         color: theme.ink,
       }}
     >
-      <div className="mx-auto max-w-[760px]">
+      <div className="mx-auto min-w-0 max-w-[760px]">
         <div className="mb-8 flex justify-center sm:mb-10">
           <ApplyPortalBranding
             branding={branding}

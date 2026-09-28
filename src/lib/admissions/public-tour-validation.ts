@@ -1,3 +1,4 @@
+import { validatePhoneFieldValue } from "@/lib/phone-format";
 import type {
   PublicTourChildEntry,
   PublicTourFieldDefinition,
@@ -100,6 +101,20 @@ export function validatePublicTourAnswers(
         return {
           ok: false,
           error: `Choose an option for ${field.label}.`,
+          fieldId: field.id,
+        };
+      }
+    }
+
+    if (field.type === "phone") {
+      const phoneError = validatePhoneFieldValue(value, {
+        required: field.required,
+        label: field.label,
+      });
+      if (phoneError) {
+        return {
+          ok: false,
+          error: phoneError,
           fieldId: field.id,
         };
       }

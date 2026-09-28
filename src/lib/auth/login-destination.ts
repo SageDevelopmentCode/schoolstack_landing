@@ -5,7 +5,10 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
-import { resolvePortalAccountMemberUserIds } from "@/lib/auth/portal-account-link-context";
+import {
+  resolveAllPortalAccountPeerUserIds,
+  resolvePortalAccountMemberUserIds,
+} from "@/lib/auth/portal-account-link-context";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { isPlatformAdmin, userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 
@@ -39,6 +42,8 @@ async function listAdminAccessibleLiveSlugs(
     return listLiveOrganizationSlugs(supabase);
   }
 
+  const peerUserIds = await resolveAllPortalAccountPeerUserIds(supabase, userId);
+
   const { data, error } = await supabase
     .from("organization_memberships")
     .select(
@@ -50,7 +55,7 @@ async function listAdminAccessibleLiveSlugs(
       )
     `,
     )
-    .eq("user_id", userId)
+    .in("user_id", peerUserIds)
     .eq("status", "active")
     .in("role", ["owner", "admin"]);
 
@@ -130,6 +135,8 @@ async function listTeacherAccessibleLiveSlugs(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string[]> {
+  const peerUserIds = await resolveAllPortalAccountPeerUserIds(supabase, userId);
+
   const { data, error } = await supabase
     .from("organization_memberships")
     .select(
@@ -141,7 +148,7 @@ async function listTeacherAccessibleLiveSlugs(
       )
     `,
     )
-    .eq("user_id", userId)
+    .in("user_id", peerUserIds)
     .eq("status", "active")
     .in("role", ["teacher", "staff"]);
 

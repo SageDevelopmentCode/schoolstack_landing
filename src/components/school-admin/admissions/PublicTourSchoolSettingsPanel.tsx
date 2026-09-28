@@ -17,7 +17,6 @@ import {
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
-import { publicSiteDisplayUrl } from "@/lib/site";
 
 type PublicTourSchoolSettingsPanelProps = {
   C: AdminThemeTokens;
@@ -44,12 +43,7 @@ export default function PublicTourSchoolSettingsPanel({
   );
 
   const tourPath = `/school/${schoolSlug}/tour`;
-  const [tourDisplayUrl, setTourDisplayUrl] = useState(() => publicSiteDisplayUrl(tourPath));
   const [urlCopied, setUrlCopied] = useState(false);
-
-  useEffect(() => {
-    setTourDisplayUrl(`${window.location.host}${tourPath}`);
-  }, [tourPath]);
 
   const handleCopyTourUrl = useCallback(async () => {
     const absoluteUrl = `${window.location.origin}${tourPath}`;
@@ -92,7 +86,9 @@ export default function PublicTourSchoolSettingsPanel({
   }, [organizationId, onPlatformEnabledChange]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   async function handleSave() {
@@ -134,6 +130,7 @@ export default function PublicTourSchoolSettingsPanel({
   }
 
   const formDisabled = !platformEnabled || saving;
+  const tourDisplayUrl = `${window.location.host}${tourPath}`;
 
   return (
     <div className="space-y-6">

@@ -1,5 +1,10 @@
 -- Promoted to supabase/migrations/20261029_add_portal_message_edited_at.sql for local/CI.
 -- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
+--
+-- NOTE: The "Participants update own portal_messages" policy below was removed by
+-- supabase/migrations/20261103_drop_portal_messages_participant_update_policy.sql
+-- (manual: drop_portal_messages_participant_update_policy_2026_09_28.sql). Do not
+-- re-create that policy; message edits/deletes go through the API (service role).
 
 alter table public.portal_messages
   add column if not exists edited_at timestamptz null;

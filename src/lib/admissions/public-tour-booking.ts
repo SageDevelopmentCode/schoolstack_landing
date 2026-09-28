@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AdmissionsBookingError } from "./admissions-booking";
+import {
+  AdmissionsBookingError,
+  throwIfAdmissionsVisitSlotUnavailable,
+} from "./admissions-booking";
 import {
   getOrganizationTimezone,
   listAdmissionsAvailabilitySlotRecords,
@@ -184,6 +187,7 @@ export async function bookPublicCampusTour(
     .single();
 
   if (error) {
+    throwIfAdmissionsVisitSlotUnavailable(error);
     throw error;
   }
 

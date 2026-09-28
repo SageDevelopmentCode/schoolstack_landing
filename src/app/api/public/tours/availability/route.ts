@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  AdmissionsAvailabilityDateRangeError,
+  assertAvailabilityDateWindow,
+} from "@/lib/admissions/admissions-availability-date-range";
 import { getPublicTourBookableAvailability } from "@/lib/admissions/public-tour-booking";
 import { loadPublicTourOrgBySlug } from "@/lib/admissions/public-tour-org";
 import { apiError } from "@/lib/api/route-errors";
@@ -19,6 +23,20 @@ export async function GET(request: Request) {
       error: "slug, start, and end are required.",
       code: "invalid_request",
     });
+  }
+
+  try {
+    assertAvailabilityDateWindow(startDate, endDate);
+  } catch (error) {
+    if (error instanceof AdmissionsAvailabilityDateRangeError) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: error.message,
+        code: error.code,
+      });
+    }
+    throw error;
   }
 
   try {

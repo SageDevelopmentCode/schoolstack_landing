@@ -198,10 +198,11 @@ export default function AdminOrganizationsPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.location.hash === "#admissions") {
+    if (window.location.hash !== "#admissions") return;
+    queueMicrotask(() => {
       setFeaturesSection("admissions");
       selectDetailTab("features");
-    }
+    });
   }, [selectedId, selectDetailTab]);
 
   useEffect(() => {

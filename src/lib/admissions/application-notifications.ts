@@ -4,6 +4,7 @@ import {
   formatOrganizationTimezoneLabel,
   formatScheduledVisitWhenLabel,
   formatVisitDayCountLabel,
+  listAdmissionsAvailabilitySlotRecords,
 } from "@/lib/admissions/admissions-availability";
 import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
 import {
@@ -18,13 +19,24 @@ import {
   logNotificationFailure,
   logSettledNotificationFailures,
 } from "@/lib/admissions/notification-logging";
-import { notifyApplicationSubmitted, notifyPostSubmitVisitScheduled } from "@/lib/discord";
+import {
+  notifyApplicationSubmitted,
+  notifyCampusTourBooked,
+  notifyPostSubmitVisitScheduled,
+} from "@/lib/discord";
+import { FAMILY_TOUR_ACTION_TYPE } from "@/lib/admissions/family-tour-booking";
+import { listPublicTourVisitsForAvailability } from "@/lib/admissions/public-tour-booking";
+import {
+  describeCampusTourSlotForDiscord,
+} from "@/lib/admissions/public-tour-availability";
+import type { PublicTourChildEntry } from "@/lib/admissions/public-tour-settings";
 import {
   sendApplicationAcceptedEnrollmentEmail,
   sendApplicationSubmittedConfirmation,
   sendApplicationSubmittedOwnerNotification,
   sendPostSubmitVisitConfirmation,
   sendPostSubmitVisitOwnerNotification,
+  sendPublicCampusTourConfirmation,
 } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
@@ -388,6 +400,62 @@ function resolveVisitDurationLabel(booking: ScheduledVisitRecord): string {
     : formatDurationLabel(booking.durationMinutes);
 }
 
+export async function loadCampusTourSlotDiscordLabel(
+  admin: SupabaseClient,
+  organizationId: string,
+  scheduledDate: string,
+  startTimeSlot: string,
+): Promise<string | null> {
+  const [slotRecords, visits] = await Promise.all([
+    listAdmissionsAvailabilitySlotRecords(
+      admin,
+      organizationId,
+      scheduledDate,
+      scheduledDate,
+    ),
+    listPublicTourVisitsForAvailability(
+      admin,
+      organizationId,
+      scheduledDate,
+      scheduledDate,
+    ),
+  ]);
+  return describeCampusTourSlotForDiscord(
+    slotRecords,
+    visits,
+    scheduledDate,
+    startTimeSlot,
+  );
+}
+
+export function formatPublicTourChildrenSummary(
+  answers: Record<string, unknown>,
+): string | undefined {
+  const children = answers.children;
+  if (!Array.isArray(children) || children.length === 0) {
+    return undefined;
+  }
+
+  const names = children
+    .map((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return null;
+      }
+      const name = (entry as PublicTourChildEntry).name;
+      return typeof name === "string" ? name.trim() : null;
+    })
+    .filter((name): name is string => Boolean(name));
+
+  return names.length > 0 ? names.join(", ") : undefined;
+}
+
+function isCampusTourTimeSlotBooking(booking: ScheduledVisitRecord): boolean {
+  return (
+    booking.actionType === FAMILY_TOUR_ACTION_TYPE &&
+    booking.schedulingMode === "time_slot"
+  );
+}
+
 export function buildPostSubmitVisitNotificationTasks(input: {
   booking: ScheduledVisitRecord;
   contact: ApplicantContact | null;
@@ -398,6 +466,8 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   timezoneLabel: string;
   applicationId: string;
   studentName?: string;
+  familyName?: string;
+  tourFormatLabel?: string | null;
 }): Array<() => Promise<unknown>> {
   const {
     booking,
@@ -409,6 +479,8 @@ export function buildPostSubmitVisitNotificationTasks(input: {
     timezoneLabel,
     applicationId,
     studentName,
+    familyName,
+    tourFormatLabel,
   } = input;
 
   const whenLabel = formatScheduledVisitWhenLabel(booking);
@@ -416,25 +488,44 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
   const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
 
+  const discordTask = isCampusTourTimeSlotBooking(booking)
+    ? () =>
+        notifyCampusTourBooked({
+          schoolName,
+          bookingSource: "post_submit",
+          contactEmail: contact?.email ?? "unknown",
+          contactName: contact?.displayName,
+          familyName,
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          tourFormatLabel,
+          studentName,
+          visitId: booking.id,
+          applicationId,
+          stepTitle,
+        })
+    : () =>
+        notifyPostSubmitVisitScheduled({
+          schoolName,
+          email: contact?.email ?? "unknown",
+          applicationId,
+          actionType: booking.actionType,
+          stepTitle,
+          scheduledDate: booking.scheduledDate,
+          endDate: booking.endDate,
+          startTimeSlot: booking.startTimeSlot,
+          schedulingMode: booking.schedulingMode,
+          visitDayCount: booking.visitDayCount,
+          visitDates: booking.visitDates,
+          timezoneLabel,
+          firstName: contact?.firstName,
+          lastName: contact?.lastName,
+          studentName,
+        });
+
   const tasks: Array<() => Promise<unknown>> = [
-    () =>
-      notifyPostSubmitVisitScheduled({
-        schoolName,
-        email: contact?.email ?? "unknown",
-        applicationId,
-        actionType: booking.actionType,
-        stepTitle,
-        scheduledDate: booking.scheduledDate,
-        endDate: booking.endDate,
-        startTimeSlot: booking.startTimeSlot,
-        schedulingMode: booking.schedulingMode,
-        visitDayCount: booking.visitDayCount,
-        visitDates: booking.visitDates,
-        timezoneLabel,
-        firstName: contact?.firstName,
-        lastName: contact?.lastName,
-        studentName,
-      }),
+    discordTask,
     ...notifyEmails.map(
       (email) => () =>
         sendPostSubmitVisitOwnerNotification({
@@ -554,6 +645,27 @@ export async function sendPostSubmitVisitScheduledNotifications(
       organizationId,
     );
 
+    let familyName: string | undefined;
+    if (application.family_id) {
+      const { data: family } = await admin
+        .from("families")
+        .select("name")
+        .eq("id", application.family_id)
+        .maybeSingle();
+      if (family?.name) {
+        familyName = String(family.name);
+      }
+    }
+
+    const tourFormatLabel = isCampusTourTimeSlotBooking(booking)
+      ? await loadCampusTourSlotDiscordLabel(
+          admin,
+          organizationId,
+          booking.scheduledDate,
+          booking.startTimeSlot,
+        )
+      : null;
+
     const notificationTasks = buildPostSubmitVisitNotificationTasks({
       booking,
       contact,
@@ -564,6 +676,8 @@ export async function sendPostSubmitVisitScheduledNotifications(
       timezoneLabel,
       applicationId,
       studentName,
+      familyName,
+      tourFormatLabel,
     });
 
     if (notificationTasks.length === 0) {
@@ -600,14 +714,12 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     booking: ScheduledVisitRecord;
   },
 ): Promise<void> {
+  const visitId = input.booking.id;
   try {
     const notifyEmails = await resolveVisitNotificationEmails(
       admin,
       input.organizationId,
     );
-    if (notifyEmails.length === 0) {
-      return;
-    }
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
@@ -634,7 +746,8 @@ export async function sendPreApplicationCampusTourAdminNotifications(
 
     const emails = await loadFamilyNotificationEmails(admin, input.familyId);
     const contactEmail =
-      emails[0] ?? (family?.primary_email ? String(family.primary_email) : undefined);
+      emails[0] ??
+      (family?.primary_email ? String(family.primary_email) : undefined);
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
@@ -644,9 +757,36 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     const whenLabel = formatScheduledVisitWhenLabel(input.booking);
     const durationLabel = resolveVisitDurationLabel(input.booking);
     const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
+    const familyName = family?.name ? String(family.name) : undefined;
 
-    await Promise.allSettled(
-      notifyEmails.map((email) =>
+    const tourFormatLabel =
+      input.booking.schedulingMode === "time_slot"
+        ? await loadCampusTourSlotDiscordLabel(
+            admin,
+            input.organizationId,
+            input.booking.scheduledDate,
+            input.booking.startTimeSlot,
+          )
+        : null;
+
+    const tasks: Array<() => Promise<unknown>> = [
+      () =>
+        notifyCampusTourBooked({
+          schoolName,
+          bookingSource: "pre_application",
+          contactEmail: contactEmail ?? "unknown",
+          contactName: familyName,
+          familyName,
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          tourFormatLabel,
+          visitId,
+        }),
+    ];
+
+    for (const email of notifyEmails) {
+      tasks.push(() =>
         sendPostSubmitVisitOwnerNotification({
           email,
           schoolName,
@@ -654,14 +794,30 @@ export async function sendPreApplicationCampusTourAdminNotifications(
           whenLabel,
           timezoneLabel,
           durationLabel,
-          contactName: family?.name ? String(family.name) : undefined,
+          contactName: familyName,
           contactEmail,
           submissionAdminUrl: scheduleAdminUrl,
         }),
-      ),
+      );
+    }
+
+    const notificationResults = await Promise.allSettled(
+      tasks.map((task) => task()),
     );
+    await logSettledNotificationFailures(admin, {
+      organizationId: input.organizationId,
+      operation: "pre_application_tour_notifications",
+      entityType: "scheduled_visit",
+      entityId: visitId,
+    }, notificationResults);
   } catch (error) {
-    console.error("Pre-application tour admin notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId: input.organizationId,
+      operation: "pre_application_tour_notifications",
+      entityType: "scheduled_visit",
+      entityId: visitId,
+      error,
+    });
   }
 }
 
@@ -682,14 +838,12 @@ export async function sendPublicTourBookingAdminNotifications(
     };
   },
 ): Promise<void> {
+  const visitId = input.booking.visitId;
   try {
     const notifyEmails = await resolveVisitNotificationEmails(
       admin,
       input.organizationId,
     );
-    if (notifyEmails.length === 0) {
-      return;
-    }
 
     const { data: org, error: orgError } = await admin
       .from("organizations")
@@ -717,11 +871,49 @@ export async function sendPublicTourBookingAdminNotifications(
     const answers = input.booking.registrant.answers;
     const contactName =
       typeof answers.contact_name === "string"
-        ? answers.contact_name
-        : undefined;
+        ? answers.contact_name.trim() || "Guest"
+        : "Guest";
+    const contactEmail = input.booking.registrant.contactEmail.trim();
+    const childrenSummary = formatPublicTourChildrenSummary(answers);
 
-    await Promise.allSettled(
-      notifyEmails.map((email) =>
+    const tourFormatLabel = await loadCampusTourSlotDiscordLabel(
+      admin,
+      input.organizationId,
+      input.booking.scheduledDate,
+      input.booking.startTimeSlot,
+    );
+
+    const tasks: Array<() => Promise<unknown>> = [
+      () =>
+        notifyCampusTourBooked({
+          schoolName: input.schoolName,
+          bookingSource: "public",
+          contactEmail: contactEmail || "unknown",
+          contactName: contactName === "Guest" ? undefined : contactName,
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          tourFormatLabel,
+          childrenSummary,
+          visitId,
+        }),
+    ];
+
+    if (contactEmail) {
+      tasks.push(() =>
+        sendPublicCampusTourConfirmation({
+          name: contactName,
+          email: contactEmail,
+          schoolName: input.schoolName,
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+        }),
+      );
+    }
+
+    for (const email of notifyEmails) {
+      tasks.push(() =>
         sendPostSubmitVisitOwnerNotification({
           email,
           schoolName: input.schoolName,
@@ -729,13 +921,33 @@ export async function sendPublicTourBookingAdminNotifications(
           whenLabel,
           timezoneLabel,
           durationLabel,
-          contactName,
-          contactEmail: input.booking.registrant.contactEmail,
+          contactName: contactName === "Guest" ? undefined : contactName,
+          contactEmail,
           submissionAdminUrl: scheduleAdminUrl,
         }),
-      ),
+      );
+    }
+
+    if (tasks.length === 0) {
+      return;
+    }
+
+    const notificationResults = await Promise.allSettled(
+      tasks.map((task) => task()),
     );
+    await logSettledNotificationFailures(admin, {
+      organizationId: input.organizationId,
+      operation: "public_tour_booking_notifications",
+      entityType: "scheduled_visit",
+      entityId: visitId,
+    }, notificationResults);
   } catch (error) {
-    console.error("Public tour admin notifications failed:", error);
+    await logNotificationFailure(admin, {
+      organizationId: input.organizationId,
+      operation: "public_tour_booking_notifications",
+      entityType: "scheduled_visit",
+      entityId: visitId,
+      error,
+    });
   }
 }

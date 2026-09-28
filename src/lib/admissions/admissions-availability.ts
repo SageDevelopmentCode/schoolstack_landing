@@ -63,6 +63,27 @@ export const ADMISSIONS_TIME_SLOT_GROUPS: ReadonlyArray<{
   },
 ];
 
+export function pickFirstBookableSlotForDay(
+  slots: string[],
+): { period: AdmissionsTimeSlotPeriod; slot: string } | null {
+  if (slots.length === 0) {
+    return null;
+  }
+  const available = new Set(slots);
+  for (const slot of ADMISSIONS_TIME_SLOTS) {
+    if (!available.has(slot)) {
+      continue;
+    }
+    const period = ADMISSIONS_TIME_SLOT_GROUPS.find((group) =>
+      group.slots.includes(slot),
+    )?.id;
+    if (period) {
+      return { period, slot };
+    }
+  }
+  return null;
+}
+
 export function formatOrganizationTimezoneLabel(timezone: string): string {
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -467,8 +488,14 @@ function slotIndex(timeSlot: string): number {
   return ADMISSIONS_TIME_SLOTS.indexOf(timeSlot as AdmissionsTimeSlot);
 }
 
+export type IsStartTimeBookableOptions = {
+  /** When false, only the start cell must be admin-open (public tour start times). Default true. */
+  requireConsecutiveOpenCells?: boolean;
+};
+
 /**
- * Future parent booking: a start time is valid when N consecutive open cells exist.
+ * Future parent booking: a start time is valid when N consecutive open cells exist
+ * (or only the start cell is open when requireConsecutiveOpenCells is false).
  */
 export function isStartTimeBookable(
   openSlots: Set<AdmissionsAvailabilitySlotKey>,
@@ -476,14 +503,24 @@ export function isStartTimeBookable(
   startTimeSlot: string,
   durationMinutes: number,
   bookedStarts: Set<AdmissionsAvailabilitySlotKey> = new Set(),
+  options: IsStartTimeBookableOptions = {},
 ): boolean {
+  const requireConsecutiveOpenCells = options.requireConsecutiveOpenCells ?? true;
   const startIndex = slotIndex(startTimeSlot);
   if (startIndex < 0) return false;
 
   const cellCount = durationToSlotCount(durationMinutes);
   if (startIndex + cellCount > ADMISSIONS_TIME_SLOTS.length) return false;
 
-  for (let i = 0; i < cellCount; i++) {
+  const startKey = availabilitySlotKey(date, startTimeSlot);
+  if (!openSlots.has(startKey)) return false;
+  if (bookedStarts.has(startKey)) return false;
+
+  if (!requireConsecutiveOpenCells) {
+    return true;
+  }
+
+  for (let i = 1; i < cellCount; i++) {
     const timeSlot = ADMISSIONS_TIME_SLOTS[startIndex + i];
     const key = availabilitySlotKey(date, timeSlot);
     if (!openSlots.has(key)) return false;

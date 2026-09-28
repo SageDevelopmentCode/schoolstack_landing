@@ -1,8 +1,9 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
-  getPortalAccountLinkContext,
+  getOrderedPortalAccountUserIds,
   resolvePortalAccountMemberUserIds,
 } from "@/lib/auth/portal-account-link-context";
+import type { StaffPortalRole } from "@/lib/staff/staff-members";
 
 export type StaffUserProfile = {
   email: string;
@@ -93,18 +94,11 @@ export async function getStaffMemberIdForUser(
   userId: string,
   organizationId: string,
 ): Promise<string | null> {
-  const linkContext = await getPortalAccountLinkContext(
+  const orderedUserIds = await getOrderedPortalAccountUserIds(
     supabase,
     organizationId,
     userId,
   );
-
-  const orderedUserIds = [
-    linkContext.primaryUserId,
-    ...linkContext.memberUserIds.filter(
-      (memberUserId) => memberUserId !== linkContext.primaryUserId,
-    ),
-  ];
 
   for (const memberUserId of orderedUserIds) {
     const staffMemberId = await getStaffMemberIdForAuthUser(
@@ -120,20 +114,78 @@ export async function getStaffMemberIdForUser(
   return null;
 }
 
+async function getStaffMemberRowForAuthUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+) {
+  const { data, error } = await supabase
+    .from("staff_members")
+    .select("first_name, last_name, email, profile_photo_url, role_title")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getStaffPortalRoleForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<StaffPortalRole | null> {
+  const orderedUserIds = await getOrderedPortalAccountUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of orderedUserIds) {
+    const { data, error } = await supabase
+      .from("organization_memberships")
+      .select("role")
+      .eq("organization_id", organizationId)
+      .eq("user_id", memberUserId)
+      .eq("status", "active")
+      .in("role", ["teacher", "staff"])
+      .maybeSingle();
+
+    if (error) throw error;
+    if (data?.role === "teacher" || data?.role === "staff") {
+      return data.role as StaffPortalRole;
+    }
+  }
+
+  return null;
+}
+
 export async function getStaffUserProfile(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
   user: User,
 ): Promise<StaffUserProfile> {
-  const { data: staffMember, error } = await supabase
-    .from("staff_members")
-    .select("first_name, last_name, email, profile_photo_url")
-    .eq("user_id", userId)
-    .eq("organization_id", organizationId)
-    .maybeSingle();
+  const orderedUserIds = await getOrderedPortalAccountUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
 
-  if (error) throw error;
+  let staffMember: Awaited<ReturnType<typeof getStaffMemberRowForAuthUser>> =
+    null;
+
+  for (const memberUserId of orderedUserIds) {
+    const row = await getStaffMemberRowForAuthUser(
+      supabase,
+      memberUserId,
+      organizationId,
+    );
+    if (row) {
+      staffMember = row;
+      break;
+    }
+  }
 
   const metadata = user.user_metadata ?? {};
   const metadataFirstName =

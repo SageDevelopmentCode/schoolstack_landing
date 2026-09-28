@@ -7,6 +7,7 @@ import type {
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import { formatPhoneNumberInput } from "@/lib/phone-format";
 
 type PublicTourFormFieldsProps = {
   fields: PublicTourFieldDefinition[];
@@ -103,7 +104,10 @@ export default function PublicTourFormFields({
                 }}
               >
                 {children.map((child, index) => (
-                  <div key={`${field.id}-${index}`} className="grid gap-3 sm:grid-cols-2">
+                  <div
+                    key={`${field.id}-${index}`}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  >
                     <input
                       type="text"
                       disabled={disabled}
@@ -114,7 +118,7 @@ export default function PublicTourFormFields({
                         next[index] = { ...next[index], name: event.target.value };
                         setField(field.id, next);
                       }}
-                      className={inputClassName().replace("mt-2", "mt-0")}
+                      className={`${inputClassName().replace("mt-2", "mt-0")} min-w-0`}
                       style={styles}
                     />
                     <input
@@ -130,7 +134,7 @@ export default function PublicTourFormFields({
                         };
                         setField(field.id, next);
                       }}
-                      className={inputClassName().replace("mt-2", "mt-0")}
+                      className={`${inputClassName().replace("mt-2", "mt-0")} min-w-0`}
                       style={styles}
                     />
                   </div>
@@ -239,8 +243,38 @@ export default function PublicTourFormFields({
           );
         }
 
-        const inputType =
-          field.type === "email" ? "email" : field.type === "phone" ? "tel" : "text";
+        if (field.type === "phone") {
+          const fieldId = `public-tour-${field.id}`;
+          const phoneValue =
+            typeof values[field.id] === "string" ? (values[field.id] as string) : "";
+          return (
+            <FieldBlock
+              key={field.id}
+              theme={theme}
+              label={field.label}
+              required={field.required}
+              helpText={field.helpText}
+              htmlFor={fieldId}
+            >
+              <input
+                id={fieldId}
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                placeholder="(562) - 332 - 4687"
+                disabled={disabled}
+                value={formatPhoneNumberInput(phoneValue)}
+                onChange={(event) =>
+                  setField(field.id, formatPhoneNumberInput(event.target.value))
+                }
+                className={inputClassName()}
+                style={styles}
+              />
+            </FieldBlock>
+          );
+        }
+
+        const inputType = field.type === "email" ? "email" : "text";
         const fieldId = `public-tour-${field.id}`;
 
         return (

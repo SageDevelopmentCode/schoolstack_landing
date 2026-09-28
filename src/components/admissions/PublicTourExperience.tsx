@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import AdmissionsDateTimePicker from "@/components/admissions/AdmissionsDateTimePicker";
 import PublicTourFormFields from "@/components/admissions/PublicTourFormFields";
@@ -83,6 +83,14 @@ function PublicTourExperienceInner({
 
   const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
 
+  const availabilityEndpointBuilder = useCallback(
+    (start: string, end: string) =>
+      `/api/public/tours/availability?slug=${encodeURIComponent(
+        schoolSlug,
+      )}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    [schoolSlug],
+  );
+
   const slotSummary =
     selectedDate && selectedTime
       ? `${selectedDate} at ${selectedTime} (${timezoneLabel})`
@@ -141,7 +149,11 @@ function PublicTourExperienceInner({
       <AnimatePresence mode="wait">
         {step === "confirmed" ? (
           <motion.div key="confirmed" {...STEP_TRANSITION}>
-            <ParentCard theme={theme} variant="today" className="text-center sm:text-left">
+            <ParentCard
+              theme={theme}
+              variant="today"
+              className="!p-4 text-center sm:!p-6 sm:text-left"
+            >
               <p
                 className="font-heading text-xl font-semibold sm:text-2xl"
                 style={{ color: theme.primaryDark }}
@@ -163,14 +175,10 @@ function PublicTourExperienceInner({
 
         {step === "schedule" ? (
           <motion.div key="schedule" {...STEP_TRANSITION}>
-            <ParentCard theme={theme}>
+            <ParentCard theme={theme} className="!p-4 sm:!p-6">
               <AdmissionsDateTimePicker
                 C={C}
-                availabilityEndpointBuilder={(start, end) =>
-                  `/api/public/tours/availability?slug=${encodeURIComponent(
-                    schoolSlug,
-                  )}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
-                }
+                availabilityEndpointBuilder={availabilityEndpointBuilder}
                 timezone={timezone}
                 timezoneLabel={timezoneLabel}
                 selectedDate={selectedDate}
@@ -180,12 +188,13 @@ function PublicTourExperienceInner({
                 onTimezoneLoaded={setTimezone}
                 showGroupTourBadges
               />
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-stretch sm:justify-end">
                 <ParentButton
                   theme={theme}
                   type="button"
                   disabled={!selectedDate || !selectedTime}
                   onClick={() => setStep("details")}
+                  className="w-full sm:w-auto"
                 >
                   Continue
                 </ParentButton>
@@ -197,17 +206,24 @@ function PublicTourExperienceInner({
         {step === "details" ? (
           <motion.div key="details" {...STEP_TRANSITION} className="space-y-4">
             {slotSummary ? (
-              <ParentCard theme={theme} variant="announcement" className="!py-4">
+              <ParentCard
+                theme={theme}
+                variant="announcement"
+                className="!p-4 !py-4 sm:!p-6"
+              >
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: theme.muted }}>
                   Your visit
                 </p>
-                <p className="mt-1 text-[15px] font-semibold" style={{ color: theme.ink }}>
+                <p
+                  className="mt-1 break-words text-pretty text-sm font-semibold sm:text-[15px]"
+                  style={{ color: theme.ink }}
+                >
                   {slotSummary}
                 </p>
               </ParentCard>
             ) : null}
 
-            <ParentCard theme={theme}>
+            <ParentCard theme={theme} className="!p-4 sm:!p-6">
               <PublicTourFormFields
                 fields={fields}
                 values={answers}

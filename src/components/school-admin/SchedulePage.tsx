@@ -270,6 +270,7 @@ export default function SchedulePage({
                       schoolSlug={slug}
                       onMonthSlotCountChange={handleMonthSlotCountChange}
                       onLoadingChange={(loading) => reportTabLoading("tours", loading)}
+                      visitsDeferred={visitsDeferred}
                     />
                   </AdminCard>
                 </div>

@@ -50,12 +50,14 @@ export default function AdmissionsSlotTourSettingsModal({
   useEffect(() => {
     if (!open) return;
     const mode = record?.tourBookingMode === "group" ? "group" : "exclusive";
-    setDraftMode(mode);
-    if (record?.groupCapacity != null && record.groupCapacity > 0) {
-      setCapacity(String(record.groupCapacity));
-    } else {
-      setCapacity(String(DEFAULT_GROUP_CAPACITY));
-    }
+    const nextCapacity =
+      record?.groupCapacity != null && record.groupCapacity > 0
+        ? String(record.groupCapacity)
+        : String(DEFAULT_GROUP_CAPACITY);
+    queueMicrotask(() => {
+      setDraftMode(mode);
+      setCapacity(nextCapacity);
+    });
   }, [open, date, timeSlot, record?.tourBookingMode, record?.groupCapacity]);
 
   const panelStyle = useMemo(

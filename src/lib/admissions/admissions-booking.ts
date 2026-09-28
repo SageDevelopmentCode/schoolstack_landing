@@ -136,6 +136,19 @@ export class AdmissionsBookingError extends Error {
   }
 }
 
+export function throwIfAdmissionsVisitSlotUnavailable(error: {
+  code?: string;
+  message?: string;
+}): void {
+  const message = typeof error.message === "string" ? error.message : "";
+  if (error.code === "P0001" && message.includes("slot_unavailable")) {
+    throw new AdmissionsBookingError(
+      "That time is no longer available. Please choose another slot.",
+      "slot_unavailable",
+    );
+  }
+}
+
 function scheduledVisitFromRow(
   row: ScheduledVisitRow,
   visitDates?: string[],
@@ -957,6 +970,7 @@ async function bookTimeSlotVisit(
         "already_scheduled",
       );
     }
+    throwIfAdmissionsVisitSlotUnavailable(error);
     throw error;
   }
 

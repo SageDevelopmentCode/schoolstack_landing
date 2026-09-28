@@ -57,7 +57,7 @@ function resolveStepTitle(
   return POST_SUBMIT_ACTION_TEMPLATES[actionType]?.label ?? "Visit";
 }
 
-function labelFromPublicRegistrant(registrantRaw: unknown): string | null {
+export function labelFromPublicRegistrant(registrantRaw: unknown): string | null {
   if (!registrantRaw || typeof registrantRaw !== "object" || Array.isArray(registrantRaw)) {
     return null;
   }

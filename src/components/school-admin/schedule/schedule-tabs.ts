@@ -36,8 +36,10 @@ export function parseScheduleTab(value: string | null): ScheduleTabId {
   return "overview";
 }
 
-export type ToursSubtabId = "availability" | "public-tour";
+export type ToursSubtabId = "availability" | "submissions" | "public-tour";
 
 export function parseToursSubtab(value: string | null): ToursSubtabId {
-  return value === "public-tour" ? "public-tour" : "availability";
+  if (value === "public-tour") return "public-tour";
+  if (value === "submissions") return "submissions";
+  return "availability";
 }

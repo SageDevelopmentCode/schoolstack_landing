@@ -527,9 +527,42 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
           },
         },
         {
+          title: "Review tour submissions",
+          description:
+            "Open the Tour submissions sub-tab to see bookings from the public tour page (contact details and form answers).",
+        },
+        {
           title: "Customize the public form",
           description:
             "Edit headline, intro, and intake questions in the Public tour page section below the calendar.",
+        },
+      ],
+    },
+    {
+      id: "scheduled-visit-reminder-emails",
+      title: "Automatic visit reminder emails",
+      category: "Schedule",
+      summary:
+        "MudKitchen emails families the day before a scheduled tour, interview, or shadow day, and sends school admins a weekly Monday digest plus a day-before summary when visits are on the calendar.",
+      keywords: ["reminder", "email", "visit", "tour", "digest", "cron"],
+      requiredFeatures: {
+        admin: { schedule: true, notifications: true },
+        adminPath: { feature: "schedule" },
+      },
+      steps: [
+        {
+          title: "Visit notification recipients",
+          description:
+            "Admins who receive visit booking alerts also get reminder digests. Add extra emails under Settings → Notifications → Visits if needed.",
+        },
+        {
+          title: "Review scheduled visits",
+          description:
+            "Open All visits to confirm tomorrow’s calendar matches what families and admins will be reminded about.",
+          action: {
+            label: "Open Schedule",
+            path: { feature: "schedule" },
+          },
         },
       ],
     },

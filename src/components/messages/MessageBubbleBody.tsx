@@ -57,7 +57,7 @@ export default function MessageBubbleBody({
 
   useEffect(() => {
     if (!editing) {
-      setDraft(message.body);
+      queueMicrotask(() => setDraft(message.body));
     }
   }, [editing, message.body]);
 
