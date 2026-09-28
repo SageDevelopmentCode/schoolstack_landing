@@ -3,6 +3,7 @@ import {
   AdmissionsBookingError,
   throwIfAdmissionsVisitSlotUnavailable,
 } from "./admissions-booking";
+import { loadCampusTourBookableAvailability } from "./campus-tour-availability-loader";
 import {
   getOrganizationTimezone,
   listAdmissionsAvailabilitySlotRecords,
@@ -13,10 +14,9 @@ import {
   FAMILY_TOUR_ACTION_TYPE,
 } from "./family-tour-booking";
 import {
-  computePublicTourAvailability,
   isPublicTourSlotBookable,
+  listCampusTourVisitsForAvailability,
   type PublicTourAvailabilityResult,
-  type PublicTourVisitForAvailability,
 } from "./public-tour-availability";
 import {
   isPublicTourEnabled,
@@ -30,34 +30,7 @@ import { validatePublicTourAnswers } from "./public-tour-validation";
 
 export { PUBLIC_TOUR_POST_SUBMIT_ACTION_ID };
 
-const VISIT_AVAILABILITY_SELECT =
-  "action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, status";
-
-export async function listPublicTourVisitsForAvailability(
-  supabase: SupabaseClient,
-  organizationId: string,
-  startDate: string,
-  endDate: string,
-): Promise<PublicTourVisitForAvailability[]> {
-  const { data, error } = await supabase
-    .from("admissions_scheduled_visits")
-    .select(VISIT_AVAILABILITY_SELECT)
-    .eq("organization_id", organizationId)
-    .eq("status", "scheduled")
-    .gte("scheduled_date", startDate)
-    .lte("scheduled_date", endDate);
-
-  if (error) throw error;
-
-  return (data ?? []).map((row) => ({
-    actionType: String(row.action_type),
-    schedulingMode: row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot",
-    scheduledDate: String(row.scheduled_date),
-    startTimeSlot: String(row.start_time_slot),
-    durationMinutes: Number(row.duration_minutes),
-    status: String(row.status),
-  }));
-}
+export { listCampusTourVisitsForAvailability as listPublicTourVisitsForAvailability };
 
 export async function getPublicTourBookableAvailability(
   supabase: SupabaseClient,
@@ -65,14 +38,8 @@ export async function getPublicTourBookableAvailability(
   startDate: string,
   endDate: string,
 ): Promise<PublicTourAvailabilityResult & { timezone: string }> {
-  const [slotRecords, visits, timezone] = await Promise.all([
-    listAdmissionsAvailabilitySlotRecords(
-      supabase,
-      organizationId,
-      startDate,
-      endDate,
-    ),
-    listPublicTourVisitsForAvailability(
+  const [availability, timezone] = await Promise.all([
+    loadCampusTourBookableAvailability(
       supabase,
       organizationId,
       startDate,
@@ -80,13 +47,6 @@ export async function getPublicTourBookableAvailability(
     ),
     getOrganizationTimezone(supabase, organizationId),
   ]);
-
-  const availability = computePublicTourAvailability({
-    slotRecords,
-    visits,
-    startDate,
-    endDate,
-  });
 
   return { ...availability, timezone };
 }
@@ -144,7 +104,7 @@ export async function bookPublicCampusTour(
       params.scheduledDate,
       params.scheduledDate,
     ),
-    listPublicTourVisitsForAvailability(
+    listCampusTourVisitsForAvailability(
       supabase,
       params.organizationId,
       params.scheduledDate,

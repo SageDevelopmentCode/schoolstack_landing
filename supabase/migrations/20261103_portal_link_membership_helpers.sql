@@ -1,4 +1,5 @@
 -- Portal account links: treat linked peer memberships as the session user's for RLS helpers.
+-- Also drops participant PostgREST UPDATE on portal_messages; edits/deletes use service role via API.
 -- Run after: 20261102_fix_portal_account_link_members_rls.sql
 
 create or replace function public.portal_account_link_peer_user_ids(p_organization_id uuid)
@@ -74,3 +75,5 @@ as $$
       and m.role in ('owner', 'admin', 'teacher', 'staff')
   );
 $$;
+
+drop policy if exists "Participants update own portal_messages" on public.portal_messages;

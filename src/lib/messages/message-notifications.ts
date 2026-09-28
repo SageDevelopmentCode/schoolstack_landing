@@ -7,6 +7,7 @@ import {
 } from "@/lib/activity-log";
 import { sendNewMessageEmail } from "@/lib/emails";
 import { shouldSendMessageEmail } from "@/lib/messages/message-email-debounce";
+import { stampMessageThreadReadFields } from "@/lib/messages/message-thread-read-stamps";
 import {
   resolveSenderDisplayName,
   resolveThreadRecipientLabels,
@@ -184,16 +185,11 @@ async function stampMessageEmailNotified(
   userId: string,
   notifiedAt: string,
 ): Promise<void> {
-  const { error } = await admin.from("message_thread_reads").upsert(
-    {
-      thread_id: threadId,
-      user_id: userId,
-      last_email_notified_at: notifiedAt,
-    },
-    { onConflict: "thread_id,user_id" },
+  await stampMessageThreadReadFields(
+    admin,
+    [{ threadId, userId }],
+    { last_email_notified_at: notifiedAt },
   );
-
-  if (error) throw new Error(error.message);
 }
 
 export async function dispatchMessageNotifications(

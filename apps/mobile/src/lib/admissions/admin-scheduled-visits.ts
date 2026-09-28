@@ -3,12 +3,16 @@ import {
   classifyScheduledVisitTiming,
   formatScheduledVisitWhenLabel,
   getOrganizationTimezone,
+  listAdmissionsAvailabilitySlotRecords,
   parseAdmissionsTimeSlot,
   type AdmissionsAvailabilitySlotKey,
   type ScheduledVisitTiming,
 } from "./admissions-availability";
 import type { AdmissionsSchedulingMode, ScheduledVisitSlotDetail } from "./admissions-booking";
-import { buildOccupiedSlotKeys } from "./admissions-booking";
+import {
+  buildAdminAvailabilityOccupiedSlotKeys,
+  listCampusTourVisitsForAvailability,
+} from "./campus-tour-admin-occupancy";
 import { listObservationSlotsByIds } from "./admissions-observation-slots";
 import type { PostSubmitActionType } from './post-submit-templates';
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
@@ -305,28 +309,22 @@ export async function listOccupiedSlotKeysForDateRange(
   startDate: string,
   endDate: string,
 ): Promise<Set<AdmissionsAvailabilitySlotKey>> {
-  const { data, error } = await supabase
-    .from("admissions_scheduled_visits")
-    .select("scheduling_mode, scheduled_date, start_time_slot, duration_minutes, status")
-    .eq("organization_id", organizationId)
-    .eq("status", "scheduled")
-    .gte("scheduled_date", startDate)
-    .lte("scheduled_date", endDate);
+  const [slotRecords, visits] = await Promise.all([
+    listAdmissionsAvailabilitySlotRecords(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+    ),
+    listCampusTourVisitsForAvailability(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+    ),
+  ]);
 
-  if (error) throw error;
-
-  return buildOccupiedSlotKeys(
-    (data ?? []).map((row) => ({
-      schedulingMode:
-        row.scheduling_mode === "whole_day"
-          ? ("whole_day" as const)
-          : ("time_slot" as const),
-      scheduledDate: String(row.scheduled_date),
-      startTimeSlot: String(row.start_time_slot),
-      durationMinutes: Number(row.duration_minutes),
-      status: "scheduled" as const,
-    })),
-  );
+  return buildAdminAvailabilityOccupiedSlotKeys(slotRecords, visits);
 }
 
 export function occupiedSlotKeysToBookedDates(

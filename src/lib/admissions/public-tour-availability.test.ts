@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { AdmissionsAvailabilitySlotRecord } from "./admissions-availability";
 import {
+  buildAdminAvailabilityOccupiedSlotKeys,
   buildPublicTourOccupiedSlotKeys,
   computePublicTourAvailability,
   describeCampusTourSlotForDiscord,
 } from "./public-tour-availability";
+import {
+  buildOccupiedSlotKeys,
+  listBookableStartTimes,
+} from "./admissions-booking";
+import { availabilitySlotKey } from "./admissions-availability";
 import { FAMILY_TOUR_ACTION_TYPE } from "./family-tour-booking";
 import { validatePublicTourAnswers } from "./public-tour-validation";
 import { DEFAULT_PUBLIC_TOUR_FIELDS } from "./public-tour-settings";
@@ -175,6 +181,7 @@ describe("computePublicTourAvailability", () => {
       groupSlot("2026-10-01", "10:30 AM", 2, "2026-10-01"),
       groupSlot("2026-10-01", "11:00 AM", 2, "2026-10-01"),
       groupSlot("2026-10-01", "11:30 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "12:00 PM", 2, "2026-10-01"),
     ];
     const visits = [
       {
@@ -245,20 +252,21 @@ describe("computePublicTourAvailability", () => {
   });
 });
 
-describe("computePublicTourAvailability start-only open cells", () => {
-  it("lists a single admin-open start without trailing half-hours", () => {
+describe("computePublicTourAvailability consecutive open cells", () => {
+  it("does not list a start when trailing half-hours are not open", () => {
     const result = computePublicTourAvailability({
       slotRecords: [exclusiveSlot("2026-09-29", "1:30 PM")],
       visits: [],
       startDate: "2026-09-29",
       endDate: "2026-09-29",
     });
-    assert.deepEqual(result.availability["2026-09-29"], ["1:30 PM"]);
+    assert.equal(result.availability["2026-09-29"], undefined);
   });
 
   it("keeps group start open after exclusive overlap blocks later starts", () => {
     const slots = [
       groupSlot("2026-09-30", "1:00 PM", 10),
+      groupSlot("2026-09-30", "1:30 PM", 10),
       exclusiveSlot("2026-09-30", "2:30 PM"),
       exclusiveSlot("2026-09-30", "3:00 PM"),
     ];
@@ -281,6 +289,101 @@ describe("computePublicTourAvailability start-only open cells", () => {
     });
 
     assert.deepEqual(result.availability["2026-09-30"], ["1:00 PM"]);
+  });
+});
+
+describe("buildAdminAvailabilityOccupiedSlotKeys", () => {
+  it("marks only the start cell for group campus tours", () => {
+    const slots = [
+      groupSlot("2026-10-01", "10:00 AM", 4, "2026-10-01"),
+      groupSlot("2026-10-01", "10:30 AM", 4, "2026-10-01"),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const occupied = buildAdminAvailabilityOccupiedSlotKeys(slots, visits);
+    assert.ok(occupied.has("2026-10-01|10:00 AM"));
+    assert.ok(!occupied.has("2026-10-01|10:30 AM"));
+  });
+
+  it("marks full duration for exclusive campus tours", () => {
+    const slots = [exclusiveSlot("2026-10-01", "10:00 AM")];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const occupied = buildAdminAvailabilityOccupiedSlotKeys(slots, visits);
+    assert.ok(occupied.has("2026-10-01|10:00 AM"));
+    assert.ok(occupied.has("2026-10-01|10:30 AM"));
+  });
+});
+
+describe("legacy exclusive occupancy vs public campus tour availability", () => {
+  it("hides trailing group starts under buildOccupiedSlotKeys but not computePublicTourAvailability", () => {
+    const slots = [
+      groupSlot("2026-10-01", "10:00 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "10:30 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "11:00 AM", 2, "2026-10-01"),
+      groupSlot("2026-10-01", "11:30 AM", 2, "2026-10-01"),
+    ];
+    const visits = [
+      {
+        actionType: FAMILY_TOUR_ACTION_TYPE,
+        schedulingMode: "time_slot",
+        scheduledDate: "2026-10-01",
+        startTimeSlot: "10:00 AM",
+        durationMinutes: 60,
+        status: "scheduled",
+      },
+    ];
+
+    const openSlots = new Set(slots.map((slot) => availabilitySlotKey(slot.date, slot.timeSlot)));
+    const legacyOccupied = buildOccupiedSlotKeys(
+      visits.map((visit) => ({
+        schedulingMode: "time_slot" as const,
+        scheduledDate: visit.scheduledDate,
+        startTimeSlot: visit.startTimeSlot,
+        durationMinutes: visit.durationMinutes,
+        status: "scheduled" as const,
+      })),
+    );
+    const legacyStarts = listBookableStartTimes(
+      openSlots,
+      legacyOccupied,
+      "2026-10-01",
+      "2026-10-01",
+      60,
+    );
+
+    const publicResult = computePublicTourAvailability({
+      slotRecords: slots,
+      visits,
+      startDate: "2026-10-01",
+      endDate: "2026-10-01",
+    });
+
+    assert.ok(!legacyStarts["2026-10-01"]?.includes("10:30 AM"));
+    assert.ok(!legacyStarts["2026-10-01"]?.includes("10:00 AM"));
+    assert.deepEqual(publicResult.availability["2026-10-01"], [
+      "10:00 AM",
+      "10:30 AM",
+      "11:00 AM",
+    ]);
   });
 });
 

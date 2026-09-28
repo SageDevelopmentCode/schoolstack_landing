@@ -1,22 +1,10 @@
 -- Promoted to supabase/migrations/20261029_add_portal_message_edited_at.sql for local/CI.
 -- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
 --
--- NOTE: The "Participants update own portal_messages" policy below was removed by
--- supabase/migrations/20261103_drop_portal_messages_participant_update_policy.sql
--- (manual: drop_portal_messages_participant_update_policy_2026_09_28.sql). Do not
--- re-create that policy; message edits/deletes go through the API (service role).
+-- Adds edited_at only. Do not recreate "Participants update own portal_messages";
+-- message edits/deletes use the API (service role). If that UPDATE policy still
+-- exists from an old partial apply, run drop_portal_messages_participant_update_policy_2026_09_28.sql
+-- (or 20261103_portal_link_membership_helpers.sql) instead of creating it here.
 
 alter table public.portal_messages
   add column if not exists edited_at timestamptz null;
-
-drop policy if exists "Participants update own portal_messages" on public.portal_messages;
-create policy "Participants update own portal_messages"
-  on public.portal_messages for update to authenticated
-  using (
-    public.user_can_access_message_thread(thread_id)
-    and sender_user_id = auth.uid()
-  )
-  with check (
-    public.user_can_access_message_thread(thread_id)
-    and sender_user_id = auth.uid()
-  );

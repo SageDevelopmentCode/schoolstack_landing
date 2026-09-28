@@ -223,6 +223,7 @@ export async function bookFamilyCampusTour(
       organization_id: params.organizationId,
       family_id: params.familyId,
       application_id: null,
+      booking_source: "family_pre_app",
       post_submit_action_id: PRE_APPLICATION_CAMPUS_TOUR_ACTION_ID,
       action_type: FAMILY_TOUR_ACTION_TYPE,
       scheduling_mode: "time_slot",

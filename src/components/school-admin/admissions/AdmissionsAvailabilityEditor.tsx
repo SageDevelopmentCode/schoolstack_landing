@@ -12,6 +12,7 @@ import {
   type AdmissionsAvailabilitySlotRecord,
   type AdmissionsTimeSlotPeriod,
   availabilitySlotKey,
+  campusTourAvailabilitySlotKeys,
   countAdmissionsAvailabilitySlotsInMonth,
   listAdmissionsAvailabilitySlotRecords,
   listAdmissionsAvailabilitySlots,
@@ -223,8 +224,13 @@ export default function AdmissionsAvailabilityEditor({
 
       setOpenSlots((prev) => {
         const next = new Set(prev);
-        if (isOpen) next.delete(key);
-        else next.add(key);
+        if (isOpen) {
+          next.delete(key);
+        } else {
+          for (const openKey of campusTourAvailabilitySlotKeys(selectedDate, timeSlot)) {
+            next.add(openKey);
+          }
+        }
         return next;
       });
 

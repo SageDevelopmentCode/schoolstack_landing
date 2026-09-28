@@ -6,6 +6,7 @@ import { notifyUnreadMessageDigestSent } from "@/lib/discord";
 import { sendUnreadMessagesDigestEmail } from "@/lib/emails";
 import { resolveSenderDisplayName } from "@/lib/messages/message-notification-labels";
 import { resolveThreadRecipients } from "@/lib/messages/message-notifications";
+import { stampMessageThreadReadFields } from "@/lib/messages/message-thread-read-stamps";
 import { isMessageEligibleForUnreadDigest } from "@/lib/messages/unread-message-digest-eligibility";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import { isUnreadMessagesDailyDigestEnabled } from "@/lib/notifications/org-notification-settings";
@@ -14,7 +15,14 @@ import type {
   UnreadDigestDiscordDelivery,
   UnreadMessageDigestResult,
 } from "@/lib/messages/unread-message-digest-types";
+import {
+  chunkArray,
+  fetchAllPostgrestRows,
+} from "@/lib/supabase/fetch-all-rows";
 import { SITE_URL } from "@/lib/site";
+
+/** Keeps `thread_id` IN lists under PostgREST URL and row limits. */
+const MESSAGE_THREAD_READS_THREAD_ID_CHUNK_SIZE = 300;
 
 type PortalMessageRow = {
   id: string;
@@ -147,7 +155,6 @@ function toDiscordThreadSummaries(
   return threads.map((thread) => ({
     senderName: thread.senderName,
     unreadCount: thread.unreadCount,
-    preview: thread.preview,
   }));
 }
 
@@ -156,18 +163,9 @@ async function stampUnreadDigestNotified(
   pairs: Array<{ threadId: string; userId: string }>,
   notifiedAt: string,
 ): Promise<void> {
-  if (pairs.length === 0) return;
-
-  const { error } = await admin.from("message_thread_reads").upsert(
-    pairs.map((pair) => ({
-      thread_id: pair.threadId,
-      user_id: pair.userId,
-      last_unread_digest_notified_at: notifiedAt,
-    })),
-    { onConflict: "thread_id,user_id" },
-  );
-
-  if (error) throw new Error(error.message);
+  await stampMessageThreadReadFields(admin, pairs, {
+    last_unread_digest_notified_at: notifiedAt,
+  });
 }
 
 async function resolveLatestSenderName(
@@ -264,14 +262,16 @@ export async function sendUnreadMessageDigestsForOrganization(
   const schoolSlug = String(organization.slug);
   const schoolOfficeLabel = `${schoolName} Office`;
 
-  const { data: threadRows, error: threadsError } = await admin
-    .from("message_threads")
-    .select("id")
-    .eq("organization_id", organizationId);
+  const threadRows = await fetchAllPostgrestRows(async (from, to) =>
+    admin
+      .from("message_threads")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
-  if (threadsError) throw new Error(threadsError.message);
-
-  const threadIds = (threadRows ?? []).map((row) => String(row.id));
+  const threadIds = threadRows.map((row) => String(row.id));
   if (threadIds.length === 0) {
     return {
       threadsConsidered: 0,
@@ -282,33 +282,46 @@ export async function sendUnreadMessageDigestsForOrganization(
     };
   }
 
-  const { data: messageRows, error: messagesError } = await admin
-    .from("portal_messages")
-    .select("id, thread_id, body, sender_user_id, created_at, deleted_at")
-    .eq("organization_id", organizationId)
-    .is("deleted_at", null);
-
-  if (messagesError) throw new Error(messagesError.message);
+  const messageRows = await fetchAllPostgrestRows(async (from, to) =>
+    admin
+      .from("portal_messages")
+      .select("id, thread_id, body, sender_user_id, created_at, deleted_at")
+      .eq("organization_id", organizationId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
 
   const messagesByThread = new Map<string, PortalMessageRow[]>();
-  for (const row of (messageRows ?? []) as PortalMessageRow[]) {
+  for (const row of messageRows as PortalMessageRow[]) {
     const threadId = String(row.thread_id);
     const list = messagesByThread.get(threadId) ?? [];
     list.push(row);
     messagesByThread.set(threadId, list);
   }
 
-  const { data: readRows, error: readsError } = await admin
-    .from("message_thread_reads")
-    .select(
-      "thread_id, user_id, last_read_at, last_unread_digest_notified_at",
-    )
-    .in("thread_id", threadIds);
-
-  if (readsError) throw new Error(readsError.message);
+  const readRows: ThreadReadRow[] = [];
+  for (const threadIdChunk of chunkArray(
+    threadIds,
+    MESSAGE_THREAD_READS_THREAD_ID_CHUNK_SIZE,
+  )) {
+    const chunkRows = await fetchAllPostgrestRows(async (from, to) =>
+      admin
+        .from("message_thread_reads")
+        .select(
+          "thread_id, user_id, last_read_at, last_unread_digest_notified_at",
+        )
+        .in("thread_id", threadIdChunk)
+        .order("thread_id", { ascending: true })
+        .order("user_id", { ascending: true })
+        .range(from, to),
+    );
+    readRows.push(...(chunkRows as ThreadReadRow[]));
+  }
 
   const readStateByThreadUser = new Map<string, ThreadReadRow>();
-  for (const row of (readRows ?? []) as ThreadReadRow[]) {
+  for (const row of readRows) {
     const key = `${row.thread_id}:${row.user_id}`;
     readStateByThreadUser.set(key, row);
   }
@@ -474,7 +487,6 @@ export async function sendUnreadMessageDigestsForOrganization(
       teacherDigestsSent += 1;
       discordDeliveries.push({
         recipientPortal: "teacher",
-        recipientEmails: [bucket.email],
         recipientLabel:
           staffDisplayNames.get(bucket.userId) ??
           staffLabelFromEmail(bucket.email),
@@ -556,7 +568,6 @@ export async function sendUnreadMessageDigestsForOrganization(
       parentDigestsSent += 1;
       discordDeliveries.push({
         recipientPortal: "parent",
-        recipientEmails: emails,
         recipientLabel:
           familyDisplayNames.get(bucket.familyId) ??
           `Family (${bucket.familyId.slice(0, 8)})`,

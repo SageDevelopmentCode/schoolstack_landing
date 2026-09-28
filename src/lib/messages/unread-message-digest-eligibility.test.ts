@@ -57,4 +57,17 @@ describe("isMessageEligibleForUnreadDigest", () => {
       true,
     );
   });
+
+  it("treats never-read sentinel lastReadAt like an unread thread", () => {
+    assert.equal(
+      isMessageEligibleForUnreadDigest({
+        messageCreatedAt: "2026-09-28T20:00:00.000Z",
+        senderUserId,
+        recipientUserId,
+        lastReadAt: "1970-01-01T00:00:00.000Z",
+        lastDigestNotifiedAt: null,
+      }),
+      true,
+    );
+  });
 });

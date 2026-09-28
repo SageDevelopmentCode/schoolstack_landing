@@ -41,6 +41,10 @@ function createMockSupabase(options: {
             return { data: { role: "user" }, error: null };
           }
 
+          if (table === "organization_portal_account_link_members") {
+            return { data: null, error: null };
+          }
+
           if (table === "organization_memberships") {
             return { data: { id: "membership-1" }, error: null };
           }

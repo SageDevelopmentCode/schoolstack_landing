@@ -1772,7 +1772,6 @@ export async function notifyCommitteeDailyDigestSent(payload: {
 }
 
 export const UNREAD_DIGEST_DISCORD_MAX_THREADS_PER_DELIVERY = 5;
-export const UNREAD_DIGEST_DISCORD_PREVIEW_MAX = 100;
 
 function formatUnreadDigestThreadLine(
   thread: UnreadDigestDiscordDelivery["threads"][number],
@@ -1781,8 +1780,7 @@ function formatUnreadDigestThreadLine(
     thread.unreadCount === 1
       ? "1 unread"
       : `${thread.unreadCount} unread`;
-  const preview = truncate(thread.preview, UNREAD_DIGEST_DISCORD_PREVIEW_MAX);
-  return `  • ${thread.senderName} · ${unreadLabel} — "${preview}"`;
+  return `  • ${thread.senderName} · ${unreadLabel}`;
 }
 
 function formatUnreadDigestDeliveryBlock(
@@ -1790,11 +1788,7 @@ function formatUnreadDigestDeliveryBlock(
 ): string {
   const portalLabel =
     delivery.recipientPortal === "teacher" ? "Teacher" : "Parent";
-  const emailList =
-    delivery.recipientEmails.length > 0
-      ? delivery.recipientEmails.join(", ")
-      : "—";
-  const header = `${portalLabel} · ${delivery.recipientLabel} · ${emailList}`;
+  const header = `${portalLabel} · ${delivery.recipientLabel}`;
 
   const visibleThreads = delivery.threads.slice(
     0,

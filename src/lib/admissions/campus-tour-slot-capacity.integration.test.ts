@@ -60,6 +60,32 @@ function campusTourVisitRow(organizationId: string, suffix: string) {
   };
 }
 
+async function seedSingleExclusiveStartSlot(
+  admin: SupabaseClient,
+  organizationId: string,
+  timeSlot: string = TOUR_TIME,
+): Promise<SlotSeed> {
+  const { data, error } = await admin
+    .from("admissions_availability_slots")
+    .insert({
+      organization_id: organizationId,
+      date: TOUR_DATE,
+      time_slot: timeSlot,
+      tour_booking_mode: "exclusive",
+      group_capacity: null,
+      group_day_key: null,
+    })
+    .select("id");
+
+  if (error) throw error;
+
+  return {
+    organizationId,
+    slotIds: (data ?? []).map((row) => String(row.id)),
+    visitIds: [],
+  };
+}
+
 async function seedExclusiveSlots(
   admin: SupabaseClient,
   organizationId: string,
@@ -104,6 +130,52 @@ async function seedMixedGroupAndExclusiveSlots(
       time_slot: "9:30 AM",
       tour_booking_mode: "exclusive",
       group_capacity: null,
+      group_day_key: null,
+    },
+    {
+      organization_id: organizationId,
+      date: TOUR_DATE,
+      time_slot: "10:00 AM",
+      tour_booking_mode: "group",
+      group_capacity: groupCapacity,
+      group_day_key: null,
+    },
+    {
+      organization_id: organizationId,
+      date: TOUR_DATE,
+      time_slot: "10:30 AM",
+      tour_booking_mode: "group",
+      group_capacity: groupCapacity,
+      group_day_key: null,
+    },
+  ];
+
+  const { data, error } = await admin
+    .from("admissions_availability_slots")
+    .insert(rows)
+    .select("id");
+
+  if (error) throw error;
+
+  return {
+    organizationId,
+    slotIds: (data ?? []).map((row) => String(row.id)),
+    visitIds: [],
+  };
+}
+
+async function seedOverlappingPerSlotGroupSlots(
+  admin: SupabaseClient,
+  organizationId: string,
+  groupCapacity: number,
+): Promise<SlotSeed> {
+  const rows = [
+    {
+      organization_id: organizationId,
+      date: TOUR_DATE,
+      time_slot: "9:30 AM",
+      tour_booking_mode: "group",
+      group_capacity: groupCapacity,
       group_day_key: null,
     },
     {
@@ -192,6 +264,25 @@ describeIntegration("campus tour slot capacity trigger", () => {
     loadTestEnv();
   });
 
+  it("rejects a 60-minute tour when only the start availability cell exists", async () => {
+    const admin = createTestAdminClient();
+    const organizationId = await getTestOrganizationId(admin);
+    const seed = await seedSingleExclusiveStartSlot(admin, organizationId);
+
+    try {
+      const suffix = randomUUID().slice(0, 8);
+      const { error } = await admin
+        .from("admissions_scheduled_visits")
+        .insert(campusTourVisitRow(organizationId, suffix))
+        .select("id")
+        .single();
+
+      assert.ok(isSlotUnavailableError(error));
+    } finally {
+      await cleanupSeed(admin, seed);
+    }
+  });
+
   it("rejects parallel exclusive bookings for the same start time", async () => {
     const admin = createTestAdminClient();
     const organizationId = await getTestOrganizationId(admin);
@@ -205,6 +296,88 @@ describeIntegration("campus tour slot capacity trigger", () => {
         admin
           .from("admissions_scheduled_visits")
           .insert(campusTourVisitRow(organizationId, suffixA))
+          .select("id")
+          .single(),
+        admin
+          .from("admissions_scheduled_visits")
+          .insert(campusTourVisitRow(organizationId, suffixB))
+          .select("id")
+          .single(),
+      ]);
+
+      const outcomes = [firstResult, secondResult];
+      const successes = outcomes.filter((result) => !result.error);
+      const failures = outcomes.filter((result) => result.error);
+
+      assert.equal(successes.length, 1);
+      assert.equal(failures.length, 1);
+      assert.ok(isSlotUnavailableError(failures[0]?.error ?? null));
+
+      const successId = successes[0]?.data?.id;
+      assert.ok(successId);
+      seed.visitIds.push(String(successId));
+    } finally {
+      await cleanupSeed(admin, seed);
+    }
+  });
+
+  it("rejects parallel exclusive and group bookings that overlap across start times", async () => {
+    const admin = createTestAdminClient();
+    const organizationId = await getTestOrganizationId(admin);
+    const seed = await seedMixedGroupAndExclusiveSlots(admin, organizationId, 10);
+
+    try {
+      const suffixA = randomUUID().slice(0, 8);
+      const suffixB = randomUUID().slice(0, 8);
+
+      const [exclusiveResult, groupResult] = await Promise.all([
+        admin
+          .from("admissions_scheduled_visits")
+          .insert({
+            ...campusTourVisitRow(organizationId, suffixA),
+            start_time_slot: "9:30 AM",
+          })
+          .select("id")
+          .single(),
+        admin
+          .from("admissions_scheduled_visits")
+          .insert(campusTourVisitRow(organizationId, suffixB))
+          .select("id")
+          .single(),
+      ]);
+
+      const outcomes = [exclusiveResult, groupResult];
+      const successes = outcomes.filter((result) => !result.error);
+      const failures = outcomes.filter((result) => result.error);
+
+      assert.equal(successes.length, 1);
+      assert.equal(failures.length, 1);
+      assert.ok(isSlotUnavailableError(failures[0]?.error ?? null));
+
+      const successId = successes[0]?.data?.id;
+      assert.ok(successId);
+      seed.visitIds.push(String(successId));
+    } finally {
+      await cleanupSeed(admin, seed);
+    }
+  });
+
+  it("rejects parallel per-slot group bookings that overlap across start times", async () => {
+    const admin = createTestAdminClient();
+    const organizationId = await getTestOrganizationId(admin);
+    const seed = await seedOverlappingPerSlotGroupSlots(admin, organizationId, 10);
+
+    try {
+      const suffixA = randomUUID().slice(0, 8);
+      const suffixB = randomUUID().slice(0, 8);
+
+      const [firstResult, secondResult] = await Promise.all([
+        admin
+          .from("admissions_scheduled_visits")
+          .insert({
+            ...campusTourVisitRow(organizationId, suffixA),
+            start_time_slot: "9:30 AM",
+          })
           .select("id")
           .single(),
         admin

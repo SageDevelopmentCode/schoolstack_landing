@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { availabilitySlotKey } from "./admissions-availability";
+import {
+  availabilitySlotKey,
+  campusTourTrailingTimeSlots,
+} from "./admissions-availability";
 
 export type TourBookingMode = "exclusive" | "group";
 
@@ -27,17 +30,32 @@ export async function updateAvailabilitySlotTourSettings(
     throw new Error("Open this time slot before changing tour settings.");
   }
 
+  const trailingSlots = campusTourTrailingTimeSlots(params.timeSlot);
+
   if (params.tourBookingMode === "exclusive") {
+    const updatePayload = {
+      tour_booking_mode: "exclusive" as const,
+      group_capacity: null,
+      group_day_key: null,
+    };
+
     const { error } = await supabase
       .from("admissions_availability_slots")
-      .update({
-        tour_booking_mode: "exclusive",
-        group_capacity: null,
-        group_day_key: null,
-      })
+      .update(updatePayload)
       .eq("id", existing.id);
 
     if (error) throw error;
+
+    if (trailingSlots.length > 0) {
+      const { error: trailingError } = await supabase
+        .from("admissions_availability_slots")
+        .update(updatePayload)
+        .eq("organization_id", params.organizationId)
+        .eq("date", params.date)
+        .in("time_slot", trailingSlots);
+
+      if (trailingError) throw trailingError;
+    }
     return;
   }
 
@@ -46,16 +64,29 @@ export async function updateAvailabilitySlotTourSettings(
     throw new Error("Group capacity must be at least 1.");
   }
 
+  const updatePayload = {
+    tour_booking_mode: "group" as const,
+    group_capacity: capacity,
+    group_day_key: params.groupDayKey ?? null,
+  };
+
   const { error } = await supabase
     .from("admissions_availability_slots")
-    .update({
-      tour_booking_mode: "group",
-      group_capacity: capacity,
-      group_day_key: params.groupDayKey ?? null,
-    })
+    .update(updatePayload)
     .eq("id", existing.id);
 
   if (error) throw error;
+
+  if (trailingSlots.length > 0) {
+    const { error: trailingError } = await supabase
+      .from("admissions_availability_slots")
+      .update(updatePayload)
+      .eq("organization_id", params.organizationId)
+      .eq("date", params.date)
+      .in("time_slot", trailingSlots);
+
+    if (trailingError) throw trailingError;
+  }
 }
 
 export async function applyWholeDayGroupTour(

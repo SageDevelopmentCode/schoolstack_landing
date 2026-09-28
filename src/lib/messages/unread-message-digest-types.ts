@@ -8,7 +8,6 @@ export type UnreadMessageDigestResult = {
 
 export type UnreadDigestDiscordDelivery = {
   recipientPortal: "parent" | "teacher";
-  recipientEmails: string[];
   recipientLabel: string;
   familyId?: string;
   staffUserId?: string;
@@ -16,6 +15,5 @@ export type UnreadDigestDiscordDelivery = {
   threads: Array<{
     senderName: string;
     unreadCount: number;
-    preview: string;
   }>;
 };

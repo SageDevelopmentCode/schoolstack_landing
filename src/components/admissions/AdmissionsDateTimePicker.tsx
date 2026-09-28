@@ -70,9 +70,12 @@ export default function AdmissionsDateTimePicker({
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>("morning");
 
   const availabilityEndpointBuilderRef = useRef(availabilityEndpointBuilder);
-  availabilityEndpointBuilderRef.current = availabilityEndpointBuilder;
   const onTimezoneLoadedRef = useRef(onTimezoneLoaded);
-  onTimezoneLoadedRef.current = onTimezoneLoaded;
+
+  useEffect(() => {
+    availabilityEndpointBuilderRef.current = availabilityEndpointBuilder;
+    onTimezoneLoadedRef.current = onTimezoneLoaded;
+  }, [availabilityEndpointBuilder, onTimezoneLoaded]);
 
   const today = todayKeyInTimezone(timezone);
   const availableDates = useMemo(

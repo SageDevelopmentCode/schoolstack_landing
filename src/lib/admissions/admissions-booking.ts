@@ -38,6 +38,7 @@ import {
   type PostSubmitAction,
   type PostSubmitActionType,
 } from "./application-form-schema";
+import { loadCampusTourBookableAvailability } from "./campus-tour-availability-loader";
 import {
   resolvedPostSubmitDurationMinutes,
   resolvedPostSubmitMaxVisitDays,
@@ -651,6 +652,20 @@ export async function getBookableAvailabilityForAction(
   }
 
   const durationMinutes = resolvedPostSubmitDurationMinutes(action);
+
+  if (action.type === "schedule_campus_tour") {
+    const campusTourAvailability = await loadCampusTourBookableAvailability(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+      durationMinutes,
+    );
+    return {
+      mode: "time_slot",
+      availability: campusTourAvailability.availability,
+    };
+  }
 
   const [openSlots, visits] = await Promise.all([
     listAdmissionsAvailabilitySlots(supabase, organizationId, startDate, endDate),

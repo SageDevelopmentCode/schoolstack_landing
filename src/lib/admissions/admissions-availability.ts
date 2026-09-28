@@ -4,6 +4,7 @@ import {
   logActivityEvent,
 } from "@/lib/activity-log";
 import { STUDENT_GRADE_OPTIONS } from "./apply-system-fields";
+import { defaultPostSubmitDurationMinutes } from "./post-submit-templates";
 
 export type AdmissionsAvailabilitySlotKey = `${string}|${string}`;
 
@@ -150,6 +151,45 @@ export function availabilitySlotKey(date: string, timeSlot: string): AdmissionsA
 
 export function durationToSlotCount(durationMinutes: number): number {
   return Math.max(1, Math.round(durationMinutes / 30));
+}
+
+const CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES =
+  defaultPostSubmitDurationMinutes("schedule_campus_tour");
+
+/** Half-hour labels after the start cell covered by the default campus tour duration. */
+export function campusTourTrailingTimeSlots(
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsTimeSlot[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const trailing: AdmissionsTimeSlot[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 1; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (slot) trailing.push(slot);
+  }
+  return trailing;
+}
+
+/** All availability keys for a campus tour block (start + trailing cells). */
+export function campusTourAvailabilitySlotKeys(
+  date: string,
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsAvailabilitySlotKey[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const keys: AdmissionsAvailabilitySlotKey[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 0; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (!slot) continue;
+    keys.push(availabilitySlotKey(date, slot));
+  }
+  return keys;
 }
 
 export function formatDurationLabel(minutes: number): string {
@@ -435,6 +475,21 @@ export async function toggleAdmissionsAvailabilitySlot(
       time_slot: timeSlot,
     });
     if (error) throw error;
+
+    const trailingSlots = campusTourTrailingTimeSlots(timeSlot);
+    if (trailingSlots.length > 0) {
+      const { error: trailingError } = await supabase
+        .from("admissions_availability_slots")
+        .upsert(
+          trailingSlots.map((trailingTimeSlot) => ({
+            organization_id: organizationId,
+            date,
+            time_slot: trailingTimeSlot,
+          })),
+          { onConflict: "organization_id,date,time_slot", ignoreDuplicates: true },
+        );
+      if (trailingError) throw trailingError;
+    }
   } else {
     const { error } = await supabase
       .from("admissions_availability_slots")
@@ -489,13 +544,13 @@ function slotIndex(timeSlot: string): number {
 }
 
 export type IsStartTimeBookableOptions = {
-  /** When false, only the start cell must be admin-open (public tour start times). Default true. */
+  /** When false, only the start cell must be admin-open. Default true (matches DB tour booking). */
   requireConsecutiveOpenCells?: boolean;
 };
 
 /**
- * Future parent booking: a start time is valid when N consecutive open cells exist
- * (or only the start cell is open when requireConsecutiveOpenCells is false).
+ * Parent and public tour booking: a start time is valid when N consecutive open cells exist
+ * (or only the start cell when requireConsecutiveOpenCells is false).
  */
 export function isStartTimeBookable(
   openSlots: Set<AdmissionsAvailabilitySlotKey>,

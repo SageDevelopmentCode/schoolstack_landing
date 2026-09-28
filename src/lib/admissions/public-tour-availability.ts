@@ -1,18 +1,25 @@
-import type { AdmissionsAvailabilitySlotRecord } from "./admissions-availability";
 import {
   ADMISSIONS_TIME_SLOTS,
   availabilitySlotKey,
   durationToSlotCount,
   isStartTimeBookable,
   type AdmissionsAvailabilitySlotKey,
+  type AdmissionsAvailabilitySlotRecord,
   type AdmissionsTimeSlot,
 } from "./admissions-availability";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { eachDateInRange } from "./admissions-observation-availability";
-import {
-  defaultFamilyCampusTourAction,
-  FAMILY_TOUR_ACTION_TYPE,
-} from "./family-tour-booking";
+import type { PostSubmitAction } from "./application-form-schema";
 import { resolvedPostSubmitDurationMinutes } from "./post-submit-templates";
+
+export const CAMPUS_TOUR_ACTION_TYPE = "schedule_campus_tour";
+
+const DEFAULT_CAMPUS_TOUR_ACTION: PostSubmitAction = {
+  id: "campus-tour-default",
+  type: CAMPUS_TOUR_ACTION_TYPE,
+  enabled: true,
+  instructions: "",
+};
 
 export type PublicTourVisitForAvailability = {
   actionType: string;
@@ -37,8 +44,37 @@ export type PublicTourAvailabilityResult = {
   slotMeta: Record<string, PublicTourSlotMeta>;
 };
 
-const CAMPUS_TOUR = FAMILY_TOUR_ACTION_TYPE;
+const CAMPUS_TOUR = CAMPUS_TOUR_ACTION_TYPE;
 const FAMILY_INTERVIEW = "schedule_family_interview";
+
+const VISIT_AVAILABILITY_SELECT =
+  "action_type, scheduling_mode, scheduled_date, start_time_slot, duration_minutes, status";
+
+export async function listCampusTourVisitsForAvailability(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<PublicTourVisitForAvailability[]> {
+  const { data, error } = await supabase
+    .from("admissions_scheduled_visits")
+    .select(VISIT_AVAILABILITY_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("status", "scheduled")
+    .gte("scheduled_date", startDate)
+    .lte("scheduled_date", endDate);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    actionType: String(row.action_type),
+    schedulingMode: row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot",
+    scheduledDate: String(row.scheduled_date),
+    startTimeSlot: String(row.start_time_slot),
+    durationMinutes: Number(row.duration_minutes),
+    status: String(row.status),
+  }));
+}
 
 const FIRST_SLOT_MINUTES = 6 * 60;
 
@@ -153,11 +189,7 @@ function isPublicTourStartBookable(
   durationMinutes: number,
   candidateRecord: AdmissionsAvailabilitySlotRecord,
 ): boolean {
-  if (
-    !isStartTimeBookable(openSlots, date, timeSlot, durationMinutes, new Set(), {
-      requireConsecutiveOpenCells: false,
-    })
-  ) {
+  if (!isStartTimeBookable(openSlots, date, timeSlot, durationMinutes, new Set())) {
     return false;
   }
 
@@ -238,6 +270,34 @@ function addVisitOccupancy(
   }
 }
 
+export function buildAdminAvailabilityOccupiedSlotKeys(
+  slotRecords: AdmissionsAvailabilitySlotRecord[],
+  visits: PublicTourVisitForAvailability[],
+): Set<AdmissionsAvailabilitySlotKey> {
+  const occupied = new Set<AdmissionsAvailabilitySlotKey>();
+  const recordByKey = slotRecordByKey(slotRecords);
+
+  for (const visit of visits) {
+    if (visit.status === "cancelled" || visit.schedulingMode === "whole_day") {
+      continue;
+    }
+
+    const startKey = availabilitySlotKey(visit.scheduledDate, visit.startTimeSlot);
+    const slotRecord = recordByKey.get(startKey);
+    const isGroupCampusTour =
+      visit.actionType === CAMPUS_TOUR && slotRecord?.tourBookingMode === "group";
+
+    if (isGroupCampusTour) {
+      occupied.add(startKey);
+      continue;
+    }
+
+    addVisitOccupancy(occupied, visit);
+  }
+
+  return occupied;
+}
+
 export function computePublicTourAvailability(params: {
   slotRecords: AdmissionsAvailabilitySlotRecord[];
   visits: PublicTourVisitForAvailability[];
@@ -247,7 +307,7 @@ export function computePublicTourAvailability(params: {
 }): PublicTourAvailabilityResult {
   const durationMinutes =
     params.durationMinutes ??
-    resolvedPostSubmitDurationMinutes(defaultFamilyCampusTourAction());
+    resolvedPostSubmitDurationMinutes(DEFAULT_CAMPUS_TOUR_ACTION);
 
   const openSlots = new Set(
     params.slotRecords.map((row) => availabilitySlotKey(row.date, row.timeSlot)),
