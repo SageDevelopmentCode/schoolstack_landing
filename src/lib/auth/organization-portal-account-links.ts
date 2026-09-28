@@ -11,7 +11,7 @@ import {
 } from "@/lib/auth/portal-account-link-context";
 import { isPlatformAdmin } from "@/lib/school-admin/access";
 
-export type { PortalAccountLinkContext };
+export type { PortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 export {
   getPortalAccountLinkContext,
   resolvePortalAccountMemberUserIds,

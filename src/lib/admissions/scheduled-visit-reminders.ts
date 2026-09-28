@@ -78,6 +78,8 @@ export type ScheduledVisitRemindersResult = {
   failures: number;
 };
 
+type VisitReminderFamilyJoin = { name?: string | null };
+
 type VisitReminderRow = {
   id: string;
   application_id: string | null;
@@ -94,7 +96,7 @@ type VisitReminderRow = {
   visit_day_count: number | null;
   day_before_parent_reminder_sent_at: string | null;
   applications: unknown;
-  families: unknown;
+  families: VisitReminderFamilyJoin | VisitReminderFamilyJoin[] | null;
 };
 
 export function dateKeyInTimezone(timezone: string, now = new Date()): string {

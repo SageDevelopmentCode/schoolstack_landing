@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { DEFAULT_BRANDING, DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import type { OrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { mapPortalOptionToTeacherPreview } from "@/lib/staff/staff-preview-portal-options";
 
-const minimalOrg = {
+const minimalOrg: OrganizationWithSettings = {
   id: "org-1",
-  features: {
-    teacher: { enabled: true, messages: true },
-    parent: { portal: true, messages: true },
-    feature_nav: {},
-  },
-} as OrganizationWithSettings;
+  slug: "demo",
+  name: "Demo School",
+  branding: DEFAULT_BRANDING,
+  features: DEFAULT_FEATURES,
+};
 
 describe("mapPortalOptionToTeacherPreview", () => {
   it("rewrites teacher portal href to staff preview base", () => {
