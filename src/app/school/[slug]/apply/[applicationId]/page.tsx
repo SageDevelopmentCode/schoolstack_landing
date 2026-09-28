@@ -10,7 +10,9 @@ import {
 import { userOwnsApplication } from "@/lib/admissions/application-auth";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 
 export const dynamic = "force-dynamic";
 
@@ -63,11 +65,17 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const [application, userProfile, portalOptions] = await Promise.all([
-    loadApplicationDetail(supabase, applicationId, org.id, user.id),
-    getFamilyUserProfile(supabase, user.id, org.id, user),
-    listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
-  ]);
+  const [application, userProfile, portalOptions, linkContext] =
+    await Promise.all([
+      loadApplicationDetail(supabase, applicationId, org.id, user.id),
+      getFamilyUserProfile(supabase, user.id, org.id, user),
+      listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
+      getPortalAccountLinkContext(supabase, org.id, user.id),
+    ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   if (!application) {
     notFound();
@@ -90,6 +98,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
       application={application}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
     />
   );
 }

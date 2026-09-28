@@ -111,6 +111,10 @@ import {
 } from "@/lib/admissions/program-parent-portal";
 import ProgramParentPortalSettingsCard from "@/components/school-admin/admissions/ProgramParentPortalSettingsCard";
 import {
+  isPublicTourEnabled,
+  parsePublicTourPageSettings,
+} from "@/lib/admissions/public-tour-settings";
+import {
   buildParentThemeTokens,
   parentThemeToAdminCompat,
 } from "@/lib/organization-settings/parent-theme";
@@ -152,6 +156,8 @@ export type OrganizationSettingsEditorView =
   | "branding"
   | "features";
 
+export type OrganizationFeaturesSection = "portals" | "admissions";
+
 type Props = {
   organizationId: string;
   organizationSlug: string;
@@ -159,6 +165,9 @@ type Props = {
   initialRow: OrganizationSettingsRow | null;
   settingsLoading?: boolean;
   view?: OrganizationSettingsEditorView;
+  featuresSection?: OrganizationFeaturesSection;
+  onFeaturesSectionChange?: (section: OrganizationFeaturesSection) => void;
+  onNavigateToFeaturesAdmissions?: () => void;
   onSaved?: () => void | Promise<void>;
 };
 
@@ -169,6 +178,9 @@ export default function OrganizationSettingsEditor({
   initialRow,
   settingsLoading = false,
   view = "overview",
+  featuresSection = "portals",
+  onFeaturesSectionChange,
+  onNavigateToFeaturesAdmissions,
   onSaved,
 }: Props) {
   const supabase = createClient();
@@ -1049,7 +1061,114 @@ export default function OrganizationSettingsEditor({
       </section>
       ) : null}
 
+      {view === "overview" ? (
+      <>
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Public tour page
+          </h2>
+          {isPublicTourEnabled(parsePublicTourPageSettings(admissions.publicTour)) ? (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+              Public
+            </span>
+          ) : (
+            <span className="rounded-full border border-admin-border bg-admin-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-admin-muted">
+              Not public
+            </span>
+          )}
+        </div>
+        {isPublicTourEnabled(parsePublicTourPageSettings(admissions.publicTour)) ? (
+          <p className="text-xs text-admin-muted font-secondary">
+            Families can book at{" "}
+            <code className="text-[11px]">/school/{organizationSlug}/tour</code>
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-admin-muted font-secondary">
+              Public tour page is off. Enable under <strong>Features → Admissions</strong>.
+            </p>
+            {onNavigateToFeaturesAdmissions ? (
+              <button
+                type="button"
+                onClick={onNavigateToFeaturesAdmissions}
+                className="text-xs font-medium text-admin-accent hover:underline font-secondary"
+              >
+                Open Features → Admissions
+              </button>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Apply entry options
+          </h2>
+          <p className="mt-1 text-xs text-admin-muted font-secondary">
+            Optional paths on the public apply auth screen before families sign in
+            (e.g. schedule a campus tour before starting an application).
+          </p>
+        </div>
+
+        <ApplyAuthEntryEditor
+          options={applyAuthEntryOptions}
+          onChange={setApplyAuthEntryOptions}
+        />
+      </section>
+
+      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
+            Parent onboarding
+          </h2>
+          <p className="mt-1 text-xs text-admin-muted font-secondary">
+            Checklist shown on the parent home page when families tap Complete
+            your onboarding.
+          </p>
+        </div>
+
+        <ParentOnboardingEditor
+          items={onboardingItems}
+          targetOptions={parentOnboardingTargetOptions}
+          onChange={setOnboardingItems}
+        />
+      </section>
+      </>
+      ) : null}
+
       {view === "features" ? (
+      <>
+      <div
+        role="tablist"
+        aria-label="Features sections"
+        className="flex gap-4 overflow-x-auto border-b border-admin-border"
+      >
+        {(
+          [
+            { id: "portals" as const, label: "Portals" },
+            { id: "admissions" as const, label: "Admissions" },
+          ] as const
+        ).map((section) => (
+          <button
+            key={section.id}
+            type="button"
+            role="tab"
+            aria-selected={featuresSection === section.id}
+            onClick={() => onFeaturesSectionChange?.(section.id)}
+            className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
+              featuresSection === section.id
+                ? "border-admin-accent text-admin-accent"
+                : "border-transparent text-admin-muted hover:text-admin-text"
+            }`}
+          >
+            {section.label}
+          </button>
+        ))}
+      </div>
+
+      {featuresSection === "portals" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-5">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
           Features
@@ -1453,46 +1572,7 @@ export default function OrganizationSettingsEditor({
       </section>
       ) : null}
 
-      {view === "overview" ? (
-      <>
-      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
-        <div>
-          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
-            Apply entry options
-          </h2>
-          <p className="mt-1 text-xs text-admin-muted font-secondary">
-            Optional paths on the public apply auth screen before families sign in
-            (e.g. schedule a campus tour before starting an application).
-          </p>
-        </div>
-
-        <ApplyAuthEntryEditor
-          options={applyAuthEntryOptions}
-          onChange={setApplyAuthEntryOptions}
-        />
-      </section>
-
-      <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
-        <div>
-          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
-            Parent onboarding
-          </h2>
-          <p className="mt-1 text-xs text-admin-muted font-secondary">
-            Checklist shown on the parent home page when families tap Complete
-            your onboarding.
-          </p>
-        </div>
-
-        <ParentOnboardingEditor
-          items={onboardingItems}
-          targetOptions={parentOnboardingTargetOptions}
-          onChange={setOnboardingItems}
-        />
-      </section>
-      </>
-      ) : null}
-
-      {view === "features" ? (
+      {featuresSection === "admissions" ? (
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide font-secondary">
@@ -1546,6 +1626,38 @@ export default function OrganizationSettingsEditor({
             bookings are kept, but the school may need to review grade slots.
           </p>
         ) : null}
+
+        <div className="space-y-2 border-t border-admin-border pt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={isPublicTourEnabled(parsePublicTourPageSettings(admissions.publicTour))}
+              onChange={(event) => {
+                setAdmissions((current) => {
+                  const publicTour = parsePublicTourPageSettings(current.publicTour);
+                  return {
+                    ...current,
+                    publicTour: {
+                      ...publicTour,
+                      enabled: event.target.checked,
+                    },
+                  };
+                });
+              }}
+            />
+            <span>
+              <span className="block text-sm font-medium text-admin-text font-secondary">
+                Public tour page
+              </span>
+              <span className="mt-0.5 block text-xs text-admin-muted font-secondary">
+                Unauthenticated families can book campus tours at{" "}
+                <code className="text-[11px]">/school/{organizationSlug}/tour</code> using
+                the same schedule availability grid.
+              </span>
+            </span>
+          </label>
+        </div>
 
         <div className="space-y-3 border-t border-admin-border pt-4">
           <label className="flex cursor-pointer items-start gap-3">
@@ -1741,6 +1853,8 @@ export default function OrganizationSettingsEditor({
           ) : null}
         </div>
       </section>
+      ) : null}
+      </>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">

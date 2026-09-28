@@ -11,7 +11,9 @@ import {
 import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-server-cache";
 import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
 import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createClient } from "@/utils/supabase/server";
@@ -37,7 +39,8 @@ export default async function SchoolParentMainLayout({
     return children;
   }
 
-  const [userProfile, portalOptions, parentPortalContexts] = await Promise.all([
+  const [userProfile, portalOptions, parentPortalContexts, linkContext] =
+    await Promise.all([
     getParentPortalUserProfile(supabase, org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
@@ -52,7 +55,12 @@ export default async function SchoolParentMainLayout({
       schoolName: org.name,
       orgFeatures: org.features,
     }),
+    getPortalAccountLinkContext(supabase, org.id, user.id),
   ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   if (shouldRedirectAwayFromMainParentPortal(parentPortalContexts)) {
     const entryHref = parentPortalContexts[0]?.entryHref;
@@ -83,6 +91,7 @@ export default async function SchoolParentMainLayout({
       features={resolveMainParentOrganizationFeatures(org.features)}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       parentPortalContexts={parentPortalContexts}
       initialActivityUnreadCount={initialActivityUnreadCount}
       notificationContext={notificationContext}

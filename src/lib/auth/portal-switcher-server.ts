@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import {
+  getFamilyIdsForAuthUser,
+  getFamilyIdsForUser,
+} from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import {
   fetchOrganizationWithSettings,
@@ -9,16 +12,21 @@ import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav"
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
+import { resolvePortalAccountMemberUserIds } from "@/lib/auth/portal-account-link-context";
 import { userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 
-export async function userHasFamilyPortalAccess(
+async function userHasFamilyPortalAccessForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
 ): Promise<boolean> {
-  const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
+  const familyIds = await getFamilyIdsForAuthUser(
+    supabase,
+    userId,
+    organizationId,
+  );
   if (familyIds.length > 0) {
     return true;
   }
@@ -32,6 +40,53 @@ export async function userHasFamilyPortalAccess(
 
   if (error) throw error;
   return (data ?? []).length > 0;
+}
+
+export async function userHasFamilyPortalAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (
+      await userHasFamilyPortalAccessForAuthUser(
+        supabase,
+        memberUserId,
+        organizationId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function anyLinkedMemberHasAccess(
+  supabase: SupabaseClient,
+  organizationId: string,
+  sessionUserId: string,
+  check: (memberUserId: string) => Promise<boolean>,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    sessionUserId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (await check(memberUserId)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export type SchoolPortalOptionsKnownAccess = {
@@ -63,7 +118,9 @@ export async function listSchoolPortalOptionsForUser(
     await Promise.all([
       known.hasAdminAccess !== undefined
         ? Promise.resolve(known.hasAdminAccess)
-        : userCanAccessSchoolAdmin(supabase, userId, org.id),
+        : anyLinkedMemberHasAccess(supabase, org.id, userId, (memberUserId) =>
+            userCanAccessSchoolAdmin(supabase, memberUserId, org.id),
+          ),
       known.hasFamilyAccess !== undefined
         ? Promise.resolve(known.hasFamilyAccess)
         : userHasFamilyPortalAccess(supabase, userId, org.id),

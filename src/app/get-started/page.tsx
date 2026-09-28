@@ -1,23 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronRight, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import Navbar from "@/components/sections/Navbar";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
 import TurnstileField, {
   isTurnstileClientConfigured,
 } from "@/components/public-forms/TurnstileField";
-import { formatSelectedDate } from "@/lib/demo-scheduler";
+import GetStartedConfirmation from "@/components/get-started/GetStartedConfirmation";
+import GetStartedInfoCallout from "@/components/get-started/GetStartedInfoCallout";
+import GetStartedRoleChoices from "@/components/get-started/GetStartedRoleChoices";
+import GetStartedStepProgress from "@/components/get-started/GetStartedStepProgress";
+import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
+import GetStartedStoryShell from "@/components/get-started/GetStartedStoryShell";
+import GetStartedStoryTextField from "@/components/get-started/GetStartedStoryTextField";
+import ParentButton from "@/components/school-parent/ui/ParentButton";
+import ParentCard from "@/components/school-parent/ui/ParentCard";
 import {
-  DEMO_REQUEST_ROLE_OPTIONS,
   type DemoRequestRoleId,
   demoRequestRoleLabel,
 } from "@/lib/demo-request-roles";
-
-// ── Types ──────────────────────────────────────────────────────────────────────
+import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
 
 interface FormData {
   name: string;
@@ -25,8 +30,6 @@ interface FormData {
   schoolName: string;
   role: DemoRequestRoleId | "";
 }
-
-// ── Animation ──────────────────────────────────────────────────────────────────
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const exitEase = [0.4, 0, 1, 1] as const;
@@ -59,97 +62,9 @@ const fadeUp = {
   },
 };
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function ChoiceButton({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left px-4 py-4 rounded-lg border-2 text-[14px] font-medium font-secondary transition-all duration-150 cursor-pointer ${
-        selected
-          ? "border-accent bg-accent/10 text-accent"
-          : "border-border bg-surface text-text-muted hover:border-border-strong hover:text-text"
-      }`}
-    >
-      <span className="flex items-center gap-2.5">
-        <span
-          className={`flex-shrink-0 w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
-            selected ? "border-accent bg-accent" : "border-border-strong bg-transparent"
-          }`}
-        >
-          {selected && (
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" aria-hidden="true">
-              <path
-                d="M1.5 4L3.5 6L6.5 2"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </span>
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[11px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-3">
-      {children}
-    </div>
-  );
-}
-
-function TextInput({
-  label,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  hasError,
-}: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  hasError?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[13px] font-medium font-secondary text-text-muted">
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`h-12 px-4 rounded-lg border text-[14px] font-secondary text-text placeholder:text-text-faint focus:outline-none transition-colors duration-150 w-full bg-surface md:bg-bg ${
-          hasError
-            ? "border-clay focus:border-clay"
-            : "border-border focus:border-accent"
-        }`}
-      />
-    </div>
-  );
-}
-
-// ── Main Page ──────────────────────────────────────────────────────────────────
-
 export default function GetStartedPage() {
+  const theme = useMemo(() => MUDKITCHEN_MARKETING_STORY_THEME, []);
+
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -208,7 +123,7 @@ export default function GetStartedPage() {
   useEffect(() => {
     if (step !== 2) return;
 
-    const colors = ["#A05C45", "#2E4A3C", "#C5D5B8", "#E8D5C8", "#F7F1E7"];
+    const colors = [theme.coral, theme.primary, theme.sage, "#E8D5C8", theme.paper];
 
     const burst = (origin: { x: number; y: number }, angle: number) =>
       confetti({
@@ -228,7 +143,7 @@ export default function GetStartedPage() {
     const t4 = setTimeout(() => burst({ x: 0.85, y: 0.85 }, 105), 380);
 
     return () => [t1, t2, t3, t4].forEach(clearTimeout);
-  }, [step]);
+  }, [step, theme]);
 
   function validate(): boolean {
     const errs = new Set<string>();
@@ -293,334 +208,237 @@ export default function GetStartedPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-bg pt-[108px] pb-28 px-6">
-        <div className={`${step === 1 ? "max-w-[760px]" : "max-w-[600px]"} mx-auto transition-[max-width] duration-300`}>
+      <GetStartedStoryShell wide={step === 1}>
+        <AnimatePresence>
+          {step < 2 && (
+            <motion.div
+              key="progress"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease } }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+            >
+              <GetStartedStepProgress theme={theme} step={step as 0 | 1} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Progress indicator */}
-          <AnimatePresence>
-            {step < 2 && (
-              <motion.div
-                key="progress"
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease } }}
-                exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                className="flex flex-col items-center mb-6 md:mb-10 gap-3"
-              >
-                <div className="text-[11px] font-medium font-secondary text-text-faint uppercase tracking-widest">
-                  Step {step + 1} of 2
-                </div>
-                <div className="flex items-center gap-2">
-                  {[0, 1].map((i) => (
-                    <div
-                      key={i}
-                      style={{
-                        transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)",
-                      }}
-                      className={`rounded-full ${
-                        i === step
-                          ? "w-6 h-2 bg-accent"
-                          : i < step
-                          ? "w-2 h-2 bg-accent-soft"
-                          : "w-2 h-2 bg-border"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence mode="wait">
-
-            {/* ── STEP 0: Qualification form ────────────────────────────────── */}
-            {step === 0 && (
-              <motion.div key="step-form" {...slideIn}>
-
-                <div className="mb-8">
-                  <h1 className="font-display text-[clamp(1.85rem,4.5vw,2.6rem)] leading-[1.05] text-text">
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div key="step-form" {...slideIn}>
+              <GetStartedStoryHeader
+                theme={theme}
+                title={
+                  <>
                     See how MudKitchen can simplify{" "}
-                    <em style={{ color: "var(--color-clay)", fontStyle: "italic" }}>
+                    <em style={{ color: theme.coral, fontStyle: "italic" }}>
                       your school.
                     </em>
-                  </h1>
-                  <p className="text-[15px] text-text-muted font-secondary mt-3 leading-relaxed">
-                    Share a few details, then choose a time that works for you.
+                  </>
+                }
+                subtitle="Share a few details, then choose a time that works for you."
+              />
+
+              <ParentCard
+                theme={theme}
+                className="flex flex-col gap-7 md:gap-8 border-border bg-surface"
+              >
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <GetStartedStoryTextField
+                    theme={theme}
+                    label="First name"
+                    value={form.name}
+                    onChange={(v) => {
+                      set("name", v);
+                      setErrors((e) => {
+                        const n = new Set(e);
+                        n.delete("name");
+                        return n;
+                      });
+                    }}
+                    placeholder="Jane"
+                    hasError={errors.has("name")}
+                  />
+                  <GetStartedStoryTextField
+                    theme={theme}
+                    label="Work email"
+                    type="email"
+                    value={form.email}
+                    onChange={(v) => {
+                      set("email", v);
+                      setErrors((e) => {
+                        const n = new Set(e);
+                        n.delete("email");
+                        return n;
+                      });
+                    }}
+                    placeholder="jane@yourschool.com"
+                    hasError={errors.has("email")}
+                  />
+                </div>
+
+                <GetStartedStoryTextField
+                  theme={theme}
+                  label="School / program name"
+                  value={form.schoolName}
+                  onChange={(v) => {
+                    set("schoolName", v);
+                    setErrors((e) => {
+                      const n = new Set(e);
+                      n.delete("schoolName");
+                      return n;
+                    });
+                  }}
+                  placeholder="Maple Ridge Microschool"
+                  hasError={errors.has("schoolName")}
+                />
+
+                <GetStartedRoleChoices
+                  theme={theme}
+                  value={form.role}
+                  onChange={(role) => {
+                    set("role", role);
+                    setErrors((e) => {
+                      const n = new Set(e);
+                      n.delete("role");
+                      return n;
+                    });
+                  }}
+                  hasError={errors.has("role")}
+                />
+
+                <AnimatePresence>
+                  {hasErrors && (
+                    <motion.p
+                      key="error"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-[13px] -mt-2"
+                      style={{ color: theme.alert, fontFamily: theme.fontBody }}
+                    >
+                      Please fill in the highlighted fields above.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex flex-col items-center gap-3 pt-1">
+                  <ParentButton
+                    theme={theme}
+                    onClick={handleContinue}
+                    className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap px-8 !text-sm"
+                    style={{ backgroundColor: theme.coral }}
+                  >
+                    See Available Times
+                    <ChevronRight size={15} className="shrink-0" />
+                  </ParentButton>
+                  <p
+                    className="max-w-[28ch] text-center text-[12px] leading-snug"
+                    style={{ color: theme.muted, fontFamily: theme.fontBody }}
+                  >
+                    No commitment. 20 minutes, tailored to your school.
                   </p>
                 </div>
+              </ParentCard>
+            </motion.div>
+          )}
 
-                <div className="flex flex-col gap-7 md:gap-9 md:bg-surface md:border md:border-border md:rounded-xl md:p-8 md:shadow-sm">
+          {step === 1 && (
+            <motion.div key="step-scheduler" {...slideIn}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmitError(null);
+                  setStep(0);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="mb-6 inline-flex items-center gap-1.5 text-[13px] font-bold transition-opacity hover:opacity-80"
+                style={{ color: theme.primary, fontFamily: theme.fontBody }}
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <TextInput
-                      label="First name"
-                      value={form.name}
-                      onChange={(v) => {
-                        set("name", v);
-                        setErrors((e) => { const n = new Set(e); n.delete("name"); return n; });
-                      }}
-                      placeholder="Jane"
-                      hasError={errors.has("name")}
-                    />
-                    <TextInput
-                      label="Work email"
-                      type="email"
-                      value={form.email}
-                      onChange={(v) => {
-                        set("email", v);
-                        setErrors((e) => { const n = new Set(e); n.delete("email"); return n; });
-                      }}
-                      placeholder="jane@yourschool.com"
-                      hasError={errors.has("email")}
-                    />
-                  </div>
-
-                  <TextInput
-                    label="School / program name"
-                    value={form.schoolName}
-                    onChange={(v) => {
-                      set("schoolName", v);
-                      setErrors((e) => { const n = new Set(e); n.delete("schoolName"); return n; });
-                    }}
-                    placeholder="Maple Ridge Microschool"
-                    hasError={errors.has("schoolName")}
-                  />
-
-                  <div>
-                    <FieldLabel>Where are you today?</FieldLabel>
-                    <div
-                      className={`rounded-xl ${errors.has("role") ? "ring-1 ring-clay/40" : ""}`}
-                    >
-                      <div className="grid grid-cols-1 gap-3">
-                        {DEMO_REQUEST_ROLE_OPTIONS.map((r) => (
-                          <ChoiceButton
-                            key={r.id}
-                            label={r.label}
-                            selected={form.role === r.id}
-                            onClick={() => {
-                              set("role", r.id);
-                              setErrors((e) => {
-                                const n = new Set(e);
-                                n.delete("role");
-                                return n;
-                              });
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {hasErrors && (
-                      <motion.p
-                        key="error"
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[13px] font-secondary -mt-2"
-                        style={{ color: "var(--color-clay)" }}
-                      >
-                        Please fill in the highlighted fields above.
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="flex flex-col items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleContinue}
-                      className="inline-flex items-center justify-center gap-2 bg-clay text-white rounded-pill h-12 px-8 text-sm font-medium font-secondary whitespace-nowrap hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
-                      style={{ backgroundColor: "var(--color-clay)" }}
-                    >
-                      See Available Times
-                      <ChevronRight size={15} className="shrink-0" />
-                    </button>
-                    <p className="text-[12px] text-text-faint font-secondary leading-snug text-center max-w-[28ch]">
-                      No commitment. 20 minutes, tailored to your school.
-                    </p>
-                  </div>
-
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── STEP 1: Scheduler ─────────────────────────────────────────── */}
-            {step === 1 && (
-              <motion.div key="step-scheduler" {...slideIn}>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSubmitError(null);
-                    setStep(0);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="flex items-center gap-1.5 text-[13px] font-medium font-secondary text-text-muted hover:text-text transition-colors duration-150 mb-6"
-                >
-                  <ArrowLeft size={14} />
-                  Back
-                </button>
-
-                <div className="mb-8">
-                  <h1 className="font-display text-[clamp(1.85rem,4.5vw,2.6rem)] leading-[1.05] text-text">
+              <GetStartedStoryHeader
+                theme={theme}
+                title={
+                  <>
                     Pick a time{" "}
-                    <em style={{ color: "var(--color-clay)", fontStyle: "italic" }}>
+                    <em style={{ color: theme.coral, fontStyle: "italic" }}>
                       that works.
                     </em>
-                  </h1>
-                  <p className="text-[15px] text-text-muted font-secondary mt-3 leading-relaxed">
-                    We&apos;ll walk through the workflows that matter most to your school.
-                  </p>
-                </div>
+                  </>
+                }
+                subtitle="We'll walk through the workflows that matter most to your school."
+              />
 
-                <div
-                  className="flex items-start gap-3 mb-6 px-4 py-3.5 rounded-lg border"
-                  style={{
-                    backgroundColor: "var(--color-accent-highlight)",
-                    borderColor: "var(--color-accent-soft)",
-                  }}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    className="shrink-0 mt-0.5"
-                    style={{ color: "var(--color-accent)" }}
-                    aria-hidden="true"
-                  >
-                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
-                    <path
-                      d="M8 5.5v3.5M8 11v.25"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <p
-                    className="text-[13px] font-secondary leading-snug"
-                    style={{ color: "var(--color-accent)" }}
-                  >
-                    You&apos;ll see how this could work for your school, with time for
-                    questions. 30 minutes, no slides, just your workflows.
-                  </p>
-                </div>
+              <GetStartedInfoCallout theme={theme}>
+                You&apos;ll see how this could work for your school, with time for
+                questions. 20 minutes, no slides, just your workflows.
+              </GetStartedInfoCallout>
 
-                <div className="mt-6 flex justify-center">
-                  <TurnstileField onTokenChange={setTurnstileToken} />
-                </div>
+              <div className="mb-6 flex justify-center">
+                <TurnstileField onTokenChange={setTurnstileToken} />
+              </div>
 
-                <div className="md:bg-surface md:border md:border-border md:rounded-xl md:overflow-hidden md:shadow-sm">
-                  {availabilityLoading ? (
-                    <div className="flex items-center justify-center py-24 text-sm text-text-faint font-secondary">
-                      Loading available times…
-                    </div>
-                  ) : availabilityError ? (
-                    <div className="flex items-center justify-center py-24 text-sm text-clay font-secondary">
-                      {availabilityError}
-                    </div>
-                  ) : Object.keys(availabilitySlots).length === 0 ? (
-                    <div className="flex items-center justify-center py-24 text-sm text-text-muted font-secondary">
-                      No demo times are available right now. Please check back soon.
-                    </div>
-                  ) : (
-                    <DemoScheduler
-                      availabilitySlots={availabilitySlots}
-                      onConfirm={handleScheduled}
-                      isSubmitting={isSubmitting}
-                      confirmDisabled={turnstileRequired && !turnstileToken}
-                    />
-                  )}
-                </div>
-
-                {submitError && (
-                  <p
-                    className="mt-4 text-[13px] font-secondary text-center"
-                    style={{ color: "var(--color-clay)" }}
-                  >
-                    {submitError} Please try again or contact us directly.
-                  </p>
-                )}
-              </motion.div>
-            )}
-
-            {/* ── STEP 2: Confirmation ──────────────────────────────────────── */}
-            {step === 2 && (
-              <motion.div key="step-confirm" {...fadeUp} className="text-center">
-
-                <div className="flex justify-center mb-7">
+              <ParentCard
+                theme={theme}
+                className="!p-0 overflow-hidden border-border bg-surface"
+              >
+                {availabilityLoading ? (
                   <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "var(--color-accent-highlight)" }}
+                    className="flex items-center justify-center py-24 text-sm"
+                    style={{ color: theme.muted, fontFamily: theme.fontBody }}
                   >
-                    <Check size={26} style={{ color: "var(--color-accent)" }} strokeWidth={2.5} />
+                    Loading available times…
                   </div>
-                </div>
-
-                <h1 className="font-display text-[clamp(2.2rem,5vw,3.25rem)] leading-[1.02] text-text mb-4">
-                  You&apos;re booked.
-                </h1>
-
-                <p className="text-[16px] text-text-muted font-secondary leading-relaxed max-w-[44ch] mx-auto mb-4">
-                  We&apos;ll tailor the session around {form.schoolName.trim() || "your school"}
-                  {roleLabel ? ` and where you are today (${roleLabel.toLowerCase()}).` : "."}
-                </p>
-
-                {booking && (
-                  <p className="text-[15px] font-medium font-secondary text-text mb-10">
-                    {formatSelectedDate(booking.date)} at {booking.time}{" "}
-                    <span className="text-text-faint font-normal">Central (CT)</span>
-                  </p>
+                ) : availabilityError ? (
+                  <div
+                    className="flex items-center justify-center py-24 text-sm"
+                    style={{ color: theme.alert, fontFamily: theme.fontBody }}
+                  >
+                    {availabilityError}
+                  </div>
+                ) : Object.keys(availabilitySlots).length === 0 ? (
+                  <div
+                    className="flex items-center justify-center py-24 text-sm"
+                    style={{ color: theme.muted, fontFamily: theme.fontBody }}
+                  >
+                    No demo times are available right now. Please check back soon.
+                  </div>
+                ) : (
+                  <DemoScheduler
+                    availabilitySlots={availabilitySlots}
+                    onConfirm={handleScheduled}
+                    isSubmitting={isSubmitting}
+                    confirmDisabled={turnstileRequired && !turnstileToken}
+                    storyTheme={theme}
+                  />
                 )}
+              </ParentCard>
 
-                {!booking && <div className="mb-10" />}
-
-                <div
-                  className="text-left mb-8 md:bg-surface md:border md:border-border md:rounded-xl md:p-7 md:shadow-sm"
+              {submitError && (
+                <p
+                  className="mt-4 text-center text-[13px]"
+                  style={{ color: theme.alert, fontFamily: theme.fontBody }}
                 >
-                  <div className="text-[11px] font-medium font-secondary text-text-faint uppercase tracking-widest mb-4">
-                    Helpful before the call
-                  </div>
-                  <ul className="flex flex-col gap-3.5">
-                    {[
-                      "Your current enrollment process",
-                      "How you handle tuition and billing today",
-                      "How you communicate with families",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-3">
-                        <div
-                          className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                          style={{ backgroundColor: "var(--color-accent-highlight)" }}
-                        >
-                          <Check
-                            size={9}
-                            style={{ color: "var(--color-accent)" }}
-                            strokeWidth={2.5}
-                          />
-                        </div>
-                        <span className="text-[14px] font-secondary text-text-muted leading-snug">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                  {submitError} Please try again or contact us directly.
+                </p>
+              )}
+            </motion.div>
+          )}
 
-                <div className="mt-8">
-                  <Link
-                    href="/"
-                    className="text-[13px] font-secondary text-text-faint hover:text-text-muted transition-colors duration-150"
-                  >
-                    ← Back to home
-                  </Link>
-                </div>
-
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
-      </main>
+          {step === 2 && (
+            <motion.div key="step-confirm" {...fadeUp}>
+              <GetStartedConfirmation
+                theme={theme}
+                schoolName={form.schoolName}
+                roleLabel={roleLabel}
+                booking={booking}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </GetStartedStoryShell>
     </>
   );
 }

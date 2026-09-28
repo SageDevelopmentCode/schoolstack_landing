@@ -58,6 +58,7 @@ type SchoolParentHeaderProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   parentNavBasePath?: string;
   mainParentBasePath?: string;
   previewMode?: boolean;
@@ -144,6 +145,7 @@ export default function SchoolParentHeader({
   features,
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   parentNavBasePath,
   mainParentBasePath,
   previewMode = false,
@@ -591,6 +593,7 @@ export default function SchoolParentHeader({
                 options={resolvedPortalOptions}
                 currentPortal={detectPortalFromPathname(pathname, slug)}
                 onNavigate={() => setMenuOpen(false)}
+                openLinksInNewTab={openPortalLinksInNewTab}
               />
               {!showPreviewSwitcher ? (
                 <NavigationLink

@@ -5,7 +5,11 @@ import {
   getStaffMemberIdForUser,
   requireSchoolAdminUser,
 } from "@/lib/messages/api-helpers";
-import { editMessageForViewer } from "@/lib/messages/api-helpers-server";
+import {
+  deleteMessageForViewer,
+  editMessageForViewer,
+} from "@/lib/messages/api-helpers-server";
+import { parseMessageDeleteRequest } from "@/lib/messages/parse-message-delete-request";
 import { parseMessagePatchRequest } from "@/lib/messages/parse-message-patch-request";
 import { SchoolAdminAuthError } from "@/lib/school-admin/access";
 import { createClientFromRequest } from "@/lib/supabase/request-client";
@@ -65,6 +69,63 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const resolved = portalRouteErrorStatus(err, "Failed to edit message.");
+    return apiError(ROUTE, {
+      request,
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
+      cause: err,
+    });
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const supabase = await createClientFromRequest(request);
+  const { threadId, messageId } = await context.params;
+
+  try {
+    const { organizationId, schoolName } = parseMessageDeleteRequest(request);
+
+    if (!organizationId) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "organizationId is required.",
+        code: "missing_fields",
+      });
+    }
+
+    const user = await requireSchoolAdminUser(supabase, organizationId, request);
+    const staffMemberId = await getStaffMemberIdForUser(
+      supabase,
+      user.id,
+      organizationId,
+    );
+
+    const admin = createAdminClient();
+    const message = await deleteMessageForViewer(admin, {
+      organizationId,
+      threadId,
+      messageId,
+      userId: user.id,
+      viewer: "admin",
+      schoolOfficeLabel: `${schoolName} Office`,
+      currentStaffMemberId: staffMemberId,
+    });
+
+    return NextResponse.json({ message });
+  } catch (err) {
+    if (err instanceof SchoolAdminAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
+    const resolved = portalRouteErrorStatus(err, "Failed to delete message.");
     return apiError(ROUTE, {
       request,
       status: resolved.status,

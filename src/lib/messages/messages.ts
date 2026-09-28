@@ -195,6 +195,9 @@ export async function editPortalMessage(
   }
 
   const messageRow = row as PortalMessageRow;
+  if (messageRow.deleted_at) {
+    throw new PortalRouteError("This message cannot be edited.", 400, "not_editable");
+  }
   if (String(messageRow.sender_user_id) !== input.userId) {
     throw new PortalRouteError("You can only edit your own messages.", 403, "forbidden");
   }
@@ -226,6 +229,75 @@ export async function editPortalMessage(
     .update({
       body,
       edited_at: new Date().toISOString(),
+    })
+    .eq("id", input.messageId);
+
+  if (updateError) throw new Error(updateError.message);
+}
+
+export type DeletePortalMessageInput = {
+  organizationId: string;
+  threadId: string;
+  messageId: string;
+  userId: string;
+};
+
+async function assertPortalMessageTextDeletable(
+  admin: SupabaseClient,
+  input: DeletePortalMessageInput,
+): Promise<PortalMessageRow> {
+  const { data: row, error } = await admin
+    .from("portal_messages")
+    .select("*")
+    .eq("id", input.messageId)
+    .eq("thread_id", input.threadId)
+    .eq("organization_id", input.organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!row) {
+    throw new PortalRouteError("Message not found.", 404, "not_found");
+  }
+
+  const messageRow = row as PortalMessageRow;
+  if (messageRow.deleted_at) {
+    throw new PortalRouteError("This message has already been deleted.", 400, "not_editable");
+  }
+  if (String(messageRow.sender_user_id) !== input.userId) {
+    throw new PortalRouteError("You can only delete your own messages.", 403, "forbidden");
+  }
+
+  const { count, error: attachmentCountError } = await admin
+    .from("portal_message_attachments")
+    .select("id", { count: "exact", head: true })
+    .eq("message_id", input.messageId);
+
+  if (attachmentCountError) throw new Error(attachmentCountError.message);
+  if ((count ?? 0) > 0) {
+    throw new PortalRouteError(
+      "Messages with attachments cannot be deleted.",
+      400,
+      "not_deletable",
+    );
+  }
+
+  if (!messageRow.body.trim()) {
+    throw new PortalRouteError("This message cannot be deleted.", 400, "not_deletable");
+  }
+
+  return messageRow;
+}
+
+export async function deletePortalMessage(
+  admin: SupabaseClient,
+  input: DeletePortalMessageInput,
+): Promise<void> {
+  await assertPortalMessageTextDeletable(admin, input);
+
+  const { error: updateError } = await admin
+    .from("portal_messages")
+    .update({
+      deleted_at: new Date().toISOString(),
     })
     .eq("id", input.messageId);
 

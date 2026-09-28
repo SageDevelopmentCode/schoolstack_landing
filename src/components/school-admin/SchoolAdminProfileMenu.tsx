@@ -16,6 +16,7 @@ type SchoolAdminProfileMenuProps = {
   isExpanded: boolean;
   onSignOut: () => Promise<void>;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   currentPortal?: PortalId;
   previewMode?: boolean;
 };
@@ -44,6 +45,7 @@ export default function SchoolAdminProfileMenu({
   isExpanded,
   onSignOut,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   currentPortal = "admin",
   previewMode = false,
 }: SchoolAdminProfileMenuProps) {
@@ -164,6 +166,7 @@ export default function SchoolAdminProfileMenu({
               options={portalOptions}
               currentPortal={currentPortal}
               onNavigate={() => setMenuOpen(false)}
+              openLinksInNewTab={openPortalLinksInNewTab}
             />
             <button
               type="button"

@@ -333,20 +333,49 @@ export async function listAdmissionsAvailabilitySlots(
   startDate: string,
   endDate: string,
 ): Promise<Set<AdmissionsAvailabilitySlotKey>> {
+  const records = await listAdmissionsAvailabilitySlotRecords(
+    supabase,
+    organizationId,
+    startDate,
+    endDate,
+  );
+  return new Set(records.map((row) => availabilitySlotKey(row.date, row.timeSlot)));
+}
+
+export type AdmissionsAvailabilitySlotRecord = {
+  date: string;
+  timeSlot: string;
+  tourBookingMode: "exclusive" | "group";
+  groupCapacity: number | null;
+  groupDayKey: string | null;
+};
+
+export async function listAdmissionsAvailabilitySlotRecords(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<AdmissionsAvailabilitySlotRecord[]> {
   const { data, error } = await supabase
     .from("admissions_availability_slots")
-    .select("date, time_slot")
+    .select("date, time_slot, tour_booking_mode, group_capacity, group_day_key")
     .eq("organization_id", organizationId)
     .gte("date", startDate)
     .lte("date", endDate);
 
   if (error) throw error;
 
-  return new Set(
-    (data ?? []).map((row) =>
-      availabilitySlotKey(String(row.date), String(row.time_slot)),
-    ),
-  );
+  return (data ?? []).map((row) => ({
+    date: String(row.date),
+    timeSlot: String(row.time_slot),
+    tourBookingMode:
+      row.tour_booking_mode === "group" ? ("group" as const) : ("exclusive" as const),
+    groupCapacity:
+      row.group_capacity != null && Number(row.group_capacity) > 0
+        ? Number(row.group_capacity)
+        : null,
+    groupDayKey: row.group_day_key ? String(row.group_day_key) : null,
+  }));
 }
 
 export async function countAdmissionsAvailabilitySlotsInMonth(

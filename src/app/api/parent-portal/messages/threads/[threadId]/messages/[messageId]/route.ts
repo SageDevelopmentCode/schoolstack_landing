@@ -5,7 +5,11 @@ import {
   assertParentCanAccessThread,
   userHasEnrolledAccess,
 } from "@/lib/messages/api-helpers";
-import { editMessageForViewer } from "@/lib/messages/api-helpers-server";
+import {
+  deleteMessageForViewer,
+  editMessageForViewer,
+} from "@/lib/messages/api-helpers-server";
+import { parseMessageDeleteRequest } from "@/lib/messages/parse-message-delete-request";
 import { parseMessagePatchRequest } from "@/lib/messages/parse-message-patch-request";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -78,6 +82,77 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ message });
   } catch (err) {
     const resolved = portalRouteErrorStatus(err, "Failed to edit message.");
+    return apiError(ROUTE, {
+      request,
+      status: resolved.status,
+      error: resolved.message,
+      code: resolved.code,
+      cause: err,
+    });
+  }
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const supabase = await createClientFromRequest(request);
+  const { threadId, messageId } = await context.params;
+
+  const {
+    data: { user },
+    error: authError,
+  } = await getUserFromRequest(supabase, request);
+
+  if (!user) {
+    return apiError(ROUTE, {
+      request,
+      status: 401,
+      error: await signedInErrorForRequest(request, authError),
+      code: "unauthorized",
+    });
+  }
+
+  try {
+    const { organizationId, schoolName } = parseMessageDeleteRequest(request);
+
+    if (!organizationId) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "organizationId is required.",
+        code: "missing_fields",
+      });
+    }
+
+    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
+    if (!hasAccess) {
+      return apiError(ROUTE, {
+        request,
+        status: 403,
+        error: "You do not have access to messages.",
+        code: "forbidden",
+      });
+    }
+
+    const admin = createAdminClient();
+    await assertParentCanAccessThread(
+      admin,
+      supabase,
+      organizationId,
+      user.id,
+      threadId,
+    );
+
+    const message = await deleteMessageForViewer(admin, {
+      organizationId,
+      threadId,
+      messageId,
+      userId: user.id,
+      viewer: "parent",
+      schoolOfficeLabel: `${schoolName} Office`,
+    });
+
+    return NextResponse.json({ message });
+  } catch (err) {
+    const resolved = portalRouteErrorStatus(err, "Failed to delete message.");
     return apiError(ROUTE, {
       request,
       status: resolved.status,

@@ -506,6 +506,34 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
       ],
     },
     {
+      id: "public-tour-page",
+      title: "Public tour booking page",
+      category: "Schedule",
+      summary:
+        "When MudKitchen enables it, families can book tours without logging in. Customize questions on the Tours tab.",
+      keywords: ["public", "tour", "group", "website", "unauthenticated"],
+      requiredFeatures: {
+        admin: { schedule: true },
+        adminPath: { feature: "schedule" },
+      },
+      steps: [
+        {
+          title: "Open Schedule → Tours & interviews",
+          description:
+            "Open time slots as usual. Use group tour controls for shared capacity on a slot or whole day.",
+          action: {
+            label: "Open Schedule",
+            path: { feature: "schedule" },
+          },
+        },
+        {
+          title: "Customize the public form",
+          description:
+            "Edit headline, intro, and intake questions in the Public tour page section below the calendar.",
+        },
+      ],
+    },
+    {
       id: "set-shadow-day-availability",
       title: "Set shadow day availability",
       category: "Schedule",

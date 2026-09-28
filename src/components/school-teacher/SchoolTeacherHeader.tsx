@@ -7,7 +7,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, LogOut } from "lucide-react";
 import SchoolDemoWordmark from "@/components/demo/SchoolDemoWordmark";
 import ButtonLoadingLabel from "@/components/ui/ButtonLoadingLabel";
+import { usePreviewPortalOptions } from "@/components/admin/PreviewPortalOptionsProvider";
 import ParentProfileMenuTrigger from "@/components/school-parent/ParentProfileMenuTrigger";
+import SchoolPortalSwitcherMenuItems from "@/components/school/shared/SchoolPortalSwitcherMenuItems";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
@@ -21,6 +23,8 @@ import {
 import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { detectPortalFromPathname } from "@/lib/auth/portal-switcher-types";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import type {
   OrganizationBranding,
@@ -45,6 +49,8 @@ type SchoolTeacherHeaderProps = {
   previewBasePath?: string;
   activityUnreadCount?: number;
   onOpenNotifications?: () => void;
+  portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
 };
 
 const teacherNavTextClass = "text-[13px] font-semibold";
@@ -102,8 +108,15 @@ export default function SchoolTeacherHeader({
   previewBasePath,
   activityUnreadCount = 0,
   onOpenNotifications,
+  portalOptions = [],
+  openPortalLinksInNewTab = false,
 }: SchoolTeacherHeaderProps) {
   const pathname = usePathname();
+  const previewPortalOptions = usePreviewPortalOptions();
+  const resolvedPortalOptions =
+    previewMode && previewPortalOptions.length > 0
+      ? previewPortalOptions
+      : portalOptions;
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const { theme, adminCompat: C } = useParentTheme();
@@ -406,6 +419,13 @@ export default function SchoolTeacherHeader({
                     </div>
                   </div>
                 </div>
+                <SchoolPortalSwitcherMenuItems
+                  C={C}
+                  options={resolvedPortalOptions}
+                  currentPortal={detectPortalFromPathname(pathname, slug)}
+                  onNavigate={() => setMenuOpen(false)}
+                  openLinksInNewTab={openPortalLinksInNewTab}
+                />
                 {!previewMode ? (
                   <button
                     type="button"

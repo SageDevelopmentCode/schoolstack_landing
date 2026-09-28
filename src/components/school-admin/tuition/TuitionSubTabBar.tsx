@@ -1,12 +1,14 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type TuitionSubTab<T extends string> = {
   id: T;
   label: string;
   icon?: LucideIcon;
+  badge?: ReactNode;
 };
 
 type TuitionSubTabBarProps<T extends string> = {
@@ -57,6 +59,9 @@ export default function TuitionSubTabBar<T extends string>({
             >
               {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : null}
               {tab.label}
+              {tab.badge ? (
+                <span className="shrink-0">{tab.badge}</span>
+              ) : null}
             </button>
           );
         })}

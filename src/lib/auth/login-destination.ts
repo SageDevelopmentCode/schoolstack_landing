@@ -5,6 +5,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import { getTeacherPortalHomeHref } from "@/lib/organization-settings/teacher-nav";
 import { isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
+import { resolvePortalAccountMemberUserIds } from "@/lib/auth/portal-account-link-context";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { isPlatformAdmin, userCanAccessSchoolAdmin } from "@/lib/school-admin/access";
 
@@ -178,7 +179,7 @@ export async function listAccessibleLiveOrganizations(
   );
 }
 
-async function userHasParentAccess(
+async function userHasParentAccessForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -204,6 +205,32 @@ async function userHasParentAccess(
   if (membershipResult.error) throw membershipResult.error;
 
   return Boolean(guardianResult.data || membershipResult.data);
+}
+
+async function userHasParentAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (
+      await userHasParentAccessForAuthUser(
+        supabase,
+        memberUserId,
+        organizationId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function resolveParentLoginDestination(
@@ -281,11 +308,19 @@ export async function resolveLoginDestination(
     };
   }
 
-  if (await userCanAccessSchoolAdmin(supabase, userId, org.id)) {
-    return {
-      ok: true,
-      href: `/school/${slug}/admin`,
-    };
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    org.id,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (await userCanAccessSchoolAdmin(supabase, memberUserId, org.id)) {
+      return {
+        ok: true,
+        href: `/school/${slug}/admin`,
+      };
+    }
   }
 
   if (await userHasTeacherPortalAccess(supabase, userId, org.id)) {

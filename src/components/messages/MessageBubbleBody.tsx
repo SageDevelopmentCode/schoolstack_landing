@@ -6,15 +6,6 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import type { PortalMessage } from "@/lib/messages/types";
 import MessageAttachments from "./MessageAttachments";
 
-function messageIsEditable(message: PortalMessage): boolean {
-  return (
-    message.isOwn &&
-    !message.pending &&
-    Boolean(message.body.trim()) &&
-    message.attachments.length === 0
-  );
-}
-
 function MessageTimestamp({
   message,
   ownBubble,
@@ -46,7 +37,8 @@ export default function MessageBubbleBody({
   splitPane,
   ownBubble,
   bodyColor,
-  readOnly,
+  editing,
+  onEditingChange,
   onEditMessage,
 }: {
   message: PortalMessage;
@@ -55,14 +47,13 @@ export default function MessageBubbleBody({
   splitPane: boolean;
   ownBubble: boolean;
   bodyColor: string;
-  readOnly?: boolean;
+  editing: boolean;
+  onEditingChange: (editing: boolean) => void;
   onEditMessage?: (messageId: string, body: string) => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-  const canEdit = !readOnly && messageIsEditable(message) && Boolean(onEditMessage);
 
   useEffect(() => {
     if (!editing) {
@@ -73,7 +64,7 @@ export default function MessageBubbleBody({
   const cancelEdit = () => {
     setDraft(message.body);
     setEditError(null);
-    setEditing(false);
+    onEditingChange(false);
   };
 
   const saveEdit = async () => {
@@ -92,7 +83,7 @@ export default function MessageBubbleBody({
     setEditError(null);
     try {
       await onEditMessage(message.id, nextBody);
-      setEditing(false);
+      onEditingChange(false);
     } catch (err) {
       setEditError(err instanceof Error ? err.message : "Failed to edit message.");
     } finally {
@@ -101,6 +92,13 @@ export default function MessageBubbleBody({
   };
 
   if (editing) {
+    const editOnFilledBubble = message.isOwn && (ownBubble || Boolean(theme));
+    const editFieldTextColor = theme?.ink ?? C.textPrimary;
+    const cancelColor = editOnFilledBubble
+      ? "rgba(255,255,255,0.85)"
+      : theme?.muted ?? C.textSecondary;
+    const saveColor = editOnFilledBubble ? "#ffffff" : theme?.primary ?? C.accent;
+
     return (
       <div>
         <textarea
@@ -111,12 +109,15 @@ export default function MessageBubbleBody({
           style={{
             borderColor: theme?.line ?? C.border,
             backgroundColor: theme?.white ?? C.bg,
-            color: bodyColor,
+            color: editFieldTextColor,
           }}
           disabled={saving}
         />
         {editError ? (
-          <p className="mt-1 text-xs" style={{ color: C.warning }}>
+          <p
+            className="mt-1 text-xs"
+            style={{ color: editOnFilledBubble ? "#fecaca" : C.warning }}
+          >
             {editError}
           </p>
         ) : null}
@@ -126,7 +127,7 @@ export default function MessageBubbleBody({
             onClick={cancelEdit}
             disabled={saving}
             className="text-xs font-medium cursor-pointer disabled:opacity-50"
-            style={{ color: theme?.muted ?? C.textSecondary }}
+            style={{ color: cancelColor }}
           >
             Cancel
           </button>
@@ -135,7 +136,7 @@ export default function MessageBubbleBody({
             onClick={() => void saveEdit()}
             disabled={saving}
             className="text-xs font-semibold cursor-pointer disabled:opacity-50"
-            style={{ color: theme?.primary ?? C.accent }}
+            style={{ color: saveColor }}
           >
             {saving ? "Saving…" : "Save"}
           </button>
@@ -157,21 +158,7 @@ export default function MessageBubbleBody({
         splitPane={splitPane}
         isOwn={message.isOwn}
       />
-      <div className="flex items-center justify-end gap-2">
-        {canEdit ? (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className={`text-[10px] font-medium cursor-pointer hover:underline ${
-              ownBubble ? "text-white/80" : ""
-            }`}
-            style={ownBubble ? undefined : { color: theme?.muted ?? C.textTertiary }}
-          >
-            Edit
-          </button>
-        ) : null}
-        <MessageTimestamp message={message} ownBubble={ownBubble} theme={theme} C={C} />
-      </div>
+      <MessageTimestamp message={message} ownBubble={ownBubble} theme={theme} C={C} />
     </>
   );
 }

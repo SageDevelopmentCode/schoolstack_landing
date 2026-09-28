@@ -39,6 +39,7 @@ type ApplyPortalNavbarProps = {
   userDisplayName: string;
   profilePhotoUrl?: string | null;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
   previewHomeHref?: string;
 };
@@ -52,6 +53,7 @@ export default function ApplyPortalNavbar({
   userDisplayName,
   profilePhotoUrl: initialProfilePhotoUrl = null,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   previewMode = false,
   previewHomeHref,
 }: ApplyPortalNavbarProps) {
@@ -224,6 +226,7 @@ export default function ApplyPortalNavbar({
                 options={portalOptions}
                 currentPortal={detectPortalFromPathname(pathname, schoolSlug)}
                 onNavigate={() => setMenuOpen(false)}
+                openLinksInNewTab={openPortalLinksInNewTab}
               />
               {!previewMode ? (
               <button

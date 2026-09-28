@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import AdmissionsAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsAvailabilityEditor";
+import ToursInterviewsTabContent from "@/components/school-admin/schedule/ToursInterviewsTabContent";
 import AdmissionsObservationDayAvailabilityEditor from "@/components/school-admin/admissions/AdmissionsObservationDayAvailabilityEditor";
 import ApplicationSubmissionDetailPanel from "@/components/school-admin/admissions/ApplicationSubmissionDetailPanel";
 import ScheduledVisitsSection from "@/components/school-admin/ScheduledVisitsSection";
@@ -88,8 +88,12 @@ export default function SchedulePage({
       const params = new URLSearchParams(searchParams.toString());
       if (tab === "overview") {
         params.delete("tab");
+        params.delete("toursSubtab");
       } else {
         params.set("tab", tab);
+        if (tab !== "tours") {
+          params.delete("toursSubtab");
+        }
       }
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname);
@@ -260,12 +264,11 @@ export default function SchedulePage({
               {visitedTabs.has("tours") ? (
                 <div hidden={activeTab !== "tours"}>
                   <AdminCard theme={theme}>
-                    <AdmissionsAvailabilityEditor
+                    <ToursInterviewsTabContent
                       C={C}
                       organizationId={organizationId}
+                      schoolSlug={slug}
                       onMonthSlotCountChange={handleMonthSlotCountChange}
-                      compactLayout
-                      storySurface
                       onLoadingChange={(loading) => reportTabLoading("tours", loading)}
                     />
                   </AdminCard>

@@ -1,20 +1,29 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Bell, GraduationCap, Inbox, LayoutDashboard, LayoutGrid, Link2, MessageSquare, Palette, Smartphone, ToggleLeft } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import OrganizationCustomerBillingPanel from "@/components/admin/OrganizationCustomerBillingPanel";
-import OrganizationSettingsEditor from "@/components/admin/OrganizationSettingsEditor";
+import OrganizationSettingsEditor, {
+  type OrganizationFeaturesSection,
+} from "@/components/admin/OrganizationSettingsEditor";
 import OrganizationAccessPanel from "@/components/admin/OrganizationAccessPanel";
 import OrganizationSubmissionsPanel from "@/components/admin/OrganizationSubmissionsPanel";
 import OrganizationDashboardCardsPanel from "@/components/admin/OrganizationDashboardCardsPanel";
+import OrganizationAccountLinksPanel from "@/components/admin/OrganizationAccountLinksPanel";
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationMessagesPanel from "@/components/admin/OrganizationMessagesPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
 import OrganizationPushNotificationsPanel from "@/components/admin/OrganizationPushNotificationsPanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
+import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
+import {
+  isPublicTourEnabled,
+  parsePublicTourPageSettings,
+} from "@/lib/admissions/public-tour-settings";
 import type { OrganizationSettingsRow } from "@/lib/organization-settings/types";
 
 type OrganizationStatus = "onboarding" | "live" | "paused" | "churned";
@@ -28,21 +37,24 @@ type OrganizationDetailTab =
   | "messages"
   | "submissions"
   | "teacher-portal"
+  | "account-links"
   | "dashboard-cards";
 
 const ORGANIZATION_DETAIL_TABS: {
   id: OrganizationDetailTab;
   label: string;
+  icon: LucideIcon;
 }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "branding", label: "Branding" },
-  { id: "features", label: "Features" },
-  { id: "notifications", label: "Notifications" },
-  { id: "push-notifications", label: "Push Notifications" },
-  { id: "messages", label: "Messages" },
-  { id: "submissions", label: "Submissions" },
-  { id: "teacher-portal", label: "Teacher portal" },
-  { id: "dashboard-cards", label: "Dashboard cards" },
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "branding", label: "Branding", icon: Palette },
+  { id: "features", label: "Features", icon: ToggleLeft },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "push-notifications", label: "Push Notifications", icon: Smartphone },
+  { id: "messages", label: "Messages", icon: MessageSquare },
+  { id: "submissions", label: "Submissions", icon: Inbox },
+  { id: "teacher-portal", label: "Teacher portal", icon: GraduationCap },
+  { id: "account-links", label: "Account links", icon: Link2 },
+  { id: "dashboard-cards", label: "Dashboard cards", icon: LayoutGrid },
 ];
 
 const SETTINGS_TABS: OrganizationDetailTab[] = [
@@ -139,6 +151,8 @@ export default function AdminOrganizationsPage() {
   const [visitedTabs, setVisitedTabs] = useState<Set<OrganizationDetailTab>>(
     () => new Set(["overview"]),
   );
+  const [featuresSection, setFeaturesSection] =
+    useState<OrganizationFeaturesSection>("portals");
 
   useEffect(() => {
     async function load() {
@@ -173,6 +187,22 @@ export default function AdminOrganizationsPage() {
       return next;
     });
   }, []);
+
+  const navigateToFeaturesAdmissions = useCallback(() => {
+    setFeaturesSection("admissions");
+    selectDetailTab("features");
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", "#admissions");
+    }
+  }, [selectDetailTab]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#admissions") {
+      setFeaturesSection("admissions");
+      selectDetailTab("features");
+    }
+  }, [selectedId, selectDetailTab]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -243,6 +273,15 @@ export default function AdminOrganizationsPage() {
 
   const selected =
     organizations.find((org) => org.id === selectedId) ?? null;
+
+  const publicTourEnabled = useMemo(() => {
+    if (!settingsRow) return false;
+    return isPublicTourEnabled(
+      parsePublicTourPageSettings(
+        parseAdmissionsOrgSettings(settingsRow.admissions).publicTour,
+      ),
+    );
+  }, [settingsRow]);
 
   const settingsTabVisited = SETTINGS_TABS.some((tab) => visitedTabs.has(tab));
 
@@ -345,24 +384,28 @@ export default function AdminOrganizationsPage() {
             <div
               role="tablist"
               aria-label="Organization sections"
-              className="flex gap-4 overflow-x-auto border-b border-admin-border"
+              className="flex flex-wrap gap-x-4 gap-y-1 pb-1 border-b border-admin-border"
             >
-              {ORGANIZATION_DETAIL_TABS.map((tab) => (
+              {ORGANIZATION_DETAIL_TABS.map((tab) => {
+                const TabIcon = tab.icon;
+                return (
                 <button
                   key={tab.id}
                   type="button"
                   role="tab"
                   aria-selected={activeDetailTab === tab.id}
                   onClick={() => selectDetailTab(tab.id)}
-                  className={`text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
+                  className={`inline-flex items-center gap-1.5 -mb-px text-sm font-medium py-2 border-b-2 transition-colors whitespace-nowrap ${
                     activeDetailTab === tab.id
                       ? "border-admin-accent text-admin-accent"
                       : "border-transparent text-admin-muted hover:text-admin-text"
                   }`}
                 >
+                  <TabIcon className="h-4 w-4 shrink-0" aria-hidden />
                   {tab.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {visitedTabs.has("overview") ? (
@@ -453,6 +496,9 @@ export default function AdminOrganizationsPage() {
                   initialRow={settingsRow}
                   settingsLoading={settingsLoading}
                   view={settingsEditorViewForTab(activeDetailTab)}
+                  featuresSection={featuresSection}
+                  onFeaturesSectionChange={setFeaturesSection}
+                  onNavigateToFeaturesAdmissions={navigateToFeaturesAdmissions}
                   onSaved={async () => {
                     const { data } = await supabase
                       .from("organization_settings")
@@ -551,6 +597,44 @@ export default function AdminOrganizationsPage() {
                   </p>
                 </li>
                 <li>
+                  {publicTourEnabled ? (
+                    <Link
+                      href={`/school/${selected.slug}/tour`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-2 text-sm text-admin-accent hover:underline group"
+                    >
+                      <span>Public tour page</span>
+                      <ArrowUpRight
+                        className="w-3.5 h-3.5 shrink-0 opacity-60 group-hover:opacity-100"
+                        aria-hidden
+                      />
+                    </Link>
+                  ) : (
+                    <div
+                      className="flex items-center justify-between gap-2 text-sm text-admin-muted"
+                      aria-disabled="true"
+                    >
+                      <span>Public tour page</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-admin-faint mt-0.5">
+                    /school/{selected.slug}/tour
+                  </p>
+                  {!publicTourEnabled ? (
+                    <p className="text-xs text-admin-faint mt-1">
+                      Off for this school.{" "}
+                      <button
+                        type="button"
+                        onClick={navigateToFeaturesAdmissions}
+                        className="font-medium text-admin-accent hover:underline"
+                      >
+                        Enable in Features → Admissions
+                      </button>
+                    </p>
+                  ) : null}
+                </li>
+                <li>
                   <Link
                     href={`/timeline/${selected.slug}`}
                     target="_blank"
@@ -643,6 +727,18 @@ export default function AdminOrganizationsPage() {
                 <OrganizationTeacherPortalPanel
                   organizationId={selected.id}
                   organizationSlug={selected.slug}
+                />
+              </div>
+            ) : null}
+
+            {visitedTabs.has("account-links") ? (
+              <div
+                hidden={activeDetailTab !== "account-links"}
+                aria-hidden={activeDetailTab !== "account-links"}
+              >
+                <OrganizationAccountLinksPanel
+                  organizationId={selected.id}
+                  organizationName={selected.name}
                 />
               </div>
             ) : null}

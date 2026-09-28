@@ -664,3 +664,78 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     console.error("Pre-application tour admin notifications failed:", error);
   }
 }
+
+export async function sendPublicTourBookingAdminNotifications(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    schoolName: string;
+    booking: {
+      visitId: string;
+      scheduledDate: string;
+      startTimeSlot: string;
+      durationMinutes: number;
+      registrant: {
+        contactEmail: string;
+        answers: Record<string, unknown>;
+      };
+    };
+  },
+): Promise<void> {
+  try {
+    const notifyEmails = await resolveVisitNotificationEmails(
+      admin,
+      input.organizationId,
+    );
+    if (notifyEmails.length === 0) {
+      return;
+    }
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("slug, timezone")
+      .eq("id", input.organizationId)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org?.slug) {
+      return;
+    }
+
+    const schoolSlug = String(org.slug);
+    const timezone =
+      typeof org.timezone === "string" ? org.timezone : "America/Chicago";
+    const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
+    const whenLabel = formatScheduledVisitWhenLabel({
+      schedulingMode: "time_slot",
+      scheduledDate: input.booking.scheduledDate,
+      startTimeSlot: input.booking.startTimeSlot,
+      durationMinutes: input.booking.durationMinutes,
+    });
+    const durationLabel = formatDurationLabel(input.booking.durationMinutes);
+    const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
+    const answers = input.booking.registrant.answers;
+    const contactName =
+      typeof answers.contact_name === "string"
+        ? answers.contact_name
+        : undefined;
+
+    await Promise.allSettled(
+      notifyEmails.map((email) =>
+        sendPostSubmitVisitOwnerNotification({
+          email,
+          schoolName: input.schoolName,
+          stepTitle: "Public campus tour",
+          whenLabel,
+          timezoneLabel,
+          durationLabel,
+          contactName,
+          contactEmail: input.booking.registrant.contactEmail,
+          submissionAdminUrl: scheduleAdminUrl,
+        }),
+      ),
+    );
+  } catch (error) {
+    console.error("Public tour admin notifications failed:", error);
+  }
+}

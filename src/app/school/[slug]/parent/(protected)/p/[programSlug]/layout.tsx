@@ -13,7 +13,9 @@ import { getParentPortalUserProfile } from "@/lib/parent-portal/parent-portal-se
 import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
 import { buildProgramParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -70,7 +72,8 @@ export default async function SchoolProgramParentLayout({
     notFound();
   }
 
-  const [userProfile, portalOptions, parentPortalContexts] = await Promise.all([
+  const [userProfile, portalOptions, parentPortalContexts, linkContext] =
+    await Promise.all([
     getParentPortalUserProfile(supabase, org.id),
     listSchoolPortalOptionsForUser(supabase, user.id, slug, {
       org,
@@ -85,7 +88,12 @@ export default async function SchoolProgramParentLayout({
       schoolName: org.name,
       orgFeatures: org.features,
     }),
+    getPortalAccountLinkContext(supabase, org.id, user.id),
   ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   const familyIds = await getFamilyIdsForUser(supabase, user.id, org.id);
   const familyId = familyIds[0];
@@ -115,6 +123,7 @@ export default async function SchoolProgramParentLayout({
       features={programContext.effectiveFeatures}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       parentPortalContexts={parentPortalContexts}
       parentNavBasePath={programContext.parentNavBasePath}
       coopModeEnabled={programContext.coopMode}

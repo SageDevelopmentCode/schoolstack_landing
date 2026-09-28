@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeftRight, Check } from "lucide-react";
 import { useNavigationLoading } from "@/components/school/shared/NavigationLoadingProvider";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import { getPortalSwitcherIcon } from "@/lib/auth/portal-switcher-icons";
 import {
+  ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE,
   shouldShowPortalSwitcher,
   type PortalId,
   type SchoolPortalOption,
@@ -15,6 +17,8 @@ type SchoolPortalSwitcherMenuItemsProps = {
   options: SchoolPortalOption[];
   currentPortal: PortalId;
   onNavigate?: () => void;
+  sectionTitle?: string;
+  openLinksInNewTab?: boolean;
 };
 
 export default function SchoolPortalSwitcherMenuItems({
@@ -22,6 +26,8 @@ export default function SchoolPortalSwitcherMenuItems({
   options,
   currentPortal,
   onNavigate,
+  sectionTitle = ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE,
+  openLinksInNewTab = false,
 }: SchoolPortalSwitcherMenuItemsProps) {
   const router = useRouter();
   const { startNavigation } = useNavigationLoading();
@@ -32,6 +38,10 @@ export default function SchoolPortalSwitcherMenuItems({
 
   const handleNavigate = (href: string) => {
     onNavigate?.();
+    if (openLinksInNewTab) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
     startNavigation("Switching portal");
     router.push(href);
   };
@@ -49,12 +59,13 @@ export default function SchoolPortalSwitcherMenuItems({
               style={{ color: C.textTertiary }}
             >
               <ArrowLeftRight className="h-3 w-3" />
-              Switch portal
+              {sectionTitle}
             </div>
           </div>
           <div className="pb-1">
             {options.map((option) => {
               const isCurrent = option.id === currentPortal;
+              const Icon = getPortalSwitcherIcon(option.id);
 
               if (isCurrent) {
                 return (
@@ -71,6 +82,11 @@ export default function SchoolPortalSwitcherMenuItems({
                       className="h-4 w-4 shrink-0"
                       style={{ color: C.accent }}
                     />
+                    <Icon
+                      className="h-4 w-4 shrink-0"
+                      style={{ color: C.textTertiary }}
+                      aria-hidden
+                    />
                     <span className="font-medium">{option.label}</span>
                   </div>
                 );
@@ -82,9 +98,14 @@ export default function SchoolPortalSwitcherMenuItems({
                   type="button"
                   role="menuitem"
                   onClick={() => handleNavigate(option.href)}
-                  className="mx-1.5 block w-[calc(100%-0.75rem)] rounded-sm py-2 pl-5 pr-2 text-left text-sm transition-colors hover:opacity-90"
+                  className="mx-1.5 flex w-[calc(100%-0.75rem)] items-center gap-2 rounded-sm py-2 pl-3 pr-2 text-left text-sm transition-colors hover:opacity-90"
                   style={{ color: C.textPrimary }}
                 >
+                  <Icon
+                    className="h-4 w-4 shrink-0"
+                    style={{ color: C.textTertiary }}
+                    aria-hidden
+                  />
                   {option.label}
                 </button>
               );

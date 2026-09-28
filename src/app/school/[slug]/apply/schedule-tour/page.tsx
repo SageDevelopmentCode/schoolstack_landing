@@ -14,7 +14,9 @@ import {
 } from "@/lib/admissions/parent-portal-access";
 import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -95,10 +97,17 @@ export default async function ScheduleTourPage({ params }: PageProps) {
     userHasEnrolledAccess(supabase, user.id, org.id),
   ]);
 
-  const portalOptions = await listSchoolPortalOptionsForUser(supabase, user.id, slug, {
-    org,
-    hasEnrolledAccess,
-  });
+  const [portalOptions, linkContext] = await Promise.all([
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+      org,
+      hasEnrolledAccess,
+    }),
+    getPortalAccountLinkContext(supabase, org.id, user.id),
+  ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   const timezone =
     typeof timezoneResult.data?.timezone === "string" &&
@@ -115,6 +124,7 @@ export default async function ScheduleTourPage({ params }: PageProps) {
       timezone={timezone}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       tourLabel={tourEntryOption.label}
       tourDescription={tourEntryOption.description}
     />

@@ -1,3 +1,4 @@
+import { PORTAL_MESSAGE_DELETED_PREVIEW } from "./constants";
 import { colorForKey, formatMessageTime } from "./format";
 import {
   formatEnrolledStudentName,
@@ -47,6 +48,7 @@ export type PortalMessageRow = {
   sender_staff_member_id: string | null;
   created_at: string;
   edited_at?: string | null;
+  deleted_at?: string | null;
 };
 
 export type ParticipantDisplayContext = {
@@ -573,10 +575,12 @@ export function mapMessageRow(
     profilePhotoUrl = staff?.profilePhotoUrl ?? null;
   }
 
+  const isDeleted = Boolean(row.deleted_at);
+
   return {
     id: String(row.id),
     threadId: String(row.thread_id),
-    body: row.body,
+    body: isDeleted ? "" : row.body,
     senderUserId: String(row.sender_user_id),
     senderKind: row.sender_kind,
     senderName,
@@ -584,7 +588,8 @@ export function mapMessageRow(
     isOwn: row.sender_user_id === context.currentUserId,
     createdAt: row.created_at,
     timeLabel: formatMessageTime(row.created_at),
-    editedAt: row.edited_at ? String(row.edited_at) : null,
+    editedAt: isDeleted ? null : row.edited_at ? String(row.edited_at) : null,
+    deletedAt: row.deleted_at ? String(row.deleted_at) : null,
     attachments: [],
   };
 }
@@ -617,7 +622,9 @@ export function mapThreadSummary(
     listAvatars: display.listAvatars,
     photoUrl: display.photoUrl,
     color: display.color,
-    lastMessagePreview: lastMessage?.body ?? null,
+    lastMessagePreview: lastMessage?.deleted_at
+      ? PORTAL_MESSAGE_DELETED_PREVIEW
+      : lastMessage?.body ?? null,
     lastMessageAt: thread.last_message_at,
     lastMessageTimeLabel: thread.last_message_at
       ? formatMessageTime(thread.last_message_at)

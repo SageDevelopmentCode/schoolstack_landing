@@ -20,6 +20,7 @@ type ScheduleTourExperienceProps = {
   timezone: string;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
   previewBasePath?: string;
   tourLabel?: string;
@@ -34,6 +35,7 @@ export default function ScheduleTourExperience({
   timezone,
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   previewMode = false,
   previewBasePath,
   tourLabel,
@@ -105,6 +107,7 @@ export default function ScheduleTourExperience({
       userDisplayName={userProfile.displayName}
       profilePhotoUrl={userProfile.profilePhotoUrl}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       previewMode={previewMode}
       previewHomeHref={previewBasePath}
     >

@@ -15,7 +15,9 @@ import {
 } from "@/lib/messages/thread-placeholders";
 import { useMessagesRefresh } from "@/lib/messages/messages-refresh-context";
 import { useVisibilityPolling } from "@/lib/hooks/use-visibility-polling";
+import { PORTAL_MESSAGE_DELETED_PREVIEW } from "@/lib/messages/constants";
 import { registerWebPushSubscription } from "@/lib/messages/web-push-client";
+import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import type {
   MessageContact,
   MessageThreadDetail,
@@ -240,6 +242,8 @@ export default function MessagesInboxLayout({
     null,
   );
   const [inboxSearch, setInboxSearch] = useState("");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deletingMessage, setDeletingMessage] = useState(false);
   const handledThreadParam = useRef<string | null>(null);
   const optimisticSendRef = useRef(createOptimisticSendTracker());
   const loadGenerationRef = useRef(createLoadGenerationGuard());
@@ -515,6 +519,7 @@ export default function MessagesInboxLayout({
       createdAt: new Date().toISOString(),
       timeLabel: "Now",
       editedAt: null,
+      deletedAt: null,
       attachments: stagedFiles.map((file, index) => ({
         id: `pending-file-${index}`,
         fileName: file.name,
@@ -652,6 +657,64 @@ export default function MessagesInboxLayout({
     },
     [activeThreadId, api.basePath, api.organizationId, api.schoolName, readOnly],
   );
+
+  const handleRequestDelete = useCallback((messageId: string) => {
+    setDeleteTargetId(messageId);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!activeThreadId || !deleteTargetId || readOnly) return;
+
+    setDeletingMessage(true);
+    try {
+      const params = new URLSearchParams({
+        organizationId: api.organizationId,
+        schoolName: api.schoolName,
+      });
+      const response = await fetch(
+        `${api.basePath}/threads/${activeThreadId}/messages/${deleteTargetId}?${params.toString()}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to delete message.");
+      }
+
+      const serverMessage = data.message as PortalMessage;
+      setActiveThread((prev) => {
+        if (!prev) return prev;
+        const messages = mergeMessages(
+          prev.messages.filter((message) => message.id !== deleteTargetId),
+          [serverMessage],
+        );
+        if (messages.at(-1)?.id === deleteTargetId) {
+          setThreads((threadList) =>
+            upsertThreadSummary(threadList, {
+              ...threadSummaryFromDetail({ ...prev, messages }),
+              lastMessagePreview: serverMessage.deletedAt
+                ? PORTAL_MESSAGE_DELETED_PREVIEW
+                : serverMessage.body,
+            }),
+          );
+        }
+        return { ...prev, messages };
+      });
+      setDeleteTargetId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete message.");
+      reportMessagesError("messages.delete", err);
+    } finally {
+      setDeletingMessage(false);
+    }
+  }, [
+    activeThreadId,
+    api.basePath,
+    api.organizationId,
+    api.schoolName,
+    deleteTargetId,
+    readOnly,
+    reportMessagesError,
+  ]);
 
   const onThreadMessage = useCallback(
     (threadId: string) => {
@@ -1127,9 +1190,25 @@ export default function MessagesInboxLayout({
                 : undefined
             }
             onEditMessage={readOnly ? undefined : handleEditMessage}
+            onRequestDelete={readOnly ? undefined : handleRequestDelete}
           />
         </motion.div>
       </div>
+
+      <ConfirmDialog
+        C={C}
+        open={deleteTargetId !== null}
+        title="Delete message?"
+        description="This message will be removed for everyone in the conversation. This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        loading={deletingMessage}
+        onConfirm={() => void handleConfirmDelete()}
+        onClose={() => {
+          if (!deletingMessage) setDeleteTargetId(null);
+        }}
+      />
 
       {splitPane ? (
         <MessagesNewConversationModal

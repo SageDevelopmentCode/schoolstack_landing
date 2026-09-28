@@ -11,6 +11,12 @@ export const CANONICAL_SCHOOL_SLUG = "rooted-meadows-school";
 const MARKETING_PAGES: Omit<PageTarget, "id">[] = [
   { category: "marketing", label: "Homepage", path: "/", requiresAuth: "none" },
   { category: "marketing", label: "Get started", path: "/get-started", requiresAuth: "none" },
+  {
+    category: "marketing",
+    label: "Microschool Monday Check",
+    path: "/microschool-monday-check",
+    requiresAuth: "none",
+  },
   { category: "marketing", label: "Customers", path: "/customers", requiresAuth: "none" },
   {
     category: "marketing",

@@ -13,7 +13,9 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { getFamilyUserProfile } from "@/lib/admissions/parent-portal-access";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { createClient } from "@/utils/supabase/server";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 
 export const dynamic = "force-dynamic";
 
@@ -82,16 +84,21 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
     redirect(`/school/${slug}/apply/${applicationId}`);
   }
 
-  const [checklist, userProfile, combinedPaymentCandidates, portalOptions] =
+  const [checklist, userProfile, combinedPaymentCandidates, portalOptions, linkContext] =
     await Promise.all([
-    loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
-    getFamilyUserProfile(supabase, user.id, org.id, user),
-    listCombinedEnrollmentPaymentCandidates(supabase, {
-      organizationId: org.id,
-      userId: user.id,
-    }),
-    listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
-  ]);
+      loadEnrollmentChecklistForApplication(supabase, applicationId, org.id),
+      getFamilyUserProfile(supabase, user.id, org.id, user),
+      listCombinedEnrollmentPaymentCandidates(supabase, {
+        organizationId: org.id,
+        userId: user.id,
+      }),
+      listSchoolPortalOptionsForUser(supabase, user.id, slug, { org }),
+      getPortalAccountLinkContext(supabase, org.id, user.id),
+    ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   if (!checklist) {
     notFound();
@@ -114,6 +121,7 @@ export default async function ApplicationEnrollmentPage({ params }: PageProps) {
       parentPortalHref={parentPortalHref ?? undefined}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
     />
   );
 }

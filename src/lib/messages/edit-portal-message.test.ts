@@ -15,6 +15,7 @@ const baseRow: PortalMessageRow = {
   sender_staff_member_id: null,
   created_at: "2026-01-01T12:00:00.000Z",
   edited_at: null,
+  deleted_at: null,
 };
 
 const displayContext: ParticipantDisplayContext = {

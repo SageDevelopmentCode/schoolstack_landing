@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
 
-const LAST_MODIFIED = new Date("2026-06-13");
+const LAST_MODIFIED = new Date("2026-09-26");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -18,6 +18,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${SITE_URL}/microschool-monday-check`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/website-demo`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
       url: `${SITE_URL}/customers`,
       lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
@@ -31,6 +43,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${SITE_URL}/demo-school`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/support`,
       lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.5,

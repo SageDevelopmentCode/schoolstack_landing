@@ -1,4 +1,8 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import {
+  getPortalAccountLinkContext,
+  resolvePortalAccountMemberUserIds,
+} from "@/lib/auth/portal-account-link-context";
 
 export type StaffUserProfile = {
   email: string;
@@ -24,7 +28,7 @@ export class TeacherPortalAuthError extends Error {
 
 const TEACHER_PORTAL_ROLES = new Set(["teacher", "staff"]);
 
-export async function userHasTeacherPortalAccess(
+async function userHasTeacherPortalAccessForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -42,20 +46,78 @@ export async function userHasTeacherPortalAccess(
   return Boolean(data);
 }
 
-export async function getStaffMemberIdForUser(
+export async function userHasTeacherPortalAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (
+      await userHasTeacherPortalAccessForAuthUser(
+        supabase,
+        memberUserId,
+        organizationId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function getStaffMemberIdForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
 ): Promise<string | null> {
   const { data, error } = await supabase
     .from("staff_members")
-    .select("id")
+    .select("id, status")
     .eq("user_id", userId)
     .eq("organization_id", organizationId)
     .maybeSingle();
 
   if (error) throw error;
   return data?.id ? String(data.id) : null;
+}
+
+export async function getStaffMemberIdForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string | null> {
+  const linkContext = await getPortalAccountLinkContext(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  const orderedUserIds = [
+    linkContext.primaryUserId,
+    ...linkContext.memberUserIds.filter(
+      (memberUserId) => memberUserId !== linkContext.primaryUserId,
+    ),
+  ];
+
+  for (const memberUserId of orderedUserIds) {
+    const staffMemberId = await getStaffMemberIdForAuthUser(
+      supabase,
+      memberUserId,
+      organizationId,
+    );
+    if (staffMemberId) {
+      return staffMemberId;
+    }
+  }
+
+  return null;
 }
 
 export async function getStaffUserProfile(

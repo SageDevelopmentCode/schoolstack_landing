@@ -30,6 +30,7 @@ const sampleDetail: MessageThreadDetail = {
       createdAt: "2026-09-05T05:17:17.727Z",
       timeLabel: "10:17 PM",
       editedAt: null,
+      deletedAt: null,
       attachments: [],
     },
   ],

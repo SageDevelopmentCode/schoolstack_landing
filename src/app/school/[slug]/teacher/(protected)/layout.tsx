@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import SchoolTeacherBaseline from "@/components/school-teacher/SchoolTeacherBaseline";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
+import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { getRequestUser } from "@/lib/auth/session";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { schoolTeacherLoginPath, isTeacherPortalEnabled } from "@/lib/organization-settings/teacher-routes";
@@ -81,6 +84,18 @@ export default async function SchoolTeacherProtectedLayout({
       })
     : 0;
 
+  const [portalOptions, linkContext] = await Promise.all([
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+      org,
+      hasTeacherAccess: true,
+    }),
+    getPortalAccountLinkContext(supabase, org.id, user.id),
+  ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
+
   return (
     <SchoolTeacherBaseline
       slug={slug}
@@ -91,6 +106,8 @@ export default async function SchoolTeacherProtectedLayout({
       userProfile={userProfile}
       staffMemberId={staffMemberId ?? undefined}
       initialActivityUnreadCount={initialActivityUnreadCount}
+      portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
     >
       {children}
     </SchoolTeacherBaseline>

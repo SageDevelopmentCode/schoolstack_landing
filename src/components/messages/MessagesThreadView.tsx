@@ -10,7 +10,7 @@ import MessagesAvatar, { type MessagesLayoutVariant } from "./MessagesAvatar";
 import MessagesDualAvatar from "./MessagesDualAvatar";
 import MessageStudentSubtitle from "./MessageStudentSubtitle";
 import MessagesComposeBar from "./MessagesComposeBar";
-import MessageBubbleBody from "./MessageBubbleBody";
+import MessageBubbleRow from "./MessageBubbleRow";
 import MessagesThreadSkeleton from "./MessagesThreadSkeleton";
 import {
   isSplitPaneMessagesVariant,
@@ -40,6 +40,7 @@ export default function MessagesThreadView({
   onStudentClick,
   schoolName,
   onEditMessage,
+  onRequestDelete,
 }: {
   thread: MessageThreadDetail | null;
   input: string;
@@ -58,6 +59,7 @@ export default function MessagesThreadView({
   onStudentClick?: (studentId: string) => void;
   schoolName?: string;
   onEditMessage?: (messageId: string, body: string) => Promise<void>;
+  onRequestDelete?: (messageId: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -234,55 +236,6 @@ export default function MessagesThreadView({
               const senderLabel = message.senderName;
               const displaySenderName = parentStory ? true : showSenderName;
 
-              if (parentStory && theme) {
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex items-start gap-2.5 ${
-                      message.isOwn ? "flex-row-reverse" : ""
-                    }`}
-                  >
-                    <MessagesAvatar
-                      name={message.senderName}
-                      color={colorForKey(message.senderUserId)}
-                      photoUrl={message.profilePhotoUrl}
-                      size="sm"
-                    />
-                    <div
-                      className="max-w-[min(75%,28rem)] rounded-2xl px-3.5 py-2.5"
-                      style={{
-                        backgroundColor: message.isOwn ? theme.primary : theme.white,
-                        border: message.isOwn ? undefined : `1px solid ${theme.line}`,
-                        opacity: message.pending ? 0.75 : 1,
-                      }}
-                    >
-                      {displaySenderName ? (
-                        <p
-                          className="mb-1 text-xs font-semibold"
-                          style={{
-                            color: message.isOwn
-                              ? "rgba(255,255,255,0.75)"
-                              : theme.primary,
-                          }}
-                        >
-                          {senderLabel}
-                        </p>
-                      ) : null}
-                      <MessageBubbleBody
-                        message={message}
-                        C={C}
-                        theme={theme}
-                        splitPane={splitPane}
-                        ownBubble={Boolean(message.isOwn)}
-                        bodyColor={message.isOwn ? "#ffffff" : theme.ink}
-                        readOnly={readOnly}
-                        onEditMessage={onEditMessage}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-
               return (
                 <div
                   key={message.id}
@@ -290,54 +243,31 @@ export default function MessagesThreadView({
                     grouped ? "-mt-2" : ""
                   }`}
                 >
-                  <div
-                    className={`max-w-[min(75%,28rem)] ${
-                      splitPane
-                        ? message.isOwn
-                          ? "rounded-2xl rounded-br-md px-3 py-2 shadow-sm"
-                          : "rounded-2xl rounded-bl-md px-3 py-2 shadow-sm"
-                        : "rounded-xl border p-3"
-                    }`}
-                    style={
-                      splitPane
-                        ? {
-                            backgroundColor: message.isOwn
-                              ? theme?.primary ?? C.accent
-                              : theme?.white ?? C.surface,
-                            opacity: message.pending ? 0.75 : 1,
-                          }
-                        : {
-                            backgroundColor: message.isOwn ? `${C.accent}12` : C.surface,
-                            borderColor: C.border,
-                            opacity: message.pending ? 0.7 : 1,
-                          }
+                  <MessageBubbleRow
+                    message={message}
+                    C={C}
+                    theme={theme}
+                    splitPane={splitPane}
+                    parentStory={Boolean(parentStory && theme)}
+                    ownBubble={parentStory ? Boolean(message.isOwn) : ownBubble}
+                    readOnly={readOnly}
+                    showSenderName={displaySenderName}
+                    senderLabel={senderLabel}
+                    onEditMessage={onEditMessage}
+                    onRequestDelete={onRequestDelete}
+                    avatar={
+                      parentStory && theme
+                        ? (
+                            <MessagesAvatar
+                              name={message.senderName}
+                              color={colorForKey(message.senderUserId)}
+                              photoUrl={message.profilePhotoUrl}
+                              size="sm"
+                            />
+                          )
+                        : undefined
                     }
-                  >
-                    {showSenderName && (
-                      <p
-                        className="mb-1 text-xs font-semibold"
-                        style={{
-                          color: parentStory
-                            ? theme?.ink ?? C.textPrimary
-                            : splitPane
-                              ? C.accent
-                              : C.textPrimary,
-                        }}
-                      >
-                        {message.senderName}
-                      </p>
-                    )}
-                    <MessageBubbleBody
-                      message={message}
-                      C={C}
-                      theme={theme}
-                      splitPane={splitPane}
-                      ownBubble={ownBubble}
-                      bodyColor={ownBubble ? "#ffffff" : C.textSecondary}
-                      readOnly={readOnly}
-                      onEditMessage={onEditMessage}
-                    />
-                  </div>
+                  />
                 </div>
               );
             })}
