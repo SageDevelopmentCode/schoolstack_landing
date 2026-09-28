@@ -48,6 +48,7 @@ type ApplicationReadOnlyViewProps = {
   previewMode?: boolean;
   previewHomeHref?: string;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
 };
 
 function ReadOnlyField({
@@ -340,6 +341,7 @@ function ApplicationReadOnlyBody({
   previewMode = false,
   previewHomeHref,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
 }: ApplicationReadOnlyViewProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const pageBg = branding.colors.bg;
@@ -450,6 +452,7 @@ function ApplicationReadOnlyBody({
         userDisplayName={userProfile.displayName}
         profilePhotoUrl={userProfile.profilePhotoUrl}
         portalOptions={portalOptions}
+        openPortalLinksInNewTab={openPortalLinksInNewTab}
         previewMode={previewMode}
         previewHomeHref={previewHomeHref}
       >

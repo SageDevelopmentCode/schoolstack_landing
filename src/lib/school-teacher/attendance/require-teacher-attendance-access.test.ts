@@ -38,6 +38,10 @@ function createMockSupabase(options: {
           return this;
         },
         maybeSingle: async () => {
+          if (table === "organization_portal_account_link_members") {
+            return { data: null, error: null };
+          }
+
           if (table === "organization_memberships") {
             return {
               data: hasMembership ? { id: "membership-1" } : null,

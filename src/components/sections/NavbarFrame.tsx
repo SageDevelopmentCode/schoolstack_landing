@@ -40,13 +40,13 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
       {menuOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-[190] bg-text/20 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-0 bg-text/20 backdrop-blur-sm md:hidden"
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         />
       ) : null}
 
-      <div className="navbar-enter w-full max-w-[860px] overflow-hidden rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]">
+      <div className="navbar-enter relative z-10 w-full max-w-[860px] overflow-hidden rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]">
         <div className="flex h-12 md:h-14 items-center justify-between gap-4 md:gap-8 px-4 md:px-7">
           {children}
 

@@ -38,6 +38,7 @@ import {
   type PostSubmitAction,
   type PostSubmitActionType,
 } from "./application-form-schema";
+import { loadCampusTourBookableAvailability } from "./campus-tour-availability-loader";
 import {
   resolvedPostSubmitDurationMinutes,
   resolvedPostSubmitMaxVisitDays,
@@ -133,6 +134,19 @@ export class AdmissionsBookingError extends Error {
     super(message);
     this.name = "AdmissionsBookingError";
     this.code = code;
+  }
+}
+
+export function throwIfAdmissionsVisitSlotUnavailable(error: {
+  code?: string;
+  message?: string;
+}): void {
+  const message = typeof error.message === "string" ? error.message : "";
+  if (error.code === "P0001" && message.includes("slot_unavailable")) {
+    throw new AdmissionsBookingError(
+      "That time is no longer available. Please choose another slot.",
+      "slot_unavailable",
+    );
   }
 }
 
@@ -639,6 +653,20 @@ export async function getBookableAvailabilityForAction(
 
   const durationMinutes = resolvedPostSubmitDurationMinutes(action);
 
+  if (action.type === "schedule_campus_tour") {
+    const campusTourAvailability = await loadCampusTourBookableAvailability(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+      durationMinutes,
+    );
+    return {
+      mode: "time_slot",
+      availability: campusTourAvailability.availability,
+    };
+  }
+
   const [openSlots, visits] = await Promise.all([
     listAdmissionsAvailabilitySlots(supabase, organizationId, startDate, endDate),
     listActiveScheduledVisitsForOrganization(
@@ -957,6 +985,7 @@ async function bookTimeSlotVisit(
         "already_scheduled",
       );
     }
+    throwIfAdmissionsVisitSlotUnavailable(error);
     throw error;
   }
 

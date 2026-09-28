@@ -5,7 +5,11 @@ import {
   type PostSubmitAction,
   type PostSubmitActionType,
 } from "./application-form-schema";
-import { formatDurationLabel } from "./admissions-availability";
+function formatDurationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours} hr` : `${hours.toFixed(1)} hr`;
+}
 
 export const POST_SUBMIT_ACTION_TYPES: PostSubmitActionType[] = [
   "schedule_campus_tour",

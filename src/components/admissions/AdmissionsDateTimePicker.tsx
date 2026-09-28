@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import AdmissionsDateTimePickerSkeleton from "@/components/admissions/AdmissionsDateTimePickerSkeleton";
+import AdmissionsTimePeriodTabBar from "@/components/admissions/AdmissionsTimePeriodTabBar";
 import { CalendarGrid } from "@/components/scheduler/CalendarGrid";
 import {
   ADMISSIONS_TIME_SLOT_GROUPS,
+  pickFirstBookableSlotForDay,
   type AdmissionsTimeSlotPeriod,
   todayKeyInTimezone,
   todayMonthYearInTimezone,
@@ -26,6 +28,8 @@ type AdmissionsDateTimePickerProps = {
   selectedTime: string | null;
   onDateChange: (date: string | null) => void;
   onTimeChange: (time: string | null) => void;
+  onTimezoneLoaded?: (timezone: string) => void;
+  showGroupTourBadges?: boolean;
 };
 
 function monthDateRange(year: number, month: number): { start: string; end: string } {
@@ -49,6 +53,8 @@ export default function AdmissionsDateTimePicker({
   selectedTime,
   onDateChange,
   onTimeChange,
+  onTimezoneLoaded,
+  showGroupTourBadges = false,
 }: AdmissionsDateTimePickerProps) {
   const initial = todayMonthYearInTimezone(timezone);
   const [viewYear, setViewYear] = useState(initial.year);
@@ -56,9 +62,20 @@ export default function AdmissionsDateTimePicker({
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>(
     {},
   );
+  const [slotMeta, setSlotMeta] = useState<
+    Record<string, { isGroupTour?: boolean; remaining?: number | null }>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>("morning");
+
+  const availabilityEndpointBuilderRef = useRef(availabilityEndpointBuilder);
+  const onTimezoneLoadedRef = useRef(onTimezoneLoaded);
+
+  useEffect(() => {
+    availabilityEndpointBuilderRef.current = availabilityEndpointBuilder;
+    onTimezoneLoadedRef.current = onTimezoneLoaded;
+  }, [availabilityEndpointBuilder, onTimezoneLoaded]);
 
   const today = todayKeyInTimezone(timezone);
   const availableDates = useMemo(
@@ -89,8 +106,9 @@ export default function AdmissionsDateTimePicker({
       params.set("actionId", actionId);
     }
 
-    const endpoint = availabilityEndpointBuilder
-      ? availabilityEndpointBuilder(start, end)
+    const buildEndpoint = availabilityEndpointBuilderRef.current;
+    const endpoint = buildEndpoint
+      ? buildEndpoint(start, end)
       : `/api/admissions/applications/${applicationId}/post-submit/availability?${params.toString()}`;
 
     let responseStatus: number | undefined;
@@ -100,6 +118,11 @@ export default function AdmissionsDateTimePicker({
       const payload = (await response.json()) as {
         mode?: string;
         availability?: Record<string, string[]>;
+        slotMeta?: Record<
+          string,
+          { isGroupTour?: boolean; remaining?: number | null }
+        >;
+        timezone?: string;
         error?: string;
       };
 
@@ -107,10 +130,16 @@ export default function AdmissionsDateTimePicker({
         throw new Error(payload.error ?? "Failed to load availability.");
       }
 
+      if (typeof payload.timezone === "string" && payload.timezone.trim()) {
+        onTimezoneLoadedRef.current?.(payload.timezone.trim());
+      }
+
       if (payload.mode === "whole_day") {
         setAvailabilitySlots({});
+        setSlotMeta({});
       } else {
         setAvailabilitySlots(payload.availability ?? {});
+        setSlotMeta(payload.slotMeta ?? {});
       }
     } catch (err) {
       reportApplyOperationalError(organizationId, "admissions.availability.load", err, {
@@ -119,11 +148,12 @@ export default function AdmissionsDateTimePicker({
         entityId: applicationId,
       });
       setAvailabilitySlots({});
+      setSlotMeta({});
       setError(err instanceof Error ? err.message : "Failed to load availability.");
     } finally {
       setLoading(false);
     }
-  }, [actionId, applicationId, availabilityEndpointBuilder, organizationId, viewMonth, viewYear]);
+  }, [actionId, applicationId, organizationId, viewMonth, viewYear]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -141,8 +171,15 @@ export default function AdmissionsDateTimePicker({
 
   function handleDateSelect(date: string) {
     onDateChange(date);
-    onTimeChange(null);
-    setActivePeriod("morning");
+    const daySlots = availabilitySlots[date] ?? [];
+    const first = pickFirstBookableSlotForDay(daySlots);
+    if (first) {
+      setActivePeriod(first.period);
+      onTimeChange(first.slot);
+    } else {
+      onTimeChange(null);
+      setActivePeriod("morning");
+    }
   }
 
   function prevMonth() {
@@ -169,7 +206,7 @@ export default function AdmissionsDateTimePicker({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs" style={{ color: C.textTertiary }}>
+      <p className="break-words text-xs" style={{ color: C.textTertiary }}>
         Times are in {timezoneLabel}.
       </p>
 
@@ -183,11 +220,11 @@ export default function AdmissionsDateTimePicker({
       ) : null}
 
       <div
-        className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]"
+        className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,240px)]"
         style={{ borderColor: C.border }}
       >
         <div
-          className="rounded-sm border p-4"
+          className="min-w-0 rounded-sm border p-3 sm:p-4"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
           <div className="mb-4 flex items-center justify-between">
@@ -230,7 +267,7 @@ export default function AdmissionsDateTimePicker({
         </div>
 
         <div
-          className="flex min-h-[280px] flex-col rounded-sm border"
+          className="flex min-h-[280px] w-full min-w-0 flex-col rounded-sm border"
           style={{ borderColor: C.border, backgroundColor: C.surface }}
         >
           {loading ? (
@@ -271,45 +308,21 @@ export default function AdmissionsDateTimePicker({
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    <div
-                      className="flex rounded-sm border p-0.5"
-                      style={{ borderColor: C.border, backgroundColor: C.bg }}
-                      role="tablist"
-                      aria-label="Time of day"
-                    >
-                      {ADMISSIONS_TIME_SLOT_GROUPS.map((group) => {
-                        const isActive = activePeriod === group.id;
-                        const openCount = group.slots.filter((slot) =>
+                    <AdmissionsTimePeriodTabBar
+                      C={C}
+                      activePeriod={activePeriod}
+                      onPeriodChange={setActivePeriod}
+                      openCountForPeriod={(period) => {
+                        const group = ADMISSIONS_TIME_SLOT_GROUPS.find(
+                          (entry) => entry.id === period,
+                        );
+                        if (!group) return 0;
+                        return group.slots.filter((slot) =>
                           selectedTimeSlots.includes(slot),
                         ).length;
-
-                        return (
-                          <button
-                            key={group.id}
-                            type="button"
-                            role="tab"
-                            aria-selected={isActive}
-                            onClick={() => setActivePeriod(group.id)}
-                            className="flex flex-1 flex-col items-center rounded-sm px-1 py-1.5 text-[10px] font-medium transition-colors"
-                            style={{
-                              backgroundColor: isActive ? C.surface : "transparent",
-                              color: isActive ? C.accent : C.textTertiary,
-                              boxShadow: isActive ? `0 0 0 1px ${C.border}` : "none",
-                            }}
-                          >
-                            <span>{group.label}</span>
-                            {openCount > 0 ? (
-                              <span
-                                className="text-[9px] font-normal"
-                                style={{ color: C.textQuaternary }}
-                              >
-                                {openCount}
-                              </span>
-                            ) : null}
-                          </button>
-                        );
-                      })}
-                    </div>
+                      }}
+                      openCountLabel={(count) => String(count)}
+                    />
 
                     <div className="flex flex-col gap-2">
                       {visibleTimeSlots.length === 0 ? (
@@ -322,12 +335,21 @@ export default function AdmissionsDateTimePicker({
                       ) : (
                         visibleTimeSlots.map((slot) => {
                           const isSelected = selectedTime === slot;
+                          const metaKey =
+                            selectedDate != null ? `${selectedDate}|${slot}` : "";
+                          const meta = metaKey ? slotMeta[metaKey] : undefined;
+                          const groupLabel =
+                            showGroupTourBadges && meta?.isGroupTour
+                              ? meta.remaining != null
+                                ? ` · Group · ${meta.remaining} left`
+                                : " · Group tour"
+                              : "";
                           return (
                             <button
                               key={slot}
                               type="button"
                               onClick={() => onTimeChange(isSelected ? null : slot)}
-                              className="h-9 rounded-sm border text-xs font-medium transition-colors"
+                              className="min-h-9 rounded-sm border px-2 py-1.5 text-xs font-medium transition-colors"
                               style={{
                                 borderColor: isSelected ? C.accent : C.border,
                                 backgroundColor: isSelected ? C.accentLight : C.bg,
@@ -335,6 +357,7 @@ export default function AdmissionsDateTimePicker({
                               }}
                             >
                               {slot}
+                              {groupLabel}
                             </button>
                           );
                         })

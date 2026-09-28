@@ -1,6 +1,16 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://trymudkitchen.com";
 
+/** Absolute public URL for a path (path must start with `/`). */
+export function publicSiteAbsoluteUrl(path: string): string {
+  return `${SITE_URL}${path}`;
+}
+
+/** Host + path without protocol, e.g. trymudkitchen.com/school/foo/tour */
+export function publicSiteDisplayUrl(path: string): string {
+  return `${SITE_URL.replace(/^https?:\/\//, "")}${path}`;
+}
+
 export const SITE_NAME = "MudKitchen";
 
 export const DEFAULT_DESCRIPTION =

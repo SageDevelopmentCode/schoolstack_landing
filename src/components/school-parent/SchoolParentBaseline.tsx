@@ -47,6 +47,7 @@ type SchoolParentBaselineProps = {
   features: OrganizationFeatures;
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   parentPortalContexts?: ParentPortalContextOption[];
   parentNavBasePath?: string;
   coopModeEnabled?: boolean;
@@ -77,6 +78,7 @@ function SchoolParentBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   parentPortalContexts = [],
   parentNavBasePath,
   coopModeEnabled = false,
@@ -221,6 +223,7 @@ function SchoolParentBaselineInner({
           features={features}
           userProfile={userProfile}
           portalOptions={portalOptions}
+          openPortalLinksInNewTab={openPortalLinksInNewTab}
           parentNavBasePath={parentNavBasePath ?? previewParentBasePath}
           mainParentBasePath={
             previewParentBasePath ?? `/school/${slug}/parent`

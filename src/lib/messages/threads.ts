@@ -873,6 +873,10 @@ export async function getThreadDetail(
   const messages: PortalMessage[] = [];
   for (const row of (messageRows ?? []) as PortalMessageRow[]) {
     const message = mapMessageRow(row, context);
+    if (row.deleted_at) {
+      messages.push(message);
+      continue;
+    }
     const rawAttachments = attachmentsByMessage.get(String(row.id)) ?? [];
     message.attachments = rawAttachments.map((attachment) => ({
       id: attachment.id,

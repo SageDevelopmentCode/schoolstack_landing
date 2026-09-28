@@ -5,10 +5,12 @@ import {
   buildPostSubmitVisitNotificationTasks,
   type ApplicantContact,
 } from "@/lib/admissions/application-notifications";
+import { FAMILY_TOUR_ACTION_TYPE } from "@/lib/admissions/family-tour-booking";
 import {
   buildApplicationAcceptedEnrollmentHtml,
   buildPostSubmitVisitConfirmationHtml,
   buildPostSubmitVisitOwnerNotificationHtml,
+  buildPublicCampusTourConfirmationHtml,
 } from "@/lib/emails";
 
 const booking: ScheduledVisitRecord = {
@@ -66,6 +68,37 @@ describe("buildPostSubmitVisitNotificationTasks", () => {
 
     assert.equal(tasks.length, 2);
   });
+
+  it("still builds discord, owner, and parent tasks for campus tour time slots", () => {
+    const campusTourBooking: ScheduledVisitRecord = {
+      id: "visit-campus-1",
+      organizationId: "org-1",
+      applicationId: "app-1",
+      postSubmitActionId: "action-tour",
+      actionType: FAMILY_TOUR_ACTION_TYPE,
+      schedulingMode: "time_slot",
+      scheduledDate: "2026-10-01",
+      startTimeSlot: "10:00 AM",
+      durationMinutes: 60,
+      status: "scheduled",
+    };
+
+    const tasks = buildPostSubmitVisitNotificationTasks({
+      booking: campusTourBooking,
+      contact,
+      notifyEmails: ["admin@school.org"],
+      schoolName: "Rooted Meadows Waldorf School",
+      schoolSlug: "rooted-meadows",
+      stepTitle: "Schedule a campus tour",
+      timezoneLabel: "Central Time",
+      applicationId: "app-1",
+      studentName: "Student Evensen",
+      familyName: "Evensen Family",
+      tourFormatLabel: "Group tour (2/4)",
+    });
+
+    assert.equal(tasks.length, 3);
+  });
 });
 
 describe("visit notification email templates", () => {
@@ -110,6 +143,24 @@ describe("visit notification email templates", () => {
     assert.match(html, /parent@example.com/);
     assert.match(html, /Student Evensen/);
     assert.match(html, /View submission/);
+  });
+
+  it("renders public campus tour confirmation without apply dashboard", () => {
+    const html = buildPublicCampusTourConfirmationHtml({
+      name: "Jordan Lee",
+      schoolName: "Rooted Meadows Waldorf School",
+      whenLabel: "Wed, August 26 at 10:00 AM",
+      timezoneLabel: "Central Time",
+      durationLabel: "45 minutes",
+    });
+
+    assert.match(html, /Visit Confirmed/);
+    assert.match(html, /campus tour is confirmed, Jordan/);
+    assert.match(html, /Wed, August 26 at 10:00 AM/);
+    assert.match(html, /45 minutes/);
+    assert.match(html, /contact Rooted Meadows Waldorf School directly/);
+    assert.doesNotMatch(html, /apply dashboard/i);
+    assert.doesNotMatch(html, /View apply dashboard/);
   });
 });
 

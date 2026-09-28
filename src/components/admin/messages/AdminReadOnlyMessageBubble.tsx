@@ -5,6 +5,7 @@ type AdminReadOnlyMessageBubbleProps = {
   senderName: string;
   roleLabel?: string;
   timestamp: string;
+  edited?: boolean;
   body: string;
   metadata?: ReactNode;
 };
@@ -13,6 +14,7 @@ export default function AdminReadOnlyMessageBubble({
   senderName,
   roleLabel,
   timestamp,
+  edited = false,
   body,
   metadata,
 }: AdminReadOnlyMessageBubbleProps) {
@@ -23,7 +25,10 @@ export default function AdminReadOnlyMessageBubble({
         {roleLabel ? (
           <AdminStatusBadge label={roleLabel} variant="neutral" />
         ) : null}
-        <p className="text-xs text-admin-faint">{timestamp}</p>
+        <p className="text-xs text-admin-faint">
+          {timestamp}
+          {edited ? " (Edited)" : ""}
+        </p>
       </div>
       {body.trim() ? (
         <p className="mt-2 whitespace-pre-wrap text-sm text-admin-text">{body}</p>

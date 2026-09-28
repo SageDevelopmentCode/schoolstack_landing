@@ -36,7 +36,7 @@ export default function ParentPortalContextSwitcherMenuItems({
             style={{ color: C.textTertiary }}
           >
             <ArrowLeftRight className="h-3 w-3" />
-            Portal
+            Program
           </div>
         </div>
         <div className="pb-1">

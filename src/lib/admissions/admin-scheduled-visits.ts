@@ -3,12 +3,16 @@ import {
   classifyScheduledVisitTiming,
   formatScheduledVisitWhenLabel,
   getOrganizationTimezone,
+  listAdmissionsAvailabilitySlotRecords,
   parseAdmissionsTimeSlot,
   type AdmissionsAvailabilitySlotKey,
   type ScheduledVisitTiming,
 } from "./admissions-availability";
 import type { AdmissionsSchedulingMode, ScheduledVisitSlotDetail } from "./admissions-booking";
-import { buildOccupiedSlotKeys } from "./admissions-booking";
+import {
+  buildAdminAvailabilityOccupiedSlotKeys,
+  listCampusTourVisitsForAvailability,
+} from "./public-tour-availability";
 import { listObservationSlotsByIds } from "./admissions-observation-slots";
 import type { PostSubmitActionType } from "./application-form-schema";
 import { parseApplicationFormPostSubmitConfig } from "./application-form-schema";
@@ -16,6 +20,8 @@ import {
   POST_SUBMIT_ACTION_TEMPLATES,
   postSubmitActionLabel,
 } from "./post-submit-templates";
+import { PUBLIC_TOUR_POST_SUBMIT_ACTION_ID } from "./public-tour-settings";
+import type { PublicTourChildEntry, PublicTourRegistrant } from "./public-tour-settings";
 
 export type { ScheduledVisitTiming };
 
@@ -23,6 +29,8 @@ export type AdminScheduledVisit = {
   id: string;
   applicationId: string | null;
   isPreApplication: boolean;
+  bookingSource?: "application" | "family_pre_app" | "public";
+  registrant?: Record<string, unknown> | null;
   actionType: PostSubmitActionType;
   stepTitle: string;
   studentLabel: string | null;
@@ -44,10 +52,30 @@ function resolveStepTitle(
   postSubmitActionId: string,
   postSubmitConfigRaw: unknown,
 ): string {
+  if (postSubmitActionId === PUBLIC_TOUR_POST_SUBMIT_ACTION_ID) {
+    return "Public campus tour";
+  }
   const config = parseApplicationFormPostSubmitConfig(postSubmitConfigRaw);
   const action = config.actions.find((entry) => entry.id === postSubmitActionId);
   if (action) return postSubmitActionLabel(action);
   return POST_SUBMIT_ACTION_TEMPLATES[actionType]?.label ?? "Visit";
+}
+
+export function labelFromPublicRegistrant(registrantRaw: unknown): string | null {
+  if (!registrantRaw || typeof registrantRaw !== "object" || Array.isArray(registrantRaw)) {
+    return null;
+  }
+  const registrant = registrantRaw as PublicTourRegistrant;
+  const answers = registrant.answers;
+  if (answers && typeof answers.contact_name === "string" && answers.contact_name.trim()) {
+    return answers.contact_name.trim();
+  }
+  const children = answers?.children;
+  if (Array.isArray(children) && children.length > 0) {
+    const first = children[0] as PublicTourChildEntry;
+    if (first?.name?.trim()) return first.name.trim();
+  }
+  return registrant.contactEmail?.trim() || null;
 }
 
 function compareVisits(a: AdminScheduledVisit, b: AdminScheduledVisit): number {
@@ -74,6 +102,8 @@ const ADMIN_SCHEDULED_VISITS_LIST_SELECT = `
       id,
       application_id,
       family_id,
+      booking_source,
+      registrant,
       post_submit_action_id,
       action_type,
       scheduling_mode,
@@ -230,7 +260,10 @@ export async function listOrgScheduledVisitsForAdminList(
       : null;
 
     const actionType = String(row.action_type) as PostSubmitActionType;
-    const isPreApplication = row.application_id == null;
+    const bookingSource = row.booking_source as AdminScheduledVisit["bookingSource"];
+    const isPublicTour = bookingSource === "public";
+    const isPreApplication = row.application_id == null && !isPublicTour;
+    const publicLabel = isPublicTour ? labelFromPublicRegistrant(row.registrant) : null;
     const schedulingMode: AdmissionsSchedulingMode =
       row.scheduling_mode === "whole_day" ? "whole_day" : "time_slot";
     const scheduledDate = String(row.scheduled_date);
@@ -257,18 +290,27 @@ export async function listOrgScheduledVisitsForAdminList(
       id: String(row.id),
       applicationId: row.application_id ? String(row.application_id) : null,
       isPreApplication,
+      bookingSource,
+      registrant:
+        row.registrant && typeof row.registrant === "object" && !Array.isArray(row.registrant)
+          ? (row.registrant as Record<string, unknown>)
+          : null,
       actionType,
       stepTitle: resolveStepTitle(
         actionType,
         String(row.post_submit_action_id),
         form?.post_submit_config,
       ),
-      studentLabel: isPreApplication
-        ? familyLabel
-        : studentFromTable,
-      formTitle: isPreApplication
-        ? "Pre-application tour"
-        : String(form?.title ?? "Application"),
+      studentLabel: isPublicTour
+        ? publicLabel
+        : isPreApplication
+          ? familyLabel
+          : studentFromTable,
+      formTitle: isPublicTour
+        ? "Public tour"
+        : isPreApplication
+          ? "Pre-application tour"
+          : String(form?.title ?? "Application"),
       schedulingMode,
       scheduledDate,
       endDate,
@@ -291,28 +333,22 @@ export async function listOccupiedSlotKeysForDateRange(
   startDate: string,
   endDate: string,
 ): Promise<Set<AdmissionsAvailabilitySlotKey>> {
-  const { data, error } = await supabase
-    .from("admissions_scheduled_visits")
-    .select("scheduling_mode, scheduled_date, start_time_slot, duration_minutes, status")
-    .eq("organization_id", organizationId)
-    .eq("status", "scheduled")
-    .gte("scheduled_date", startDate)
-    .lte("scheduled_date", endDate);
+  const [slotRecords, visits] = await Promise.all([
+    listAdmissionsAvailabilitySlotRecords(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+    ),
+    listCampusTourVisitsForAvailability(
+      supabase,
+      organizationId,
+      startDate,
+      endDate,
+    ),
+  ]);
 
-  if (error) throw error;
-
-  return buildOccupiedSlotKeys(
-    (data ?? []).map((row) => ({
-      schedulingMode:
-        row.scheduling_mode === "whole_day"
-          ? ("whole_day" as const)
-          : ("time_slot" as const),
-      scheduledDate: String(row.scheduled_date),
-      startTimeSlot: String(row.start_time_slot),
-      durationMinutes: Number(row.duration_minutes),
-      status: "scheduled" as const,
-    })),
-  );
+  return buildAdminAvailabilityOccupiedSlotKeys(slotRecords, visits);
 }
 
 export function occupiedSlotKeysToBookedDates(

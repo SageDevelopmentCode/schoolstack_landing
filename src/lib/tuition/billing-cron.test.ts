@@ -95,6 +95,25 @@ describe("runTuitionBillingCron", () => {
           adminDigestsSent: 0,
         };
       },
+      sendUnreadMessageDigestsForOrganization: async (_admin, organizationId) => {
+        calls.push(`unread-message-digest:${organizationId}`);
+        return {
+          threadsConsidered: organizationId === "org-2" ? 4 : 0,
+          digestsSent: organizationId === "org-2" ? 1 : 0,
+          digestFailures: 0,
+          parentDigestsSent: organizationId === "org-2" ? 1 : 0,
+          teacherDigestsSent: 0,
+        };
+      },
+      sendScheduledVisitRemindersForOrganization: async (_admin, organizationId) => {
+        calls.push(`visit-reminders:${organizationId}`);
+        return {
+          parentRemindersSent: organizationId === "org-1" ? 1 : 0,
+          adminWeeklyDigestsSent: 0,
+          adminDayBeforeDigestsSent: organizationId === "org-2" ? 1 : 0,
+          failures: 0,
+        };
+      },
       notifySummary: async (payload) => {
         notifiedPayload = payload;
       },
@@ -106,11 +125,15 @@ describe("runTuitionBillingCron", () => {
       "incomplete-admissions-reminders:org-1",
       "rules:org-1",
       "committee-digest:org-1",
+      "unread-message-digest:org-1",
+      "visit-reminders:org-1",
       "overdue:org-2",
       "reminders:org-2",
       "incomplete-admissions-reminders:org-2",
       "rules:org-2",
       "committee-digest:org-2",
+      "unread-message-digest:org-2",
+      "visit-reminders:org-2",
     ]);
     assert.equal(summary.organizations, 2);
     assert.equal(summary.organizationFailures, 0);
@@ -129,10 +152,15 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.autopayLines[0]?.chargeId, "charge-1");
     assert.equal(summary.committeeDigestsSent, 1);
     assert.equal(summary.committeeDigestFailures, 0);
+    assert.equal(summary.unreadMessageDigestsSent, 1);
+    assert.equal(summary.unreadMessageDigestFailures, 0);
+    assert.equal(summary.scheduledVisitParentRemindersSent, 1);
+    assert.equal(summary.scheduledVisitAdminDayBeforeDigestsSent, 1);
     const payload = notifiedPayload as Record<string, unknown> | null;
     assert.equal(payload?.autopaySkipped, 4);
     assert.equal(payload?.autopayDueCandidates, 2);
     assert.equal(payload?.committeeDigestsSent, 1);
+    assert.equal(payload?.unreadMessageDigestsSent, 1);
   });
 
   it("continues processing remaining orgs when one org fails", async () => {
@@ -183,6 +211,25 @@ describe("runTuitionBillingCron", () => {
         memberDigestsSent: 0,
         adminDigestsSent: 0,
       }),
+      sendUnreadMessageDigestsForOrganization: async (_admin, organizationId) => {
+        calls.push(`unread-message-digest:${organizationId}`);
+        return {
+          threadsConsidered: 0,
+          digestsSent: 0,
+          digestFailures: 0,
+          parentDigestsSent: 0,
+          teacherDigestsSent: 0,
+        };
+      },
+      sendScheduledVisitRemindersForOrganization: async (_admin, organizationId) => {
+        calls.push(`visit-reminders:${organizationId}`);
+        return {
+          parentRemindersSent: 0,
+          adminWeeklyDigestsSent: 0,
+          adminDayBeforeDigestsSent: 0,
+          failures: 0,
+        };
+      },
       notifySummary: async () => {},
     });
 
@@ -196,6 +243,8 @@ describe("runTuitionBillingCron", () => {
       "rules:org-2",
       "late-fees:org-2",
       "autopay:org-2",
+      "unread-message-digest:org-2",
+      "visit-reminders:org-2",
     ]);
     assert.equal(summary.organizationFailures, 1);
     assert.deepEqual(summary.failedOrganizationIds, ["org-1"]);

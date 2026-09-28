@@ -1,12 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { resolvePortalAccountMemberUserIds } from '@/lib/auth/portal-account-link-context';
+
 export type ParentMobileGateCopy = {
   title: string;
   body: string;
   ctaLabel: string;
 };
 
-async function getFamilyIdsForUser(
+async function getFamilyIdsForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -19,6 +21,32 @@ async function getFamilyIdsForUser(
 
   if (error) throw error;
   return (data ?? []).map((row) => String(row.family_id));
+}
+
+async function getFamilyIdsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string[]> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+  const familyIds = new Set<string>();
+
+  for (const memberUserId of memberUserIds) {
+    const ids = await getFamilyIdsForAuthUser(
+      supabase,
+      memberUserId,
+      organizationId,
+    );
+    for (const familyId of ids) {
+      familyIds.add(familyId);
+    }
+  }
+
+  return [...familyIds];
 }
 
 async function getStudentIdsForFamilies(

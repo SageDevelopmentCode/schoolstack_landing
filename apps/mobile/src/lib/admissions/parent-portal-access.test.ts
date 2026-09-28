@@ -36,6 +36,22 @@ function createSupabaseMock(handlers: {
         };
       }
 
+      if (
+        table === 'organization_portal_account_link_members' ||
+        table === 'organization_portal_account_link_groups'
+      ) {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: null, error: null }),
+              }),
+              maybeSingle: async () => ({ data: null, error: null }),
+            }),
+          }),
+        };
+      }
+
       throw new Error(`Unexpected table: ${table}`);
     },
   } as never;

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   AdmissionsBookingError,
   getBookableAvailabilityForAction,
+  throwIfAdmissionsVisitSlotUnavailable,
   type ScheduledVisitRecord,
 } from "./admissions-booking";
 import {
@@ -222,6 +223,7 @@ export async function bookFamilyCampusTour(
       organization_id: params.organizationId,
       family_id: params.familyId,
       application_id: null,
+      booking_source: "family_pre_app",
       post_submit_action_id: PRE_APPLICATION_CAMPUS_TOUR_ACTION_ID,
       action_type: FAMILY_TOUR_ACTION_TYPE,
       scheduling_mode: "time_slot",
@@ -242,6 +244,7 @@ export async function bookFamilyCampusTour(
         "already_scheduled",
       );
     }
+    throwIfAdmissionsVisitSlotUnavailable(error);
     throw error;
   }
 

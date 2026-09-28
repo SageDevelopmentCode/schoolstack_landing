@@ -12,7 +12,8 @@ export type PublicFormId =
   | "public_support"
   | "demo_request"
   | "homepage_question"
-  | "demo_feedback";
+  | "demo_feedback"
+  | "public_tour_booking";
 
 export type EnforcePublicFormSubmissionResult =
   | { ok: true }

@@ -14,6 +14,7 @@ import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import {
   availabilitySlotKey,
+  campusTourAvailabilitySlotKeys,
   listAdmissionsAvailabilitySlots,
   type AdmissionsAvailabilitySlotKey,
 } from '@/lib/admissions/admissions-availability';
@@ -110,8 +111,13 @@ export function ScheduleToursTab({
 
     const previous = new Set(openSlots);
     const next = new Set(openSlots);
-    if (open) next.add(key);
-    else next.delete(key);
+    if (open) {
+      for (const openKey of campusTourAvailabilitySlotKeys(calendar.selectedDate, timeSlot)) {
+        next.add(openKey);
+      }
+    } else {
+      next.delete(key);
+    }
     setOpenSlots(next);
     setTogglingKey(key);
 

@@ -54,6 +54,7 @@ type ApplyDashboardProps = {
   enrollmentIncompleteBannerItems?: EnrollmentAgreementIncompleteBannerItem[];
   userProfile: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
   previewBasePath?: string;
   focusApplicationId?: string | null;
@@ -216,6 +217,7 @@ export default function ApplyDashboard({
   enrollmentIncompleteBannerItems = [],
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   previewMode = false,
   previewBasePath,
   focusApplicationId = null,
@@ -293,6 +295,7 @@ export default function ApplyDashboard({
       userDisplayName={userProfile.displayName}
       profilePhotoUrl={userProfile.profilePhotoUrl}
       portalOptions={resolvedPortalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
     >

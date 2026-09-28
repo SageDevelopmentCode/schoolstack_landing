@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { resolvePortalAccountMemberUserIds } from "@/lib/auth/portal-account-link-context";
 import { isPlatformAdmin } from "@/lib/school-admin/access";
 
-export async function userIsOrgAdmin(
+export async function userIsOrgAdminForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -19,7 +20,27 @@ export async function userIsOrgAdmin(
   return Boolean(data);
 }
 
-export async function getFamilyIdsForUser(
+export async function userIsOrgAdmin(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (await userIsOrgAdminForAuthUser(supabase, memberUserId, organizationId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function getFamilyIdsForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -32,6 +53,32 @@ export async function getFamilyIdsForUser(
 
   if (error) throw error;
   return (data ?? []).map((row) => String(row.family_id));
+}
+
+export async function getFamilyIdsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<string[]> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+  const familyIds = new Set<string>();
+
+  for (const memberUserId of memberUserIds) {
+    const ids = await getFamilyIdsForAuthUser(
+      supabase,
+      memberUserId,
+      organizationId,
+    );
+    for (const familyId of ids) {
+      familyIds.add(familyId);
+    }
+  }
+
+  return [...familyIds];
 }
 
 export function applicationOwnershipFilter(
@@ -53,11 +100,17 @@ export async function userHasApplyPortalAccess(
   const familyIds = await getFamilyIdsForUser(supabase, userId, organizationId);
   if (familyIds.length > 0) return true;
 
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
   const { data, error } = await supabase
     .from("applications")
     .select("id")
     .eq("organization_id", organizationId)
-    .eq("created_by_user_id", userId)
+    .in("created_by_user_id", memberUserIds)
     .limit(1);
 
   if (error) throw error;
@@ -71,14 +124,23 @@ export async function userOwnsApplication(
 ): Promise<boolean> {
   const { data: application, error } = await supabase
     .from("applications")
-    .select("id, family_id, created_by_user_id")
+    .select("id, family_id, created_by_user_id, organization_id")
     .eq("id", applicationId)
     .maybeSingle();
 
   if (error) throw error;
   if (!application) return false;
 
-  if (application.created_by_user_id === userId) {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    String(application.organization_id),
+    userId,
+  );
+
+  if (
+    application.created_by_user_id &&
+    memberUserIds.includes(String(application.created_by_user_id))
+  ) {
     return true;
   }
 
@@ -86,15 +148,13 @@ export async function userOwnsApplication(
     return false;
   }
 
-  const { data: guardian, error: guardianError } = await supabase
-    .from("guardians")
-    .select("id")
-    .eq("family_id", application.family_id)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const familyIds = await getFamilyIdsForUser(
+    supabase,
+    userId,
+    String(application.organization_id),
+  );
 
-  if (guardianError) throw guardianError;
-  return Boolean(guardian);
+  return familyIds.includes(String(application.family_id));
 }
 
 export async function canAccessApplicationPostSubmit(

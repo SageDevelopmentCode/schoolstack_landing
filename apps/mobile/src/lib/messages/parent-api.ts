@@ -1,3 +1,7 @@
+import {
+  deletePortalMessageRequest,
+  patchPortalMessage,
+} from '@/lib/messages/message-mutations';
 import { fetchParentApi, fetchParentApiFormData } from '@/lib/parent/parent-portal-api';
 import type {
   MessageContact,
@@ -103,6 +107,22 @@ export async function sendParentMessage(
     },
   );
   return payload.message;
+}
+
+export async function editParentMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string; body: string },
+): Promise<PortalMessage> {
+  return patchPortalMessage(fetchParentApi, BASE_PATH, threadId, messageId, params);
+}
+
+export async function deleteParentMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string },
+): Promise<PortalMessage> {
+  return deletePortalMessageRequest(fetchParentApi, BASE_PATH, threadId, messageId, params);
 }
 
 export function mergeMessages(

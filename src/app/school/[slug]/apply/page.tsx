@@ -30,7 +30,9 @@ import { userHasFamilyPortalAccess } from "@/lib/auth/portal-switcher-server";
 import { userHasTeacherPortalAccess } from "@/lib/staff/teacher-portal-access";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
 import { listSchoolPortalOptionsForUser } from "@/lib/auth/portal-switcher-server";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 
 export const dynamic = "force-dynamic";
 
@@ -135,10 +137,17 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
     hasScheduledCampusTour,
   });
 
-  const portalOptions = await listSchoolPortalOptionsForUser(supabase, user.id, slug, {
-    org,
-    hasEnrolledAccess,
-  });
+  const [portalOptions, linkContext] = await Promise.all([
+    listSchoolPortalOptionsForUser(supabase, user.id, slug, {
+      org,
+      hasEnrolledAccess,
+    }),
+    getPortalAccountLinkContext(supabase, org.id, user.id),
+  ]);
+
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext.groupId,
+  );
 
   const timezone =
     typeof timezoneResult.data?.timezone === "string" &&
@@ -216,6 +225,7 @@ export default async function SchoolApplyDashboardPage({ params }: PageProps) {
       enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
       userProfile={userProfile}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       shadowDaySchedulingMode={shadowDaySchedulingMode}
     />
   );

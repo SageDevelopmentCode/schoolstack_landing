@@ -127,6 +127,43 @@ export function durationToSlotCount(durationMinutes: number): number {
   return Math.max(1, Math.round(durationMinutes / 30));
 }
 
+/** Matches default campus tour duration in web post-submit templates (60 min). */
+const CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES = 60;
+
+export function campusTourTrailingTimeSlots(
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsTimeSlot[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const trailing: AdmissionsTimeSlot[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 1; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (slot) trailing.push(slot);
+  }
+  return trailing;
+}
+
+export function campusTourAvailabilitySlotKeys(
+  date: string,
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsAvailabilitySlotKey[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const keys: AdmissionsAvailabilitySlotKey[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 0; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (!slot) continue;
+    keys.push(availabilitySlotKey(date, slot));
+  }
+  return keys;
+}
+
 export function formatDurationLabel(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = minutes / 60;
@@ -343,6 +380,42 @@ export async function listAdmissionsAvailabilitySlots(
       availabilitySlotKey(String(row.date), String(row.time_slot)),
     ),
   );
+}
+
+export type AdmissionsAvailabilitySlotRecord = {
+  date: string;
+  timeSlot: string;
+  tourBookingMode: 'exclusive' | 'group';
+  groupCapacity: number | null;
+  groupDayKey: string | null;
+};
+
+export async function listAdmissionsAvailabilitySlotRecords(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<AdmissionsAvailabilitySlotRecord[]> {
+  const { data, error } = await supabase
+    .from('admissions_availability_slots')
+    .select('date, time_slot, tour_booking_mode, group_capacity, group_day_key')
+    .eq('organization_id', organizationId)
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    date: String(row.date),
+    timeSlot: String(row.time_slot),
+    tourBookingMode:
+      row.tour_booking_mode === 'group' ? ('group' as const) : ('exclusive' as const),
+    groupCapacity:
+      row.group_capacity != null && Number(row.group_capacity) > 0
+        ? Number(row.group_capacity)
+        : null,
+    groupDayKey: row.group_day_key ? String(row.group_day_key) : null,
+  }));
 }
 
 export async function countAdmissionsAvailabilitySlotsInMonth(

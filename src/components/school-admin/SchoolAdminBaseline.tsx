@@ -51,6 +51,7 @@ type SchoolAdminBaselineProps = {
   features: OrganizationFeatures;
   userProfile: SchoolAdminUserProfile | null;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   initialMessagesUnreadCount?: number;
   initialActivityUnreadCount?: number;
   previewMode?: boolean;
@@ -65,6 +66,7 @@ function SchoolAdminBaselineInner({
   features,
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   initialMessagesUnreadCount,
   initialActivityUnreadCount,
   previewMode = false,
@@ -178,6 +180,7 @@ function SchoolAdminBaselineInner({
             userProfile={userProfile}
             onSignOut={handleSignOut}
             portalOptions={resolvedPortalOptions}
+            openPortalLinksInNewTab={openPortalLinksInNewTab}
             previewMode={previewMode}
             onOpenSupport={() => setSupportOpen(true)}
             onOpenNotifications={openNotifications}

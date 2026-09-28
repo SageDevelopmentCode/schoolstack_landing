@@ -18,6 +18,7 @@ import {
   DEMO_REQUEST_STATUS,
   type DemoRequestStatus,
 } from "@/lib/admin-ui/admin-status-styles";
+import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 
 type DemoRequest = {
   id: string;
@@ -39,14 +40,6 @@ type DemoRequest = {
   source: string;
   created_at: string;
   updated_at: string;
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  starting: "Starting a school",
-  running: "Running a school",
-  private: "Private / homeschool",
-  program: "Program / microschool",
-  other: "Other",
 };
 
 function formatDate(date: string, time: string, timezone: string) {
@@ -195,8 +188,8 @@ export default function DemoRequestsPage() {
                     {selected.email}
                   </a>
                 </dd>
-                <dt className="text-admin-muted">Role</dt>
-                <dd>{ROLE_LABELS[selected.role] ?? selected.role}</dd>
+                <dt className="text-admin-muted">Where today</dt>
+                <dd>{demoRequestRoleLabel(selected.role)}</dd>
                 {selected.website_url ? (
                   <>
                     <dt className="text-admin-muted">Website</dt>

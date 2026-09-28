@@ -39,6 +39,7 @@ type PublicEnrollmentChecklistClientProps = {
   backHref?: string;
   userProfile?: FamilyUserProfile;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
 };
 
 function celebrationStorageKey(checklistId: string) {
@@ -61,6 +62,7 @@ export default function PublicEnrollmentChecklistClient({
   backHref,
   userProfile,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
 }: PublicEnrollmentChecklistClientProps) {
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const supabase = useMemo(() => createClient(), []);
@@ -270,6 +272,7 @@ export default function PublicEnrollmentChecklistClient({
       userDisplayName={resolvedProfile.displayName}
       profilePhotoUrl={resolvedProfile.profilePhotoUrl}
       portalOptions={portalOptions}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
       previewMode={previewMode}
       previewHomeHref={backHref}
       fullBleed

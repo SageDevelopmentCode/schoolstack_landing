@@ -3,11 +3,13 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 type ScheduleAvailabilityLegendProps = {
   C: AdminThemeTokens;
   openLabel: string;
+  showGroupTour?: boolean;
 };
 
 export default function ScheduleAvailabilityLegend({
   C,
   openLabel,
+  showGroupTour = false,
 }: ScheduleAvailabilityLegendProps) {
   return (
     <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: C.textTertiary }}>
@@ -47,6 +49,18 @@ export default function ScheduleAvailabilityLegend({
         </span>
         Has booking
       </span>
+      {showGroupTour ? (
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-3 w-3 rounded"
+            style={{
+              backgroundColor: C.accentLight,
+              border: `2px dashed ${C.accent}`,
+            }}
+          />
+          Group tour
+        </span>
+      ) : null}
     </div>
   );
 }

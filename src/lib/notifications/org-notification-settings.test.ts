@@ -45,7 +45,14 @@ describe("parseOrganizationNotificationSettings", () => {
         committee_daily_digest: {
           enabled: true,
         },
+        unread_messages_daily_digest: {
+          enabled: true,
+        },
+        scheduled_visit_day_before: {
+          enabled: true,
+        },
       },
+      scheduled_visit_reminders: {},
     });
   });
 
@@ -107,7 +114,29 @@ describe("parseOrganizationNotificationSettings", () => {
           committee_daily_digest: {
             enabled: true,
           },
+          unread_messages_daily_digest: {
+            enabled: true,
+          },
+          scheduled_visit_day_before: {
+            enabled: true,
+          },
         },
+        scheduled_visit_reminders: {},
+      },
+    );
+  });
+
+  it("parses scheduled visit reminder state from stored json", () => {
+    assert.deepEqual(
+      parseOrganizationNotificationSettings({
+        scheduled_visit_reminders: {
+          last_weekly_admin_digest_week_start: "2026-09-22",
+          last_day_before_admin_digest_for_date: "2026-09-29",
+        },
+      }).scheduled_visit_reminders,
+      {
+        last_weekly_admin_digest_week_start: "2026-09-22",
+        last_day_before_admin_digest_for_date: "2026-09-29",
       },
     );
   });
@@ -128,7 +157,26 @@ describe("parseOrganizationNotificationSettings", () => {
         committee_daily_digest: {
           enabled: true,
         },
+        unread_messages_daily_digest: {
+          enabled: true,
+        },
+        scheduled_visit_day_before: {
+          enabled: true,
+        },
       },
+    );
+  });
+
+  it("parses unread message digest reminder settings", () => {
+    assert.deepEqual(
+      parseOrganizationNotificationSettings({
+        parent_reminders: {
+          unread_messages_daily_digest: {
+            enabled: false,
+          },
+        },
+      }).parent_reminders.unread_messages_daily_digest,
+      { enabled: false },
     );
   });
 

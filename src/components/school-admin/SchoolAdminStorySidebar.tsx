@@ -211,6 +211,7 @@ type SchoolAdminStorySidebarProps = {
   unreadCount: number;
   messagesUnreadCount: number;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
 };
 
@@ -228,6 +229,7 @@ export default function SchoolAdminStorySidebar({
   unreadCount,
   messagesUnreadCount,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   previewMode = false,
 }: SchoolAdminStorySidebarProps) {
   const pathname = usePathname();
@@ -404,6 +406,7 @@ export default function SchoolAdminStorySidebar({
             isExpanded={isExpanded}
             onSignOut={onSignOut}
             portalOptions={portalOptions}
+            openPortalLinksInNewTab={openPortalLinksInNewTab}
             currentPortal={detectPortalFromPathname(pathname, slug)}
             previewMode={previewMode}
           />

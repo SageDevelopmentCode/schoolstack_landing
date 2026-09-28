@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  parsePublicTourPageSettings,
+  type PublicTourPageSettings,
+} from "./public-tour-settings";
 
 export type ShadowDaySchedulingMode =
   | "whole_day"
@@ -11,6 +15,7 @@ export type AdmissionsOrgSettings = {
     enabled: boolean;
     isolated_program_ids: string[];
   };
+  publicTour?: PublicTourPageSettings;
 };
 
 export const DEFAULT_SHADOW_DAY_SCHEDULING_MODE: ShadowDaySchedulingMode =
@@ -145,6 +150,10 @@ export function parseAdmissionsOrgSettings(
       enabled: Boolean(portalRaw.enabled),
       isolated_program_ids: [...new Set(isolatedIds)],
     };
+  }
+
+  if (isPlainObject(record.publicTour)) {
+    settings.publicTour = parsePublicTourPageSettings(record.publicTour);
   }
 
   return settings;

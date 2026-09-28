@@ -4,6 +4,7 @@ import {
   logActivityEvent,
 } from "@/lib/activity-log";
 import { STUDENT_GRADE_OPTIONS } from "./apply-system-fields";
+import { defaultPostSubmitDurationMinutes } from "./post-submit-templates";
 
 export type AdmissionsAvailabilitySlotKey = `${string}|${string}`;
 
@@ -62,6 +63,27 @@ export const ADMISSIONS_TIME_SLOT_GROUPS: ReadonlyArray<{
     slots: buildHalfHourSlots(18, 0, 23, 30),
   },
 ];
+
+export function pickFirstBookableSlotForDay(
+  slots: string[],
+): { period: AdmissionsTimeSlotPeriod; slot: string } | null {
+  if (slots.length === 0) {
+    return null;
+  }
+  const available = new Set(slots);
+  for (const slot of ADMISSIONS_TIME_SLOTS) {
+    if (!available.has(slot)) {
+      continue;
+    }
+    const period = ADMISSIONS_TIME_SLOT_GROUPS.find((group) =>
+      group.slots.includes(slot),
+    )?.id;
+    if (period) {
+      return { period, slot };
+    }
+  }
+  return null;
+}
 
 export function formatOrganizationTimezoneLabel(timezone: string): string {
   try {
@@ -129,6 +151,45 @@ export function availabilitySlotKey(date: string, timeSlot: string): AdmissionsA
 
 export function durationToSlotCount(durationMinutes: number): number {
   return Math.max(1, Math.round(durationMinutes / 30));
+}
+
+const CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES =
+  defaultPostSubmitDurationMinutes("schedule_campus_tour");
+
+/** Half-hour labels after the start cell covered by the default campus tour duration. */
+export function campusTourTrailingTimeSlots(
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsTimeSlot[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const trailing: AdmissionsTimeSlot[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 1; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (slot) trailing.push(slot);
+  }
+  return trailing;
+}
+
+/** All availability keys for a campus tour block (start + trailing cells). */
+export function campusTourAvailabilitySlotKeys(
+  date: string,
+  startTimeSlot: string,
+  durationMinutes: number = CAMPUS_TOUR_AVAILABILITY_DURATION_MINUTES,
+): AdmissionsAvailabilitySlotKey[] {
+  const startIndex = ADMISSIONS_TIME_SLOTS.indexOf(startTimeSlot as AdmissionsTimeSlot);
+  if (startIndex < 0) return [];
+
+  const keys: AdmissionsAvailabilitySlotKey[] = [];
+  const cellCount = durationToSlotCount(durationMinutes);
+  for (let i = 0; i < cellCount; i++) {
+    const slot = ADMISSIONS_TIME_SLOTS[startIndex + i];
+    if (!slot) continue;
+    keys.push(availabilitySlotKey(date, slot));
+  }
+  return keys;
 }
 
 export function formatDurationLabel(minutes: number): string {
@@ -333,20 +394,49 @@ export async function listAdmissionsAvailabilitySlots(
   startDate: string,
   endDate: string,
 ): Promise<Set<AdmissionsAvailabilitySlotKey>> {
+  const records = await listAdmissionsAvailabilitySlotRecords(
+    supabase,
+    organizationId,
+    startDate,
+    endDate,
+  );
+  return new Set(records.map((row) => availabilitySlotKey(row.date, row.timeSlot)));
+}
+
+export type AdmissionsAvailabilitySlotRecord = {
+  date: string;
+  timeSlot: string;
+  tourBookingMode: "exclusive" | "group";
+  groupCapacity: number | null;
+  groupDayKey: string | null;
+};
+
+export async function listAdmissionsAvailabilitySlotRecords(
+  supabase: SupabaseClient,
+  organizationId: string,
+  startDate: string,
+  endDate: string,
+): Promise<AdmissionsAvailabilitySlotRecord[]> {
   const { data, error } = await supabase
     .from("admissions_availability_slots")
-    .select("date, time_slot")
+    .select("date, time_slot, tour_booking_mode, group_capacity, group_day_key")
     .eq("organization_id", organizationId)
     .gte("date", startDate)
     .lte("date", endDate);
 
   if (error) throw error;
 
-  return new Set(
-    (data ?? []).map((row) =>
-      availabilitySlotKey(String(row.date), String(row.time_slot)),
-    ),
-  );
+  return (data ?? []).map((row) => ({
+    date: String(row.date),
+    timeSlot: String(row.time_slot),
+    tourBookingMode:
+      row.tour_booking_mode === "group" ? ("group" as const) : ("exclusive" as const),
+    groupCapacity:
+      row.group_capacity != null && Number(row.group_capacity) > 0
+        ? Number(row.group_capacity)
+        : null,
+    groupDayKey: row.group_day_key ? String(row.group_day_key) : null,
+  }));
 }
 
 export async function countAdmissionsAvailabilitySlotsInMonth(
@@ -385,6 +475,21 @@ export async function toggleAdmissionsAvailabilitySlot(
       time_slot: timeSlot,
     });
     if (error) throw error;
+
+    const trailingSlots = campusTourTrailingTimeSlots(timeSlot);
+    if (trailingSlots.length > 0) {
+      const { error: trailingError } = await supabase
+        .from("admissions_availability_slots")
+        .upsert(
+          trailingSlots.map((trailingTimeSlot) => ({
+            organization_id: organizationId,
+            date,
+            time_slot: trailingTimeSlot,
+          })),
+          { onConflict: "organization_id,date,time_slot", ignoreDuplicates: true },
+        );
+      if (trailingError) throw trailingError;
+    }
   } else {
     const { error } = await supabase
       .from("admissions_availability_slots")
@@ -438,8 +543,14 @@ function slotIndex(timeSlot: string): number {
   return ADMISSIONS_TIME_SLOTS.indexOf(timeSlot as AdmissionsTimeSlot);
 }
 
+export type IsStartTimeBookableOptions = {
+  /** When false, only the start cell must be admin-open. Default true (matches DB tour booking). */
+  requireConsecutiveOpenCells?: boolean;
+};
+
 /**
- * Future parent booking: a start time is valid when N consecutive open cells exist.
+ * Parent and public tour booking: a start time is valid when N consecutive open cells exist
+ * (or only the start cell when requireConsecutiveOpenCells is false).
  */
 export function isStartTimeBookable(
   openSlots: Set<AdmissionsAvailabilitySlotKey>,
@@ -447,14 +558,24 @@ export function isStartTimeBookable(
   startTimeSlot: string,
   durationMinutes: number,
   bookedStarts: Set<AdmissionsAvailabilitySlotKey> = new Set(),
+  options: IsStartTimeBookableOptions = {},
 ): boolean {
+  const requireConsecutiveOpenCells = options.requireConsecutiveOpenCells ?? true;
   const startIndex = slotIndex(startTimeSlot);
   if (startIndex < 0) return false;
 
   const cellCount = durationToSlotCount(durationMinutes);
   if (startIndex + cellCount > ADMISSIONS_TIME_SLOTS.length) return false;
 
-  for (let i = 0; i < cellCount; i++) {
+  const startKey = availabilitySlotKey(date, startTimeSlot);
+  if (!openSlots.has(startKey)) return false;
+  if (bookedStarts.has(startKey)) return false;
+
+  if (!requireConsecutiveOpenCells) {
+    return true;
+  }
+
+  for (let i = 1; i < cellCount; i++) {
     const timeSlot = ADMISSIONS_TIME_SLOTS[startIndex + i];
     const key = availabilitySlotKey(date, timeSlot);
     if (!openSlots.has(key)) return false;

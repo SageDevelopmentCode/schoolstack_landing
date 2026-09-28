@@ -27,6 +27,7 @@ type ApplyPortalPageShellProps = {
   userDisplayName: string;
   profilePhotoUrl?: string | null;
   portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
   previewHomeHref?: string;
   children: ReactNode;
@@ -44,6 +45,7 @@ function ApplyPortalPageShellInner({
   userDisplayName,
   profilePhotoUrl = null,
   portalOptions = [],
+  openPortalLinksInNewTab = false,
   previewMode = false,
   previewHomeHref,
   children,
@@ -72,6 +74,7 @@ function ApplyPortalPageShellInner({
           userDisplayName={userDisplayName}
           profilePhotoUrl={profilePhotoUrl}
           portalOptions={resolvedPortalOptions}
+          openPortalLinksInNewTab={openPortalLinksInNewTab}
           previewMode={previewMode}
           previewHomeHref={previewHomeHref}
         />

@@ -109,11 +109,23 @@ function MessageAttachments({
 }
 
 function MessageBubble({ message }: { message: PortalMessage }) {
+  if (message.deletedAt) {
+    return (
+      <div className="rounded-admin-md border border-dashed border-admin-border bg-admin-surface/60 p-3">
+        <p className="text-sm italic text-admin-faint">Message has been deleted</p>
+        <p className="mt-2 text-xs text-admin-faint">
+          {formatMessageTimestamp(message.createdAt)}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <AdminReadOnlyMessageBubble
       senderName={message.senderName}
       roleLabel={senderKindLabel(message.senderKind)}
       timestamp={formatMessageTimestamp(message.createdAt)}
+      edited={Boolean(message.editedAt)}
       body={message.body}
       metadata={<MessageAttachments attachments={message.attachments} />}
     />

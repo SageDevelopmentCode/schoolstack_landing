@@ -1,3 +1,7 @@
+import {
+  deletePortalMessageRequest,
+  patchPortalMessage,
+} from '@/lib/messages/message-mutations';
 import { fetchTeacherApi, fetchTeacherApiFormData } from '@/lib/teacher/teacher-portal-api';
 import type {
   MessageContact,
@@ -105,4 +109,20 @@ export async function sendTeacherMessage(
     },
   );
   return payload.message;
+}
+
+export async function editTeacherMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string; body: string },
+): Promise<PortalMessage> {
+  return patchPortalMessage(fetchTeacherApi, BASE_PATH, threadId, messageId, params);
+}
+
+export async function deleteTeacherMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string },
+): Promise<PortalMessage> {
+  return deletePortalMessageRequest(fetchTeacherApi, BASE_PATH, threadId, messageId, params);
 }

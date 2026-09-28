@@ -1,4 +1,8 @@
 import {
+  deletePortalMessageRequest,
+  patchPortalMessage,
+} from '@/lib/messages/message-mutations';
+import {
   fetchSchoolAdminApi,
   fetchSchoolAdminApiFormData,
 } from '@/lib/school-admin-api';
@@ -117,6 +121,28 @@ export async function sendMessage(
     },
   );
   return payload.message;
+}
+
+export async function editMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string; body: string },
+): Promise<PortalMessage> {
+  return patchPortalMessage(fetchSchoolAdminApi, BASE_PATH, threadId, messageId, params);
+}
+
+export async function deleteMessage(
+  threadId: string,
+  messageId: string,
+  params: { organizationId: string; schoolName: string },
+): Promise<PortalMessage> {
+  return deletePortalMessageRequest(
+    fetchSchoolAdminApi,
+    BASE_PATH,
+    threadId,
+    messageId,
+    params,
+  );
 }
 
 export async function fetchMessagesUnreadCount(

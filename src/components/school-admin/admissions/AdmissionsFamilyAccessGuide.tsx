@@ -28,15 +28,7 @@ import {
   type AdminButtonVariant,
 } from "@/lib/organization-settings/admin-button-styles";
 import { adminToast } from "@/lib/school-admin/admin-toast";
-import { SITE_URL } from "@/lib/site";
-
-function toPublicDisplayUrl(path: string): string {
-  return `${SITE_URL.replace(/^https?:\/\//, "")}${path}`;
-}
-
-function toPublicAbsoluteUrl(path: string): string {
-  return `${SITE_URL}${path}`;
-}
+import { publicSiteAbsoluteUrl, publicSiteDisplayUrl } from "@/lib/site";
 
 type GuideVariant = "apply" | "checklist";
 
@@ -816,7 +808,7 @@ export function AdmissionsFamilyAccessGuideModal({
 
   const handleCopyPath = useCallback(async (path: string, { disabled = false } = {}) => {
     if (disabled) return;
-    const absoluteUrl = toPublicAbsoluteUrl(path);
+    const absoluteUrl = publicSiteAbsoluteUrl(path);
     try {
       await navigator.clipboard.writeText(absoluteUrl);
       setCopiedPath(path);
@@ -1002,7 +994,7 @@ export function AdmissionsFamilyAccessGuideModal({
                   {currentStep.pathChip ? (
                     <PathChipRow
                       C={C}
-                      displayUrl={toPublicDisplayUrl(currentStep.pathChip)}
+                      displayUrl={publicSiteDisplayUrl(currentStep.pathChip)}
                       copied={copiedPath === currentStep.pathChip}
                       copyDisabled={currentStep.id === "share-link" && !isPublished}
                       onCopy={() =>

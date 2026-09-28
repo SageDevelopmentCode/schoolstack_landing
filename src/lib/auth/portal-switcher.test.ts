@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   detectPortalFromPathname,
+  portalAccountLinkOpensInNewTab,
   shouldShowPortalSwitcher,
   type SchoolPortalOption,
 } from "./portal-switcher-types";
@@ -55,6 +56,16 @@ describe("detectPortalFromPathname", () => {
     );
   });
 
+  it("detects preview teacher paths", () => {
+    assert.equal(
+      detectPortalFromPathname(
+        "/admin/preview/rooted-meadows/teacher/staff-uuid/messages",
+        "rooted-meadows",
+      ),
+      "teacher",
+    );
+  });
+
   it("detects preview parent paths", () => {
     assert.equal(
       detectPortalFromPathname(
@@ -63,6 +74,16 @@ describe("detectPortalFromPathname", () => {
       ),
       "family_parent",
     );
+  });
+});
+
+describe("portalAccountLinkOpensInNewTab", () => {
+  it("is true when user belongs to a link group", () => {
+    assert.equal(portalAccountLinkOpensInNewTab("group-uuid"), true);
+  });
+
+  it("is false when not in a link group", () => {
+    assert.equal(portalAccountLinkOpensInNewTab(null), false);
   });
 });
 

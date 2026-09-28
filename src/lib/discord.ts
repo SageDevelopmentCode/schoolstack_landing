@@ -1,7 +1,9 @@
 import { SITE_URL } from "@/lib/site";
 import { DRAFT_REMINDER_DELAY_PRESETS } from "@/lib/admissions/application-form-schema";
 import type { CommitteeDigestCommitteeGroup } from "@/lib/committees/daily-digest-utils";
+import type { UnreadDigestDiscordDelivery } from "@/lib/messages/unread-message-digest-types";
 import { formatCommitteeDigestGroupsForDiscord } from "@/lib/committees/daily-digest-utils";
+import { demoRequestRoleLabel } from "@/lib/demo-request-roles";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   formatAutopayLineItems,
@@ -391,6 +393,12 @@ export async function notifyTuitionBillingCronSummary(payload: {
   autopayLinesTruncated?: boolean;
   committeeDigestsSent?: number;
   committeeDigestFailures?: number;
+  unreadMessageDigestsSent?: number;
+  unreadMessageDigestFailures?: number;
+  scheduledVisitParentRemindersSent?: number;
+  scheduledVisitAdminWeeklyDigestsSent?: number;
+  scheduledVisitAdminDayBeforeDigestsSent?: number;
+  scheduledVisitReminderFailures?: number;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Organizations", String(payload.organizations), true),
@@ -407,8 +415,38 @@ export async function notifyTuitionBillingCronSummary(payload: {
       true,
     ),
     embedField(
+      "Unread message digests sent",
+      String(payload.unreadMessageDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Unread message digest failures",
+      String(payload.unreadMessageDigestFailures ?? 0),
+      true,
+    ),
+    embedField(
       "Incomplete admissions reminders",
       String(payload.incompleteAdmissionsRemindersSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit parent reminders",
+      String(payload.scheduledVisitParentRemindersSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit admin weekly digests",
+      String(payload.scheduledVisitAdminWeeklyDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit admin day-before digests",
+      String(payload.scheduledVisitAdminDayBeforeDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Visit reminder failures",
+      String(payload.scheduledVisitReminderFailures ?? 0),
       true,
     ),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
@@ -1084,6 +1122,90 @@ const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
   schedule_observation_day: "Observation day scheduled",
 };
 
+export type CampusTourBookingSource = "public" | "pre_application" | "post_submit";
+
+export function formatCampusTourBookingSourceLabel(
+  source: CampusTourBookingSource,
+): string {
+  switch (source) {
+    case "public":
+      return "Public";
+    case "pre_application":
+      return "Pre-application";
+    case "post_submit":
+      return "Post-submit";
+  }
+}
+
+export async function notifyCampusTourBooked(payload: {
+  schoolName: string;
+  bookingSource: CampusTourBookingSource;
+  contactEmail: string;
+  contactName?: string;
+  familyName?: string;
+  whenLabel: string;
+  timezoneLabel: string;
+  durationLabel?: string;
+  tourFormatLabel?: string | null;
+  childrenSummary?: string;
+  studentName?: string;
+  visitId?: string;
+  applicationId?: string;
+  stepTitle?: string;
+}): Promise<void> {
+  const when = `${payload.whenLabel} (${payload.timezoneLabel})`;
+  const fields: DiscordEmbedField[] = [
+    embedField("Source", formatCampusTourBookingSourceLabel(payload.bookingSource), true),
+    contactField(payload.contactEmail, payload.contactName),
+  ];
+
+  if (payload.familyName?.trim()) {
+    fields.push(embedField("Family", truncate(payload.familyName.trim()), true));
+  }
+  if (payload.tourFormatLabel?.trim()) {
+    fields.push(embedField("Tour format", truncate(payload.tourFormatLabel.trim()), true));
+  }
+  if (payload.durationLabel?.trim()) {
+    fields.push(embedField("Duration", truncate(payload.durationLabel.trim()), true));
+  }
+  if (payload.childrenSummary?.trim()) {
+    fields.push(embedField("Children", truncate(payload.childrenSummary.trim())));
+  }
+  if (payload.studentName?.trim()) {
+    fields.push(embedField("Student", truncate(payload.studentName.trim()), true));
+  }
+  if (payload.stepTitle?.trim()) {
+    fields.push(embedField("Step", truncate(payload.stepTitle.trim())));
+  }
+  if (payload.visitId?.trim()) {
+    fields.push(embedField("Visit ID", formatId(payload.visitId.trim()), true));
+  }
+  if (payload.applicationId?.trim()) {
+    fields.push(
+      embedField("Application ID", formatId(payload.applicationId.trim()), true),
+    );
+  }
+  fields.push(embedField("When", when));
+
+  const webhookUrl = resolveAdmissionsDiscordWebhookUrl();
+  if (!webhookUrl) {
+    throw new Error(
+      "Admissions Discord webhook is not configured (DISCORD_E2E_ALERTS_WEBHOOK_URL or ROOTED_MEADOWS_WEBSITE_NOTIFICATION_DISCORD_WEBHOOK_URL)",
+    );
+  }
+
+  await sendDiscordEmbedToWebhook(
+    webhookUrl,
+    {
+      title: "📅 Campus tour booked",
+      description: `**${payload.schoolName}** · ${when}`,
+      color: DISCORD_EMBED_COLORS.schedule,
+      fields,
+    },
+    { strict: true },
+  );
+}
+
 export async function notifyPostSubmitVisitScheduled(payload: {
   schoolName: string;
   email: string;
@@ -1153,14 +1275,6 @@ export async function notifyPostSubmitVisitScheduled(payload: {
     { strict: true },
   );
 }
-
-const ROLES: Record<string, string> = {
-  starting: "Starting a microschool",
-  running: "Already running one",
-  private: "Private school operator",
-  program: "Program / enrichment model",
-  other: "Other",
-};
 
 const PRIORITIES: Record<string, string> = {
   enrollment: "Enrollment & inquiries",
@@ -1234,7 +1348,7 @@ export async function notifyDemoBooking(payload: {
   scheduledDate: string;
   scheduledTime: string;
 }) {
-  const roleLabel = ROLES[payload.role] ?? payload.role;
+  const roleLabel = demoRequestRoleLabel(payload.role);
   const priorityLabels = payload.priorities
     .map((id) => PRIORITIES[id] ?? id)
     .join(", ");
@@ -1313,8 +1427,10 @@ export async function notifyDemoBooking(payload: {
       ),
       ...conceptDemoField,
       embedField("When", when, true),
-      embedField("Role", roleLabel, true),
-      embedField("Priorities", truncate(priorityLabels || "—")),
+      embedField("Where today", roleLabel, true),
+      ...(priorityLabels
+        ? [embedField("Priorities", truncate(priorityLabels))]
+        : []),
       ...branchFields,
       ...optionalFields,
     ],
@@ -1650,6 +1766,144 @@ export async function notifyCommitteeDailyDigestSent(payload: {
 
   await sendDigestNotificationsDiscordEmbed({
     title: `Committee digest sent — ${payload.schoolName}`,
+    color: DISCORD_EMBED_COLORS.ops,
+    fields,
+  });
+}
+
+export const UNREAD_DIGEST_DISCORD_MAX_THREADS_PER_DELIVERY = 5;
+
+function formatUnreadDigestThreadLine(
+  thread: UnreadDigestDiscordDelivery["threads"][number],
+): string {
+  const unreadLabel =
+    thread.unreadCount === 1
+      ? "1 unread"
+      : `${thread.unreadCount} unread`;
+  return `  • ${thread.senderName} · ${unreadLabel}`;
+}
+
+function formatUnreadDigestDeliveryBlock(
+  delivery: UnreadDigestDiscordDelivery,
+): string {
+  const portalLabel =
+    delivery.recipientPortal === "teacher" ? "Teacher" : "Parent";
+  const header = `${portalLabel} · ${delivery.recipientLabel}`;
+
+  const visibleThreads = delivery.threads.slice(
+    0,
+    UNREAD_DIGEST_DISCORD_MAX_THREADS_PER_DELIVERY,
+  );
+  const threadLines = visibleThreads.map(formatUnreadDigestThreadLine);
+  const hiddenCount =
+    delivery.threads.length - visibleThreads.length;
+  if (hiddenCount > 0) {
+    threadLines.push(
+      `  • …and ${hiddenCount} more thread${hiddenCount === 1 ? "" : "s"}`,
+    );
+  }
+
+  return [header, ...threadLines].join("\n");
+}
+
+export function formatUnreadMessageDigestDeliveriesForDiscord(
+  deliveries: UnreadDigestDiscordDelivery[],
+): string {
+  if (deliveries.length === 0) return "—";
+  return deliveries.map(formatUnreadDigestDeliveryBlock).join("\n\n");
+}
+
+export async function notifyUnreadMessageDigestSent(payload: {
+  organizationId: string;
+  schoolName: string;
+  schoolSlug: string;
+  digestsSent: number;
+  digestFailures: number;
+  parentDigestsSent: number;
+  teacherDigestsSent: number;
+  deliveries: UnreadDigestDiscordDelivery[];
+}) {
+  const adminUrl = `${SITE_URL}${schoolAdminPath(payload.schoolSlug, "messages")}`;
+  const fields: DiscordEmbedField[] = [
+    embedField(
+      "School",
+      truncate(
+        `${payload.schoolName}\n(${payload.schoolSlug})\n${adminUrl}`,
+      ),
+    ),
+    embedField("Digests sent", String(payload.digestsSent), true),
+    embedField("Failures", String(payload.digestFailures), true),
+    embedField("Parent emails", String(payload.parentDigestsSent), true),
+    embedField("Teacher emails", String(payload.teacherDigestsSent), true),
+  ];
+
+  const deliveryChunks = splitDiscordFieldValue(
+    formatUnreadMessageDigestDeliveriesForDiscord(payload.deliveries),
+  );
+
+  if (deliveryChunks.length === 0) {
+    fields.push(embedField("Deliveries", "—"));
+  } else {
+    deliveryChunks.forEach((chunk, index) => {
+      const name =
+        deliveryChunks.length === 1
+          ? "Deliveries"
+          : `Deliveries (${index + 1}/${deliveryChunks.length})`;
+      fields.push(embedField(name, truncate(chunk)));
+    });
+  }
+
+  await sendDigestNotificationsDiscordEmbed({
+    title: `Unread message digest sent — ${payload.schoolName}`,
+    color: DISCORD_EMBED_COLORS.ops,
+    fields,
+  });
+}
+
+export async function notifyScheduledVisitRemindersSent(payload: {
+  organizationId: string;
+  schoolName: string;
+  schoolSlug: string;
+  parentRemindersSent: number;
+  adminWeeklyDigestsSent: number;
+  adminDayBeforeDigestsSent: number;
+  failures: number;
+  visits: Array<{
+    whenLabel: string;
+    stepTitle: string;
+    contactLabel: string;
+  }>;
+}) {
+  const adminUrl = `${SITE_URL}${schoolAdminPath(payload.schoolSlug, "schedule")}?tab=visits`;
+  const fields: DiscordEmbedField[] = [
+    embedField(
+      "School",
+      truncate(
+        `${payload.schoolName}\n(${payload.schoolSlug})\n${adminUrl}`,
+      ),
+    ),
+    embedField("Parent reminders", String(payload.parentRemindersSent), true),
+    embedField("Admin weekly digests", String(payload.adminWeeklyDigestsSent), true),
+    embedField(
+      "Admin day-before digests",
+      String(payload.adminDayBeforeDigestsSent),
+      true,
+    ),
+    embedField("Failures", String(payload.failures), true),
+  ];
+
+  const visitLines = payload.visits
+    .slice(0, 8)
+    .map(
+      (visit) =>
+        `${visit.whenLabel} — ${visit.stepTitle} (${visit.contactLabel})`,
+    );
+  if (visitLines.length > 0) {
+    fields.push(embedField("Visits", truncate(visitLines.join("\n"))));
+  }
+
+  await sendDigestNotificationsDiscordEmbed({
+    title: `Scheduled visit reminders — ${payload.schoolName}`,
     color: DISCORD_EMBED_COLORS.ops,
     fields,
   });

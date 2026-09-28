@@ -1,5 +1,13 @@
 export type PortalId = "admin" | "teacher" | "family_apply" | "family_parent";
 
+export const ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE = "Switch account portal";
+
+export function portalAccountLinkOpensInNewTab(
+  linkGroupId: string | null,
+): boolean {
+  return linkGroupId != null;
+}
+
 export type SchoolPortalOption = {
   id: PortalId;
   label: string;
@@ -17,7 +25,10 @@ export function detectPortalFromPathname(pathname: string, slug: string): Portal
     return "admin";
   }
 
-  if (pathname.startsWith(`/school/${slug}/teacher`)) {
+  if (
+    pathname.startsWith(`/admin/preview/${slug}/teacher/`) ||
+    pathname.startsWith(`/school/${slug}/teacher`)
+  ) {
     return "teacher";
   }
 

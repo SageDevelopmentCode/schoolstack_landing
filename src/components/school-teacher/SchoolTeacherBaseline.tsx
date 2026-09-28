@@ -10,6 +10,7 @@ import {
   useParentTheme,
 } from "@/components/school-parent/ParentThemeContext";
 import { isTeacherMessagesPath } from "@/lib/organization-settings/teacher-routes";
+import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
 import { parentThemeCssVars } from "@/lib/organization-settings/parent-theme";
 import type {
@@ -36,6 +37,8 @@ type SchoolTeacherBaselineProps = {
   previewBasePath?: string;
   previewStaffMemberId?: string;
   initialActivityUnreadCount?: number;
+  portalOptions?: SchoolPortalOption[];
+  openPortalLinksInNewTab?: boolean;
   children: ReactNode;
 };
 
@@ -51,6 +54,8 @@ function SchoolTeacherBaselineInner({
   previewBasePath,
   previewStaffMemberId,
   initialActivityUnreadCount,
+  portalOptions = [],
+  openPortalLinksInNewTab = false,
   children,
 }: SchoolTeacherBaselineProps) {
   const pathname = usePathname();
@@ -133,6 +138,8 @@ function SchoolTeacherBaselineInner({
           previewBasePath={previewBasePath}
           activityUnreadCount={activityUnreadCount}
           onOpenNotifications={openNotifications}
+          portalOptions={portalOptions}
+          openPortalLinksInNewTab={openPortalLinksInNewTab}
         />
 
         <main

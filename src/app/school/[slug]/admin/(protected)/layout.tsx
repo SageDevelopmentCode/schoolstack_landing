@@ -11,6 +11,8 @@ import {
   requireSchoolAdminUser,
   schoolAdminLoginPath,
 } from "@/lib/school-admin/access";
+import { getPortalAccountLinkContext } from "@/lib/auth/portal-account-link-context";
+import { portalAccountLinkOpensInNewTab } from "@/lib/auth/portal-switcher-types";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -91,6 +93,13 @@ export default async function SchoolAdminProtectedLayout({
       ])
     : [0, 0];
 
+  const linkContext = user
+    ? await getPortalAccountLinkContext(supabase, org.id, user.id)
+    : null;
+  const openPortalLinksInNewTab = portalAccountLinkOpensInNewTab(
+    linkContext?.groupId ?? null,
+  );
+
   return (
     <SchoolAdminBaseline
       slug={slug}
@@ -101,6 +110,7 @@ export default async function SchoolAdminProtectedLayout({
       userProfile={userProfile}
       initialMessagesUnreadCount={initialMessagesUnreadCount}
       initialActivityUnreadCount={initialActivityUnreadCount}
+      openPortalLinksInNewTab={openPortalLinksInNewTab}
     >
       {children}
     </SchoolAdminBaseline>
