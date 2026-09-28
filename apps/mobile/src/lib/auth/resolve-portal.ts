@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { userHasEnrolledAccess } from '@/lib/admissions/parent-portal-access';
+import { resolvePortalAccountMemberUserIds } from '@/lib/auth/portal-account-link-context';
 import type { LiveOrganization } from '@/lib/organizations';
 
 export type PortalType =
@@ -36,7 +37,7 @@ async function isPlatformAdmin(
   return data?.role === 'admin';
 }
 
-async function userIsOrgAdmin(
+async function userIsOrgAdminForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -54,7 +55,27 @@ async function userIsOrgAdmin(
   return Boolean(data);
 }
 
-async function userHasTeacherPortalAccess(
+async function userIsOrgAdmin(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (await userIsOrgAdminForAuthUser(supabase, memberUserId, organizationId)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function userHasTeacherPortalAccessForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -72,7 +93,33 @@ async function userHasTeacherPortalAccess(
   return Boolean(data);
 }
 
-async function userHasParentAccess(
+async function userHasTeacherPortalAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (
+      await userHasTeacherPortalAccessForAuthUser(
+        supabase,
+        memberUserId,
+        organizationId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function userHasParentAccessForAuthUser(
   supabase: SupabaseClient,
   userId: string,
   organizationId: string,
@@ -98,6 +145,32 @@ async function userHasParentAccess(
   if (membershipResult.error) throw membershipResult.error;
 
   return Boolean(guardianResult.data || membershipResult.data);
+}
+
+async function userHasParentAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const memberUserIds = await resolvePortalAccountMemberUserIds(
+    supabase,
+    organizationId,
+    userId,
+  );
+
+  for (const memberUserId of memberUserIds) {
+    if (
+      await userHasParentAccessForAuthUser(
+        supabase,
+        memberUserId,
+        organizationId,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export async function resolvePlatformAdmin(
