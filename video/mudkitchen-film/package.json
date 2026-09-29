@@ -1,0 +1,36 @@
+{
+  "name": "mudkitchen-film",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MudKitchen 60-second launch film (Remotion)",
+  "type": "module",
+  "scripts": {
+    "sync-assets": "node scripts/sync-assets.mjs",
+    "split-vo": "node scripts/split-vo.mjs",
+    "sfx": "node scripts/make-sfx.mjs",
+    "studio": "npm run sync-assets && remotion studio",
+    "render": "npm run sync-assets && npm run render:16x9 && npm run render:9x16",
+    "render:16x9": "remotion render MudKitchenFilm16x9 out/mudkitchen-16x9.mp4",
+    "render:9x16": "remotion render MudKitchenFilm9x16 out/mudkitchen-9x16.mp4",
+    "stills": "npm run sync-assets && node scripts/render-stills.mjs",
+    "shotlist": "node --experimental-strip-types scripts/print-shotlist.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.529",
+    "@remotion/cli": "4.0.529",
+    "@remotion/google-fonts": "4.0.529",
+    "@remotion/motion-blur": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "@remotion/transitions": "4.0.529",
+    "lucide-react": "^0.468.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-icons": "^5.7.0",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}
