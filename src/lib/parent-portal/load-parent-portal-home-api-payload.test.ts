@@ -18,6 +18,9 @@ describe("load-parent-portal-home-api-payload", () => {
       programPortalAudienceScope(programId),
       mainPortalAudienceScope(),
     );
-    assert.equal(programPortalAudienceScope(programId).programId, programId);
+    assert.deepEqual(programPortalAudienceScope(programId), {
+      mode: "program_portal",
+      programId,
+    });
   });
 });
