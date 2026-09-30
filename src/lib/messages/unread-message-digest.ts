@@ -3,7 +3,10 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { notifyUnreadMessageDigestSent } from "@/lib/discord";
-import { sendUnreadMessagesDigestEmail } from "@/lib/emails";
+import {
+  buildEmailNotificationContext,
+  sendUnreadMessagesDigestEmail,
+} from "@/lib/emails";
 import { resolveSenderDisplayName } from "@/lib/messages/message-notification-labels";
 import { resolveThreadRecipients } from "@/lib/messages/message-notifications";
 import { stampMessageThreadReadFields } from "@/lib/messages/message-thread-read-stamps";
@@ -261,6 +264,13 @@ export async function sendUnreadMessageDigestsForOrganization(
   const schoolName = String(organization.name);
   const schoolSlug = String(organization.slug);
   const schoolOfficeLabel = `${schoolName} Office`;
+  const digestEmailContext = buildEmailNotificationContext({
+    organizationId,
+    organizationSlug: schoolSlug,
+    surface: "cron",
+    entityType: "organization",
+    entityId: organizationId,
+  });
 
   const threadRows = await fetchAllPostgrestRows(async (from, to) =>
     admin
@@ -463,6 +473,7 @@ export async function sendUnreadMessageDigestsForOrganization(
         threads,
         totalUnread,
         messagesUrl,
+        notificationContext: digestEmailContext,
       }),
     ]);
 
@@ -538,6 +549,7 @@ export async function sendUnreadMessageDigestsForOrganization(
           threads,
           totalUnread,
           messagesUrl,
+          notificationContext: digestEmailContext,
         }),
       ]);
 

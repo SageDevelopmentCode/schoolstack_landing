@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import {
+  buildEmailNotificationContext,
   sendTuitionPaymentReceiptEmail,
   type TuitionPaymentReceiptLineItem,
 } from "@/lib/emails";
@@ -278,6 +279,13 @@ export async function sendTuitionPaymentReceiptNotifications(
           studentName,
           chargeLabel: payment.label ?? "Tuition",
           lumpSumBreakdown: lumpSumBreakdownFromSettleResult(options?.settleResult),
+          notificationContext: buildEmailNotificationContext({
+            organizationId: payment.organizationId,
+            organizationSlug: org.slug,
+            surface: "web",
+            entityType: "payment",
+            entityId: paymentId,
+          }),
         }),
       ),
     );
@@ -385,6 +393,13 @@ export async function sendCombinedTuitionPaymentReceiptNotifications(
           chargedAmountCents,
           processingFeeCents: processingFeeCents > 0 ? processingFeeCents : null,
           combinedLineItems,
+          notificationContext: buildEmailNotificationContext({
+            organizationId: firstPayment.organizationId,
+            organizationSlug: org.slug,
+            surface: "web",
+            entityType: "payment",
+            entityId: input.checkoutSessionId,
+          }),
         }),
       ),
     );

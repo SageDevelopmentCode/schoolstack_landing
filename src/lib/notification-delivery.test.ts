@@ -34,6 +34,10 @@ describe("notification-delivery", () => {
             toAddress: "test@example.com",
             subject: "Subject",
             content: "<p>Hi</p>",
+            discord: {
+              channel: "test_email",
+              audience: "prospect",
+            },
           }),
         /Test email: Zoho outbound email is not configured/,
       );

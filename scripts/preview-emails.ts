@@ -1,7 +1,11 @@
+import { config } from "dotenv";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+
+config({ path: resolve(process.cwd(), ".env.local") });
 import {
   buildApplicationAcceptedEnrollmentHtml,
+  buildBulletinPublishedEmailHtml,
   buildApplicationSubmittedConfirmationHtml,
   buildApplicationSubmittedOwnerNotificationHtml,
   buildCommitteeDailyDigestHtml,
@@ -25,6 +29,7 @@ import {
   buildScheduledVisitDayBeforeReminderHtml,
   buildTeacherParentFormPublishedEmailHtml,
   buildTeacherParentFormResponseSignedEmailHtml,
+  buildTuitionAutopayUpcomingHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
   buildTuitionPaymentReceiptHtml,
@@ -35,6 +40,9 @@ import {
   SUPABASE_CONFIRM_SIGNUP_SUBJECT,
   SUPABASE_MAGIC_LINK_SUBJECT,
 } from "../src/lib/supabase-auth-emails";
+import { appendUnsubscribeFooter } from "../src/lib/outbound-email-unsubscribe";
+
+const PREVIEW_RECIPIENT_EMAIL = "preview@example.com";
 
 const outDir = join(process.cwd(), ".email-previews");
 const supabaseTemplatesDir = join(process.cwd(), "supabase/email-templates");
@@ -308,12 +316,41 @@ const previews = [
     html: buildTuitionDueReminderHtml({
       familyName: "Nguyen",
       schoolName: "Rooted Meadows",
-      dueDate: "August 1, 2026",
+      dueDate: "2026-08-01",
       totalDue: "$450.00",
       chargeLines: ["Tuition — August ($400.00)", "Materials fee ($50.00)"],
       billingUrl: "https://trymudkitchen.com/parent/billing",
     }),
-    checks: ["Tuition Reminder", "Total due", "View billing", "Materials fee"],
+    checks: [
+      "Tuition Reminder",
+      "Total due",
+      "August 1, 2026",
+      "View billing",
+      "Materials fee",
+    ],
+  },
+  {
+    filename: "tuition-autopay-upcoming.html",
+    html: buildTuitionAutopayUpcomingHtml({
+      familyName: "Thompson Family",
+      schoolName: "Rooted Meadows Waldorf School",
+      chargeDate: "2026-10-01",
+      totalDue: "$1,440.00",
+      chargeLines: [
+        "Oct Tuition — $720.00",
+        "Oct Tuition — $720.00",
+      ],
+      billingUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+    }),
+    checks: [
+      "Autopay Reminder",
+      "saved payment method tomorrow",
+      "October 1, 2026",
+      "Oct Tuition",
+      "View billing",
+      "turn off autopay",
+    ],
   },
   {
     filename: "tuition-payment-receipt-standard.html",
@@ -655,6 +692,47 @@ const previews = [
       "Visits scheduled for tomorrow",
       "Family interview",
       "Open schedule",
+    ],
+  },
+  {
+    filename: "bulletin-published-parent.html",
+    html: buildBulletinPublishedEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      postTitle: "Picture day next Tuesday",
+      audienceLabel: "School-wide",
+      excerpt:
+        "Students should wear their class colors and bring a labeled water bottle. Photos will be outdoors if weather permits.",
+      attachmentCount: 2,
+      portalUrl: "https://trymudkitchen.com/school/rooted-meadows/parent",
+      publisherName: "Alex Admin",
+    }),
+    checks: [
+      "New Announcement",
+      "Picture day next Tuesday",
+      "School-wide",
+      "2 files",
+      "Alex Admin",
+      "View bulletin",
+      "/school/rooted-meadows/parent",
+    ],
+  },
+  {
+    filename: "bulletin-published-teacher.html",
+    html: buildBulletinPublishedEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      postTitle: "Staff meeting moved to 3pm",
+      audienceLabel: "Teachers only",
+      excerpt: "We will review the field trip roster and carpool assignments.",
+      attachmentCount: 0,
+      portalUrl: "https://trymudkitchen.com/school/rooted-meadows/teacher",
+      publisherName: "Julius Cecilia",
+    }),
+    checks: [
+      "New Announcement",
+      "Staff meeting moved to 3pm",
+      "Teachers only",
+      "View bulletin",
+      "/school/rooted-meadows/teacher",
     ],
   },
   {
@@ -1027,6 +1105,7 @@ const previews = [
   },
   {
     filename: "supabase-magic-link-otp.html",
+    includeUnsubscribeFooter: false,
     html: buildSupabaseMagicLinkOtpHtml(sampleToken),
     checks: [
       "Sign In",
@@ -1037,21 +1116,32 @@ const previews = [
   },
   {
     filename: "supabase-confirm-signup-otp.html",
+    includeUnsubscribeFooter: false,
     html: buildSupabaseConfirmSignupOtpHtml(sampleToken),
     checks: ["Verify Email", "Confirm your email", sampleToken, "trymudkitchen.com/images/Logo.png"],
   },
 ];
 
 for (const preview of previews) {
-  writeFileSync(join(outDir, preview.filename), preview.html, "utf8");
+  const includesUnsubscribeFooter = preview.includeUnsubscribeFooter !== false;
+  const htmlForFile = includesUnsubscribeFooter
+    ? appendUnsubscribeFooter(preview.html, PREVIEW_RECIPIENT_EMAIL)
+    : preview.html;
 
-  for (const check of preview.checks) {
-    if (!preview.html.includes(check)) {
+  writeFileSync(join(outDir, preview.filename), htmlForFile, "utf8");
+
+  const checks = [...preview.checks];
+  if (includesUnsubscribeFooter && process.env.EMAIL_UNSUBSCRIBE_SECRET) {
+    checks.push("Unsubscribe from non-essential emails");
+  }
+
+  for (const check of checks) {
+    if (!htmlForFile.includes(check)) {
       throw new Error(`${preview.filename} missing expected content: ${check}`);
     }
   }
 
-  assertNoCreamBackgrounds(preview.html, preview.filename);
+  assertNoCreamBackgrounds(htmlForFile, preview.filename);
 
   console.log(`✓ ${preview.filename}`);
 }
@@ -1070,3 +1160,9 @@ console.log("✓ supabase/email-templates/magic-link.html");
 console.log("✓ supabase/email-templates/confirm-signup.html");
 console.log("✓ supabase/email-templates/subjects.txt");
 console.log(`\nPreview files written to ${outDir}`);
+
+if (!process.env.EMAIL_UNSUBSCRIBE_SECRET) {
+  console.warn(
+    "EMAIL_UNSUBSCRIBE_SECRET not set; unsubscribe footer omitted from previews",
+  );
+}

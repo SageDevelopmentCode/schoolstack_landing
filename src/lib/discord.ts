@@ -99,6 +99,37 @@ const FIELD_LABELS: Record<string, string> = {
   "Paid at": "📅 Paid at",
   "Invoice ID": "🆔 Invoice ID",
   "Stripe invoice": "🔗 Stripe invoice",
+  Channel: "📣 Channel",
+  Audience: "👥 Audience",
+  Surface: "🖥️ Surface",
+};
+
+export type OutboundEmailAudience =
+  | "parent"
+  | "teacher"
+  | "school_admin"
+  | "prospect"
+  | "staff"
+  | "mudkitchen_internal";
+
+export type OutboundEmailDiscordMeta = {
+  channel: string;
+  audience: OutboundEmailAudience;
+  organizationId?: string;
+  organizationName?: string;
+  organizationSlug?: string;
+  surface?: "web" | "mobile" | "cron" | "system";
+  entityType?: string;
+  entityId?: string;
+};
+
+const OUTBOUND_EMAIL_AUDIENCE_LABELS: Record<OutboundEmailAudience, string> = {
+  parent: "Parent / family",
+  teacher: "Teacher",
+  school_admin: "School admin",
+  prospect: "Prospect / public",
+  staff: "Staff",
+  mudkitchen_internal: "MudKitchen internal",
 };
 
 export function truncate(value: string, max = 1024) {
@@ -381,6 +412,7 @@ export async function notifyTuitionBillingCronSummary(payload: {
   failedOrganizationIds?: string[];
   overdueCount: number;
   remindersSent: number;
+  autopayRemindersSent?: number;
   incompleteAdmissionsRemindersSent?: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
@@ -399,11 +431,18 @@ export async function notifyTuitionBillingCronSummary(payload: {
   scheduledVisitAdminWeeklyDigestsSent?: number;
   scheduledVisitAdminDayBeforeDigestsSent?: number;
   scheduledVisitReminderFailures?: number;
+  bulletinEmailsSent?: number;
+  bulletinEmailFailures?: number;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Organizations", String(payload.organizations), true),
     embedField("Overdue marked", String(payload.overdueCount), true),
     embedField("Reminders sent", String(payload.remindersSent), true),
+    embedField(
+      "Autopay reminders sent",
+      String(payload.autopayRemindersSent ?? 0),
+      true,
+    ),
     embedField(
       "Committee digests sent",
       String(payload.committeeDigestsSent ?? 0),
@@ -447,6 +486,16 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField(
       "Visit reminder failures",
       String(payload.scheduledVisitReminderFailures ?? 0),
+      true,
+    ),
+    embedField(
+      "Bulletin emails sent",
+      String(payload.bulletinEmailsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Bulletin email failures",
+      String(payload.bulletinEmailFailures ?? 0),
       true,
     ),
     embedField("Rules evaluated", String(payload.rulesEvaluated), true),
@@ -1904,6 +1953,80 @@ export async function notifyScheduledVisitRemindersSent(payload: {
 
   await sendDigestNotificationsDiscordEmbed({
     title: `Scheduled visit reminders — ${payload.schoolName}`,
+    color: DISCORD_EMBED_COLORS.ops,
+    fields,
+  });
+}
+
+export async function notifyOutboundEmailSent(
+  payload: OutboundEmailDiscordMeta & {
+    toAddress: string;
+    subject: string;
+  },
+): Promise<void> {
+  const fields: DiscordEmbedField[] = [
+    embedField("Channel", truncate(payload.channel), true),
+    embedField(
+      "Audience",
+      OUTBOUND_EMAIL_AUDIENCE_LABELS[payload.audience],
+      true,
+    ),
+    embedField("Email", truncate(payload.toAddress), true),
+    embedField("Subject", truncate(payload.subject)),
+  ];
+
+  if (payload.organizationName) {
+    fields.push(
+      schoolField(
+        payload.organizationName,
+        payload.organizationSlug,
+        payload.organizationId,
+      ),
+    );
+  }
+
+  if (payload.surface) {
+    fields.push(embedField("Surface", payload.surface, true));
+  }
+
+  if (payload.entityType && payload.entityId) {
+    fields.push(
+      embedField(
+        "Entity",
+        truncate(`${payload.entityType}\n${formatId(payload.entityId)}`),
+        true,
+      ),
+    );
+  }
+
+  const schoolSuffix = payload.organizationName
+    ? ` · ${payload.organizationName}`
+    : "";
+
+  await sendDigestNotificationsDiscordEmbed({
+    title: "📧 Email sent",
+    description: truncate(`${payload.subject}${schoolSuffix}`, 200),
+    color: DISCORD_EMBED_COLORS.ops,
+    fields,
+  });
+}
+
+export async function notifyOutboundEmailUnsubscribed(payload: {
+  email: string;
+  source: "link" | "admin";
+}): Promise<void> {
+  const fields: DiscordEmbedField[] = [
+    embedField("Email", truncate(payload.email), true),
+    embedField(
+      "Source",
+      payload.source === "link" ? "Unsubscribe link" : "Platform admin",
+      true,
+    ),
+  ];
+
+  await sendDigestNotificationsDiscordEmbed({
+    title: "📭 Outbound email unsubscribe",
+    description: truncate(payload.email, 200),
     color: DISCORD_EMBED_COLORS.ops,
     fields,
   });

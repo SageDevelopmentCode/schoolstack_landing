@@ -170,3 +170,48 @@ export function audiencesIncludeProgramTargeting(audiences: BulletinAudience[]):
 export function programSelectionRequired(audiences: BulletinAudience[]): boolean {
   return normalizeBulletinAudiences(audiences).includes("program");
 }
+
+function hasBulletinAudience(
+  audiences: BulletinAudience[],
+  audience: BulletinAudience,
+): boolean {
+  return audiences.includes(audience);
+}
+
+export function bulletinNotifiesParents(audiences: BulletinAudience[]): boolean {
+  const normalized = normalizeBulletinAudiences(audiences);
+  return (
+    hasBulletinAudience(normalized, "school_wide") ||
+    hasBulletinAudience(normalized, "parents") ||
+    hasBulletinAudience(normalized, "program")
+  );
+}
+
+export function bulletinNotifiesStaff(audiences: BulletinAudience[]): boolean {
+  const normalized = normalizeBulletinAudiences(audiences);
+  return (
+    hasBulletinAudience(normalized, "school_wide") ||
+    hasBulletinAudience(normalized, "teachers")
+  );
+}
+
+export function bulletinParentProgramFilter(
+  audiences: BulletinAudience[],
+  programIds: string[],
+): string[] {
+  const normalized = normalizeBulletinAudiences(audiences);
+  const normalizedProgramIds = normalizeBulletinProgramIds(programIds);
+
+  if (hasBulletinAudience(normalized, "school_wide")) {
+    return [];
+  }
+
+  if (
+    hasBulletinAudience(normalized, "parents") ||
+    hasBulletinAudience(normalized, "program")
+  ) {
+    return normalizedProgramIds;
+  }
+
+  return [];
+}

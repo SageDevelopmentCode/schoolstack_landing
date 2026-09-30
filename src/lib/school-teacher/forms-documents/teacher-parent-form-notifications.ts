@@ -9,6 +9,7 @@ import {
   type ActorType,
 } from "@/lib/activity-log";
 import {
+  buildEmailNotificationContext,
   sendTeacherParentFormPublishedEmail,
   sendTeacherParentFormResponseSignedEmail,
 } from "@/lib/emails";
@@ -171,6 +172,13 @@ export async function sendTeacherParentFormPublishedNotifications(
     input.form.formCategory === "tuition"
       ? `${SITE_URL}${schoolParentPath(org.schoolSlug, "billing")}?tab=agreements&form=${encodeURIComponent(input.form.id)}`
       : `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
+  const formEmailContext = buildEmailNotificationContext({
+    organizationId: input.organizationId,
+    organizationSlug: org.schoolSlug,
+    surface: "web",
+    entityType: "teacher_parent_form",
+    entityId: input.form.id,
+  });
   const emailSendPromises: Promise<unknown>[] = [];
 
   for (const family of families) {
@@ -185,6 +193,7 @@ export async function sendTeacherParentFormPublishedNotifications(
           dueDate: input.form.dueDate,
           studentNames: family.studentNames,
           formUrl,
+          notificationContext: formEmailContext,
         }),
       );
     }
@@ -253,6 +262,13 @@ export async function sendTeacherParentFormResponseSignedNotification(
       familyName: input.familyName,
       formTitle: input.formTitle,
       formUrl,
+      notificationContext: buildEmailNotificationContext({
+        organizationId: input.organizationId,
+        organizationSlug: org.schoolSlug,
+        surface: "web",
+        entityType: "teacher_parent_form",
+        entityId: input.formId,
+      }),
     }),
   ]);
 

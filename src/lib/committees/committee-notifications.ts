@@ -6,6 +6,7 @@ import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import type { ActivitySurface } from "@/lib/activity-log";
 import { notifyCommitteeJoinRequested } from "@/lib/discord";
 import {
+  buildEmailNotificationContext,
   sendCommitteeJoinApprovedNotification,
   sendCommitteeJoinRequestAdminNotification,
   sendCommitteeTaskAssignedNotification,
@@ -93,6 +94,13 @@ export async function sendCommitteeJoinRequestedNotifications(
         note: input.note,
         submittedAtLabel,
         committeesAdminUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: input.schoolSlug,
+          surface: "web",
+          entityType: "committee_join_request",
+          entityId: input.requestId,
+        }),
       }),
     ),
   ]);
@@ -176,6 +184,13 @@ export async function sendCommitteeJoinApprovedNotifications(
       committeeName: input.committeeName,
       memberName: input.memberName,
       committeesUrl,
+      notificationContext: buildEmailNotificationContext({
+        organizationId: input.organizationId,
+        organizationSlug: input.schoolSlug,
+        surface: "web",
+        entityType: "committee_join_request",
+        entityId: input.requestId,
+      }),
     }),
   ]);
 
@@ -354,6 +369,13 @@ export async function sendCommitteeTaskAssignedNotifications(
       dueDateLabel,
       assignerName: input.assignerName,
       tasksUrl,
+      notificationContext: buildEmailNotificationContext({
+        organizationId: input.organizationId,
+        organizationSlug: input.schoolSlug,
+        surface: "web",
+        entityType: "committee_task",
+        entityId: input.taskId,
+      }),
     }),
   ]);
 

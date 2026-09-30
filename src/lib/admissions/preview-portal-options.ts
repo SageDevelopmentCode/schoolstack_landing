@@ -1,4 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SchoolPortalOption } from "@/lib/auth/portal-switcher-types";
+import { resolveDefaultParentPortalEntryHrefForFamily } from "@/lib/admissions/program-parent-portal-access";
 import type { OrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
@@ -20,15 +22,45 @@ export function schoolAdminPreviewBasePath(slug: string, familyId?: string): str
   return `${base}?familyId=${encodeURIComponent(familyId)}`;
 }
 
+export async function resolveFamilyPreviewParentPortalHref(
+  supabase: SupabaseClient,
+  org: OrganizationWithSettings,
+  familyId: string,
+): Promise<string | null> {
+  if (!isParentPortalEnabled(org.features)) {
+    return null;
+  }
+
+  const previewParentBasePath = familyPreviewParentBasePath(org.slug, familyId);
+  return resolveDefaultParentPortalEntryHrefForFamily({
+    supabase,
+    organizationId: org.id,
+    familyId,
+    schoolSlug: org.slug,
+    schoolName: org.name,
+    orgFeatures: org.features,
+    previewParentBasePath,
+  });
+}
+
 export function listPreviewPortalOptions(input: {
   slug: string;
   familyId: string;
   hasEnrolledAccess: boolean;
   org: OrganizationWithSettings;
+  /** Resolved parent portal entry (program-aware). When omitted, falls back to org nav home. */
+  parentPortalHref?: string | null;
   /** Include School admin for admin-preview dual-access switching only. */
   includeAdmin?: boolean;
 }): SchoolPortalOption[] {
-  const { slug, familyId, hasEnrolledAccess, org, includeAdmin = false } = input;
+  const {
+    slug,
+    familyId,
+    hasEnrolledAccess,
+    org,
+    parentPortalHref: resolvedParentHref,
+    includeAdmin = false,
+  } = input;
   const options: SchoolPortalOption[] = [];
 
   if (includeAdmin) {
@@ -46,12 +78,14 @@ export function listPreviewPortalOptions(input: {
   });
 
   if (hasEnrolledAccess && isParentPortalEnabled(org.features)) {
-    const parentHref = getParentPortalHomeHref(
-      slug,
-      org.features.parent,
-      org.features.feature_nav?.parent,
-      familyPreviewParentBasePath(slug, familyId),
-    );
+    const parentHref =
+      resolvedParentHref ??
+      getParentPortalHomeHref(
+        slug,
+        org.features.parent,
+        org.features.feature_nav?.parent,
+        familyPreviewParentBasePath(slug, familyId),
+      );
 
     if (parentHref) {
       options.push({

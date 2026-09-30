@@ -10,13 +10,6 @@ import {
   shouldLogBulletinPostPublished,
 } from "./bulletin-activity";
 import {
-  filterBulletinPostsForViewer,
-  parentMainPortalBulletinScope,
-  parentProgramPortalBulletinScope,
-  teacherBulletinScope,
-  type BulletinViewerScope,
-} from "./bulletin-audience";
-import {
   mapBulletinAttachmentRow,
   mapBulletinPostRow,
   normalizeBulletinAudiences,
@@ -32,18 +25,9 @@ import type {
   ProgramOption,
   UpdateBulletinPostInput,
 } from "./types";
+import { BulletinError } from "./bulletin-errors";
 
-export class BulletinError extends Error {
-  code: string;
-  status: number;
-
-  constructor(message: string, code: string, status: number) {
-    super(message);
-    this.name = "BulletinError";
-    this.code = code;
-    this.status = status;
-  }
-}
+export { BulletinError } from "./bulletin-errors";
 
 const POST_SELECT = `
   id,
@@ -280,75 +264,6 @@ export async function getBulletinPostForAdmin(
   };
 }
 
-export async function listActiveBulletinPostsForViewer(
-  supabase: SupabaseClient,
-  organizationId: string,
-  scope: BulletinViewerScope,
-  limit = 3,
-  options?: { includeSignedUrls?: boolean; signedUrlClient?: SupabaseClient },
-): Promise<BulletinPost[]> {
-  const { data, error } = await supabase
-    .from("school_bulletin_posts")
-    .select(POST_SELECT)
-    .eq("organization_id", organizationId)
-    .eq("status", "published")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) throw new BulletinError(error.message, "load_failed", 500);
-
-  const posts = await mapPostsWithAttachments(
-    supabase,
-    (data ?? []) as BulletinPostRow[],
-  );
-  const filtered = filterBulletinPostsForViewer(posts, scope).slice(0, limit);
-
-  if (options?.includeSignedUrls && options.signedUrlClient) {
-    return attachSignedUrlsToBulletinPosts(options.signedUrlClient, filtered);
-  }
-
-  return filtered;
-}
-
-export function resolveBulletinViewerScope(input: {
-  viewer: "parent" | "teacher";
-  programId?: string;
-}): BulletinViewerScope {
-  if (input.viewer === "teacher") {
-    return teacherBulletinScope();
-  }
-  if (input.programId) {
-    return parentProgramPortalBulletinScope(input.programId);
-  }
-  return parentMainPortalBulletinScope();
-}
-
-export async function loadHomeBulletinPosts(input: {
-  supabase: SupabaseClient;
-  signedUrlClient: SupabaseClient;
-  organizationId: string;
-  bulletinEnabled: boolean;
-  viewer: "parent" | "teacher";
-  programId?: string;
-  limit?: number;
-}): Promise<BulletinPost[]> {
-  if (!input.bulletinEnabled) return [];
-
-  return listActiveBulletinPostsForViewer(
-    input.supabase,
-    input.organizationId,
-    resolveBulletinViewerScope({
-      viewer: input.viewer,
-      programId: input.programId,
-    }),
-    input.limit ?? 3,
-    {
-      includeSignedUrls: true,
-      signedUrlClient: input.signedUrlClient,
-    },
-  );
-}
-
 export async function createBulletinPost(
   supabase: SupabaseClient,
   input: CreateBulletinPostInput,
@@ -402,6 +317,19 @@ export async function createBulletinPost(
       programIds: post.programIds,
       actorUserId: input.createdBy ?? null,
     });
+    const {
+      fireBulletinPublishedEmailNotifications,
+      maybeSendBulletinEmailsOnPublish,
+    } = await import("./bulletin-notifications");
+    fireBulletinPublishedEmailNotifications(
+      supabase,
+      maybeSendBulletinEmailsOnPublish(supabase, {
+        organizationId: input.organizationId,
+        post,
+        publisherStaffId: input.createdBy ?? post.createdBy,
+      }),
+      { organizationId: input.organizationId, postId: post.id },
+    );
   }
 
   return post;
@@ -478,6 +406,19 @@ export async function updateBulletinPost(
       audiences: post.audiences,
       programIds: post.programIds,
     });
+    const {
+      fireBulletinPublishedEmailNotifications,
+      maybeSendBulletinEmailsOnPublish,
+    } = await import("./bulletin-notifications");
+    fireBulletinPublishedEmailNotifications(
+      supabase,
+      maybeSendBulletinEmailsOnPublish(supabase, {
+        organizationId: input.organizationId,
+        post,
+        publisherStaffId: post.createdBy,
+      }),
+      { organizationId: input.organizationId, postId: post.id },
+    );
   }
 
   return post;

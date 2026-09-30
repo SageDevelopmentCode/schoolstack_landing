@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildEmailNotificationContext,
   buildTuitionDueReminderHtml,
   sendTuitionDueReminderEmail,
 } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
+import { formatDateOnlyLongLabel } from "@/lib/admissions/admissions-availability";
 import { formatCents } from "./pricing";
 
 type DueChargeRow = {
@@ -85,7 +87,7 @@ export async function sendTuitionDueReminders(
     );
     const chargeLines = familyCharges.map(
       (charge) =>
-        `${charge.label} — ${formatCents(Number(charge.amount_cents))} due ${charge.due_date}`,
+        `${charge.label} — ${formatCents(Number(charge.amount_cents))} due ${formatDateOnlyLongLabel(charge.due_date)}`,
     );
 
     const billingUrl = orgSlug
@@ -106,6 +108,13 @@ export async function sendTuitionDueReminders(
         to: email,
         schoolName,
         html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId,
+          organizationSlug: orgSlug,
+          surface: "cron",
+          entityType: "family",
+          entityId: familyId,
+        }),
       });
 
       if (result.ok) sent++;

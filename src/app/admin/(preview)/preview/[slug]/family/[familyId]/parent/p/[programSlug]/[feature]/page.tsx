@@ -37,7 +37,7 @@ import {
   programPortalAudienceScope,
 } from "@/lib/school-events/event-audience";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { filterFamilyChildrenForProgramPortal } from "@/components/school-parent/children/parent-children-utils";
 import { loadStudentHealthProfilesForStudents } from "@/lib/student-health/load-student-health-profile";
 import { listProgramCoopCurriculumDiscussionMessages } from "@/lib/admissions/program-coop-curriculum-discussion";

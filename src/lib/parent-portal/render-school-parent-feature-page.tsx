@@ -71,7 +71,7 @@ import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import { getGuardianIdForUser } from "@/lib/messages/messages";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 
 export type SchoolParentFeaturePageContext = {
   slug: string;

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import {
+  buildEmailNotificationContext,
   buildFridayBranchClassRosterEmailHtml,
   sendFridayBranchClassRosterEmail,
 } from "@/lib/emails";
@@ -130,11 +131,25 @@ export async function sendFridayBranchClassRosterEmails(
 
   const payload = buildFridayBranchClassRosterEmailPayload(roster);
 
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("id", input.organizationId)
+    .maybeSingle();
+  const rosterEmailContext = buildEmailNotificationContext({
+    organizationId: input.organizationId,
+    organizationSlug: String(orgRow?.slug ?? ""),
+    surface: "web",
+    entityType: "friday_branch_class",
+    entityId: input.classId,
+  });
+
   const results = await Promise.allSettled(
     input.emails.map((email) =>
       sendFridayBranchClassRosterEmail({
         email,
         ...payload,
+        notificationContext: rosterEmailContext,
       }),
     ),
   );

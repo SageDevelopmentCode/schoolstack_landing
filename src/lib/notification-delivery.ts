@@ -1,3 +1,4 @@
+import type { OutboundEmailDiscordMeta } from "@/lib/discord";
 import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
 
 export async function ensureZohoConfigured(channel: string): Promise<void> {
@@ -11,6 +12,8 @@ export async function deliverZohoEmail(input: {
   toAddress: string;
   subject: string;
   content: string;
+  discord: OutboundEmailDiscordMeta;
+  sendClass?: import("@/lib/outbound-email-unsubscribe").OutboundEmailSendClass;
 }): Promise<void> {
   await ensureZohoConfigured(input.channel);
 
@@ -18,6 +21,11 @@ export async function deliverZohoEmail(input: {
     toAddress: input.toAddress,
     subject: input.subject,
     content: input.content,
+    sendClass: input.sendClass,
+    discord: {
+      ...input.discord,
+      channel: input.discord.channel || input.channel,
+    },
   });
 
   if (!result.success) {

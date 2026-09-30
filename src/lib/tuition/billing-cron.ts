@@ -26,8 +26,13 @@ import {
 } from "@/lib/tuition/autopay-cron-report";
 import { sendCommitteeDailyDigestsForOrganization } from "@/lib/committees/daily-digest";
 import type { UnreadMessageDigestResult } from "@/lib/messages/unread-message-digest-types";
+import { sendAutopayUpcomingReminders } from "@/lib/tuition/autopay-reminders";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
 import { evaluateRulesForOrganization } from "@/lib/tuition/rules-engine";
+import {
+  sendPendingScheduledBulletinEmailsForOrganization,
+  type PendingBulletinEmailCronResult,
+} from "@/lib/school-bulletin/bulletin-notifications";
 
 const FAILED_ORGANIZATION_IDS_CAP = 10;
 
@@ -37,6 +42,7 @@ export type TuitionBillingCronSummary = {
   failedOrganizationIds: string[];
   overdueCount: number;
   remindersSent: number;
+  autopayRemindersSent: number;
   incompleteAdmissionsRemindersSent: number;
   rulesEvaluated: number;
   lateFeesApplied: number;
@@ -55,6 +61,8 @@ export type TuitionBillingCronSummary = {
   scheduledVisitAdminWeeklyDigestsSent: number;
   scheduledVisitAdminDayBeforeDigestsSent: number;
   scheduledVisitReminderFailures: number;
+  bulletinEmailsSent: number;
+  bulletinEmailFailures: number;
 };
 
 export type TuitionBillingCronDeps = {
@@ -62,6 +70,7 @@ export type TuitionBillingCronDeps = {
   getTuitionOrgSettings?: typeof getTuitionOrgSettings;
   markOverdueCharges?: typeof markOverdueCharges;
   sendTuitionDueReminders?: typeof sendTuitionDueReminders;
+  sendAutopayUpcomingReminders?: typeof sendAutopayUpcomingReminders;
   sendIncompleteAdmissionsReminders?: typeof sendIncompleteAdmissionsReminders;
   applyLateFeesForOrganization?: typeof applyLateFeesForOrganization;
   evaluateRulesForOrganization?: typeof evaluateRulesForOrganization;
@@ -76,6 +85,10 @@ export type TuitionBillingCronDeps = {
     admin: SupabaseClient,
     organizationId: string,
   ) => Promise<ScheduledVisitRemindersResult>;
+  sendPendingScheduledBulletinEmailsForOrganization?: (
+    admin: SupabaseClient,
+    organizationId: string,
+  ) => Promise<PendingBulletinEmailCronResult>;
 };
 
 export function authorizeTuitionBillingCronRequest(request: Request): boolean {
@@ -106,6 +119,8 @@ export async function runTuitionBillingCron(
   const loadSettings = deps.getTuitionOrgSettings ?? getTuitionOrgSettings;
   const markOverdue = deps.markOverdueCharges ?? markOverdueCharges;
   const sendReminders = deps.sendTuitionDueReminders ?? sendTuitionDueReminders;
+  const sendAutopayReminders =
+    deps.sendAutopayUpcomingReminders ?? sendAutopayUpcomingReminders;
   const sendIncompleteAdmissionsRemindersFn =
     deps.sendIncompleteAdmissionsReminders ?? sendIncompleteAdmissionsReminders;
   const applyLateFees =
@@ -127,11 +142,15 @@ export async function runTuitionBillingCron(
   const sendScheduledVisitReminders =
     deps.sendScheduledVisitRemindersForOrganization ??
     sendScheduledVisitRemindersForOrganization;
+  const sendPendingBulletinEmails =
+    deps.sendPendingScheduledBulletinEmailsForOrganization ??
+    sendPendingScheduledBulletinEmailsForOrganization;
 
   const organizationIds = await listLiveOrganizationIds(admin);
 
   let overdueCount = 0;
   let remindersSent = 0;
+  let autopayRemindersSent = 0;
   let incompleteAdmissionsRemindersSent = 0;
   let rulesEvaluated = 0;
   let lateFeesApplied = 0;
@@ -151,6 +170,8 @@ export async function runTuitionBillingCron(
   let scheduledVisitAdminWeeklyDigestsSent = 0;
   let scheduledVisitAdminDayBeforeDigestsSent = 0;
   let scheduledVisitReminderFailures = 0;
+  let bulletinEmailsSent = 0;
+  let bulletinEmailFailures = 0;
   const failedOrganizationIds: string[] = [];
 
   for (const organizationId of organizationIds) {
@@ -168,6 +189,9 @@ export async function runTuitionBillingCron(
         orgReminders += sent;
         remindersSent += sent;
       }
+
+      const orgAutopayReminders = await sendAutopayReminders(admin, organizationId);
+      autopayRemindersSent += orgAutopayReminders;
 
       const orgIncompleteAdmissionsReminders =
         await sendIncompleteAdmissionsRemindersFn(admin, organizationId);
@@ -305,6 +329,27 @@ export async function runTuitionBillingCron(
           cause: error,
         });
       }
+
+      try {
+        const bulletinResult = await sendPendingBulletinEmails(admin, organizationId);
+        bulletinEmailsSent += bulletinResult.emailsSucceeded;
+        bulletinEmailFailures += bulletinResult.failures;
+      } catch (error) {
+        bulletinEmailFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "bulletin_published_email_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Bulletin published email cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
     } catch (error) {
       organizationFailures += 1;
       if (failedOrganizationIds.length < FAILED_ORGANIZATION_IDS_CAP) {
@@ -333,6 +378,7 @@ export async function runTuitionBillingCron(
     failedOrganizationIds,
     overdueCount,
     remindersSent,
+    autopayRemindersSent,
     incompleteAdmissionsRemindersSent,
     rulesEvaluated,
     lateFeesApplied,
@@ -351,6 +397,8 @@ export async function runTuitionBillingCron(
     scheduledVisitAdminWeeklyDigestsSent,
     scheduledVisitAdminDayBeforeDigestsSent,
     scheduledVisitReminderFailures,
+    bulletinEmailsSent,
+    bulletinEmailFailures,
   };
 
   try {

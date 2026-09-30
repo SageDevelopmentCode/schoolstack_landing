@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildEmailNotificationContext,
   buildTuitionLateFeeHtml,
   sendTuitionLateFeeEmail,
 } from "@/lib/emails";
@@ -513,6 +514,13 @@ export async function applyLateFeesForOrganization(
           to: email,
           schoolName,
           html,
+          notificationContext: buildEmailNotificationContext({
+            organizationId,
+            organizationSlug: orgSlug,
+            surface: "cron",
+            entityType: "family",
+            entityId: familyId,
+          }),
         });
 
         if (result.ok) notified += 1;
@@ -595,6 +603,13 @@ export async function applyLateFeesForOrganization(
         to: email,
         schoolName,
         html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId,
+          organizationSlug: orgSlug,
+          surface: "cron",
+          entityType: "family",
+          entityId: familyId,
+        }),
       });
 
       if (result.ok) notified += 1;

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildEmailNotificationContext,
   buildTuitionInvoiceHtml,
   sendTuitionInvoiceEmail,
 } from "@/lib/emails";
@@ -81,6 +82,13 @@ export async function sendTuitionInvoice(
         to: email,
         schoolName: String(org?.name ?? "Your school"),
         html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: charge.organizationId,
+          organizationSlug: orgSlug,
+          surface: "web",
+          entityType: "tuition_charge",
+          entityId: charge.id,
+        }),
       });
       if (result.ok) emailed = true;
     }

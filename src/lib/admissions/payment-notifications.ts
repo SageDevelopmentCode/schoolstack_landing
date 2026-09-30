@@ -6,7 +6,7 @@ import {
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import { logNotificationFailure, logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { notifyPaymentCompleted } from "@/lib/discord";
-import { sendPaymentReceiptConfirmation } from "@/lib/emails";
+import { buildEmailNotificationContext, sendPaymentReceiptConfirmation } from "@/lib/emails";
 import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import { getPaymentById } from "@/lib/stripe/application-payments";
 import { SITE_URL } from "@/lib/site";
@@ -102,6 +102,13 @@ export async function sendPaymentCompletedNotifications(
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
+    const paymentEmailContext = buildEmailNotificationContext({
+      organizationId: payment.organizationId,
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "payment",
+      entityId: paymentId,
+    });
     const label = payment.label ?? "Payment";
     const chargedAmountCents =
       payment.chargedAmountCents ?? payment.amountCents;
@@ -137,6 +144,7 @@ export async function sendPaymentCompletedNotifications(
           paymentMethodLabel,
           paidAt,
           applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
+          notificationContext: paymentEmailContext,
         }),
       ),
     ]);

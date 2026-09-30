@@ -25,6 +25,7 @@ import {
   type CampusTourBookingSource,
 } from "@/lib/discord";
 import {
+  buildEmailNotificationContext,
   sendScheduledVisitAdminDigestEmail,
   sendScheduledVisitDayBeforeReminderEmail,
   type ScheduledVisitAdminDigestRow,
@@ -355,6 +356,13 @@ async function sendAdminDigest(
   const digestRows = payload.rows.map(toDigestRow);
   let delivered = false;
   let failures = 0;
+  const notificationContext = buildEmailNotificationContext({
+    organizationId,
+    organizationSlug: payload.schoolSlug,
+    surface: "cron",
+    entityType: "organization",
+    entityId: organizationId,
+  });
 
   for (const email of payload.recipientEmails) {
     const result = await sendScheduledVisitAdminDigestEmail({
@@ -363,6 +371,7 @@ async function sendAdminDigest(
       digestKind: payload.digestKind,
       scheduleAdminUrl: payload.scheduleAdminUrl,
       rows: digestRows,
+      notificationContext,
     });
     if (result.ok) {
       delivered = true;
@@ -474,6 +483,13 @@ export async function sendScheduledVisitRemindersForOrganization(
       if (!claimed?.length) continue;
 
       let delivered = false;
+      const visitNotificationContext = buildEmailNotificationContext({
+        organizationId,
+        organizationSlug: schoolSlug,
+        surface: "cron",
+        entityType: "admissions_scheduled_visit",
+        entityId: row.id,
+      });
       for (const recipient of recipients) {
         const result = await sendParentEmail({
           email: recipient.email,
@@ -484,6 +500,7 @@ export async function sendScheduledVisitRemindersForOrganization(
           timezoneLabel,
           durationLabel,
           optionalLink,
+          notificationContext: visitNotificationContext,
         });
         if (result.ok) {
           delivered = true;

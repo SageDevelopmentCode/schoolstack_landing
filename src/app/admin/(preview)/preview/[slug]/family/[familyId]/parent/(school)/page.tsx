@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { familyPreviewParentPath } from "@/lib/admissions/family-preview-access";
-import { getFirstParentNavPath } from "@/lib/organization-settings/parent-nav";
+import { familyPreviewBasePath } from "@/lib/admissions/family-preview-access";
+import { resolveFamilyPreviewParentPortalHref } from "@/lib/admissions/preview-portal-options";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { createClient } from "@/utils/supabase/server";
 
@@ -37,17 +37,15 @@ export default async function FamilyPreviewParentIndexPage({ params }: PageProps
     notFound();
   }
 
-  const firstPath = getFirstParentNavPath(
-    slug,
-    org.features.parent,
-    org.features.feature_nav?.parent,
+  const entryHref = await resolveFamilyPreviewParentPortalHref(
+    supabase,
+    org,
+    familyId,
   );
 
-  if (firstPath) {
-    redirect(
-      familyPreviewParentPath(slug, familyId, firstPath.feature, firstPath.subtab),
-    );
+  if (entryHref) {
+    redirect(entryHref);
   }
 
-  redirect(familyPreviewParentPath(slug, familyId, "portal"));
+  redirect(familyPreviewBasePath(slug, familyId));
 }

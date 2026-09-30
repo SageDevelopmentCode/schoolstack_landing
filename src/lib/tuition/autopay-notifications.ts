@@ -5,6 +5,7 @@ import {
   summarizeAutopayCharge,
 } from "./tuition-activity";
 import {
+  buildEmailNotificationContext,
   buildTuitionAutopayFailedHtml,
   sendTuitionAutopayFailedEmail,
 } from "@/lib/emails";
@@ -134,6 +135,13 @@ export async function notifyAutopayFailed(
         to,
         schoolName,
         html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: orgSlug,
+          surface: "system",
+          entityType: "tuition_charge",
+          entityId: input.chargeId,
+        }),
       }),
     ),
   );

@@ -15,7 +15,7 @@ import {
   type AssigneeMemberRow,
 } from "@/lib/committees/committee-notifications";
 import { notifyCommitteeDailyDigestSent } from "@/lib/discord";
-import { sendCommitteeDailyDigestEmail } from "@/lib/emails";
+import { buildEmailNotificationContext, sendCommitteeDailyDigestEmail } from "@/lib/emails";
 import { reportOperationalError } from "@/lib/operational-errors";
 import {
   isCommitteeDailyDigestEnabled,
@@ -131,6 +131,13 @@ async function sendDigestToRecipient(
       committees: input.committees,
       committeesUrl: input.committeesUrl,
       subject,
+      notificationContext: buildEmailNotificationContext({
+        organizationId: input.organizationId,
+        organizationSlug: input.schoolSlug,
+        surface: "cron",
+        entityType: "organization",
+        entityId: input.organizationId,
+      }),
     }),
   ]);
 

@@ -5,6 +5,7 @@ import {
   PAYMENT_TYPE_LABELS,
 } from "@/lib/admissions/payment-records";
 import {
+  buildEmailNotificationContext,
   sendPaymentReceivedAdminNotification,
   type PaymentReceivedAdminLineItem,
 } from "@/lib/emails";
@@ -167,12 +168,20 @@ export async function sendPaymentReceivedAdminNotifications(
     }
 
     const payload = await buildAdminNotificationPayload(admin, payment, org);
+    const adminEmailContext = buildEmailNotificationContext({
+      organizationId: payment.organizationId,
+      organizationSlug: String(org.slug),
+      surface: "web",
+      entityType: "payment",
+      entityId: paymentId,
+    });
 
     await Promise.allSettled(
       notifyEmails.map((email) =>
         sendPaymentReceivedAdminNotification({
           email,
           ...payload,
+          notificationContext: adminEmailContext,
         }),
       ),
     );
@@ -247,6 +256,13 @@ export async function sendCombinedPaymentReceivedAdminNotifications(
     const payload = await buildAdminNotificationPayload(admin, firstPayment, org, {
       lineItems,
     });
+    const adminEmailContext = buildEmailNotificationContext({
+      organizationId: firstPayment.organizationId,
+      organizationSlug: String(org.slug),
+      surface: "web",
+      entityType: "payment",
+      entityId: input.paymentIds[0] ?? firstPayment.id,
+    });
 
     await Promise.allSettled(
       notifyEmails.map((email) =>
@@ -258,6 +274,7 @@ export async function sendCombinedPaymentReceivedAdminNotifications(
           processingFeeCents,
           studentName: null,
           chargeLabel: null,
+          notificationContext: adminEmailContext,
         }),
       ),
     );

@@ -98,7 +98,18 @@ export function formatOrganizationTimezoneLabel(timezone: string): string {
   }
 }
 
+const ISO_DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 const DATE_ONLY_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const DATE_ONLY_WEEKDAYS_LONG = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
 const DATE_ONLY_MONTHS = [
   "January",
   "February",
@@ -122,6 +133,34 @@ export function formatDateOnlyLabel(dateStr: string): string {
   const weekday = DATE_ONLY_WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   const monthName = DATE_ONLY_MONTHS[month - 1] ?? String(month);
   return `${weekday}, ${monthName} ${day}`;
+}
+
+/** Format YYYY-MM-DD as "October 1, 2026" without local timezone shift. */
+export function formatDateOnlyLongLabel(dateStr: string): string {
+  const trimmed = dateStr.trim();
+  if (!ISO_DATE_ONLY.test(trimmed)) return dateStr;
+
+  const [year, month, day] = trimmed.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+
+  const monthName = DATE_ONLY_MONTHS[month - 1] ?? String(month);
+  return `${monthName} ${day}, ${year}`;
+}
+
+/** Format YYYY-MM-DD as "Friday, October 1, 2026" without local timezone shift. */
+export function formatDateOnlyWithWeekdayLabel(dateStr: string): string {
+  const trimmed = dateStr.trim();
+  if (!ISO_DATE_ONLY.test(trimmed)) return dateStr;
+
+  const [year, month, day] = trimmed.split("-").map(Number);
+  if (!year || !month || !day) return dateStr;
+
+  const weekday =
+    DATE_ONLY_WEEKDAYS_LONG[
+      new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+    ] ?? "";
+  const longLabel = formatDateOnlyLongLabel(trimmed);
+  return weekday ? `${weekday}, ${longLabel}` : longLabel;
 }
 
 /** Format an ISO timestamp in the school's timezone (stable SSR + client). */
