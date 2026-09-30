@@ -2,8 +2,58 @@ import type { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 
 import type { ParentChildRecordSection } from '@/lib/parent/parent-children-utils';
+import type { MobileParentTabDefinition, MobileParentTabId } from '@/lib/parent/mobile-parent-portal-nav';
+import { parentFeatureKeyToMobilePathSegment } from '@/lib/parent/mobile-parent-portal-nav';
 
-export type ParentTab = 'home' | 'billing' | 'messages' | 'calendar' | 'more';
+export type ParentTab = MobileParentTabId;
+
+export function parentProgramBasePath(slug: string, programSlug: string): string {
+  return `/parent/${slug}/p/${encodeURIComponent(programSlug)}`;
+}
+
+export function parentProgramTabRoute(
+  slug: string,
+  programSlug: string,
+  pathSegment: string,
+): Href {
+  return `${parentProgramBasePath(slug, programSlug)}/${pathSegment}` as Href;
+}
+
+export function parentProgramMoreRoute(
+  slug: string,
+  programSlug: string,
+  item: ParentMoreMenuItemId,
+): Href {
+  return `${parentProgramBasePath(slug, programSlug)}/more/${item}` as Href;
+}
+
+export function parentProgramAccountRoute(slug: string, programSlug: string): Href {
+  return `${parentProgramBasePath(slug, programSlug)}/more/account` as Href;
+}
+
+export function isParentProgramPortalPath(pathname: string): boolean {
+  return /\/parent\/[^/]+\/p\/[^/]+/.test(pathname);
+}
+
+export function getParentActiveTabFromPathname(
+  pathname: string,
+  tabs: Pick<MobileParentTabDefinition, 'tabId' | 'pathSegment'>[],
+): ParentTab | null {
+  if (isParentChildDetailPath(pathname)) return null;
+  if (isParentBulletinDetailPath(pathname)) return null;
+  if (pathname.includes('/more')) return 'more';
+  if (/\/messages\/[^/]+$/.test(pathname)) return null;
+
+  const programSegmentMatch = pathname.match(/\/parent\/[^/]+\/p\/[^/]+\/([^/?]+)/);
+  const mainSegmentMatch = pathname.match(/\/parent\/[^/]+\/([^/?]+)/);
+  const segment = programSegmentMatch?.[1] ?? mainSegmentMatch?.[1];
+  if (!segment || segment === 'p' || segment === 'bulletin') {
+    return null;
+  }
+
+  const tab = tabs.find((entry) => entry.pathSegment === segment);
+  return tab?.tabId ?? null;
+}
 
 export type ParentMoreMenuItemId =
   | 'attendance'
@@ -129,24 +179,17 @@ export function parentMessageThreadRoute(slug: string, threadId: string): Href {
   return `/parent/${slug}/messages/${encodeURIComponent(threadId)}` as Href;
 }
 
+export function parentProgramMessageThreadRoute(
+  slug: string,
+  programSlug: string,
+  threadId: string,
+): Href {
+  return `${parentProgramBasePath(slug, programSlug)}/messages/${encodeURIComponent(threadId)}` as Href;
+}
+
 export function isParentBulletinDetailPath(pathname: string): boolean {
   return /\/bulletin\/[^/]+$/.test(pathname);
 }
-
-const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
-  portal: (slug) => parentTabRoute(slug, 'home'),
-  home: (slug) => parentTabRoute(slug, 'home'),
-  billing: (slug) => parentTabRoute(slug, 'billing'),
-  messages: (slug) => parentTabRoute(slug, 'messages'),
-  calendar: (slug) => parentTabRoute(slug, 'calendar'),
-  attendance: (slug) => parentMoreRoute(slug, 'attendance'),
-  children: (slug) => parentMoreRoute(slug, 'children'),
-  committees: (slug) => parentMoreRoute(slug, 'committees'),
-  classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
-  forms_documents: (slug) => parentFormsDocumentsRoute(slug),
-  friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
-  notifications: (slug) => parentMoreRoute(slug, 'notifications'),
-};
 
 const WEB_PARENT_FEATURE_ALIASES: Record<string, string> = {
   forms_documents: 'forms_documents',
@@ -157,9 +200,173 @@ const WEB_PARENT_FEATURE_ALIASES: Record<string, string> = {
   'friday-branch': 'friday_branch',
 };
 
-export function getParentFeatureRoute(slug: string, featureKey: string): Href | null {
-  const resolver = FEATURE_ROUTE_MAP[featureKey];
+const FEATURE_ROUTE_MAP: Record<string, (slug: string) => Href> = {
+  portal: (slug) => parentTabRoute(slug, 'home'),
+  home: (slug) => parentTabRoute(slug, 'home'),
+  billing: (slug) => parentTabRoute(slug, 'billing'),
+  messages: (slug) => parentTabRoute(slug, 'messages'),
+  calendar: (slug) => parentTabRoute(slug, 'calendar'),
+  curriculum: (slug) => parentTabRoute(slug, 'home'),
+  supply_list: (slug) => parentTabRoute(slug, 'home'),
+  teaching_schedule: (slug) => parentTabRoute(slug, 'home'),
+  attendance: (slug) => parentMoreRoute(slug, 'attendance'),
+  children: (slug) => parentMoreRoute(slug, 'children'),
+  committees: (slug) => parentMoreRoute(slug, 'committees'),
+  classroom_signups: (slug) => parentMoreRoute(slug, 'classroom-signups'),
+  forms_documents: (slug) => parentFormsDocumentsRoute(slug),
+  friday_branch: (slug) => parentMoreRoute(slug, 'friday-branch'),
+  notifications: (slug) => parentMoreRoute(slug, 'notifications'),
+};
+
+const PARENT_MORE_FEATURE_TO_MENU_ITEM: Record<string, ParentMoreMenuItemId> = {
+  attendance: 'attendance',
+  children: 'children',
+  committees: 'committees',
+  classroom_signups: 'classroom-signups',
+  forms_documents: 'forms-documents',
+  friday_branch: 'friday-branch',
+  notifications: 'notifications',
+};
+
+function normalizeParentFeatureSegment(segment: string): string {
+  return WEB_PARENT_FEATURE_ALIASES[segment] ?? segment.replace(/-/g, '_');
+}
+
+export function parseSchoolParentPortalHref(href: string): {
+  programSlug?: string;
+  featureKey: string;
+  subtab?: string;
+  query?: string;
+} | null {
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = trimmed.startsWith('http')
+      ? new URL(trimmed)
+      : new URL(trimmed, 'https://trymudkitchen.com');
+    const path = url.pathname;
+
+    const programMatch = path.match(/\/school\/[^/]+\/parent\/p\/([^/]+)\/([^/]+)(?:\/([^/]+))?/);
+    if (programMatch) {
+      return {
+        programSlug: decodeURIComponent(programMatch[1]),
+        featureKey: normalizeParentFeatureSegment(programMatch[2]),
+        subtab: programMatch[3] ? normalizeParentFeatureSegment(programMatch[3]) : undefined,
+        query: url.search ? url.search.slice(1) : undefined,
+      };
+    }
+
+    const mainMatch = path.match(/\/school\/[^/]+\/parent\/([^/]+)(?:\/([^/]+))?/);
+    if (mainMatch && mainMatch[1] !== 'p') {
+      return {
+        featureKey: normalizeParentFeatureSegment(mainMatch[1]),
+        subtab: mainMatch[2] ? normalizeParentFeatureSegment(mainMatch[2]) : undefined,
+        query: url.search ? url.search.slice(1) : undefined,
+      };
+    }
+
+    const mobileProgramMatch = path.match(/\/parent\/[^/]+\/p\/([^/]+)\/([^/]+)(?:\/([^/]+))?/);
+    if (mobileProgramMatch) {
+      return {
+        programSlug: decodeURIComponent(mobileProgramMatch[1]),
+        featureKey: normalizeParentFeatureSegment(mobileProgramMatch[2]),
+        subtab: mobileProgramMatch[3]
+          ? normalizeParentFeatureSegment(mobileProgramMatch[3])
+          : undefined,
+        query: url.search ? url.search.slice(1) : undefined,
+      };
+    }
+
+    const mobileMainMatch = path.match(/\/parent\/[^/]+\/([^/]+)(?:\/([^/]+))?/);
+    if (mobileMainMatch && mobileMainMatch[1] !== 'p' && mobileMainMatch[1] !== 'bulletin') {
+      return {
+        featureKey: normalizeParentFeatureSegment(mobileMainMatch[1]),
+        subtab: mobileMainMatch[2]
+          ? normalizeParentFeatureSegment(mobileMainMatch[2])
+          : undefined,
+        query: url.search ? url.search.slice(1) : undefined,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function getParentFeatureRoute(
+  slug: string,
+  featureKey: string,
+  programSlug?: string,
+): Href | null {
+  const normalized = WEB_PARENT_FEATURE_ALIASES[featureKey] ?? featureKey.replace(/-/g, '_');
+
+  if (programSlug) {
+    const tabSegment = parentFeatureKeyToMobilePathSegment(normalized);
+    if (tabSegment) {
+      return parentProgramTabRoute(slug, programSlug, tabSegment);
+    }
+    const moreItem = PARENT_MORE_FEATURE_TO_MENU_ITEM[normalized];
+    if (moreItem) {
+      return parentProgramMoreRoute(slug, programSlug, moreItem);
+    }
+    if (normalized === 'portal' || normalized === 'home') {
+      return parentProgramTabRoute(slug, programSlug, 'home');
+    }
+    return null;
+  }
+
+  const resolver = FEATURE_ROUTE_MAP[normalized];
   return resolver ? resolver(slug) : null;
+}
+
+export function resolveParentWebParentHrefToMobileRoute(
+  slug: string,
+  href: string,
+  options?: { programSlug?: string },
+): Href | null {
+  const parsed = parseSchoolParentPortalHref(href);
+  if (!parsed) return null;
+
+  const programSlug = parsed.programSlug ?? options?.programSlug;
+  const { featureKey, query } = parsed;
+
+  if (query?.includes('tab=agreements')) {
+    const formMatch = query.match(/(?:^|&)form=([^&]+)/);
+    const formId = formMatch?.[1] ? decodeURIComponent(formMatch[1]) : undefined;
+    if (programSlug) {
+      return parentProgramTabRoute(slug, programSlug, 'billing');
+    }
+    return parentBillingAgreementsRoute(slug, formId);
+  }
+
+  const formMatch = query?.match(/(?:^|&)form=([^&]+)/);
+  if (formMatch?.[1] && featureKey === 'forms_documents') {
+    const formId = decodeURIComponent(formMatch[1]);
+    if (programSlug) {
+      return `${parentProgramMoreRoute(slug, programSlug, 'forms-documents')}/${encodeURIComponent(formId)}` as Href;
+    }
+    return parentFormDetailRoute(slug, formId);
+  }
+
+  return getParentFeatureRoute(slug, featureKey, programSlug);
+}
+
+export function resolveParentFeatureAnnouncementMobileRoute(
+  slug: string,
+  href: string,
+  programSlug?: string,
+): Href | null {
+  return resolveParentWebParentHrefToMobileRoute(slug, href, { programSlug });
+}
+
+export function resolveParentDocumentationMobileRoute(
+  slug: string,
+  href: string,
+  programSlug?: string,
+): Href | null {
+  return resolveParentWebParentHrefToMobileRoute(slug, href, { programSlug });
 }
 
 export function getOnboardingItemRoute(
@@ -168,6 +375,7 @@ export function getOnboardingItemRoute(
   options?: {
     healthApplicationId?: string | null;
     pickupApplicationId?: string | null;
+    programSlug?: string;
   },
 ): Href | null {
   if (target.startsWith('url:')) return null;
@@ -182,7 +390,7 @@ export function getOnboardingItemRoute(
     return parentChildDetailRoute(slug, options.pickupApplicationId, 'pickup');
   }
 
-  return getParentFeatureRoute(slug, target);
+  return getParentFeatureRoute(slug, target, options?.programSlug);
 }
 
 function parseWebParentFeatureKey(href: string): string | null {
@@ -202,13 +410,22 @@ export function resolveParentAttentionNavigation(
     enrollmentSectionId?: string;
     healthApplicationId?: string | null;
     pickupApplicationId?: string | null;
+    programSlug?: string;
   },
 ): Href | null {
+  const programSlug = item.programSlug;
+
   if (item.formId && item.href?.includes('/billing') && item.href.includes('tab=agreements')) {
+    if (programSlug) {
+      return parentProgramTabRoute(slug, programSlug, 'billing');
+    }
     return parentBillingAgreementsRoute(slug, item.formId);
   }
 
   if (item.formId) {
+    if (programSlug) {
+      return `${parentProgramMoreRoute(slug, programSlug, 'forms-documents')}/${encodeURIComponent(item.formId)}` as Href;
+    }
     return parentFormDetailRoute(slug, item.formId);
   }
 
@@ -225,6 +442,7 @@ export function resolveParentAttentionNavigation(
     const route = getOnboardingItemRoute(slug, item.target, {
       healthApplicationId: item.healthApplicationId,
       pickupApplicationId: item.pickupApplicationId,
+      programSlug,
     });
     if (route) return route;
   }
@@ -233,6 +451,9 @@ export function resolveParentAttentionNavigation(
     if (item.href.startsWith('/parent/')) {
       return item.href as Href;
     }
+
+    const mobileFromWeb = resolveParentWebParentHrefToMobileRoute(slug, item.href, { programSlug });
+    if (mobileFromWeb) return mobileFromWeb;
 
     const enrollment = parseEnrollmentHref(item.href);
     if (enrollment) {
@@ -261,7 +482,7 @@ export function resolveParentAttentionNavigation(
 
     const featureKey = parseWebParentFeatureKey(item.href);
     if (featureKey) {
-      const route = getParentFeatureRoute(slug, featureKey);
+      const route = getParentFeatureRoute(slug, featureKey, programSlug);
       if (route) return route;
     }
   }

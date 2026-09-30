@@ -26,6 +26,7 @@
     "preview:emails": "tsx scripts/preview-emails.ts",
     "resend:payment-admin": "tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-payment-admin-notification.ts",
     "resend:application-submitted": "tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-application-submitted-notification.ts",
+    "replay:checkout-session": "tsx --require ./src/test/integration/mock-server-only.cjs scripts/replay-checkout-session-completed.ts",
     "images:optimize": "tsx scripts/convert-images-to-webp.ts",
     "images:favicons": "tsx scripts/generate-favicons.ts",
     "performance:audit": "tsx scripts/run-performance-audits.ts",

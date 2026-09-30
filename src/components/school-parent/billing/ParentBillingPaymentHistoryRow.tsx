@@ -27,6 +27,9 @@ export default function ParentBillingPaymentHistoryRow({
   onClick,
 }: ParentBillingPaymentHistoryRowProps) {
   const paymentMethodLabel = formatTuitionPaymentMethodLabel(payment);
+  const subtitleDate = payment.paidAt
+    ? formatBillingDueDate(payment.paidAt.slice(0, 10))
+    : formatBillingDueDate(payment.createdAt.slice(0, 10));
   const badgeColors = getStudentBadgeColors(C, badgeColorIndex);
   const displayAmountCents =
     payment.chargedAmountCents ?? payment.amountCents;
@@ -80,9 +83,7 @@ export default function ParentBillingPaymentHistoryRow({
           </p>
         </div>
         <p className="text-xs mt-0.5" style={{ color: textTertiary }}>
-          {payment.paidAt
-            ? formatBillingDueDate(payment.paidAt.slice(0, 10))
-            : payment.status}
+          {subtitleDate}
           {` · ${paymentMethodLabel}`}
         </p>
       </div>

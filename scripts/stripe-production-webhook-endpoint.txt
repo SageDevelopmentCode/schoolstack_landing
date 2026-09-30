@@ -1,0 +1,34 @@
+# Production Stripe webhook (manual — paste URL in Dashboard)
+#
+# Workbench → Webhooks → MudKitchen Production (we_1Tv5kQJPlPJpPJRqa64hBeFt)
+# Set endpoint URL to (no www):
+https://trymudkitchen.com/api/stripe/webhook
+#
+# Why: www.trymudkitchen.com returns HTTP 308 to apex; Stripe does not follow redirects.
+# After saving, use Workbench "Send test webhook" or Resend a failed checkout.session.completed.
+#
+# Vercel env STRIPE_WEBHOOK_SECRET must match this endpoint's signing secret (unchanged if editing URL only).
+#
+# --- Verify (after URL change) ---
+# POST to apex should hit the app (400 Missing stripe-signature), not 308:
+#   curl -sI -X POST https://trymudkitchen.com/api/stripe/webhook | head -1
+# Expected: HTTP/2 400
+# POST to www must NOT be used:
+#   curl -sI -X POST https://www.trymudkitchen.com/api/stripe/webhook | head -1
+# Expected: HTTP/2 308
+#
+# In Workbench, resend a test event or confirm the next live delivery returns 200 + {"received":true}.
+#
+# --- Replay stuck payments (after URL fix) ---
+# Workbench → failed checkout.session.completed → Resend each event since the Vercel www redirect change.
+# Or locally (live Stripe key + Supabase service role in .env.local):
+#   CHECKOUT_SESSION_ID=cs_live_... npm run replay:checkout-session
+# Candace Oct (already replayed in ops): cs_live_a1LW1PSH4KXD6sNk9395G20RIoisZliMNeF8A88D3Zk6lrqrfB4l8DP1rk
+# Only replay again if Supabase still shows pending / charge not paid.
+#
+# --- Alerts MudKitchen cannot send for 308 / redirect failures ---
+# Failed deliveries that never reach Next.js (e.g. HTTP 308 on www) do NOT trigger Discord or activity_events.
+# In Stripe Workbench → Webhooks → MudKitchen Production → enable email notifications for failed deliveries.
+#
+# When POST /api/stripe/webhook does run but fails (bad signature, handler 500), Discord billing channel
+# (DISCORD_CUSTOMER_BILLING_WEBHOOKS_URL) posts @everyone via notifyStripeWebhookCriticalError.

@@ -13,6 +13,7 @@ import {
   PAY_AHEAD_REDUCTION_LABEL,
 } from "@/lib/tuition/tuition-pay-copy";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 
 type ParentBillingChargeRowProps = {
@@ -22,6 +23,7 @@ type ParentBillingChargeRowProps = {
   payingChargeId: string | null;
   highlighted?: boolean;
   autopayEnabled?: boolean;
+  pendingCheckoutPayment?: PaymentRecord | null;
   onPay: (chargeId: string) => void;
   readOnly?: boolean;
 };
@@ -59,6 +61,7 @@ export default function ParentBillingChargeRow({
   payingChargeId,
   highlighted = false,
   autopayEnabled = false,
+  pendingCheckoutPayment = null,
   onPay,
   readOnly = false,
 }: ParentBillingChargeRowProps) {
@@ -76,11 +79,19 @@ export default function ParentBillingChargeRow({
   const hasPayAheadReduction = breakdown.some(
     (line) => line.label === PAY_AHEAD_REDUCTION_LABEL,
   );
-  const statusBadge = formatParentChargeStatusBadge(charge);
+  const statusBadge = formatParentChargeStatusBadge(charge, {
+    pendingCheckoutPayment: Boolean(pendingCheckoutPayment),
+  });
   const dueLine = formatParentChargeDueLine(charge);
   const showAutopayHint =
-    autopayEnabled && UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
-  const canPay = UNPAID_CHARGE_STATUSES.has(charge.status) && remainingCents > 0;
+    autopayEnabled &&
+    UNPAID_CHARGE_STATUSES.has(charge.status) &&
+    remainingCents > 0 &&
+    !pendingCheckoutPayment;
+  const canPay =
+    UNPAID_CHARGE_STATUSES.has(charge.status) &&
+    remainingCents > 0 &&
+    !pendingCheckoutPayment;
 
   return (
     <div
@@ -107,6 +118,15 @@ export default function ParentBillingChargeRow({
             data-testid="parent-billing-charge-autopay-hint"
           >
             Autopay on due date
+          </p>
+        ) : null}
+        {pendingCheckoutPayment ? (
+          <p
+            className="mt-1 text-[11px]"
+            style={{ color: C.textSecondary }}
+            data-testid="parent-billing-charge-processing-hint"
+          >
+            Bank payment processing — usually 3–5 business days
           </p>
         ) : null}
       </div>

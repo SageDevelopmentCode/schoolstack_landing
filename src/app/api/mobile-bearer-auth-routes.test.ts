@@ -210,6 +210,7 @@ describe("mobile bearer auth route wiring", () => {
     "app/api/admissions/enrollment-checklist-items/[id]/route.ts",
     "app/api/admissions/enrollment-checklist-items/[id]/checkout/route.ts",
     "app/api/admissions/enrollment-checklists/[id]/route.ts",
+    "app/api/admissions/checkout-sessions/[sessionId]/confirm/route.ts",
     "app/api/stripe/connect/status/route.ts",
   ];
 

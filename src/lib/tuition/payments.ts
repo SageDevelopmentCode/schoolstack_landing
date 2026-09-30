@@ -134,7 +134,7 @@ export async function listTuitionPaymentsForFamily(
   return applyChargeLabelsToTuitionPayments(payments, chargeLabelById);
 }
 
-/** Parent portal payment history — completed payments only. */
+/** Parent portal payment history — succeeded payments only. */
 export async function listParentTuitionPaymentHistory(
   supabase: SupabaseClient,
   familyId: string,
@@ -152,6 +152,53 @@ export async function listParentTuitionPaymentHistory(
   return enrichParentTuitionPayments(
     supabase,
     mapTuitionPaymentRows(data ?? [], familyId),
+  );
+}
+
+export async function listPendingTuitionPaymentsForFamily(
+  supabase: SupabaseClient,
+  familyId: string,
+): Promise<PaymentRecord[]> {
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("family_id", familyId)
+    .eq("payment_type", "tuition")
+    .eq("status", "pending")
+    .not("stripe_checkout_session_id", "is", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const payments = mapTuitionPaymentRows(data ?? [], familyId);
+  const chargeIds = [
+    ...new Set(
+      payments
+        .map((payment) => payment.tuitionChargeId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  if (chargeIds.length === 0) {
+    return payments;
+  }
+
+  const { data: charges, error: chargeError } = await supabase
+    .from("tuition_charges")
+    .select("id, status")
+    .in("id", chargeIds);
+
+  if (chargeError) throw chargeError;
+
+  const paidChargeIds = new Set(
+    (charges ?? [])
+      .filter((row) => row.status === "paid")
+      .map((row) => String(row.id)),
+  );
+
+  return payments.filter(
+    (payment) =>
+      !payment.tuitionChargeId || !paidChargeIds.has(payment.tuitionChargeId),
   );
 }
 

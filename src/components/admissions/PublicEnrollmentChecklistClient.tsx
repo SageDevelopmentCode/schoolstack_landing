@@ -162,6 +162,18 @@ export default function PublicEnrollmentChecklistClient({
       clearPaymentReturnQuery(router, pathname);
       setPollingPayment(true);
 
+      const checkoutSessionId = searchParams.get("session_id")?.trim();
+      if (checkoutSessionId) {
+        try {
+          await fetch(
+            `/api/admissions/checkout-sessions/${encodeURIComponent(checkoutSessionId)}/confirm`,
+            { method: "POST" },
+          );
+        } catch {
+          // Fall through to polling if confirm fails (e.g. webhook already processed).
+        }
+      }
+
       let attempts = 0;
       let previousInstances = instances;
 
@@ -213,6 +225,7 @@ export default function PublicEnrollmentChecklistClient({
     paymentReturnPending,
     previewMode,
     router,
+    searchParams,
     supabase,
   ]);
 

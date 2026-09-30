@@ -1,28 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
-import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
-import { buildEnrollmentAgreementAmendmentBannerItems } from "@/lib/admissions/enrollment-agreement-amendment-banner";
-import { buildEnrollmentAgreementIncompleteBannerItems } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
-import {
-  listEnrollmentAgreementAmendmentsForApplications,
-  listIncompleteEnrollmentAgreementsForApplications,
-} from "@/lib/admissions/enrollment-checklist-materialization";
-import { loadResolvedParentOnboardingItems } from "@/lib/admissions/parent-onboarding-status";
-import {
-  getFamilyUserProfile,
-  listFamilyChildrenForHome,
-  userHasEnrolledAccess,
-} from "@/lib/admissions/parent-portal-access";
-import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
-import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
-import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
-import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
-import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
-import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
-import { createAdminClient } from "@/utils/supabase/admin";
-import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
+import { loadParentPortalHomeApiPayload } from "@/lib/parent-portal/load-parent-portal-home-api-payload";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 
 const ROUTE = "/api/parent-portal/home";
@@ -46,6 +25,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const organizationId = url.searchParams.get("organizationId")?.trim() ?? "";
   const slug = url.searchParams.get("slug")?.trim() ?? "";
+  const programSlug = url.searchParams.get("programSlug")?.trim() || undefined;
 
   if (!organizationId || !slug) {
     return apiError(ROUTE, {
@@ -67,122 +47,35 @@ export async function GET(request: Request) {
       });
     }
 
-    const hasAccess = await userHasEnrolledAccess(supabase, user.id, organizationId);
-    if (!hasAccess) {
-      return apiError(ROUTE, {
-        request,
-        status: 403,
-        error: "You do not have access to the parent portal.",
-        code: "forbidden",
-      });
+    const payload = await loadParentPortalHomeApiPayload({
+      supabase,
+      user,
+      org,
+      slug,
+      programSlug,
+    });
+
+    return NextResponse.json(payload);
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === "forbidden" || err.message === "forbidden_program") {
+        return apiError(ROUTE, {
+          request,
+          status: 403,
+          error: "You do not have access to the parent portal.",
+          code: "forbidden",
+        });
+      }
+      if (err.message === "program_not_found") {
+        return apiError(ROUTE, {
+          request,
+          status: 404,
+          error: "Program not found.",
+          code: "program_not_found",
+        });
+      }
     }
 
-    const familyIds = await getFamilyIdsForUser(supabase, user.id, organizationId);
-    const familyId = familyIds[0];
-
-    const [userProfile, familyChildren, upcomingEvents] = await Promise.all([
-      getFamilyUserProfile(supabase, user.id, organizationId, user),
-      listFamilyChildrenForHome(supabase, organizationId, user.id),
-      listUpcomingEventsForOrg(supabase, organizationId, 3),
-    ]);
-    const onboardingItems = familyId
-      ? await loadResolvedParentOnboardingItems({
-          supabase,
-          organizationId,
-          familyId,
-          userId: user.id,
-          slug,
-          features: org.features,
-          familyChildren,
-        })
-      : [];
-
-    const applicationIds = familyChildren.map((child) => child.applicationId);
-    const [amendmentsByApplicationId, incompleteByApplicationId] = await Promise.all([
-      listEnrollmentAgreementAmendmentsForApplications(
-        supabase,
-        organizationId,
-        applicationIds,
-      ),
-      listIncompleteEnrollmentAgreementsForApplications(
-        supabase,
-        organizationId,
-        applicationIds,
-      ),
-    ]);
-
-    const enrollmentAmendmentBannerItems = buildEnrollmentAgreementAmendmentBannerItems({
-      schoolSlug: slug,
-      familyChildren,
-      amendmentsByApplicationId: Object.fromEntries(amendmentsByApplicationId.entries()),
-    });
-    const enrollmentIncompleteBannerItems = buildEnrollmentAgreementIncompleteBannerItems({
-      schoolSlug: slug,
-      familyChildren,
-      incompleteByApplicationId: Object.fromEntries(incompleteByApplicationId.entries()),
-    });
-    const formsFeatureEnabled = isParentFeatureEnabled(org.features, "forms_documents");
-    const bulletinEnabled = Boolean(org.features.admin?.bulletin);
-    const admin = createAdminClient();
-    const [formAttentionItems, formSnapshot, bulletinPosts] = await Promise.all([
-      familyId && formsFeatureEnabled
-        ? loadParentFormAttentionItems(admin, organizationId, familyId, slug)
-        : Promise.resolve([]),
-      familyId && formsFeatureEnabled
-        ? loadParentFormHomeSnapshot(admin, organizationId, familyId, slug)
-        : Promise.resolve(null),
-      loadHomeBulletinPosts({
-        supabase,
-        signedUrlClient: admin,
-        organizationId: org.id,
-        bulletinEnabled,
-        viewer: "parent",
-        limit: 25,
-      }),
-    ]);
-
-    const quickActions = buildParentQuickActions(slug, org.features);
-
-    const fridayBranchStudentOptions = familyChildren
-      .filter((child) => child.studentId)
-      .map((child) => ({
-        id: child.studentId!,
-        name: child.studentName,
-      }));
-
-    const fridayBranchHome =
-      familyId && isParentHomeFridayBranchEnabled(org.features)
-        ? await loadParentFridayBranchPageBundle(
-            admin,
-            organizationId,
-            familyId,
-            fridayBranchStudentOptions,
-          )
-        : null;
-
-    return NextResponse.json({
-      branding: org.branding,
-      schoolSlug: slug,
-      schoolName: org.name,
-      organizationId: org.id,
-      features: {
-        parent: org.features.parent ?? {},
-        parent_home: org.features.parent_home ?? {},
-      },
-      userProfile,
-      familyChildren,
-      quickActions,
-      onboardingItems,
-      upcomingEvents,
-      enrollmentAmendmentBannerItems,
-      enrollmentIncompleteBannerItems,
-      formAttentionItems,
-      formSnapshot,
-      bulletinEnabled,
-      bulletinPosts,
-      fridayBranchHome,
-    });
-  } catch (err) {
     return apiError(ROUTE, {
       request,
       status: 500,
