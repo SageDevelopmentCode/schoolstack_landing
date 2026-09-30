@@ -5,7 +5,7 @@ import { reportOperationalError } from "@/lib/operational-errors";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { notifyAdminSupportRequest } from "@/lib/discord";
-import { sendAdminSupportRequestConfirmation } from "@/lib/emails";
+import { buildEmailNotificationContext, sendAdminSupportRequestConfirmation } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
   MAX_SUPPORT_REQUEST_FILE_BYTES,
@@ -303,6 +303,13 @@ export async function POST(request: Request) {
           submitterEmail: email,
           schoolName: organization.name,
           topic,
+          notificationContext: buildEmailNotificationContext({
+            organizationId: organization.id,
+            organizationSlug: organization.slug,
+            surface: "web",
+            entityType: "admin_support_request",
+            entityId: requestId,
+          }),
         }),
       ),
     );

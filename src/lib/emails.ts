@@ -12,19 +12,74 @@ import {
   emailSignOff,
   escapeHtml,
 } from "@/lib/email-layout";
-import { formatDurationLabel } from "@/lib/admissions/admissions-availability";
+import {
+  formatDateOnlyLongLabel,
+  formatDateOnlyWithWeekdayLabel,
+  formatDurationLabel,
+} from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import type {
+  OutboundEmailAudience,
+  OutboundEmailDiscordMeta,
+} from "@/lib/discord";
 import { deliverZohoEmail } from "@/lib/notification-delivery";
 import { isZohoConfigured, sendZohoEmail } from "@/lib/zoho";
 
+/** Optional fields from domain libs for outbound email Discord alerts. */
+export type OutboundEmailNotificationContext = Pick<
+  OutboundEmailDiscordMeta,
+  "organizationId" | "organizationSlug" | "surface" | "entityType" | "entityId"
+>;
+
+function schoolOutboundDiscord(
+  channel: string,
+  audience: OutboundEmailAudience,
+  schoolName: string,
+  ctx?: OutboundEmailNotificationContext,
+): OutboundEmailDiscordMeta {
+  return {
+    channel,
+    audience,
+    organizationName: schoolName,
+    organizationId: ctx?.organizationId,
+    organizationSlug: ctx?.organizationSlug,
+    surface: ctx?.surface,
+    entityType: ctx?.entityType,
+    entityId: ctx?.entityId,
+  };
+}
+
+function prospectOutboundDiscord(channel: string): OutboundEmailDiscordMeta {
+  return { channel, audience: "prospect" };
+}
+
+export function buildEmailNotificationContext(input: {
+  organizationId: string;
+  organizationSlug: string;
+  surface?: OutboundEmailNotificationContext["surface"];
+  entityType?: string;
+  entityId?: string;
+}): OutboundEmailNotificationContext {
+  return {
+    organizationId: input.organizationId,
+    organizationSlug: input.organizationSlug,
+    surface: input.surface,
+    entityType: input.entityType,
+    entityId: input.entityId,
+  };
+}
+
+export function messageRecipientAudience(
+  portal: "parent" | "teacher" | "admin",
+): OutboundEmailAudience {
+  if (portal === "admin") return "school_admin";
+  if (portal === "teacher") return "teacher";
+  return "parent";
+}
+
 function formatSelectedDate(dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  return formatDateOnlyWithWeekdayLabel(dateStr);
 }
 
 function firstName(name: string): string {
@@ -120,6 +175,7 @@ export async function sendDemoBookingConfirmation(payload: {
     toAddress: payload.email,
     subject: `Your ${SITE_NAME} demo is confirmed`,
     content,
+    discord: prospectOutboundDiscord("demo_booking_confirmation"),
   });
 
   if (!result.success) {
@@ -138,6 +194,7 @@ export async function sendHomepageQuestionConfirmation(payload: {
     toAddress: payload.email,
     subject: `We received your message — ${SITE_NAME}`,
     content,
+    discord: prospectOutboundDiscord("homepage_question_confirmation"),
   });
 
   if (!result.success) {
@@ -176,6 +233,7 @@ export async function sendPublicSupportRequestConfirmation(payload: {
     toAddress: payload.email,
     subject: `We received your support request — ${SITE_NAME}`,
     content,
+    discord: prospectOutboundDiscord("public_support_request_confirmation"),
   });
 
   if (!result.success) {
@@ -195,6 +253,7 @@ export async function sendDemoFeedbackConfirmation(payload: {
     toAddress: payload.email,
     subject: `Thanks for your feedback — ${SITE_NAME}`,
     content,
+    discord: prospectOutboundDiscord("demo_feedback_confirmation"),
   });
 
   if (!result.success) {
@@ -254,6 +313,7 @@ export async function sendAdminSupportRequestConfirmation(payload: {
   submitterEmail: string;
   schoolName: string;
   topic: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -262,6 +322,12 @@ export async function sendAdminSupportRequestConfirmation(payload: {
     toAddress: payload.submitterEmail,
     subject: `We received your support request — ${SITE_NAME}`,
     content,
+    discord: schoolOutboundDiscord(
+      "admin_support_request_confirmation",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -302,6 +368,7 @@ export async function sendApplicationSubmittedConfirmation(payload: {
   schoolName: string;
   formTitle: string;
   applyDashboardUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildApplicationSubmittedConfirmationHtml(payload);
   await deliverZohoEmail({
@@ -309,6 +376,12 @@ export async function sendApplicationSubmittedConfirmation(payload: {
     toAddress: payload.email,
     subject: `Application received — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "application_submitted_confirmation",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 }
 
@@ -355,6 +428,7 @@ export async function sendApplicationAcceptedEnrollmentEmail(payload: {
   formTitle: string;
   studentName?: string;
   enrollmentChecklistUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -363,6 +437,12 @@ export async function sendApplicationAcceptedEnrollmentEmail(payload: {
     toAddress: payload.email,
     subject: `Congratulations — continue enrollment at ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "application_accepted_enrollment",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -407,6 +487,7 @@ export async function sendDraftApplicationReminderEmail(payload: {
   to: string;
   schoolName: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -416,6 +497,12 @@ export async function sendDraftApplicationReminderEmail(payload: {
     toAddress: payload.to,
     subject: `Finish your application — ${payload.schoolName}`,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "draft_application_reminder",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -529,6 +616,7 @@ export async function sendIncompleteAdmissionsReminderEmail(payload: {
   schoolName: string;
   subject: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -538,6 +626,12 @@ export async function sendIncompleteAdmissionsReminderEmail(payload: {
     toAddress: payload.to,
     subject: payload.subject,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "incomplete_admissions_reminder",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -598,6 +692,7 @@ export async function sendEnrollmentCompletedConfirmation(payload: {
   programName?: string;
   parentPortalUrl: string;
   parentPortalEnabled: boolean;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -606,6 +701,12 @@ export async function sendEnrollmentCompletedConfirmation(payload: {
     toAddress: payload.email,
     subject: `Enrollment confirmed — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "enrollment_completed_confirmation",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -667,6 +768,7 @@ export async function sendApplicationSubmittedOwnerNotification(payload: {
   programName?: string;
   submittedAtLabel: string;
   submissionAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildApplicationSubmittedOwnerNotificationHtml(payload);
   await deliverZohoEmail({
@@ -674,6 +776,12 @@ export async function sendApplicationSubmittedOwnerNotification(payload: {
     toAddress: payload.email,
     subject: `New application submitted — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "application_submitted_owner_notification",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 }
 
@@ -770,6 +878,7 @@ export async function sendPostSubmitVisitOwnerNotification(payload: {
   contactName?: string;
   contactEmail?: string;
   submissionAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildPostSubmitVisitOwnerNotificationHtml(payload);
   await deliverZohoEmail({
@@ -777,6 +886,12 @@ export async function sendPostSubmitVisitOwnerNotification(payload: {
     toAddress: payload.email,
     subject: `Visit scheduled — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "post_submit_visit_owner_notification",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 }
 
@@ -795,6 +910,7 @@ export async function sendPostSubmitVisitConfirmation(payload: {
   whenLabel: string;
   durationLabel: string;
   applyDashboardUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildPostSubmitVisitConfirmationHtml(payload);
   await deliverZohoEmail({
@@ -802,6 +918,12 @@ export async function sendPostSubmitVisitConfirmation(payload: {
     toAddress: payload.email,
     subject: `${payload.stepTitle} confirmed — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "post_submit_visit_confirmation",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 }
 
@@ -842,6 +964,7 @@ export async function sendPublicCampusTourConfirmation(payload: {
   whenLabel: string;
   timezoneLabel: string;
   durationLabel: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   const content = buildPublicCampusTourConfirmationHtml(payload);
   await deliverZohoEmail({
@@ -849,6 +972,12 @@ export async function sendPublicCampusTourConfirmation(payload: {
     toAddress: payload.email,
     subject: `Campus tour confirmed — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "public_campus_tour_confirmation",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 }
 
@@ -896,6 +1025,7 @@ export async function sendScheduledVisitDayBeforeReminderEmail(payload: {
   timezoneLabel: string;
   durationLabel: string;
   optionalLink?: { label: string; href: string };
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   const content = buildScheduledVisitDayBeforeReminderHtml(payload);
   try {
@@ -904,6 +1034,12 @@ export async function sendScheduledVisitDayBeforeReminderEmail(payload: {
       toAddress: payload.email,
       subject: `Reminder: ${payload.stepTitle} tomorrow — ${payload.schoolName}`,
       content,
+      discord: schoolOutboundDiscord(
+        "scheduled_visit_day_before_reminder",
+        "parent",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
     });
     return { ok: true };
   } catch {
@@ -975,6 +1111,7 @@ export async function sendScheduledVisitAdminDigestEmail(payload: {
   digestKind: "weekly" | "day_before";
   scheduleAdminUrl: string;
   rows: ScheduledVisitAdminDigestRow[];
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   const content = buildScheduledVisitAdminDigestHtml(payload);
   const subject = buildScheduledVisitAdminDigestSubject({
@@ -987,6 +1124,12 @@ export async function sendScheduledVisitAdminDigestEmail(payload: {
       toAddress: payload.email,
       subject,
       content,
+      discord: schoolOutboundDiscord(
+        "scheduled_visit_admin_digest",
+        "school_admin",
+        payload.schoolName,
+        payload.notificationContext,
+      ),
     });
     return { ok: true };
   } catch {
@@ -1051,6 +1194,7 @@ export async function sendPaymentReceiptConfirmation(payload: {
   paymentMethodLabel: string;
   paidAt: string;
   applyDashboardUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1068,6 +1212,12 @@ export async function sendPaymentReceiptConfirmation(payload: {
     toAddress: payload.email,
     subject: `Payment receipt — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "admissions_payment_receipt",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1194,6 +1344,7 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
   chargeLabel?: string;
   lumpSumBreakdown?: TuitionPaymentReceiptLumpSumBreakdown;
   combinedLineItems?: TuitionPaymentReceiptLineItem[];
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1221,6 +1372,12 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
     toAddress: payload.email,
     subject: `Payment receipt — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "tuition_payment_receipt",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1253,6 +1410,7 @@ export async function sendStripePaymentsReadyNotification(payload: {
   email: string;
   schoolName: string;
   paymentsAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1261,6 +1419,12 @@ export async function sendStripePaymentsReadyNotification(payload: {
     toAddress: payload.email,
     subject: `Payments are live — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "stripe_payments_ready",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1358,6 +1522,7 @@ export async function sendPaymentReceivedAdminNotification(payload: {
   chargeLabel?: string | null;
   lineItems?: PaymentReceivedAdminLineItem[];
   paymentsAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1375,6 +1540,12 @@ export async function sendPaymentReceivedAdminNotification(payload: {
     toAddress: payload.email,
     subject: `Payment received — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "payment_received_admin_notification",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1588,6 +1759,7 @@ export async function sendFridayBranchClassRosterEmail(payload: {
     familyEmail: string;
     familyPhone: string;
   }[];
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ success: boolean; error?: string }> {
   if (!(await isZohoConfigured())) {
     return { success: false, error: "Email is not configured." };
@@ -1598,6 +1770,12 @@ export async function sendFridayBranchClassRosterEmail(payload: {
     toAddress: payload.email,
     subject: `Friday Branch roster — ${payload.className} (${payload.slotTime})`,
     content,
+    discord: schoolOutboundDiscord(
+      "friday_branch_class_roster",
+      "teacher",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1621,6 +1799,7 @@ export async function sendFridayBranchEnrollmentAdminNotification(payload: {
   statusLabel: string;
   submittedAtLabel: string;
   fridayBranchAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1629,6 +1808,12 @@ export async function sendFridayBranchEnrollmentAdminNotification(payload: {
     toAddress: payload.email,
     subject: `Program sign-up — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "friday_branch_enrollment_admin",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1650,6 +1835,7 @@ export async function sendCommitteeJoinRequestAdminNotification(payload: {
   note?: string | null;
   submittedAtLabel: string;
   committeesAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1658,6 +1844,12 @@ export async function sendCommitteeJoinRequestAdminNotification(payload: {
     toAddress: payload.email,
     subject: `Committee join request — ${payload.schoolName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "committee_join_request_admin",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1710,6 +1902,7 @@ export async function sendCommitteeTaskAssignedNotification(payload: {
   dueDateLabel?: string | null;
   assignerName: string;
   tasksUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1718,6 +1911,12 @@ export async function sendCommitteeTaskAssignedNotification(payload: {
     toAddress: payload.email,
     subject: `Task assigned — ${payload.committeeName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "committee_task_assigned",
+      "staff",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1761,6 +1960,7 @@ export async function sendCommitteeJoinApprovedNotification(payload: {
   committeeName: string;
   memberName: string;
   committeesUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
@@ -1769,6 +1969,12 @@ export async function sendCommitteeJoinApprovedNotification(payload: {
     toAddress: payload.email,
     subject: `Committee approved — ${payload.committeeName}`,
     content,
+    discord: schoolOutboundDiscord(
+      "committee_join_approved",
+      "staff",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1869,14 +2075,23 @@ export async function sendCommitteeDailyDigestEmail(payload: {
   }>;
   committeesUrl: string;
   subject: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
   const content = buildCommitteeDailyDigestHtml(payload);
+  const audience: OutboundEmailAudience =
+    payload.recipientKind === "admin" ? "school_admin" : "staff";
   const result = await sendZohoEmail({
     toAddress: payload.email,
     subject: payload.subject,
     content,
+    discord: schoolOutboundDiscord(
+      "committee_daily_digest",
+      audience,
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1893,17 +2108,18 @@ export function buildTuitionDueReminderHtml(payload: {
   chargeLines: string[];
   billingUrl?: string;
 }): string {
+  const dueDateLabel = formatDateOnlyLongLabel(payload.dueDate);
   return composeEmail({
-    preheader: `Tuition payment of ${payload.totalDue} is due ${payload.dueDate}.`,
+    preheader: `Tuition payment of ${payload.totalDue} is due ${dueDateLabel}.`,
     contentHtml: `
       ${emailBadge("Tuition Reminder")}
       ${emailHeading(`Upcoming tuition due for ${escapeHtml(payload.familyName)}`)}
       ${emailParagraph(
-        `${escapeHtml(payload.schoolName)} has tuition charges coming due on ${escapeHtml(payload.dueDate)}.`,
+        `${escapeHtml(payload.schoolName)} has tuition charges coming due on ${escapeHtml(dueDateLabel)}.`,
       )}
       ${emailDetailCard([
         { label: "Total due", value: payload.totalDue },
-        { label: "Due date", value: payload.dueDate },
+        { label: "Due date", value: dueDateLabel },
       ])}
       ${emailParagraph("Charges:")}
       ${emailBulletList(payload.chargeLines)}
@@ -1917,6 +2133,7 @@ export async function sendTuitionDueReminderEmail(payload: {
   to: string;
   schoolName: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -1926,6 +2143,12 @@ export async function sendTuitionDueReminderEmail(payload: {
     toAddress: payload.to,
     subject: `Tuition reminder — ${payload.schoolName}`,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_due_reminder",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1966,6 +2189,7 @@ export async function sendTuitionLateFeeEmail(payload: {
   to: string;
   schoolName: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -1975,6 +2199,12 @@ export async function sendTuitionLateFeeEmail(payload: {
     toAddress: payload.to,
     subject: `Late fee notice — ${payload.schoolName}`,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_late_fee",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -1993,8 +2223,9 @@ export function buildTuitionInvoiceHtml(payload: {
   dueDate: string;
   billingUrl: string;
 }): string {
+  const dueDateLabel = formatDateOnlyLongLabel(payload.dueDate);
   return composeEmail({
-    preheader: `${payload.chargeLabel} — ${payload.amountDue} due ${payload.dueDate}.`,
+    preheader: `${payload.chargeLabel} — ${payload.amountDue} due ${dueDateLabel}.`,
     contentHtml: `
       ${emailBadge("Tuition Invoice")}
       ${emailHeading(`Invoice for ${escapeHtml(payload.familyName)}`)}
@@ -2004,7 +2235,7 @@ export function buildTuitionInvoiceHtml(payload: {
       ${emailDetailCard([
         { label: "Charge", value: payload.chargeLabel },
         { label: "Amount due", value: payload.amountDue },
-        { label: "Due date", value: payload.dueDate },
+        { label: "Due date", value: dueDateLabel },
       ])}
       ${emailCta({ label: "View and pay", href: payload.billingUrl })}
       ${emailSignOff()}
@@ -2016,6 +2247,7 @@ export async function sendTuitionInvoiceEmail(payload: {
   to: string;
   schoolName: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -2025,6 +2257,12 @@ export async function sendTuitionInvoiceEmail(payload: {
     toAddress: payload.to,
     subject: `Invoice from ${payload.schoolName}`,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_invoice",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -2068,10 +2306,73 @@ export function buildTuitionAutopayFailedHtml(payload: {
   });
 }
 
+export function buildTuitionAutopayUpcomingHtml(payload: {
+  familyName: string;
+  schoolName: string;
+  chargeDate: string;
+  totalDue: string;
+  chargeLines: string[];
+  billingUrl?: string;
+}): string {
+  const chargeDateLabel = formatDateOnlyLongLabel(payload.chargeDate);
+  return composeEmail({
+    preheader: `Autopay will process ${payload.totalDue} tomorrow.`,
+    contentHtml: `
+      ${emailBadge("Autopay Reminder")}
+      ${emailHeading(`Autopay scheduled for ${escapeHtml(payload.familyName)}`)}
+      ${emailParagraph(
+        `${escapeHtml(payload.schoolName)} will charge your saved payment method tomorrow (${escapeHtml(chargeDateLabel)}) for the tuition below.`,
+      )}
+      ${emailDetailCard([
+        { label: "Total", value: payload.totalDue },
+        { label: "Charge date", value: chargeDateLabel },
+      ])}
+      ${emailParagraph("Charges:")}
+      ${emailBulletList(payload.chargeLines)}
+      ${payload.billingUrl ? emailCta({ label: "View billing", href: payload.billingUrl }) : ""}
+      ${emailParagraph(
+        "To update your card or turn off autopay, visit billing before tomorrow.",
+      )}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionAutopayUpcomingEmail(payload: {
+  to: string;
+  schoolName: string;
+  html: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Autopay reminder — ${payload.schoolName}`,
+    content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_autopay_upcoming",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Tuition autopay upcoming email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export async function sendTuitionAutopayFailedEmail(payload: {
   to: string;
   schoolName: string;
   html: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -2081,6 +2382,12 @@ export async function sendTuitionAutopayFailedEmail(payload: {
     toAddress: payload.to,
     subject: `Autopay failed — ${payload.schoolName}`,
     content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_autopay_failed",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -2127,6 +2434,8 @@ export async function sendNewMessageEmail(payload: {
   senderName: string;
   preview: string;
   threadUrl: string;
+  recipientAudience?: OutboundEmailAudience;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -2137,6 +2446,12 @@ export async function sendNewMessageEmail(payload: {
     toAddress: payload.email,
     subject: `New message from ${payload.senderName} — ${payload.schoolName}`,
     content: html,
+    discord: schoolOutboundDiscord(
+      "new_message",
+      payload.recipientAudience ?? "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -2224,6 +2539,7 @@ export async function sendUnreadMessagesDigestEmail(payload: {
   }>;
   totalUnread: number;
   messagesUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<boolean> {
   if (payload.threads.length === 0) {
     return false;
@@ -2234,10 +2550,18 @@ export async function sendUnreadMessagesDigestEmail(payload: {
   }
 
   const html = buildUnreadMessagesDigestEmailHtml(payload);
+  const audience: OutboundEmailAudience =
+    payload.recipientPortal === "teacher" ? "teacher" : "parent";
   const result = await sendZohoEmail({
     toAddress: payload.email,
     subject: `You still have unread messages — ${payload.schoolName}`,
     content: html,
+    discord: schoolOutboundDiscord(
+      "unread_messages_digest",
+      audience,
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -2267,7 +2591,7 @@ export function buildTeacherParentFormPublishedEmailHtml(payload: {
   ];
 
   if (payload.dueDate) {
-    details.push({ label: "Due", value: formatSelectedDate(payload.dueDate) });
+    details.push({ label: "Due", value: formatDateOnlyLongLabel(payload.dueDate) });
   }
 
   if (payload.studentNames && payload.studentNames.length > 0) {
@@ -2300,6 +2624,7 @@ export async function sendTeacherParentFormPublishedEmail(payload: {
   dueDate?: string | null;
   studentNames?: string[];
   formUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -2310,6 +2635,12 @@ export async function sendTeacherParentFormPublishedEmail(payload: {
     toAddress: payload.to,
     subject: `Form to sign — ${payload.schoolName}`,
     content: html,
+    discord: schoolOutboundDiscord(
+      "teacher_parent_form_published",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
@@ -2355,6 +2686,7 @@ export async function sendTeacherParentFormResponseSignedEmail(payload: {
   familyName: string;
   formTitle: string;
   formUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
 }): Promise<{ ok: boolean }> {
   if (!(await isZohoConfigured())) {
     return { ok: false };
@@ -2365,10 +2697,110 @@ export async function sendTeacherParentFormResponseSignedEmail(payload: {
     toAddress: payload.to,
     subject: `Form signed — ${payload.schoolName}`,
     content: html,
+    discord: schoolOutboundDiscord(
+      "teacher_parent_form_response_signed",
+      "teacher",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
   });
 
   if (!result.success) {
     console.error("Teacher parent form response signed email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+const BULLETIN_EMAIL_EXCERPT_MAX = 280;
+
+export function truncateBulletinBodyExcerpt(body: string, maxLen = BULLETIN_EMAIL_EXCERPT_MAX): string {
+  const trimmed = body.replace(/\s+/g, " ").trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen - 1)}…`;
+}
+
+export function buildBulletinPublishedEmailHtml(payload: {
+  schoolName: string;
+  postTitle: string;
+  audienceLabel: string;
+  excerpt: string;
+  attachmentCount: number;
+  portalUrl: string;
+  publisherName?: string | null;
+}): string {
+  const absoluteUrl = payload.portalUrl.startsWith("http")
+    ? payload.portalUrl
+    : `${SITE_URL}${payload.portalUrl}`;
+
+  const details: { label: string; value: string }[] = [
+    { label: "School", value: payload.schoolName },
+    { label: "Announcement", value: payload.postTitle },
+    { label: "Audience", value: payload.audienceLabel },
+  ];
+
+  if (payload.publisherName?.trim()) {
+    details.push({ label: "Posted by", value: payload.publisherName.trim() });
+  }
+
+  if (payload.attachmentCount > 0) {
+    details.push({
+      label: "Attachments",
+      value: `${payload.attachmentCount} file${payload.attachmentCount === 1 ? "" : "s"}`,
+    });
+  }
+
+  const excerptBlock = payload.excerpt
+    ? emailParagraph(escapeHtml(payload.excerpt))
+    : "";
+
+  return composeEmail({
+    preheader: `New announcement at ${payload.schoolName}: ${payload.postTitle}`,
+    contentHtml: `
+      ${emailBadge("New Announcement")}
+      ${emailHeading(`New bulletin post at ${escapeHtml(payload.schoolName)}`)}
+      ${emailParagraph(
+        `<strong>${escapeHtml(payload.postTitle)}</strong> was just posted on the school bulletin.`,
+      )}
+      ${emailDetailCard(details)}
+      ${excerptBlock}
+      ${emailCta({ label: "View bulletin", href: absoluteUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendBulletinPublishedEmail(payload: {
+  to: string;
+  schoolName: string;
+  postTitle: string;
+  audienceLabel: string;
+  excerpt: string;
+  attachmentCount: number;
+  portalUrl: string;
+  publisherName?: string | null;
+  recipientAudience?: OutboundEmailAudience;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const html = buildBulletinPublishedEmailHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `New announcement — ${payload.schoolName}`,
+    content: html,
+    discord: schoolOutboundDiscord(
+      "bulletin_published",
+      payload.recipientAudience ?? "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
     return { ok: false };
   }
 

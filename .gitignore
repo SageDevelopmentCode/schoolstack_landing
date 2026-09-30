@@ -52,6 +52,14 @@ apps/mobile/ios/Pods/
 apps/mobile/android/.gradle/
 apps/mobile/android/app/build/
 
+# motion film (Remotion)
+/video/mudkitchen-film/node_modules/
+/video/mudkitchen-film/out/
+/video/mudkitchen-film/public/brand/
+/video/mudkitchen-film/public/audio/
+/video/mudkitchen-film/audio-source/
+*.MP4
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

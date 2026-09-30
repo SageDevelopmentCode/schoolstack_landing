@@ -5,7 +5,11 @@ import {
   logActivityEvent,
   type ActorType,
 } from "@/lib/activity-log";
-import { sendNewMessageEmail } from "@/lib/emails";
+import {
+  buildEmailNotificationContext,
+  messageRecipientAudience,
+  sendNewMessageEmail,
+} from "@/lib/emails";
 import { shouldSendMessageEmail } from "@/lib/messages/message-email-debounce";
 import { stampMessageThreadReadFields } from "@/lib/messages/message-thread-read-stamps";
 import {
@@ -267,6 +271,14 @@ export async function dispatchMessageNotifications(
             senderName: context.senderName,
             preview,
             threadUrl,
+            recipientAudience: messageRecipientAudience(recipient.portal),
+            notificationContext: buildEmailNotificationContext({
+              organizationId: context.organizationId,
+              organizationSlug: context.organizationSlug,
+              surface: "web",
+              entityType: "message_thread",
+              entityId: context.threadId,
+            }),
           });
 
           if (result.ok) {

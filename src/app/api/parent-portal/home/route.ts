@@ -20,7 +20,7 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
 import { loadParentFormAttentionItems } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import { loadParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";

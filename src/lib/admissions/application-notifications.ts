@@ -31,6 +31,7 @@ import {
 } from "@/lib/admissions/public-tour-availability";
 import type { PublicTourChildEntry } from "@/lib/admissions/public-tour-settings";
 import {
+  buildEmailNotificationContext,
   sendApplicationAcceptedEnrollmentEmail,
   sendApplicationSubmittedConfirmation,
   sendApplicationSubmittedOwnerNotification,
@@ -178,6 +179,13 @@ export async function sendApplicationSubmittedNotifications(
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
+    const emailNotificationContext = buildEmailNotificationContext({
+      organizationId: String(application.organization_id),
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "application",
+      entityId: applicationId,
+    });
     const submittedAt = application.submitted_at
       ? String(application.submitted_at)
       : new Date().toISOString();
@@ -223,6 +231,7 @@ export async function sendApplicationSubmittedNotifications(
           programName,
           submittedAtLabel,
           submissionAdminUrl,
+          notificationContext: emailNotificationContext,
         }),
       ),
     ];
@@ -236,6 +245,7 @@ export async function sendApplicationSubmittedNotifications(
             schoolName,
             formTitle,
             applyDashboardUrl,
+            notificationContext: emailNotificationContext,
           }),
         );
       }
@@ -342,6 +352,13 @@ export async function sendApplicationAcceptedEnrollmentNotifications(
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
+    const emailNotificationContext = buildEmailNotificationContext({
+      organizationId: String(application.organization_id),
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "application",
+      entityId: applicationId,
+    });
     const enrollmentChecklistUrl = `${SITE_URL}/school/${schoolSlug}/apply/${applicationId}/enrollment`;
 
     const notificationTasks = contact.emails.map((email) =>
@@ -352,6 +369,7 @@ export async function sendApplicationAcceptedEnrollmentNotifications(
         formTitle,
         studentName,
         enrollmentChecklistUrl,
+        notificationContext: emailNotificationContext,
       }),
     );
 
@@ -460,6 +478,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   booking: ScheduledVisitRecord;
   contact: ApplicantContact | null;
   notifyEmails: string[];
+  organizationId: string;
   schoolName: string;
   schoolSlug: string;
   stepTitle: string;
@@ -473,6 +492,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
     booking,
     contact,
     notifyEmails,
+    organizationId,
     schoolName,
     schoolSlug,
     stepTitle,
@@ -487,6 +507,13 @@ export function buildPostSubmitVisitNotificationTasks(input: {
   const durationLabel = resolveVisitDurationLabel(booking);
   const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
   const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
+  const visitEmailContext = buildEmailNotificationContext({
+    organizationId,
+    organizationSlug: schoolSlug,
+    surface: "web",
+    entityType: "admissions_scheduled_visit",
+    entityId: booking.id,
+  });
 
   const discordTask = isCampusTourTimeSlotBooking(booking)
     ? () =>
@@ -539,6 +566,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
           contactName: contact?.displayName,
           contactEmail: contact?.email,
           submissionAdminUrl,
+          notificationContext: visitEmailContext,
         }),
     ),
   ];
@@ -561,6 +589,7 @@ export function buildPostSubmitVisitNotificationTasks(input: {
           whenLabel,
           durationLabel,
           applyDashboardUrl,
+          notificationContext: visitEmailContext,
         }),
       );
     }
@@ -670,6 +699,7 @@ export async function sendPostSubmitVisitScheduledNotifications(
       booking,
       contact,
       notifyEmails,
+      organizationId,
       schoolName,
       schoolSlug,
       stepTitle,
@@ -758,6 +788,13 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     const durationLabel = resolveVisitDurationLabel(input.booking);
     const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
     const familyName = family?.name ? String(family.name) : undefined;
+    const visitEmailContext = buildEmailNotificationContext({
+      organizationId: input.organizationId,
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "admissions_scheduled_visit",
+      entityId: visitId,
+    });
 
     const tourFormatLabel =
       input.booking.schedulingMode === "time_slot"
@@ -797,6 +834,7 @@ export async function sendPreApplicationCampusTourAdminNotifications(
           contactName: familyName,
           contactEmail,
           submissionAdminUrl: scheduleAdminUrl,
+          notificationContext: visitEmailContext,
         }),
       );
     }
@@ -882,6 +920,13 @@ export async function sendPublicTourBookingAdminNotifications(
       input.booking.scheduledDate,
       input.booking.startTimeSlot,
     );
+    const visitEmailContext = buildEmailNotificationContext({
+      organizationId: input.organizationId,
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "admissions_scheduled_visit",
+      entityId: visitId,
+    });
 
     const tasks: Array<() => Promise<unknown>> = [
       () =>
@@ -908,6 +953,7 @@ export async function sendPublicTourBookingAdminNotifications(
           whenLabel,
           timezoneLabel,
           durationLabel,
+          notificationContext: visitEmailContext,
         }),
       );
     }
@@ -924,6 +970,7 @@ export async function sendPublicTourBookingAdminNotifications(
           contactName: contactName === "Guest" ? undefined : contactName,
           contactEmail,
           submissionAdminUrl: scheduleAdminUrl,
+          notificationContext: visitEmailContext,
         }),
       );
     }

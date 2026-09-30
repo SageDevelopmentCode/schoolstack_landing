@@ -7,6 +7,7 @@ import { notifyIncompleteAdmissionsReminderSent } from "@/lib/discord";
 import {
   buildIncompleteAdmissionsReminderHtml,
   buildIncompleteAdmissionsReminderSubject,
+  buildEmailNotificationContext,
   sendIncompleteAdmissionsReminderEmail,
 } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
@@ -482,6 +483,13 @@ export async function sendIncompleteAdmissionsReminders(
         schoolName,
         subject,
         html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId,
+          organizationSlug: schoolSlug,
+          surface: "cron",
+          entityType: "family",
+          entityId: familyId,
+        }),
       });
       if (result.ok) {
         delivered = true;

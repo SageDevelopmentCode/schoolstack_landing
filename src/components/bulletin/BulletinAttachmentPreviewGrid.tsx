@@ -11,6 +11,10 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 
 const MAX_VISIBLE_CELLS = 4;
 const MAX_PREVIEW_BEFORE_OVERFLOW = 3;
+const SINGLE_PDF_PREVIEW_HEIGHT_PX = 280;
+const SINGLE_IMAGE_MAX_HEIGHT_PX = 280;
+const GRID_PDF_PREVIEW_ASPECT = "aspect-[3/4]";
+const GRID_DEFAULT_PREVIEW_ASPECT = "aspect-[4/3]";
 
 type BulletinAttachmentPreviewGridProps = {
   theme: ParentThemeTokens;
@@ -27,8 +31,9 @@ function PreviewCell({
   theme: ParentThemeTokens;
   onOpen?: () => void;
 }) {
-  const cellClassName =
-    "relative aspect-[4/3] w-full overflow-hidden rounded-md border bg-white transition-opacity hover:opacity-90";
+  const isPdf = isBulletinPdfAttachment(attachment.mimeType);
+  const cellAspectClass = isPdf ? GRID_PDF_PREVIEW_ASPECT : GRID_DEFAULT_PREVIEW_ASPECT;
+  const cellClassName = `relative ${cellAspectClass} w-full overflow-hidden rounded-md border bg-white transition-opacity hover:opacity-90`;
 
   if (!attachment.downloadUrl) {
     return (
@@ -60,7 +65,7 @@ function PreviewCell({
     );
   }
 
-  if (isBulletinPdfAttachment(attachment.mimeType)) {
+  if (isPdf) {
     return (
       <button
         type="button"
@@ -141,7 +146,8 @@ export default function BulletinAttachmentPreviewGrid({
           <img
             src={attachment.downloadUrl}
             alt={attachment.fileName}
-            className="max-h-[220px] w-full object-cover"
+            className="w-full object-cover"
+            style={{ maxHeight: SINGLE_IMAGE_MAX_HEIGHT_PX }}
           />
         </button>
       );
@@ -159,7 +165,8 @@ export default function BulletinAttachmentPreviewGrid({
           <iframe
             src={attachment.downloadUrl}
             title={attachment.fileName}
-            className="h-[160px] w-full border-0"
+            className="w-full border-0"
+            style={{ height: SINGLE_PDF_PREVIEW_HEIGHT_PX }}
           />
         </button>
       );

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
-import { sendFridayBranchEnrollmentAdminNotification } from "@/lib/emails";
+import { buildEmailNotificationContext, sendFridayBranchEnrollmentAdminNotification } from "@/lib/emails";
 import { resolveProgramSignupNotificationEmails } from "@/lib/notifications/org-notification-settings";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { SITE_URL } from "@/lib/site";
@@ -154,6 +154,13 @@ export async function sendFridayBranchEnrollmentAdminNotifications(
         statusLabel,
         submittedAtLabel,
         fridayBranchAdminUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: input.schoolSlug,
+          surface: "web",
+          entityType: "friday_branch_class_enrollment",
+          entityId: input.enrollmentId,
+        }),
       }),
     ),
   );

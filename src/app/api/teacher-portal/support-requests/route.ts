@@ -3,7 +3,7 @@ import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { notifyAdminSupportRequest } from "@/lib/discord";
-import { sendAdminSupportRequestConfirmation } from "@/lib/emails";
+import { buildEmailNotificationContext, sendAdminSupportRequestConfirmation } from "@/lib/emails";
 import {
   MAX_SUPPORT_REQUEST_FILE_BYTES,
   MAX_SUPPORT_REQUEST_FILES,
@@ -287,6 +287,13 @@ export async function POST(request: Request) {
       submitterEmail,
       schoolName: organization.name,
       topic,
+      notificationContext: buildEmailNotificationContext({
+        organizationId: organization.id,
+        organizationSlug: organization.slug,
+        surface: "web",
+        entityType: "admin_support_request",
+        entityId: requestId,
+      }),
     });
   } catch (err) {
     void logNotificationFailure(admin, {

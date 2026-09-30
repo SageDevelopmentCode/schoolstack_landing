@@ -24,6 +24,7 @@ import {
   type AutopayOrgResult,
   type AutopaySkipReason,
 } from "./autopay-cron-report";
+import { getAutopayTargets } from "./autopay-targets";
 import { rowToBillingAccount } from "./row-mappers";
 import {
   extractPaymentMethodDisplayFields,
@@ -562,22 +563,7 @@ export async function processAutopayForOrganization(
 
   for (const accountRow of accounts ?? []) {
     const account = rowToBillingAccount(accountRow);
-    const autopayTargets = new Map<string | null, boolean>();
-
-    const autopayByGuardian =
-      account.metadata.autopayByGuardian &&
-      typeof account.metadata.autopayByGuardian === "object" &&
-      !Array.isArray(account.metadata.autopayByGuardian)
-        ? (account.metadata.autopayByGuardian as Record<string, boolean>)
-        : {};
-
-    for (const [guardianId, enabled] of Object.entries(autopayByGuardian)) {
-      if (enabled) autopayTargets.set(guardianId, true);
-    }
-
-    if (autopayTargets.size === 0 && account.autopayEnabled) {
-      autopayTargets.set(null, true);
-    }
+    const autopayTargets = getAutopayTargets(account);
 
     if (autopayTargets.size === 0) {
       stats.skipped++;

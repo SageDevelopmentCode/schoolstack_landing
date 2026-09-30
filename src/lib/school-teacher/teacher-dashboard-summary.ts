@@ -18,7 +18,7 @@ import {
 import { formatEventTimeRange } from "@/lib/school-events/calendar-time";
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import type { BulletinPost } from "@/lib/school-bulletin/types";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { getStaffMemberIdForUser } from "@/lib/staff/teacher-portal-access";
 import {
   listClassroomSignupResponsesBySignupIds,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildParentPortalContextEntryHref,
   detectParentPortalContextFromPathname,
   getActiveParentPortalContextId,
   parseParentPortalFeatureFromPathname,
@@ -8,6 +9,7 @@ import {
   resolveParentPortalContextSwitchHref,
   shouldRedirectAwayFromMainParentPortal,
 } from "./program-parent-portal-context-switch";
+import { DEFAULT_FEATURES } from "@/lib/organization-settings/catalog";
 import {
   formatChildProgramLine,
   childLearnerSubtitleLine,
@@ -43,6 +45,55 @@ describe("program parent portal context switch", () => {
         "/school/rooted-meadows-demo/parent/children",
       )?.feature,
       "children",
+    );
+    assert.equal(
+      parseParentPortalFeatureFromPathname(
+        "/admin/preview/rooted-meadows/family/fam-1/parent/portal",
+      )?.feature,
+      "portal",
+    );
+    assert.equal(
+      parseParentPortalFeatureFromPathname(
+        "/admin/preview/rooted-meadows/family/fam-1/parent/p/kindergarten-co-op/portal",
+      )?.feature,
+      "portal",
+    );
+  });
+
+  it("builds admin family preview parent entry hrefs", () => {
+    const previewParentBasePath =
+      "/admin/preview/rooted-meadows/family/fam-1/parent";
+    const orgFeatures = { ...DEFAULT_FEATURES };
+
+    assert.equal(
+      buildParentPortalContextEntryHref({
+        slug: "rooted-meadows",
+        schoolName: "Rooted Meadows",
+        orgFeatures,
+        context: { id: "main", label: "Rooted Meadows" },
+        previewParentBasePath,
+      }),
+      `${previewParentBasePath}/portal`,
+    );
+
+    assert.equal(
+      buildParentPortalContextEntryHref({
+        slug: "rooted-meadows",
+        schoolName: "Rooted Meadows",
+        orgFeatures,
+        context: {
+          id: "program:coop",
+          label: "Kindergarten Co-op",
+          portalSlug: "kindergarten-co-op",
+          programId: "coop",
+        },
+        previewParentBasePath,
+        programSettings: {
+          mode: "isolated",
+          features: { portal: true, messages: true, calendar: true },
+        },
+      }),
+      `${previewParentBasePath}/p/kindergarten-co-op/portal`,
     );
   });
 

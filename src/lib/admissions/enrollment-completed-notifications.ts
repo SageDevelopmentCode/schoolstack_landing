@@ -6,7 +6,7 @@ import {
   logNotificationFailure,
   logSettledNotificationFailures,
 } from "@/lib/admissions/notification-logging";
-import { sendEnrollmentCompletedConfirmation } from "@/lib/emails";
+import { buildEmailNotificationContext, sendEnrollmentCompletedConfirmation } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
 import {
   isParentPortalEnabled,
@@ -118,6 +118,13 @@ export async function sendEnrollmentCompletedNotifications(
       ? `${SITE_URL}${schoolParentPath(schoolSlug, "portal")}`
       : `${SITE_URL}/school/${schoolSlug}/apply`;
     const schoolName = String(org.name);
+    const enrollmentEmailContext = buildEmailNotificationContext({
+      organizationId: String(application.organization_id),
+      organizationSlug: schoolSlug,
+      surface: "web",
+      entityType: "enrollment",
+      entityId: input.enrollmentId,
+    });
     const displayName = contact?.displayName ?? "Family";
 
     const notificationResults = await Promise.allSettled(
@@ -130,6 +137,7 @@ export async function sendEnrollmentCompletedNotifications(
           programName,
           parentPortalUrl,
           parentPortalEnabled,
+          notificationContext: enrollmentEmailContext,
         }),
       ),
     );

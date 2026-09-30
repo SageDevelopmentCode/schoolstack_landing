@@ -53,7 +53,7 @@ import {
   fetchUnreadParentActivityNotificationCount,
 } from "@/lib/parent-portal/parent-activity-notifications";
 import { resolveParentNotificationContextForApi } from "@/lib/parent-portal/parent-notification-context";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { mainPortalAudienceScope } from "@/lib/school-events/event-audience";
 import { listEventsForOrg, listUpcomingEventsForOrg } from "@/lib/school-events/events";
 import {

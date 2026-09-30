@@ -46,7 +46,7 @@ import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-route
 import { fetchParentPortalHomeMetaFromRpc } from "@/lib/parent-portal/parent-portal-home-meta";
 import { loadParentBillingPreviewData } from "@/lib/tuition/load-parent-billing-preview-data";
 import { listUpcomingEventsForOrg } from "@/lib/school-events/events";
-import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts";
+import { loadHomeBulletinPosts } from "@/lib/school-bulletin/posts-home";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createAdminClient } from "@/utils/supabase/admin";

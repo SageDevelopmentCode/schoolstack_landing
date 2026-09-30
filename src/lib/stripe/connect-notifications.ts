@@ -4,7 +4,7 @@ import {
   ACTIVITY_ACTIONS,
   logActivityEvent,
 } from "@/lib/activity-log";
-import { sendStripePaymentsReadyNotification } from "@/lib/emails";
+import { buildEmailNotificationContext, sendStripePaymentsReadyNotification } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { SITE_URL } from "@/lib/site";
 
@@ -101,6 +101,13 @@ export async function notifyPaymentsReadyIfNeeded(
         email,
         schoolName,
         paymentsAdminUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: schoolSlug,
+          surface: "system",
+          entityType: "organization_payment_account",
+          entityId: input.stripeConnectAccountId,
+        }),
       }),
     ),
   );

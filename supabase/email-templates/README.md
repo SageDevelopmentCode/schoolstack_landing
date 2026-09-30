@@ -39,6 +39,8 @@ Defined in code as `SUPABASE_MAGIC_LINK_SUBJECT` and `SUPABASE_CONFIRM_SIGNUP_SU
    ```
    This updates `magic-link.html` and `confirm-signup.html` here, and writes browser previews to `.email-previews/`.
 
+   Zoho-style previews in `.email-previews/` include the unsubscribe footer when `EMAIL_UNSUBSCRIBE_SECRET` is set in `.env.local` (Supabase OTP preview files do not).
+
 ## Deliverability
 
 Auth emails are sent by Supabase through your custom SMTP (Zoho). Inbox placement depends on DNS authentication for `trymudkitchen.com`, not on app code.

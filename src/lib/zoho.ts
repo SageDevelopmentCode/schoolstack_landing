@@ -29,6 +29,8 @@ export interface ZohoEmailContent {
   hasAttachment: boolean;
 }
 
+import type { OutboundEmailDiscordMeta } from "@/lib/discord";
+
 const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
 const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 const ZOHO_REDIRECT_URI = process.env.ZOHO_REDIRECT_URI;
@@ -204,11 +206,18 @@ async function sendViaRestApi(opts: {
   return { success: false, error: lastError };
 }
 
+export type SendZohoEmailResult =
+  | { success: true; skipped?: undefined }
+  | { success: true; skipped: "unsubscribed" }
+  | { success: false; error?: string };
+
 export async function sendZohoEmail(opts: {
   toAddress: string;
   subject: string;
   content: string;
-}): Promise<{ success: boolean; error?: string }> {
+  discord?: OutboundEmailDiscordMeta;
+  sendClass?: import("@/lib/outbound-email-unsubscribe").OutboundEmailSendClass;
+}): Promise<SendZohoEmailResult> {
   const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
   if (isOutboundEmailDisabled()) {
     return { success: true };
@@ -218,17 +227,77 @@ export async function sendZohoEmail(opts: {
     return { success: false, error: "ZOHO_FROM_ADDRESS is not set" };
   }
 
-  const { isSmtpConfigured, sendViaSmtp } = await import("@/lib/zoho-smtp");
+  const {
+    normalizeOutboundEmail,
+    appendUnsubscribeFooter,
+    isTransactionalOutboundEmail,
+    isOutboundEmailSuppressedForMarketing,
+  } = await import("@/lib/outbound-email-unsubscribe");
 
-  if (isSmtpConfigured()) {
-    return sendViaSmtp({
-      toAddress: opts.toAddress,
-      subject: opts.subject,
-      html: opts.content,
-    });
+  const toAddress = normalizeOutboundEmail(opts.toAddress);
+  const isTransactional = isTransactionalOutboundEmail({
+    sendClass: opts.sendClass,
+    discord: opts.discord,
+  });
+
+  if (!isTransactional) {
+    try {
+      const suppressed = await isOutboundEmailSuppressedForMarketing(toAddress);
+      if (suppressed) {
+        return { success: true, skipped: "unsubscribed" };
+      }
+    } catch (err) {
+      const { reportOperationalError } = await import("@/lib/operational-errors");
+      await reportOperationalError({
+        supabase: (await import("@/utils/supabase/admin")).createAdminClient(),
+        surface: "system",
+        operation: "outbound_email_suppression_check",
+        error: "Failed to check outbound email suppression list",
+        cause: err,
+        actor: { type: "system" },
+      });
+      return {
+        success: false,
+        error: "Failed to verify email suppression status",
+      };
+    }
   }
 
-  return sendViaRestApi(opts);
+  const content = appendUnsubscribeFooter(opts.content, toAddress);
+  const sendOpts = { ...opts, toAddress, content };
+
+  const { isSmtpConfigured, sendViaSmtp } = await import("@/lib/zoho-smtp");
+
+  let result: { success: boolean; error?: string };
+  if (isSmtpConfigured()) {
+    result = await sendViaSmtp({
+      toAddress: sendOpts.toAddress,
+      subject: sendOpts.subject,
+      html: sendOpts.content,
+    });
+  } else {
+    result = await sendViaRestApi(sendOpts);
+  }
+
+  if (result.success) {
+    if (opts.discord) {
+      const { notifyOutboundEmailSent } = await import("@/lib/discord");
+      void notifyOutboundEmailSent({
+        ...opts.discord,
+        toAddress: toAddress,
+        subject: opts.subject,
+      });
+    } else {
+      console.warn(
+        `sendZohoEmail: missing discord meta for email to ${opts.toAddress} (${opts.subject})`,
+      );
+    }
+  }
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+  return { success: true };
 }
 
 async function fetchMessageContent(

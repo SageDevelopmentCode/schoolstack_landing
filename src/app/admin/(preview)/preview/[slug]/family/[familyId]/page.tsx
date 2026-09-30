@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
 import {
   familyPreviewBasePath,
-  familyPreviewParentBasePath,
   listFamilyApplicationsForFamilyId,
 } from "@/lib/admissions/family-preview-access";
 import {
@@ -20,7 +19,7 @@ import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply
 import { listEnrollmentProgressForApplications, listEnrollmentAgreementAmendmentsForApplications, listIncompleteEnrollmentAgreementsForApplications } from "@/lib/admissions/enrollment-checklist-materialization";
 import { buildEnrollmentAgreementAmendmentBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-amendment-banner";
 import { buildEnrollmentAgreementIncompleteBannerItemsFromApplications } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
-import { getParentPortalHomeHref } from "@/lib/organization-settings/parent-nav";
+import { resolveFamilyPreviewParentPortalHref } from "@/lib/admissions/preview-portal-options";
 import { isParentPortalEnabled } from "@/lib/organization-settings/parent-routes";
 import {
   getAdmissionsOrgSettings,
@@ -67,7 +66,6 @@ export default async function FamilyPreviewApplyPage({
   }
 
   const previewBasePath = familyPreviewBasePath(slug, familyId);
-  const previewParentBasePath = familyPreviewParentBasePath(slug, familyId);
 
   const [applications, hasEnrolledAccess, timezoneResult, userProfile] =
     await Promise.all([
@@ -171,12 +169,11 @@ export default async function FamilyPreviewApplyPage({
       parentPortalEnabled={isParentPortalEnabled(org.features)}
       parentPortalHref={
         hasEnrolledAccess && isParentPortalEnabled(org.features)
-          ? getParentPortalHomeHref(
-              slug,
-              org.features.parent,
-              org.features.feature_nav?.parent,
-              previewParentBasePath,
-            ) ?? `${previewBasePath}/parent`
+          ? (await resolveFamilyPreviewParentPortalHref(
+              supabase,
+              org,
+              familyId,
+            )) ?? `${previewBasePath}/parent`
           : undefined
       }
       enrollmentProgressByApplicationId={enrollmentProgressByApplicationId}

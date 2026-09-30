@@ -67,6 +67,10 @@ describe("runTuitionBillingCron", () => {
         calls.push(`reminders:${organizationId}`);
         return organizationId === "org-2" ? 3 : 0;
       },
+      sendAutopayUpcomingReminders: async (_admin, organizationId) => {
+        calls.push(`autopay-reminders:${organizationId}`);
+        return organizationId === "org-1" ? 2 : 0;
+      },
       sendIncompleteAdmissionsReminders: async (_admin, organizationId) => {
         calls.push(`incomplete-admissions-reminders:${organizationId}`);
         return organizationId === "org-1" ? 2 : 0;
@@ -114,6 +118,18 @@ describe("runTuitionBillingCron", () => {
           failures: 0,
         };
       },
+      sendPendingScheduledBulletinEmailsForOrganization: async (
+        _admin,
+        organizationId,
+      ) => {
+        calls.push(`bulletin-emails:${organizationId}`);
+        return {
+          postsProcessed: organizationId === "org-1" ? 1 : 0,
+          emailsAttempted: organizationId === "org-1" ? 2 : 0,
+          emailsSucceeded: organizationId === "org-1" ? 2 : 0,
+          failures: 0,
+        };
+      },
       notifySummary: async (payload) => {
         notifiedPayload = payload;
       },
@@ -122,24 +138,29 @@ describe("runTuitionBillingCron", () => {
     assert.deepEqual(calls, [
       "overdue:org-1",
       "reminders:org-1",
+      "autopay-reminders:org-1",
       "incomplete-admissions-reminders:org-1",
       "rules:org-1",
       "committee-digest:org-1",
       "unread-message-digest:org-1",
       "visit-reminders:org-1",
+      "bulletin-emails:org-1",
       "overdue:org-2",
       "reminders:org-2",
+      "autopay-reminders:org-2",
       "incomplete-admissions-reminders:org-2",
       "rules:org-2",
       "committee-digest:org-2",
       "unread-message-digest:org-2",
       "visit-reminders:org-2",
+      "bulletin-emails:org-2",
     ]);
     assert.equal(summary.organizations, 2);
     assert.equal(summary.organizationFailures, 0);
     assert.deepEqual(summary.failedOrganizationIds, []);
     assert.equal(summary.overdueCount, 2);
     assert.equal(summary.remindersSent, 3);
+    assert.equal(summary.autopayRemindersSent, 2);
     assert.equal(summary.incompleteAdmissionsRemindersSent, 2);
     assert.equal(summary.rulesEvaluated, 2);
     assert.equal(summary.lateFeesApplied, 0);
@@ -156,6 +177,8 @@ describe("runTuitionBillingCron", () => {
     assert.equal(summary.unreadMessageDigestFailures, 0);
     assert.equal(summary.scheduledVisitParentRemindersSent, 1);
     assert.equal(summary.scheduledVisitAdminDayBeforeDigestsSent, 1);
+    assert.equal(summary.bulletinEmailsSent, 2);
+    assert.equal(summary.bulletinEmailFailures, 0);
     const payload = notifiedPayload as Record<string, unknown> | null;
     assert.equal(payload?.autopaySkipped, 4);
     assert.equal(payload?.autopayDueCandidates, 2);
@@ -175,6 +198,10 @@ describe("runTuitionBillingCron", () => {
       },
       sendTuitionDueReminders: async (_admin, organizationId) => {
         calls.push(`reminders:${organizationId}`);
+        return 0;
+      },
+      sendAutopayUpcomingReminders: async (_admin, organizationId) => {
+        calls.push(`autopay-reminders:${organizationId}`);
         return 0;
       },
       sendIncompleteAdmissionsReminders: async (_admin, organizationId) => {
@@ -230,21 +257,36 @@ describe("runTuitionBillingCron", () => {
           failures: 0,
         };
       },
+      sendPendingScheduledBulletinEmailsForOrganization: async (
+        _admin,
+        organizationId,
+      ) => {
+        calls.push(`bulletin-emails:${organizationId}`);
+        return {
+          postsProcessed: 0,
+          emailsAttempted: 0,
+          emailsSucceeded: 0,
+          failures: 0,
+        };
+      },
       notifySummary: async () => {},
     });
 
     assert.deepEqual(calls, [
       "overdue:org-1",
       "reminders:org-1",
+      "autopay-reminders:org-1",
       "incomplete-admissions-reminders:org-1",
       "overdue:org-2",
       "reminders:org-2",
+      "autopay-reminders:org-2",
       "incomplete-admissions-reminders:org-2",
       "rules:org-2",
       "late-fees:org-2",
       "autopay:org-2",
       "unread-message-digest:org-2",
       "visit-reminders:org-2",
+      "bulletin-emails:org-2",
     ]);
     assert.equal(summary.organizationFailures, 1);
     assert.deepEqual(summary.failedOrganizationIds, ["org-1"]);
