@@ -47,18 +47,18 @@ export default function EmailSuppressionsPage() {
       }
       const list = data.suppressions ?? [];
       setRows(list);
-      if (list.length && !selectedEmail) {
-        setSelectedEmail(list[0].email);
-      }
+      setSelectedEmail((current) => current ?? list[0]?.email ?? null);
     } catch {
       setError("Failed to load suppressions.");
     } finally {
       setLoading(false);
     }
-  }, [selectedEmail]);
+  }, []);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, [load]);
 
   const filtered = useMemo(() => {

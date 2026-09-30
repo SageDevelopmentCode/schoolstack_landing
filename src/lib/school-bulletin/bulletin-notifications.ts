@@ -142,17 +142,33 @@ async function loadPublisherName(
   return name || null;
 }
 
-async function markBulletinPublishedEmailSent(
+async function tryClaimBulletinPublishedEmailSend(
+  admin: SupabaseClient,
+  organizationId: string,
+  postId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("school_bulletin_posts")
+    .update({ published_email_sent_at: new Date().toISOString() })
+    .eq("organization_id", organizationId)
+    .eq("id", postId)
+    .is("published_email_sent_at", null)
+    .select("id");
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+async function clearBulletinPublishedEmailSent(
   admin: SupabaseClient,
   organizationId: string,
   postId: string,
 ): Promise<void> {
   const { error } = await admin
     .from("school_bulletin_posts")
-    .update({ published_email_sent_at: new Date().toISOString() })
+    .update({ published_email_sent_at: null })
     .eq("organization_id", organizationId)
-    .eq("id", postId)
-    .is("published_email_sent_at", null);
+    .eq("id", postId);
 
   if (error) throw error;
 }
@@ -169,7 +185,8 @@ export type BulletinNotificationDeps = {
   loadPublisherName?: typeof loadPublisherName;
   resolveRecipients?: typeof resolveBulletinEmailRecipients;
   sendEmail?: typeof sendBulletinPublishedEmail;
-  markSent?: typeof markBulletinPublishedEmailSent;
+  tryClaimSent?: typeof tryClaimBulletinPublishedEmailSend;
+  clearSent?: typeof clearBulletinPublishedEmailSent;
   logSettledNotificationFailures?: typeof logSettledNotificationFailures;
 };
 
@@ -183,21 +200,11 @@ export async function sendBulletinPublishedEmailNotifications(
   const resolvePublisherName = deps.loadPublisherName ?? loadPublisherName;
   const resolveRecipients = deps.resolveRecipients ?? resolveBulletinEmailRecipients;
   const sendEmail = deps.sendEmail ?? sendBulletinPublishedEmail;
-  const markSent = deps.markSent ?? markBulletinPublishedEmailSent;
+  const tryClaimSent =
+    deps.tryClaimSent ?? tryClaimBulletinPublishedEmailSend;
+  const clearSent = deps.clearSent ?? clearBulletinPublishedEmailSent;
   const logFailures =
     deps.logSettledNotificationFailures ?? logSettledNotificationFailures;
-
-  const { data: sentRow, error: sentCheckError } = await admin
-    .from("school_bulletin_posts")
-    .select("published_email_sent_at")
-    .eq("organization_id", input.organizationId)
-    .eq("id", input.post.id)
-    .maybeSingle();
-
-  if (sentCheckError) throw sentCheckError;
-  if (sentRow?.published_email_sent_at) {
-    return { emailsAttempted: 0, emailsSucceeded: 0 };
-  }
 
   const org = await loadOrganizationContext(admin, input.organizationId);
   if (!org?.bulletinEnabled) {
@@ -220,8 +227,16 @@ export async function sendBulletinPublishedEmailNotifications(
     input.post.programIds,
   );
 
+  const claimed = await tryClaimSent(
+    admin,
+    input.organizationId,
+    input.post.id,
+  );
+  if (!claimed) {
+    return { emailsAttempted: 0, emailsSucceeded: 0 };
+  }
+
   if (recipients.length === 0) {
-    await markSent(admin, input.organizationId, input.post.id);
     return { emailsAttempted: 0, emailsSucceeded: 0 };
   }
 
@@ -268,8 +283,8 @@ export async function sendBulletinPublishedEmailNotifications(
     (result) => result.status === "fulfilled" && result.value.ok,
   ).length;
 
-  if (emailsSucceeded > 0 || recipients.length === 0) {
-    await markSent(admin, input.organizationId, input.post.id);
+  if (emailsSucceeded !== recipients.length) {
+    await clearSent(admin, input.organizationId, input.post.id);
   }
 
   return {

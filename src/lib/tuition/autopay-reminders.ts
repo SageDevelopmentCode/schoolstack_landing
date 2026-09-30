@@ -8,8 +8,11 @@ import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notific
 import { chargeRemainingCents } from "./billing-splits";
 import { formatCents } from "./pricing";
 import { rowToBillingAccount } from "./row-mappers";
+import {
+  chargeMatchesAutopayTarget,
+  getAutopayTargets,
+} from "./autopay-targets";
 import { getTuitionReminderTargetDate } from "./reminders";
-import type { TuitionBillingAccount } from "./types";
 
 export const DEFAULT_AUTOPAY_REMINDER_DAYS_BEFORE = 1;
 
@@ -22,47 +25,6 @@ type DueChargeRow = {
   family_id: string;
   guardian_id: string | null;
 };
-
-function getAutopayTargets(
-  account: TuitionBillingAccount,
-): Map<string | null, boolean> {
-  const autopayTargets = new Map<string | null, boolean>();
-
-  const autopayByGuardian =
-    account.metadata.autopayByGuardian &&
-    typeof account.metadata.autopayByGuardian === "object" &&
-    !Array.isArray(account.metadata.autopayByGuardian)
-      ? (account.metadata.autopayByGuardian as Record<string, boolean>)
-      : {};
-
-  for (const [guardianId, enabled] of Object.entries(autopayByGuardian)) {
-    if (enabled) autopayTargets.set(guardianId, true);
-  }
-
-  if (autopayTargets.size === 0 && account.autopayEnabled) {
-    autopayTargets.set(null, true);
-  }
-
-  return autopayTargets;
-}
-
-function chargeMatchesAutopayTarget(
-  charge: DueChargeRow,
-  autopayTargets: Map<string | null, boolean>,
-  hasBillingSplit: boolean,
-): boolean {
-  if (autopayTargets.size === 0) return false;
-
-  if (hasBillingSplit) {
-    for (const guardianId of autopayTargets.keys()) {
-      if (guardianId === null) continue;
-      if (String(charge.guardian_id) === guardianId) return true;
-    }
-    return false;
-  }
-
-  return charge.guardian_id == null && autopayTargets.has(null);
-}
 
 type ReminderDeps = {
   sendEmail?: typeof sendTuitionAutopayUpcomingEmail;
