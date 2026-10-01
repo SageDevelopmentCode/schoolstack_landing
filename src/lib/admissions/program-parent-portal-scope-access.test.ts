@@ -5,6 +5,7 @@ import {
   userHasAccessForNotificationContext,
   userHasAccessForOptionalProgramScope,
   userHasAccessForProgramPortal,
+  userHasMainPortalEnrollment,
 } from "./program-parent-portal-access";
 import {
   buildMainParentNotificationContext,
@@ -206,6 +207,27 @@ describe("program parent portal scope access helpers", () => {
         ORG_ID,
         null,
       ),
+      true,
+    );
+  });
+
+  it("loadParentPortalHomeApiPayload main branch denies coop-only enrollment via userHasMainPortalEnrollment", async () => {
+    const isolatedOnly = createEnrollmentAccessMockSupabase(baseConfig);
+    const withMainPortal = createEnrollmentAccessMockSupabase({
+      ...baseConfig,
+      enrollments: [
+        { program_id: PROGRAM_A, status: "enrolled" },
+        { program_id: PROGRAM_B, status: "enrolled" },
+      ],
+      programs: [isolatedProgram, mainProgram],
+    });
+
+    assert.equal(
+      await userHasMainPortalEnrollment(isolatedOnly, USER_ID, ORG_ID),
+      false,
+    );
+    assert.equal(
+      await userHasMainPortalEnrollment(withMainPortal, USER_ID, ORG_ID),
       true,
     );
   });

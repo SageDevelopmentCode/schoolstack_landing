@@ -7,6 +7,7 @@ import { formatCents } from "@/lib/tuition/pricing";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
 
 type ParentBillingUpcomingChargesPanelProps = {
   theme: ParentThemeTokens;
@@ -19,6 +20,7 @@ type ParentBillingUpcomingChargesPanelProps = {
   payingChargeId: string | null;
   highlightedChargeId?: string | null;
   autopayEnabled: boolean;
+  pendingPaymentByChargeId?: Map<string, PaymentRecord>;
   readOnly?: boolean;
   onClose: () => void;
   onPay: (chargeId: string) => void;
@@ -52,6 +54,7 @@ export default function ParentBillingUpcomingChargesPanel({
   payingChargeId,
   highlightedChargeId = null,
   autopayEnabled,
+  pendingPaymentByChargeId = new Map(),
   readOnly = false,
   onClose,
   onPay,
@@ -96,6 +99,9 @@ export default function ParentBillingUpcomingChargesPanel({
               payingChargeId={payingChargeId}
               highlighted={highlightedChargeId === charge.id}
               autopayEnabled={autopayEnabled}
+              pendingCheckoutPayment={
+                pendingPaymentByChargeId.get(charge.id) ?? null
+              }
               onPay={onPay}
               readOnly={readOnly}
             />

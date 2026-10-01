@@ -13,12 +13,10 @@ import type { FinancesTransactionsApiResponse } from "@/app/api/school-admin/fin
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import {
   PAYMENT_METHOD_LABELS,
-  PAYMENT_STATUS_LABELS,
   PAYMENT_TYPE_LABELS,
   TRANSACTIONS_PAGE_DEFAULT_SIZE,
   type PaymentRecordDisplayRow,
 } from "@/lib/admissions/payment-records";
-import { paymentStatusChipTone } from "@/lib/admissions/payment-status-ui";
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { TransactionsPageMeta } from "@/lib/school-admin/transactions-page-meta";
@@ -349,7 +347,7 @@ export default function FinancesTransactionsPageShell({
     <SchoolAdminTableSkeleton
       C={C}
       rows={8}
-      columns={8}
+      columns={7}
       showFilters={false}
       compact
       label="Loading transactions"
@@ -398,7 +396,6 @@ export default function FinancesTransactionsPageShell({
               "Type",
               "Method",
               "Amount",
-              "Status",
               "Application",
             ].map((heading) => (
               <th
@@ -455,11 +452,6 @@ export default function FinancesTransactionsPageShell({
                     ? ` (+${formatFeeAmount(row.processingFeeCents)} fee)`
                     : ""}
                 </p>
-              </td>
-              <td className="px-4 py-3">
-                <AdminChip theme={theme} tone={paymentStatusChipTone(row.status)}>
-                  {PAYMENT_STATUS_LABELS[row.status]}
-                </AdminChip>
               </td>
               <td className="px-4 py-3 pr-5">
                 {row.applicationId ? (

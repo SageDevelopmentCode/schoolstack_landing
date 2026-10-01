@@ -27,7 +27,7 @@ function buildWebCheckoutReturnUrl(
   const baseUrl = getSiteUrl();
   const query =
     outcome === "paid"
-      ? "paid=1"
+      ? "paid=1&session_id={CHECKOUT_SESSION_ID}"
       : outcome === "cancelled"
         ? "cancelled=1"
         : outcome === "card_saved"

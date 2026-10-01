@@ -77,6 +77,15 @@ describe("formatParentChargeStatusBadge", () => {
     assert.equal(badge.label, "WAIVED");
     assert.equal(badge.tone, "neutral");
   });
+
+  it("returns PROCESSING when a pending checkout payment exists", () => {
+    const badge = formatParentChargeStatusBadge(
+      charge({ id: "c-1", status: "sent" }),
+      { pendingCheckoutPayment: true },
+    );
+    assert.equal(badge.label, "PROCESSING");
+    assert.equal(badge.tone, "info");
+  });
 });
 
 describe("formatParentChargeDueLine", () => {

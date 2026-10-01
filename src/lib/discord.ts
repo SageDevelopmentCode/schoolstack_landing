@@ -597,6 +597,68 @@ export async function notifyWebsiteApiError(payload: {
   );
 }
 
+export async function notifyStripeWebhookCriticalError(payload: {
+  status: number;
+  error: string;
+  code?: string;
+  eventType?: string;
+  checkoutSessionId?: string;
+  paymentIntentId?: string;
+}) {
+  const fields: DiscordEmbedField[] = [
+    embedField("Route", truncate("`POST /api/stripe/webhook`"), true),
+    embedField("Status", String(payload.status), true),
+    embedField("Error", truncate(payload.error)),
+  ];
+
+  if (payload.code) {
+    fields.push(embedField("Code", truncate(payload.code), true));
+  }
+
+  if (payload.eventType) {
+    fields.push(embedField("Stripe event", truncate(payload.eventType), true));
+  }
+
+  if (payload.checkoutSessionId) {
+    fields.push(
+      embedField(
+        "Checkout session",
+        truncate(formatId(payload.checkoutSessionId)),
+        true,
+      ),
+    );
+  }
+
+  if (payload.paymentIntentId) {
+    fields.push(
+      embedField(
+        "PaymentIntent",
+        truncate(formatId(payload.paymentIntentId)),
+        true,
+      ),
+    );
+  }
+
+  fields.push(
+    embedField(
+      "Next step",
+      truncate(
+        "Stripe Workbench → Webhooks → check delivery log. Resend failed events after fixing. Redirects (308) never hit MudKitchen — fix endpoint URL in Stripe.",
+      ),
+    ),
+  );
+
+  await sendCustomerBillingDiscordEmbed(
+    {
+      title: "Stripe webhook failure — payments may not sync",
+      description: truncate(payload.error, 200),
+      color: DISCORD_EMBED_COLORS.error,
+      fields,
+    },
+    { content: "@everyone" },
+  );
+}
+
 function portalOperationErrorTitle(surface: string | undefined, operation: string): string {
   switch (surface) {
     case "parent_portal":

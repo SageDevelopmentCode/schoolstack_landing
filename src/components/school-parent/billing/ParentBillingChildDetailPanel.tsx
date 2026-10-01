@@ -18,6 +18,7 @@ import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { SavedPaymentMethodSummary } from "@/lib/tuition/payment-methods";
 
 type ParentBillingChildDetailPanelProps = {
@@ -30,6 +31,7 @@ type ParentBillingChildDetailPanelProps = {
   payments: ParentTuitionPaymentRecord[];
   payingChargeId: string | null;
   autopayEnabled: boolean;
+  pendingPaymentByChargeId?: Map<string, PaymentRecord>;
   savedPaymentMethod: SavedPaymentMethodSummary | null;
   paymentMethodLoading: boolean;
   onAutopayToggleRequest: (enabled: boolean) => void;
@@ -60,6 +62,7 @@ export default function ParentBillingChildDetailPanel({
   payments,
   payingChargeId,
   autopayEnabled,
+  pendingPaymentByChargeId = new Map(),
   savedPaymentMethod,
   paymentMethodLoading,
   onAutopayToggleRequest,
@@ -199,6 +202,9 @@ export default function ParentBillingChildDetailPanel({
                   }
                   payingChargeId={payingChargeId}
                   autopayEnabled={autopayEnabled}
+                  pendingCheckoutPayment={
+                    pendingPaymentByChargeId.get(charge.id) ?? null
+                  }
                   onPay={onPay}
                   readOnly={readOnly}
                 />

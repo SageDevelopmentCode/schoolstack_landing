@@ -24,7 +24,7 @@ import {
   selectDisplayBlock,
   studentNameById,
 } from '@/lib/parent/parent-friday-branch-utils';
-import { parentFridayBranchRoute } from '@/lib/parent/parent-nav';
+import { parentFridayBranchRoute, parentProgramMoreRoute } from '@/lib/parent/parent-nav';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -32,6 +32,7 @@ const MAX_ROWS = 3;
 
 type ParentHomeFridayBranchCardProps = {
   slug: string;
+  programSlug?: string;
   organizationId: string;
   initialBundle: ParentFridayBranchPageBundle;
 };
@@ -145,6 +146,7 @@ function ClassRow({
 
 export function ParentHomeFridayBranchCard({
   slug,
+  programSlug,
   organizationId,
   initialBundle,
 }: ParentHomeFridayBranchCardProps) {
@@ -253,7 +255,13 @@ export function ParentHomeFridayBranchCard({
             label="View schedule"
             previewSafe
             variant="soft"
-            onPress={() => router.push(parentFridayBranchRoute(slug))}
+            onPress={() =>
+              router.push(
+                programSlug
+                  ? parentProgramMoreRoute(slug, programSlug, 'friday-branch')
+                  : parentFridayBranchRoute(slug),
+              )
+            }
           />
         </View>
 

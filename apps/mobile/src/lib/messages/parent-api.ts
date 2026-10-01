@@ -43,11 +43,13 @@ export async function loadParentMessageThread(
 export async function createParentMessageThread(
   organizationId: string,
   contact: MessageContact,
+  options?: { programId?: string },
 ): Promise<string> {
   const payload = await fetchParentApi<{ threadId: string }>(`${BASE_PATH}/threads`, {
     method: 'POST',
     body: {
       organizationId,
+      programId: options?.programId,
       contact: {
         key: contact.key,
         kind: contact.kind,

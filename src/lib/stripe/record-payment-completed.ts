@@ -16,6 +16,8 @@ import {
   updateStripeProviderStatus,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
+import { getStripeClient } from "@/lib/stripe/client";
+import { expirePendingCheckoutSessionsForCharge } from "@/lib/tuition/expire-charge-checkout-sessions";
 
 export type RecordTuitionPaymentCompletedInput = {
   payment: PaymentRecord;
@@ -102,6 +104,19 @@ export async function recordTuitionPaymentCompleted(
       charge,
       activityMetadata: input.activityMetadata,
     });
+  }
+
+  if (chargeId) {
+    try {
+      const stripe = getStripeClient();
+      await expirePendingCheckoutSessionsForCharge(admin, stripe, chargeId);
+    } catch (error) {
+      console.warn(
+        "recordTuitionPaymentCompleted: expire pending checkout sessions failed",
+        chargeId,
+        error,
+      );
+    }
   }
 
   return { payment, newlyRecorded: true, settleResult };

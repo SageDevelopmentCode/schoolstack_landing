@@ -104,24 +104,46 @@ export async function loadParentHomeContentData(input: {
 }): Promise<ParentHomeContentData> {
   const user = await getRequestUser();
   if (!user) {
-    return {
-      familyChildren: [],
-      onboardingItems: [],
-      enrollmentAmendmentBannerItems: [],
-      enrollmentIncompleteBannerItems: [],
-      formAttentionItems: [],
-      formSnapshot: null,
-      fridayBranchHome: null,
-    };
+    return emptyParentHomeContentData();
   }
 
   const cookieStore = await cookies();
   const supabase = input.supabase ?? createClient(cookieStore);
 
+  return loadParentHomeContentDataForAuthUser({
+    ...input,
+    supabase,
+    userId: user.id,
+  });
+}
+
+function emptyParentHomeContentData(): ParentHomeContentData {
+  return {
+    familyChildren: [],
+    onboardingItems: [],
+    enrollmentAmendmentBannerItems: [],
+    enrollmentIncompleteBannerItems: [],
+    formAttentionItems: [],
+    formSnapshot: null,
+    fridayBranchHome: null,
+  };
+}
+
+export async function loadParentHomeContentDataForAuthUser(input: {
+  supabase: SupabaseClient;
+  userId: string;
+  organizationId: string;
+  familyId: string;
+  slug: string;
+  features: OrganizationFeatures;
+  previewBasePath?: string;
+  programId?: string;
+  coopModeEnabled?: boolean;
+}): Promise<ParentHomeContentData> {
   const hasProgramAccess = input.programId
     ? await userHasEnrolledAccessInProgram(
-        supabase,
-        user.id,
+        input.supabase,
+        input.userId,
         input.organizationId,
         input.programId,
       )
@@ -129,16 +151,24 @@ export async function loadParentHomeContentData(input: {
 
   const familyChildren = input.programId
     ? filterFamilyChildrenForProgramPortal(
-        await listFamilyChildrenForHome(supabase, input.organizationId, user.id),
+        await listFamilyChildrenForHome(
+          input.supabase,
+          input.organizationId,
+          input.userId,
+        ),
         input.programId,
       )
-    : await listFamilyChildrenForHome(supabase, input.organizationId, user.id);
+    : await listFamilyChildrenForHome(
+        input.supabase,
+        input.organizationId,
+        input.userId,
+      );
 
   const onboardingItems = await loadResolvedParentOnboardingItems({
-    supabase,
+    supabase: input.supabase,
     organizationId: input.organizationId,
     familyId: input.familyId,
-    userId: user.id,
+    userId: input.userId,
     slug: input.slug,
     features: input.features,
     previewBasePath: input.previewBasePath,
@@ -157,12 +187,12 @@ export async function loadParentHomeContentData(input: {
     fridayBranchHome,
   ] = await Promise.all([
     listEnrollmentAgreementAmendmentsForApplications(
-      supabase,
+      input.supabase,
       input.organizationId,
       applicationIds,
     ),
     listIncompleteEnrollmentAgreementsForApplications(
-      supabase,
+      input.supabase,
       input.organizationId,
       applicationIds,
     ),

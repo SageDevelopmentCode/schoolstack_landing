@@ -48,7 +48,14 @@ export type ChargeStatusBadge = {
   tone: ChargeStatusBadgeTone;
 };
 
-export function formatParentChargeStatusBadge(charge: TuitionCharge): ChargeStatusBadge {
+export function formatParentChargeStatusBadge(
+  charge: TuitionCharge,
+  options?: { pendingCheckoutPayment?: boolean },
+): ChargeStatusBadge {
+  if (options?.pendingCheckoutPayment) {
+    return { label: "PROCESSING", tone: "info" };
+  }
+
   if (charge.status === "waived") {
     return { label: "WAIVED", tone: "neutral" };
   }

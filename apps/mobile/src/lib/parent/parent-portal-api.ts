@@ -257,12 +257,83 @@ export type ParentHomeData = {
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
 };
 
+export type ProgramCoopLearner = {
+  studentId: string;
+  firstName: string;
+  grade: string | null;
+  profilePhotoUrl: string | null;
+};
+
+export type ProgramCoopFamily = {
+  familyId: string;
+  familyName: string;
+  isCurrentFamily: boolean;
+  contactGuardianId: string | null;
+  learners: ProgramCoopLearner[];
+  enrolledAt: string | null;
+};
+
+export type ParentDocGuideStep = {
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    href: string;
+  };
+};
+
+export type ParentDocGuide = {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  keywords: string[];
+  steps: ParentDocGuideStep[];
+};
+
+export type ResolvedParentFeatureAnnouncement = {
+  id: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  feature: string;
+  href: string;
+  publishedAt: string;
+};
+
+export type ParentProgramHomeData = ParentHomeData & {
+  programId: string;
+  programSlug: string;
+  programPortalLabel: string;
+  coopModeEnabled: boolean;
+  parentNavBasePath?: string;
+  coopFamilies?: ProgramCoopFamily[];
+  featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
+  documentationGuides?: ParentDocGuide[];
+};
+
 export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
   return {
     ...data,
     bulletinEnabled: data.bulletinEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
+  };
+}
+
+export function normalizeParentProgramHomeData(
+  data: ParentProgramHomeData,
+): ParentProgramHomeData {
+  return {
+    ...normalizeParentHomeData(data),
+    programId: data.programId,
+    programSlug: data.programSlug,
+    programPortalLabel: data.programPortalLabel,
+    coopModeEnabled: data.coopModeEnabled,
+    parentNavBasePath: data.parentNavBasePath,
+    coopFamilies: data.coopFamilies ?? [],
+    featureAnnouncements: data.featureAnnouncements ?? [],
+    documentationGuides: data.documentationGuides ?? [],
   };
 }
 
@@ -273,6 +344,51 @@ export async function fetchParentHomeData(
   const query = new URLSearchParams({ organizationId, slug }).toString();
   const payload = await fetchParentApi<ParentHomeData>(`/api/parent-portal/home?${query}`);
   return normalizeParentHomeData(payload);
+}
+
+export async function fetchParentProgramHomeData(
+  organizationId: string,
+  slug: string,
+  programSlug: string,
+): Promise<ParentProgramHomeData> {
+  const query = new URLSearchParams({ organizationId, slug, programSlug }).toString();
+  const payload = await fetchParentApi<ParentProgramHomeData>(`/api/parent-portal/home?${query}`);
+  return normalizeParentProgramHomeData(payload);
+}
+
+export type ParentPortalContextOptionMobile = {
+  id: 'main' | `program:${string}`;
+  label: string;
+  portalSlug?: string;
+  programId?: string;
+  entryHref?: string;
+  mobileEntryPath: string;
+};
+
+export type ParentPortalProgramContextMobile = {
+  programId: string;
+  portalSlug: string;
+  displayLabel: string;
+  coopMode: boolean;
+  features: ParentPortalFeatures & {
+    featureNav?: Record<string, unknown>;
+  };
+  mobileEntryPath: string;
+};
+
+export type ParentPortalContextsData = {
+  contexts: ParentPortalContextOptionMobile[];
+  programsByPortalSlug: Record<string, ParentPortalProgramContextMobile>;
+  redirectAwayFromMainPortal: boolean;
+  defaultMobileEntryPath: string;
+};
+
+export async function fetchParentPortalContexts(
+  organizationId: string,
+  slug: string,
+): Promise<ParentPortalContextsData> {
+  const query = new URLSearchParams({ organizationId, slug }).toString();
+  return fetchParentApi<ParentPortalContextsData>(`/api/parent-portal/portal-contexts?${query}`);
 }
 
 export type ParentAssignedTeacher = {

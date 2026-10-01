@@ -52,6 +52,7 @@ function formatFormDueDate(dueDate: string): string {
 
 export function buildAttentionItems(input: {
   slug: string;
+  programSlug?: string;
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
@@ -72,6 +73,7 @@ export function buildAttentionItems(input: {
       : resolveParentAttentionNavigation(input.slug, {
           formId: form.formId,
           href: form.formsHref,
+          programSlug: input.programSlug,
         });
     items.push({
       key: `form-${form.formId}`,
@@ -152,6 +154,7 @@ export function buildAttentionItems(input: {
       href: item.href,
       healthApplicationId: firstChildApplicationId,
       pickupApplicationId: firstChildApplicationId,
+      programSlug: input.programSlug,
     });
     items.push({
       key: `onboarding-${item.id}`,

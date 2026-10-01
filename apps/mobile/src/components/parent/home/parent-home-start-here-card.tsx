@@ -24,6 +24,7 @@ import type {
 
 type ParentHomeStartHereCardProps = {
   slug: string;
+  programSlug?: string;
   onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
@@ -47,6 +48,7 @@ function AttentionIcon({ item }: { item: ParentHomeAttentionItem }) {
 
 export function ParentHomeStartHereCard({
   slug,
+  programSlug,
   onboardingItems,
   enrollmentAmendmentBannerItems,
   enrollmentIncompleteBannerItems,
@@ -59,6 +61,7 @@ export function ParentHomeStartHereCard({
   const theme = useParentTheme();
   const attentionItems = buildAttentionItems({
     slug,
+    programSlug,
     onboardingItems,
     enrollmentAmendmentBannerItems,
     enrollmentIncompleteBannerItems,

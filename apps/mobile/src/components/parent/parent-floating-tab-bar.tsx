@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,69 +7,49 @@ import { ScalePressable } from '@/components/scale-pressable';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
 import { Radius } from '@/constants/theme';
+import type { MobileParentTabDefinition } from '@/lib/parent/mobile-parent-portal-nav';
 import type { ParentTab } from '@/lib/parent/parent-nav';
 
 export const PARENT_FLOATING_TAB_BAR_HEIGHT = 60;
 
 type ParentFloatingTabBarProps = {
+  tabs: MobileParentTabDefinition[];
   activeTab: ParentTab;
   onChange: (tab: ParentTab) => void;
   messagesUnreadCount?: number;
+  aboveTabs?: ReactNode;
 };
 
-const TABS: {
-  id: ParentTab;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconActive: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { id: 'home', label: 'Home', icon: 'home-outline', iconActive: 'home' },
-  { id: 'billing', label: 'Billing', icon: 'card-outline', iconActive: 'card' },
-  {
-    id: 'messages',
-    label: 'Messages',
-    icon: 'chatbubble-outline',
-    iconActive: 'chatbubble',
-  },
-  {
-    id: 'calendar',
-    label: 'Calendar',
-    icon: 'calendar-outline',
-    iconActive: 'calendar',
-  },
-  {
-    id: 'more',
-    label: 'More',
-    icon: 'ellipsis-horizontal-outline',
-    iconActive: 'ellipsis-horizontal',
-  },
-];
-
 export function ParentFloatingTabBar({
+  tabs,
   activeTab,
   onChange,
   messagesUnreadCount = 0,
+  aboveTabs,
 }: ParentFloatingTabBarProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 4 }]}>
+      {aboveTabs}
       <View style={styles.pill}>
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id;
-          const showUnreadBadge = tab.id === 'messages' && messagesUnreadCount > 0;
+        {tabs.map((tab) => {
+          const active = activeTab === tab.tabId;
+          const showUnreadBadge = tab.tabId === 'messages' && messagesUnreadCount > 0;
           return (
             <ScalePressable
-              key={tab.id}
+              key={tab.tabId}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               pressedScale={0.94}
-              onPress={() => onChange(tab.id)}
+              onPress={() => onChange(tab.tabId)}
               style={[styles.tab, active && { backgroundColor: theme.accentLight }]}>
               <View style={styles.iconWrap}>
                 <Ionicons
-                  name={active ? tab.iconActive : tab.icon}
+                  name={
+                    (active ? tab.iconFilled : tab.iconOutline) as keyof typeof Ionicons.glyphMap
+                  }
                   size={20}
                   color={active ? theme.accent : theme.textTertiary}
                 />
@@ -86,7 +67,8 @@ export function ParentFloatingTabBar({
                   color: active ? theme.accent : theme.textTertiary,
                   fontSize: 9,
                   lineHeight: 11,
-                }}>
+                }}
+                numberOfLines={1}>
                 {tab.label}
               </ThemedText>
             </ScalePressable>

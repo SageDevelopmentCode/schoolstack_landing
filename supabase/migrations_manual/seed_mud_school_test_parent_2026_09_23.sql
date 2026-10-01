@@ -2,9 +2,10 @@
 -- Paste into Supabase SQL Editor and run the ENTIRE file. Safe to re-run (idempotent).
 -- Date: 2026-09-23
 --
--- Credentials:
---   Email:    testparent@gmail.com
---   Password: ##testparent$$
+-- Demo account (password not in git):
+--   Email: testparent@gmail.com
+-- Before running: replace every REVIEW_PARENT_PWD_PLACEHOLDER below with the password
+-- from your password manager (must match App Store Connect demo credentials).
 --
 -- Sign in at:
 --   /school/mud-school/parent/portal
@@ -13,7 +14,7 @@
 
 update auth.users
 set
-  encrypted_password = extensions.crypt($pwd$##testparent$$$pwd$, extensions.gen_salt('bf')),
+  encrypted_password = extensions.crypt($pwd$REVIEW_PARENT_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   email_confirmed_at = coalesce(email_confirmed_at, now()),
   updated_at = now()
 where lower(email) = 'testparent@gmail.com';
@@ -43,7 +44,7 @@ select
   'authenticated',
   'authenticated',
   'testparent@gmail.com',
-  extensions.crypt($pwd$##testparent$$$pwd$, extensions.gen_salt('bf')),
+  extensions.crypt($pwd$REVIEW_PARENT_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   now(),
   jsonb_build_object('provider', 'email', 'providers', array['email']::text[]),
   jsonb_build_object(

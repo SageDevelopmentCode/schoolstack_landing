@@ -1,6 +1,5 @@
-import type { User } from '@supabase/supabase-js';
 import { useEffect, useMemo } from 'react';
-import { isParentFeatureEnabled } from '@/lib/parent/parent-features';
+import type { User } from '@supabase/supabase-js';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,6 +13,14 @@ import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useParentHome } from '@/contexts/parent-home-context';
+import { useParentPortalContext } from '@/contexts/parent-portal-context';
+import { isParentHomeFridayBranchEnabled } from '@/lib/parent/parent-features';
+import { isParentFeatureEnabled } from '@/lib/parent/parent-features';
+import { resolveMobileMoreMenuFeatureKeys } from '@/lib/parent/mobile-parent-portal-nav';
+import {
+  PARENT_MORE_MENU_META,
+  parentMoreMenuItemIdForFeatureKey,
+} from '@/lib/parent/parent-more-menu-meta';
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -24,72 +31,6 @@ type ParentMoreMenuSheetProps = {
   onSelect: (itemId: ParentMoreMenuItemId) => void;
   onSelectAccount: () => void;
 };
-
-const MENU_ITEMS: {
-  id: ParentMoreMenuItemId;
-  label: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconBg: string;
-  iconColor: string;
-}[] = [
-  {
-    id: 'attendance',
-    label: 'Attendance',
-    subtitle: 'Child attendance history',
-    icon: 'clipboard-outline',
-    iconBg: '#FEF3C7',
-    iconColor: '#D97706',
-  },
-  {
-    id: 'children',
-    label: 'My children',
-    subtitle: 'Profiles and details',
-    icon: 'people-outline',
-    iconBg: '#FFE4E6',
-    iconColor: '#E11D48',
-  },
-  {
-    id: 'committees',
-    label: 'Committees',
-    subtitle: 'Volunteer participation',
-    icon: 'heart-outline',
-    iconBg: '#FCE7F3',
-    iconColor: '#DB2777',
-  },
-  {
-    id: 'classroom-signups',
-    label: 'Classroom signups',
-    subtitle: 'Help teachers with volunteer requests',
-    icon: 'clipboard-outline',
-    iconBg: '#E9F2EA',
-    iconColor: '#3D6B4F',
-  },
-  {
-    id: 'forms-documents',
-    label: 'Forms & documents',
-    subtitle: 'View and sign school forms',
-    icon: 'document-text-outline',
-    iconBg: '#E2E8F0',
-    iconColor: '#475569',
-  },
-  {
-    id: 'friday-branch',
-    label: 'Friday Branch',
-    subtitle: 'Sign up for Friday classes',
-    icon: 'calendar-outline',
-    iconBg: '#EDE9FE',
-    iconColor: '#7C3AED',
-  },
-  {
-    id: 'notifications',
-    label: 'Notification settings',
-    subtitle: 'Family email preferences',
-    icon: 'notifications-outline',
-    iconBg: '#E0F2FE',
-    iconColor: '#0284C7',
-  },
-];
 
 function getDisplayName(user: User): string {
   const fullName = user.user_metadata?.full_name;
@@ -112,20 +53,67 @@ export function ParentMoreMenuSheet({
   const theme = useParentTheme();
   const { user } = useAuth();
   const { data: homeData, ensureLoaded } = useParentHome();
+  const {
+    contexts,
+    activeContext,
+    showSwitcher,
+    switchToContext,
+    activePortalFeatures,
+  } = useParentPortalContext();
+
   const displayName = useMemo(() => {
     const profileName = homeData?.userProfile.displayName?.trim();
     if (profileName) return profileName;
     return user ? getDisplayName(user) : '';
   }, [homeData?.userProfile.displayName, user]);
 
-  const fridayBranchEnabled = isParentFeatureEnabled(homeData?.features, 'friday_branch');
+  const portalFeatureRecord = activePortalFeatures?.parent ?? homeData?.features?.parent;
+
+  const visibleMenuItemIds = useMemo(() => {
+    if (!portalFeatureRecord) {
+      return Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[];
+    }
+
+    const featureKeys = resolveMobileMoreMenuFeatureKeys({
+      parentFeatures: portalFeatureRecord as Parameters<
+        typeof resolveMobileMoreMenuFeatureKeys
+      >[0]['parentFeatures'],
+      portalNav: activePortalFeatures?.featureNav as Parameters<
+        typeof resolveMobileMoreMenuFeatureKeys
+      >[0]['portalNav'],
+      coopMode: activePortalFeatures?.coopMode,
+    });
+
+    const ids = featureKeys.map((key) => parentMoreMenuItemIdForFeatureKey(key));
+
+    if (
+      isParentHomeFridayBranchEnabled({
+        parent: portalFeatureRecord,
+        parent_home: homeData?.features?.parent_home,
+      }) &&
+      ids.includes('friday-branch') === false &&
+      isParentFeatureEnabled({ parent: portalFeatureRecord }, 'friday_branch')
+    ) {
+      ids.push('friday-branch');
+    }
+
+    return ids.filter((id) => {
+      if (id === 'friday-branch') {
+        return isParentHomeFridayBranchEnabled({
+          parent: portalFeatureRecord,
+          parent_home: homeData?.features?.parent_home,
+        });
+      }
+      return true;
+    });
+  }, [activePortalFeatures, homeData?.features?.parent_home, portalFeatureRecord]);
+
   const visibleMenuItems = useMemo(
     () =>
-      MENU_ITEMS.filter((item) => {
-        if (item.id === 'friday-branch') return fridayBranchEnabled;
-        return true;
-      }),
-    [fridayBranchEnabled],
+      visibleMenuItemIds
+        .map((id) => ({ id, ...PARENT_MORE_MENU_META[id] }))
+        .filter((item) => item.label),
+    [visibleMenuItemIds],
   );
 
   useEffect(() => {
@@ -137,10 +125,50 @@ export function ParentMoreMenuSheet({
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
       <StoryMoreMenuHeader
-        kicker="Family portal"
+        kicker={activePortalFeatures?.coopMode ? 'Co-op program portal' : 'Family portal'}
         title="More"
         subtitle="Children and account settings"
       />
+
+      {showSwitcher && activeContext ? (
+        <StoryCard compact style={styles.programCard}>
+          <Text style={[styles.programKicker, { color: theme.muted }]}>Program</Text>
+          {contexts.map((context) => {
+            const isCurrent = context.id === activeContext.id;
+            return (
+              <Pressable
+                key={context.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isCurrent }}
+                onPress={() => {
+                  if (!isCurrent) {
+                    onClose();
+                    switchToContext(context);
+                  }
+                }}
+                style={({ pressed }) => [
+                  styles.programRow,
+                  isCurrent && { backgroundColor: theme.primarySoft },
+                  pressed && !isCurrent && styles.pressed,
+                ]}>
+                {isCurrent ? (
+                  <Ionicons name="checkmark" size={18} color={theme.primary} />
+                ) : (
+                  <View style={styles.programRowSpacer} />
+                )}
+                <Text
+                  style={[
+                    styles.programLabel,
+                    { color: isCurrent ? theme.primary : theme.ink },
+                  ]}
+                  numberOfLines={2}>
+                  {context.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </StoryCard>
+      ) : null}
 
       <StoryMoreMenuItemsCard>
         {visibleMenuItems.map((item, index) => (
@@ -187,6 +215,36 @@ export function ParentMoreMenuSheet({
 }
 
 const styles = StyleSheet.create({
+  programCard: {
+    padding: StoryCardPadding,
+    gap: Spacing.one,
+    marginBottom: Spacing.two,
+  },
+  programKicker: {
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.one,
+  },
+  programRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    borderRadius: 8,
+  },
+  programRowSpacer: {
+    width: 18,
+  },
+  programLabel: {
+    flex: 1,
+    fontFamily: StoryFonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+  },
   accountCard: {
     padding: StoryCardPadding,
   },

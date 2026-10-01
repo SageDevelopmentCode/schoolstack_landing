@@ -1,34 +1,19 @@
-import { useFocusEffect, useRouter, type Href } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
 import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
-import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
-import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
-import { ParentHomeFridayBranchCard } from '@/components/parent/home/parent-home-friday-branch-card';
-import { ParentHomeFormsSnapshotCard } from '@/components/parent/home/parent-home-forms-snapshot-card';
-import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
-import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
-import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
+import { ParentHomeDashboard } from '@/components/parent/home/parent-home-dashboard';
 import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
-import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
-import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
-import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
 import { StoryButton } from '@/components/story/story-button';
-import { StoryCard } from '@/components/story/story-card';
-import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useAuthRequiredRedirect } from '@/hooks/use-auth-required-redirect';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import { isParentHomeFridayBranchEnabled } from '@/lib/parent/parent-features';
 import { useParentHome } from '@/contexts/parent-home-context';
-import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
+import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
-import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
+import { resolveWebUrl } from '@/lib/admissions/school-apply-url';
 import {
   getOnboardingItemRoute,
   parentBulletinDetailRoute,
@@ -43,7 +28,6 @@ import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-si
 import { fetchParentActivityNotificationUnreadCount } from '@/lib/parent/fetch-activity-notifications';
 import {
   fetchParentSignupAttentionItems,
-  submitParentSupportRequest,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
@@ -57,10 +41,6 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const router = useRouter();
   const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [supportSheetOpen, setSupportSheetOpen] = useState(false);
-  const [bulletinOpen, setBulletinOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [signupAttentionItems, setSignupAttentionItems] = useState<ParentSignupAttentionItem[]>(
     [],
@@ -112,46 +92,6 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const firstChildApplicationId =
     data?.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
 
-  const handleAttentionItem = (item: ParentHomeAttentionItem) => {
-    const route = resolveParentAttentionNavigation(slug, {
-      target: item.target,
-      href: item.href,
-      formId: item.formId,
-      enrollmentApplicationId: item.enrollmentApplicationId,
-      enrollmentTemplateItemId: item.enrollmentTemplateItemId,
-      enrollmentSectionId: item.enrollmentSectionId,
-      healthApplicationId: firstChildApplicationId,
-      pickupApplicationId: firstChildApplicationId,
-    });
-    if (route) {
-      router.push(route);
-    }
-  };
-
-  const handleOnboardingItem = async (item: ResolvedParentOnboardingItem) => {
-    setOnboardingOpen(false);
-    if (item.completed) return;
-
-    const route = getOnboardingItemRoute(slug, item.target, {
-      healthApplicationId: firstChildApplicationId,
-      pickupApplicationId: firstChildApplicationId,
-    });
-    if (route) {
-      router.replace(route);
-      return;
-    }
-
-    if (item.target.startsWith('url:')) {
-      const customUrl = item.target.slice(4).trim();
-      if (customUrl) {
-        await openWebUrl(customUrl);
-      }
-      return;
-    }
-
-    await openWebUrl(item.href);
-  };
-
   if (isLoading && !data) {
     return <ParentHomeSkeleton />;
   }
@@ -167,167 +107,69 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
 
   if (!data) return null;
 
-  const nextEvent = data.upcomingEvents[0] ?? null;
-  const enrollmentIncompleteBannerItems = data.enrollmentIncompleteBannerItems ?? [];
-  const bulletinEnabled = data.bulletinEnabled ?? false;
-  const bulletinPosts = data.bulletinPosts ?? [];
-
   return (
-    <>
-      <StatusBar style={isPreview ? 'dark' : 'light'} />
-      <View style={styles.screen}>
-        <Animated.View entering={FadeInDown.duration(350)}>
-          <ParentHomeHeader
-            displayName={data.userProfile.displayName}
-            bulletinEnabled={bulletinEnabled}
-            bulletinPostCount={bulletinPosts.length}
-            notificationUnreadCount={notificationUnreadCount}
-            onOpenBulletin={() => setBulletinOpen(true)}
-            onPressHelp={() => setSupportSheetOpen(true)}
-            onPressNotifications={() => setNotificationsOpen(true)}
-          />
-        </Animated.View>
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={() => void refresh()}
-              tintColor={theme.primary}
-            />
-          }>
-        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-          <ParentHomeStartHereCard
-            slug={slug}
-            onboardingItems={data.onboardingItems}
-            enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
-            enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
-            formAttentionItems={data.formAttentionItems ?? []}
-            signupAttentionItems={signupAttentionItems}
-            familyChildren={data.familyChildren}
-            onPressAttentionItem={handleAttentionItem}
-            onOpenOnboarding={() => setOnboardingOpen(true)}
-          />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-          <ParentHomeEventsCard
-            nextEvent={nextEvent}
-            onViewCalendar={() => router.replace(parentTabRoute(slug, 'calendar'))}
-          />
-        </Animated.View>
-
-        {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
-          <Animated.View entering={FadeInDown.delay(100).duration(350)}>
-            <ParentHomeFridayBranchCard
-              slug={slug}
-              organizationId={data.organizationId}
-              initialBundle={data.fridayBranchHome}
-            />
-          </Animated.View>
-        ) : null}
-
-        <Animated.View entering={FadeInDown.delay(120).duration(350)} style={styles.section}>
-          <StoryDisplayHeading size="section">Your children</StoryDisplayHeading>
-
-          {data.familyChildren.length === 0 ? (
-            <StoryCard style={styles.emptyCard}>
-              <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                We don&apos;t have any student records from your applications yet. Visit your{' '}
-                <Text
-                  style={[styles.emptyLink, { color: theme.primary }]}
-                  onPress={() => void openWebUrl(schoolApplyUrl(slug))}>
-                  application dashboard
-                </Text>{' '}
-                to get started.
-              </Text>
-            </StoryCard>
-          ) : (
-            <View style={styles.childrenList}>
-              {data.familyChildren.map((child) => (
-                <ParentHomeChildStoryCard
-                  key={child.applicationId}
-                  child={child}
-                  onViewDetails={() =>
-                    router.push(parentChildrenRoute(slug, child.applicationId))
-                  }
-                  onOpenEnrollment={() =>
-                    router.push(
-                      parentEnrollmentItemRoute(slug, child.applicationId),
-                    )
-                  }
-                />
-              ))}
-            </View>
-          )}
-        </Animated.View>
-
-        {data.formSnapshot ? (
-          <Animated.View entering={FadeInDown.delay(140).duration(350)}>
-            <ParentHomeFormsSnapshotCard
-              snapshot={data.formSnapshot}
-              onOpenForm={(formId) => router.push(parentFormDetailRoute(slug, formId))}
-              onViewAll={() => router.push(parentFormsDocumentsRoute(slug))}
-            />
-          </Animated.View>
-        ) : null}
-
-        <Animated.View entering={FadeInDown.delay(160).duration(350)}>
-          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-        </Animated.View>
-        </ScrollView>
-      </View>
-
-      <HomeBulletinSheet
-        visible={bulletinOpen}
-        posts={bulletinPosts}
-        onClose={() => setBulletinOpen(false)}
-        onOpenPost={(postId) => {
-          setBulletinOpen(false);
-          router.push(parentBulletinDetailRoute(slug, postId));
-        }}
-      />
-
-      <ParentActivityNotificationsSheet
-        visible={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-        organizationId={data.organizationId}
-        slug={slug}
-        firstChildApplicationId={firstChildApplicationId}
-        onMarkedRead={() => setNotificationUnreadCount(0)}
-      />
-
-      <PortalSupportRequestSheet
-        visible={supportSheetOpen}
-        onClose={() => setSupportSheetOpen(false)}
-        organizationId={data.organizationId}
-        userEmail={data.userProfile.email}
-        sourcePagePath={`/parent/${slug}/home`}
-        errorOperation="parent_portal_support_request_submit"
-        onSubmit={submitParentSupportRequest}
-      />
-
-      <ParentOnboardingSheet
-        visible={onboardingOpen}
-        items={data.onboardingItems}
-        onClose={() => setOnboardingOpen(false)}
-        onSelectItem={(item) => void handleOnboardingItem(item)}
-      />
-    </>
+    <ParentHomeDashboard
+      slug={slug}
+      data={data}
+      isPreview={isPreview}
+      isRefreshing={isRefreshing}
+      notificationUnreadCount={notificationUnreadCount}
+      signupAttentionItems={signupAttentionItems}
+      sourcePagePath={`/parent/${slug}/home`}
+      onRefresh={() => void refresh()}
+      onMarkedNotificationsRead={() => setNotificationUnreadCount(0)}
+      onAttentionItem={(item: ParentHomeAttentionItem) => {
+        const route = resolveParentAttentionNavigation(slug, {
+          target: item.target,
+          href: item.href,
+          formId: item.formId,
+          enrollmentApplicationId: item.enrollmentApplicationId,
+          enrollmentTemplateItemId: item.enrollmentTemplateItemId,
+          enrollmentSectionId: item.enrollmentSectionId,
+          healthApplicationId: firstChildApplicationId,
+          pickupApplicationId: firstChildApplicationId,
+        });
+        if (route) {
+          router.push(route);
+        }
+      }}
+      onOnboardingItem={async (item: ResolvedParentOnboardingItem) => {
+        const route = getOnboardingItemRoute(slug, item.target, {
+          healthApplicationId: firstChildApplicationId,
+          pickupApplicationId: firstChildApplicationId,
+        });
+        if (route) {
+          router.replace(route);
+          return;
+        }
+        if (item.target.startsWith('url:')) {
+          const customUrl = item.target.slice(4).trim();
+          if (customUrl) {
+            await openWebUrl(customUrl);
+          }
+          return;
+        }
+        await openWebUrl(item.href);
+      }}
+      onViewCalendar={() => router.replace(parentTabRoute(slug, 'calendar'))}
+      onOpenMessages={() => router.replace(parentTabRoute(slug, 'messages'))}
+      onOpenChildDetails={(applicationId) =>
+        router.push(parentChildrenRoute(slug, applicationId))
+      }
+      onOpenEnrollment={(applicationId) =>
+        router.push(parentEnrollmentItemRoute(slug, applicationId))
+      }
+      onOpenForm={(formId) => router.push(parentFormDetailRoute(slug, formId))}
+      onViewAllForms={() => router.push(parentFormsDocumentsRoute(slug))}
+      onOpenBulletinPost={(postId) => router.push(parentBulletinDetailRoute(slug, postId))}
+      onFeatureAnnouncement={() => {}}
+      onDocumentationStep={() => {}}
+      onCoopMessageThread={() => {}}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Story.paper,
-  },
-  scroll: {
-    flex: 1,
-    backgroundColor: Story.paper,
-  },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -344,29 +186,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-  },
-  content: {
-    paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.six,
-    gap: Spacing.four,
-  },
-  section: {
-    gap: Spacing.three,
-  },
-  childrenList: {
-    gap: Spacing.three,
-  },
-  emptyCard: {
-    padding: StoryCardPadding,
-  },
-  emptyCopy: {
-    fontFamily: StoryFonts.body,
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  emptyLink: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontWeight: '600',
   },
 });

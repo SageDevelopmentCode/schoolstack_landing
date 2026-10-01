@@ -26,7 +26,10 @@ describe("buildTuitionCheckoutReturnUrl", () => {
         outcome: "paid",
       });
 
-      assert.equal(url, "https://example.test/school/demo-school/parent/billing?paid=1");
+      assert.equal(
+        url,
+        "https://example.test/school/demo-school/parent/billing?paid=1&session_id={CHECKOUT_SESSION_ID}",
+      );
     } finally {
       if (previousSiteUrl === undefined) {
         delete process.env.NEXT_PUBLIC_SITE_URL;

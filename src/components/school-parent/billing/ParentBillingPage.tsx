@@ -38,8 +38,10 @@ import { isChargePayable } from "@/lib/tuition/charge-payability";
 import { listAdjustmentsForFamily } from "@/lib/tuition/adjustments";
 import {
   listParentTuitionPaymentHistory,
+  listPendingTuitionPaymentsForFamily,
   resolveLastPaymentDaySummary,
 } from "@/lib/tuition/payments";
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import { buildStudentColorIndexMap } from "@/lib/tuition/student-badge-colors";
 import {
   buildTuitionPaymentReceiptDetail,
@@ -132,6 +134,7 @@ function ParentBillingPageContent({
   const deepLinkFormId = searchParams.get("form");
   const cardSaved = searchParams.get("card_saved");
   const paymentCompleted = searchParams.get("paid");
+  const checkoutSessionId = searchParams.get("session_id");
   const hasInitialData = initialData !== undefined;
   const chargesDeferred = initialData?.chargesDeferred ?? false;
   const paymentsDeferred = initialData?.paymentsDeferred ?? false;
@@ -139,6 +142,9 @@ function ParentBillingPageContent({
   const [charges, setCharges] = useState<TuitionCharge[]>(initialData?.charges ?? []);
   const [payments, setPayments] = useState<ParentTuitionPaymentRecord[]>(
     initialData?.payments ?? [],
+  );
+  const [pendingTuitionPayments, setPendingTuitionPayments] = useState<PaymentRecord[]>(
+    [],
   );
   const [adjustments, setAdjustments] = useState<TuitionAdjustment[]>(
     initialData?.adjustments ?? [],
@@ -211,6 +217,16 @@ function ParentBillingPageContent({
     }
     return map;
   }, [adjustments]);
+
+  const pendingPaymentByChargeId = useMemo(() => {
+    const map = new Map<string, PaymentRecord>();
+    for (const payment of pendingTuitionPayments) {
+      if (payment.tuitionChargeId) {
+        map.set(payment.tuitionChargeId, payment);
+      }
+    }
+    return map;
+  }, [pendingTuitionPayments]);
 
   const lateFeeNotice = useMemo(
     () => pickRecentLateFeeNotice(charges),
@@ -297,10 +313,11 @@ function ParentBillingPageContent({
     try {
       const billingSplits = await listBillingSplits(supabase, familyId);
       const splitActive = billingSplits.length > 0;
-      const [allChargeRows, paymentRows, adjustmentRows, readinessState] =
+      const [allChargeRows, paymentRows, pendingPaymentRows, adjustmentRows, readinessState] =
         await Promise.all([
           listChargesForFamily(supabase, familyId),
           listParentTuitionPaymentHistory(supabase, familyId),
+          listPendingTuitionPaymentsForFamily(supabase, familyId),
           listAdjustmentsForFamily(supabase, familyId),
           fetchFamilyBillingReadiness(supabase, {
             organizationId,
@@ -324,6 +341,7 @@ function ParentBillingPageContent({
 
       setCharges(chargeRows);
       setPayments(paymentRows);
+      setPendingTuitionPayments(pendingPaymentRows);
       setAdjustments(adjustmentRows);
       setReadiness(readinessState);
       setFamilySummary(summary);
@@ -937,11 +955,42 @@ function ParentBillingPageContent({
     if (previewMode || paymentCompleted !== "1") return;
 
     queueMicrotask(() => {
-      void loadBilling().then(() => {
+      void (async () => {
+        if (checkoutSessionId?.trim()) {
+          try {
+            const response = await fetch(
+              `/api/admissions/checkout-sessions/${encodeURIComponent(checkoutSessionId.trim())}/confirm`,
+              { method: "POST" },
+            );
+            if (response.ok) {
+              const payload = (await response.json()) as {
+                paymentMethod?: string | null;
+              };
+              if (payload.paymentMethod === "us_bank_account") {
+                parentToast.success(
+                  "Bank payment submitted. Processing usually takes 3–5 business days.",
+                );
+              } else {
+                parentToast.success("Payment received. Thank you!");
+              }
+            }
+          } catch {
+            // loadBilling still runs below
+          }
+        }
+
+        await loadBilling();
         router.replace(pathname, { scroll: false });
-      });
+      })();
     });
-  }, [paymentCompleted, loadBilling, pathname, previewMode, router]);
+  }, [
+    checkoutSessionId,
+    loadBilling,
+    pathname,
+    paymentCompleted,
+    previewMode,
+    router,
+  ]);
 
   const handleScheduleComplete = async () => {
     const currentKey = activeTabKey;
@@ -1210,6 +1259,7 @@ function ParentBillingPageContent({
                   payments={payments}
                   payingChargeId={payingChargeId}
                   autopayEnabled={autopayEnabled}
+                  pendingPaymentByChargeId={pendingPaymentByChargeId}
                   savedPaymentMethod={savedPaymentMethod}
                   paymentMethodLoading={paymentMethodLoading}
                   onAutopayToggleRequest={handleAutopayToggleRequest}
@@ -1311,6 +1361,7 @@ function ParentBillingPageContent({
         payingChargeId={payingChargeId}
         highlightedChargeId={highlightedChargeId}
         autopayEnabled={autopayEnabled}
+        pendingPaymentByChargeId={pendingPaymentByChargeId}
         readOnly={previewMode}
         onClose={() => {
           setManualUpcomingChargesPanelOpen(false);
