@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type Stripe from "stripe";
 import { quoteProcessingFee } from "@/lib/stripe/processing-fee";
+import type { recordTuitionPaymentCompleted } from "@/lib/stripe/record-payment-completed";
 import {
   checkoutPaymentMethodForStripeType,
   executeTuitionAutopayCharge,
@@ -140,6 +141,37 @@ describe("executeTuitionAutopayCharge", () => {
     assert.deepEqual(captured?.payment_method_types, ["card"]);
     assert.equal(captured?.amount, cardQuote.grossAmountCents);
     assert.equal(inserted[0]?.payment_method_type, "card");
+  });
+
+  it("skips receipts when suppressEmails is set", async () => {
+    const { supabase } = createSupabaseMock();
+    const stripe = createStripeMock({
+      paymentMethodType: "us_bank_account",
+      create: async () => ({ id: "pi_quiet", status: "processing" }),
+    });
+    const recorded: Array<{ skipReceipt?: boolean; paymentIntentId?: string }> = [];
+    const recordCompleted: typeof recordTuitionPaymentCompleted = async (
+      _admin,
+      input,
+    ) => {
+      recorded.push(input);
+      return { payment: input.payment, newlyRecorded: true };
+    };
+
+    await executeTuitionAutopayCharge(
+      supabase as never,
+      { ...baseInput, suppressEmails: true },
+      { stripe, recordCompleted },
+    );
+    await executeTuitionAutopayCharge(supabase as never, baseInput, {
+      stripe,
+      recordCompleted,
+    });
+
+    assert.equal(recorded.length, 2);
+    assert.equal(recorded[0]?.skipReceipt, true);
+    assert.equal(recorded[0]?.paymentIntentId, "pi_quiet");
+    assert.equal(recorded[1]?.skipReceipt, false);
   });
 
   it("marks the pending payment row failed when Stripe rejects the charge", async () => {

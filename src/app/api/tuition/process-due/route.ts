@@ -32,7 +32,9 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       organizationId?: string;
       graceDays?: number;
+      suppressEmails?: boolean;
     };
+    const suppressEmails = body.suppressEmails === true;
 
     if (!body.organizationId) {
       return apiError(ROUTE, {
@@ -64,6 +66,7 @@ export async function POST(request: Request) {
     const autopayResult = await processAutopayForOrganization(
       admin,
       body.organizationId,
+      { suppressEmails },
     );
 
     void logTuitionActivity(admin, {
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
         { manual: true },
       ),
       logWhenEmpty: true,
-      metadata: { manual: true },
+      metadata: { manual: true, suppressEmails },
       context: schoolAdminActivityContext(user),
     });
 
@@ -115,6 +118,7 @@ export async function POST(request: Request) {
       autopayProcessed: autopayResult.processed,
       autopayFailed: autopayResult.failed,
       autopaySkipped: autopayResult.skipped,
+      suppressEmails,
     });
   } catch (error) {
     if (error instanceof AuthError) {

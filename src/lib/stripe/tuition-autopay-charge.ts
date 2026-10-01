@@ -22,6 +22,7 @@ export type AutopayChargeInput = {
   stripePaymentMethodId: string;
   payerUserId: string;
   paymentMethod?: CheckoutPaymentMethod;
+  suppressEmails?: boolean;
 };
 
 export function checkoutPaymentMethodForStripeType(
@@ -51,9 +52,13 @@ async function resolveAutopayPaymentMethod(
 export async function executeTuitionAutopayCharge(
   supabase: SupabaseClient,
   input: AutopayChargeInput,
-  options?: { stripe?: Stripe },
+  options?: {
+    stripe?: Stripe;
+    recordCompleted?: typeof recordTuitionPaymentCompleted;
+  },
 ): Promise<{ paymentIntentId: string; paymentId: string }> {
   const stripe = options?.stripe ?? getStripeClient();
+  const recordCompleted = options?.recordCompleted ?? recordTuitionPaymentCompleted;
   const paymentMethod = await resolveAutopayPaymentMethod(stripe, input);
   const quote = quoteProcessingFee(input.amountCents, paymentMethod);
 
@@ -120,12 +125,13 @@ export async function executeTuitionAutopayCharge(
     paymentIntent.status === "succeeded" ||
     paymentIntent.status === "processing"
   ) {
-    await recordTuitionPaymentCompleted(supabase, {
+    await recordCompleted(supabase, {
       payment,
       organizationId: input.organizationId,
       tuitionChargeId: input.chargeId,
       paymentIntentId: paymentIntent.id,
       stripeProviderStatus: paymentIntent.status,
+      skipReceipt: input.suppressEmails === true,
     });
   }
 
