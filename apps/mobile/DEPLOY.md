@@ -232,6 +232,7 @@ Set these URLs in App Store Connect and Google Play Console:
 | Privacy policy | `https://trymudkitchen.com/privacy` |
 | Account deletion | `https://trymudkitchen.com/account-deletion` |
 | Subtitle, keywords, description | [APP_STORE_METADATA.md](APP_STORE_METADATA.md) (paste into App Store Connect) |
+| App Review demo sign-in (Mud School) | Usernames/passwords only in **App Store Connect → App Review Information** and your password manager — not in git. DB seeds: `supabase/migrations_manual/seed_mud_school_test_parent_2026_09_23.sql` and `seed_mud_school_app_review_staff_admin_2026_09_30.sql` (replace password placeholders in the SQL Editor before running on production). To rotate passwords without re-seeding: `rotate_mud_school_app_review_passwords_TEMPLATE.sql`. |
 
 **Export compliance:** `ITSAppUsesNonExemptEncryption: false` is set in [`app.json`](app.json) for HTTPS-only apps. Rebuild production IPA after changing this flag — it is baked in at build time.
 

@@ -5,21 +5,23 @@
 -- Prerequisites: Mud School (slug mud-school) exists and is live; run
 -- seed_mud_school_test_parent_2026_09_23.sql first for the parent demo family.
 --
--- Demo credentials (MudKitchen mobile — select Mud School, then "Use password instead"):
+-- Demo emails (MudKitchen mobile — select Mud School, then "Use password instead"):
+--   Parent:       testparent@gmail.com  (see seed_mud_school_test_parent_2026_09_23.sql)
+--   Staff:        testteacher@gmail.com
+--   School admin: testadmin@gmail.com
 --
---   Parent:       testparent@gmail.com   / ##testparent$$
---   Staff:        testteacher@gmail.com  / ##testteacher$$
---   School admin: testadmin@gmail.com    / ##testadmin$$
+-- Before running: replace REVIEW_TEACHER_PWD_PLACEHOLDER and REVIEW_ADMIN_PWD_PLACEHOLDER
+-- below with passwords from your password manager (must match App Store Connect).
 --
 -- Web parent portal: /school/mud-school/parent/portal
 
 -- ── Step 1: Auth users (email confirmed, password login) ────────────────────
 
--- testteacher@gmail.com / ##testteacher$$
+-- testteacher@gmail.com
 
 update auth.users
 set
-  encrypted_password = extensions.crypt($pwd$##testteacher$$$pwd$, extensions.gen_salt('bf')),
+  encrypted_password = extensions.crypt($pwd$REVIEW_TEACHER_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   email_confirmed_at = coalesce(email_confirmed_at, now()),
   updated_at = now()
 where lower(email) = 'testteacher@gmail.com';
@@ -49,7 +51,7 @@ select
   'authenticated',
   'authenticated',
   'testteacher@gmail.com',
-  extensions.crypt($pwd$##testteacher$$$pwd$, extensions.gen_salt('bf')),
+  extensions.crypt($pwd$REVIEW_TEACHER_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   now(),
   jsonb_build_object('provider', 'email', 'providers', array['email']::text[]),
   jsonb_build_object(
@@ -126,11 +128,11 @@ where lower(u.email) = 'testteacher@gmail.com'
   and i.user_id = u.id
   and i.provider = 'email';
 
--- testadmin@gmail.com / ##testadmin$$
+-- testadmin@gmail.com
 
 update auth.users
 set
-  encrypted_password = extensions.crypt($pwd$##testadmin$$$pwd$, extensions.gen_salt('bf')),
+  encrypted_password = extensions.crypt($pwd$REVIEW_ADMIN_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   email_confirmed_at = coalesce(email_confirmed_at, now()),
   updated_at = now()
 where lower(email) = 'testadmin@gmail.com';
@@ -160,7 +162,7 @@ select
   'authenticated',
   'authenticated',
   'testadmin@gmail.com',
-  extensions.crypt($pwd$##testadmin$$$pwd$, extensions.gen_salt('bf')),
+  extensions.crypt($pwd$REVIEW_ADMIN_PWD_PLACEHOLDER$pwd$, extensions.gen_salt('bf')),
   now(),
   jsonb_build_object('provider', 'email', 'providers', array['email']::text[]),
   jsonb_build_object(

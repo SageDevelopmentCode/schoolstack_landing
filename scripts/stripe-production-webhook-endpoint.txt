@@ -23,12 +23,13 @@ https://trymudkitchen.com/api/stripe/webhook
 # Workbench → failed checkout.session.completed → Resend each event since the Vercel www redirect change.
 # Or locally (live Stripe key + Supabase service role in .env.local):
 #   CHECKOUT_SESSION_ID=cs_live_... npm run replay:checkout-session
-# Candace Oct (already replayed in ops): cs_live_a1LW1PSH4KXD6sNk9395G20RIoisZliMNeF8A88D3Zk6lrqrfB4l8DP1rk
+# Copy session id from Workbench → failed checkout.session.completed → Resend; do not commit session JSON.
 # Only replay again if Supabase still shows pending / charge not paid.
 #
 # --- Alerts MudKitchen cannot send for 308 / redirect failures ---
 # Failed deliveries that never reach Next.js (e.g. HTTP 308 on www) do NOT trigger Discord or activity_events.
 # In Stripe Workbench → Webhooks → MudKitchen Production → enable email notifications for failed deliveries.
 #
-# When POST /api/stripe/webhook does run but fails (bad signature, handler 500), Discord billing channel
+# When POST /api/stripe/webhook verifies the signature but the handler throws (500), Discord billing channel
 # (DISCORD_CUSTOMER_BILLING_WEBHOOKS_URL) posts @everyone via notifyStripeWebhookCriticalError.
+# Missing/invalid stripe-signature returns 400 with server logs only — no Discord paging.

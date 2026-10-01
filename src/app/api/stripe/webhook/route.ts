@@ -86,11 +86,8 @@ export async function POST(request: Request) {
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
+  // Pre-verify 400s are logged via apiError only — no billing Discord (@everyone).
   if (!signature) {
-    await reportStripeWebhookFailure({
-      status: 400,
-      error: "Missing stripe-signature.",
-    });
     return apiError(ROUTE, {
       request,
       status: 400,
@@ -107,11 +104,6 @@ export async function POST(request: Request) {
       getStripeWebhookSecret(),
     );
   } catch (error) {
-    await reportStripeWebhookFailure({
-      status: 400,
-      error: "Invalid signature.",
-      code: "invalid_signature",
-    });
     return apiError(ROUTE, {
       request,
       status: 400,

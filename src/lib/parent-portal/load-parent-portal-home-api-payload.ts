@@ -3,6 +3,7 @@ import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory"
 import {
   loadProgramParentPortalContext,
   userHasEnrolledAccessInProgram,
+  userHasMainPortalEnrollment,
 } from "@/lib/admissions/program-parent-portal-access";
 import {
   getFamilyUserProfile,
@@ -116,6 +117,16 @@ export async function loadParentPortalHomeApiPayload(input: {
   );
 
   if (!input.programSlug) {
+    // Same gate as calendar/messages when program scope is omitted (see program-parent-portal-scope-access.test.ts).
+    const hasMainPortalAccess = await userHasMainPortalEnrollment(
+      supabase,
+      userId,
+      organizationId,
+    );
+    if (!hasMainPortalAccess) {
+      throw new Error("forbidden");
+    }
+
     const contentData = familyId
       ? await loadParentHomeContentDataForAuthUser({
           supabase,
