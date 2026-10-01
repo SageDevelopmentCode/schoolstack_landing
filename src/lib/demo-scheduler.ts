@@ -1,4 +1,5 @@
 export const SCHEDULER_TIMEZONE = "America/Chicago";
+export const SCHEDULER_TIMEZONE_LABEL = "Central (CT)";
 
 export const TIME_SLOTS = [
   "7:00 AM",
@@ -18,6 +19,21 @@ export const TIME_SLOTS = [
 ] as const;
 
 export type TimeSlot = (typeof TIME_SLOTS)[number];
+
+const TIME_SLOT_ORDER = new Map<string, number>(
+  TIME_SLOTS.map((slot, index) => [slot, index]),
+);
+
+export function sortDemoTimeSlots(times: string[]): string[] {
+  return [...times].sort((a, b) => {
+    const ai = TIME_SLOT_ORDER.get(a);
+    const bi = TIME_SLOT_ORDER.get(b);
+    if (ai === undefined && bi === undefined) return a.localeCompare(b);
+    if (ai === undefined) return 1;
+    if (bi === undefined) return -1;
+    return ai - bi;
+  });
+}
 
 export const MONTH_NAMES = [
   "January",
@@ -84,4 +100,14 @@ export function isPastDate(dateStr: string) {
 export function isCurrentMonth(year: number, month: number) {
   const { year: y, month: m } = todayMonthYear();
   return year === y && month === m;
+}
+
+export function firstAvailableDemoDate(
+  slots: Record<string, string[]>,
+): string | null {
+  const today = todayKey();
+  const dates = Object.keys(slots)
+    .filter((date) => date >= today && (slots[date]?.length ?? 0) > 0)
+    .sort();
+  return dates[0] ?? null;
 }

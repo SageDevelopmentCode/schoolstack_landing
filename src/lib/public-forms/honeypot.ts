@@ -7,8 +7,12 @@ export function isPublicFormHoneypotTripped(
   return Boolean(value?.trim());
 }
 
+type PublicFormHoneypotBody = {
+  [PUBLIC_FORM_HONEYPOT_FIELD]?: unknown;
+};
+
 export function readPublicFormHoneypot(
-  body: Record<string, unknown> | null | undefined,
+  body: PublicFormHoneypotBody | null | undefined,
 ): string | null {
   if (!body) return null;
   const raw = body[PUBLIC_FORM_HONEYPOT_FIELD];
