@@ -1385,6 +1385,95 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
   }
 }
 
+export function buildTuitionAutopayConfirmationHtml(payload: {
+  name: string;
+  schoolName: string;
+  billingUrl: string;
+  periodLabel: string;
+  paidAtLabel: string;
+  paymentMethodLabel: string;
+  lineItems: TuitionPaymentReceiptLineItem[];
+  amountCents: number;
+  chargedAmountCents: number;
+  processingFeeCents?: number | null;
+  showDisregardNote?: boolean;
+}): string {
+  const detailRows: Array<{ label: string; value: string }> = [
+    { label: "School amount", value: formatFeeAmount(payload.amountCents) },
+  ];
+  if (payload.processingFeeCents && payload.processingFeeCents > 0) {
+    detailRows.push({
+      label: "Processing fee",
+      value: formatFeeAmount(payload.processingFeeCents),
+    });
+  }
+  detailRows.push(
+    { label: "Total paid", value: formatFeeAmount(payload.chargedAmountCents) },
+    { label: "Payment method", value: payload.paymentMethodLabel },
+    { label: "Date paid", value: payload.paidAtLabel },
+  );
+
+  return composeEmail({
+    preheader: `Your ${payload.periodLabel} tuition autopay at ${payload.schoolName} went through.`,
+    contentHtml: `
+      ${emailBadge("Autopay Confirmation")}
+      ${emailHeading(`You're all set for ${escapeHtml(payload.periodLabel)}, ${firstName(payload.name)}.`)}
+      ${emailParagraph(
+        `Your autopay for ${escapeHtml(payload.periodLabel)} tuition at ${escapeHtml(payload.schoolName)} went through. Here's your receipt.`,
+      )}
+      ${emailParagraph("Charges paid:")}
+      ${emailBulletList(
+        payload.lineItems.map(
+          (item) =>
+            `${item.studentName} — ${item.chargeLabel} — ${formatFeeAmount(item.amountCents)}`,
+        ),
+      )}
+      ${emailDetailCard(detailRows)}
+      ${emailMutedParagraph("Bank payments can take 3–4 business days to appear on your statement.")}
+      ${
+        payload.showDisregardNote
+          ? emailMutedParagraph(
+              "If you saw an earlier autopay notice, you can disregard it. No action is needed.",
+            )
+          : ""
+      }
+      ${emailCta({ label: "View billing", href: payload.billingUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionAutopayConfirmationEmail(payload: {
+  to: string;
+  schoolName: string;
+  periodLabel: string;
+  html: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const result = await sendZohoEmail({
+    toAddress: payload.to,
+    subject: `Autopay received — ${payload.periodLabel} tuition — ${payload.schoolName}`,
+    content: payload.html,
+    discord: schoolOutboundDiscord(
+      "tuition_autopay_confirmation",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Tuition autopay confirmation email failed:", result.error);
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export function buildStripePaymentsReadyHtml(payload: {
   schoolName: string;
   paymentsAdminUrl: string;

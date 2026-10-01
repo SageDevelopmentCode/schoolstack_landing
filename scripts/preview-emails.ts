@@ -34,6 +34,7 @@ import {
   buildTuitionAutopayUpcomingHtml,
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
+  buildTuitionAutopayConfirmationHtml,
   buildTuitionPaymentReceiptHtml,
 } from "../src/lib/emails";
 import {
@@ -451,6 +452,33 @@ const previews = [
       chargeLabel: "Aug Tuition",
     }),
     checks: ["ACH", "$5.00", "Processing fee", "$725.00"],
+  },
+  {
+    filename: "tuition-autopay-confirmation.html",
+    html: buildTuitionAutopayConfirmationHtml({
+      name: "Amelia Thompson",
+      schoolName: "Rooted Meadows Waldorf School",
+      billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      periodLabel: "October",
+      paidAtLabel: "October 1, 2026",
+      paymentMethodLabel: "Bank account (ACH)",
+      lineItems: [
+        { studentName: "Maggie Thompson", chargeLabel: "Oct Tuition", amountCents: 72000 },
+        { studentName: "Nina Thompson", chargeLabel: "Oct Tuition", amountCents: 72000 },
+      ],
+      amountCents: 144000,
+      chargedAmountCents: 145000,
+      processingFeeCents: 1000,
+      showDisregardNote: true,
+    }),
+    checks: [
+      "Autopay Confirmation",
+      "all set for October",
+      "Maggie Thompson",
+      "Nina Thompson",
+      "$1,450.00",
+      "View billing",
+    ],
   },
   {
     filename: "late-fee.html",
