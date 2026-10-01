@@ -1,5 +1,12 @@
 import { cookies } from "next/headers";
 import { getFamilyPreviewGuardianUserId } from "@/lib/admissions/family-preview-access";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
+import {
+  fetchCommitteeActivityEvents,
+  mapCommitteeActivityItems,
+} from "@/lib/committees/activity-feed";
+import { getCommitteeUnreadSummaryForUser } from "@/lib/committees/committee-unread";
+import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
 import {
   getParentCommitteeWorkspace,
   listBrowsableCommitteesForParent,
@@ -20,6 +27,10 @@ export type ParentCommitteesInitialData = {
   browseCommittees: ParentCommitteeBrowseItem[];
   myCommittees: ParentCommitteeListItem[];
   workspacesByCommitteeId: Record<string, Committee>;
+  /** Populated in family preview when the guardian has a linked auth user. */
+  committeeUnreadSummary?: CommitteeUnreadSummary;
+  committeeActivityByCommitteeId?: Record<string, CommitteeActivityItem[]>;
+  previewGuardianUserId?: string | null;
 };
 
 export async function loadParentCommitteesInitialData(input: {
@@ -73,6 +84,7 @@ export async function loadParentCommitteesInitialData(input: {
 export async function loadParentCommitteesPreviewData(input: {
   organizationId: string;
   familyId: string;
+  schoolSlug: string;
   selectedCommitteeId?: string | null;
 }): Promise<ParentCommitteesInitialData> {
   const cookieStore = await cookies();
@@ -94,10 +106,19 @@ export async function loadParentCommitteesPreviewData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
+  const committeeActivityByCommitteeId: Record<string, CommitteeActivityItem[]> = {};
+  let committeeUnreadSummary: CommitteeUnreadSummary | undefined;
+
   if (guardianUserId) {
     const workspaceIds = new Set<string>();
     if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
     for (const committee of myCommittees) workspaceIds.add(committee.id);
+
+    committeeUnreadSummary = await getCommitteeUnreadSummaryForUser(
+      admin,
+      input.organizationId,
+      guardianUserId,
+    );
 
     await Promise.all(
       [...workspaceIds].map(async (committeeId) => {
@@ -111,6 +132,23 @@ export async function loadParentCommitteesPreviewData(input: {
         } catch {
           // Workspace loads on selection when preload fails.
         }
+
+        try {
+          const rows = await fetchCommitteeActivityEvents(admin, {
+            organizationId: input.organizationId,
+            committeeId,
+            limit: 8,
+            audience: "parent",
+          });
+          committeeActivityByCommitteeId[committeeId] = mapCommitteeActivityItems(rows, {
+            slug: input.schoolSlug,
+            committeeId,
+            linkSurface: "parent",
+            includeHref: true,
+          });
+        } catch {
+          committeeActivityByCommitteeId[committeeId] = [];
+        }
       }),
     );
   }
@@ -119,5 +157,8 @@ export async function loadParentCommitteesPreviewData(input: {
     browseCommittees,
     myCommittees,
     workspacesByCommitteeId,
+    committeeUnreadSummary,
+    committeeActivityByCommitteeId,
+    previewGuardianUserId: guardianUserId,
   };
 }

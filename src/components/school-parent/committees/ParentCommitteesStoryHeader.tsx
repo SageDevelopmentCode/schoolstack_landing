@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import ParentStoryPillNav from "@/components/school-parent/ui/ParentStoryPillNav";
@@ -14,6 +15,8 @@ type ParentCommitteesStoryHeaderProps = {
   activeTab: ParentCommitteesTab;
   exploreCount: number;
   myCount: number;
+  loadingExplore?: boolean;
+  loadingMine?: boolean;
   onSelectTab: (tab: ParentCommitteesTab) => void;
 };
 
@@ -46,21 +49,33 @@ export default function ParentCommitteesStoryHeader({
   activeTab,
   exploreCount,
   myCount,
+  loadingExplore = false,
+  loadingMine = false,
   onSelectTab,
 }: ParentCommitteesStoryHeaderProps) {
   const title = resolveTitle(activeTab);
   const subtitle = resolveSubtitle(activeTab, exploreCount, myCount);
 
+  const pillSpinner = (
+    <Loader2 className="h-3 w-3 animate-spin" style={{ color: theme.primary }} aria-hidden />
+  );
+
   const navItems = [
-    {
-      key: "explore",
-      label: "Explore",
-      testId: "parent-committees-explore-nav",
-    },
     {
       key: "mine",
       label: "My committees",
       testId: "parent-committees-mine-nav",
+      suffix: loadingMine ? pillSpinner : undefined,
+      ariaBusy: loadingMine,
+      disabled: loadingMine,
+    },
+    {
+      key: "explore",
+      label: "Explore",
+      testId: "parent-committees-explore-nav",
+      suffix: loadingExplore ? pillSpinner : undefined,
+      ariaBusy: loadingExplore,
+      disabled: loadingExplore,
     },
   ];
 

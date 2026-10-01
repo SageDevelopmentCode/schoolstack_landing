@@ -27,6 +27,7 @@ export default function CommitteeHomeSection({
   organizationId,
   schoolSlug,
   activitySurface = "admin",
+  initialActivityItems,
   onNavigate,
 }: {
   committee: Committee;
@@ -34,12 +35,15 @@ export default function CommitteeHomeSection({
   organizationId?: string;
   schoolSlug?: string;
   activitySurface?: "parent" | "admin" | "teacher";
+  initialActivityItems?: CommitteeActivityItem[];
   onNavigate: (section: CommitteeWorkspaceSection) => void;
 }) {
   const upcomingEvents = committee.events.slice(0, 3);
   const urgentTasks = committee.tasks.filter((task) => task.status !== "done").slice(0, 4);
   const leaders = committee.members.filter((member) => member.role === "lead");
-  const [activityItems, setActivityItems] = useState<CommitteeActivityItem[]>([]);
+  const [activityItems, setActivityItems] = useState<CommitteeActivityItem[]>(
+    initialActivityItems ?? [],
+  );
   const [loadingActivity, setLoadingActivity] = useState(false);
 
   const quickLinks = QUICK_LINKS.map(({ section, label, icon, accent }) => ({
@@ -56,6 +60,14 @@ export default function CommitteeHomeSection({
   }));
 
   useEffect(() => {
+    if (initialActivityItems) {
+      queueMicrotask(() => {
+        setActivityItems(initialActivityItems);
+        setLoadingActivity(false);
+      });
+      return;
+    }
+
     if (!organizationId) return;
 
     let cancelled = false;
@@ -105,7 +117,7 @@ export default function CommitteeHomeSection({
     return () => {
       cancelled = true;
     };
-  }, [activitySurface, committee.id, organizationId, schoolSlug]);
+  }, [activitySurface, committee.id, initialActivityItems, organizationId, schoolSlug]);
 
   return (
     <CommitteeWorkspaceSectionFrame width="wide">

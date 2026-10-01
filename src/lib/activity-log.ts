@@ -89,6 +89,7 @@ export const ACTIVITY_ACTIONS = {
   COMMITTEE_EVENT_UPDATED: "committee.event.updated",
   COMMITTEE_EVENT_DELETED: "committee.event.deleted",
   COMMITTEE_MESSAGE_POSTED: "committee.message.posted",
+  COMMITTEE_UNREAD_MESSAGES_CATCHUP_SENT: "committee.unread_messages.catchup_sent",
   COMMITTEE_DUTY_ROLE_CREATED: "committee.duty_role.created",
   COMMITTEE_DUTY_ROLE_UPDATED: "committee.duty_role.updated",
   COMMITTEE_DUTY_ROLE_DELETED: "committee.duty_role.deleted",
@@ -288,6 +289,8 @@ const ACTION_LABELS: Record<string, string> = {
   [ACTIVITY_ACTIONS.COMMITTEE_EVENT_UPDATED]: "Committee event updated",
   [ACTIVITY_ACTIONS.COMMITTEE_EVENT_DELETED]: "Committee event deleted",
   [ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED]: "Committee message posted",
+  [ACTIVITY_ACTIONS.COMMITTEE_UNREAD_MESSAGES_CATCHUP_SENT]:
+    "Committee unread messages catch-up sent",
   [ACTIVITY_ACTIONS.COMMITTEE_DUTY_ROLE_CREATED]: "Duty role added",
   [ACTIVITY_ACTIONS.COMMITTEE_DUTY_ROLE_UPDATED]: "Duty role updated",
   [ACTIVITY_ACTIONS.COMMITTEE_DUTY_ROLE_DELETED]: "Duty role deleted",

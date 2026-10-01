@@ -9,8 +9,11 @@ import {
   loadParentPortalNavContextsForFamily,
   shouldRedirectAwayFromMainParentPortal,
 } from "@/lib/admissions/program-parent-portal-access";
+import { getFamilyPreviewGuardianUserId } from "@/lib/admissions/family-preview-access";
 import { getFamilyPreviewProfile } from "@/lib/admissions/family-preview-server-cache";
+import { getCommitteeUnreadSummaryForUser } from "@/lib/committees/committee-unread";
 import { getParentPortalActivityUnreadCount } from "@/lib/parent-portal/parent-activity-notifications-server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { buildMainParentNotificationContext } from "@/lib/parent-portal/parent-notification-context";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
@@ -71,6 +74,19 @@ export default async function FamilyPreviewMainParentLayout({
     },
   );
 
+  const guardianUserId = await getFamilyPreviewGuardianUserId(
+    supabase,
+    org.id,
+    familyId,
+  );
+  const initialCommitteeUnreadSummary = guardianUserId
+    ? await getCommitteeUnreadSummaryForUser(
+        createAdminClient(),
+        org.id,
+        guardianUserId,
+      )
+    : undefined;
+
   return (
     <SchoolParentBaseline
       slug={slug}
@@ -85,6 +101,7 @@ export default async function FamilyPreviewMainParentLayout({
       previewParentBasePath={previewParentBasePath}
       previewFamilyId={familyId}
       initialActivityUnreadCount={initialActivityUnreadCount}
+      initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
       notificationContext={notificationContext}
     >
       {children}

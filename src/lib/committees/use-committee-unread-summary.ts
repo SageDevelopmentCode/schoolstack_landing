@@ -10,8 +10,11 @@ export function useCommitteeUnreadSummary(
   apiBase: string,
   organizationId: string,
   enabled = true,
+  initialSummary?: CommitteeUnreadSummary,
 ) {
-  const [summary, setSummary] = useState<CommitteeUnreadSummary>(EMPTY_SUMMARY);
+  const [summary, setSummary] = useState<CommitteeUnreadSummary>(
+    initialSummary ?? EMPTY_SUMMARY,
+  );
   const committeeUnreadRefresh = useCommitteeUnreadRefresh();
 
   const refresh = useCallback(async () => {
@@ -26,6 +29,12 @@ export function useCommitteeUnreadSummary(
       // ignore transient errors
     }
   }, [apiBase, enabled, organizationId]);
+
+  useEffect(() => {
+    if (initialSummary) {
+      setSummary(initialSummary);
+    }
+  }, [initialSummary]);
 
   useEffect(() => {
     queueMicrotask(() => {

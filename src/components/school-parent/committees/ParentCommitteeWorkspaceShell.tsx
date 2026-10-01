@@ -25,8 +25,12 @@ import {
   type Committee,
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
+import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
+import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
 import { useCommitteeUnreadRefresh } from "@/lib/committees/committee-unread-refresh-context";
+import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import { markCommitteeSectionReadViaApi } from "@/lib/committees/mark-committee-section-read-client";
 
 const CommitteeHomeSection = dynamic(
@@ -96,6 +100,7 @@ function renderSectionContent(
     canWrite: boolean;
     onNavigate: (section: CommitteeWorkspaceSection) => void;
     composeTokens: AdminThemeTokens;
+    initialActivityItems?: CommitteeActivityItem[];
   },
 ) {
   const { committee, theme, canWrite, onNavigate, activitySurface, ...rest } = sectionProps;
@@ -109,6 +114,7 @@ function renderSectionContent(
           organizationId={sectionProps.organizationId}
           schoolSlug={sectionProps.schoolSlug}
           activitySurface={activitySurface}
+          initialActivityItems={sectionProps.initialActivityItems}
           onNavigate={onNavigate}
         />
       );
@@ -143,6 +149,8 @@ export default function ParentCommitteeWorkspaceShell({
   onCommitteeChange,
   currentMemberId,
   previewMode = false,
+  initialActivityItems,
+  initialSectionUnread,
   backLabel = "My committees",
   portalApiNamespace = "parent-portal",
 }: {
@@ -157,6 +165,8 @@ export default function ParentCommitteeWorkspaceShell({
   onCommitteeChange: (committee: Committee) => void;
   currentMemberId?: string;
   previewMode?: boolean;
+  initialActivityItems?: CommitteeActivityItem[];
+  initialSectionUnread?: CommitteeSectionUnreadCounts;
   backLabel?: string;
   portalApiNamespace?: CommitteesApiNamespace;
 }) {
@@ -175,6 +185,25 @@ export default function ParentCommitteeWorkspaceShell({
   const [pendingSection, setPendingSection] = useState<CommitteeWorkspaceSection | null>(null);
   const committeesApiBase = committeesApiBaseForPortal(portalApiNamespace);
   const committeeUnreadRefresh = useCommitteeUnreadRefresh();
+  const { summary: liveUnreadSummary } = useCommitteeUnreadSummary(
+    committeesApiBase,
+    organizationId,
+    !previewMode,
+  );
+  const sectionUnreadCounts: CommitteeSectionUnreadCounts | undefined =
+    previewMode && initialSectionUnread
+      ? initialSectionUnread
+      : liveUnreadSummary.byCommittee.find((row) => row.committeeId === committee.id)
+          ?.sections;
+
+  const unreadCountForSection = (section: CommitteeWorkspaceSection): number => {
+    if (!sectionUnreadCounts) return 0;
+    if (section === "messages") return sectionUnreadCounts.messages;
+    if (section === "tasks") return sectionUnreadCounts.tasks;
+    if (section === "resources") return sectionUnreadCounts.resources;
+    if (section === "calendar") return sectionUnreadCounts.calendar;
+    return 0;
+  };
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -240,6 +269,7 @@ export default function ParentCommitteeWorkspaceShell({
   const navItems = sections.map((section) => {
     const Icon = PARENT_SECTION_ICONS[section];
     const isPending = pendingSection === section;
+    const unreadCount = unreadCountForSection(section);
     return {
       key: section,
       label: COMMITTEE_SECTION_LABELS[section],
@@ -249,6 +279,14 @@ export default function ParentCommitteeWorkspaceShell({
       ariaBusy: isPending,
       suffix: isPending ? (
         <Loader2 className="h-3 w-3 animate-spin" data-testid="parent-committee-tab-loading" />
+      ) : unreadCount > 0 ? (
+        <MessagesNavBadge
+          count={unreadCount}
+          theme={{
+            accent: composeTokens.accent,
+            accentLight: composeTokens.accentLight,
+          }}
+        />
       ) : undefined,
     };
   });
@@ -269,6 +307,7 @@ export default function ParentCommitteeWorkspaceShell({
     canWrite,
     onNavigate: handleSectionChange,
     composeTokens,
+    initialActivityItems,
   };
 
   const visibleMountedSections = PARENT_VISIBLE_SECTIONS.filter(

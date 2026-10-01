@@ -427,6 +427,8 @@ export async function notifyTuitionBillingCronSummary(payload: {
   committeeDigestFailures?: number;
   unreadMessageDigestsSent?: number;
   unreadMessageDigestFailures?: number;
+  committeeUnreadWorkspaceDigestsSent?: number;
+  committeeUnreadWorkspaceDigestFailures?: number;
   scheduledVisitParentRemindersSent?: number;
   scheduledVisitAdminWeeklyDigestsSent?: number;
   scheduledVisitAdminDayBeforeDigestsSent?: number;
@@ -461,6 +463,16 @@ export async function notifyTuitionBillingCronSummary(payload: {
     embedField(
       "Unread message digest failures",
       String(payload.unreadMessageDigestFailures ?? 0),
+      true,
+    ),
+    embedField(
+      "Committee unread digests sent",
+      String(payload.committeeUnreadWorkspaceDigestsSent ?? 0),
+      true,
+    ),
+    embedField(
+      "Committee unread digest failures",
+      String(payload.committeeUnreadWorkspaceDigestFailures ?? 0),
       true,
     ),
     embedField(

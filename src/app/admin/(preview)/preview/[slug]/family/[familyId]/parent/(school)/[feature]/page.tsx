@@ -218,6 +218,7 @@ export default async function FamilyPreviewParentFeaturePage({
     const initialData = await loadParentCommitteesPreviewData({
       organizationId: org.id,
       familyId,
+      schoolSlug: slug,
       selectedCommitteeId,
     });
     const guardianName = userProfile.displayName || userProfile.email || "Parent";
