@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -242,6 +242,16 @@ function DemoMetaRow({
   );
 }
 
+function initialDemoSchedulerView(slots: Record<string, string[]>) {
+  const first = firstAvailableDemoDate(slots);
+  if (!first) {
+    const { year, month } = todayMonthYear();
+    return { viewYear: year, viewMonth: month, selectedDate: null as string | null };
+  }
+  const [y, m] = first.split("-").map(Number);
+  return { viewYear: y, viewMonth: m - 1, selectedDate: first };
+}
+
 export function DemoScheduler({
   availabilitySlots,
   onConfirm,
@@ -257,25 +267,16 @@ export function DemoScheduler({
   confirmDisabled?: boolean;
   storyTheme?: ParentThemeTokens;
 }) {
-  const initial = todayMonthYear();
-  const [viewYear, setViewYear] = useState(initial.year);
-  const [viewMonth, setViewMonth] = useState(initial.month);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewYear, setViewYear] = useState(
+    () => initialDemoSchedulerView(availabilitySlots).viewYear,
+  );
+  const [viewMonth, setViewMonth] = useState(
+    () => initialDemoSchedulerView(availabilitySlots).viewMonth,
+  );
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    () => initialDemoSchedulerView(availabilitySlots).selectedDate,
+  );
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const initialDateAutoSelected = useRef(false);
-
-  useEffect(() => {
-    if (initialDateAutoSelected.current) return;
-
-    const first = firstAvailableDemoDate(availabilitySlots);
-    if (!first) return;
-
-    initialDateAutoSelected.current = true;
-    const [y, m] = first.split("-").map(Number);
-    setViewYear(y);
-    setViewMonth(m - 1);
-    setSelectedDate(first);
-  }, [availabilitySlots]);
 
   const today = todayKey();
   const availableDates = new Set(Object.keys(availabilitySlots));
