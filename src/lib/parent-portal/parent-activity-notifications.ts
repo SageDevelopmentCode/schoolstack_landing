@@ -75,6 +75,10 @@ export const PARENT_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED,
   ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED,
+  ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+  ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
@@ -295,6 +299,10 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED]: "Committee request approved",
   [ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED]: "Committee request declined",
   [ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED]: "Task assigned to you",
+  [ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED]: "New committee message",
+  [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: "New committee task",
+  [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: "New committee resource",
+  [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: "New committee event",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED]: "Classroom signup open",
   [ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED]: "Classroom signup closed",
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED]: "Form to sign",
@@ -566,6 +574,17 @@ function formatParentNotificationDetail(
   }
 }
 
+const COMMITTEE_BROADCAST_PARENT_NOTIFICATION_ACTIONS = new Set<string>([
+  ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+  ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
+]);
+
+function isCommitteeBroadcastParentNotificationAction(action: string): boolean {
+  return COMMITTEE_BROADCAST_PARENT_NOTIFICATION_ACTIONS.has(action);
+}
+
 function isOrgWideParentNotificationAction(action: string): boolean {
   return (
     action === ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED ||
@@ -584,7 +603,13 @@ function shouldExcludeParentActorEvent(
   if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
     return false;
   }
-  if (event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED) {
+  if (
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED
+  ) {
     return false;
   }
   return event.actor_type === "parent" && event.surface === "parent_portal";
@@ -606,6 +631,43 @@ async function fetchFamilyGuardianUserIds(
       .map((row) => (row.user_id ? String(row.user_id) : null))
       .filter((value): value is string => Boolean(value)),
   );
+}
+
+type FamilyCommitteeMembershipLookup = {
+  committeeIds: Set<string>;
+  memberIds: Set<string>;
+};
+
+async function fetchFamilyCommitteeMembershipForCommittees(
+  supabase: SupabaseClient,
+  organizationId: string,
+  guardianUserIds: Set<string>,
+  committeeIds: string[],
+): Promise<FamilyCommitteeMembershipLookup> {
+  const uniqueCommitteeIds = [...new Set(committeeIds.filter(Boolean))];
+  const committeeIdsSet = new Set<string>();
+  const memberIds = new Set<string>();
+
+  if (uniqueCommitteeIds.length === 0 || guardianUserIds.size === 0) {
+    return { committeeIds: committeeIdsSet, memberIds };
+  }
+
+  const { data, error } = await supabase
+    .from("committee_members")
+    .select("id, committee_id")
+    .eq("organization_id", organizationId)
+    .in("committee_id", uniqueCommitteeIds)
+    .in("user_id", [...guardianUserIds])
+    .eq("status", "active");
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    committeeIdsSet.add(String(row.committee_id));
+    memberIds.add(String(row.id));
+  }
+
+  return { committeeIds: committeeIdsSet, memberIds };
 }
 
 async function resolveApplicationIdsForEvents(
@@ -1016,10 +1078,18 @@ function resolveParentNotificationLink(
 
   if (action.startsWith("committee.")) {
     const committeeId = metadataString(event.metadata, "committeeId");
-    if (action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED && committeeId) {
+    const committeeSectionByAction: Record<string, string> = {
+      [ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED]: "messages",
+      [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: "tasks",
+      [ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED]: "tasks",
+      [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: "resources",
+      [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: "calendar",
+    };
+    const section = committeeSectionByAction[action];
+    if (committeeId && section) {
       return {
-        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=tasks&tab=mine`,
-        ctaLabel: "View task",
+        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`,
+        ctaLabel: "Open committee",
       };
     }
     return {
@@ -1282,13 +1352,53 @@ async function filterRawActivityEventsForFamily(
   );
   const guardianUserIds = await fetchFamilyGuardianUserIds(supabase, familyId);
 
+  const broadcastCommitteeIds = [
+    ...new Set(
+      rawEvents
+        .filter((event) =>
+          isCommitteeBroadcastParentNotificationAction(event.action),
+        )
+        .map((event) => metadataString(event.metadata, "committeeId"))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
+
+  const familyCommitteeMembership =
+    broadcastCommitteeIds.length > 0
+      ? await fetchFamilyCommitteeMembershipForCommittees(
+          supabase,
+          organizationId,
+          guardianUserIds,
+          broadcastCommitteeIds,
+        )
+      : { committeeIds: new Set<string>(), memberIds: new Set<string>() };
+
   return rawEvents.filter((event) => {
     if (shouldExcludeParentActorEvent(event)) return false;
 
-    const eventFamilyId = familyByEventId.get(event.id);
     if (isOrgWideParentNotificationAction(event.action)) {
       return true;
     }
+
+    if (isCommitteeBroadcastParentNotificationAction(event.action)) {
+      const committeeId = metadataString(event.metadata, "committeeId");
+      if (
+        !committeeId ||
+        !familyCommitteeMembership.committeeIds.has(committeeId)
+      ) {
+        return false;
+      }
+      const actorMemberId = metadataString(event.metadata, "actorMemberId");
+      if (
+        actorMemberId &&
+        familyCommitteeMembership.memberIds.has(actorMemberId)
+      ) {
+        return false;
+      }
+      return true;
+    }
+
+    const eventFamilyId = familyByEventId.get(event.id);
     if (eventFamilyId !== familyId) return false;
 
     if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
@@ -2133,3 +2243,6 @@ export async function getPrimaryGuardianUserIdForFamily(
   if (error) throw error;
   return data?.user_id ? String(data.user_id) : null;
 }
+
+/** @internal Exported for unit tests (committee membership filtering). */
+export const filterParentActivityEventsForFamily = filterRawActivityEventsForFamily;

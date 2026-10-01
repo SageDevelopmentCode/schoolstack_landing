@@ -9,8 +9,15 @@ import {
   buildEmailNotificationContext,
   sendCommitteeJoinApprovedNotification,
   sendCommitteeJoinRequestAdminNotification,
+  sendCommitteeMessagePostedNotification,
   sendCommitteeTaskAssignedNotification,
+  sendCommitteeWorkspaceUpdateNotification,
 } from "@/lib/emails";
+import {
+  committeeMemberWorkspaceUrl,
+  type CommitteePortalMember,
+} from "@/lib/committees/committee-portal-urls";
+import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
 import { resolveCommitteeNotificationEmails } from "@/lib/notifications/org-notification-settings";
 import { committeeTaskAssigneeTasksUrl } from "@/lib/committees/committee-portal-urls";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
@@ -415,4 +422,203 @@ export async function loadCommitteeTaskAssigneeMember(
     ...(data as AssigneeMemberRow),
     email,
   };
+}
+
+async function loadActiveCommitteeMembersForNotify(
+  supabase: SupabaseClient,
+  organizationId: string,
+  committeeId: string,
+): Promise<AssigneeMemberRow[]> {
+  const { data, error } = await supabase
+    .from("committee_members")
+    .select("id, display_name, email, user_id, guardian_id, staff_member_id")
+    .eq("organization_id", organizationId)
+    .eq("committee_id", committeeId)
+    .eq("status", "active");
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AssigneeMemberRow[];
+}
+
+async function loadOrganizationBranding(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<{ schoolName: string; schoolSlug: string }> {
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("name, slug")
+    .eq("id", organizationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return {
+    schoolName: String(data?.name ?? "School"),
+    schoolSlug: String(data?.slug ?? ""),
+  };
+}
+
+export async function sendCommitteeMessagePostedNotifications(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    committeeId: string;
+    committeeName: string;
+    messageId: string;
+    messagePreview: string;
+    senderName: string;
+    senderMemberId?: string | null;
+    actorUserId: string;
+    actorEmail?: string | null;
+    actorName: string;
+    actorType: "parent" | "teacher" | "school_admin";
+    surface: ActivitySurface;
+  },
+): Promise<void> {
+  const { schoolName, schoolSlug } = await loadOrganizationBranding(
+    supabase,
+    input.organizationId,
+  );
+  const members = await loadActiveCommitteeMembersForNotify(
+    supabase,
+    input.organizationId,
+    input.committeeId,
+  );
+
+  const recipients = members.filter((member) => {
+    if (input.senderMemberId && member.id === input.senderMemberId) return false;
+    return true;
+  });
+
+  const emailResults = await Promise.allSettled(
+    recipients.map(async (member) => {
+      const email = await resolveCommitteeMemberEmail(supabase, member);
+      if (!email) return;
+
+      const messagesUrl = committeeMemberWorkspaceUrl(
+        schoolSlug,
+        input.committeeId,
+        "messages",
+        member as CommitteePortalMember,
+      );
+
+      await sendCommitteeMessagePostedNotification({
+        email,
+        schoolName,
+        committeeName: input.committeeName,
+        senderName: input.senderName,
+        messagePreview: input.messagePreview,
+        messagesUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: schoolSlug,
+          surface: "web",
+          entityType: "committee_message",
+          entityId: input.messageId,
+        }),
+      });
+    }),
+  );
+
+  await logSettledNotificationFailures(
+    supabase,
+    {
+      organizationId: input.organizationId,
+      operation: "committee.message.posted.notify",
+      entityType: "committee_message",
+      entityId: input.messageId,
+      metadata: { committeeId: input.committeeId },
+    },
+    emailResults,
+  );
+}
+
+const WORKSPACE_UPDATE_ACTIONS: Record<
+  string,
+  { section: CommitteeWorkspaceSection; title: string }
+> = {
+  [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: {
+    section: "resources",
+    title: "New resource added",
+  },
+  [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: {
+    section: "calendar",
+    title: "New calendar event",
+  },
+  [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: {
+    section: "tasks",
+    title: "New task added",
+  },
+};
+
+export async function sendCommitteeWorkspaceUpdateNotifications(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    committeeId: string;
+    committeeName: string;
+    action: string;
+    entityId: string;
+    summary: string;
+    senderMemberId?: string | null;
+  },
+): Promise<void> {
+  const config = WORKSPACE_UPDATE_ACTIONS[input.action];
+  if (!config) return;
+
+  const { schoolName, schoolSlug } = await loadOrganizationBranding(
+    supabase,
+    input.organizationId,
+  );
+  const members = await loadActiveCommitteeMembersForNotify(
+    supabase,
+    input.organizationId,
+    input.committeeId,
+  );
+
+  const recipients = members.filter((member) => {
+    if (input.senderMemberId && member.id === input.senderMemberId) return false;
+    return true;
+  });
+
+  const emailResults = await Promise.allSettled(
+    recipients.map(async (member) => {
+      const email = await resolveCommitteeMemberEmail(supabase, member);
+      if (!email) return;
+
+      const workspaceUrl = committeeMemberWorkspaceUrl(
+        schoolSlug,
+        input.committeeId,
+        config.section,
+        member as CommitteePortalMember,
+      );
+
+      await sendCommitteeWorkspaceUpdateNotification({
+        email,
+        schoolName,
+        committeeName: input.committeeName,
+        updateTitle: config.title,
+        updateSummary: input.summary,
+        workspaceUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: schoolSlug,
+          surface: "web",
+          entityType: "committee_activity",
+          entityId: input.entityId,
+        }),
+      });
+    }),
+  );
+
+  await logSettledNotificationFailures(
+    supabase,
+    {
+      organizationId: input.organizationId,
+      operation: "committee.workspace_update.notify",
+      entityType: "committee_activity",
+      entityId: input.entityId,
+      metadata: { committeeId: input.committeeId, action: input.action },
+    },
+    emailResults,
+  );
 }

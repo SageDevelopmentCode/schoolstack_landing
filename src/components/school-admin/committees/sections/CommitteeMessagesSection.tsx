@@ -12,7 +12,8 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import type { Committee, CommitteeMessage } from "@/lib/committees/types";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
-import { postMessage } from "@/lib/committees/messages";
+import { postCommitteeMessageViaApi } from "@/lib/committees/committee-messages-api-client";
+import { formatCommitteeMessageTime } from "@/lib/committees/format-committee-message-time";
 import { resolveCommitteeMessageAttachmentUrl } from "@/lib/committees/open-committee-message-attachment";
 import {
   formatCommitteeAttribution,
@@ -113,7 +114,7 @@ function CommitteeMessageBubble({
           className={`mt-0.5 text-right text-[10px] ${own ? "text-white/70" : ""}`}
           style={own ? undefined : { color: theme.muted }}
         >
-          {msg.time}
+          {formatCommitteeMessageTime(msg.createdAt ?? msg.time)}
         </p>
       </div>
     </div>
@@ -130,6 +131,7 @@ export default function CommitteeMessagesSection({
   currentMemberId,
   isAdmin = true,
   composeTokens,
+  messagesApiBase,
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -140,6 +142,7 @@ export default function CommitteeMessagesSection({
   currentMemberId?: string;
   isAdmin?: boolean;
   composeTokens: AdminThemeTokens;
+  messagesApiBase: string;
 }) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -154,16 +157,11 @@ export default function CommitteeMessagesSection({
     if (!text.trim() && files.length === 0) return;
     setSending(true);
     try {
-      const newMessage = await postMessage(
-        supabase,
-        committee.id,
-        text.trim(),
-        currentMemberId,
-        {
-          organizationId,
-          files,
-        },
-      );
+      const newMessage = await postCommitteeMessageViaApi(messagesApiBase, committee.id, {
+        organizationId,
+        body: text.trim(),
+        files,
+      });
       setText("");
       setFiles([]);
       onCommitteeChange({

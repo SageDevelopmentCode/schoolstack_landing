@@ -5,9 +5,8 @@ import { Check } from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import {
   PUBLIC_SUPPORT_REQUEST_TOPICS,
   PUBLIC_SUPPORT_REQUEST_TOPIC_LABELS,
@@ -29,15 +28,13 @@ export default function PublicSupportForm() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   const canSubmit =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
     message.trim().length > 0 &&
-    !isSubmitting &&
-    (!turnstileRequired || turnstileToken);
+    !isSubmitting;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,7 +53,7 @@ export default function PublicSupportForm() {
           topic,
           message: message.trim(),
           sourcePagePath: "/support",
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
@@ -72,7 +69,7 @@ export default function PublicSupportForm() {
       setEmail("");
       setTopic("general");
       setMessage("");
-      setTurnstileToken(null);
+      setCompanyWebsite("");
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -105,8 +102,12 @@ export default function PublicSupportForm() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="rounded-2xl border border-black/[0.08] bg-white px-6 py-8 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:px-8"
+      className="relative rounded-2xl border border-black/[0.08] bg-white px-6 py-8 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:px-8"
     >
+      <PublicFormHoneypotField
+        value={companyWebsite}
+        onChange={setCompanyWebsite}
+      />
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="support-name" className="block text-sm font-medium text-text mb-1.5">
@@ -186,10 +187,6 @@ export default function PublicSupportForm() {
           {submitError}
         </p>
       ) : null}
-
-      <div className="mt-5">
-        <TurnstileField onTokenChange={setTurnstileToken} />
-      </div>
 
       <button
         type="submit"

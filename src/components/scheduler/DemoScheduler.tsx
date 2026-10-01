@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -17,6 +17,9 @@ import {
   todayMonthYear,
   isCurrentMonth,
   formatSelectedDate,
+  firstAvailableDemoDate,
+  sortDemoTimeSlots,
+  SCHEDULER_TIMEZONE_LABEL,
 } from "@/lib/demo-scheduler";
 import { SITE_NAME } from "@/lib/site";
 
@@ -80,6 +83,16 @@ function TimeSlotList({
         >
           {formatSelectedDate(dateStr)}
         </div>
+        <p
+          className={`mt-1 text-[11px] ${storyTheme ? "" : "font-secondary text-text-faint"}`}
+          style={
+            storyTheme
+              ? { color: storyTheme.muted, fontFamily: storyTheme.fontBody }
+              : undefined
+          }
+        >
+          All times in {SCHEDULER_TIMEZONE_LABEL}
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto">
@@ -222,11 +235,21 @@ function DemoMetaRow({
             <ellipse cx="6" cy="6" rx="2.2" ry="5" stroke="currentColor" strokeWidth="1.2" />
             <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" />
           </svg>
-          Central (CT)
+          {SCHEDULER_TIMEZONE_LABEL}
         </span>
       ) : null}
     </>
   );
+}
+
+function initialDemoSchedulerView(slots: Record<string, string[]>) {
+  const first = firstAvailableDemoDate(slots);
+  if (!first) {
+    const { year, month } = todayMonthYear();
+    return { viewYear: year, viewMonth: month, selectedDate: null as string | null };
+  }
+  const [y, m] = first.split("-").map(Number);
+  return { viewYear: y, viewMonth: m - 1, selectedDate: first };
 }
 
 export function DemoScheduler({
@@ -244,17 +267,26 @@ export function DemoScheduler({
   confirmDisabled?: boolean;
   storyTheme?: ParentThemeTokens;
 }) {
-  const initial = todayMonthYear();
-  const [viewYear, setViewYear] = useState(initial.year);
-  const [viewMonth, setViewMonth] = useState(initial.month);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewYear, setViewYear] = useState(
+    () => initialDemoSchedulerView(availabilitySlots).viewYear,
+  );
+  const [viewMonth, setViewMonth] = useState(
+    () => initialDemoSchedulerView(availabilitySlots).viewMonth,
+  );
+  const [selectedDate, setSelectedDate] = useState<string | null>(
+    () => initialDemoSchedulerView(availabilitySlots).selectedDate,
+  );
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   const today = todayKey();
   const availableDates = new Set(Object.keys(availabilitySlots));
-  const selectedTimeSlots = selectedDate
-    ? availabilitySlots[selectedDate] ?? []
-    : [];
+  const selectedTimeSlots = useMemo(
+    () =>
+      sortDemoTimeSlots(
+        selectedDate ? availabilitySlots[selectedDate] ?? [] : [],
+      ),
+    [selectedDate, availabilitySlots],
+  );
   const durationMinutes = storyTheme ? 20 : 30;
   const calendarColors = storyTheme ? storyCalendarColors(storyTheme) : undefined;
   const borderColor = storyTheme?.line;
@@ -366,7 +398,7 @@ export function DemoScheduler({
               <ellipse cx="6" cy="6" rx="2.2" ry="5" stroke="currentColor" strokeWidth="1.2" />
               <path d="M1 6h10" stroke="currentColor" strokeWidth="1.2" />
             </svg>
-            Central (CT)
+            {SCHEDULER_TIMEZONE_LABEL}
           </div>
         </div>
       </div>

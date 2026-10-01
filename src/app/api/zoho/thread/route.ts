@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getProfile } from "@/lib/auth";
-import { fetchEmailThread, isZohoConfigured } from "@/lib/zoho";
+import { fetchEmailThreadPage, isZohoConfigured } from "@/lib/zoho";
 
 const ROUTE = "/api/zoho/thread";
 
@@ -29,8 +29,33 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const limit = parseInt(request.nextUrl.searchParams.get("limit") || "50", 10);
-  const data = await fetchEmailThread(email, limit);
+  const start = parseInt(request.nextUrl.searchParams.get("start") || "1", 10);
+  const limit = parseInt(request.nextUrl.searchParams.get("limit") || "20", 10);
+  const includeContent =
+    request.nextUrl.searchParams.get("includeContent") === "true";
 
-  return NextResponse.json({ success: true, email, count: data.length, data });
+  try {
+    const { messages, hasMore } = await fetchEmailThreadPage(email, {
+      start,
+      limit,
+      includeContent,
+    });
+
+    return NextResponse.json({
+      success: true,
+      email,
+      start,
+      limit,
+      hasMore,
+      count: messages.length,
+      data: messages,
+    });
+  } catch (err) {
+    return apiError(ROUTE, {
+      request,
+      status: 502,
+      error: "Failed to search Zoho Mail for this contact",
+      cause: err,
+    });
+  }
 }

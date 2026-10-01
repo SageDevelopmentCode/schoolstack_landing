@@ -26,7 +26,10 @@ import {
   resolveParentFeatureAnnouncementMobileRoute,
 } from '@/lib/parent/parent-nav';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
-import { fetchParentActivityNotificationUnreadCount } from '@/lib/parent/fetch-activity-notifications';
+import {
+  buildParentActivityNotificationContext,
+  fetchParentActivityNotificationUnreadCount,
+} from '@/lib/parent/fetch-activity-notifications';
 import {
   fetchParentSignupAttentionItems,
   type ResolvedParentFeatureAnnouncement,
@@ -58,12 +61,22 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
   const loadNotificationUnreadCount = useCallback(async () => {
     if (!data?.organizationId) return;
     try {
-      const count = await fetchParentActivityNotificationUnreadCount(data.organizationId, slug);
+      const count = await fetchParentActivityNotificationUnreadCount(
+        data.organizationId,
+        slug,
+        buildParentActivityNotificationContext({
+          slug,
+          programSlug: data.programSlug,
+          programId: data.programId,
+          coopModeEnabled: data.coopModeEnabled,
+          parentNavBasePath: data.parentNavBasePath,
+        }),
+      );
       setNotificationUnreadCount(count);
     } catch {
       // Keep the last known count on transient errors.
     }
-  }, [data?.organizationId, slug]);
+  }, [data?.coopModeEnabled, data?.organizationId, data?.parentNavBasePath, data?.programId, data?.programSlug, slug]);
 
   useFocusEffect(
     useCallback(() => {
@@ -125,6 +138,7 @@ export function ParentProgramHomeScreen({ slug, programSlug }: ParentProgramHome
       programPortalLabel={data.programPortalLabel}
       coopModeEnabled={data.coopModeEnabled}
       programId={data.programId}
+      parentNavBasePath={data.parentNavBasePath}
       coopFamilies={data.coopFamilies}
       featureAnnouncements={data.featureAnnouncements}
       documentationGuides={data.documentationGuides}

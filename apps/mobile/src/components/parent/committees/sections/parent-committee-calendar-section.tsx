@@ -52,6 +52,7 @@ export function ParentCommitteeCalendarSection({
   currentMemberId,
   readOnly = false,
   isAdmin = false,
+  portalApiNamespace = 'parent-portal',
   onRefresh,
 }: ParentCommitteeSectionProps) {
   const theme = useParentTheme();
@@ -121,6 +122,10 @@ export function ParentCommitteeCalendarSection({
         type: form.eventType,
         location: form.location || undefined,
         createdByMemberId: currentMemberId,
+        workspaceRecord: {
+          organizationId,
+          portalApiNamespace: isAdmin ? 'school-admin' : portalApiNamespace,
+        },
       });
       setAddOpen(false);
       setEventForm(EMPTY_EVENT_FORM);

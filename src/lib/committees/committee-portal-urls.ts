@@ -2,6 +2,7 @@ import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import { SITE_URL } from "@/lib/site";
+import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
 
 export type CommitteePortalMember = {
   user_id?: string | null;
@@ -9,12 +10,43 @@ export type CommitteePortalMember = {
   staff_member_id?: string | null;
 };
 
-function committeeTaskQuery(committeeId: string): string {
+function committeeSectionQuery(
+  committeeId: string,
+  section: CommitteeWorkspaceSection,
+): string {
   return new URLSearchParams({
     committee: committeeId,
-    section: "tasks",
-    tab: "mine",
+    section,
   }).toString();
+}
+
+function committeeTaskQuery(committeeId: string): string {
+  return committeeSectionQuery(committeeId, "tasks");
+}
+
+export function committeeMemberWorkspacePath(
+  schoolSlug: string,
+  committeeId: string,
+  section: CommitteeWorkspaceSection,
+  member: CommitteePortalMember,
+): string {
+  const query = committeeSectionQuery(committeeId, section);
+  if (member.staff_member_id) {
+    return `${schoolTeacherPath(schoolSlug, "committees")}?${query}`;
+  }
+  if (member.user_id != null || member.guardian_id) {
+    return `${schoolParentRootPath(schoolSlug)}/committees?${query}`;
+  }
+  return `${schoolAdminPath(schoolSlug, "committees")}?${query}`;
+}
+
+export function committeeMemberWorkspaceUrl(
+  schoolSlug: string,
+  committeeId: string,
+  section: CommitteeWorkspaceSection,
+  member: CommitteePortalMember,
+): string {
+  return `${SITE_URL}${committeeMemberWorkspacePath(schoolSlug, committeeId, section, member)}`;
 }
 
 export function committeeTaskAssigneeTasksPath(

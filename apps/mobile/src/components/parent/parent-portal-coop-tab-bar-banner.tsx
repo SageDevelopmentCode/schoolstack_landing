@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
-import { Spacing } from '@/constants/theme';
 
 export const PARENT_COOP_TAB_BAR_BANNER_HEIGHT = 34;
 
@@ -56,14 +55,11 @@ export function ParentPortalCoopTabBarBanner({ programLabel }: ParentPortalCoopT
 
 const styles = StyleSheet.create({
   bar: {
+    alignSelf: 'stretch',
     width: '100%',
-    maxWidth: 400,
     height: PARENT_COOP_TAB_BAR_BANNER_HEIGHT,
     justifyContent: 'center',
-    paddingHorizontal: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
   text: {
     fontFamily: StoryFonts.bodySemiBold,

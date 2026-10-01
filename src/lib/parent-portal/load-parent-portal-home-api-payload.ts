@@ -138,7 +138,7 @@ export async function loadParentPortalHomeApiPayload(input: {
         })
       : null;
 
-    const [upcomingEvents, bulletinPosts] = await Promise.all([
+    const [upcomingEvents, bulletinPosts, featureAnnouncements] = await Promise.all([
       listUpcomingEventsForOrg(supabase, organizationId, 3, mainPortalAudienceScope()),
       loadHomeBulletinPosts({
         supabase,
@@ -148,7 +148,20 @@ export async function loadParentPortalHomeApiPayload(input: {
         viewer: "parent",
         limit: resolveParentPortalHomeBulletinLimit(false),
       }),
+      fetchParentFeatureAnnouncements(admin, organizationId, {
+        slug,
+        features: org.features,
+        coopModeEnabled: false,
+        bulletinEnabled,
+      }),
     ]);
+
+    const documentationGuides = buildParentDocumentationGuides({
+      slug,
+      features: org.features,
+      coopModeEnabled: false,
+      bulletinEnabled,
+    });
 
     return {
       branding: org.branding,
@@ -168,6 +181,8 @@ export async function loadParentPortalHomeApiPayload(input: {
       bulletinEnabled,
       bulletinPosts,
       fridayBranchHome: contentData?.fridayBranchHome ?? null,
+      featureAnnouncements,
+      documentationGuides,
     };
   }
 

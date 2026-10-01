@@ -3,7 +3,13 @@ import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyPublicSupportRequest } from "@/lib/discord";
 import { sendPublicSupportRequestConfirmation } from "@/lib/emails";
-import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  enforcePublicFormSubmission,
+  shouldNotifyPublicFormProtectionFailure,
+} from "@/lib/public-forms/enforce-public-form-submission";
+import { readPublicFormHoneypot } from "@/lib/public-forms/honeypot";
+import { getRequestIp } from "@/lib/public-forms/request-ip";
+import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import { validatePublicSupportRequestBody } from "@/lib/public-support/public-support-validation";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -24,15 +30,16 @@ export async function POST(request: Request) {
     return apiError(ROUTE, { request, status: 400, error: validation.error });
   }
 
-  const { name, email, topic, message, sourcePagePath, turnstileToken } =
-    validation.value;
+  const { name, email, topic, message, sourcePagePath } = validation.value;
   const resolvedSourcePagePath = sourcePagePath ?? DEFAULT_SOURCE_PAGE_PATH;
 
   const protection = await enforcePublicFormSubmission({
     request,
     form: "public_support",
     email,
-    turnstileToken,
+    companyWebsite: readPublicFormHoneypot(
+      body && typeof body === "object" ? (body as Record<string, unknown>) : null,
+    ),
   });
   if (!protection.ok) {
     return apiError(ROUTE, {
@@ -40,7 +47,7 @@ export async function POST(request: Request) {
       status: protection.status,
       error: protection.error,
       code: protection.code,
-      notify: false,
+      notify: shouldNotifyPublicFormProtectionFailure(protection),
     });
   }
 
@@ -68,6 +75,14 @@ export async function POST(request: Request) {
   }
 
   const requestId = data.id;
+
+  void recordPublicFormSubmissionEvent({
+    form: "public_support",
+    ip: getRequestIp(request),
+    email,
+    route: ROUTE,
+    request,
+  });
 
   try {
     await notifyPublicSupportRequest({

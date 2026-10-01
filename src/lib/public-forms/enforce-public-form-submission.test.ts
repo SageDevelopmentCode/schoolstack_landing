@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import {
   enforcePublicFormSubmission,
-  isPublicFormProtectionConfigured,
   shouldBypassPublicFormProtection,
+  shouldNotifyPublicFormProtectionFailure,
 } from "@/lib/public-forms/enforce-public-form-submission";
+import { isPublicFormHoneypotTripped } from "@/lib/public-forms/honeypot";
 
 function setNodeEnv(value: string) {
   Object.defineProperty(process.env, "NODE_ENV", {
@@ -33,61 +34,69 @@ describe("enforcePublicFormSubmission", () => {
     }
   });
 
-  it("bypasses protection in non-production when env is unset", async () => {
-    delete process.env.TURNSTILE_SECRET_KEY;
-    delete process.env.UPSTASH_REDIS_REST_URL;
-    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  it("bypasses rate limits in non-production", async () => {
+    setNodeEnv("development");
 
     assert.equal(shouldBypassPublicFormProtection(), true);
-    assert.equal(isPublicFormProtectionConfigured(), false);
 
     const result = await enforcePublicFormSubmission({
       request: new Request("https://example.com"),
-      form: "public_support",
+      form: "demo_request",
       email: "alex@example.com",
-      turnstileToken: null,
+      companyWebsite: "",
     });
 
-    assert.deepEqual(result, { ok: true });
+    assert.equal(result.ok, true);
   });
 
-  it("requires a turnstile token when protection is configured", async () => {
+  it("rejects honeypot submissions", async () => {
     setNodeEnv("production");
-    process.env.TURNSTILE_SECRET_KEY = "secret";
-    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "token";
 
     const result = await enforcePublicFormSubmission({
       request: new Request("https://example.com"),
-      form: "public_support",
+      form: "demo_request",
       email: "alex@example.com",
-      turnstileToken: null,
+      companyWebsite: "https://spam.example",
     });
 
     assert.equal(result.ok, false);
     if (!result.ok) {
       assert.equal(result.status, 400);
-      assert.match(result.error, /security check/i);
+      assert.equal(result.code, "honeypot");
     }
   });
+});
 
-  it("returns 503 in production when protection is misconfigured", async () => {
-    setNodeEnv("production");
-    delete process.env.TURNSTILE_SECRET_KEY;
-    delete process.env.UPSTASH_REDIS_REST_URL;
-    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+describe("isPublicFormHoneypotTripped", () => {
+  it("treats whitespace-only as empty", () => {
+    assert.equal(isPublicFormHoneypotTripped(""), false);
+    assert.equal(isPublicFormHoneypotTripped("   "), false);
+    assert.equal(isPublicFormHoneypotTripped("spam"), true);
+  });
+});
 
-    const result = await enforcePublicFormSubmission({
-      request: new Request("https://example.com"),
-      form: "public_support",
-      email: "alex@example.com",
-      turnstileToken: "token",
-    });
+describe("shouldNotifyPublicFormProtectionFailure", () => {
+  it("does not notify for expected 429 rate limits", () => {
+    assert.equal(
+      shouldNotifyPublicFormProtectionFailure({
+        ok: false,
+        status: 429,
+        error: "Too many",
+        code: "rate_limited",
+      }),
+      false,
+    );
+  });
 
-    assert.equal(result.ok, false);
-    if (!result.ok) {
-      assert.equal(result.status, 503);
-      assert.equal(result.code, "protection_misconfigured");
-    }
+  it("notifies for infrastructure 500 failures", () => {
+    assert.equal(
+      shouldNotifyPublicFormProtectionFailure({
+        ok: false,
+        status: 500,
+        error: "Unable to process your submission right now. Please try again later.",
+        code: "rate_limit_unavailable",
+      }),
+      true,
+    );
   });
 });

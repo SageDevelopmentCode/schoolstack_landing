@@ -29,6 +29,8 @@ import CommitteeResourceDetailPanel, {
   type CommitteeResourcePanelState,
 } from "@/components/school-admin/committees/sections/CommitteeResourceDetailPanel";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
+import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 
 function panelStatesEqual(
   a: CommitteeResourcePanelState,
@@ -49,6 +51,7 @@ export default function CommitteeResourcesSection({
   readOnly = false,
   currentMemberId,
   isAdmin = true,
+  portalApiNamespace = "parent-portal",
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -58,6 +61,7 @@ export default function CommitteeResourcesSection({
   readOnly?: boolean;
   currentMemberId?: string;
   isAdmin?: boolean;
+  portalApiNamespace?: CommitteesApiNamespace;
 }) {
   const [panelState, setPanelState] = useState<CommitteeResourcePanelState | null>(null);
   const [pendingPanelState, setPendingPanelState] =
@@ -137,6 +141,10 @@ export default function CommitteeResourcesSection({
         description: data.description.trim() || undefined,
         type: data.type,
         createdByMemberId: currentMemberId,
+        organizationId,
+        committeesApiBase: committeesApiBaseForPortal(
+          isAdmin ? "school-admin" : portalApiNamespace,
+        ),
       });
       closePanel();
       await refresh();

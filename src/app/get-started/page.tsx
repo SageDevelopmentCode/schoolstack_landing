@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import Navbar from "@/components/sections/Navbar";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import { DemoSchedulerSkeleton } from "@/components/scheduler/DemoSchedulerSkeleton";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import GetStartedConfirmation from "@/components/get-started/GetStartedConfirmation";
 import GetStartedInfoCallout from "@/components/get-started/GetStartedInfoCallout";
 import GetStartedRoleChoices from "@/components/get-started/GetStartedRoleChoices";
@@ -73,8 +73,7 @@ export default function GetStartedPage() {
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -181,14 +180,25 @@ export default function GetStartedPage() {
           role: form.role,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        code?: string;
+      };
 
       if (!res.ok) {
-        setSubmitError(data.error ?? "Something went wrong");
+        if (res.status >= 500) {
+          setSubmitError(
+            data.error ??
+              "Something went wrong on our end. Please try again in a moment.",
+          );
+        } else {
+          setSubmitError(data.error ?? "Something went wrong");
+        }
         return;
       }
 
@@ -240,8 +250,12 @@ export default function GetStartedPage() {
 
               <ParentCard
                 theme={theme}
-                className="flex flex-col gap-7 md:gap-8 border-border bg-surface"
+                className="relative flex flex-col gap-7 md:gap-8 border-border bg-surface"
               >
+                <PublicFormHoneypotField
+                  value={companyWebsite}
+                  onChange={setCompanyWebsite}
+                />
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <GetStartedStoryTextField
                     theme={theme}
@@ -376,21 +390,12 @@ export default function GetStartedPage() {
                 questions. 20 minutes, no slides, just your workflows.
               </GetStartedInfoCallout>
 
-              <div className="mb-6 flex justify-center">
-                <TurnstileField onTokenChange={setTurnstileToken} />
-              </div>
-
               <ParentCard
                 theme={theme}
                 className="!p-0 overflow-hidden border-border bg-surface"
               >
                 {availabilityLoading ? (
-                  <div
-                    className="flex items-center justify-center py-24 text-sm"
-                    style={{ color: theme.muted, fontFamily: theme.fontBody }}
-                  >
-                    Loading available times…
-                  </div>
+                  <DemoSchedulerSkeleton storyTheme={theme} />
                 ) : availabilityError ? (
                   <div
                     className="flex items-center justify-center py-24 text-sm"
@@ -410,7 +415,6 @@ export default function GetStartedPage() {
                     availabilitySlots={availabilitySlots}
                     onConfirm={handleScheduled}
                     isSubmitting={isSubmitting}
-                    confirmDisabled={turnstileRequired && !turnstileToken}
                     storyTheme={theme}
                   />
                 )}

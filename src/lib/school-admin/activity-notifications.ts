@@ -35,6 +35,10 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.PARENT_STUDENT_PROFILE_PHOTO_UPDATED,
   ACTIVITY_ACTIONS.PARENT_NOTIFICATION_SETTINGS_UPDATED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_REQUESTED,
+  ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+  ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
   ACTIVITY_ACTIONS.MESSAGES_RECEIVED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_CREATED,
   ACTIVITY_ACTIONS.STUDENT_HEALTH_ITEM_UPDATED,
@@ -1255,6 +1259,32 @@ export async function resolveActivityNotificationLink(
     return {
       href: committeesHref(slug, committeeId),
       ctaLabel: "Review request",
+    };
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED
+  ) {
+    const committeeId = metadataString(event.metadata, "committeeId");
+    const sectionByAction: Record<string, string> = {
+      [ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED]: "messages",
+      [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: "tasks",
+      [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: "resources",
+      [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: "calendar",
+    };
+    const section = sectionByAction[event.action];
+    if (committeeId && section) {
+      return {
+        href: `${committeesHref(slug, committeeId)}&section=${section}`,
+        ctaLabel: "Open committee",
+      };
+    }
+    return {
+      href: committeesHref(slug),
+      ctaLabel: "View committees",
     };
   }
 

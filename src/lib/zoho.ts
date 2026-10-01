@@ -4,21 +4,19 @@ interface ZohoTokenResponse {
   expires_in: number;
 }
 
-interface ZohoEmailSummary {
-  messageId: string;
-  subject: string;
-  fromAddress: string;
-  toAddress: string;
-  ccAddress?: string;
-  time: number;
-  receivedTime?: number;
-  hasAttachment: boolean;
-  folderId: string;
-  summary?: string;
-}
+import type { OutboundEmailDiscordMeta } from "@/lib/discord";
+import {
+  buildContactEmailSearchKey,
+  mapZohoSearchSummary,
+  messageInvolvesContact,
+  normalizeContactEmail,
+  parseZohoMessageTime,
+  type ZohoSearchSummaryFields,
+} from "@/lib/zoho-email-thread";
 
 export interface ZohoEmailContent {
   messageId: string;
+  folderId: string;
   fromAddress: string;
   toAddress: string;
   ccAddress?: string;
@@ -28,8 +26,6 @@ export interface ZohoEmailContent {
   time: number;
   hasAttachment: boolean;
 }
-
-import type { OutboundEmailDiscordMeta } from "@/lib/discord";
 
 const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
 const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
@@ -43,15 +39,22 @@ let cachedAccessToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 let cachedAccountId: string | null = null;
 
-function cleanEmailAddress(raw: string): string {
-  if (!raw) return "";
-  const cleaned = raw
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&");
-  const match = cleaned.match(/<([^>]+)>/);
-  return match ? match[1] : cleaned.replace(/"/g, "").trim();
+function summaryToEmailContent(
+  summary: ZohoSearchSummaryFields,
+  content: string,
+): ZohoEmailContent {
+  return {
+    messageId: summary.messageId,
+    folderId: summary.folderId,
+    fromAddress: summary.fromAddress,
+    toAddress: summary.toAddress,
+    ccAddress: summary.ccAddress,
+    subject: summary.subject,
+    content,
+    summary: summary.summary,
+    time: summary.time,
+    hasAttachment: summary.hasAttachment,
+  };
 }
 
 export async function isZohoConfigured(): Promise<boolean> {
@@ -300,12 +303,49 @@ export async function sendZohoEmail(opts: {
   return { success: true };
 }
 
-async function fetchMessageContent(
+async function fetchMessageContentForSummary(
   accountId: string,
   accessToken: string,
-  summary: ZohoEmailSummary
+  summary: ZohoSearchSummaryFields,
 ): Promise<ZohoEmailContent | null> {
-  const url = `${MAIL_BASE}/api/accounts/${accountId}/folders/${summary.folderId}/messages/${summary.messageId}/content`;
+  const content = await fetchZohoMessageContentWithAuth(
+    accountId,
+    accessToken,
+    summary.folderId,
+    summary.messageId,
+  );
+  if (content === null) return null;
+  return summaryToEmailContent(summary, content);
+}
+
+export async function fetchZohoMessageContent(
+  folderId: string,
+  messageId: string,
+): Promise<string> {
+  if (!(await isZohoConfigured())) {
+    throw new Error("Zoho Mail API is not configured");
+  }
+  const accessToken = await getValidAccessToken();
+  const accountId = await getZohoAccountId();
+  const content = await fetchZohoMessageContentWithAuth(
+    accountId,
+    accessToken,
+    folderId,
+    messageId,
+  );
+  if (content === null) {
+    throw new Error("Failed to load message content from Zoho Mail");
+  }
+  return content;
+}
+
+async function fetchZohoMessageContentWithAuth(
+  accountId: string,
+  accessToken: string,
+  folderId: string,
+  messageId: string,
+): Promise<string | null> {
+  const url = `${MAIL_BASE}/api/accounts/${accountId}/folders/${folderId}/messages/${messageId}/content`;
   const res = await fetch(url, {
     headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
   });
@@ -313,56 +353,81 @@ async function fetchMessageContent(
   if (!res.ok) return null;
 
   const data = await res.json();
-  return {
-    messageId: summary.messageId,
-    subject: summary.subject,
-    fromAddress: cleanEmailAddress(summary.fromAddress),
-    toAddress: cleanEmailAddress(summary.toAddress),
-    ccAddress: summary.ccAddress
-      ? cleanEmailAddress(summary.ccAddress)
-      : undefined,
-    time: summary.time || summary.receivedTime || Date.now(),
-    hasAttachment: summary.hasAttachment,
-    content: data.data?.content || "",
-    summary: summary.summary || "",
-  };
+  return data.data?.content || "";
 }
 
-export async function fetchEmailThread(
+export type FetchEmailThreadPageOptions = {
+  start?: number;
+  limit?: number;
+  includeContent?: boolean;
+};
+
+export type FetchEmailThreadPageResult = {
+  messages: ZohoEmailContent[];
+  hasMore: boolean;
+};
+
+export async function fetchEmailThreadPage(
   emailAddress: string,
-  limit = 50
-): Promise<ZohoEmailContent[]> {
-  if (!(await isZohoConfigured())) return [];
+  options: FetchEmailThreadPageOptions = {},
+): Promise<FetchEmailThreadPageResult> {
+  const start = options.start ?? 1;
+  const limit = options.limit ?? 20;
+  const includeContent = options.includeContent ?? false;
 
-  const accessToken = await getValidAccessToken();
-  const accountId = await getZohoAccountId();
-  const searches = [`to:${emailAddress}`, `from:${emailAddress}`];
-  const emailMap = new Map<string, ZohoEmailSummary>();
-
-  for (const query of searches) {
-    const url = `${MAIL_BASE}/api/accounts/${accountId}/messages/search?searchKey=${encodeURIComponent(query)}&limit=${limit}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
-    });
-
-    if (!res.ok) continue;
-
-    const data = await res.json();
-    for (const email of data.data || []) {
-      if (!emailMap.has(email.messageId)) {
-        emailMap.set(email.messageId, email);
-      }
-    }
+  if (!(await isZohoConfigured())) {
+    return { messages: [], hasMore: false };
   }
 
-  const summaries = Array.from(emailMap.values());
-  const emails = await Promise.all(
-    summaries.map((s) => fetchMessageContent(accountId, accessToken, s))
-  );
+  const normalizedContact = normalizeContactEmail(emailAddress);
+  const searchKey = buildContactEmailSearchKey(emailAddress);
+  const accessToken = await getValidAccessToken();
+  const accountId = await getZohoAccountId();
 
-  return emails
-    .filter((e): e is ZohoEmailContent => e !== null)
-    .sort((a, b) => b.time - a.time);
+  const url = `${MAIL_BASE}/api/accounts/${accountId}/messages/search?searchKey=${encodeURIComponent(searchKey)}&start=${start}&limit=${limit}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Zoho-oauthtoken ${accessToken}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Zoho Mail search failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  const rawResults: Record<string, unknown>[] = data.data || [];
+  const hasMore = rawResults.length === limit;
+
+  const summaries = rawResults
+    .map((raw) => mapZohoSearchSummary(raw))
+    .filter((summary) => messageInvolvesContact(summary, normalizedContact));
+
+  let messages: ZohoEmailContent[];
+  if (includeContent) {
+    const withContent = await Promise.all(
+      summaries.map((summary) =>
+        fetchMessageContentForSummary(accountId, accessToken, summary),
+      ),
+    );
+    messages = withContent.filter((item): item is ZohoEmailContent => item !== null);
+  } else {
+    messages = summaries.map((summary) => summaryToEmailContent(summary, ""));
+  }
+
+  messages.sort((a, b) => b.time - a.time);
+  return { messages, hasMore };
+}
+
+/** @deprecated Prefer fetchEmailThreadPage for pagination and lazy content. */
+export async function fetchEmailThread(
+  emailAddress: string,
+  limit = 50,
+): Promise<ZohoEmailContent[]> {
+  const { messages } = await fetchEmailThreadPage(emailAddress, {
+    start: 1,
+    limit,
+    includeContent: true,
+  });
+  return messages;
 }
 
 export async function fetchSentEmails(limit = 50): Promise<ZohoEmailContent[]> {
@@ -378,9 +443,15 @@ export async function fetchSentEmails(limit = 50): Promise<ZohoEmailContent[]> {
   if (!res.ok) return [];
 
   const data = await res.json();
-  const summaries: ZohoEmailSummary[] = data.data || [];
+  const rawResults: Record<string, unknown>[] = data.data || [];
+  const summaries = rawResults.map((raw) => {
+    const mapped = mapZohoSearchSummary(raw);
+    const timeMs = parseZohoMessageTime(raw);
+    if (timeMs !== null) mapped.time = timeMs;
+    return mapped;
+  });
   const emails = await Promise.all(
-    summaries.map((s) => fetchMessageContent(accountId, accessToken, s))
+    summaries.map((s) => fetchMessageContentForSummary(accountId, accessToken, s)),
   );
 
   return emails.filter((e): e is ZohoEmailContent => e !== null);

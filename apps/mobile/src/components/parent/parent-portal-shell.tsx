@@ -1,6 +1,7 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Href } from 'expo-router';
 
 import { AnimatedTabContent } from '@/components/animated-tab-content';
@@ -62,6 +63,7 @@ export function ParentPortalShell() {
   );
 
   const bottomChromeHeight = resolveParentBottomChromeHeight(showCoopTabBarBanner);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     void refreshUnreadCount();
@@ -156,13 +158,18 @@ export function ParentPortalShell() {
         </AnimatedTabContent>
       </View>
       {showTabBar && activeTab ? (
-        <ParentFloatingTabBar
-          tabs={tabBarTabs}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-          messagesUnreadCount={unreadCount}
-          aboveTabs={coopBanner}
-        />
+        <View
+          pointerEvents="box-none"
+          style={[styles.bottomChrome, { bottom: insets.bottom + 4 }]}>
+          {coopBanner}
+          <ParentFloatingTabBar
+            embedded
+            tabs={tabBarTabs}
+            activeTab={activeTab}
+            onChange={handleTabChange}
+            messagesUnreadCount={unreadCount}
+          />
+        </View>
       ) : null}
       <ParentMoreMenuSheet
         visible={moreSheetOpen}
@@ -177,5 +184,12 @@ export function ParentPortalShell() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+  },
+  bottomChrome: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 30,
+    alignItems: 'stretch',
   },
 });

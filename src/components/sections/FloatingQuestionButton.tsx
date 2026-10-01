@@ -7,9 +7,8 @@ import { Check } from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 
 const inputClassName =
   "w-full rounded-md bg-white border border-black/[0.09] px-3 py-2.5 text-sm text-[#2E4A3C] placeholder-[#2E4A3C]/40 font-body outline-none focus:ring-2 focus:ring-[#2E4A3C]/30 focus:border-[#2E4A3C] transition";
@@ -22,14 +21,12 @@ export default function FloatingQuestionButton() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   const canSubmit =
     question.trim().length > 0 &&
     name.trim().length > 0 &&
-    email.trim().length > 0 &&
-    (!turnstileRequired || turnstileToken);
+    email.trim().length > 0;
 
   const handleSubmit = async () => {
     if (!canSubmit || isSubmitting) return;
@@ -45,7 +42,7 @@ export default function FloatingQuestionButton() {
           name: name.trim(),
           email: email.trim(),
           message: question.trim(),
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
@@ -57,7 +54,7 @@ export default function FloatingQuestionButton() {
       }
 
       setSubmitted(true);
-      setTurnstileToken(null);
+      setCompanyWebsite("");
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -73,7 +70,7 @@ export default function FloatingQuestionButton() {
       setEmail("");
       setSubmitted(false);
       setSubmitError(null);
-      setTurnstileToken(null);
+      setCompanyWebsite("");
     }
   };
 
@@ -131,7 +128,11 @@ export default function FloatingQuestionButton() {
                 </p>
               </div>
             ) : (
-              <div className="px-4 py-4 flex flex-col gap-3">
+              <div className="relative px-4 py-4 flex flex-col gap-3">
+                <PublicFormHoneypotField
+                  value={companyWebsite}
+                  onChange={setCompanyWebsite}
+                />
                 <textarea
                   rows={3}
                   value={question}
@@ -156,7 +157,6 @@ export default function FloatingQuestionButton() {
                 {submitError ? (
                   <p className="text-sm text-red-600 font-body">{submitError}</p>
                 ) : null}
-                <TurnstileField onTokenChange={setTurnstileToken} />
                 <button
                   type="button"
                   disabled={!canSubmit || isSubmitting}

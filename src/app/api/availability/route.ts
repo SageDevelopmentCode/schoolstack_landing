@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { apiError } from "@/lib/api/route-errors";
-import { todayKey } from "@/lib/demo-scheduler";
+import { sortDemoTimeSlots, todayKey } from "@/lib/demo-scheduler";
 import { createClient } from "@/utils/supabase/server";
 
 const ROUTE = "/api/availability";
@@ -60,6 +60,10 @@ export async function GET(request: Request) {
     if (booked.has(`${date}|${time}`)) continue;
     if (!slots[date]) slots[date] = [];
     slots[date].push(time);
+  }
+
+  for (const date of Object.keys(slots)) {
+    slots[date] = sortDemoTimeSlots(slots[date]);
   }
 
   return NextResponse.json({ slots });

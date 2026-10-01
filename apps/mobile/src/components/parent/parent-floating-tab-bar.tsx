@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,7 +16,8 @@ type ParentFloatingTabBarProps = {
   activeTab: ParentTab;
   onChange: (tab: ParentTab) => void;
   messagesUnreadCount?: number;
-  aboveTabs?: ReactNode;
+  /** When true, omit absolute positioning (parent supplies bottom chrome stack). */
+  embedded?: boolean;
 };
 
 export function ParentFloatingTabBar({
@@ -25,15 +25,20 @@ export function ParentFloatingTabBar({
   activeTab,
   onChange,
   messagesUnreadCount = 0,
-  aboveTabs,
+  embedded = false,
 }: ParentFloatingTabBarProps) {
   const theme = useAdminTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + 4 }]}>
-      {aboveTabs}
-      <View style={styles.pill}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.wrapper,
+        embedded ? styles.wrapperEmbedded : { bottom: insets.bottom + 4 },
+      ]}>
+      <View style={styles.pillInset}>
+        <View style={styles.pill}>
         {tabs.map((tab) => {
           const active = activeTab === tab.tabId;
           const showUnreadBadge = tab.tabId === 'messages' && messagesUnreadCount > 0;
@@ -74,6 +79,7 @@ export function ParentFloatingTabBar({
             </ScalePressable>
           );
         })}
+        </View>
       </View>
     </View>
   );
@@ -82,10 +88,18 @@ export function ParentFloatingTabBar({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
+    left: 0,
+    right: 0,
+    alignItems: 'stretch',
     zIndex: 30,
+  },
+  wrapperEmbedded: {
+    position: 'relative',
+  },
+  pillInset: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   pill: {
     flexDirection: 'row',

@@ -22,7 +22,7 @@ export type PublicSupportRequestBody = {
   topic: PublicSupportRequestTopic;
   message: string;
   sourcePagePath?: string | null;
-  turnstileToken?: string | null;
+  companyWebsite?: string | null;
 };
 
 export type PublicSupportRequestValidationResult =
@@ -45,8 +45,8 @@ export function validatePublicSupportRequestBody(
     typeof record.sourcePagePath === "string"
       ? record.sourcePagePath.trim()
       : "";
-  const turnstileToken =
-    typeof record.turnstileToken === "string" ? record.turnstileToken : null;
+  const companyWebsite =
+    typeof record.companyWebsite === "string" ? record.companyWebsite : null;
 
   if (!name || !email || !topic || !message) {
     return { ok: false, error: "Missing required fields." };
@@ -89,7 +89,7 @@ export function validatePublicSupportRequestBody(
       topic: topic as PublicSupportRequestTopic,
       message,
       sourcePagePath: sourcePagePathRaw || null,
-      turnstileToken,
+      companyWebsite,
     },
   };
 }

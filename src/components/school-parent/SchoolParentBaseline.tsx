@@ -9,6 +9,7 @@ import ParentToaster from "@/components/school-parent/ParentToaster";
 import { ParentThemeProvider, useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
+import { CommitteeUnreadRefreshProvider } from "@/lib/committees/committee-unread-refresh-context";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import { fraunces, dmSans } from "@/lib/fonts";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
@@ -279,12 +280,14 @@ function SchoolParentBaselineInner({
   );
 
   const wrappedShell = (
-    <MessagesRefreshProvider
-      organizationId={organizationId}
-      enabled={messagesEnabled && !previewMode}
-    >
-      {shell}
-    </MessagesRefreshProvider>
+    <CommitteeUnreadRefreshProvider>
+      <MessagesRefreshProvider
+        organizationId={organizationId}
+        enabled={messagesEnabled && !previewMode}
+      >
+        {shell}
+      </MessagesRefreshProvider>
+    </CommitteeUnreadRefreshProvider>
   );
 
   if (previewMode) {

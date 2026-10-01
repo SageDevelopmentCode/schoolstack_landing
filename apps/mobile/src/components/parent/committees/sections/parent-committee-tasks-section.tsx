@@ -88,6 +88,10 @@ export function ParentCommitteeTasksSection({
           assigneeMemberId: data.assigneeMemberId ?? undefined,
           dueDate: data.dueDate || undefined,
           createdByMemberId: currentMemberId,
+          workspaceRecord: {
+            organizationId,
+            portalApiNamespace: isAdmin ? 'school-admin' : portalApiNamespace,
+          },
         });
         savedTaskId = created.id;
       } else if (selectedTask) {

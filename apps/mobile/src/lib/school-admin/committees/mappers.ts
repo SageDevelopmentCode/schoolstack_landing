@@ -209,18 +209,15 @@ export function mapMessageRow(
 ): CommitteeMessage {
   const sender = resolveMember(row.sender_member_id, members);
   const created = new Date(row.created_at);
-  const time = created.toLocaleString('en-US', {
-    weekday: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const createdAt = row.created_at;
   return {
     id: row.id,
     senderId: row.sender_member_id ?? '',
     senderName: sender?.name ?? SCHOOL_ADMIN_ATTRIBUTION,
     senderRole: sender?.role,
     text: row.body,
-    time,
+    createdAt,
+    time: createdAt,
   };
 }
 

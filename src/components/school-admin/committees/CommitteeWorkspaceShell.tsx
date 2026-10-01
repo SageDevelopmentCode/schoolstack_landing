@@ -151,6 +151,7 @@ export default function CommitteeWorkspaceShell({
               onCommitteeChange={onCommitteeChange}
               readOnly={readOnly}
               composeTokens={resolvedComposeTokens}
+              messagesApiBase="/api/school-admin/committees"
             />
           )}
           {activeSection === "members" && (

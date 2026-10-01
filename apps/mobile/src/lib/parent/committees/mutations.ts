@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { ACTIVITY_ACTIONS } from '@/lib/activity-log';
 import { logCommitteeActivityEvent } from '@/lib/committees/committee-activity-log';
+import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
+import { recordCommitteeWorkspaceCreate } from '@/lib/committees/record-committee-workspace-create';
 import {
   COMMITTEE_MESSAGE_FILES_BUCKET,
   COMMITTEE_RESOURCE_FILES_BUCKET,
@@ -97,6 +99,11 @@ function mapResourceRow(row: CommitteeResourceRow): CommitteeResource {
   };
 }
 
+export type CommitteeWorkspaceRecordContext = {
+  organizationId: string;
+  portalApiNamespace: CommitteePortalApiNamespace;
+};
+
 export type CreateEventInput = {
   title: string;
   date: string;
@@ -104,6 +111,7 @@ export type CreateEventInput = {
   type?: CommitteeEventType;
   location?: string;
   createdByMemberId?: string;
+  workspaceRecord?: CommitteeWorkspaceRecordContext;
 };
 
 export async function createCommitteeEvent(
@@ -126,7 +134,17 @@ export async function createCommitteeEvent(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapEventRow(data as CommitteeEventRow);
+  const event = mapEventRow(data as CommitteeEventRow);
+  if (input.workspaceRecord) {
+    void recordCommitteeWorkspaceCreate({
+      portalApiNamespace: input.workspaceRecord.portalApiNamespace,
+      committeeId,
+      organizationId: input.workspaceRecord.organizationId,
+      action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
+      entityId: event.id,
+    }).catch(() => {});
+  }
+  return event;
 }
 
 export type UpdateEventInput = {
@@ -166,6 +184,7 @@ export type CreateTaskInput = {
   assigneeMemberId?: string;
   dueDate?: string;
   createdByMemberId?: string;
+  workspaceRecord?: CommitteeWorkspaceRecordContext;
 };
 
 export async function createCommitteeTask(
@@ -190,17 +209,15 @@ export async function createCommitteeTask(
 
   if (error) throw new Error(error.message);
   const task = mapTaskRow(data as CommitteeTaskRow, new Map());
-  logCommitteeActivityEvent(supabase, {
-    committeeId,
-    action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
-    entityType: 'committee_task',
-    entityId: task.id,
-    summary: `Task "${task.title}" was created`,
-    metadata: { taskTitle: task.title, taskStatus: task.status },
-    actor: input.createdByMemberId
-      ? { type: 'parent', memberId: input.createdByMemberId }
-      : undefined,
-  });
+  if (input.workspaceRecord) {
+    void recordCommitteeWorkspaceCreate({
+      portalApiNamespace: input.workspaceRecord.portalApiNamespace,
+      committeeId,
+      organizationId: input.workspaceRecord.organizationId,
+      action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+      entityId: task.id,
+    }).catch(() => {});
+  }
   return task;
 }
 
@@ -311,6 +328,7 @@ export type CreateResourceInput = {
   fileName?: string;
   description?: string;
   createdByMemberId?: string;
+  workspaceRecord?: CommitteeWorkspaceRecordContext;
 };
 
 export async function createCommitteeResource(
@@ -334,7 +352,17 @@ export async function createCommitteeResource(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapResourceRow(data as CommitteeResourceRow);
+  const resource = mapResourceRow(data as CommitteeResourceRow);
+  if (input.workspaceRecord) {
+    void recordCommitteeWorkspaceCreate({
+      portalApiNamespace: input.workspaceRecord.portalApiNamespace,
+      committeeId,
+      organizationId: input.workspaceRecord.organizationId,
+      action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+      entityId: resource.id,
+    }).catch(() => {});
+  }
+  return resource;
 }
 
 function buildMessageAttachmentStoragePath(
@@ -427,4 +455,52 @@ export async function postCommitteeMessage(
   }
 
   return { messageId };
+}
+
+export async function postCommitteeMessageViaParentApi(
+  committeeId: string,
+  input: {
+    organizationId: string;
+    body: string;
+    files?: StagedMessageFile[];
+  },
+): Promise<{ messageId: string }> {
+  const { fetchParentApiFormData, fetchParentApi } = await import(
+    '@/lib/parent/parent-portal-api'
+  );
+
+  const trimmedBody = input.body.trim();
+  const files = input.files ?? [];
+
+  if (!trimmedBody && files.length === 0) {
+    throw new Error('Message cannot be empty.');
+  }
+
+  if (files.length > 0) {
+    const formData = new FormData();
+    formData.append('organizationId', input.organizationId);
+    formData.append('body', trimmedBody);
+    for (const file of files) {
+      formData.append('files', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType ?? 'application/octet-stream',
+      } as unknown as Blob);
+    }
+
+    const payload = await fetchParentApiFormData<{ message: { id: string } }>(
+      `/api/parent-portal/committees/${committeeId}/messages`,
+      formData,
+    );
+    return { messageId: payload.message.id };
+  }
+
+  const formData = new FormData();
+  formData.append('organizationId', input.organizationId);
+  formData.append('body', trimmedBody);
+  const payload = await fetchParentApiFormData<{ message: { id: string } }>(
+    `/api/parent-portal/committees/${committeeId}/messages`,
+    formData,
+  );
+  return { messageId: payload.message.id };
 }

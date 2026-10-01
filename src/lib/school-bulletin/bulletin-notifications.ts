@@ -105,15 +105,29 @@ async function loadOrganizationBulletinContext(
 ): Promise<OrganizationBulletinContext | null> {
   const { data: org, error } = await admin
     .from("organizations")
-    .select("name, slug, features")
+    .select(
+      `
+      name,
+      slug,
+      organization_settings (
+        features
+      )
+    `,
+    )
     .eq("id", organizationId)
     .maybeSingle();
 
   if (error) throw error;
   if (!org?.slug) return null;
 
+  const settings = org.organization_settings as
+    | { features?: Record<string, unknown> }
+    | { features?: Record<string, unknown> }[]
+    | null;
+  const settingsRow = Array.isArray(settings) ? settings[0] : settings;
+
   const features = mergeFeatures(
-    org.features as Record<string, unknown> | null | undefined,
+    settingsRow?.features as Record<string, unknown> | null | undefined,
   );
 
   return {

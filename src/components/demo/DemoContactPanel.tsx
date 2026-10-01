@@ -9,9 +9,8 @@ import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import { mudkitchenDemoContact } from "@/data/school-demos/mudkitchen-demo-contact";
 import { formatSelectedDate } from "@/lib/demo-scheduler";
 
@@ -72,13 +71,9 @@ function DemoContactFeedbackPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
-  const canSubmit =
-    comment.trim().length > 0 &&
-    !isSubmitting &&
-    (!turnstileRequired || turnstileToken);
+  const canSubmit = comment.trim().length > 0 && !isSubmitting;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -94,7 +89,7 @@ function DemoContactFeedbackPanel({
           schoolSlug,
           schoolName,
           message: comment.trim(),
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
@@ -107,7 +102,7 @@ function DemoContactFeedbackPanel({
 
       setSubmitted(true);
       setComment("");
-      setTurnstileToken(null);
+      setCompanyWebsite("");
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -146,7 +141,11 @@ function DemoContactFeedbackPanel({
               {feedback.subheading}
             </p>
 
-            <div className="rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+            <div className="relative rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+              <PublicFormHoneypotField
+                value={companyWebsite}
+                onChange={setCompanyWebsite}
+              />
               <label className="flex flex-col gap-1.5">
                 <span className="sr-only">Questions or comments</span>
                 <textarea
@@ -156,9 +155,6 @@ function DemoContactFeedbackPanel({
                   className={textareaClassName}
                 />
               </label>
-              <div className="mt-4">
-                <TurnstileField onTokenChange={setTurnstileToken} />
-              </div>
               <div className="mt-4 flex items-center justify-end gap-3">
                 {submitError ? (
                   <p className="text-sm text-red-600 font-body mr-auto">{submitError}</p>
@@ -202,14 +198,12 @@ function DemoContactSchedulePanel({
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   const canBook =
     name.trim().length > 0 &&
     email.trim().length > 0 &&
-    EMAIL_RE.test(email.trim()) &&
-    (!turnstileRequired || turnstileToken);
+    EMAIL_RE.test(email.trim());
 
   useEffect(() => {
     let cancelled = false;
@@ -263,7 +257,7 @@ function DemoContactSchedulePanel({
           prepNotes: `Booked from school concept demo walkthrough (${schoolSlug}).`,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
@@ -317,7 +311,11 @@ function DemoContactSchedulePanel({
           </div>
         ) : (
           <>
-            <div className="mb-4 rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+            <div className="relative mb-4 rounded-lg border border-black/[0.07] bg-white p-5 sm:p-6">
+              <PublicFormHoneypotField
+                value={companyWebsite}
+                onChange={setCompanyWebsite}
+              />
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold text-[#2E4A3C]/80 font-body">
@@ -347,10 +345,6 @@ function DemoContactSchedulePanel({
               {!canBook ? (
                 <p className="mt-3 text-xs text-[#2E4A3C]/55 font-body">{form.contactHint}</p>
               ) : null}
-            </div>
-
-            <div className="mb-4">
-              <TurnstileField onTokenChange={setTurnstileToken} />
             </div>
 
             <div className="mb-4">

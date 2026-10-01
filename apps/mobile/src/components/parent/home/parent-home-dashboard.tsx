@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -14,6 +15,11 @@ import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeHowToGuidesCard } from '@/components/parent/home/parent-home-how-to-guides-card';
 import { ParentHomeSchoolUpdatesCard } from '@/components/parent/home/parent-home-school-updates-card';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
+import {
+  PARENT_HOME_SUB_TAB_OVERVIEW,
+  ParentHomeSubTabBar,
+  type ParentHomeSubTabId,
+} from '@/components/parent/home/parent-home-sub-tab-bar';
 import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
@@ -35,8 +41,8 @@ import {
   type ResolvedParentFeatureAnnouncement,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
-import { useState } from 'react';
 
 export type ParentHomeDashboardProps = {
   slug: string;
@@ -67,6 +73,7 @@ export type ParentHomeDashboardProps = {
   onFeatureAnnouncement: (announcement: ResolvedParentFeatureAnnouncement) => void;
   onDocumentationStep: (href: string) => void;
   onCoopMessageThread: (threadId: string) => void;
+  parentNavBasePath?: string;
 };
 
 function programPortalChildrenEmptyMessage(portalLabel: string): string {
@@ -102,12 +109,29 @@ export function ParentHomeDashboard({
   onFeatureAnnouncement,
   onDocumentationStep,
   onCoopMessageThread,
+  parentNavBasePath,
 }: ParentHomeDashboardProps) {
   const theme = useParentTheme();
+  const activityNotificationContext = useMemo(
+    () =>
+      buildParentActivityNotificationContext({
+        slug,
+        programSlug,
+        programId,
+        coopModeEnabled,
+        parentNavBasePath,
+      }),
+    [coopModeEnabled, parentNavBasePath, programId, programSlug, slug],
+  );
+  const [activeSubTab, setActiveSubTab] = useState<ParentHomeSubTabId>(PARENT_HOME_SUB_TAB_OVERVIEW);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [bulletinOpen, setBulletinOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveSubTab(PARENT_HOME_SUB_TAB_OVERVIEW);
+  }, [coopModeEnabled, programSlug]);
 
   const openWebUrl = async (href: string) => {
     await openBrowserAsync(resolveWebUrl(href), {
@@ -131,6 +155,177 @@ export function ParentHomeDashboard({
     onOnboardingItem(item);
   };
 
+  const showLearnOnOverview = !coopModeEnabled;
+  const showNeedHelpOnOverview = !coopModeEnabled;
+
+  const renderLearnContent = ({
+    includeNeedHelp,
+    delayBase,
+  }: {
+    includeNeedHelp: boolean;
+    delayBase: number;
+  }) => (
+    <>
+      {featureAnnouncements.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(delayBase).duration(350)}>
+          <ParentHomeFeatureAnnouncementsCard
+            announcements={featureAnnouncements}
+            onPressAnnouncement={onFeatureAnnouncement}
+          />
+        </Animated.View>
+      ) : null}
+
+      {documentationGuides.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(delayBase + 40).duration(350)}>
+          <ParentHomeHowToGuidesCard
+            guides={documentationGuides}
+            onStepAction={onDocumentationStep}
+          />
+        </Animated.View>
+      ) : null}
+
+      {includeNeedHelp ? (
+        <Animated.View entering={FadeInDown.delay(delayBase + 80).duration(350)}>
+          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+        </Animated.View>
+      ) : null}
+    </>
+  );
+
+  const renderOverviewSections = () => (
+    <>
+      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+        <ParentHomeStartHereCard
+          slug={slug}
+          programSlug={programSlug}
+          onboardingItems={data.onboardingItems}
+          enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
+          enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+          formAttentionItems={data.formAttentionItems ?? []}
+          signupAttentionItems={signupAttentionItems}
+          familyChildren={data.familyChildren}
+          onPressAttentionItem={onAttentionItem}
+          onOpenOnboarding={() => setOnboardingOpen(true)}
+        />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+        <ParentHomeEventsCard nextEvent={nextEvent} onViewCalendar={onViewCalendar} />
+      </Animated.View>
+
+      {showCoopSchoolUpdates ? (
+        <Animated.View entering={FadeInDown.delay(90).duration(350)}>
+          <ParentHomeSchoolUpdatesCard
+            bulletinEnabled={false}
+            bulletinPosts={bulletinPosts}
+            messagesEnabled={messagesEnabled}
+            onOpenMessages={onOpenMessages}
+            onOpenBulletinPost={onOpenBulletinPost}
+          />
+        </Animated.View>
+      ) : null}
+
+      {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
+        <Animated.View entering={FadeInDown.delay(100).duration(350)}>
+          <ParentHomeFridayBranchCard
+            slug={slug}
+            programSlug={programSlug}
+            organizationId={data.organizationId}
+            initialBundle={data.fridayBranchHome}
+          />
+        </Animated.View>
+      ) : null}
+
+      {showLearnOnOverview ? renderLearnContent({ includeNeedHelp: false, delayBase: 120 }) : null}
+
+      {showNeedHelpOnOverview ? (
+        <Animated.View entering={FadeInDown.delay(200).duration(350)}>
+          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+        </Animated.View>
+      ) : null}
+    </>
+  );
+
+  const renderFamilySections = () => (
+    <>
+      <Animated.View entering={FadeInDown.delay(40).duration(350)} style={styles.section}>
+        <StoryDisplayHeading size="section">Your children</StoryDisplayHeading>
+
+        {data.familyChildren.length === 0 ? (
+          <StoryCard style={styles.emptyCard}>
+            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+              {programPortalLabel ? (
+                programPortalChildrenEmptyMessage(programPortalLabel)
+              ) : (
+                <>
+                  We don&apos;t have any student records from your applications yet. Visit your{' '}
+                  <Text
+                    style={[styles.emptyLink, { color: theme.primary }]}
+                    onPress={() => void openWebUrl(schoolApplyUrl(slug))}>
+                    application dashboard
+                  </Text>{' '}
+                  to get started.
+                </>
+              )}
+            </Text>
+          </StoryCard>
+        ) : (
+          <View style={styles.childrenList}>
+            {data.familyChildren.map((child) => (
+              <ParentHomeChildStoryCard
+                key={child.applicationId}
+                child={child}
+                onViewDetails={() => onOpenChildDetails(child.applicationId)}
+                onOpenEnrollment={() => onOpenEnrollment(child.applicationId)}
+              />
+            ))}
+          </View>
+        )}
+      </Animated.View>
+
+      {data.formSnapshot ? (
+        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
+          <ParentHomeFormsSnapshotCard
+            snapshot={data.formSnapshot}
+            onOpenForm={onOpenForm}
+            onViewAll={onViewAllForms}
+          />
+        </Animated.View>
+      ) : null}
+    </>
+  );
+
+  const renderCoopSections = () =>
+    coopModeEnabled && programPortalLabel && programId ? (
+      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
+        <ParentHomeCoopFamiliesCard
+          programLabel={programPortalLabel}
+          families={coopFamilies}
+          organizationId={data.organizationId}
+          programId={programId}
+          messagesEnabled={messagesEnabled}
+          onOpenThread={onCoopMessageThread}
+        />
+      </Animated.View>
+    ) : null;
+
+  const renderLearnSections = () =>
+    renderLearnContent({ includeNeedHelp: true, delayBase: 40 });
+
+  const renderActiveSubTabContent = () => {
+    switch (activeSubTab) {
+      case 'family':
+        return renderFamilySections();
+      case 'coop':
+        return renderCoopSections();
+      case 'learn':
+        return renderLearnSections();
+      case 'overview':
+      default:
+        return renderOverviewSections();
+    }
+  };
+
   return (
     <>
       <StatusBar style={isPreview ? 'dark' : 'light'} />
@@ -149,6 +344,12 @@ export function ParentHomeDashboard({
           />
         </Animated.View>
 
+        <ParentHomeSubTabBar
+          coopModeEnabled={coopModeEnabled}
+          activeTabId={activeSubTab}
+          onChange={setActiveSubTab}
+        />
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
@@ -159,127 +360,7 @@ export function ParentHomeDashboard({
               tintColor={theme.primary}
             />
           }>
-          <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-            <ParentHomeStartHereCard
-              slug={slug}
-              programSlug={programSlug}
-              onboardingItems={data.onboardingItems}
-              enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
-              enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
-              formAttentionItems={data.formAttentionItems ?? []}
-              signupAttentionItems={signupAttentionItems}
-              familyChildren={data.familyChildren}
-              onPressAttentionItem={onAttentionItem}
-              onOpenOnboarding={() => setOnboardingOpen(true)}
-            />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-            <ParentHomeEventsCard nextEvent={nextEvent} onViewCalendar={onViewCalendar} />
-          </Animated.View>
-
-          {showCoopSchoolUpdates ? (
-            <Animated.View entering={FadeInDown.delay(90).duration(350)}>
-              <ParentHomeSchoolUpdatesCard
-                bulletinEnabled={false}
-                bulletinPosts={bulletinPosts}
-                messagesEnabled={messagesEnabled}
-                onOpenMessages={onOpenMessages}
-                onOpenBulletinPost={onOpenBulletinPost}
-              />
-            </Animated.View>
-          ) : null}
-
-          {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
-            <Animated.View entering={FadeInDown.delay(100).duration(350)}>
-              <ParentHomeFridayBranchCard
-                slug={slug}
-                programSlug={programSlug}
-                organizationId={data.organizationId}
-                initialBundle={data.fridayBranchHome}
-              />
-            </Animated.View>
-          ) : null}
-
-          <Animated.View entering={FadeInDown.delay(120).duration(350)} style={styles.section}>
-            <StoryDisplayHeading size="section">Your children</StoryDisplayHeading>
-
-            {data.familyChildren.length === 0 ? (
-              <StoryCard style={styles.emptyCard}>
-                <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-                  {programPortalLabel
-                    ? programPortalChildrenEmptyMessage(programPortalLabel)
-                    : (
-                      <>
-                        We don&apos;t have any student records from your applications yet. Visit your{' '}
-                        <Text
-                          style={[styles.emptyLink, { color: theme.primary }]}
-                          onPress={() => void openWebUrl(schoolApplyUrl(slug))}>
-                          application dashboard
-                        </Text>{' '}
-                        to get started.
-                      </>
-                    )}
-                </Text>
-              </StoryCard>
-            ) : (
-              <View style={styles.childrenList}>
-                {data.familyChildren.map((child) => (
-                  <ParentHomeChildStoryCard
-                    key={child.applicationId}
-                    child={child}
-                    onViewDetails={() => onOpenChildDetails(child.applicationId)}
-                    onOpenEnrollment={() => onOpenEnrollment(child.applicationId)}
-                  />
-                ))}
-              </View>
-            )}
-          </Animated.View>
-
-          {data.formSnapshot ? (
-            <Animated.View entering={FadeInDown.delay(140).duration(350)}>
-              <ParentHomeFormsSnapshotCard
-                snapshot={data.formSnapshot}
-                onOpenForm={onOpenForm}
-                onViewAll={onViewAllForms}
-              />
-            </Animated.View>
-          ) : null}
-
-          {coopModeEnabled && programPortalLabel && programId ? (
-            <Animated.View entering={FadeInDown.delay(150).duration(350)}>
-              <ParentHomeCoopFamiliesCard
-                programLabel={programPortalLabel}
-                families={coopFamilies}
-                organizationId={data.organizationId}
-                programId={programId}
-                messagesEnabled={messagesEnabled}
-                onOpenThread={onCoopMessageThread}
-              />
-            </Animated.View>
-          ) : null}
-
-          {featureAnnouncements.length > 0 ? (
-            <Animated.View entering={FadeInDown.delay(160).duration(350)}>
-              <ParentHomeFeatureAnnouncementsCard
-                announcements={featureAnnouncements}
-                onPressAnnouncement={onFeatureAnnouncement}
-              />
-            </Animated.View>
-          ) : null}
-
-          {documentationGuides.length > 0 ? (
-            <Animated.View entering={FadeInDown.delay(170).duration(350)}>
-              <ParentHomeHowToGuidesCard
-                guides={documentationGuides}
-                onStepAction={onDocumentationStep}
-              />
-            </Animated.View>
-          ) : null}
-
-          <Animated.View entering={FadeInDown.delay(180).duration(350)}>
-            <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-          </Animated.View>
+          {renderActiveSubTabContent()}
         </ScrollView>
       </View>
 
@@ -298,6 +379,8 @@ export function ParentHomeDashboard({
         onClose={() => setNotificationsOpen(false)}
         organizationId={data.organizationId}
         slug={slug}
+        programSlug={programSlug}
+        notificationContext={activityNotificationContext}
         firstChildApplicationId={firstChildApplicationId}
         onMarkedRead={onMarkedNotificationsRead}
       />

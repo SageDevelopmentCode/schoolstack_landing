@@ -23,11 +23,17 @@ import {
   parentFormsDocumentsRoute,
   parentTabRoute,
   resolveParentAttentionNavigation,
+  resolveParentDocumentationMobileRoute,
+  resolveParentFeatureAnnouncementMobileRoute,
 } from '@/lib/parent/parent-nav';
 import type { ParentSignupAttentionItem } from '@/lib/parent/parent-classroom-signups-types';
-import { fetchParentActivityNotificationUnreadCount } from '@/lib/parent/fetch-activity-notifications';
+import {
+  buildParentActivityNotificationContext,
+  fetchParentActivityNotificationUnreadCount,
+} from '@/lib/parent/fetch-activity-notifications';
 import {
   fetchParentSignupAttentionItems,
+  type ResolvedParentFeatureAnnouncement,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import { usePortalPreview } from '@/lib/portal-preview-gating';
@@ -51,7 +57,11 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   const loadNotificationUnreadCount = useCallback(async () => {
     if (!data?.organizationId) return;
     try {
-      const count = await fetchParentActivityNotificationUnreadCount(data.organizationId, slug);
+      const count = await fetchParentActivityNotificationUnreadCount(
+        data.organizationId,
+        slug,
+        buildParentActivityNotificationContext({ slug }),
+      );
       setNotificationUnreadCount(count);
     } catch {
       // Keep the last known count on transient errors.
@@ -110,6 +120,8 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
   return (
     <ParentHomeDashboard
       slug={slug}
+      featureAnnouncements={data.featureAnnouncements}
+      documentationGuides={data.documentationGuides}
       data={data}
       isPreview={isPreview}
       isRefreshing={isRefreshing}
@@ -162,8 +174,18 @@ export function ParentHomeScreen({ slug }: ParentHomeScreenProps) {
       onOpenForm={(formId) => router.push(parentFormDetailRoute(slug, formId))}
       onViewAllForms={() => router.push(parentFormsDocumentsRoute(slug))}
       onOpenBulletinPost={(postId) => router.push(parentBulletinDetailRoute(slug, postId))}
-      onFeatureAnnouncement={() => {}}
-      onDocumentationStep={() => {}}
+      onFeatureAnnouncement={(announcement: ResolvedParentFeatureAnnouncement) => {
+        const route = resolveParentFeatureAnnouncementMobileRoute(slug, announcement.href);
+        if (route) {
+          router.push(route);
+        }
+      }}
+      onDocumentationStep={(href) => {
+        const route = resolveParentDocumentationMobileRoute(slug, href);
+        if (route) {
+          router.push(route);
+        }
+      }}
       onCoopMessageThread={() => {}}
     />
   );

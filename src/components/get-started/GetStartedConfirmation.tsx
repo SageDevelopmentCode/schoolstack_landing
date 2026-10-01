@@ -54,6 +54,13 @@ export default function GetStartedConfirmation({
         {roleLabel ? ` — ${roleLabel}.` : "."}
       </p>
 
+      <p
+        className="mx-auto mb-4 max-w-[44ch] text-[14px] leading-relaxed"
+        style={{ color: theme.muted, fontFamily: theme.fontBody }}
+      >
+        We sent a confirmation to the email you provided.
+      </p>
+
       {booking ? (
         <p
           className="mb-10 text-[15px] font-semibold"
