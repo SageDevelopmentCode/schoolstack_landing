@@ -484,8 +484,10 @@ function recordSkippedDueCharges(input: {
 export async function processAutopayForOrganization(
   supabase: SupabaseClient,
   organizationId: string,
+  options?: { suppressEmails?: boolean },
 ): Promise<AutopayOrgResult> {
   const today = new Date().toISOString().slice(0, 10);
+  const suppressEmails = options?.suppressEmails === true;
 
   const paymentAccount = await getOrganizationPaymentAccount(supabase, organizationId);
   const stripeConnectAccountId = paymentAccount?.stripeConnectAccountId;
@@ -729,6 +731,7 @@ export async function processAutopayForOrganization(
             errorMessage: STALE_PAYMENT_METHOD_MESSAGE,
             orgSlug,
             stripeTestMode,
+            skipEmail: suppressEmails,
           });
           stats.skipped++;
           pushAutopayLine(
@@ -760,6 +763,7 @@ export async function processAutopayForOrganization(
             stripeCustomerId: stripeCustomer.stripe_customer_id,
             stripePaymentMethodId: paymentMethodId,
             payerUserId: guardianUserId,
+            suppressEmails,
           });
           await notifyAutopaySucceeded(supabase, {
             organizationId,
@@ -807,6 +811,7 @@ export async function processAutopayForOrganization(
               : errorMessage,
             orgSlug,
             stripeTestMode,
+            skipEmail: suppressEmails,
           });
           if (isPaymentMethodMissingError(error)) {
             stats.skipped++;

@@ -64,6 +64,7 @@ export async function notifyAutopayFailed(
     orgSlug: string;
     stripeTestMode?: boolean;
     familyName?: string;
+    skipEmail?: boolean;
   },
 ): Promise<void> {
   const changeSummary = summarizeAutopayCharge({
@@ -90,10 +91,13 @@ export async function notifyAutopayFailed(
       errorMessage: input.errorMessage,
       stripeTestMode: input.stripeTestMode ?? null,
       familyName: input.familyName ?? null,
+      emailSuppressed: input.skipEmail === true,
     },
     severity: "error",
     context: { actorType: "system", surface: "system" },
   });
+
+  if (input.skipEmail) return;
 
   const [{ data: family }, { data: org }] = await Promise.all([
     supabase
