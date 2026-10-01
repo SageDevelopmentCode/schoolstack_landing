@@ -143,7 +143,8 @@ export async function loadParentCommitteesPreviewData(input: {
           committeeActivityByCommitteeId[committeeId] = mapCommitteeActivityItems(rows, {
             slug: input.schoolSlug,
             committeeId,
-            linkSurface: "parent",
+            familyId: input.familyId,
+            linkSurface: "preview",
             includeHref: true,
           });
         } catch {

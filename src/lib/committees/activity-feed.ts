@@ -3,6 +3,7 @@ import {
   ACTIVITY_ACTIONS,
   formatActivityActionLabel,
 } from "@/lib/activity-log";
+import { familyPreviewParentBasePath } from "@/lib/admissions/preview-portal-options";
 import type { CommitteeWorkspaceSection } from "./types";
 
 export const COMMITTEE_ACTIVITY_ACTIONS: string[] = [
@@ -87,7 +88,7 @@ export type CommitteeActivityItem = {
   section?: CommitteeWorkspaceSection;
 };
 
-export type CommitteeActivityLinkSurface = "admin" | "parent";
+export type CommitteeActivityLinkSurface = "admin" | "parent" | "preview";
 
 export async function fetchCommitteeActivityEvents(
   admin: SupabaseClient,
@@ -152,7 +153,8 @@ function buildCommitteeActivityHref(
   committeeId: string,
   section: CommitteeWorkspaceSection,
   surface: CommitteeActivityLinkSurface,
-): string {
+  familyId?: string,
+): string | undefined {
   if (surface === "admin") {
     return `/school/${slug}/admin/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`;
   }
@@ -161,6 +163,10 @@ function buildCommitteeActivityHref(
     section,
     tab: "mine",
   });
+  if (surface === "preview") {
+    if (!familyId) return undefined;
+    return `${familyPreviewParentBasePath(slug, familyId)}/committees?${params.toString()}`;
+  }
   return `/school/${slug}/parent/committees?${params.toString()}`;
 }
 
@@ -169,6 +175,7 @@ export function mapCommitteeActivityItem(
   options: {
     slug: string;
     committeeId?: string;
+    familyId?: string;
     linkSurface?: CommitteeActivityLinkSurface;
     includeHref?: boolean;
   },
@@ -201,6 +208,7 @@ export function mapCommitteeActivityItem(
             resolvedCommitteeId,
             section,
             linkSurface,
+            options.familyId,
           )
         : undefined,
   };
@@ -224,6 +232,7 @@ export function mapCommitteeActivityItems(
   options: {
     slug: string;
     committeeId?: string;
+    familyId?: string;
     linkSurface?: CommitteeActivityLinkSurface;
     includeHref?: boolean;
   },

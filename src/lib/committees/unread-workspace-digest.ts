@@ -26,6 +26,11 @@ import {
   buildEmailNotificationContext,
   sendCommitteeUnreadWorkspaceDigestEmail,
 } from "@/lib/emails";
+import {
+  releaseCommitteeSectionDigestClaim,
+  tryClaimCommitteeSectionDigest,
+  type MemberSectionPair,
+} from "@/lib/committees/committee-member-section-read-stamps";
 import { isCommitteeUnreadWorkspaceDigestEnabled } from "@/lib/notifications/org-notification-settings";
 
 const SECTION_LABELS: Record<CommitteeUnreadSection, string> = {
@@ -34,8 +39,6 @@ const SECTION_LABELS: Record<CommitteeUnreadSection, string> = {
   resources: "Resources",
   calendar: "Calendar",
 };
-
-const NEVER_READ_SENTINEL = "1970-01-01T00:00:00.000Z";
 
 type CommitteeMemberRow = AssigneeMemberRow & {
   committee_id: string;
@@ -65,7 +68,110 @@ export type CommitteeUnreadWorkspaceDigestResult = {
   digestFailures: number;
   skippedNoEmail: number;
   skippedNoUnread: number;
+  skippedDuplicateClaim: number;
 };
+
+type DigestClaimTarget = MemberSectionPair & {
+  priorDigestNotifiedAt: string | null;
+  hadReadRowAtLoad: boolean;
+};
+
+function stampTargetsFromBucket(
+  stampSections: Array<{ memberId: string; sections: CommitteeUnreadSection[] }>,
+  readDigestMap: Map<
+    string,
+    Partial<
+      Record<
+        CommitteeUnreadSection,
+        { readAt: string | null; digestNotifiedAt: string | null }
+      >
+    >
+  >,
+): DigestClaimTarget[] {
+  const targets: DigestClaimTarget[] = [];
+
+  for (const stamp of stampSections) {
+    const reads = readDigestMap.get(stamp.memberId) ?? {};
+    for (const section of stamp.sections) {
+      const state = reads[section];
+      targets.push({
+        memberId: stamp.memberId,
+        section,
+        priorDigestNotifiedAt: state?.digestNotifiedAt ?? null,
+        hadReadRowAtLoad: state !== undefined,
+      });
+    }
+  }
+
+  return targets;
+}
+
+function markDigestClaimedInMap(
+  readDigestMap: Map<
+    string,
+    Partial<
+      Record<
+        CommitteeUnreadSection,
+        { readAt: string | null; digestNotifiedAt: string | null }
+      >
+    >
+  >,
+  targets: DigestClaimTarget[],
+  claimAt: string,
+): void {
+  for (const target of targets) {
+    const existing = readDigestMap.get(target.memberId) ?? {};
+    const sectionState = existing[target.section];
+    existing[target.section] = {
+      readAt: sectionState?.readAt ?? null,
+      digestNotifiedAt: claimAt,
+    };
+    readDigestMap.set(target.memberId, existing);
+  }
+}
+
+async function tryClaimDigestTargets(
+  admin: SupabaseClient,
+  targets: DigestClaimTarget[],
+  claimAt: string,
+): Promise<DigestClaimTarget[]> {
+  const claimed: DigestClaimTarget[] = [];
+
+  for (const target of targets) {
+    const won = await tryClaimCommitteeSectionDigest(admin, target, {
+      claimAt,
+      expectedDigestNotifiedAt: target.priorDigestNotifiedAt,
+      hadReadRowAtLoad: target.hadReadRowAtLoad,
+    });
+
+    if (!won) {
+      for (const prior of claimed) {
+        await releaseCommitteeSectionDigestClaim(admin, prior, {
+          claimAt,
+          priorDigestNotifiedAt: prior.priorDigestNotifiedAt,
+        });
+      }
+      return [];
+    }
+
+    claimed.push(target);
+  }
+
+  return claimed;
+}
+
+async function releaseDigestClaims(
+  admin: SupabaseClient,
+  claimed: DigestClaimTarget[],
+  claimAt: string,
+): Promise<void> {
+  for (const target of claimed) {
+    await releaseCommitteeSectionDigestClaim(admin, target, {
+      claimAt,
+      priorDigestNotifiedAt: target.priorDigestNotifiedAt,
+    });
+  }
+}
 
 async function loadOrgActiveMembers(
   admin: SupabaseClient,
@@ -220,45 +326,6 @@ function primaryWorkspaceSection(
   return "home";
 }
 
-async function stampDigestNotified(
-  admin: SupabaseClient,
-  memberId: string,
-  sections: CommitteeUnreadSection[],
-  notifiedAt: string,
-  readDigestMap: Map<
-    string,
-    Partial<
-      Record<
-        CommitteeUnreadSection,
-        { readAt: string | null; digestNotifiedAt: string | null }
-      >
-    >
-  >,
-): Promise<void> {
-  const memberReads = readDigestMap.get(memberId) ?? {};
-
-  for (const section of sections) {
-    const readAt = memberReads[section]?.readAt ?? NEVER_READ_SENTINEL;
-    const { error } = await admin.from("committee_member_section_reads").upsert(
-      {
-        committee_member_id: memberId,
-        section,
-        read_at: readAt,
-        last_unread_digest_notified_at: notifiedAt,
-        updated_at: notifiedAt,
-      },
-      { onConflict: "committee_member_id,section" },
-    );
-    if (error) throw new Error(error.message);
-    const existing = readDigestMap.get(memberId) ?? {};
-    existing[section] = {
-      readAt,
-      digestNotifiedAt: notifiedAt,
-    };
-    readDigestMap.set(memberId, existing);
-  }
-}
-
 export async function sendCommitteeUnreadWorkspaceDigestsForOrganization(
   admin: SupabaseClient,
   organizationId: string,
@@ -269,6 +336,7 @@ export async function sendCommitteeUnreadWorkspaceDigestsForOrganization(
     digestFailures: 0,
     skippedNoEmail: 0,
     skippedNoUnread: 0,
+    skippedDuplicateClaim: 0,
   };
 
   const enabled = await isCommitteeUnreadWorkspaceDigestEnabled(admin, organizationId);
@@ -420,6 +488,20 @@ export async function sendCommitteeUnreadWorkspaceDigestsForOrganization(
   }
 
   for (const bucket of bucketsByEmail.values()) {
+    const claimTargets = stampTargetsFromBucket(
+      bucket.stampSections,
+      readDigestMap,
+    );
+    const claimedTargets = await tryClaimDigestTargets(
+      admin,
+      claimTargets,
+      notifiedAt,
+    );
+    if (claimedTargets.length !== claimTargets.length) {
+      result.skippedDuplicateClaim += 1;
+      continue;
+    }
+
     const totalUnread = bucket.committees.reduce(
       (sum, committee) => sum + totalSectionUnread(committee.sections),
       0,
@@ -460,16 +542,9 @@ export async function sendCommitteeUnreadWorkspaceDigestsForOrganization(
     const fulfilled = sendResult[0];
     if (fulfilled?.status === "fulfilled" && fulfilled.value) {
       result.digestsSent += 1;
-      for (const stamp of bucket.stampSections) {
-        await stampDigestNotified(
-          admin,
-          stamp.memberId,
-          stamp.sections,
-          notifiedAt,
-          readDigestMap,
-        );
-      }
+      markDigestClaimedInMap(readDigestMap, claimedTargets, notifiedAt);
     } else {
+      await releaseDigestClaims(admin, claimedTargets, notifiedAt);
       result.digestFailures += 1;
     }
   }

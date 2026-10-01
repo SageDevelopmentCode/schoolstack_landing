@@ -2090,7 +2090,7 @@ export async function sendCommitteeUnreadCatchUpEmail(payload: {
 
   if (!result.success) {
     console.error("Committee unread catch-up email failed:", result.error);
-    return false;
+    throw new Error(result.error ?? "Committee unread catch-up email failed");
   }
 
   return true;
@@ -2213,7 +2213,7 @@ export async function sendCommitteeUnreadWorkspaceDigestEmail(payload: {
 
   if (!result.success) {
     console.error("Committee unread workspace digest email failed:", result.error);
-    return false;
+    throw new Error(result.error ?? "Committee unread workspace digest email failed");
   }
 
   return true;
