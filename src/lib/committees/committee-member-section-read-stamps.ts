@@ -170,7 +170,7 @@ export async function releaseCommitteeSectionDigestClaim(
     priorDigestNotifiedAt: string | null;
   },
 ): Promise<void> {
-  let query = admin
+  const query = admin
     .from("committee_member_section_reads")
     .update({
       last_unread_digest_notified_at: input.priorDigestNotifiedAt,
