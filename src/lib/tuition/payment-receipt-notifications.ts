@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import {
   buildEmailNotificationContext,
+  buildTuitionAutopayConfirmationHtml,
+  sendTuitionAutopayConfirmationEmail,
   sendTuitionPaymentReceiptEmail,
   type TuitionPaymentReceiptLineItem,
 } from "@/lib/emails";
@@ -410,4 +412,185 @@ export async function sendCombinedTuitionPaymentReceiptNotifications(
       error,
     );
   }
+}
+
+export type AutopayConfirmationFamilyResult = {
+  familyId: string;
+  paymentIds: string[];
+  recipients: string[];
+  sent: string[];
+  failed: string[];
+};
+
+export type AutopayConfirmationResult = {
+  families: AutopayConfirmationFamilyResult[];
+  skippedPaymentIds: Array<{ paymentId: string; reason: string }>;
+};
+
+export type AutopayConfirmationDeps = {
+  loadPayment?: typeof getPaymentById;
+  loadOrganization?: typeof loadOrganization;
+  resolveContact?: typeof resolvePayerContact;
+  loadStudentNames?: typeof getStudentNamesByChargeIds;
+  loadChargeDueDates?: typeof getChargeDueDates;
+  sendEmail?: typeof sendTuitionAutopayConfirmationEmail;
+};
+
+async function getChargeDueDates(
+  admin: SupabaseClient,
+  chargeIds: string[],
+): Promise<string[]> {
+  if (chargeIds.length === 0) return [];
+  const { data, error } = await admin
+    .from("tuition_charges")
+    .select("due_date")
+    .in("id", chargeIds);
+  if (error) throw error;
+  return (data ?? [])
+    .map((row) => (typeof row.due_date === "string" ? row.due_date : null))
+    .filter((value): value is string => Boolean(value));
+}
+
+function monthLabelFromDueDates(dueDates: string[]): string {
+  const earliest = [...dueDates].sort()[0];
+  if (!earliest) return "this month";
+  return new Date(`${earliest}T12:00:00Z`).toLocaleString("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
+function autopayPaymentMethodLabel(payment: PaymentRecord): string {
+  if (payment.paymentMethodType === "us_bank_account") return "Bank account (ACH)";
+  if (payment.paymentMethodType === "card") return "Card";
+  return "—";
+}
+
+export async function sendAutopayConfirmationNotifications(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    paymentIds: string[];
+    showDisregardNote?: boolean;
+  },
+  deps: AutopayConfirmationDeps = {},
+): Promise<AutopayConfirmationResult> {
+  const loadPayment = deps.loadPayment ?? getPaymentById;
+  const loadOrg = deps.loadOrganization ?? loadOrganization;
+  const resolveContact = deps.resolveContact ?? resolvePayerContact;
+  const loadStudentNames = deps.loadStudentNames ?? getStudentNamesByChargeIds;
+  const loadDueDates = deps.loadChargeDueDates ?? getChargeDueDates;
+  const sendEmail = deps.sendEmail ?? sendTuitionAutopayConfirmationEmail;
+
+  const org = await loadOrg(admin, input.organizationId);
+  if (!org) throw new Error("Organization not found.");
+
+  const skippedPaymentIds: AutopayConfirmationResult["skippedPaymentIds"] = [];
+  const paymentsByFamily = new Map<string, PaymentRecord[]>();
+
+  for (const paymentId of [...new Set(input.paymentIds)]) {
+    const payment = await loadPayment(admin, paymentId);
+    let reason: string | null = null;
+    if (!payment) reason = "not_found";
+    else if (payment.organizationId !== input.organizationId) reason = "other_organization";
+    else if (payment.paymentType !== "tuition") reason = "not_tuition";
+    else if (payment.status !== "succeeded") reason = `status_${payment.status}`;
+    else if (!payment.familyId) reason = "no_family";
+
+    if (reason || !payment?.familyId) {
+      skippedPaymentIds.push({ paymentId, reason: reason ?? "no_family" });
+      continue;
+    }
+
+    const familyPayments = paymentsByFamily.get(payment.familyId) ?? [];
+    familyPayments.push(payment);
+    paymentsByFamily.set(payment.familyId, familyPayments);
+  }
+
+  const families: AutopayConfirmationFamilyResult[] = [];
+
+  for (const [familyId, payments] of paymentsByFamily) {
+    const paymentIds = payments.map((payment) => payment.id);
+    const contact = await resolveContact(admin, {
+      familyId,
+      payerUserId: payments[0]?.payerUserId ?? null,
+    });
+
+    if (!contact) {
+      families.push({ familyId, paymentIds, recipients: [], sent: [], failed: [] });
+      continue;
+    }
+
+    const chargeIds = payments
+      .map((payment) => payment.tuitionChargeId)
+      .filter((id): id is string => Boolean(id));
+    const [studentNameByChargeId, dueDates] = await Promise.all([
+      loadStudentNames(admin, chargeIds),
+      loadDueDates(admin, chargeIds),
+    ]);
+    const periodLabel = monthLabelFromDueDates(dueDates);
+
+    const lineItems: TuitionPaymentReceiptLineItem[] = payments.map((payment) => ({
+      studentName: payment.tuitionChargeId
+        ? (studentNameByChargeId.get(payment.tuitionChargeId) ?? "Student")
+        : "Student",
+      chargeLabel: payment.label ?? "Tuition",
+      amountCents: payment.amountCents,
+    }));
+    const amountCents = payments.reduce((sum, payment) => sum + payment.amountCents, 0);
+    const chargedAmountCents = payments.reduce(
+      (sum, payment) => sum + (payment.chargedAmountCents ?? payment.amountCents),
+      0,
+    );
+    const processingFeeCents = payments.reduce(
+      (sum, payment) => sum + (payment.processingFeeCents ?? 0),
+      0,
+    );
+    const paidAt =
+      payments
+        .map((payment) => payment.paidAt)
+        .filter((value): value is string => Boolean(value))
+        .sort()
+        .at(-1) ?? new Date().toISOString();
+
+    const html = buildTuitionAutopayConfirmationHtml({
+      name: contact.name,
+      schoolName: org.name,
+      billingUrl: buildBillingUrl(org.slug),
+      periodLabel,
+      paidAtLabel: new Date(paidAt).toLocaleDateString("en-US", {
+        dateStyle: "long",
+        timeZone: "America/Chicago",
+      }),
+      paymentMethodLabel: autopayPaymentMethodLabel(payments[0]!),
+      lineItems,
+      amountCents,
+      chargedAmountCents,
+      processingFeeCents: processingFeeCents > 0 ? processingFeeCents : null,
+      showDisregardNote: input.showDisregardNote ?? true,
+    });
+
+    const sent: string[] = [];
+    const failed: string[] = [];
+    for (const to of contact.emails) {
+      const result = await sendEmail({
+        to,
+        schoolName: org.name,
+        periodLabel,
+        html,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: org.slug,
+          surface: "system",
+          entityType: "family",
+          entityId: familyId,
+        }),
+      });
+      (result.ok ? sent : failed).push(to);
+    }
+
+    families.push({ familyId, paymentIds, recipients: contact.emails, sent, failed });
+  }
+
+  return { families, skippedPaymentIds };
 }
