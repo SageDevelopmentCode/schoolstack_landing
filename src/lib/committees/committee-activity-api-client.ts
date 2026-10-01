@@ -8,10 +8,7 @@ export async function recordCommitteeActivityViaApi(
   input: {
     organizationId: string;
     action: ActivityAction | string;
-    entityType: string;
     entityId: string;
-    summary: string;
-    metadata?: Record<string, unknown>;
   },
 ): Promise<void> {
   const response = await fetch(`${apiBase}/${committeeId}/record-activity`, {

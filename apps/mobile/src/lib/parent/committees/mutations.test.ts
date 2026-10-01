@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { ACTIVITY_ACTIONS } from '@/lib/activity-log';
+import { recordCommitteeWorkspaceCreate } from '@/lib/committees/record-committee-workspace-create';
 import { logCommitteeActivityEvent } from '@/lib/committees/committee-activity-log';
 import {
   createCommitteeTask,
@@ -10,6 +11,10 @@ import {
 
 jest.mock('@/lib/committees/committee-activity-log', () => ({
   logCommitteeActivityEvent: jest.fn(),
+}));
+
+jest.mock('@/lib/committees/record-committee-workspace-create', () => ({
+  recordCommitteeWorkspaceCreate: jest.fn(async () => undefined),
 }));
 
 function createTaskInsertClient(row: Record<string, unknown>): SupabaseClient {
@@ -54,7 +59,7 @@ describe('committee task mutations activity logging', () => {
     jest.clearAllMocks();
   });
 
-  it('logs activity when creating a task', async () => {
+  it('records workspace create via API when context is provided', async () => {
     const supabase = createTaskInsertClient({
       id: 'task-1',
       title: 'Bring snacks',
@@ -69,17 +74,20 @@ describe('committee task mutations activity logging', () => {
     await createCommitteeTask(supabase, 'committee-1', {
       title: 'Bring snacks',
       createdByMemberId: 'member-1',
+      workspaceRecord: {
+        organizationId: 'org-1',
+        portalApiNamespace: 'parent-portal',
+      },
     });
 
-    expect(logCommitteeActivityEvent).toHaveBeenCalledWith(supabase, {
+    expect(recordCommitteeWorkspaceCreate).toHaveBeenCalledWith({
+      portalApiNamespace: 'parent-portal',
       committeeId: 'committee-1',
+      organizationId: 'org-1',
       action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
-      entityType: 'committee_task',
       entityId: 'task-1',
-      summary: 'Task "Bring snacks" was created',
-      metadata: { taskTitle: 'Bring snacks', taskStatus: 'open' },
-      actor: { type: 'parent', memberId: 'member-1' },
     });
+    expect(logCommitteeActivityEvent).not.toHaveBeenCalled();
   });
 
   it('logs activity when updating a task', async () => {

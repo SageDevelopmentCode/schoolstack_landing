@@ -5,9 +5,8 @@ import { Check } from "lucide-react";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import { MAX_PUBLIC_SUPPORT_DESCRIPTION_LENGTH } from "@/lib/public-support/public-support-validation";
 
 const inputClassName =
@@ -23,14 +22,10 @@ export default function AccountDeletionRequestForm() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
+  const [companyWebsite, setCompanyWebsite] = useState("");
 
   const canSubmit =
-    name.trim().length > 0 &&
-    email.trim().length > 0 &&
-    !isSubmitting &&
-    (!turnstileRequired || turnstileToken);
+    name.trim().length > 0 && email.trim().length > 0 && !isSubmitting;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,7 +48,7 @@ export default function AccountDeletionRequestForm() {
           topic: "account-deletion",
           message: trimmedMessage,
           sourcePagePath: "/account-deletion",
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
 
@@ -68,7 +63,7 @@ export default function AccountDeletionRequestForm() {
       setName("");
       setEmail("");
       setMessage("");
-      setTurnstileToken(null);
+      setCompanyWebsite("");
     } catch {
       setSubmitError("Something went wrong. Please try again.");
     } finally {
@@ -96,8 +91,12 @@ export default function AccountDeletionRequestForm() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="rounded-2xl border border-black/[0.08] bg-white px-6 py-8 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:px-8"
+      className="relative rounded-2xl border border-black/[0.08] bg-white px-6 py-8 shadow-[0_8px_40px_rgba(0,0,0,0.06)] sm:px-8"
     >
+      <PublicFormHoneypotField
+        value={companyWebsite}
+        onChange={setCompanyWebsite}
+      />
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label
@@ -164,10 +163,6 @@ export default function AccountDeletionRequestForm() {
           {submitError}
         </p>
       ) : null}
-
-      <div className="mt-5">
-        <TurnstileField onTokenChange={setTurnstileToken} />
-      </div>
 
       <button
         type="submit"

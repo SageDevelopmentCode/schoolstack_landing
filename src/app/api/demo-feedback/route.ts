@@ -4,7 +4,13 @@ import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoFeedback } from "@/lib/discord";
 import { sendDemoFeedbackConfirmation } from "@/lib/emails";
-import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  enforcePublicFormSubmission,
+  shouldNotifyPublicFormProtectionFailure,
+} from "@/lib/public-forms/enforce-public-form-submission";
+import { readPublicFormHoneypot } from "@/lib/public-forms/honeypot";
+import { getRequestIp } from "@/lib/public-forms/request-ip";
+import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import {
   exceedsMaxLength,
   fieldTooLongLabel,
@@ -26,7 +32,7 @@ interface DemoFeedbackBody {
   email?: string;
   message?: string;
   source?: string;
-  turnstileToken?: string;
+  companyWebsite?: string;
 }
 
 export async function POST(request: Request) {
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
     request,
     form: "demo_feedback",
     email,
-    turnstileToken: body.turnstileToken,
+    companyWebsite: readPublicFormHoneypot(body),
   });
   if (!protection.ok) {
     return apiError(ROUTE, {
@@ -105,7 +111,7 @@ export async function POST(request: Request) {
       status: protection.status,
       error: protection.error,
       code: protection.code,
-      notify: false,
+      notify: shouldNotifyPublicFormProtectionFailure(protection),
     });
   }
 
@@ -128,6 +134,14 @@ export async function POST(request: Request) {
       cause: error,
     });
   }
+
+  void recordPublicFormSubmissionEvent({
+    form: "demo_feedback",
+    ip: getRequestIp(request),
+    email,
+    route: ROUTE,
+    request,
+  });
 
   try {
     await notifyDemoFeedback({

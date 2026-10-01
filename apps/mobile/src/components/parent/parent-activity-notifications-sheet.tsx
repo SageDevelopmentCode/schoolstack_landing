@@ -22,6 +22,7 @@ import {
   fetchParentActivityNotifications,
   markParentActivityNotificationsRead,
   type ParentActivityNotification,
+  type ParentActivityNotificationContext,
 } from '@/lib/parent/fetch-activity-notifications';
 import { resolveParentAttentionNavigation } from '@/lib/parent/parent-nav';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
@@ -34,6 +35,8 @@ type ParentActivityNotificationsSheetProps = {
   onClose: () => void;
   organizationId: string;
   slug: string;
+  programSlug?: string;
+  notificationContext?: ParentActivityNotificationContext;
   firstChildApplicationId?: string | null;
   onMarkedRead?: () => void;
 };
@@ -41,14 +44,19 @@ type ParentActivityNotificationsSheetProps = {
 function filterParentActivityNotifications(
   slug: string,
   items: ParentActivityNotification[],
-  firstChildApplicationId?: string | null,
+  options: {
+    firstChildApplicationId?: string | null;
+    programSlug?: string;
+  },
 ): ParentActivityNotification[] {
+  const { firstChildApplicationId, programSlug } = options;
   return items.filter(
     (item) =>
       resolveParentAttentionNavigation(slug, {
         href: item.href,
         healthApplicationId: firstChildApplicationId,
         pickupApplicationId: firstChildApplicationId,
+        programSlug,
       }) != null,
   );
 }
@@ -58,6 +66,8 @@ export function ParentActivityNotificationsSheet({
   onClose,
   organizationId,
   slug,
+  programSlug,
+  notificationContext,
   firstChildApplicationId,
   onMarkedRead,
 }: ParentActivityNotificationsSheetProps) {
@@ -98,12 +108,12 @@ export function ParentActivityNotificationsSheet({
         const page = await fetchParentActivityNotifications(organizationId, slug, {
           cursor,
           limit: PAGE_SIZE,
+          notificationContext,
         });
-        const filtered = filterParentActivityNotifications(
-          slug,
-          page.notifications,
+        const filtered = filterParentActivityNotifications(slug, page.notifications, {
           firstChildApplicationId,
-        );
+          programSlug,
+        });
 
         setNotifications((current) => (append ? [...current, ...filtered] : filtered));
         setNextCursor(page.nextCursor);
@@ -126,7 +136,14 @@ export function ParentActivityNotificationsSheet({
         }
       }
     },
-    [firstChildApplicationId, organizationId, reportError, slug],
+    [
+      firstChildApplicationId,
+      notificationContext,
+      organizationId,
+      programSlug,
+      reportError,
+      slug,
+    ],
   );
 
   const loadMore = useCallback(async () => {
@@ -163,13 +180,14 @@ export function ParentActivityNotificationsSheet({
         href: item.href,
         healthApplicationId: firstChildApplicationId,
         pickupApplicationId: firstChildApplicationId,
+        programSlug,
       });
       if (route) {
         onClose();
         router.push(route as Href);
       }
     },
-    [firstChildApplicationId, onClose, router, slug],
+    [firstChildApplicationId, onClose, programSlug, router, slug],
   );
 
   const listHeader = (
@@ -213,7 +231,6 @@ export function ParentActivityNotificationsSheet({
       maxHeight="85%"
       scrollable={false}
       sheetStyle={styles.sheet}
-      scrollContentStyle={styles.listContainer}
       header={
         <View style={styles.headerArea}>
           <Pressable
@@ -291,11 +308,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
-  listContainer: {
-    flex: 1,
-  },
   list: {
-    flex: 1,
+    flexGrow: 0,
+    maxHeight: 520,
   },
   centered: {
     alignItems: 'center',

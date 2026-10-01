@@ -1,12 +1,6 @@
+import { isPublicFormHoneypotTripped } from "@/lib/public-forms/honeypot";
 import { getRequestIp } from "@/lib/public-forms/request-ip";
-import {
-  checkPublicFormRateLimits,
-  isUpstashRateLimitConfigured,
-} from "@/lib/public-forms/rate-limit";
-import {
-  isTurnstileConfigured,
-  verifyTurnstileFromRequest,
-} from "@/lib/public-forms/turnstile";
+import { checkPublicFormRateLimits } from "@/lib/public-forms/rate-limit";
 
 export type PublicFormId =
   | "public_support"
@@ -17,69 +11,57 @@ export type PublicFormId =
 
 export type EnforcePublicFormSubmissionResult =
   | { ok: true }
-  | { ok: false; status: 400 | 429 | 503; error: string; code?: string };
+  | { ok: false; status: 400 | 429 | 500; error: string; code?: string };
 
-export function isPublicFormProtectionConfigured(): boolean {
-  return isTurnstileConfigured() && isUpstashRateLimitConfigured();
+export type PublicFormProtectionFailure = Extract<
+  EnforcePublicFormSubmissionResult,
+  { ok: false }
+>;
+
+/** Expected user-facing protection failures should not Discord-notify. */
+export function shouldNotifyPublicFormProtectionFailure(
+  protection: PublicFormProtectionFailure,
+): boolean {
+  return protection.status >= 500;
 }
 
 export function shouldBypassPublicFormProtection(): boolean {
-  if (process.env.NODE_ENV === "production") return false;
-  return !isPublicFormProtectionConfigured();
+  return process.env.NODE_ENV !== "production";
 }
 
 export async function enforcePublicFormSubmission(opts: {
   request: Request;
   form: PublicFormId;
   email?: string | null;
-  turnstileToken?: string | null;
+  companyWebsite?: string | null;
 }): Promise<EnforcePublicFormSubmissionResult> {
-  void opts.form;
+  if (isPublicFormHoneypotTripped(opts.companyWebsite)) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Invalid submission.",
+      code: "honeypot",
+    };
+  }
 
   if (shouldBypassPublicFormProtection()) {
     return { ok: true };
   }
 
-  if (!isPublicFormProtectionConfigured()) {
-    return {
-      ok: false,
-      status: 503,
-      error: "Form submissions are temporarily unavailable.",
-      code: "protection_misconfigured",
-    };
-  }
-
-  const turnstileToken = opts.turnstileToken?.trim();
-  if (!turnstileToken) {
-    return {
-      ok: false,
-      status: 400,
-      error: "Please complete the security check.",
-    };
-  }
-
-  const turnstileOk = await verifyTurnstileFromRequest(
-    opts.request,
-    turnstileToken,
-  );
-  if (!turnstileOk) {
-    return {
-      ok: false,
-      status: 400,
-      error: "Security check failed. Please try again.",
-    };
-  }
-
   const rateLimitResult = await checkPublicFormRateLimits({
+    form: opts.form,
     ip: getRequestIp(opts.request),
     email: opts.email,
   });
   if (!rateLimitResult.ok) {
+    const isInfrastructure =
+      rateLimitResult.error ===
+      "Unable to process your submission right now. Please try again later.";
     return {
       ok: false,
-      status: 429,
+      status: isInfrastructure ? 500 : 429,
       error: rateLimitResult.error,
-      code: "rate_limited",
+      code: isInfrastructure ? "rate_limit_unavailable" : "rate_limited",
     };
   }
 

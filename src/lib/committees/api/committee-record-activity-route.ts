@@ -2,6 +2,7 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
+import { resolveCommitteeWorkspaceCreateActivity } from "@/lib/committees/api/resolve-committee-workspace-create-activity";
 import { recordCommitteeActivityServer } from "@/lib/committees/record-committee-activity-server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -30,11 +31,9 @@ export async function handleRecordCommitteeActivity(
 ) {
   const organizationId = body.organizationId?.trim() ?? "";
   const action = body.action?.trim() ?? "";
-  const entityType = body.entityType?.trim() ?? "";
   const entityId = body.entityId?.trim() ?? "";
-  const summary = body.summary?.trim() ?? "";
 
-  if (!organizationId || !committeeId || !action || !entityType || !entityId || !summary) {
+  if (!organizationId || !committeeId || !action || !entityId) {
     return apiError(route, {
       request,
       status: 400,
@@ -69,16 +68,59 @@ export async function handleRecordCommitteeActivity(
     });
   }
 
+  let resolved;
+  try {
+    resolved = await resolveCommitteeWorkspaceCreateActivity(admin, {
+      committeeId,
+      action,
+      entityId,
+    });
+  } catch (err) {
+    return apiError(route, {
+      request,
+      status: 500,
+      error: "Failed to verify committee activity.",
+      cause: err,
+    });
+  }
+
+  if (!resolved.ok) {
+    if (resolved.code === "action_not_allowed") {
+      return apiError(route, {
+        request,
+        status: 400,
+        error: "This activity type cannot be recorded through this endpoint.",
+        code: "action_not_allowed",
+      });
+    }
+    if (resolved.code === "entity_too_old") {
+      return apiError(route, {
+        request,
+        status: 400,
+        error: "This item is too old to record as a new workspace update.",
+        code: "entity_too_old",
+      });
+    }
+    return apiError(route, {
+      request,
+      status: 404,
+      error: "Committee item not found.",
+      code: "invalid_entity",
+    });
+  }
+
+  const { activity } = resolved;
+
   try {
     await recordCommitteeActivityServer(admin, {
       organizationId,
       committeeId,
       committeeName: String(committee.name ?? "Committee"),
-      action,
-      entityType,
-      entityId,
-      summary,
-      metadata: body.metadata,
+      action: activity.action,
+      entityType: activity.entityType,
+      entityId: activity.entityId,
+      summary: activity.summary,
+      metadata: activity.metadata,
       actorUserId: actor.userId,
       actorEmail: actor.email,
       actorName: actor.name,

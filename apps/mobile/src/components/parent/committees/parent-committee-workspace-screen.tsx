@@ -18,7 +18,10 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
-import { fetchParentCommitteeWorkspace } from '@/lib/parent/parent-portal-api';
+import {
+  fetchParentCommitteeWorkspace,
+  markParentCommitteeSectionRead,
+} from '@/lib/parent/parent-portal-api';
 import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -110,6 +113,34 @@ function CommitteeWorkspaceScreen({
       cancelled = true;
     };
   }, [committee, supabase]);
+
+  useEffect(() => {
+    if (!currentMemberId || portalApiNamespace !== 'parent-portal') return;
+    const section = activeSection;
+    if (
+      section !== 'messages' &&
+      section !== 'tasks' &&
+      section !== 'resources' &&
+      section !== 'calendar'
+    ) {
+      return;
+    }
+    void markParentCommitteeSectionRead(organizationId, committeeId, section).catch(
+      (markReadError) => {
+        reportError('committees.mark_section_read', markReadError, {
+          entityType: 'committee',
+          entityId: committeeId,
+        });
+      },
+    );
+  }, [
+    activeSection,
+    committeeId,
+    currentMemberId,
+    organizationId,
+    portalApiNamespace,
+    reportError,
+  ]);
 
   const onRefresh = useCallback(
     async (options?: { silent?: boolean }) => {

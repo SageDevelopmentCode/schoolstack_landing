@@ -18,4 +18,5 @@ describe("shouldNotifyOperationalError", () => {
     assert.equal(shouldNotifyOperationalError(400, true), true);
     assert.equal(shouldNotifyOperationalError(500, false), false);
   });
+
 });

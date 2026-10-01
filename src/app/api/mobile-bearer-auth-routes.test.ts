@@ -230,6 +230,8 @@ describe("mobile bearer auth route wiring", () => {
     "app/api/teacher-portal/profile-photo/route.ts",
     "app/api/parent-portal/students/[studentId]/health/route.ts",
     "app/api/teacher-portal/forms-documents/route.ts",
+    "app/api/parent-portal/committees/[committeeId]/mark-read/route.ts",
+    "app/api/teacher-portal/committees/[committeeId]/mark-read/route.ts",
   ];
 
   for (const routePath of bearerMigratedPortalRoutes) {

@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -41,6 +41,7 @@ import {
   type ResolvedParentFeatureAnnouncement,
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
+import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 
 export type ParentHomeDashboardProps = {
@@ -72,6 +73,7 @@ export type ParentHomeDashboardProps = {
   onFeatureAnnouncement: (announcement: ResolvedParentFeatureAnnouncement) => void;
   onDocumentationStep: (href: string) => void;
   onCoopMessageThread: (threadId: string) => void;
+  parentNavBasePath?: string;
 };
 
 function programPortalChildrenEmptyMessage(portalLabel: string): string {
@@ -107,8 +109,20 @@ export function ParentHomeDashboard({
   onFeatureAnnouncement,
   onDocumentationStep,
   onCoopMessageThread,
+  parentNavBasePath,
 }: ParentHomeDashboardProps) {
   const theme = useParentTheme();
+  const activityNotificationContext = useMemo(
+    () =>
+      buildParentActivityNotificationContext({
+        slug,
+        programSlug,
+        programId,
+        coopModeEnabled,
+        parentNavBasePath,
+      }),
+    [coopModeEnabled, parentNavBasePath, programId, programSlug, slug],
+  );
   const [activeSubTab, setActiveSubTab] = useState<ParentHomeSubTabId>(PARENT_HOME_SUB_TAB_OVERVIEW);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
@@ -141,7 +155,42 @@ export function ParentHomeDashboard({
     onOnboardingItem(item);
   };
 
+  const showLearnOnOverview = !coopModeEnabled;
   const showNeedHelpOnOverview = !coopModeEnabled;
+
+  const renderLearnContent = ({
+    includeNeedHelp,
+    delayBase,
+  }: {
+    includeNeedHelp: boolean;
+    delayBase: number;
+  }) => (
+    <>
+      {featureAnnouncements.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(delayBase).duration(350)}>
+          <ParentHomeFeatureAnnouncementsCard
+            announcements={featureAnnouncements}
+            onPressAnnouncement={onFeatureAnnouncement}
+          />
+        </Animated.View>
+      ) : null}
+
+      {documentationGuides.length > 0 ? (
+        <Animated.View entering={FadeInDown.delay(delayBase + 40).duration(350)}>
+          <ParentHomeHowToGuidesCard
+            guides={documentationGuides}
+            onStepAction={onDocumentationStep}
+          />
+        </Animated.View>
+      ) : null}
+
+      {includeNeedHelp ? (
+        <Animated.View entering={FadeInDown.delay(delayBase + 80).duration(350)}>
+          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
+        </Animated.View>
+      ) : null}
+    </>
+  );
 
   const renderOverviewSections = () => (
     <>
@@ -187,8 +236,10 @@ export function ParentHomeDashboard({
         </Animated.View>
       ) : null}
 
+      {showLearnOnOverview ? renderLearnContent({ includeNeedHelp: false, delayBase: 120 }) : null}
+
       {showNeedHelpOnOverview ? (
-        <Animated.View entering={FadeInDown.delay(120).duration(350)}>
+        <Animated.View entering={FadeInDown.delay(200).duration(350)}>
           <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
         </Animated.View>
       ) : null}
@@ -258,31 +309,8 @@ export function ParentHomeDashboard({
       </Animated.View>
     ) : null;
 
-  const renderLearnSections = () => (
-    <>
-      {featureAnnouncements.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-          <ParentHomeFeatureAnnouncementsCard
-            announcements={featureAnnouncements}
-            onPressAnnouncement={onFeatureAnnouncement}
-          />
-        </Animated.View>
-      ) : null}
-
-      {documentationGuides.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-          <ParentHomeHowToGuidesCard
-            guides={documentationGuides}
-            onStepAction={onDocumentationStep}
-          />
-        </Animated.View>
-      ) : null}
-
-      <Animated.View entering={FadeInDown.delay(120).duration(350)}>
-        <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-      </Animated.View>
-    </>
-  );
+  const renderLearnSections = () =>
+    renderLearnContent({ includeNeedHelp: true, delayBase: 40 });
 
   const renderActiveSubTabContent = () => {
     switch (activeSubTab) {
@@ -351,6 +379,8 @@ export function ParentHomeDashboard({
         onClose={() => setNotificationsOpen(false)}
         organizationId={data.organizationId}
         slug={slug}
+        programSlug={programSlug}
+        notificationContext={activityNotificationContext}
         firstChildApplicationId={firstChildApplicationId}
         onMarkedRead={onMarkedNotificationsRead}
       />

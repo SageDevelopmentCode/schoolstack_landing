@@ -10,10 +10,7 @@ export function logCommitteeActivityForPortal(
   void recordCommitteeActivityViaApi(apiBase, input.committeeId, {
     organizationId: input.organizationId,
     action: input.action,
-    entityType: input.entityType,
     entityId: input.entityId,
-    summary: input.summary,
-    metadata: input.metadata,
   }).catch(() => {
     // Activity logging is best-effort and must not block committee actions.
   });

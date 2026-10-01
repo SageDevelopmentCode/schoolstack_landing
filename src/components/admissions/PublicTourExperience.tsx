@@ -9,9 +9,8 @@ import PublicTourStoryShell from "@/components/admissions/PublicTourStoryShell";
 import PublicTourStepProgress, {
   type PublicTourStepId,
 } from "@/components/admissions/PublicTourStepProgress";
-import TurnstileField, {
-  isTurnstileClientConfigured,
-} from "@/components/public-forms/TurnstileField";
+import PublicFormHoneypotField from "@/components/public-forms/PublicFormHoneypotField";
+import { PUBLIC_FORM_HONEYPOT_FIELD } from "@/lib/public-forms/honeypot";
 import ParentButton from "@/components/school-parent/ui/ParentButton";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
@@ -53,11 +52,10 @@ function PublicTourExperienceInner({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [companyWebsite, setCompanyWebsite] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [whenLabel, setWhenLabel] = useState<string | null>(null);
-  const turnstileRequired = isTurnstileClientConfigured();
 
   useEffect(() => {
     let cancelled = false;
@@ -98,11 +96,6 @@ function PublicTourExperienceInner({
 
   async function handleSubmitBooking() {
     if (!selectedDate || !selectedTime) return;
-    if (turnstileRequired && !turnstileToken) {
-      setError("Please complete the security check.");
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
     let responseStatus: number | undefined;
@@ -116,7 +109,7 @@ function PublicTourExperienceInner({
           scheduledDate: selectedDate,
           startTimeSlot: selectedTime,
           answers,
-          turnstileToken,
+          [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });
       responseStatus = response.status;
@@ -223,16 +216,17 @@ function PublicTourExperienceInner({
               </ParentCard>
             ) : null}
 
-            <ParentCard theme={theme} className="!p-4 sm:!p-6">
+            <ParentCard theme={theme} className="relative !p-4 sm:!p-6">
+              <PublicFormHoneypotField
+                value={companyWebsite}
+                onChange={setCompanyWebsite}
+              />
               <PublicTourFormFields
                 fields={fields}
                 values={answers}
                 onChange={setAnswers}
                 disabled={submitting}
               />
-              <div className="mt-4">
-                <TurnstileField onTokenChange={setTurnstileToken} />
-              </div>
               {error ? (
                 <p
                   className="mt-4 rounded-[10px] border px-3 py-2.5 text-sm"
@@ -260,7 +254,7 @@ function PublicTourExperienceInner({
                 <ParentButton
                   theme={theme}
                   type="button"
-                  disabled={submitting || (turnstileRequired && !turnstileToken)}
+                  disabled={submitting}
                   onClick={() => void handleSubmitBooking()}
                   className="w-full sm:w-auto"
                 >

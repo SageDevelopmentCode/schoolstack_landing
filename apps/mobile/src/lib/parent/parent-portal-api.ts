@@ -16,6 +16,7 @@ import { resolveChecklistProgress } from '@/lib/admissions/enrollment-checklist'
 import type { ChildProfileData } from '@/lib/parent/parent-children-utils';
 import type {
   Committee,
+  CommitteeWorkspaceSection,
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
 } from '@/lib/parent/parent-committees-types';
@@ -255,6 +256,8 @@ export type ParentHomeData = {
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
+  featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
+  documentationGuides?: ParentDocGuide[];
 };
 
 export type ProgramCoopLearner = {
@@ -318,6 +321,8 @@ export function normalizeParentHomeData(data: ParentHomeData): ParentHomeData {
     bulletinEnabled: data.bulletinEnabled ?? false,
     bulletinPosts: data.bulletinPosts ?? [],
     fridayBranchHome: data.fridayBranchHome ?? null,
+    featureAnnouncements: data.featureAnnouncements ?? [],
+    documentationGuides: data.documentationGuides ?? [],
   };
 }
 
@@ -802,6 +807,17 @@ export async function fetchParentCommitteeWorkspace(
     throw new Error('Committee not found.');
   }
   return payload.committee;
+}
+
+export async function markParentCommitteeSectionRead(
+  organizationId: string,
+  committeeId: string,
+  section: CommitteeWorkspaceSection,
+): Promise<void> {
+  await fetchParentApi(`/api/parent-portal/committees/${committeeId}/mark-read`, {
+    method: 'POST',
+    body: { organizationId, section },
+  });
 }
 
 export type SubmitCommitteeJoinRequestInput = {

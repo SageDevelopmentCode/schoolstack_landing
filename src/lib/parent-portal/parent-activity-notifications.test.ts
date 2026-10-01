@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
   countUnreadParentActivityNotifications,
+  filterParentActivityEventsForFamily,
   getParentActivityNotificationCategory,
   formatRelativeTime,
   MAX_UNREAD_BADGE_COUNT,
@@ -323,5 +324,247 @@ describe("formatRelativeTime re-export", () => {
   it("returns Just now for very recent timestamps", () => {
     const now = new Date().toISOString();
     assert.equal(formatRelativeTime(now), "Just now");
+  });
+});
+
+type CommitteeFilterSupabaseOptions = {
+  guardians: Array<{ family_id: string; user_id: string | null }>;
+  assigneeGuardians?: Array<{
+    user_id: string;
+    family_id: string;
+    organization_id: string;
+  }>;
+  committeeMembers: Array<{
+    id: string;
+    committee_id: string;
+    organization_id: string;
+    user_id: string;
+    status: string;
+  }>;
+};
+
+function createCommitteeFilterSupabase(
+  options: CommitteeFilterSupabaseOptions,
+): SupabaseClient {
+  function createQueryChain(resolveData: (selectColumns: string) => unknown[]) {
+    let selectColumns = "";
+    const chain = {
+      select(columns: string) {
+        selectColumns = columns;
+        return chain;
+      },
+      eq() {
+        return chain;
+      },
+      in() {
+        return chain;
+      },
+      not() {
+        return chain;
+      },
+      order() {
+        return chain;
+      },
+      limit() {
+        return chain;
+      },
+      maybeSingle() {
+        return Promise.resolve({ data: null, error: null });
+      },
+      then(onFulfilled: (value: { data: unknown[]; error: null }) => unknown) {
+        return Promise.resolve(
+          onFulfilled({ data: resolveData(selectColumns), error: null }),
+        );
+      },
+    };
+    return chain;
+  }
+
+  return {
+    from(table: string) {
+      if (table === "guardians") {
+        return createQueryChain((columns) => {
+          if (columns.includes("family_id")) {
+            return options.assigneeGuardians ?? [];
+          }
+          return options.guardians;
+        });
+      }
+      if (table === "committee_members") {
+        return createQueryChain(() => options.committeeMembers);
+      }
+      return createQueryChain(() => []);
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe("filterParentActivityEventsForFamily committee broadcasts", () => {
+  const organizationId = "org-1";
+  const familyId = "family-1";
+  const committeeId = "committee-1";
+  const guardianUserId = "guardian-user-1";
+  const memberId = "member-1";
+
+  const baseEvent = {
+    id: "event-1",
+    action: ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+    entity_type: "committee_message",
+    entity_id: "message-1",
+    summary: 'New message posted: "Hello"',
+    metadata: {
+      committeeId,
+      committeeName: "Hospitality",
+      actorMemberId: "other-member",
+    },
+    created_at: "2026-09-10T12:00:00.000Z",
+  };
+
+  it("includes broadcast committee events when the family has an active member", async () => {
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [{ family_id: familyId, user_id: guardianUserId }],
+      committeeMembers: [
+        {
+          id: memberId,
+          committee_id: committeeId,
+          organization_id: organizationId,
+          user_id: guardianUserId,
+          status: "active",
+        },
+      ],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      [baseEvent],
+    );
+
+    assert.equal(filtered.length, 1);
+    assert.equal(filtered[0]?.id, "event-1");
+  });
+
+  it("excludes broadcast committee events when the family is not on the committee", async () => {
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [{ family_id: familyId, user_id: guardianUserId }],
+      committeeMembers: [],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      [baseEvent],
+    );
+
+    assert.equal(filtered.length, 0);
+  });
+
+  it("excludes broadcast events when the family member was the actor (email parity)", async () => {
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [{ family_id: familyId, user_id: guardianUserId }],
+      committeeMembers: [
+        {
+          id: memberId,
+          committee_id: committeeId,
+          organization_id: organizationId,
+          user_id: guardianUserId,
+          status: "active",
+        },
+      ],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      [
+        {
+          ...baseEvent,
+          metadata: {
+            ...baseEvent.metadata,
+            actorMemberId: memberId,
+          },
+        },
+      ],
+    );
+
+    assert.equal(filtered.length, 0);
+  });
+
+  it("keeps COMMITTEE_TASK_ASSIGNED when the assignee is in the family", async () => {
+    const assigneeUserId = "assignee-user";
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [
+        { family_id: familyId, user_id: guardianUserId },
+        { family_id: familyId, user_id: assigneeUserId },
+      ],
+      assigneeGuardians: [
+        {
+          user_id: assigneeUserId,
+          family_id: familyId,
+          organization_id: organizationId,
+        },
+      ],
+      committeeMembers: [],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      [
+        {
+          id: "task-assigned-1",
+          action: ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED,
+          entity_type: "committee_task",
+          entity_id: "task-1",
+          summary: "Task assigned",
+          metadata: {
+            committeeId,
+            assigneeUserId,
+          },
+          created_at: "2026-09-10T12:00:00.000Z",
+        },
+      ],
+    );
+
+    assert.equal(filtered.length, 1);
+  });
+
+  it("excludes COMMITTEE_TASK_ASSIGNED when the assignee is not in the family", async () => {
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [{ family_id: familyId, user_id: guardianUserId }],
+      assigneeGuardians: [
+        {
+          user_id: "other-family-user",
+          family_id: "family-2",
+          organization_id: organizationId,
+        },
+      ],
+      committeeMembers: [],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      organizationId,
+      familyId,
+      [
+        {
+          id: "task-assigned-1",
+          action: ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED,
+          entity_type: "committee_task",
+          entity_id: "task-1",
+          summary: "Task assigned",
+          metadata: {
+            committeeId,
+            assigneeUserId: "other-family-user",
+          },
+          created_at: "2026-09-10T12:00:00.000Z",
+        },
+      ],
+    );
+
+    assert.equal(filtered.length, 0);
   });
 });

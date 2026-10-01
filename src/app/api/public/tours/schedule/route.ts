@@ -9,7 +9,13 @@ import {
 } from "@/lib/activity-log";
 import { sendPublicTourBookingAdminNotifications } from "@/lib/admissions/application-notifications";
 import { apiError } from "@/lib/api/route-errors";
-import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  enforcePublicFormSubmission,
+  shouldNotifyPublicFormProtectionFailure,
+} from "@/lib/public-forms/enforce-public-form-submission";
+import { readPublicFormHoneypot } from "@/lib/public-forms/honeypot";
+import { getRequestIp } from "@/lib/public-forms/request-ip";
+import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const ROUTE = "/api/public/tours/schedule";
@@ -19,7 +25,7 @@ type ScheduleBody = {
   scheduledDate?: string;
   startTimeSlot?: string;
   answers?: Record<string, unknown>;
-  turnstileToken?: string;
+  companyWebsite?: string;
 };
 
 export async function POST(request: Request) {
@@ -46,11 +52,20 @@ export async function POST(request: Request) {
   const emailAnswer =
     answers && typeof answers.email === "string" ? answers.email : null;
 
+  if (!slug || !scheduledDate || !startTimeSlot || !answers) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "slug, scheduledDate, startTimeSlot, and answers are required.",
+      code: "invalid_request",
+    });
+  }
+
   const protection = await enforcePublicFormSubmission({
     request,
     form: "public_tour_booking",
     email: emailAnswer,
-    turnstileToken: body.turnstileToken,
+    companyWebsite: readPublicFormHoneypot(body),
   });
   if (!protection.ok) {
     return apiError(ROUTE, {
@@ -58,15 +73,7 @@ export async function POST(request: Request) {
       status: protection.status,
       error: protection.error,
       code: protection.code,
-    });
-  }
-
-  if (!slug || !scheduledDate || !startTimeSlot || !answers) {
-    return apiError(ROUTE, {
-      request,
-      status: 400,
-      error: "slug, scheduledDate, startTimeSlot, and answers are required.",
-      code: "invalid_request",
+      notify: shouldNotifyPublicFormProtectionFailure(protection),
     });
   }
 
@@ -87,6 +94,14 @@ export async function POST(request: Request) {
       scheduledDate,
       startTimeSlot,
       answers,
+    });
+
+    void recordPublicFormSubmissionEvent({
+      form: "public_tour_booking",
+      ip: getRequestIp(request),
+      email: booking.registrant.contactEmail,
+      route: ROUTE,
+      request,
     });
 
     const whenLabel = formatScheduledVisitWhenLabel({

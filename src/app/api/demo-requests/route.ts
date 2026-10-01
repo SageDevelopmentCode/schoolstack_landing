@@ -5,7 +5,13 @@ import { logNotificationFailure } from "@/lib/admissions/notification-logging";
 import { apiError } from "@/lib/api/route-errors";
 import { notifyDemoBooking } from "@/lib/discord";
 import { sendDemoBookingConfirmation } from "@/lib/emails";
-import { enforcePublicFormSubmission } from "@/lib/public-forms/enforce-public-form-submission";
+import {
+  enforcePublicFormSubmission,
+  shouldNotifyPublicFormProtectionFailure,
+} from "@/lib/public-forms/enforce-public-form-submission";
+import { readPublicFormHoneypot } from "@/lib/public-forms/honeypot";
+import { getRequestIp } from "@/lib/public-forms/request-ip";
+import { recordPublicFormSubmissionEvent } from "@/lib/public-forms/rate-limit";
 import {
   exceedsMaxLength,
   fieldTooLongLabel,
@@ -52,7 +58,7 @@ interface DemoRequestBody {
   conceptDemoSlug?: string;
   scheduledDate?: string;
   scheduledTime?: string;
-  turnstileToken?: string;
+  companyWebsite?: string;
 }
 
 export async function POST(request: Request) {
@@ -164,22 +170,6 @@ export async function POST(request: Request) {
     });
   }
 
-  const protection = await enforcePublicFormSubmission({
-    request,
-    form: "demo_request",
-    email,
-    turnstileToken: body.turnstileToken,
-  });
-  if (!protection.ok) {
-    return apiError(ROUTE, {
-      request,
-      status: protection.status,
-      error: protection.error,
-      code: protection.code,
-      notify: false,
-    });
-  }
-
   const admin = createAdminClient();
 
   const { data: slotRow, error: slotError } = await admin
@@ -231,6 +221,22 @@ export async function POST(request: Request) {
     });
   }
 
+  const protection = await enforcePublicFormSubmission({
+    request,
+    form: "demo_request",
+    email,
+    companyWebsite: readPublicFormHoneypot(body),
+  });
+  if (!protection.ok) {
+    return apiError(ROUTE, {
+      request,
+      status: protection.status,
+      error: protection.error,
+      code: protection.code,
+      notify: shouldNotifyPublicFormProtectionFailure(protection),
+    });
+  }
+
   const { error } = await admin.from("demo_requests").insert({
     name,
     email,
@@ -262,6 +268,14 @@ export async function POST(request: Request) {
       cause: error,
     });
   }
+
+  void recordPublicFormSubmissionEvent({
+    form: "demo_request",
+    ip: getRequestIp(request),
+    email,
+    route: ROUTE,
+    request,
+  });
 
   try {
     await notifyDemoBooking({

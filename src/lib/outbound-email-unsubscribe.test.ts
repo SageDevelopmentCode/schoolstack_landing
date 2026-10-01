@@ -89,5 +89,28 @@ describe("outbound-email-unsubscribe", () => {
       TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("tuition_due_reminder"),
       false,
     );
+    assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("committee_message_posted"),
+      false,
+    );
+    assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("committee_workspace_update"),
+      false,
+    );
+  });
+
+  it("committee fan-out channels are not transactional via isTransactionalOutboundEmail", () => {
+    assert.equal(
+      isTransactionalOutboundEmail({
+        discord: { channel: "committee_message_posted", audience: "staff" },
+      }),
+      false,
+    );
+    assert.equal(
+      isTransactionalOutboundEmail({
+        discord: { channel: "committee_workspace_update", audience: "staff" },
+      }),
+      false,
+    );
   });
 });

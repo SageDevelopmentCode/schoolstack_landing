@@ -195,7 +195,6 @@ export function TeacherActivityNotificationsSheet({
       maxHeight="85%"
       scrollable={false}
       sheetStyle={styles.sheet}
-      scrollContentStyle={styles.listContainer}
       header={
         <View style={styles.headerArea}>
           <Pressable
@@ -273,11 +272,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 4,
   },
-  listContainer: {
-    flex: 1,
-  },
   list: {
-    flex: 1,
+    flexGrow: 0,
+    maxHeight: 520,
   },
   centered: {
     alignItems: 'center',

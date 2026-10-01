@@ -26,6 +26,7 @@ import {
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
 import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
+import { useCommitteeUnreadRefresh } from "@/lib/committees/committee-unread-refresh-context";
 import { markCommitteeSectionReadViaApi } from "@/lib/committees/mark-committee-section-read-client";
 
 const CommitteeHomeSection = dynamic(
@@ -173,6 +174,7 @@ export default function ParentCommitteeWorkspaceShell({
   );
   const [pendingSection, setPendingSection] = useState<CommitteeWorkspaceSection | null>(null);
   const committeesApiBase = committeesApiBaseForPortal(portalApiNamespace);
+  const committeeUnreadRefresh = useCommitteeUnreadRefresh();
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -205,10 +207,15 @@ export default function ParentCommitteeWorkspaceShell({
     void markCommitteeSectionReadViaApi(committeesApiBase, committee.id, {
       organizationId,
       section: section as CommitteeWorkspaceSection,
-    }).catch(() => undefined);
+    })
+      .then(() => {
+        committeeUnreadRefresh?.notifyCommitteeUnreadChanged();
+      })
+      .catch(() => undefined);
   }, [
     committeesApiBase,
     committee.id,
+    committeeUnreadRefresh,
     currentMemberId,
     organizationId,
     previewMode,
