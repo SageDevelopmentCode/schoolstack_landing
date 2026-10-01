@@ -276,7 +276,9 @@ function PortalCommitteesPageContent({
   }, [fetchBrowseList, fetchMineList, operationalSurface, organizationId, previewMode]);
 
   useEffect(() => {
-    void loadTabIfNeeded(tab);
+    queueMicrotask(() => {
+      void loadTabIfNeeded(tab);
+    });
   }, [loadTabIfNeeded, tab]);
 
   const selectedBrowseCommittee = exploreCommitteeId

@@ -12,10 +12,12 @@ export function useCommitteeUnreadSummary(
   enabled = true,
   initialSummary?: CommitteeUnreadSummary,
 ) {
-  const [summary, setSummary] = useState<CommitteeUnreadSummary>(
+  const [fetchedSummary, setFetchedSummary] = useState<CommitteeUnreadSummary>(
     initialSummary ?? EMPTY_SUMMARY,
   );
   const committeeUnreadRefresh = useCommitteeUnreadRefresh();
+
+  const summary = enabled ? fetchedSummary : (initialSummary ?? EMPTY_SUMMARY);
 
   const refresh = useCallback(async () => {
     if (!enabled || !organizationId) return;
@@ -24,17 +26,11 @@ export function useCommitteeUnreadSummary(
       const response = await fetch(`${apiBase}/unread-summary?${params}`);
       if (!response.ok) return;
       const payload = (await response.json()) as CommitteeUnreadSummary;
-      setSummary(payload);
+      setFetchedSummary(payload);
     } catch {
       // ignore transient errors
     }
   }, [apiBase, enabled, organizationId]);
-
-  useEffect(() => {
-    if (initialSummary) {
-      setSummary(initialSummary);
-    }
-  }, [initialSummary]);
 
   useEffect(() => {
     queueMicrotask(() => {
