@@ -110,7 +110,7 @@ export async function createCombinedAdmissionsCheckoutSession(
       },
     })),
     payment_intent_data: {
-      setup_future_usage: "on_session",
+      setup_future_usage: "off_session",
       transfer_data: {
         destination: input.stripeConnectAccountId,
         amount: quote.netAmountCents,
@@ -218,7 +218,7 @@ export async function createAdmissionsCheckoutSession(
       },
     ],
     payment_intent_data: {
-      setup_future_usage: "on_session",
+      setup_future_usage: "off_session",
       transfer_data: {
         destination: input.stripeConnectAccountId,
         amount: quote.netAmountCents,
@@ -291,7 +291,7 @@ export async function createTuitionCheckoutSession(
       },
     })),
     payment_intent_data: {
-      setup_future_usage: "on_session",
+      setup_future_usage: "off_session",
       transfer_data: {
         destination: input.stripeConnectAccountId,
         amount: input.netToSchoolCents,
