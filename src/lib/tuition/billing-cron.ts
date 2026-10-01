@@ -25,6 +25,7 @@ import {
   type AutopayLineItem,
 } from "@/lib/tuition/autopay-cron-report";
 import { sendCommitteeDailyDigestsForOrganization } from "@/lib/committees/daily-digest";
+import type { CommitteeUnreadWorkspaceDigestResult } from "@/lib/committees/unread-workspace-digest";
 import type { UnreadMessageDigestResult } from "@/lib/messages/unread-message-digest-types";
 import { sendAutopayUpcomingReminders } from "@/lib/tuition/autopay-reminders";
 import { sendTuitionDueReminders } from "@/lib/tuition/reminders";
@@ -57,6 +58,8 @@ export type TuitionBillingCronSummary = {
   committeeDigestFailures: number;
   unreadMessageDigestsSent: number;
   unreadMessageDigestFailures: number;
+  committeeUnreadWorkspaceDigestsSent: number;
+  committeeUnreadWorkspaceDigestFailures: number;
   scheduledVisitParentRemindersSent: number;
   scheduledVisitAdminWeeklyDigestsSent: number;
   scheduledVisitAdminDayBeforeDigestsSent: number;
@@ -81,6 +84,10 @@ export type TuitionBillingCronDeps = {
     admin: SupabaseClient,
     organizationId: string,
   ) => Promise<UnreadMessageDigestResult>;
+  sendCommitteeUnreadWorkspaceDigestsForOrganization?: (
+    admin: SupabaseClient,
+    organizationId: string,
+  ) => Promise<CommitteeUnreadWorkspaceDigestResult>;
   sendScheduledVisitRemindersForOrganization?: (
     admin: SupabaseClient,
     organizationId: string,
@@ -139,6 +146,17 @@ export async function runTuitionBillingCron(
       );
       return sendUnreadMessageDigestsForOrganization(adminClient, organizationId);
     });
+  const sendCommitteeUnreadWorkspaceDigests =
+    deps.sendCommitteeUnreadWorkspaceDigestsForOrganization ??
+    (async (adminClient, organizationId) => {
+      const { sendCommitteeUnreadWorkspaceDigestsForOrganization } = await import(
+        "@/lib/committees/unread-workspace-digest"
+      );
+      return sendCommitteeUnreadWorkspaceDigestsForOrganization(
+        adminClient,
+        organizationId,
+      );
+    });
   const sendScheduledVisitReminders =
     deps.sendScheduledVisitRemindersForOrganization ??
     sendScheduledVisitRemindersForOrganization;
@@ -166,6 +184,8 @@ export async function runTuitionBillingCron(
   let committeeDigestFailures = 0;
   let unreadMessageDigestsSent = 0;
   let unreadMessageDigestFailures = 0;
+  let committeeUnreadWorkspaceDigestsSent = 0;
+  let committeeUnreadWorkspaceDigestFailures = 0;
   let scheduledVisitParentRemindersSent = 0;
   let scheduledVisitAdminWeeklyDigestsSent = 0;
   let scheduledVisitAdminDayBeforeDigestsSent = 0;
@@ -302,6 +322,31 @@ export async function runTuitionBillingCron(
       }
 
       try {
+        const committeeUnreadDigestResult = await sendCommitteeUnreadWorkspaceDigests(
+          admin,
+          organizationId,
+        );
+        committeeUnreadWorkspaceDigestsSent += committeeUnreadDigestResult.digestsSent;
+        committeeUnreadWorkspaceDigestFailures +=
+          committeeUnreadDigestResult.digestFailures;
+      } catch (error) {
+        committeeUnreadWorkspaceDigestFailures += 1;
+        void reportOperationalError({
+          supabase: admin,
+          surface: "system",
+          organizationId,
+          operation: "committee_unread_workspace_digest_cron.organization",
+          error:
+            messageFromCause(error) ??
+            "Committee unread workspace digest cron failed for organization",
+          entityType: "organization",
+          entityId: organizationId,
+          actor: { type: "system" },
+          cause: error,
+        });
+      }
+
+      try {
         const visitReminderResult = await sendScheduledVisitReminders(
           admin,
           organizationId,
@@ -393,6 +438,8 @@ export async function runTuitionBillingCron(
     committeeDigestFailures,
     unreadMessageDigestsSent,
     unreadMessageDigestFailures,
+    committeeUnreadWorkspaceDigestsSent,
+    committeeUnreadWorkspaceDigestFailures,
     scheduledVisitParentRemindersSent,
     scheduledVisitAdminWeeklyDigestsSent,
     scheduledVisitAdminDayBeforeDigestsSent,

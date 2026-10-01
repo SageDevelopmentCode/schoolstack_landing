@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
@@ -14,11 +14,19 @@ import ParentCommitteesStoryHeader, {
 } from "@/components/school-parent/committees/ParentCommitteesStoryHeader";
 import { parentCommitteesViewTransition } from "@/components/school-parent/committees/parent-committees-view-transition";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
+import type {
+  CommitteeSectionUnreadCounts,
+  CommitteeUnreadSummary,
+  CommitteeUnreadSection,
+} from "@/lib/committees/committee-unread-types";
+import { WORKSPACE_DIGEST_SECTION_LABELS } from "@/lib/committees/unread-workspace-digest-preview-format";
 import type {
   Committee,
   ParentCommitteeBrowseItem,
   ParentCommitteeListItem,
 } from "@/lib/committees/types";
+import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import {
   reportPortalOperationalError,
   type PortalOperationalSurface,
@@ -30,7 +38,19 @@ export type PortalCommitteesInitialData = {
   browseCommittees: ParentCommitteeBrowseItem[];
   myCommittees: ParentCommitteeListItem[];
   workspacesByCommitteeId: Record<string, Committee>;
+  committeeUnreadSummary?: CommitteeUnreadSummary;
+  committeeActivityByCommitteeId?: Record<string, CommitteeActivityItem[]>;
+  previewGuardianUserId?: string | null;
 };
+
+function sectionUnreadForCommittee(
+  summary: CommitteeUnreadSummary | undefined,
+  committeeId: string,
+): CommitteeSectionUnreadCounts | undefined {
+  if (!summary) return undefined;
+  const row = summary.byCommittee.find((item) => item.committeeId === committeeId);
+  return row?.sections;
+}
 
 type PortalCommitteesPageProps = {
   organizationId: string;
@@ -82,7 +102,7 @@ function PortalCommitteesPageContent({
   const searchParams = useSearchParams();
   const hasInitialData = initialData !== undefined;
 
-  const tab = (searchParams.get("tab") === "mine" ? "mine" : "explore") as ParentCommitteesTab;
+  const tab = (searchParams.get("tab") === "explore" ? "explore" : "mine") as ParentCommitteesTab;
   const exploreCommitteeId = searchParams.get("explore");
   const workspaceCommitteeId = searchParams.get("committee");
   const activeSection = searchParams.get("section") ?? "home";
@@ -93,9 +113,52 @@ function PortalCommitteesPageContent({
   const [myCommittees, setMyCommittees] = useState<ParentCommitteeListItem[]>(
     initialData?.myCommittees ?? [],
   );
-  const [loadingBrowse, setLoadingBrowse] = useState(!hasInitialData);
-  const [loadingMine, setLoadingMine] = useState(!hasInitialData);
+  const [browseLoaded, setBrowseLoaded] = useState(hasInitialData);
+  const [mineLoaded, setMineLoaded] = useState(hasInitialData);
+  const [loadingBrowse, setLoadingBrowse] = useState(false);
+  const [loadingMine, setLoadingMine] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const committeesApiBase = `/api/${apiNamespace}/committees`;
+  const { summary: liveUnreadSummary } = useCommitteeUnreadSummary(
+    committeesApiBase,
+    organizationId,
+    !previewMode,
+    previewMode ? initialData?.committeeUnreadSummary : undefined,
+  );
+  const unreadSummarySource = useMemo((): CommitteeUnreadSummary => {
+    if (previewMode && initialData?.committeeUnreadSummary) {
+      return initialData.committeeUnreadSummary;
+    }
+    return liveUnreadSummary;
+  }, [initialData?.committeeUnreadSummary, liveUnreadSummary, previewMode]);
+
+  const unreadByCommitteeId = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const row of unreadSummarySource.byCommittee) {
+      map[row.committeeId] = row.unread;
+    }
+    return map;
+  }, [unreadSummarySource]);
+
+  const unreadSectionLabelsByCommitteeId = useMemo(() => {
+    const sectionOrder: CommitteeUnreadSection[] = [
+      "messages",
+      "tasks",
+      "resources",
+      "calendar",
+    ];
+    const map: Record<string, string[]> = {};
+    for (const row of unreadSummarySource.byCommittee) {
+      const labels = sectionOrder
+        .filter((section) => row.sections[section] > 0)
+        .map((section) => WORKSPACE_DIGEST_SECTION_LABELS[section]);
+      if (labels.length > 0) {
+        map[row.committeeId] = labels;
+      }
+    }
+    return map;
+  }, [unreadSummarySource]);
 
   const setUrl = useCallback(
     (updates: Record<string, string | null>) => {
@@ -110,26 +173,94 @@ function PortalCommitteesPageContent({
     [pathname, router, searchParams],
   );
 
+  const fetchBrowseList = useCallback(async () => {
+    const params = new URLSearchParams({ organizationId });
+    const browseRes = await fetch(`${committeesApiBase}/browse?${params}`);
+    const browseData = await browseRes.json().catch(() => ({}));
+    if (!browseRes.ok) {
+      throw new Error(browseData.error ?? "Failed to load committees.");
+    }
+    setBrowseCommittees(browseData.committees ?? []);
+    setBrowseLoaded(true);
+  }, [committeesApiBase, organizationId]);
+
+  const fetchMineList = useCallback(async () => {
+    const params = new URLSearchParams({ organizationId });
+    const mineRes = await fetch(`${committeesApiBase}/mine?${params}`);
+    const mineData = await mineRes.json().catch(() => ({}));
+    if (!mineRes.ok) {
+      throw new Error(mineData.error ?? "Failed to load your committees.");
+    }
+    setMyCommittees(mineData.committees ?? []);
+    setMineLoaded(true);
+  }, [committeesApiBase, organizationId]);
+
+  const loadTabIfNeeded = useCallback(
+    async (targetTab: ParentCommitteesTab) => {
+      if (previewMode || hasInitialData) return;
+
+      if (targetTab === "explore") {
+        if (browseLoaded || loadingBrowse) return;
+        setLoadingBrowse(true);
+        setError(null);
+        try {
+          await fetchBrowseList();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to load committees.");
+          void reportPortalOperationalError(
+            operationalSurface,
+            {
+              organizationId,
+              operation: "committees.load_browse",
+              error: "",
+            },
+            err,
+          );
+        } finally {
+          setLoadingBrowse(false);
+        }
+        return;
+      }
+
+      if (mineLoaded || loadingMine) return;
+      setLoadingMine(true);
+      setError(null);
+      try {
+        await fetchMineList();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load your committees.");
+        void reportPortalOperationalError(
+          operationalSurface,
+          {
+            organizationId,
+            operation: "committees.load_mine",
+            error: "",
+          },
+          err,
+        );
+      } finally {
+        setLoadingMine(false);
+      }
+    },
+    [
+      browseLoaded,
+      fetchBrowseList,
+      fetchMineList,
+      hasInitialData,
+      loadingBrowse,
+      loadingMine,
+      mineLoaded,
+      operationalSurface,
+      organizationId,
+      previewMode,
+    ],
+  );
+
   const reloadLists = useCallback(async () => {
     if (previewMode) return;
+    setError(null);
     try {
-      const params = new URLSearchParams({ organizationId });
-      const [browseRes, mineRes] = await Promise.all([
-        fetch(`/api/${apiNamespace}/committees/browse?${params}`),
-        fetch(`/api/${apiNamespace}/committees/mine?${params}`),
-      ]);
-      const [browseData, mineData] = await Promise.all([
-        browseRes.json().catch(() => ({})),
-        mineRes.json().catch(() => ({})),
-      ]);
-      if (!browseRes.ok) {
-        throw new Error(browseData.error ?? "Failed to load committees.");
-      }
-      if (!mineRes.ok) {
-        throw new Error(mineData.error ?? "Failed to load your committees.");
-      }
-      setBrowseCommittees(browseData.committees ?? []);
-      setMyCommittees(mineData.committees ?? []);
+      await Promise.all([fetchBrowseList(), fetchMineList()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load committees.");
       void reportPortalOperationalError(
@@ -142,60 +273,13 @@ function PortalCommitteesPageContent({
         err,
       );
     }
-  }, [apiNamespace, organizationId, operationalSurface, previewMode]);
+  }, [fetchBrowseList, fetchMineList, operationalSurface, organizationId, previewMode]);
 
   useEffect(() => {
-    if (hasInitialData) return;
-
-    let cancelled = false;
-    (async () => {
-      setLoadingBrowse(true);
-      setLoadingMine(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams({ organizationId });
-        const [browseRes, mineRes] = await Promise.all([
-          fetch(`/api/${apiNamespace}/committees/browse?${params}`),
-          fetch(`/api/${apiNamespace}/committees/mine?${params}`),
-        ]);
-        const [browseData, mineData] = await Promise.all([
-          browseRes.json().catch(() => ({})),
-          mineRes.json().catch(() => ({})),
-        ]);
-        if (!browseRes.ok) {
-          throw new Error(browseData.error ?? "Failed to load committees.");
-        }
-        if (!mineRes.ok) {
-          throw new Error(mineData.error ?? "Failed to load your committees.");
-        }
-        if (!cancelled) {
-          setBrowseCommittees(browseData.committees ?? []);
-          setMyCommittees(mineData.committees ?? []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load committees.");
-          void reportPortalOperationalError(
-            operationalSurface,
-            {
-              organizationId,
-              operation: "committees.load",
-              error: "",
-            },
-            err,
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingBrowse(false);
-          setLoadingMine(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [apiNamespace, hasInitialData, operationalSurface, organizationId]);
+    queueMicrotask(() => {
+      void loadTabIfNeeded(tab);
+    });
+  }, [loadTabIfNeeded, tab]);
 
   const selectedBrowseCommittee = exploreCommitteeId
     ? browseCommittees.find((c) => c.id === exploreCommitteeId) ?? null
@@ -207,8 +291,9 @@ function PortalCommitteesPageContent({
   const handleSelectTab = useCallback(
     (key: ParentCommitteesTab) => {
       setUrl({ tab: key, explore: null, committee: null, section: null });
+      void loadTabIfNeeded(key);
     },
-    [setUrl],
+    [loadTabIfNeeded, setUrl],
   );
 
   if (memberWorkspaceId) {
@@ -224,6 +309,14 @@ function PortalCommitteesPageContent({
         apiNamespace={apiNamespace}
         operationalSurface={operationalSurface}
         initialCommittee={initialData?.workspacesByCommitteeId[memberWorkspaceId]}
+        initialActivityItems={
+          initialData?.committeeActivityByCommitteeId?.[memberWorkspaceId]
+        }
+        initialSectionUnread={sectionUnreadForCommittee(
+          initialData?.committeeUnreadSummary,
+          memberWorkspaceId,
+        )}
+        previewGuardianUserId={initialData?.previewGuardianUserId}
         onSectionChange={(section) =>
           setUrl({ committee: memberWorkspaceId, section, tab: "mine", explore: null })
         }
@@ -261,6 +354,8 @@ function PortalCommitteesPageContent({
           activeTab={tab}
           exploreCount={browseCommittees.length}
           myCount={myCommittees.length}
+          loadingExplore={loadingBrowse}
+          loadingMine={loadingMine}
           onSelectTab={handleSelectTab}
         />
 
@@ -274,7 +369,7 @@ function PortalCommitteesPageContent({
           <motion.div key={tab} {...parentCommitteesViewTransition}>
             {tab === "explore" && (
               <>
-                {loadingBrowse ? (
+                {loadingBrowse && !browseLoaded ? (
                   <LoadingSpinner label="Loading committees…" muted={theme.muted} />
                 ) : (
                   <ParentCommitteeBrowseList
@@ -300,12 +395,14 @@ function PortalCommitteesPageContent({
 
             {tab === "mine" && (
               <>
-                {loadingMine ? (
+                {loadingMine && !mineLoaded ? (
                   <LoadingSpinner label="Loading your committees…" muted={theme.muted} />
                 ) : (
                   <ParentCommitteeMineList
                     committees={myCommittees}
                     theme={theme}
+                    unreadByCommitteeId={unreadByCommitteeId}
+                    unreadSectionLabelsByCommitteeId={unreadSectionLabelsByCommitteeId}
                     onOpenCommittee={(id) =>
                       setUrl({
                         committee: id,

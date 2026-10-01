@@ -13,6 +13,7 @@ import StudentPhoto from "@/components/students/StudentPhoto";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
+import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
 import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import {
   buildParentNavItems,
@@ -72,6 +73,7 @@ type SchoolParentHeaderProps = {
     onNavigate: (href: string) => void;
   };
   activityUnreadCount?: number;
+  initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
   onOpenNotifications?: () => void;
 };
 
@@ -167,6 +169,7 @@ export default function SchoolParentHeader({
   coopProgramLabel,
   embeddedPreview,
   activityUnreadCount = 0,
+  initialCommitteeUnreadSummary,
   onOpenNotifications,
 }: SchoolParentHeaderProps) {
   const routerPathname = usePathname();
@@ -222,11 +225,15 @@ export default function SchoolParentHeader({
     schoolName,
     messagesEnabled && !previewMode,
   );
-  const { totalUnread: committeesUnreadCount } = useCommitteeUnreadSummary(
+  const { totalUnread: liveCommitteesUnreadCount } = useCommitteeUnreadSummary(
     "/api/parent-portal/committees",
     organizationId,
     committeesEnabled && !previewMode,
   );
+  const committeesUnreadCount =
+    previewMode && initialCommitteeUnreadSummary
+      ? initialCommitteeUnreadSummary.totalUnread
+      : liveCommitteesUnreadCount;
   const { primary, more } = useMemo(
     () => splitParentNavForHeader(navItems, { coopMode: coopModeEnabled }),
     [navItems, coopModeEnabled],

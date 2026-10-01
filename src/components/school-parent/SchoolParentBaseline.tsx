@@ -10,6 +10,7 @@ import { ParentThemeProvider, useParentTheme } from "@/components/school-parent/
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import NavigationLoadingProvider from "@/components/school/shared/NavigationLoadingProvider";
 import { CommitteeUnreadRefreshProvider } from "@/lib/committees/committee-unread-refresh-context";
+import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import { fraunces, dmSans } from "@/lib/fonts";
 import type { FamilyUserProfile } from "@/lib/admissions/parent-portal-access";
@@ -59,6 +60,7 @@ type SchoolParentBaselineProps = {
   previewParentBasePath?: string;
   previewFamilyId?: string;
   initialActivityUnreadCount?: number;
+  initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
   notificationContext?: ParentNotificationContext;
   embeddedPreview?: SchoolParentEmbeddedPreview;
 };
@@ -90,6 +92,7 @@ function SchoolParentBaselineInner({
   previewParentBasePath,
   previewFamilyId,
   initialActivityUnreadCount,
+  initialCommitteeUnreadSummary,
   notificationContext,
   embeddedPreview,
   searchParams,
@@ -236,6 +239,7 @@ function SchoolParentBaselineInner({
           coopModeEnabled={coopModeEnabled}
           coopProgramLabel={coopProgramLabel}
           activityUnreadCount={activityUnreadCount}
+          initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
           onOpenNotifications={openNotifications}
         />
 

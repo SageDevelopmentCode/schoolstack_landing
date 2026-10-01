@@ -48,6 +48,9 @@ describe("parseOrganizationNotificationSettings", () => {
         unread_messages_daily_digest: {
           enabled: true,
         },
+        committee_unread_workspace_digest: {
+          enabled: true,
+        },
         scheduled_visit_day_before: {
           enabled: true,
         },
@@ -117,6 +120,9 @@ describe("parseOrganizationNotificationSettings", () => {
           unread_messages_daily_digest: {
             enabled: true,
           },
+          committee_unread_workspace_digest: {
+            enabled: true,
+          },
           scheduled_visit_day_before: {
             enabled: true,
           },
@@ -158,6 +164,9 @@ describe("parseOrganizationNotificationSettings", () => {
           enabled: true,
         },
         unread_messages_daily_digest: {
+          enabled: true,
+        },
+        committee_unread_workspace_digest: {
           enabled: true,
         },
         scheduled_visit_day_before: {

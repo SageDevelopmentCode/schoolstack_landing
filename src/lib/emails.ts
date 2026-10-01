@@ -1983,6 +1983,242 @@ export async function sendCommitteeMessagePostedNotification(payload: {
   }
 }
 
+export function buildCommitteeUnreadCatchUpEmailHtml(payload: {
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  committees: Array<{
+    committeeName: string;
+    unreadCount: number;
+    preview: string;
+    senderName: string;
+    messagesUrl: string;
+  }>;
+  totalUnread: number;
+}): string {
+  const portalLabel = payload.recipientPortal === "teacher" ? "staff" : "family";
+
+  const committeeSections = payload.committees
+    .map((committee) => {
+      const messagesUrl = committee.messagesUrl.startsWith("http")
+        ? committee.messagesUrl
+        : `${SITE_URL}${committee.messagesUrl}`;
+      const unreadLabel =
+        committee.unreadCount === 1
+          ? "1 unread message"
+          : `${committee.unreadCount} unread messages`;
+
+      return `
+        ${emailDetailCard([
+          { label: "Committee", value: escapeHtml(committee.committeeName) },
+          { label: "From", value: escapeHtml(committee.senderName) },
+          { label: "Unread", value: escapeHtml(unreadLabel) },
+          {
+            label: "Preview",
+            value: escapeHtml(committee.preview.slice(0, 200)),
+          },
+        ])}
+        ${emailCta({ label: "View messages", href: messagesUrl })}
+      `;
+    })
+    .join("");
+
+  const totalLabel =
+    payload.totalUnread === 1
+      ? "1 unread committee message"
+      : `${payload.totalUnread} unread committee messages`;
+
+  return composeEmail({
+    preheader: `You have ${totalLabel} at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Messages")}
+      ${emailHeading(`Unread committee messages`)}
+      ${emailParagraph(
+        `You have <strong>${escapeHtml(totalLabel)}</strong> waiting in your ${portalLabel} portal committees. Here is what you may have missed:`,
+      )}
+      ${committeeSections}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+function buildCommitteeUnreadCatchUpSubject(
+  schoolName: string,
+  committees: Array<{ committeeName: string }>,
+): string {
+  if (committees.length === 1) {
+    return `Unread committee messages — ${committees[0].committeeName}`;
+  }
+  return `Unread committee messages — ${schoolName}`;
+}
+
+export async function sendCommitteeUnreadCatchUpEmail(payload: {
+  email: string;
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  committees: Array<{
+    committeeName: string;
+    unreadCount: number;
+    preview: string;
+    senderName: string;
+    messagesUrl: string;
+  }>;
+  totalUnread: number;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<boolean> {
+  if (payload.committees.length === 0) {
+    return false;
+  }
+
+  if (!(await isZohoConfigured())) {
+    return false;
+  }
+
+  const content = buildCommitteeUnreadCatchUpEmailHtml(payload);
+  const audience: OutboundEmailAudience =
+    payload.recipientPortal === "teacher" ? "teacher" : "parent";
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: buildCommitteeUnreadCatchUpSubject(payload.schoolName, payload.committees),
+    content,
+    discord: schoolOutboundDiscord(
+      "committee_unread_catchup",
+      audience,
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Committee unread catch-up email failed:", result.error);
+    throw new Error(result.error ?? "Committee unread catch-up email failed");
+  }
+
+  return true;
+}
+
+export function buildCommitteeUnreadWorkspaceDigestEmailHtml(payload: {
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  committees: Array<{
+    committeeName: string;
+    sectionLabels: string[];
+    sectionPreviews?: Array<{ section: string; label: string; preview: string }>;
+    workspaceUrl: string;
+    unreadCount: number;
+  }>;
+  totalUnread: number;
+}): string {
+  const portalLabel = payload.recipientPortal === "teacher" ? "staff" : "family";
+
+  const committeeSections = payload.committees
+    .map((committee) => {
+      const workspaceUrl = committee.workspaceUrl.startsWith("http")
+        ? committee.workspaceUrl
+        : `${SITE_URL}${committee.workspaceUrl}`;
+      const sectionsLabel = committee.sectionLabels.join(" · ");
+      const unreadLabel =
+        committee.unreadCount === 1
+          ? "1 unread update"
+          : `${committee.unreadCount} unread updates`;
+
+      const previewRows =
+        committee.sectionPreviews?.map((row) => ({
+          label: row.label,
+          value: escapeHtml(row.preview),
+        })) ?? [];
+
+      const detailRows = [
+        { label: "Committee", value: escapeHtml(committee.committeeName) },
+        { label: "Unread", value: escapeHtml(unreadLabel) },
+        ...(previewRows.length > 0
+          ? previewRows
+          : [{ label: "Sections", value: escapeHtml(sectionsLabel) }]),
+      ];
+
+      return `
+        ${emailDetailCard(detailRows)}
+        ${emailCta({ label: "Open committee", href: workspaceUrl })}
+      `;
+    })
+    .join("");
+
+  const totalLabel =
+    payload.totalUnread === 1
+      ? "1 unread committee update"
+      : `${payload.totalUnread} unread committee updates`;
+
+  return composeEmail({
+    preheader: `You have ${totalLabel} at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Updates")}
+      ${emailHeading(`Unread committee updates`)}
+      ${emailParagraph(
+        `You have <strong>${escapeHtml(totalLabel)}</strong> waiting in your ${portalLabel} portal committees:`,
+      )}
+      ${committeeSections}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+function buildCommitteeUnreadWorkspaceDigestSubject(
+  schoolName: string,
+  committees: Array<{ committeeName: string }>,
+): string {
+  if (committees.length === 1) {
+    return `Unread committee updates — ${committees[0].committeeName}`;
+  }
+  return `Unread committee updates — ${schoolName}`;
+}
+
+export async function sendCommitteeUnreadWorkspaceDigestEmail(payload: {
+  email: string;
+  schoolName: string;
+  recipientPortal: "parent" | "teacher";
+  committees: Array<{
+    committeeName: string;
+    sectionLabels: string[];
+    sectionPreviews?: Array<{ section: string; label: string; preview: string }>;
+    workspaceUrl: string;
+    unreadCount: number;
+  }>;
+  totalUnread: number;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<boolean> {
+  if (payload.committees.length === 0) {
+    return false;
+  }
+
+  if (!(await isZohoConfigured())) {
+    return false;
+  }
+
+  const content = buildCommitteeUnreadWorkspaceDigestEmailHtml(payload);
+  const audience: OutboundEmailAudience =
+    payload.recipientPortal === "teacher" ? "teacher" : "parent";
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: buildCommitteeUnreadWorkspaceDigestSubject(
+      payload.schoolName,
+      payload.committees,
+    ),
+    content,
+    discord: schoolOutboundDiscord(
+      "committee_unread_workspace_digest",
+      audience,
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Committee unread workspace digest email failed:", result.error);
+    throw new Error(result.error ?? "Committee unread workspace digest email failed");
+  }
+
+  return true;
+}
+
 export function buildCommitteeWorkspaceUpdateNotificationHtml(payload: {
   schoolName: string;
   committeeName: string;

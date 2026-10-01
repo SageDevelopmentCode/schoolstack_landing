@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { CommitteeActivityItem } from "@/lib/committees/activity-feed";
+import type { CommitteeSectionUnreadCounts } from "@/lib/committees/committee-unread-types";
 import type { Committee } from "@/lib/committees/types";
 import { parseCommitteeSection } from "@/components/school-admin/committees/committee-routing";
 import ParentCommitteeWorkspaceShell from "@/components/school-parent/committees/ParentCommitteeWorkspaceShell";
@@ -20,6 +22,9 @@ type ParentCommitteeWorkspaceProps = {
   theme: ParentThemeTokens;
   activeSection: string;
   initialCommittee?: Committee;
+  initialActivityItems?: CommitteeActivityItem[];
+  initialSectionUnread?: CommitteeSectionUnreadCounts;
+  previewGuardianUserId?: string | null;
   previewMode?: boolean;
   apiNamespace?: CommitteesApiNamespace;
   operationalSurface?: PortalOperationalSurface;
@@ -34,6 +39,9 @@ export default function ParentCommitteeWorkspace({
   theme,
   activeSection,
   initialCommittee,
+  initialActivityItems,
+  initialSectionUnread,
+  previewGuardianUserId,
   previewMode = false,
   apiNamespace = "parent-portal",
   operationalSurface = "parent_portal",
@@ -47,6 +55,17 @@ export default function ParentCommitteeWorkspace({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (previewMode && initialCommittee && previewGuardianUserId) {
+      const member = initialCommittee.members.find(
+        (entry) =>
+          entry.status === "active" && entry.userId === previewGuardianUserId,
+      );
+      if (member) {
+        queueMicrotask(() => setCurrentMemberId(member.id));
+      }
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       const {
@@ -64,7 +83,7 @@ export default function ParentCommitteeWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [committee, initialCommittee, supabase]);
+  }, [committee, initialCommittee, previewGuardianUserId, previewMode, supabase]);
 
   useEffect(() => {
     if (initialCommittee) {
@@ -147,6 +166,8 @@ export default function ParentCommitteeWorkspace({
       onCommitteeChange={setCommittee}
       currentMemberId={currentMemberId}
       previewMode={previewMode}
+      initialActivityItems={initialActivityItems}
+      initialSectionUnread={initialSectionUnread}
       portalApiNamespace={apiNamespace}
       backLabel="My committees"
     />

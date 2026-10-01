@@ -11,6 +11,8 @@ import {
   buildCommitteeDailyDigestHtml,
   buildCommitteeJoinApprovedNotificationHtml,
   buildCommitteeJoinRequestAdminNotificationHtml,
+  buildCommitteeUnreadCatchUpEmailHtml,
+  buildCommitteeUnreadWorkspaceDigestEmailHtml,
   buildFridayBranchClassRosterEmailHtml,
   buildFridayBranchEnrollmentAdminNotificationHtml,
   buildDraftApplicationReminderHtml,
@@ -873,6 +875,68 @@ const previews = [
       "Ms. Taylor Reyes",
       "Open committee",
       "/school/rooted-meadows/teacher/committees",
+    ],
+  },
+  {
+    filename: "committee-unread-workspace-digest-parent.html",
+    html: buildCommitteeUnreadWorkspaceDigestEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      recipientPortal: "parent",
+      totalUnread: 3,
+      committees: [
+        {
+          committeeName: "Farm Connection & Development Committee",
+          sectionLabels: ["Messages", "Tasks"],
+          sectionPreviews: [
+            {
+              section: "messages",
+              label: "Messages",
+              preview: "School Admin: Reminder — farm work day this Saturday at 9am.",
+            },
+            {
+              section: "tasks",
+              label: "Tasks",
+              preview: "Bring gloves for work day (due Oct 4, 2026)",
+            },
+          ],
+          unreadCount: 2,
+          workspaceUrl:
+            "https://trymudkitchen.com/school/rooted-meadows/parent/committees?committee=committee-1&section=messages",
+        },
+      ],
+    }),
+    checks: [
+      "Committee Updates",
+      "Unread committee updates",
+      "Messages",
+      "Tasks",
+      "farm work day",
+      "Open committee",
+    ],
+  },
+  {
+    filename: "committee-unread-catchup-parent.html",
+    html: buildCommitteeUnreadCatchUpEmailHtml({
+      schoolName: "Rooted Meadows Waldorf School",
+      recipientPortal: "parent",
+      totalUnread: 2,
+      committees: [
+        {
+          committeeName: "Farm Connection & Development Committee",
+          unreadCount: 2,
+          senderName: "School Admin",
+          preview: "Reminder: farm work day this Saturday at 9am.",
+          messagesUrl:
+            "https://trymudkitchen.com/school/rooted-meadows/parent/committees?committee=committee-1&section=messages",
+        },
+      ],
+    }),
+    checks: [
+      "Committee Messages",
+      "Unread committee messages",
+      "Farm Connection",
+      "View messages",
+      "School Admin",
     ],
   },
   {

@@ -37,6 +37,9 @@ export type ParentReminderSettings = {
   unread_messages_daily_digest: {
     enabled: boolean;
   };
+  committee_unread_workspace_digest: {
+    enabled: boolean;
+  };
   scheduled_visit_day_before: {
     enabled: boolean;
   };
@@ -116,6 +119,9 @@ export function getDefaultNotificationSettings(): OrganizationNotificationSettin
       unread_messages_daily_digest: {
         enabled: true,
       },
+      committee_unread_workspace_digest: {
+        enabled: true,
+      },
       scheduled_visit_day_before: {
         enabled: true,
       },
@@ -176,6 +182,13 @@ function parseParentReminderSettings(
       ? (raw.unread_messages_daily_digest as Record<string, unknown>)
       : undefined;
 
+  const committeeUnreadWorkspaceDigestRaw =
+    raw?.committee_unread_workspace_digest &&
+    typeof raw.committee_unread_workspace_digest === "object" &&
+    !Array.isArray(raw.committee_unread_workspace_digest)
+      ? (raw.committee_unread_workspace_digest as Record<string, unknown>)
+      : undefined;
+
   const scheduledVisitDayBeforeRaw =
     raw?.scheduled_visit_day_before &&
     typeof raw.scheduled_visit_day_before === "object" &&
@@ -201,6 +214,12 @@ function parseParentReminderSettings(
         typeof unreadMessagesDigestRaw?.enabled === "boolean"
           ? unreadMessagesDigestRaw.enabled
           : defaults.unread_messages_daily_digest.enabled,
+    },
+    committee_unread_workspace_digest: {
+      enabled:
+        typeof committeeUnreadWorkspaceDigestRaw?.enabled === "boolean"
+          ? committeeUnreadWorkspaceDigestRaw.enabled
+          : defaults.committee_unread_workspace_digest.enabled,
     },
     scheduled_visit_day_before: {
       enabled:
@@ -612,6 +631,14 @@ export async function isUnreadMessagesDailyDigestEnabled(
 ): Promise<boolean> {
   const settings = await loadOrganizationNotificationSettings(admin, organizationId);
   return settings.parent_reminders.unread_messages_daily_digest.enabled;
+}
+
+export async function isCommitteeUnreadWorkspaceDigestEnabled(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<boolean> {
+  const settings = await loadOrganizationNotificationSettings(admin, organizationId);
+  return settings.parent_reminders.committee_unread_workspace_digest.enabled;
 }
 
 export async function isScheduledVisitDayBeforeReminderEnabled(

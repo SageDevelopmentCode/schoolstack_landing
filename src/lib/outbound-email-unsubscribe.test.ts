@@ -94,7 +94,17 @@ describe("outbound-email-unsubscribe", () => {
       false,
     );
     assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("committee_unread_catchup"),
+      true,
+    );
+    assert.equal(
       TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("committee_workspace_update"),
+      false,
+    );
+    assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has(
+        "committee_unread_workspace_digest",
+      ),
       false,
     );
   });
@@ -109,6 +119,15 @@ describe("outbound-email-unsubscribe", () => {
     assert.equal(
       isTransactionalOutboundEmail({
         discord: { channel: "committee_workspace_update", audience: "staff" },
+      }),
+      false,
+    );
+    assert.equal(
+      isTransactionalOutboundEmail({
+        discord: {
+          channel: "committee_unread_workspace_digest",
+          audience: "parent",
+        },
       }),
       false,
     );
