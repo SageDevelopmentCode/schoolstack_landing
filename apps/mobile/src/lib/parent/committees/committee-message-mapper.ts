@@ -1,6 +1,7 @@
 import { formatCommitteeAttribution } from '@/lib/parent/committees/attribution';
 import type { Committee, CommitteeMessage } from '@/lib/parent/parent-committees-types';
 import type { PortalMessage } from '@/lib/messages/types';
+import { formatCommitteeMessageTime } from '@/lib/committees/format-committee-message-time';
 
 function parseMessageTimestamp(time: string): string {
   const parsed = new Date(time);
@@ -31,8 +32,8 @@ export function mapCommitteeMessageToPortalMessage(
     senderKind: 'guardian',
     senderName,
     isOwn,
-    createdAt: parseMessageTimestamp(message.time),
-    timeLabel: message.time,
+    createdAt: parseMessageTimestamp(message.createdAt ?? message.time),
+    timeLabel: formatCommitteeMessageTime(message.createdAt ?? message.time),
     editedAt: null,
     deletedAt: null,
     attachments: (message.attachments ?? []).map((attachment) => ({

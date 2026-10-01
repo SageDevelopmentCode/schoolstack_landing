@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityForPortal } from "@/lib/committees/committee-activity-client";
 import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import {
@@ -17,6 +18,8 @@ export type CreateResourceInput = {
   description?: string;
   allowedDutyRoleIds?: string[];
   createdByMemberId?: string;
+  organizationId?: string;
+  committeesApiBase?: string;
 };
 
 export async function createResource(
@@ -42,17 +45,20 @@ export async function createResource(
 
   if (error) throw new Error(error.message);
   const resource = mapResourceRow(data as CommitteeResourceRow);
-  logCommitteeActivityEvent(supabase, {
-    committeeId,
-    action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
-    entityType: "committee_resource",
-    entityId: resource.id,
-    summary: `Resource "${resource.title}" was added`,
-    metadata: { resourceTitle: resource.title, resourceType: resource.type },
-    actor: input.createdByMemberId
-      ? { type: "parent", memberId: input.createdByMemberId }
-      : undefined,
-  });
+  if (input.committeesApiBase && input.organizationId) {
+    logCommitteeActivityForPortal(input.committeesApiBase, {
+      organizationId: input.organizationId,
+      committeeId,
+      action: ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+      entityType: "committee_resource",
+      entityId: resource.id,
+      summary: `Resource "${resource.title}" was added`,
+      metadata: { resourceTitle: resource.title, resourceType: resource.type },
+      actor: input.createdByMemberId
+        ? { type: "parent", memberId: input.createdByMemberId }
+        : undefined,
+    });
+  }
   return resource;
 }
 

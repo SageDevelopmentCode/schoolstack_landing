@@ -1927,6 +1927,118 @@ export async function sendCommitteeTaskAssignedNotification(payload: {
   }
 }
 
+export function buildCommitteeMessagePostedNotificationHtml(payload: {
+  schoolName: string;
+  committeeName: string;
+  senderName: string;
+  messagePreview: string;
+  messagesUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Committee", value: payload.committeeName },
+    { label: "From", value: payload.senderName },
+    { label: "Message", value: payload.messagePreview },
+  ];
+
+  return composeEmail({
+    preheader: `New message on ${payload.committeeName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Message")}
+      ${emailHeading("New committee message")}
+      ${emailParagraph(
+        `${escapeHtml(payload.senderName)} posted in ${escapeHtml(payload.committeeName)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "View messages", href: payload.messagesUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeMessagePostedNotification(payload: {
+  email: string;
+  schoolName: string;
+  committeeName: string;
+  senderName: string;
+  messagePreview: string;
+  messagesUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<void> {
+  const content = buildCommitteeMessagePostedNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `New message — ${payload.committeeName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "committee_message_posted",
+      "staff",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Committee message posted notification email failed:", result.error);
+  }
+}
+
+export function buildCommitteeWorkspaceUpdateNotificationHtml(payload: {
+  schoolName: string;
+  committeeName: string;
+  updateTitle: string;
+  updateSummary: string;
+  workspaceUrl: string;
+}): string {
+  const details = [
+    { label: "School", value: payload.schoolName },
+    { label: "Committee", value: payload.committeeName },
+    { label: "Update", value: payload.updateTitle },
+    { label: "Details", value: payload.updateSummary },
+  ];
+
+  return composeEmail({
+    preheader: `${payload.updateTitle} on ${payload.committeeName}.`,
+    contentHtml: `
+      ${emailBadge("Committee Update")}
+      ${emailHeading(payload.updateTitle)}
+      ${emailParagraph(
+        `There is a new update in ${escapeHtml(payload.committeeName)} at ${escapeHtml(payload.schoolName)}.`,
+      )}
+      ${emailDetailCard(details)}
+      ${emailCta({ label: "Open committee", href: payload.workspaceUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendCommitteeWorkspaceUpdateNotification(payload: {
+  email: string;
+  schoolName: string;
+  committeeName: string;
+  updateTitle: string;
+  updateSummary: string;
+  workspaceUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<void> {
+  const content = buildCommitteeWorkspaceUpdateNotificationHtml(payload);
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `${payload.updateTitle} — ${payload.committeeName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "committee_workspace_update",
+      "staff",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Committee workspace update notification email failed:", result.error);
+  }
+}
+
 export function buildCommitteeJoinApprovedNotificationHtml(payload: {
   schoolName: string;
   committeeName: string;

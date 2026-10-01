@@ -75,6 +75,10 @@ export const PARENT_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_APPROVED,
   ACTIVITY_ACTIONS.COMMITTEE_JOIN_DECLINED,
   ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED,
+  ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+  ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED,
+  ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_PUBLISHED,
   ACTIVITY_ACTIONS.CLASSROOM_SIGNUP_CLOSED,
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED,
@@ -584,7 +588,13 @@ function shouldExcludeParentActorEvent(
   if (event.action === ACTIVITY_ACTIONS.MESSAGES_RECEIVED) {
     return false;
   }
-  if (event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED) {
+  if (
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED ||
+    event.action === ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED
+  ) {
     return false;
   }
   return event.actor_type === "parent" && event.surface === "parent_portal";
@@ -1016,10 +1026,18 @@ function resolveParentNotificationLink(
 
   if (action.startsWith("committee.")) {
     const committeeId = metadataString(event.metadata, "committeeId");
-    if (action === ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED && committeeId) {
+    const committeeSectionByAction: Record<string, string> = {
+      [ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED]: "messages",
+      [ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED]: "tasks",
+      [ACTIVITY_ACTIONS.COMMITTEE_TASK_ASSIGNED]: "tasks",
+      [ACTIVITY_ACTIONS.COMMITTEE_RESOURCE_CREATED]: "resources",
+      [ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED]: "calendar",
+    };
+    const section = committeeSectionByAction[action];
+    if (committeeId && section) {
       return {
-        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=tasks&tab=mine`,
-        ctaLabel: "View task",
+        href: `${parentBase}/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`,
+        ctaLabel: "Open committee",
       };
     }
     return {

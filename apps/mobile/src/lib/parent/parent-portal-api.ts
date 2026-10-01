@@ -775,6 +775,21 @@ export async function fetchParentCommitteesMine(
   return payload.committees ?? [];
 }
 
+export async function fetchParentCommitteeActivity(
+  organizationId: string,
+  committeeId: string,
+  options?: { limit?: number },
+): Promise<import('@/lib/parent/parent-committees-types').CommitteeActivityItem[]> {
+  const query = new URLSearchParams({
+    organizationId,
+    limit: String(options?.limit ?? 30),
+  });
+  const payload = await fetchParentApi<{ items?: import('@/lib/parent/parent-committees-types').CommitteeActivityItem[] }>(
+    `/api/parent-portal/committees/${committeeId}/activity?${query}`,
+  );
+  return payload.items ?? [];
+}
+
 export async function fetchParentCommitteeWorkspace(
   organizationId: string,
   committeeId: string,

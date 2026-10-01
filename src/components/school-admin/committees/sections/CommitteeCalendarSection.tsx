@@ -26,6 +26,8 @@ import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
+import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
+import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 
 const EMPTY_ADD_EVENT_FORM: CommitteeAddEventFormState = {
   title: "",
@@ -44,6 +46,7 @@ export default function CommitteeCalendarSection({
   readOnly = false,
   currentMemberId,
   isAdmin = true,
+  portalApiNamespace = "parent-portal",
 }: {
   committee: Committee;
   theme: ParentThemeTokens;
@@ -53,6 +56,7 @@ export default function CommitteeCalendarSection({
   readOnly?: boolean;
   currentMemberId?: string;
   isAdmin?: boolean;
+  portalApiNamespace?: CommitteesApiNamespace;
 }) {
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const [view, setView] = useState<CalendarViewMode>("week");
@@ -103,6 +107,10 @@ export default function CommitteeCalendarSection({
         type: addForm.eventType,
         location: addForm.location || undefined,
         createdByMemberId: currentMemberId,
+        organizationId,
+        committeesApiBase: committeesApiBaseForPortal(
+          isAdmin ? "school-admin" : portalApiNamespace,
+        ),
       });
       setShowAdd(false);
       setAddForm(EMPTY_ADD_EVENT_FORM);

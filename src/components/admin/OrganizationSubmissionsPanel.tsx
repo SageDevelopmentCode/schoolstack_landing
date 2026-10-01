@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Eye, Loader2 } from "lucide-react";
+import { Bell, Eye, Loader2, Mail } from "lucide-react";
+import OrganizationContactEmailHistoryPanel from "@/components/admin/OrganizationContactEmailHistoryPanel";
 import ParentPortalLoginBadge from "@/components/admissions/ParentPortalLoginBadge";
 import OrganizationFamilyNotificationsPanel from "@/components/admin/OrganizationFamilyNotificationsPanel";
 import OrganizationGuardianAccessTable from "@/components/admin/OrganizationGuardianAccessTable";
@@ -70,6 +71,10 @@ export default function OrganizationSubmissionsPanel({
   const [notificationsPreview, setNotificationsPreview] = useState<{
     familyId: string;
     familyLabel: string;
+  } | null>(null);
+  const [emailHistoryPreview, setEmailHistoryPreview] = useState<{
+    contactEmail: string;
+    contactLabel: string;
   } | null>(null);
 
   const loadSubmissions = useCallback(async () => {
@@ -269,62 +274,91 @@ export default function OrganizationSubmissionsPanel({
                         {formatUpdatedAt(submission.updatedAt)}
                       </td>
                       <td className="px-2 py-2.5 align-top text-right whitespace-nowrap">
-                        {previewHref && familyId ? (
-                          <div className="flex flex-col items-end gap-1.5">
-                            <a
-                              href={previewHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                              title="Open read-only family apply preview in a new tab"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                              Family
-                            </a>
-                            {showAdminPreview ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          {previewHref && familyId ? (
+                            <>
                               <a
-                                href={schoolAdminPreviewBasePath(
-                                  organizationSlug,
-                                  familyId,
-                                )}
+                                href={previewHref}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                                title="Open read-only school admin preview with portal switcher"
+                                title="Open read-only family apply preview in a new tab"
                               >
                                 <Eye className="h-3.5 w-3.5" />
-                                Admin
+                                Family
                               </a>
-                            ) : null}
-                            {showNotificationsPreview ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setNotificationsPreview({
+                              {showAdminPreview ? (
+                                <a
+                                  href={schoolAdminPreviewBasePath(
+                                    organizationSlug,
                                     familyId,
-                                    familyLabel:
-                                      submission.guardianName ??
-                                      submission.contactEmail ??
-                                      "Family",
-                                  })
-                                }
-                                className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
-                                title="Preview this family's parent notifications without marking them read"
-                              >
-                                <Bell className="h-3.5 w-3.5" />
-                                Notifications
-                              </button>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
-                            title="No linked family yet — preview unavailable for unlinked drafts"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Preview
-                          </span>
-                        )}
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                  title="Open read-only school admin preview with portal switcher"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Admin
+                                </a>
+                              ) : null}
+                              {showNotificationsPreview ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setNotificationsPreview({
+                                      familyId,
+                                      familyLabel:
+                                        submission.guardianName ??
+                                        submission.contactEmail ??
+                                        "Family",
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                                  title="Preview this family's parent notifications without marking them read"
+                                >
+                                  <Bell className="h-3.5 w-3.5" />
+                                  Notifications
+                                </button>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                              title="No linked family yet — preview unavailable for unlinked drafts"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Preview
+                            </span>
+                          )}
+                          {submission.contactEmail ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEmailHistoryPreview({
+                                  contactEmail: submission.contactEmail!,
+                                  contactLabel:
+                                    submission.guardianName ??
+                                    submission.contactEmail ??
+                                    "Contact",
+                                })
+                              }
+                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs font-medium text-admin-accent hover:bg-admin-bg transition-colors"
+                              title="View Zoho Mail history for this contact email"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Email history
+                            </button>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-admin-sm border border-admin-border px-2.5 py-1.5 text-xs text-admin-faint opacity-60 cursor-not-allowed"
+                              title="No contact email on submission"
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                              Email history
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -350,6 +384,15 @@ export default function OrganizationSubmissionsPanel({
           familyLabel={notificationsPreview.familyLabel}
           open
           onClose={() => setNotificationsPreview(null)}
+        />
+      ) : null}
+
+      {emailHistoryPreview ? (
+        <OrganizationContactEmailHistoryPanel
+          contactEmail={emailHistoryPreview.contactEmail}
+          contactLabel={emailHistoryPreview.contactLabel}
+          open
+          onClose={() => setEmailHistoryPreview(null)}
         />
       ) : null}
     </div>

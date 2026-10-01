@@ -29,6 +29,8 @@ export const TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS = new Set<string>([
   "committee_join_request_admin",
   "committee_task_assigned",
   "committee_join_approved",
+  "committee_message_posted",
+  "committee_workspace_update",
   "teacher_parent_form_response_signed",
   "tuition_invoice",
   "tuition_autopay_failed",

@@ -190,6 +190,7 @@ export type CommitteeMessage = {
   senderRole?: CommitteeRole;
   text: string;
   time: string;
+  createdAt?: string;
   attachments?: CommitteeMessageAttachment[];
 };
 

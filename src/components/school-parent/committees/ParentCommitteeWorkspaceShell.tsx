@@ -25,6 +25,8 @@ import {
   type Committee,
   type CommitteeWorkspaceSection,
 } from "@/lib/committees/types";
+import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
+import { markCommitteeSectionReadViaApi } from "@/lib/committees/mark-committee-section-read-client";
 
 const CommitteeHomeSection = dynamic(
   () => import("@/components/school-admin/committees/sections/CommitteeHomeSection"),
@@ -87,6 +89,8 @@ function renderSectionContent(
     currentMemberId?: string;
     isAdmin: boolean;
     portalApiNamespace: CommitteesApiNamespace;
+    committeesApiBase: string;
+    messagesApiBase: string;
     activitySurface: "parent" | "teacher";
     canWrite: boolean;
     onNavigate: (section: CommitteeWorkspaceSection) => void;
@@ -168,6 +172,7 @@ export default function ParentCommitteeWorkspaceShell({
     () => new Set([resolvedSection]),
   );
   const [pendingSection, setPendingSection] = useState<CommitteeWorkspaceSection | null>(null);
+  const committeesApiBase = committeesApiBaseForPortal(portalApiNamespace);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -185,6 +190,30 @@ export default function ParentCommitteeWorkspaceShell({
       });
     }
   }, [pendingSection, resolvedSection]);
+
+  useEffect(() => {
+    if (!currentMemberId || previewMode) return;
+    const section = resolvedSection;
+    if (
+      section !== "messages" &&
+      section !== "tasks" &&
+      section !== "resources" &&
+      section !== "calendar"
+    ) {
+      return;
+    }
+    void markCommitteeSectionReadViaApi(committeesApiBase, committee.id, {
+      organizationId,
+      section: section as CommitteeWorkspaceSection,
+    }).catch(() => undefined);
+  }, [
+    committeesApiBase,
+    committee.id,
+    currentMemberId,
+    organizationId,
+    previewMode,
+    resolvedSection,
+  ]);
 
   const handleSectionChange = useCallback(
     (section: CommitteeWorkspaceSection) => {
@@ -227,6 +256,8 @@ export default function ParentCommitteeWorkspaceShell({
     currentMemberId,
     isAdmin: false,
     portalApiNamespace,
+    committeesApiBase,
+    messagesApiBase: committeesApiBase,
     activitySurface,
     canWrite,
     onNavigate: handleSectionChange,

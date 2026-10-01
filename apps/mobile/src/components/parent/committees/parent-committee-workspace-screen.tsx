@@ -157,6 +157,7 @@ function CommitteeWorkspaceScreen({
         return (
           <ParentCommitteeHomeSection
             committee={sectionProps.committee}
+            organizationId={sectionProps.organizationId}
             onNavigate={sectionProps.onNavigate ?? setActiveSection}
           />
         );

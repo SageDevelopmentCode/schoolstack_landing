@@ -13,6 +13,7 @@ import StudentPhoto from "@/components/students/StudentPhoto";
 import NavigationLink from "@/components/school/shared/NavigationLink";
 import { MessagesNavBadge } from "@/components/messages/MessagesNavBadge";
 import { useMessagesUnreadCount } from "@/lib/messages/use-messages-unread-count";
+import { useCommitteeUnreadSummary } from "@/lib/committees/use-committee-unread-summary";
 import {
   buildParentNavItems,
   isParentNavItemActive,
@@ -82,6 +83,7 @@ function NavLink({
   theme,
   adminCompat,
   messagesUnreadCount,
+  committeesUnreadCount,
   onNavigate,
 }: {
   item: ParentNavItem;
@@ -89,6 +91,7 @@ function NavLink({
   theme: ParentThemeTokens;
   adminCompat: ReturnType<typeof useParentTheme>["adminCompat"];
   messagesUnreadCount: number;
+  committeesUnreadCount: number;
   onNavigate?: (href: string) => void;
 }) {
   const Icon = item.icon;
@@ -108,6 +111,15 @@ function NavLink({
       {item.key === "messages" ? (
         <MessagesNavBadge
           count={messagesUnreadCount}
+          theme={{
+            accent: adminCompat.accent,
+            accentLight: adminCompat.accentLight,
+          }}
+        />
+      ) : null}
+      {item.key === "committees" ? (
+        <MessagesNavBadge
+          count={committeesUnreadCount}
           theme={{
             accent: adminCompat.accent,
             accentLight: adminCompat.accentLight,
@@ -203,11 +215,17 @@ export default function SchoolParentHeader({
     [slug, features.parent, features.feature_nav?.parent, resolvedNavBasePath],
   );
   const messagesEnabled = Boolean(features.parent.messages);
+  const committeesEnabled = Boolean(features.parent.committees);
   const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
     "/api/parent-portal/messages",
     organizationId,
     schoolName,
     messagesEnabled && !previewMode,
+  );
+  const { totalUnread: committeesUnreadCount } = useCommitteeUnreadSummary(
+    "/api/parent-portal/committees",
+    organizationId,
+    committeesEnabled && !previewMode,
   );
   const { primary, more } = useMemo(
     () => splitParentNavForHeader(navItems, { coopMode: coopModeEnabled }),
@@ -398,6 +416,7 @@ export default function SchoolParentHeader({
               theme={theme}
               adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
+              committeesUnreadCount={committeesUnreadCount}
               onNavigate={onPreviewNavigate}
             />
           ))}
@@ -441,6 +460,15 @@ export default function SchoolParentHeader({
                         {item.key === "messages" ? (
                           <MessagesNavBadge
                             count={messagesUnreadCount}
+                            theme={{
+                              accent: C.accent,
+                              accentLight: C.accentLight,
+                            }}
+                          />
+                        ) : null}
+                        {item.key === "committees" ? (
+                          <MessagesNavBadge
+                            count={committeesUnreadCount}
                             theme={{
                               accent: C.accent,
                               accentLight: C.accentLight,
@@ -648,6 +676,7 @@ export default function SchoolParentHeader({
               theme={theme}
               adminCompat={C}
               messagesUnreadCount={messagesUnreadCount}
+              committeesUnreadCount={committeesUnreadCount}
               onNavigate={onPreviewNavigate}
             />
           ))}

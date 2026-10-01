@@ -1,22 +1,63 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { StorySectionKicker } from '@/components/story/story-section-kicker';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
-import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
+import { SchoolAdminCommitteeActivityFeed } from '@/components/school-admin/committees/school-admin-committee-activity-feed';
+import type {
+  Committee,
+  CommitteeActivityItem,
+  CommitteeWorkspaceSection,
+} from '@/lib/parent/parent-committees-types';
+import { fetchParentCommitteeActivity } from '@/lib/parent/parent-portal-api';
+import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 
 type ParentCommitteeHomeSectionProps = {
   committee: Committee;
+  organizationId: string;
   onNavigate: (section: CommitteeWorkspaceSection) => void;
 };
 
-export function ParentCommitteeHomeSection({ committee, onNavigate }: ParentCommitteeHomeSectionProps) {
+export function ParentCommitteeHomeSection({
+  committee,
+  organizationId,
+  onNavigate,
+}: ParentCommitteeHomeSectionProps) {
   const theme = useParentTheme();
+  const { reportError } = useMobileErrorReporter(organizationId);
+  const [activityItems, setActivityItems] = useState<CommitteeActivityItem[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingActivity(true);
+      try {
+        const items = await fetchParentCommitteeActivity(organizationId, committee.id, {
+          limit: 8,
+        });
+        if (!cancelled) setActivityItems(items);
+      } catch (error) {
+        reportError('committees.activity.home_load', error, {
+          entityType: 'committee',
+          entityId: committee.id,
+        });
+        if (!cancelled) setActivityItems([]);
+      } finally {
+        if (!cancelled) setLoadingActivity(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [committee.id, organizationId, reportError]);
   const upcomingEvents = committee.events.slice(0, 3);
   const urgentTasks = committee.tasks.filter((task) => task.status !== 'done').slice(0, 4);
   const leaders = committee.members.filter((member) => member.role === 'lead');
@@ -139,6 +180,20 @@ export function ParentCommitteeHomeSection({ committee, onNavigate }: ParentComm
           ))
         )}
       </StoryCard>
+
+      <StoryCard compact style={styles.panelCard}>
+        {loadingActivity ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={theme.primary} />
+          </View>
+        ) : (
+          <SchoolAdminCommitteeActivityFeed
+            items={activityItems}
+            compact
+            title="Recent activity"
+          />
+        )}
+      </StoryCard>
     </View>
   );
 }
@@ -195,6 +250,11 @@ const styles = StyleSheet.create({
   emptyCopy: {
     fontFamily: StoryFonts.body,
     fontSize: 14,
+  },
+  loadingRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.four,
   },
   eventRow: {
     flexDirection: 'row',

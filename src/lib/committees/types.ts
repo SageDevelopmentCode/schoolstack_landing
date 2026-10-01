@@ -141,7 +141,9 @@ export type CommitteeMessage = {
   senderName: string;
   senderRole?: CommitteeRole;
   text: string;
+  /** @deprecated Use createdAt with formatCommitteeMessageTime */
   time: string;
+  createdAt: string;
   attachments?: CommitteeMessageAttachment[];
 };
 

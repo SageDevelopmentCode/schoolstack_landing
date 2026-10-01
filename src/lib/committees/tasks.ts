@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { logCommitteeActivityForPortal } from "@/lib/committees/committee-activity-client";
 import { logCommitteeActivityEvent } from "@/lib/committees/committee-activity-log";
 import { getCommittee } from "./committees";
 import { mapTaskRow, type CommitteeTaskRow } from "./mappers";
@@ -14,6 +15,8 @@ export type CreateTaskInput = {
   dueDate?: string;
   attachmentLabel?: string;
   createdByMemberId?: string;
+  organizationId?: string;
+  committeesApiBase?: string;
 };
 
 export async function createTask(
@@ -39,17 +42,20 @@ export async function createTask(
 
   if (error) throw new Error(error.message);
   const task = mapTaskRow(data as CommitteeTaskRow, []);
-  logCommitteeActivityEvent(supabase, {
-    committeeId,
-    action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
-    entityType: "committee_task",
-    entityId: task.id,
-    summary: `Task "${task.title}" was created`,
-    metadata: { taskTitle: task.title, taskStatus: task.status },
-    actor: input.createdByMemberId
-      ? { type: "parent", memberId: input.createdByMemberId }
-      : undefined,
-  });
+  if (input.committeesApiBase && input.organizationId) {
+    logCommitteeActivityForPortal(input.committeesApiBase, {
+      organizationId: input.organizationId,
+      committeeId,
+      action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+      entityType: "committee_task",
+      entityId: task.id,
+      summary: `Task "${task.title}" was created`,
+      metadata: { taskTitle: task.title, taskStatus: task.status },
+      actor: input.createdByMemberId
+        ? { type: "parent", memberId: input.createdByMemberId }
+        : undefined,
+    });
+  }
   return task;
 }
 

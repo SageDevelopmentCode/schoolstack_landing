@@ -13,7 +13,7 @@ import { MessageComposeBar } from '@/components/school-admin/messages/message-co
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { mapCommitteeMessagesToPortalMessages } from '@/lib/parent/committees/committee-message-mapper';
-import { postCommitteeMessage } from '@/lib/parent/committees/mutations';
+import { postCommitteeMessageViaParentApi } from '@/lib/parent/committees/mutations';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import { buildMessageRenderItems, type RenderMessageItem } from '@/lib/messages/format-chat';
 import {
@@ -111,16 +111,11 @@ export function ParentCommitteeMessagesSection({
     });
 
     try {
-      const { messageId } = await postCommitteeMessage(
-        supabase,
-        committee.id,
-        trimmed,
-        currentMemberId,
-        {
-          organizationId,
-          files: filesToSend,
-        },
-      );
+      const { messageId } = await postCommitteeMessageViaParentApi(committee.id, {
+        organizationId,
+        body: trimmed,
+        files: filesToSend,
+      });
 
       optimisticSendRef.current.confirm(optimisticId, messageId);
       await onRefresh({ silent: true });

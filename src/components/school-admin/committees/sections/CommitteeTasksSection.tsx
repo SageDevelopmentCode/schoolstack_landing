@@ -25,6 +25,7 @@ import CommitteeTaskDetailPanel, {
   type CommitteeTaskPanelState,
 } from "@/components/school-admin/committees/sections/CommitteeTaskDetailPanel";
 import type { CommitteesApiNamespace } from "@/components/portal-committees/PortalCommitteesPage";
+import { committeesApiBaseForPortal } from "@/lib/committees/committees-api-base";
 import { staggerContainer, staggerItem } from "@/components/school-admin/committees/committee-motion";
 
 const COLUMNS: CommitteeTaskStatus[] = ["open", "claimed", "in_progress", "done"];
@@ -159,6 +160,9 @@ export default function CommitteeTasksSection({
     let savedTaskId: string | null = null;
     try {
       if (panelState?.mode === "create") {
+        const committeesApiBase = committeesApiBaseForPortal(
+          isAdmin ? "school-admin" : portalApiNamespace,
+        );
         const created = await createTask(supabase, committee.id, {
           title: data.title.trim(),
           description: data.description.trim() || undefined,
@@ -167,6 +171,8 @@ export default function CommitteeTasksSection({
           assigneeMemberId: data.assigneeMemberId ?? undefined,
           dueDate: data.dueDate || undefined,
           createdByMemberId: currentMemberId,
+          organizationId,
+          committeesApiBase,
         });
         savedTaskId = created.id;
         adminToast.success("Task added");

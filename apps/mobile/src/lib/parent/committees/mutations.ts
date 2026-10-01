@@ -428,3 +428,51 @@ export async function postCommitteeMessage(
 
   return { messageId };
 }
+
+export async function postCommitteeMessageViaParentApi(
+  committeeId: string,
+  input: {
+    organizationId: string;
+    body: string;
+    files?: StagedMessageFile[];
+  },
+): Promise<{ messageId: string }> {
+  const { fetchParentApiFormData, fetchParentApi } = await import(
+    '@/lib/parent/parent-portal-api'
+  );
+
+  const trimmedBody = input.body.trim();
+  const files = input.files ?? [];
+
+  if (!trimmedBody && files.length === 0) {
+    throw new Error('Message cannot be empty.');
+  }
+
+  if (files.length > 0) {
+    const formData = new FormData();
+    formData.append('organizationId', input.organizationId);
+    formData.append('body', trimmedBody);
+    for (const file of files) {
+      formData.append('files', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType ?? 'application/octet-stream',
+      } as unknown as Blob);
+    }
+
+    const payload = await fetchParentApiFormData<{ message: { id: string } }>(
+      `/api/parent-portal/committees/${committeeId}/messages`,
+      formData,
+    );
+    return { messageId: payload.message.id };
+  }
+
+  const formData = new FormData();
+  formData.append('organizationId', input.organizationId);
+  formData.append('body', trimmedBody);
+  const payload = await fetchParentApiFormData<{ message: { id: string } }>(
+    `/api/parent-portal/committees/${committeeId}/messages`,
+    formData,
+  );
+  return { messageId: payload.message.id };
+}
