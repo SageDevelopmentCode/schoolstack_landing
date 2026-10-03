@@ -6,6 +6,7 @@ import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-serv
 import { apiError } from "@/lib/api/route-errors";
 import {
   attachCheckoutSessionToPayments,
+  listInFlightTuitionPaymentsForCharge,
   listPendingPaymentsForTuitionCharge,
   markPaymentFailed,
 } from "@/lib/stripe/application-payments";
@@ -162,6 +163,22 @@ export async function POST(request: Request) {
         error: "School payments are not set up yet.",
         code: "payments_not_ready",
       });
+    }
+
+    for (const candidate of candidates) {
+      const inFlightPayments = await listInFlightTuitionPaymentsForCharge(
+        admin,
+        candidate.charge.id,
+      );
+      if (inFlightPayments.length > 0) {
+        return apiError(ROUTE, {
+          request,
+          status: 409,
+          error:
+            "A bank payment is already in progress for one of these charges. Check your email to verify your bank account, or wait for processing to finish.",
+          code: "payment_in_flight",
+        });
+      }
     }
 
     const stripe = getStripeClient();

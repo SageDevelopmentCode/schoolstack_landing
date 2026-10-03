@@ -158,6 +158,40 @@ function lineItemSummaryForDiscord(payments: PaymentRecord[]): string {
     .join("; ");
 }
 
+function familyEmailSentFromResults(
+  results: PromiseSettledResult<{ ok: boolean }>[],
+): boolean {
+  return results.some(
+    (result) => result.status === "fulfilled" && result.value.ok === true,
+  );
+}
+
+async function logOutboundEmailSettledFailures(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    operation: string;
+    entityType: string;
+    entityId: string;
+  },
+  results: PromiseSettledResult<{ ok: boolean }>[],
+): Promise<void> {
+  const failures = results.filter(
+    (result) =>
+      result.status === "rejected" ||
+      (result.status === "fulfilled" && !result.value.ok),
+  );
+  if (failures.length === 0) return;
+
+  await logNotificationFailure(admin, {
+    organizationId: input.organizationId,
+    operation: input.operation,
+    error: `${failures.length} email(s) failed`,
+    entityType: input.entityType,
+    entityId: input.entityId,
+  });
+}
+
 async function sendAchBankVerificationOpsNotifications(
   admin: SupabaseClient,
   input: {
@@ -191,7 +225,7 @@ async function sendAchBankVerificationOpsNotifications(
   const lineItems = lineItemsFromPayments(payments);
 
   if (!alreadyNotified) {
-    void logActivityEvent(admin, {
+    await logActivityEvent(admin, {
       organizationId: input.organizationId,
       actorType: "system",
       surface: "system",
@@ -213,7 +247,7 @@ async function sendAchBankVerificationOpsNotifications(
     });
 
     if (firstPayment.paymentType === "tuition") {
-      void logTuitionActivity(admin, {
+      await logTuitionActivity(admin, {
         organizationId: input.organizationId,
         action: ACTIVITY_ACTIONS.PAYMENT_ACH_VERIFICATION_REQUIRED,
         entityType: "tuition_charge",
@@ -335,7 +369,13 @@ export async function sendAchBankVerificationNotificationsForPayments(
               }),
             ),
           );
-          familyEmailSent = results.some((result) => result.status === "fulfilled");
+          familyEmailSent = familyEmailSentFromResults(results);
+          await logOutboundEmailSettledFailures(admin, {
+            organizationId: input.organizationId,
+            operation: "ach_bank_verification_family_email",
+            entityType: "payment",
+            entityId: firstPayment.id,
+          }, results);
         } else {
           console.warn(
             "ACH verification email: no tuition payer contact",
@@ -366,7 +406,13 @@ export async function sendAchBankVerificationNotificationsForPayments(
               }),
             ),
           );
-          familyEmailSent = results.some((result) => result.status === "fulfilled");
+          familyEmailSent = familyEmailSentFromResults(results);
+          await logOutboundEmailSettledFailures(admin, {
+            organizationId: input.organizationId,
+            operation: "ach_bank_verification_family_email",
+            entityType: "payment",
+            entityId: firstPayment.id,
+          }, results);
         } else {
           console.warn(
             "ACH verification email: no admissions payer contact",
@@ -398,15 +444,10 @@ export async function sendAchBankVerificationNotificationsForPayments(
   }
 }
 
-export async function sendDeferredTuitionReceiptsIfAchSettled(
+async function sendDeferredTuitionReceiptsForPayments(
   admin: SupabaseClient,
-  input: {
-    sessionPaymentStatus: string;
-    payments: PaymentRecord[];
-  },
+  payments: PaymentRecord[],
 ): Promise<void> {
-  if (input.sessionPaymentStatus !== "paid") return;
-
   const { sendTuitionPaymentReceiptNotifications } = await import(
     "@/lib/tuition/payment-receipt-notifications"
   );
@@ -414,7 +455,7 @@ export async function sendDeferredTuitionReceiptsIfAchSettled(
     "@/lib/notifications/payment-admin-notifications"
   );
 
-  for (const payment of input.payments) {
+  for (const payment of payments) {
     if (payment.paymentType !== "tuition" || payment.status !== "succeeded") {
       continue;
     }
@@ -439,6 +480,24 @@ export async function sendDeferredTuitionReceiptsIfAchSettled(
       });
     }
   }
+}
+
+export async function sendDeferredTuitionReceiptsIfAchSettled(
+  admin: SupabaseClient,
+  input: {
+    sessionPaymentStatus: string;
+    payments: PaymentRecord[];
+  },
+): Promise<void> {
+  if (input.sessionPaymentStatus !== "paid") return;
+  await sendDeferredTuitionReceiptsForPayments(admin, input.payments);
+}
+
+export async function sendDeferredTuitionReceiptsForInFlightAchPayments(
+  admin: SupabaseClient,
+  payments: PaymentRecord[],
+): Promise<void> {
+  await sendDeferredTuitionReceiptsForPayments(admin, payments);
 }
 
 export async function sendDeferredAdmissionsReceiptsIfAchSettled(
@@ -471,6 +530,7 @@ export async function sendTuitionAchSettlementFailedNotifications(
   input: {
     payment: PaymentRecord;
     settlementFailure: boolean;
+    chargeReopened?: boolean;
   },
 ): Promise<void> {
   try {
@@ -500,7 +560,7 @@ export async function sendTuitionAchSettlementFailedNotifications(
       entityId: payment.id,
     });
 
-    await Promise.all(
+    const results = await Promise.allSettled(
       contact.emails.map((email) =>
         sendTuitionAchSettlementFailedEmail({
           email,
@@ -510,10 +570,17 @@ export async function sendTuitionAchSettlementFailedNotifications(
           chargeLabel: payment.label ?? "Tuition",
           amountCents: payment.amountCents,
           settlementFailure: input.settlementFailure,
+          chargeReopened: input.chargeReopened,
           notificationContext,
         }),
       ),
     );
+    await logOutboundEmailSettledFailures(admin, {
+      organizationId: payment.organizationId,
+      operation: "tuition_ach_settlement_failed_email",
+      entityType: "payment",
+      entityId: payment.id,
+    }, results);
   } catch (error) {
     console.error(
       "Tuition ACH settlement failed notification error:",

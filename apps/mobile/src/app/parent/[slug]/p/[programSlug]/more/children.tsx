@@ -12,5 +12,7 @@ export default function ProgramParentChildrenRoute() {
 
   if (!slug || !selectedSchool) return null;
 
-  return <ParentChildrenScreen slug={slug} initialApplicationId={applicationId} />;
+  return (
+    <ParentChildrenScreen slug={slug} initialApplicationId={applicationId} portalScope="program" />
+  );
 }

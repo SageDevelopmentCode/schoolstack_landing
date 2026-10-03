@@ -13,31 +13,35 @@
 Stripe Dashboard → Rooted Meadows Connect account → each PaymentIntent → copy  
 `next_action.verify_with_microdeposits.hosted_verification_url`
 
-Or with **live** `STRIPE_SECRET_KEY` in `.env.local`:
+Or with **live** `STRIPE_SECRET_KEY` in `.env.local` (default is dry run — prints a manual draft, no send):
 
 ```bash
 PAYMENT_IDS=040a76f7-06bf-4f80-962d-ff0154b873ba,ea94f4ad-984b-4518-92d5-2a9b9c9f4edb \
-PRINT_MANUAL=1 \
 npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
 ```
+
+Same output with explicit `PRINT_MANUAL=1`.
+
+Sep and Oct use **different** Stripe verification URLs. Do **not** batch both IDs in one automated send — the script refuses when URLs differ. Use the draft above (both links) or the body template below.
 
 ## Send via MudKitchen (after deploy + live Zoho)
 
-One batched run emails the family (both line items), notifies **payment-alert school admins**, posts **Discord**, and logs **activity** (when ops has not run yet):
+Run **once per payment** that still needs verification on Stripe (`requires_action` / micro-deposits). September may already be succeeded in checkout; the script skips PIs that are not awaiting verification.
 
 ```bash
-PAYMENT_IDS=040a76f7-06bf-4f80-962d-ff0154b873ba,ea94f4ad-984b-4518-92d5-2a9b9c9f4edb \
+DRY_RUN=0 PAYMENT_ID=ea94f4ad-984b-4518-92d5-2a9b9c9f4edb \
 npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
 ```
 
-School admin recipients use the same org setting as **“Email admins when payments are received”** (Finances notifications).
+Repeat with the Sep UUID only if that PaymentIntent still needs verification.
 
-Sep and Oct use **different** Stripe verification URLs. The automated family email includes one primary “Verify bank” button (first payment’s link). Hayley still needs **both** links — use `PRINT_MANUAL=1` output or the body template below for the second URL if needed.
+School admin recipients use the same org setting as **“Email admins when payments are received”** (Finances notifications).
 
 Optional env flags:
 
 | Env | Default | Purpose |
 |-----|---------|---------|
+| `DRY_RUN=0` | off (dry run on) | Required to send family email, Discord, and activity |
 | `SEND_FAMILY=0` | on | Skip family verification email |
 | `SEND_OPS=0` | on | Skip admin email, Discord, activity |
 | `FORCE_OPS=1` | off | Re-send admin + Discord if ops activity already logged (no duplicate activity row) |

@@ -4,7 +4,7 @@
  * Usage:
  *   PAYMENT_ID=040a76f7-... npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
  *   PAYMENT_IDS=uuid1,uuid2 PRINT_MANUAL=1 ...  # combined manual email draft
- *   DRY_RUN=1  # fetch only, no Zoho send
+ *   DRY_RUN=0 PAYMENT_ID=...  # send via Zoho / Discord (DRY_RUN defaults on)
  *
  * Env (default 1 = on):
  *   SEND_FAMILY=1  — family/applicant verification email via MudKitchen
@@ -17,6 +17,8 @@ import { config } from "dotenv";
 
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { AchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
+
+import { validateAchResendBatch } from "./lib/resend-ach-batch-validation";
 
 config({ path: resolve(process.cwd(), ".env.local") });
 
@@ -34,6 +36,25 @@ type ReadyPayment = {
   payment: PaymentRecord;
   verificationAction: AchVerificationAction;
 };
+
+function failBatchValidation(reason: string): never {
+  console.error(`[resend-ach-bank-verification] ${reason}`);
+  process.exit(1);
+}
+
+function validateOrgBatches(
+  readyByOrg: Map<string, ReadyPayment[]>,
+  requireSingleVerificationUrl: boolean,
+): void {
+  for (const readyPayments of readyByOrg.values()) {
+    const result = validateAchResendBatch(readyPayments, {
+      requireSingleVerificationUrl,
+    });
+    if (!result.ok) {
+      failBatchValidation(result.reason);
+    }
+  }
+}
 
 async function main() {
   const paymentIds = (
@@ -68,10 +89,16 @@ async function main() {
   }
 
   const printManual = process.env.PRINT_MANUAL === "1";
-  const dryRun = process.env.DRY_RUN === "1";
+  const dryRun = process.env.DRY_RUN !== "0";
   const sendFamily = envFlag("SEND_FAMILY");
   const sendOps = envFlag("SEND_OPS");
   const forceOps = envFlag("FORCE_OPS", false);
+
+  if (dryRun) {
+    log(
+      "DRY_RUN is on by default; set DRY_RUN=0 to send family email, Discord, and activity events.",
+    );
+  }
 
   const { createAdminClient } = await import("@/utils/supabase/admin");
   const { getPaymentById } = await import("@/lib/stripe/application-payments");
@@ -126,11 +153,15 @@ async function main() {
     process.exit(1);
   }
 
+  const requireSingleVerificationUrl = !printManual && !dryRun;
+  validateOrgBatches(readyByOrg, requireSingleVerificationUrl);
+
   if (printManual || dryRun) {
-    const firstPayment = await getPaymentById(admin, paymentIds[0]!);
+    const samplePayment =
+      readyByOrg.values().next().value?.[0]?.payment ?? null;
     const emails =
-      firstPayment?.familyId != null
-        ? await loadFamilyNotificationEmails(admin, firstPayment.familyId)
+      samplePayment?.familyId != null
+        ? await loadFamilyNotificationEmails(admin, samplePayment.familyId)
         : [];
 
     console.log("\n--- Manual email draft ---\n");
@@ -158,16 +189,6 @@ async function main() {
     const checkoutSessionId =
       payments[0]?.stripeCheckoutSessionId ??
       `manual-resend-${sortedIds.join("-")}`;
-
-    const uniqueUrls = new Set(
-      readyPayments.map((row) => row.verificationAction.hostedVerificationUrl),
-    );
-    if (uniqueUrls.size > 1) {
-      log(
-        `Note: ${payments.length} payments have different Stripe verification URLs. ` +
-          "The automated family email uses the first payment's verify button; include all links in manual follow-up if needed.",
-      );
-    }
 
     const verificationAction = readyPayments[0]!.verificationAction;
 

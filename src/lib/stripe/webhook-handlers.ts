@@ -23,6 +23,7 @@ import {
   savePaymentMethodFromSetupIntent,
   trySaveTuitionPaymentMethod,
 } from "@/lib/tuition/autopay";
+import { revertTuitionPaymentAfterAchSettlementFailure } from "@/lib/tuition/payment-settlement";
 import {
   logTuitionActivity,
   parentActivityContext,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/tuition/tuition-activity";
 import {
   attachCheckoutSessionToPayment,
+  attachStripeCheckoutToPayment,
   getApplicationPaymentByCheckoutSession,
   getPaymentById,
   listPaymentsByCheckoutSession,
@@ -53,6 +55,7 @@ import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-
 import {
   sendAchBankVerificationNotificationsForPayments,
   sendDeferredAdmissionsReceiptsIfAchSettled,
+  sendDeferredTuitionReceiptsForInFlightAchPayments,
   sendDeferredTuitionReceiptsIfAchSettled,
   sendTuitionAchSettlementFailedNotifications,
 } from "@/lib/stripe/ach-bank-verification-notifications";
@@ -197,22 +200,58 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
 
   for (const payment of payments) {
     if (payment.status === "succeeded") {
+      if (payment.paymentType === "tuition") {
+        const revertResult = await revertTuitionPaymentAfterAchSettlementFailure(
+          admin,
+          payment,
+          {
+            stripePaymentIntentId: paymentIntentId,
+            stripeCheckoutSessionId: checkoutSessionId,
+          },
+        );
+        if (!revertResult.alreadyHandled && organizationId) {
+          void logActivityEvent(admin, {
+            organizationId,
+            actorType: "system",
+            surface: "system",
+            action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+            entityType: "tuition_charge",
+            entityId: payment.tuitionChargeId ?? payment.id,
+            summary: "ACH settlement failed after payment was recorded",
+            metadata: {
+              checkoutSessionId,
+              paymentId: payment.id,
+              applicationId: payment.applicationId,
+              paymentType: payment.paymentType,
+              tuitionChargeId: payment.tuitionChargeId,
+              settlementFailure: true,
+              chargeReopened: revertResult.chargeReopened,
+            },
+            severity: "warning",
+          });
+          void sendTuitionAchSettlementFailedNotifications(admin, {
+            payment: revertResult.payment,
+            settlementFailure: true,
+            chargeReopened: revertResult.chargeReopened,
+          });
+        }
+        continue;
+      }
+
+      // Admissions (enrollment checklist, application fee): optimistic record is not
+      // auto-reverted here — ops uses activity_events and manual correction if needed.
       await updateStripeProviderStatus(admin, payment.id, "failed");
       if (organizationId) {
         const entityType =
-          payment.paymentType === "tuition"
-            ? "tuition_charge"
-            : payment.enrollmentChecklistItemId
-              ? "enrollment_checklist_item"
-              : payment.applicationId
-                ? "application"
-                : "application_payment";
+          payment.enrollmentChecklistItemId
+            ? "enrollment_checklist_item"
+            : payment.applicationId
+              ? "application"
+              : "application_payment";
         const entityId =
-          payment.paymentType === "tuition"
-            ? (payment.tuitionChargeId ?? payment.id)
-            : (payment.enrollmentChecklistItemId ??
-              payment.applicationId ??
-              payment.id);
+          payment.enrollmentChecklistItemId ??
+          payment.applicationId ??
+          payment.id;
 
         void logActivityEvent(admin, {
           organizationId,
@@ -232,12 +271,6 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
           },
           severity: "warning",
         });
-        if (payment.paymentType === "tuition") {
-          void sendTuitionAchSettlementFailedNotifications(admin, {
-            payment,
-            settlementFailure: true,
-          });
-        }
       }
       continue;
     }
@@ -408,7 +441,7 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
   }
 
   if (achFollowUp.verificationAction && payments.length > 0) {
-    void sendAchBankVerificationNotificationsForPayments(admin, {
+    await sendAchBankVerificationNotificationsForPayments(admin, {
       organizationId,
       checkoutSessionId,
       payments,
@@ -478,7 +511,7 @@ async function handleEnrollmentChecklistCheckoutCompleted(
         achFollowUp.stripeProviderStatus,
       );
       if (achFollowUp.verificationAction) {
-        void sendAchBankVerificationNotificationsForPayments(admin, {
+        await sendAchBankVerificationNotificationsForPayments(admin, {
           organizationId: String(metadata.organization_id),
           checkoutSessionId,
           payments: [payment],
@@ -639,7 +672,7 @@ async function handleCombinedTuitionCheckoutCompleted(
 
   if (newlyRecordedAny && refreshedPayments.length > 0) {
     if (achFollowUp.verificationAction) {
-      void sendAchBankVerificationNotificationsForPayments(admin, {
+      await sendAchBankVerificationNotificationsForPayments(admin, {
         organizationId: String(metadata.organization_id),
         checkoutSessionId,
         payments: refreshedPayments,
@@ -791,7 +824,7 @@ async function handleTuitionCheckoutCompleted(
   }
 
   if (achFollowUp.verificationAction) {
-    void sendAchBankVerificationNotificationsForPayments(admin, {
+    await sendAchBankVerificationNotificationsForPayments(admin, {
       organizationId: String(metadata.organization_id),
       checkoutSessionId,
       payments: [payment],
@@ -839,7 +872,7 @@ async function handleApplicationFeeCheckoutCompleted(
         achFollowUp.stripeProviderStatus,
       );
       if (achFollowUp.verificationAction) {
-        void sendAchBankVerificationNotificationsForPayments(admin, {
+        await sendAchBankVerificationNotificationsForPayments(admin, {
           organizationId: payment.organizationId,
           checkoutSessionId,
           payments: [payment],
@@ -980,6 +1013,165 @@ async function processApplicationFeePayment(
   });
 }
 
+async function resolveTuitionPaymentFromPaymentIntent(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<PaymentRecord | null> {
+  if (paymentIntent.metadata?.payment_type !== "tuition") {
+    return null;
+  }
+
+  const paymentId =
+    typeof paymentIntent.metadata?.payment_id === "string"
+      ? paymentIntent.metadata.payment_id
+      : null;
+  if (!paymentId) return null;
+
+  const payment = await getPaymentById(admin, paymentId);
+  if (!payment || payment.paymentType !== "tuition") return null;
+  return payment;
+}
+
+async function logTuitionPaymentIntentFailedActivity(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    payment: PaymentRecord;
+    paymentIntentId: string;
+    settlementFailure: boolean;
+  },
+): Promise<void> {
+  void logActivityEvent(admin, {
+    organizationId: input.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+    entityType: "tuition_charge",
+    entityId: input.payment.tuitionChargeId ?? input.payment.id,
+    summary: input.settlementFailure
+      ? "ACH settlement failed after payment was recorded"
+      : "Payment failed (ACH)",
+    metadata: {
+      paymentId: input.payment.id,
+      paymentType: input.payment.paymentType,
+      tuitionChargeId: input.payment.tuitionChargeId,
+      paymentIntentId: input.paymentIntentId,
+      settlementFailure: input.settlementFailure,
+    },
+    severity: input.settlementFailure ? "warning" : undefined,
+  });
+}
+
+export async function handlePaymentIntentSucceeded(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  const payment = await resolveTuitionPaymentFromPaymentIntent(admin, paymentIntent);
+  if (!payment) return;
+
+  const organizationId =
+    typeof paymentIntent.metadata?.organization_id === "string"
+      ? paymentIntent.metadata.organization_id
+      : payment.organizationId;
+  const priorProviderStatus = payment.stripeProviderStatus;
+  const providerStatus =
+    paymentIntent.status === "succeeded" ? "succeeded" : paymentIntent.status;
+
+  if (payment.status === "pending") {
+    await recordTuitionPaymentCompleted(admin, {
+      payment,
+      organizationId,
+      tuitionChargeId: payment.tuitionChargeId,
+      paymentIntentId: paymentIntent.id,
+      stripeProviderStatus: providerStatus,
+    });
+    const refreshed =
+      (await getPaymentById(admin, payment.id)) ?? payment;
+    await sendDeferredTuitionReceiptsForInFlightAchPayments(admin, [refreshed]);
+    return;
+  }
+
+  if (payment.status !== "succeeded") return;
+
+  if (
+    priorProviderStatus === "requires_action" ||
+    priorProviderStatus === "processing"
+  ) {
+    await sendDeferredTuitionReceiptsForInFlightAchPayments(admin, [payment]);
+  }
+
+  if (priorProviderStatus !== providerStatus) {
+    await updateStripeProviderStatus(admin, payment.id, providerStatus);
+  }
+}
+
+export async function handlePaymentIntentPaymentFailed(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  await handleTuitionPaymentIntentTerminalFailure(admin, paymentIntent);
+}
+
+export async function handlePaymentIntentCanceled(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  await handleTuitionPaymentIntentTerminalFailure(admin, paymentIntent);
+}
+
+async function handleTuitionPaymentIntentTerminalFailure(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  const payment = await resolveTuitionPaymentFromPaymentIntent(admin, paymentIntent);
+  if (!payment) return;
+
+  const organizationId =
+    typeof paymentIntent.metadata?.organization_id === "string"
+      ? paymentIntent.metadata.organization_id
+      : payment.organizationId;
+
+  if (payment.status === "succeeded") {
+    const revertResult = await revertTuitionPaymentAfterAchSettlementFailure(
+      admin,
+      payment,
+      { stripePaymentIntentId: paymentIntent.id },
+    );
+    if (!revertResult.alreadyHandled) {
+      await logTuitionPaymentIntentFailedActivity(admin, {
+        organizationId,
+        payment: revertResult.payment,
+        paymentIntentId: paymentIntent.id,
+        settlementFailure: true,
+      });
+      void sendTuitionAchSettlementFailedNotifications(admin, {
+        payment: revertResult.payment,
+        settlementFailure: true,
+        chargeReopened: revertResult.chargeReopened,
+      });
+    }
+    return;
+  }
+
+  if (payment.status !== "pending") return;
+
+  const updatedPayment = await markPaymentFailed(admin, payment.id, {
+    stripePaymentIntentId: paymentIntent.id,
+  });
+  if (!updatedPayment || updatedPayment.status !== "failed") return;
+
+  await logTuitionPaymentIntentFailedActivity(admin, {
+    organizationId,
+    payment: updatedPayment,
+    paymentIntentId: paymentIntent.id,
+    settlementFailure: false,
+  });
+  void sendTuitionAchSettlementFailedNotifications(admin, {
+    payment: updatedPayment,
+    settlementFailure: false,
+  });
+}
+
 export async function handlePaymentIntentRequiresAction(
   admin: SupabaseClient,
   paymentIntent: Stripe.PaymentIntent,
@@ -999,15 +1191,33 @@ export async function handlePaymentIntentRequiresAction(
   if (!paymentId || !organizationId) return;
 
   const payment = await getPaymentById(admin, paymentId);
-  if (!payment || payment.status !== "succeeded") return;
+  if (!payment) return;
   if (payment.stripeProviderStatus === "requires_action") return;
+
+  if (payment.status === "pending" && !payment.stripeCheckoutSessionId) {
+    if (!payment.stripePaymentIntentId) {
+      await attachStripeCheckoutToPayment(admin, payment.id, {
+        stripePaymentIntentId: paymentIntent.id,
+      });
+    }
+    await updateStripeProviderStatus(admin, payment.id, "requires_action");
+    await sendAchBankVerificationNotificationsForPayments(admin, {
+      organizationId,
+      checkoutSessionId: `autopay-${payment.id}`,
+      payments: [payment],
+      verificationAction,
+    });
+    return;
+  }
+
+  if (payment.status !== "succeeded") return;
 
   await updateStripeProviderStatus(admin, payment.id, "requires_action");
 
   const checkoutSessionId = payment.stripeCheckoutSessionId;
   if (!checkoutSessionId) return;
 
-  void sendAchBankVerificationNotificationsForPayments(admin, {
+  await sendAchBankVerificationNotificationsForPayments(admin, {
     organizationId,
     checkoutSessionId,
     payments: [payment],

@@ -44,6 +44,13 @@ export function formatChildrenPageDate(): string {
   });
 }
 
+export function programPortalChildrenEmptyMessage(portalLabel: string): string {
+  const label = portalLabel.trim() || 'this program';
+  return `No learners enrolled in ${label} yet.`;
+}
+
+export type ParentChildrenPortalScope = 'main' | 'program';
+
 export function familyChildrenSubtitle(children: FamilyChildOverview[]): string {
   if (children.length === 0) return '';
   const enrolledCount = children.filter((child) => child.isEnrolled).length;

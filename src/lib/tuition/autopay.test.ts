@@ -3,6 +3,19 @@ import { after, describe, it } from "node:test";
 import { setStripeClientForTests } from "@/lib/stripe/client";
 import { processAutopayForOrganization } from "./autopay";
 
+function applicationPaymentsListMock(extra?: Record<string, unknown>) {
+  const emptyList: Record<string, unknown> = {};
+  const chain = () => emptyList;
+  emptyList.eq = chain;
+  emptyList.in = chain;
+  emptyList.order = async () => ({ data: [], error: null });
+
+  return {
+    select: () => emptyList,
+    ...extra,
+  };
+}
+
 describe("processAutopayForOrganization", () => {
   after(() => {
     setStripeClientForTests(null);
@@ -184,6 +197,10 @@ describe("processAutopayForOrganization", () => {
               }),
             }),
           };
+        }
+
+        if (table === "application_payments") {
+          return applicationPaymentsListMock();
         }
 
         if (table === "activity_events") {
@@ -530,7 +547,7 @@ describe("processAutopayForOrganization", () => {
         }
 
         if (table === "application_payments") {
-          return {
+          return applicationPaymentsListMock({
             insert: () => ({
               select: () => ({
                 single: async () => ({
@@ -545,7 +562,7 @@ describe("processAutopayForOrganization", () => {
             update: () => ({
               eq: async () => ({ error: null }),
             }),
-          };
+          });
         }
 
         if (table === "activity_events") {

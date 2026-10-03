@@ -431,6 +431,51 @@ export async function markPaymentFailed(
   return current ? rowToPayment(current as Record<string, unknown>) : null;
 }
 
+/** After optimistic ACH record, move succeeded → failed when Stripe settlement fails. */
+export async function revertSucceededPaymentToFailed(
+  supabase: SupabaseClient,
+  paymentId: string,
+  input: {
+    stripePaymentIntentId?: string;
+    stripeCheckoutSessionId?: string;
+  } = {},
+): Promise<PaymentRecord | null> {
+  const updatePayload: Record<string, unknown> = {
+    status: "failed",
+    stripe_provider_status: "failed",
+    amount_applied_cents: 0,
+  };
+
+  if (input.stripePaymentIntentId) {
+    updatePayload.stripe_payment_intent_id = input.stripePaymentIntentId;
+  }
+  if (input.stripeCheckoutSessionId) {
+    updatePayload.stripe_checkout_session_id = input.stripeCheckoutSessionId;
+  }
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .update(updatePayload)
+    .eq("id", paymentId)
+    .eq("status", "succeeded")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) {
+    return rowToPayment(data as Record<string, unknown>);
+  }
+
+  const { data: current, error: currentError } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("id", paymentId)
+    .maybeSingle();
+
+  if (currentError) throw currentError;
+  return current ? rowToPayment(current as Record<string, unknown>) : null;
+}
+
 type CheckoutMetadataPaymentFields = {
   paymentMethodType: PaymentMethodType | null;
   chargedAmountCents: number | null;
@@ -570,6 +615,66 @@ export async function listPendingPaymentsForTuitionCharge(
   return (data ?? []).map((row) =>
     rowToPayment(row as Record<string, unknown>),
   );
+}
+
+const IN_FLIGHT_ACH_PROVIDER_STATUSES = ["requires_action", "processing"];
+
+export function isInFlightTuitionPayment(payment: PaymentRecord): boolean {
+  if (payment.paymentType !== "tuition") return false;
+
+  if (payment.status === "pending" && payment.stripePaymentIntentId) {
+    return true;
+  }
+
+  if (
+    payment.status === "succeeded" &&
+    payment.paymentMethodType === "us_bank_account" &&
+    payment.stripeProviderStatus &&
+    IN_FLIGHT_ACH_PROVIDER_STATUSES.includes(payment.stripeProviderStatus)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function listInFlightTuitionPaymentsForCharge(
+  supabase: SupabaseClient,
+  tuitionChargeId: string,
+): Promise<PaymentRecord[]> {
+  const pending = await listPendingPaymentsForTuitionCharge(
+    supabase,
+    tuitionChargeId,
+  );
+  const fromPending = pending.filter((payment) =>
+    isInFlightTuitionPayment(payment),
+  );
+
+  const { data, error } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("tuition_charge_id", tuitionChargeId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded")
+    .eq("payment_method_type", "us_bank_account")
+    .in("stripe_provider_status", IN_FLIGHT_ACH_PROVIDER_STATUSES)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  const fromSucceeded = (data ?? []).map((row) =>
+    rowToPayment(row as Record<string, unknown>),
+  );
+
+  const seen = new Set<string>();
+  const merged: PaymentRecord[] = [];
+  for (const payment of [...fromPending, ...fromSucceeded]) {
+    if (seen.has(payment.id)) continue;
+    seen.add(payment.id);
+    merged.push(payment);
+  }
+
+  return merged;
 }
 
 export async function attachCheckoutSessionToPayments(

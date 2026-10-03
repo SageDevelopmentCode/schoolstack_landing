@@ -11,7 +11,14 @@ import { reportOperationalError } from "@/lib/operational-errors";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { getAchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
 import { sendAchBankVerificationNotificationsForPayments } from "@/lib/stripe/ach-bank-verification-notifications";
-import { updateStripeProviderStatus } from "@/lib/stripe/application-payments";
+
+export type AutopayChargeOutcome = "completed" | "requires_action" | "initiated";
+
+export type AutopayChargeResult = {
+  outcome: AutopayChargeOutcome;
+  paymentIntentId: string;
+  paymentId: string;
+};
 
 export type AutopayChargeInput = {
   organizationId: string;
@@ -59,7 +66,7 @@ export async function executeTuitionAutopayCharge(
     stripe?: Stripe;
     recordCompleted?: typeof recordTuitionPaymentCompleted;
   },
-): Promise<{ paymentIntentId: string; paymentId: string }> {
+): Promise<AutopayChargeResult> {
   const stripe = options?.stripe ?? getStripeClient();
   const recordCompleted = options?.recordCompleted ?? recordTuitionPaymentCompleted;
   const paymentMethod = await resolveAutopayPaymentMethod(stripe, input);
@@ -126,7 +133,15 @@ export async function executeTuitionAutopayCharge(
 
   const verificationAction = getAchVerificationAction(paymentIntent);
   if (paymentIntent.status === "requires_action" && verificationAction) {
-    await updateStripeProviderStatus(supabase, payment.id, "requires_action");
+    await recordCompleted(supabase, {
+      payment,
+      organizationId: input.organizationId,
+      tuitionChargeId: input.chargeId,
+      paymentIntentId: paymentIntent.id,
+      stripeProviderStatus: "requires_action",
+      skipReceipt: true,
+      skipActivity: true,
+    });
     if (input.suppressEmails !== true) {
       void sendAchBankVerificationNotificationsForPayments(supabase, {
         organizationId: input.organizationId,
@@ -135,7 +150,11 @@ export async function executeTuitionAutopayCharge(
         verificationAction,
       });
     }
-    return { paymentIntentId: paymentIntent.id, paymentId: payment.id };
+    return {
+      outcome: "requires_action",
+      paymentIntentId: paymentIntent.id,
+      paymentId: payment.id,
+    };
   }
 
   if (
@@ -150,7 +169,16 @@ export async function executeTuitionAutopayCharge(
       stripeProviderStatus: paymentIntent.status,
       skipReceipt: input.suppressEmails === true,
     });
+    return {
+      outcome: "completed",
+      paymentIntentId: paymentIntent.id,
+      paymentId: payment.id,
+    };
   }
 
-  return { paymentIntentId: paymentIntent.id, paymentId: payment.id };
+  return {
+    outcome: "initiated",
+    paymentIntentId: paymentIntent.id,
+    paymentId: payment.id,
+  };
 }

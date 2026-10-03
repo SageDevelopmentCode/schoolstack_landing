@@ -24,6 +24,7 @@ import {
 } from "@/lib/stripe/organization-payment-account";
 import {
   attachCheckoutSessionToPayment,
+  listInFlightTuitionPaymentsForCharge,
   listPendingPaymentsForTuitionCharge,
   markPaymentFailed,
   updatePaymentCheckoutDetails,
@@ -196,6 +197,20 @@ export async function POST(request: Request, context: RouteContext) {
       userId: user.id,
       email: user.email,
     });
+
+    const inFlightPayments = await listInFlightTuitionPaymentsForCharge(
+      admin,
+      charge.id,
+    );
+    if (inFlightPayments.length > 0) {
+      return apiError(ROUTE, {
+        request,
+        status: 409,
+        error:
+          "A bank payment is already in progress for this charge. Check your email to verify your bank account, or wait for processing to finish.",
+        code: "payment_in_flight",
+      });
+    }
 
     const stripe = getStripeClient();
     const isLumpSum = requestedAmountCents > remainingCents;

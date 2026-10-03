@@ -155,22 +155,47 @@ export async function listParentTuitionPaymentHistory(
   );
 }
 
+const IN_FLIGHT_ACH_PROVIDER_STATUSES = ["requires_action", "processing"];
+
 export async function listPendingTuitionPaymentsForFamily(
   supabase: SupabaseClient,
   familyId: string,
 ): Promise<PaymentRecord[]> {
-  const { data, error } = await supabase
+  const { data: pendingRows, error } = await supabase
     .from("application_payments")
     .select("*")
     .eq("family_id", familyId)
     .eq("payment_type", "tuition")
     .eq("status", "pending")
-    .not("stripe_checkout_session_id", "is", null)
+    .or(
+      "stripe_checkout_session_id.not.is.null,stripe_payment_intent_id.not.is.null",
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw error;
 
-  const payments = mapTuitionPaymentRows(data ?? [], familyId);
+  const { data: achInFlightRows, error: achError } = await supabase
+    .from("application_payments")
+    .select("*")
+    .eq("family_id", familyId)
+    .eq("payment_type", "tuition")
+    .eq("status", "succeeded")
+    .eq("payment_method_type", "us_bank_account")
+    .in("stripe_provider_status", IN_FLIGHT_ACH_PROVIDER_STATUSES)
+    .order("created_at", { ascending: false });
+
+  if (achError) throw achError;
+
+  const mergedRows = [...(pendingRows ?? []), ...(achInFlightRows ?? [])];
+  const seenIds = new Set<string>();
+  const uniqueRows = mergedRows.filter((row) => {
+    const id = String(row.id);
+    if (seenIds.has(id)) return false;
+    seenIds.add(id);
+    return true;
+  });
+
+  const payments = mapTuitionPaymentRows(uniqueRows, familyId);
   const chargeIds = [
     ...new Set(
       payments

@@ -24,15 +24,23 @@ Local forwarding (`npm run dev:stripe` or `scripts/dev-with-stripe.ts`) uses the
 
 ## One-off ACH verification resend
 
-For families stuck on micro-deposit verification after checkout (e.g. before deploy):
+For families stuck on micro-deposit verification after checkout (e.g. before deploy).
+
+By default the script **does not send** — it fetches Stripe state and prints a manual email draft. Use live `STRIPE_SECRET_KEY` in `.env.local` when PaymentIntents are live mode.
+
+Preview / manual copy (default):
 
 ```bash
 PAYMENT_ID=<application_payment uuid> npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
 ```
 
-Use live `STRIPE_SECRET_KEY` in `.env.local` when PaymentIntents are live mode.
+Live send (one payment per run; all batched IDs must share one family and one verification URL):
 
-Print-only manual email copy (no send):
+```bash
+DRY_RUN=0 PAYMENT_ID=<uuid> npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
+```
+
+Explicit print-only (same as default dry run):
 
 ```bash
 PAYMENT_ID=<uuid> PRINT_MANUAL=1 npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts

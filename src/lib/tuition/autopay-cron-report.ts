@@ -5,7 +5,9 @@ export type AutopaySkipReason =
   | "stale_payment_method"
   | "no_guardian"
   | "no_stripe_customer"
-  | "zero_balance";
+  | "zero_balance"
+  | "payment_in_flight"
+  | "bank_verification_pending";
 
 export type AutopayLineOutcome = "charged" | "failed" | "skipped";
 
@@ -49,6 +51,8 @@ const SKIP_REASON_LABELS: Record<AutopaySkipReason, string> = {
   no_guardian: "no guardian",
   no_stripe_customer: "no Stripe customer",
   zero_balance: "already paid",
+  payment_in_flight: "payment already in progress",
+  bank_verification_pending: "bank verification pending",
 };
 
 function formatAutopayLine(line: AutopayLineItem): string {

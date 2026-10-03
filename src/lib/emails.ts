@@ -1418,8 +1418,10 @@ export async function sendAchBankVerificationEmail(payload: {
   microdepositType?: string | null;
   arrivalDate?: Date | null;
   notificationContext?: OutboundEmailNotificationContext;
-}): Promise<void> {
-  if (!(await isZohoConfigured())) return;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
 
   const arrivalDateLabel =
     payload.arrivalDate != null
@@ -1448,9 +1450,11 @@ export async function sendAchBankVerificationEmail(payload: {
     ),
   });
 
-  if (!result.success) {
-    console.error("ACH bank verification email failed:", result.error);
+  if (!result.success || result.skipped) {
+    return { ok: false };
   }
+
+  return { ok: true };
 }
 
 export function buildTuitionAchSettlementFailedHtml(payload: {
@@ -1460,22 +1464,43 @@ export function buildTuitionAchSettlementFailedHtml(payload: {
   chargeLabel: string;
   amountCents: number;
   settlementFailure: boolean;
+  /** When settlement failed after an optimistic record, whether billing was reopened for payment. */
+  chargeReopened?: boolean;
 }): string {
-  const intro = payload.settlementFailure
-    ? "Your bank account payment was recorded in MudKitchen, but the bank transfer did not complete."
-    : "Your bank account payment could not be completed.";
+  const chargeLabelHtml = escapeHtml(payload.chargeLabel);
+  const amountLabel = formatFeeAmount(payload.amountCents);
+
+  let detailParagraph: string;
+  let actionParagraph: string;
+
+  if (payload.settlementFailure) {
+    if (payload.chargeReopened) {
+      detailParagraph =
+        `Your bank transfer for ${chargeLabelHtml} (${amountLabel}) did not complete. ` +
+        "We updated billing so this charge is open again.";
+      actionParagraph =
+        "Open billing to pay with a card or a verified bank account.";
+    } else {
+      detailParagraph =
+        `Your bank transfer for ${chargeLabelHtml} (${amountLabel}) did not complete. ` +
+        "Billing may still show this charge as paid until your school corrects it.";
+      actionParagraph =
+        "Open billing to review your balance, or contact your school if you need help.";
+    }
+  } else {
+    detailParagraph =
+      `Your bank account payment could not be completed. No tuition was collected for ${chargeLabelHtml} (${amountLabel}).`;
+    actionParagraph =
+      "Please open billing and pay again with a card or a verified bank account.";
+  }
 
   return composeEmail({
     preheader: `Your tuition bank payment did not go through at ${payload.schoolName}.`,
     contentHtml: `
       ${emailBadge("Payment issue")}
       ${emailHeading(`Hi ${firstName(payload.name)},`)}
-      ${emailParagraph(
-        `${intro} No tuition was collected for ${escapeHtml(payload.chargeLabel)} (${formatFeeAmount(payload.amountCents)}).`,
-      )}
-      ${emailParagraph(
-        "Please open billing and pay again with a card or a verified bank account.",
-      )}
+      ${emailParagraph(detailParagraph)}
+      ${emailParagraph(actionParagraph)}
       ${emailCta({ label: "View billing", href: payload.billingUrl })}
       ${emailSignOff()}
     `,
@@ -1490,9 +1515,12 @@ export async function sendTuitionAchSettlementFailedEmail(payload: {
   chargeLabel: string;
   amountCents: number;
   settlementFailure: boolean;
+  chargeReopened?: boolean;
   notificationContext?: OutboundEmailNotificationContext;
-}): Promise<void> {
-  if (!(await isZohoConfigured())) return;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
 
   const content = buildTuitionAchSettlementFailedHtml(payload);
 
@@ -1508,9 +1536,11 @@ export async function sendTuitionAchSettlementFailedEmail(payload: {
     ),
   });
 
-  if (!result.success) {
-    console.error("Tuition ACH settlement failed email failed:", result.error);
+  if (!result.success || result.skipped) {
+    return { ok: false };
   }
+
+  return { ok: true };
 }
 
 export async function sendTuitionPaymentReceiptEmail(payload: {

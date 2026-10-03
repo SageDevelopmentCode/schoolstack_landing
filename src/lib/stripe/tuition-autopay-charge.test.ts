@@ -124,22 +124,42 @@ describe("executeTuitionAutopayCharge", () => {
       },
     });
 
-    const recordCompleted = async () => {
-      throw new Error("should not record completed for requires_action");
+    const recorded: Array<{
+      paymentIntentId?: string;
+      stripeProviderStatus?: string | null;
+      skipReceipt?: boolean;
+      skipActivity?: boolean;
+    }> = [];
+    const recordCompleted: typeof recordTuitionPaymentCompleted = async (
+      _admin,
+      input,
+    ) => {
+      recorded.push(input);
+      return { payment: input.payment, newlyRecorded: true };
     };
 
-    await executeTuitionAutopayCharge(supabase as never, baseInput, {
-      stripe,
-      recordCompleted: recordCompleted as never,
-    });
+    const result = await executeTuitionAutopayCharge(
+      supabase as never,
+      { ...baseInput, suppressEmails: true },
+      {
+        stripe,
+        recordCompleted,
+      },
+    );
 
     const achQuote = quoteProcessingFee(60000, "us_bank_account");
+    assert.equal(result.outcome, "requires_action");
+    assert.equal(result.paymentIntentId, "pi_ach");
     assert.deepEqual(captured?.payment_method_types, ["us_bank_account"]);
     assert.equal(captured?.amount, achQuote.grossAmountCents);
     assert.equal(captured?.metadata?.payment_method, "us_bank_account");
     assert.equal(inserted[0]?.payment_method_type, "us_bank_account");
     assert.equal(inserted[0]?.charged_amount_cents, achQuote.grossAmountCents);
-    assert.equal(updates[0]?.stripe_provider_status, "requires_action");
+    assert.equal(recorded.length, 1);
+    assert.equal(recorded[0]?.paymentIntentId, "pi_ach");
+    assert.equal(recorded[0]?.stripeProviderStatus, "requires_action");
+    assert.equal(recorded[0]?.skipReceipt, true);
+    assert.equal(recorded[0]?.skipActivity, true);
   });
 
   it("charges a saved card as card with the card fee", async () => {
