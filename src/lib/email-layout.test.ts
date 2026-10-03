@@ -5,6 +5,7 @@ import {
   emailDigestActivityCard,
   emailDigestSectionHeader,
 } from "./email-layout";
+import { PRODUCTION_SITE_URL } from "./site";
 
 describe("committee digest email dark mode", () => {
   it("includes semantic digest classes on section headers and activity cards", () => {
@@ -43,5 +44,34 @@ describe("committee digest email dark mode", () => {
     assert.match(html, /\.email-digest-badge \{/);
     assert.match(html, /prefers-color-scheme: dark/);
     assert.match(html, /#F3F4F6/);
+  });
+});
+
+describe("composeEmail siteUrl", () => {
+  it("uses an explicit siteUrl for logo and footer links", () => {
+    const customBase = "https://preview.example.com";
+    const html = composeEmail({
+      preheader: "Test",
+      contentHtml: "<p>Body</p>",
+      siteUrl: customBase,
+    });
+
+    assert.match(html, new RegExp(`src="${customBase}/images/Logo.png"`));
+    assert.match(html, new RegExp(`href="${customBase}"`));
+    assert.match(html, />preview\.example\.com</);
+    assert.doesNotMatch(html, /trymudkitchen\.com/);
+  });
+
+  it("defaults header links to production when siteUrl is omitted", () => {
+    const html = composeEmail({
+      preheader: "Test",
+      contentHtml: "<p>Body</p>",
+      siteUrl: PRODUCTION_SITE_URL,
+    });
+
+    assert.match(
+      html,
+      new RegExp(`src="${PRODUCTION_SITE_URL}/images/Logo.png"`),
+    );
   });
 });
