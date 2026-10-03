@@ -649,7 +649,8 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(paymentRow?.status, "failed");
     assert.equal(paymentRow?.stripe_provider_status, "failed");
     assert.equal(paymentRow?.amount_applied_cents, 0);
-    assert.equal(chargeRow?.status, "sent");
+    // Seed due_date is before "today" in CI — reopen is overdue, not sent.
+    assert.equal(chargeRow?.status, "overdue");
     assert.equal(chargeRow?.paid_cents, 0);
     assert.equal(failureEvents?.length, 1);
     assert.match(failureEvents?.[0]?.summary ?? "", /settlement failed/i);
@@ -818,7 +819,8 @@ describeIntegration("tuition payment_intent webhooks", () => {
       .eq("id", fixture.chargeId)
       .single();
 
-    assert.equal(chargeRow?.status, "sent");
+    // Seed due_date is before "today" in CI — reopen is overdue, not sent.
+    assert.equal(chargeRow?.status, "overdue");
     assert.equal(chargeRow?.paid_cents, 0);
   });
 });
