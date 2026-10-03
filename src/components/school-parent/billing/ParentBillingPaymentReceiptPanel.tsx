@@ -5,6 +5,11 @@ import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentSectionKicker from "@/components/school-parent/ui/ParentSectionKicker";
 import { formatCents } from "@/lib/tuition/pricing";
 import { getStudentBadgeColors } from "@/lib/tuition/student-badge-colors";
+import {
+  parentBillingStatusBadgeStyles,
+  tuitionPaymentStripeStatusBadge,
+  tuitionPaymentStripeStatusHint,
+} from "@/lib/tuition/stripe-provider-status-display";
 import type { TuitionPaymentReceiptDetail } from "@/lib/tuition/tuition-payment-receipt-detail";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -50,6 +55,19 @@ export default function ParentBillingPaymentReceiptPanel({
 }: ParentBillingPaymentReceiptPanelProps) {
   if (!receipt) return null;
 
+  const stripeStatusBadge = receipt.stripeStatusSource
+    ? tuitionPaymentStripeStatusBadge(receipt.stripeStatusSource)
+    : null;
+  const stripeStatusHint = receipt.stripeStatusSource
+    ? tuitionPaymentStripeStatusHint(receipt.stripeStatusSource)
+    : null;
+  const hintColor =
+    stripeStatusHint?.tone === "danger"
+      ? C.error
+      : stripeStatusHint?.tone === "warning"
+        ? C.warning
+        : C.textSecondary;
+
   const uniqueStudents = [
     ...new Map(
       receipt.lineItems.map((item) => [item.enrollmentId ?? item.studentName, item]),
@@ -66,6 +84,23 @@ export default function ParentBillingPaymentReceiptPanel({
       testId="parent-billing-payment-receipt-panel"
       panelId="parent-billing-payment-receipt-panel"
     >
+      {stripeStatusBadge ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+            style={parentBillingStatusBadgeStyles(C, stripeStatusBadge.tone)}
+            data-testid={stripeStatusBadge.testId}
+          >
+            {stripeStatusBadge.label}
+          </span>
+          {stripeStatusHint ? (
+            <p className="text-[11px] leading-snug" style={{ color: hintColor }}>
+              {stripeStatusHint.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {uniqueStudents.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {uniqueStudents.map((item) => {

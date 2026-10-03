@@ -13,30 +13,49 @@ import { ParentChildrenStoryHeader } from '@/components/parent/children/parent-c
 import { PARENT_FLOATING_TAB_BAR_HEIGHT } from '@/components/parent/parent-floating-tab-bar';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryCard } from '@/components/story/story-card';
-import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useParentHome } from '@/contexts/parent-home-context';
+import { useParentProgramHome } from '@/contexts/parent-program-home-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Story, StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
 import { Spacing } from '@/constants/theme';
 import { resolveWebUrl, schoolApplyUrl } from '@/lib/admissions/school-apply-url';
 import {
+  programPortalChildrenEmptyMessage,
   type ChildProfileData,
   type ParentChildRecordSection,
+  type ParentChildrenPortalScope,
 } from '@/lib/parent/parent-children-utils';
 import { reportMobileOperationalError } from '@/lib/mobile-activity';
-import { fetchParentChildProfile } from '@/lib/parent/parent-portal-api';
+import { fetchParentChildProfile, type ParentHomeData } from '@/lib/parent/parent-portal-api';
+
+type ParentChildrenHomeState = {
+  data: ParentHomeData | null;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+};
 
 type ParentChildrenScreenProps = {
   slug: string;
   initialApplicationId?: string;
+  portalScope?: ParentChildrenPortalScope;
 };
 
-export function ParentChildrenScreen({
+type ParentChildrenScreenContentProps = ParentChildrenScreenProps & {
+  home: ParentChildrenHomeState;
+  programPortalLabel?: string;
+};
+
+function ParentChildrenScreenContent({
   slug: _slug,
   initialApplicationId,
-}: ParentChildrenScreenProps) {
+  home,
+  programPortalLabel,
+}: ParentChildrenScreenContentProps) {
   const theme = useParentTheme();
-  const { data, isLoading, isRefreshing, error, refresh } = useParentHome();
+  const { data, isLoading, isRefreshing, error, refresh } = home;
   const scrollViewRef = useRef<ScrollView>(null);
   const recordWorkspaceRef = useRef<View>(null);
   const recordOffsetYRef = useRef(0);
@@ -205,6 +224,10 @@ export function ParentChildrenScreen({
   const isRecordLoading =
     Boolean(selectedChild) && profileLoading && !selectedProfile?.application && !profileError;
 
+  const emptyMessage = programPortalLabel
+    ? programPortalChildrenEmptyMessage(programPortalLabel)
+    : null;
+
   return (
     <ScrollView
       ref={scrollViewRef}
@@ -223,15 +246,19 @@ export function ParentChildrenScreen({
       {children.length === 0 ? (
         <Animated.View entering={FadeInDown.duration(350)}>
           <StoryCard style={styles.emptyCard}>
-            <Text style={[styles.emptyCopy, { color: theme.muted }]}>
-              We don&apos;t have any student records from your applications yet. Visit your{' '}
-              <Text
-                style={[styles.emptyLink, { color: theme.primary }]}
-                onPress={() => void handleOpenApplyDashboard()}>
-                application dashboard
-              </Text>{' '}
-              to get started.
-            </Text>
+            {emptyMessage ? (
+              <Text style={[styles.emptyCopy, { color: theme.muted }]}>{emptyMessage}</Text>
+            ) : (
+              <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+                We don&apos;t have any student records from your applications yet. Visit your{' '}
+                <Text
+                  style={[styles.emptyLink, { color: theme.primary }]}
+                  onPress={() => void handleOpenApplyDashboard()}>
+                  application dashboard
+                </Text>{' '}
+                to get started.
+              </Text>
+            )}
           </StoryCard>
         </Animated.View>
       ) : (
@@ -278,6 +305,7 @@ export function ParentChildrenScreen({
                 onPhotoUpdated={(profilePhotoUrl) =>
                   handlePhotoUpdated(selectedChild.applicationId, profilePhotoUrl)
                 }
+                refreshHome={refresh}
                 workspaceRef={recordWorkspaceRef}
               />
             </View>
@@ -290,6 +318,54 @@ export function ParentChildrenScreen({
       )}
     </ScrollView>
   );
+}
+
+function ParentChildrenScreenMain(props: ParentChildrenScreenProps) {
+  const home = useParentHome();
+  return (
+    <ParentChildrenScreenContent
+      {...props}
+      home={{
+        data: home.data,
+        isLoading: home.isLoading,
+        isRefreshing: home.isRefreshing,
+        error: home.error,
+        refresh: home.refresh,
+      }}
+    />
+  );
+}
+
+function ParentChildrenScreenProgram(props: ParentChildrenScreenProps) {
+  const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useParentProgramHome();
+
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
+
+  return (
+    <ParentChildrenScreenContent
+      {...props}
+      home={{
+        data,
+        isLoading,
+        isRefreshing,
+        error,
+        refresh,
+      }}
+      programPortalLabel={data?.programPortalLabel}
+    />
+  );
+}
+
+export function ParentChildrenScreen({
+  portalScope = 'main',
+  ...props
+}: ParentChildrenScreenProps) {
+  if (portalScope === 'program') {
+    return <ParentChildrenScreenProgram {...props} portalScope="program" />;
+  }
+  return <ParentChildrenScreenMain {...props} portalScope="main" />;
 }
 
 const styles = StyleSheet.create({

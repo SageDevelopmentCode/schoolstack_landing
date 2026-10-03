@@ -4,6 +4,7 @@ import {
   formatActivityActionLabel,
 } from "@/lib/activity-log";
 import { familyPreviewParentBasePath } from "@/lib/admissions/preview-portal-options";
+import { staffPreviewBasePath } from "@/lib/staff/staff-preview-access";
 import type { CommitteeWorkspaceSection } from "./types";
 
 export const COMMITTEE_ACTIVITY_ACTIONS: string[] = [
@@ -88,7 +89,12 @@ export type CommitteeActivityItem = {
   section?: CommitteeWorkspaceSection;
 };
 
-export type CommitteeActivityLinkSurface = "admin" | "parent" | "preview";
+export type CommitteeActivityLinkSurface =
+  | "admin"
+  | "parent"
+  | "preview"
+  | "teacher"
+  | "teacherPreview";
 
 export async function fetchCommitteeActivityEvents(
   admin: SupabaseClient,
@@ -153,7 +159,7 @@ function buildCommitteeActivityHref(
   committeeId: string,
   section: CommitteeWorkspaceSection,
   surface: CommitteeActivityLinkSurface,
-  familyId?: string,
+  options?: { familyId?: string; staffMemberId?: string },
 ): string | undefined {
   if (surface === "admin") {
     return `/school/${slug}/admin/committees?committee=${encodeURIComponent(committeeId)}&section=${section}`;
@@ -164,8 +170,15 @@ function buildCommitteeActivityHref(
     tab: "mine",
   });
   if (surface === "preview") {
-    if (!familyId) return undefined;
-    return `${familyPreviewParentBasePath(slug, familyId)}/committees?${params.toString()}`;
+    if (!options?.familyId) return undefined;
+    return `${familyPreviewParentBasePath(slug, options.familyId)}/committees?${params.toString()}`;
+  }
+  if (surface === "teacherPreview") {
+    if (!options?.staffMemberId) return undefined;
+    return `${staffPreviewBasePath(slug, options.staffMemberId)}/committees?${params.toString()}`;
+  }
+  if (surface === "teacher") {
+    return `/school/${slug}/teacher/committees?${params.toString()}`;
   }
   return `/school/${slug}/parent/committees?${params.toString()}`;
 }
@@ -176,6 +189,7 @@ export function mapCommitteeActivityItem(
     slug: string;
     committeeId?: string;
     familyId?: string;
+    staffMemberId?: string;
     linkSurface?: CommitteeActivityLinkSurface;
     includeHref?: boolean;
   },
@@ -203,13 +217,10 @@ export function mapCommitteeActivityItem(
     section,
     href:
       includeHref && resolvedCommitteeId && options.slug
-        ? buildCommitteeActivityHref(
-            options.slug,
-            resolvedCommitteeId,
-            section,
-            linkSurface,
-            options.familyId,
-          )
+        ? buildCommitteeActivityHref(options.slug, resolvedCommitteeId, section, linkSurface, {
+            familyId: options.familyId,
+            staffMemberId: options.staffMemberId,
+          })
         : undefined,
   };
 }
@@ -233,6 +244,7 @@ export function mapCommitteeActivityItems(
     slug: string;
     committeeId?: string;
     familyId?: string;
+    staffMemberId?: string;
     linkSurface?: CommitteeActivityLinkSurface;
     includeHref?: boolean;
   },

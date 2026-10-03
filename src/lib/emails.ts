@@ -1330,6 +1330,219 @@ export function buildTuitionPaymentReceiptHtml(payload: {
   });
 }
 
+export type AchBankVerificationLineItem = {
+  label: string;
+  amountCents: number;
+  studentName?: string | null;
+};
+
+function achVerificationTimingParagraph(
+  microdepositType: string | null,
+  arrivalDateLabel: string | null,
+): string {
+  if (microdepositType === "descriptor_code") {
+    const timing = arrivalDateLabel
+      ? `Watch for a small Stripe entry on your bank statement around ${arrivalDateLabel}. The description includes a short verification code.`
+      : "Watch for a small Stripe entry on your bank statement in the next few business days. The description includes a short verification code.";
+    return `${timing} Then use the button below to enter that code. Until you do, your bank payment has not been submitted.`;
+  }
+
+  if (microdepositType === "amounts") {
+    const timing = arrivalDateLabel
+      ? `Two small deposits should appear around ${arrivalDateLabel}.`
+      : "Two small deposits should appear in the next few business days.";
+    return `${timing} Use the button below to enter both amounts. Until you do, your bank payment has not been submitted.`;
+  }
+
+  return "Your bank account still needs verification before the payment can go through. Use the button below to complete verification with Stripe.";
+}
+
+export function buildAchBankVerificationHtml(payload: {
+  name: string;
+  schoolName: string;
+  verificationUrl: string;
+  portalUrl: string;
+  lineItems?: AchBankVerificationLineItem[];
+  microdepositType?: string | null;
+  arrivalDateLabel?: string | null;
+}): string {
+  const lineItems = payload.lineItems ?? [];
+  const lineItemsHtml =
+    lineItems.length > 0
+      ? `
+      ${emailParagraph("Payment(s) waiting on verification:")}
+      ${emailBulletList(
+        lineItems.map((item) => {
+          const student =
+            item.studentName != null && item.studentName.trim()
+              ? `${escapeHtml(item.studentName)} — `
+              : "";
+          return `${student}${escapeHtml(item.label)} — ${formatFeeAmount(item.amountCents)}`;
+        }),
+      )}
+    `
+      : "";
+
+  return composeEmail({
+    preheader: `Verify your bank account to complete your payment at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Action required")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(
+        `You started a bank account payment at ${escapeHtml(payload.schoolName)}, but Stripe still needs you to verify your bank before the payment can go through.`,
+      )}
+      ${emailParagraph(
+        achVerificationTimingParagraph(
+          payload.microdepositType ?? null,
+          payload.arrivalDateLabel ?? null,
+        ),
+      )}
+      ${lineItemsHtml}
+      ${emailCta({ label: "Verify bank account", href: payload.verificationUrl })}
+      ${emailMutedParagraph(
+        `If you have trouble, you can pay with a card from your MudKitchen portal instead.`,
+      )}
+      ${emailCta({ label: "Open portal", href: payload.portalUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendAchBankVerificationEmail(payload: {
+  email: string;
+  name: string;
+  schoolName: string;
+  verificationUrl: string;
+  portalUrl: string;
+  lineItems?: AchBankVerificationLineItem[];
+  microdepositType?: string | null;
+  arrivalDate?: Date | null;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const arrivalDateLabel =
+    payload.arrivalDate != null
+      ? payload.arrivalDate.toLocaleDateString("en-US", { dateStyle: "long" })
+      : null;
+
+  const content = buildAchBankVerificationHtml({
+    name: payload.name,
+    schoolName: payload.schoolName,
+    verificationUrl: payload.verificationUrl,
+    portalUrl: payload.portalUrl,
+    lineItems: payload.lineItems,
+    microdepositType: payload.microdepositType,
+    arrivalDateLabel,
+  });
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Verify your bank to complete payment — ${payload.schoolName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "ach_bank_verification",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success || result.skipped) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
+export function buildTuitionAchSettlementFailedHtml(payload: {
+  name: string;
+  schoolName: string;
+  billingUrl: string;
+  chargeLabel: string;
+  amountCents: number;
+  settlementFailure: boolean;
+  /** When settlement failed after an optimistic record, whether billing was reopened for payment. */
+  chargeReopened?: boolean;
+}): string {
+  const chargeLabelHtml = escapeHtml(payload.chargeLabel);
+  const amountLabel = formatFeeAmount(payload.amountCents);
+
+  let detailParagraph: string;
+  let actionParagraph: string;
+
+  if (payload.settlementFailure) {
+    if (payload.chargeReopened) {
+      detailParagraph =
+        `Your bank transfer for ${chargeLabelHtml} (${amountLabel}) did not complete. ` +
+        "We updated billing so this charge is open again.";
+      actionParagraph =
+        "Open billing to pay with a card or a verified bank account.";
+    } else {
+      detailParagraph =
+        `Your bank transfer for ${chargeLabelHtml} (${amountLabel}) did not complete. ` +
+        "Billing may still show this charge as paid until your school corrects it.";
+      actionParagraph =
+        "Open billing to review your balance, or contact your school if you need help.";
+    }
+  } else {
+    detailParagraph =
+      `Your bank account payment could not be completed. No tuition was collected for ${chargeLabelHtml} (${amountLabel}).`;
+    actionParagraph =
+      "Please open billing and pay again with a card or a verified bank account.";
+  }
+
+  return composeEmail({
+    preheader: `Your tuition bank payment did not go through at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment issue")}
+      ${emailHeading(`Hi ${firstName(payload.name)},`)}
+      ${emailParagraph(detailParagraph)}
+      ${emailParagraph(actionParagraph)}
+      ${emailCta({ label: "View billing", href: payload.billingUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionAchSettlementFailedEmail(payload: {
+  email: string;
+  name: string;
+  schoolName: string;
+  billingUrl: string;
+  chargeLabel: string;
+  amountCents: number;
+  settlementFailure: boolean;
+  chargeReopened?: boolean;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) {
+    return { ok: false };
+  }
+
+  const content = buildTuitionAchSettlementFailedHtml(payload);
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Bank payment did not go through — ${payload.schoolName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "tuition_ach_settlement_failed",
+      "parent",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success || result.skipped) {
+    return { ok: false };
+  }
+
+  return { ok: true };
+}
+
 export async function sendTuitionPaymentReceiptEmail(payload: {
   email: string;
   schoolName: string;
@@ -1640,6 +1853,87 @@ export async function sendPaymentReceivedAdminNotification(payload: {
   if (!result.success) {
     console.error("Payment received admin notification email failed:", result.error);
   }
+}
+
+export function buildAchBankVerificationAdminNotificationHtml(payload: {
+  schoolName: string;
+  paymentTypeLabel: string;
+  payerLabel: string;
+  familyEmailSent: boolean;
+  lineItems?: PaymentReceivedAdminLineItem[];
+  financesAdminUrl: string;
+}): string {
+  const familyStatus = payload.familyEmailSent
+    ? "We sent the family an email from MudKitchen with a Stripe link to complete verification. No action is needed on your side unless you want to follow up."
+    : "We couldn’t confirm the family verification email was delivered. You may want to check in with the family if they haven’t verified yet.";
+
+  const lineItemsHtml =
+    payload.lineItems && payload.lineItems.length > 0
+      ? emailBulletList(
+          payload.lineItems.map(
+            (item) =>
+              `${escapeHtml(item.studentName ? `${item.studentName} — ` : "")}${escapeHtml(item.label)} — ${formatFeeAmount(item.amountCents)}`,
+          ),
+        )
+      : "";
+
+  return composeEmail({
+    preheader: `A family’s ACH payment is waiting on bank verification at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment update")}
+      ${emailHeading("ACH payment pending bank verification")}
+      ${emailParagraph(
+        `${escapeHtml(payload.payerLabel)} started an ACH ${escapeHtml(payload.paymentTypeLabel.toLowerCase())} payment at ${escapeHtml(payload.schoolName)}. The charge isn’t settled yet—the family must verify their bank with Stripe.`,
+      )}
+      ${emailDetailCard([
+        { label: "Family / payer", value: payload.payerLabel },
+        { label: "Payment type", value: payload.paymentTypeLabel },
+      ])}
+      ${lineItemsHtml ? emailParagraph("Affected payment(s):") : ""}
+      ${lineItemsHtml}
+      ${emailParagraph(familyStatus)}
+      ${emailCta({ label: "View transactions", href: payload.financesAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendAchBankVerificationAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  paymentTypeLabel: string;
+  payerLabel: string;
+  familyEmailSent: boolean;
+  lineItems?: PaymentReceivedAdminLineItem[];
+  financesAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Zoho not configured" };
+  }
+
+  const content = buildAchBankVerificationAdminNotificationHtml(payload);
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `ACH payment pending verification — ${payload.schoolName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "ach_bank_verification_admin_notification",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error(
+      "ACH bank verification admin notification email failed:",
+      result.error,
+    );
+  }
+
+  return result;
 }
 
 export function buildCommitteeJoinRequestAdminNotificationHtml(payload: {

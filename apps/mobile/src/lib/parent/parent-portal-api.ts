@@ -508,6 +508,7 @@ export type ParentTuitionPaymentRecord = {
   status: string;
   paidAt: string | null;
   createdAt: string;
+  stripeProviderStatus: string | null;
   studentFirstName: string | null;
   enrollmentId: string | null;
 };
@@ -818,6 +819,16 @@ export async function markParentCommitteeSectionRead(
     method: 'POST',
     body: { organizationId, section },
   });
+}
+
+export async function fetchParentCommitteeUnreadSummary(
+  organizationId: string,
+): Promise<import('@/lib/committees/committee-unread-types').CommitteeUnreadSummary> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchParentApi<
+    import('@/lib/committees/committee-unread-types').CommitteeUnreadSummary
+  >(`/api/parent-portal/committees/unread-summary?${query}`);
+  return payload ?? { totalUnread: 0, byCommittee: [] };
 }
 
 export type SubmitCommitteeJoinRequestInput = {

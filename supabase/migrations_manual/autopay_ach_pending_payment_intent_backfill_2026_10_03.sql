@@ -1,0 +1,18 @@
+-- Autopay ACH: repair tuition rows left pending with a live Stripe PaymentIntent (pre-fix autopay).
+-- Run in Supabase SQL Editor only after confirming each PaymentIntent state in Stripe Dashboard.
+--
+-- 1) Look up the payment row and PI in Stripe (status, metadata.payment_id).
+-- 2) If PI is requires_action / processing: set provider status and attach PI id.
+-- 3) If PI succeeded: prefer letting payment_intent.succeeded webhook settle; or run record/settle manually.
+-- Idempotent: adjust the WHERE clause for your row ids.
+
+-- Example: attach PI and mark verification pending (replace ids and pi_... from Stripe)
+-- update application_payments
+-- set
+--   stripe_payment_intent_id = 'pi_REPLACE',
+--   stripe_provider_status = 'requires_action',
+--   payment_method_type = 'us_bank_account'
+-- where id = 'PAYMENT_UUID'
+--   and payment_type = 'tuition'
+--   and status = 'pending'
+--   and stripe_checkout_session_id is null;

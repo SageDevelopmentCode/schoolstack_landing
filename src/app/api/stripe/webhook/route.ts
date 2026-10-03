@@ -5,6 +5,10 @@
  * - checkout.session.completed
  * - checkout.session.async_payment_succeeded
  * - checkout.session.async_payment_failed
+ * - payment_intent.requires_action
+ * - payment_intent.succeeded
+ * - payment_intent.payment_failed
+ * - payment_intent.canceled
  * - account.updated
  *
  * Live endpoint (Stripe): https://trymudkitchen.com/api/stripe/webhook
@@ -26,6 +30,10 @@ import {
   handleCheckoutSessionAsyncPaymentFailed,
   handleCheckoutSessionAsyncPaymentSucceeded,
   handleCheckoutSessionCompleted,
+  handlePaymentIntentCanceled,
+  handlePaymentIntentPaymentFailed,
+  handlePaymentIntentRequiresAction,
+  handlePaymentIntentSucceeded,
 } from "@/lib/stripe/webhook-handlers";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -132,6 +140,30 @@ export async function POST(request: Request) {
         await handleCheckoutSessionAsyncPaymentFailed(
           admin,
           event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case "payment_intent.requires_action":
+        await handlePaymentIntentRequiresAction(
+          admin,
+          event.data.object as Stripe.PaymentIntent,
+        );
+        break;
+      case "payment_intent.succeeded":
+        await handlePaymentIntentSucceeded(
+          admin,
+          event.data.object as Stripe.PaymentIntent,
+        );
+        break;
+      case "payment_intent.payment_failed":
+        await handlePaymentIntentPaymentFailed(
+          admin,
+          event.data.object as Stripe.PaymentIntent,
+        );
+        break;
+      case "payment_intent.canceled":
+        await handlePaymentIntentCanceled(
+          admin,
+          event.data.object as Stripe.PaymentIntent,
         );
         break;
       case "account.updated":

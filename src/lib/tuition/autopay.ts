@@ -5,6 +5,7 @@ import {
   isPaymentMethodMissingError,
   paymentMethodExistsOnPlatform,
 } from "@/lib/stripe/payment-method-validation";
+import { listInFlightTuitionPaymentsForCharge } from "@/lib/stripe/application-payments";
 import { executeTuitionAutopayCharge } from "@/lib/stripe/tuition-autopay-charge";
 import {
   getOrganizationPaymentAccount,
@@ -710,6 +711,29 @@ export async function processAutopayForOrganization(
 
         stats.dueCandidates++;
 
+        const inFlightPayments = await listInFlightTuitionPaymentsForCharge(
+          supabase,
+          String(charge.id),
+        );
+        if (inFlightPayments.length > 0) {
+          stats.skipped++;
+          pushAutopayLine(
+            lines,
+            {
+              organizationSlug: orgSlug,
+              familyId: account.familyId,
+              familyLabel: accountFamilyLabel,
+              chargeId: String(charge.id),
+              chargeLabel: String(charge.label),
+              amountCents,
+              outcome: "skipped",
+              skipReason: "payment_in_flight",
+            },
+            lineState,
+          );
+          continue;
+        }
+
         const paymentMethodExists = await paymentMethodExistsOnPlatform(
           stripe,
           paymentMethodId,
@@ -752,7 +776,7 @@ export async function processAutopayForOrganization(
         }
 
         try {
-          await executeTuitionAutopayCharge(supabase, {
+          const chargeResult = await executeTuitionAutopayCharge(supabase, {
             organizationId,
             familyId: account.familyId,
             chargeId: String(charge.id),
@@ -765,6 +789,45 @@ export async function processAutopayForOrganization(
             payerUserId: guardianUserId,
             suppressEmails,
           });
+
+          if (chargeResult.outcome === "requires_action") {
+            stats.skipped++;
+            pushAutopayLine(
+              lines,
+              {
+                organizationSlug: orgSlug,
+                familyId: account.familyId,
+                familyLabel: accountFamilyLabel,
+                chargeId: String(charge.id),
+                chargeLabel: String(charge.label),
+                amountCents,
+                outcome: "skipped",
+                skipReason: "bank_verification_pending",
+              },
+              lineState,
+            );
+            continue;
+          }
+
+          if (chargeResult.outcome !== "completed") {
+            stats.skipped++;
+            pushAutopayLine(
+              lines,
+              {
+                organizationSlug: orgSlug,
+                familyId: account.familyId,
+                familyLabel: accountFamilyLabel,
+                chargeId: String(charge.id),
+                chargeLabel: String(charge.label),
+                amountCents,
+                outcome: "skipped",
+                skipReason: "payment_in_flight",
+              },
+              lineState,
+            );
+            continue;
+          }
+
           await notifyAutopaySucceeded(supabase, {
             organizationId,
             familyId: account.familyId,

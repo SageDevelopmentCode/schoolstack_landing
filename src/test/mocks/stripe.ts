@@ -15,6 +15,10 @@ export function createMockStripeClient(overrides?: {
   paymentMethodsRetrieve?: (
     paymentMethodId: string,
   ) => Promise<Stripe.PaymentMethod>;
+  paymentMethodsUpdate?: (
+    paymentMethodId: string,
+    params: Stripe.PaymentMethodUpdateParams,
+  ) => Promise<Stripe.PaymentMethod>;
 }): Stripe {
   const stripe = new Stripe(DUMMY_SECRET_KEY);
 
@@ -53,6 +57,18 @@ export function createMockStripeClient(overrides?: {
     paymentMethods: {
       retrieve:
         overrides?.paymentMethodsRetrieve ??
+        (async (paymentMethodId: string) =>
+          ({
+            id: paymentMethodId,
+            object: "payment_method",
+            type: "card",
+            card: {
+              brand: "visa",
+              last4: "4242",
+            },
+          }) as Stripe.PaymentMethod),
+      update:
+        overrides?.paymentMethodsUpdate ??
         (async (paymentMethodId: string) =>
           ({
             id: paymentMethodId,

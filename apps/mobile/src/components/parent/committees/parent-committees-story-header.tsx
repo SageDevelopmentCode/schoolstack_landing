@@ -58,8 +58,8 @@ export function ParentCommitteesStoryHeader({
       </View>
       <StoryPillNav
         items={[
-          { key: 'explore', label: 'Explore', testID: 'parent-committees-explore-nav' },
           { key: 'mine', label: 'My committees', testID: 'parent-committees-mine-nav' },
+          { key: 'explore', label: 'Explore', testID: 'parent-committees-explore-nav' },
         ]}
         activeKey={activeTab}
         onChange={(key) => onSelectTab(key as ParentCommitteesTab)}

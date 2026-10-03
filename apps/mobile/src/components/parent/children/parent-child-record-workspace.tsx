@@ -49,6 +49,7 @@ type ParentChildRecordWorkspaceProps = {
   onSectionChange: (section: ParentChildRecordSection) => void;
   onChecklistUpdated?: (checklist: LoadedEnrollmentChecklist) => void;
   onPhotoUpdated?: (profilePhotoUrl: string) => void;
+  refreshHome?: () => Promise<void>;
   workspaceRef?: React.RefObject<ViewType | null>;
 };
 
@@ -92,10 +93,12 @@ export function ParentChildRecordWorkspace({
   onSectionChange,
   onChecklistUpdated,
   onPhotoUpdated,
+  refreshHome,
   workspaceRef,
 }: ParentChildRecordWorkspaceProps) {
   const theme = useParentTheme();
-  const { refresh } = useParentHome();
+  const { refresh: refreshMainHome } = useParentHome();
+  const refresh = refreshHome ?? refreshMainHome;
 
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(
     application.profilePhotoUrl ?? childOverview.profilePhotoUrl ?? null,

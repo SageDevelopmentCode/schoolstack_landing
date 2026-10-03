@@ -1,5 +1,18 @@
-import { ParentProgramRoutePlaceholder } from '@/components/parent/parent-program-route-placeholder';
+import { useLocalSearchParams } from 'expo-router';
+
+import { ParentChildrenScreen } from '@/components/parent/children/parent-children-screen';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function ProgramParentChildrenRoute() {
-  return <ParentProgramRoutePlaceholder title="My children" />;
+  const { slug, applicationId } = useLocalSearchParams<{
+    slug: string;
+    applicationId?: string;
+  }>();
+  const { selectedSchool } = useAuth();
+
+  if (!slug || !selectedSchool) return null;
+
+  return (
+    <ParentChildrenScreen slug={slug} initialApplicationId={applicationId} portalScope="program" />
+  );
 }

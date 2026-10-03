@@ -25,6 +25,11 @@ describe('shouldReportMobileOperationalError', () => {
   it('reports unexpected server failures', () => {
     expect(shouldReportMobileOperationalError(new Error('Server error'), 500)).toBe(true);
   });
+
+  it('skips benign client network errors', () => {
+    expect(shouldReportMobileOperationalError(new Error('Load failed'))).toBe(false);
+    expect(shouldReportMobileOperationalError(new Error('Failed to fetch'))).toBe(false);
+  });
 });
 
 describe('portalTypeToMobileSurface', () => {

@@ -35,6 +35,8 @@ import {
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
   buildTuitionAutopayConfirmationHtml,
+  buildAchBankVerificationHtml,
+  buildAchBankVerificationAdminNotificationHtml,
   buildTuitionPaymentReceiptHtml,
 } from "../src/lib/emails";
 import {
@@ -44,6 +46,7 @@ import {
   SUPABASE_MAGIC_LINK_SUBJECT,
 } from "../src/lib/supabase-auth-emails";
 import { appendUnsubscribeFooter } from "../src/lib/outbound-email-unsubscribe";
+import { PRODUCTION_SITE_URL } from "../src/lib/site";
 
 const PREVIEW_RECIPIENT_EMAIL = "preview@example.com";
 
@@ -66,8 +69,28 @@ function assertNoCreamBackgrounds(html: string, label: string): void {
   }
 }
 
-const supabaseMagicLinkExport = buildSupabaseMagicLinkOtpHtml();
-const supabaseConfirmSignupExport = buildSupabaseConfirmSignupOtpHtml();
+const previewSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_URL;
+const previewSiteLogoPath = `${previewSiteUrl.replace(/^https?:\/\//, "")}/images/Logo.png`;
+const productionLogoUrl = `${PRODUCTION_SITE_URL}/images/Logo.png`;
+
+function assertSupabaseDashboardExport(html: string, label: string): void {
+  if (html.includes("localhost")) {
+    throw new Error(`${label} must not contain localhost URLs`);
+  }
+  if (!html.includes(productionLogoUrl)) {
+    throw new Error(`${label} missing production logo URL: ${productionLogoUrl}`);
+  }
+}
+
+const supabaseMagicLinkExport = buildSupabaseMagicLinkOtpHtml(
+  undefined,
+  PRODUCTION_SITE_URL,
+);
+const supabaseConfirmSignupExport = buildSupabaseConfirmSignupOtpHtml(
+  undefined,
+  PRODUCTION_SITE_URL,
+);
 
 writeFileSync(
   join(supabaseTemplatesDir, "magic-link.html"),
@@ -452,6 +475,50 @@ const previews = [
       chargeLabel: "Aug Tuition",
     }),
     checks: ["ACH", "$5.00", "Processing fee", "$725.00"],
+  },
+  {
+    filename: "ach-bank-verification-tuition.html",
+    html: buildAchBankVerificationHtml({
+      name: "Hayley Calvert",
+      schoolName: "Rooted Meadows",
+      verificationUrl: "https://payments.stripe.com/microdeposit/pacs_live_example",
+      portalUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      microdepositType: "descriptor_code",
+      arrivalDateLabel: "October 5, 2026",
+      lineItems: [
+        { label: "Sep Tuition", amountCents: 72500, studentName: "Arrow" },
+        { label: "Oct Tuition", amountCents: 72500, studentName: "Arrow" },
+      ],
+    }),
+    checks: [
+      "Action required",
+      "Verify bank account",
+      "verification code",
+      "Sep Tuition",
+      "Open portal",
+    ],
+  },
+  {
+    filename: "ach-bank-verification-admin-tuition.html",
+    html: buildAchBankVerificationAdminNotificationHtml({
+      schoolName: "Rooted Meadows",
+      paymentTypeLabel: "Tuition",
+      payerLabel: "Hayley Calvert",
+      familyEmailSent: true,
+      lineItems: [
+        { label: "Sep Tuition", amountCents: 72000, studentName: "Arrow" },
+        { label: "Oct Tuition", amountCents: 72000, studentName: "Arrow" },
+      ],
+      financesAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/finances/transactions",
+    }),
+    checks: [
+      "Payment update",
+      "pending bank verification",
+      "No action is needed",
+      "View transactions",
+      "Sep Tuition",
+    ],
   },
   {
     filename: "tuition-autopay-confirmation.html",
@@ -1198,19 +1265,24 @@ const previews = [
   {
     filename: "supabase-magic-link-otp.html",
     includeUnsubscribeFooter: false,
-    html: buildSupabaseMagicLinkOtpHtml(sampleToken),
+    html: buildSupabaseMagicLinkOtpHtml(sampleToken, previewSiteUrl),
     checks: [
       "Sign In",
       "Your sign-in code to continue",
       sampleToken,
-      "trymudkitchen.com/images/Logo.png",
+      previewSiteLogoPath,
     ],
   },
   {
     filename: "supabase-confirm-signup-otp.html",
     includeUnsubscribeFooter: false,
-    html: buildSupabaseConfirmSignupOtpHtml(sampleToken),
-    checks: ["Verify Email", "Confirm your email", sampleToken, "trymudkitchen.com/images/Logo.png"],
+    html: buildSupabaseConfirmSignupOtpHtml(sampleToken, previewSiteUrl),
+    checks: [
+      "Verify Email",
+      "Confirm your email",
+      sampleToken,
+      previewSiteLogoPath,
+    ],
   },
 ];
 
@@ -1240,6 +1312,8 @@ for (const preview of previews) {
 
 assertNoCreamBackgrounds(supabaseMagicLinkExport, "magic-link.html");
 assertNoCreamBackgrounds(supabaseConfirmSignupExport, "confirm-signup.html");
+assertSupabaseDashboardExport(supabaseMagicLinkExport, "magic-link.html");
+assertSupabaseDashboardExport(supabaseConfirmSignupExport, "confirm-signup.html");
 
 if (!supabaseMagicLinkExport.includes("{{ .Token }}")) {
   throw new Error("magic-link.html export missing {{ .Token }}");

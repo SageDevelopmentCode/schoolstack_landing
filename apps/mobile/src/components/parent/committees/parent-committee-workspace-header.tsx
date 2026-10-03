@@ -6,7 +6,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ParentCommitteeDescriptionSheet } from '@/components/parent/committees/parent-committee-description-sheet';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
+import { StoryCountBadge } from '@/components/story/story-count-badge';
 import { StoryPillNav } from '@/components/story/story-pill-nav';
+import type { CommitteeSectionUnreadCounts } from '@/lib/committees/committee-unread-types';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
@@ -27,12 +29,26 @@ const SECTION_ICONS: Partial<Record<CommitteeWorkspaceSection, keyof typeof Ioni
 type ParentCommitteeWorkspaceHeaderProps = {
   committee: Committee;
   activeSection: CommitteeWorkspaceSection;
+  sectionUnreadCounts?: CommitteeSectionUnreadCounts;
   onSectionChange: (section: CommitteeWorkspaceSection) => void;
 };
+
+function unreadCountForSection(
+  sectionUnreadCounts: CommitteeSectionUnreadCounts | undefined,
+  section: CommitteeWorkspaceSection,
+): number {
+  if (!sectionUnreadCounts) return 0;
+  if (section === 'messages') return sectionUnreadCounts.messages;
+  if (section === 'tasks') return sectionUnreadCounts.tasks;
+  if (section === 'resources') return sectionUnreadCounts.resources;
+  if (section === 'calendar') return sectionUnreadCounts.calendar;
+  return 0;
+}
 
 export function ParentCommitteeWorkspaceHeader({
   committee,
   activeSection,
+  sectionUnreadCounts,
   onSectionChange,
 }: ParentCommitteeWorkspaceHeaderProps) {
   const theme = useParentTheme();
@@ -51,12 +67,16 @@ export function ParentCommitteeWorkspaceHeader({
     [committee.config.sections],
   );
 
-  const navItems = sections.map((section) => ({
-    key: section,
-    label: COMMITTEE_SECTION_LABELS[section],
-    icon: SECTION_ICONS[section],
-    testID: `parent-committee-section-${section}`,
-  }));
+  const navItems = sections.map((section) => {
+    const unreadCount = unreadCountForSection(sectionUnreadCounts, section);
+    return {
+      key: section,
+      label: COMMITTEE_SECTION_LABELS[section],
+      icon: SECTION_ICONS[section],
+      testID: `parent-committee-section-${section}`,
+      suffix: unreadCount > 0 ? <StoryCountBadge count={unreadCount} /> : undefined,
+    };
+  });
 
   const showDescriptionButton = Boolean(committee.description.trim());
 

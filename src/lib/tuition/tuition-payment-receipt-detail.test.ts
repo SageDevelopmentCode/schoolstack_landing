@@ -86,6 +86,7 @@ describe("buildTuitionPaymentReceiptDetail", () => {
     assert.equal(detail.lineItems.length, 1);
     assert.equal(detail.lineItems[0]?.studentName, "Jon");
     assert.equal(detail.lumpSumBreakdown, undefined);
+    assert.equal(detail.stripeStatusSource, null);
   });
 
   it("includes lump-sum breakdown when applied amount is less than payment", () => {
@@ -165,5 +166,6 @@ describe("buildTuitionPaymentReceiptDetail", () => {
     ]);
 
     assert.equal(detail?.paymentMethodLabel, "Paid online");
+    assert.equal(detail?.stripeStatusSource, null);
   });
 });

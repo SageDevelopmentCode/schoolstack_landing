@@ -1,5 +1,7 @@
+export const PRODUCTION_SITE_URL = "https://trymudkitchen.com";
+
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://trymudkitchen.com";
+  process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_URL;
 
 /** Absolute public URL for a path (path must start with `/`). */
 export function publicSiteAbsoluteUrl(path: string): string {

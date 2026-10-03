@@ -107,6 +107,32 @@ describe("outbound-email-unsubscribe", () => {
       ),
       false,
     );
+    assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("ach_bank_verification"),
+      true,
+    );
+    assert.equal(
+      TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS.has("tuition_ach_settlement_failed"),
+      true,
+    );
+  });
+
+  it("ACH parent payment emails are transactional via isTransactionalOutboundEmail", () => {
+    assert.equal(
+      isTransactionalOutboundEmail({
+        discord: { channel: "ach_bank_verification", audience: "parent" },
+      }),
+      true,
+    );
+    assert.equal(
+      isTransactionalOutboundEmail({
+        discord: {
+          channel: "tuition_ach_settlement_failed",
+          audience: "parent",
+        },
+      }),
+      true,
+    );
   });
 
   it("committee fan-out channels are not transactional via isTransactionalOutboundEmail", () => {

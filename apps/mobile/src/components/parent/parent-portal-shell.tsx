@@ -12,6 +12,7 @@ import {
   resolveParentBottomChromeHeight,
   shouldShowParentCoopTabBarBanner,
 } from '@/components/parent/parent-portal-coop-tab-bar-banner';
+import { ParentPortalCoopTabBarBannerSkeleton } from '@/components/parent/parent-portal-program-chrome-skeleton';
 import { ParentFloatingTabBar } from '@/components/parent/parent-floating-tab-bar';
 import { useMessagesUnread } from '@/contexts/messages-unread-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
@@ -62,7 +63,11 @@ export function ParentPortalShell() {
     [activeContext, activePortalFeatures?.coopMode, activePortalFeatures?.programLabel, showSwitcher],
   );
 
-  const bottomChromeHeight = resolveParentBottomChromeHeight(showCoopTabBarBanner);
+  const showCoopTabBarBannerSkeleton = Boolean(
+    portalContextsLoading && activeProgramSlug && !showCoopTabBarBanner,
+  );
+  const reserveCoopBannerChrome = showCoopTabBarBanner || showCoopTabBarBannerSkeleton;
+  const bottomChromeHeight = resolveParentBottomChromeHeight(reserveCoopBannerChrome);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -143,6 +148,8 @@ export function ParentPortalShell() {
   const coopBanner =
     showCoopTabBarBanner && activePortalFeatures?.programLabel ? (
       <ParentPortalCoopTabBarBanner programLabel={activePortalFeatures.programLabel} />
+    ) : showCoopTabBarBannerSkeleton ? (
+      <ParentPortalCoopTabBarBannerSkeleton />
     ) : null;
 
   return (

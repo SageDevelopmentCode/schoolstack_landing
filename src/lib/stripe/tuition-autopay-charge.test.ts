@@ -104,24 +104,62 @@ describe("checkoutPaymentMethodForStripeType", () => {
 
 describe("executeTuitionAutopayCharge", () => {
   it("charges a saved bank account as us_bank_account with the ACH fee", async () => {
-    const { supabase, inserted } = createSupabaseMock();
+    const { supabase, inserted, updates } = createSupabaseMock();
     let captured: Stripe.PaymentIntentCreateParams | undefined;
     const stripe = createStripeMock({
       paymentMethodType: "us_bank_account",
       create: async (params) => {
         captured = params;
-        return { id: "pi_ach", status: "requires_action" };
+        return {
+          id: "pi_ach",
+          status: "requires_action",
+          next_action: {
+            type: "verify_with_microdeposits",
+            verify_with_microdeposits: {
+              hosted_verification_url: "https://payments.stripe.com/microdeposit/test",
+              microdeposit_type: "descriptor_code",
+            },
+          },
+        };
       },
     });
 
-    await executeTuitionAutopayCharge(supabase as never, baseInput, { stripe });
+    const recorded: Array<{
+      paymentIntentId?: string;
+      stripeProviderStatus?: string | null;
+      skipReceipt?: boolean;
+      skipActivity?: boolean;
+    }> = [];
+    const recordCompleted: typeof recordTuitionPaymentCompleted = async (
+      _admin,
+      input,
+    ) => {
+      recorded.push(input);
+      return { payment: input.payment, newlyRecorded: true };
+    };
+
+    const result = await executeTuitionAutopayCharge(
+      supabase as never,
+      { ...baseInput, suppressEmails: true },
+      {
+        stripe,
+        recordCompleted,
+      },
+    );
 
     const achQuote = quoteProcessingFee(60000, "us_bank_account");
+    assert.equal(result.outcome, "requires_action");
+    assert.equal(result.paymentIntentId, "pi_ach");
     assert.deepEqual(captured?.payment_method_types, ["us_bank_account"]);
     assert.equal(captured?.amount, achQuote.grossAmountCents);
     assert.equal(captured?.metadata?.payment_method, "us_bank_account");
     assert.equal(inserted[0]?.payment_method_type, "us_bank_account");
     assert.equal(inserted[0]?.charged_amount_cents, achQuote.grossAmountCents);
+    assert.equal(recorded.length, 1);
+    assert.equal(recorded[0]?.paymentIntentId, "pi_ach");
+    assert.equal(recorded[0]?.stripeProviderStatus, "requires_action");
+    assert.equal(recorded[0]?.skipReceipt, true);
+    assert.equal(recorded[0]?.skipActivity, true);
   });
 
   it("charges a saved card as card with the card fee", async () => {

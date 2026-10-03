@@ -5,6 +5,7 @@ import { formatBillingDueDate } from "@/lib/tuition/due-date-display";
 import { formatCents } from "@/lib/tuition/pricing";
 import type { ParentTuitionPaymentRecord } from "@/lib/tuition/payments";
 import { formatTuitionPaymentMethodLabel } from "@/lib/tuition/tuition-payment-receipt-detail";
+import { tuitionPaymentStripeStatusBadge, tuitionPaymentStripeStatusHint, parentBillingStatusBadgeStyles } from "@/lib/tuition/stripe-provider-status-display";
 import { getStudentBadgeColors } from "@/lib/tuition/student-badge-colors";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
@@ -33,6 +34,14 @@ export default function ParentBillingPaymentHistoryRow({
   const badgeColors = getStudentBadgeColors(C, badgeColorIndex);
   const displayAmountCents =
     payment.chargedAmountCents ?? payment.amountCents;
+  const stripeStatusHint = tuitionPaymentStripeStatusHint(payment);
+  const stripeStatusBadge = tuitionPaymentStripeStatusBadge(payment);
+  const hintColor =
+    stripeStatusHint?.tone === "danger"
+      ? C.error
+      : stripeStatusHint?.tone === "warning"
+        ? C.warning
+        : C.textSecondary;
 
   const surfaceColor = theme?.white ?? C.surface;
   const borderColor = theme?.line ?? C.border;
@@ -86,11 +95,31 @@ export default function ParentBillingPaymentHistoryRow({
           {subtitleDate}
           {` · ${paymentMethodLabel}`}
         </p>
+        {stripeStatusHint ? (
+          <p
+            className="mt-1 text-[11px] leading-snug"
+            style={{ color: hintColor }}
+            data-testid={stripeStatusHint.testId}
+          >
+            {stripeStatusHint.message}
+          </p>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="font-semibold tabular-nums" style={{ color: successColor }}>
-          {formatCents(displayAmountCents)}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-semibold tabular-nums" style={{ color: successColor }}>
+            {formatCents(displayAmountCents)}
+          </span>
+          {stripeStatusBadge ? (
+            <span
+              className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+              style={parentBillingStatusBadgeStyles(C, stripeStatusBadge.tone)}
+              data-testid={stripeStatusBadge.testId}
+            >
+              {stripeStatusBadge.label}
+            </span>
+          ) : null}
+        </div>
         {onClick ? (
           <ChevronRight
             className="h-4 w-4"

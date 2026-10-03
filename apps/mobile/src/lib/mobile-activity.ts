@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { isBenignClientNetworkError } from '@/lib/client-network-errors';
 import { fetchWithAuth, postJsonWithAccessToken } from '@/lib/auth/auth-session';
 import { consumePendingAuthDiagnostics } from '@/lib/mobile-auth-diagnostics';
 import type { PortalType, ResolvedPortal } from '@/lib/auth/resolve-portal';
@@ -92,6 +93,10 @@ export function shouldReportMobileOperationalError(
   responseStatus?: number,
 ): boolean {
   if (responseStatus !== undefined && responseStatus >= 400 && responseStatus < 500) {
+    return false;
+  }
+
+  if (isBenignClientNetworkError(err)) {
     return false;
   }
 

@@ -11,8 +11,18 @@ const MUTED_OPACITY = "0.65";
 const FONT_BODY =
   "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-const LOGO_URL = `${SITE_URL}/images/Logo.png`;
-const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "");
+function resolveEmailSiteUrl(siteUrl?: string): {
+  url: string;
+  host: string;
+  logoUrl: string;
+} {
+  const url = siteUrl ?? SITE_URL;
+  return {
+    url,
+    host: url.replace(/^https?:\/\//, ""),
+    logoUrl: `${url}/images/Logo.png`,
+  };
+}
 
 const EMAIL_DARK_MODE_CSS = `<style>
   @media (prefers-color-scheme: dark) {
@@ -68,11 +78,12 @@ export function emailShell(opts: { preheader: string; bodyHtml: string }): strin
 </html>`;
 }
 
-export function emailHeader(): string {
+export function emailHeader(siteUrl?: string): string {
+  const { url, logoUrl } = resolveEmailSiteUrl(siteUrl);
   return `<tr>
   <td style="padding:28px 32px 8px;text-align:center;">
-    <a href="${SITE_URL}" style="text-decoration:none;display:inline-block;">
-      <img src="${LOGO_URL}" alt="${escapeHtml(SITE_NAME)}" width="120" height="auto" style="display:block;border:0;max-width:120px;height:auto;margin:0 auto;">
+    <a href="${url}" style="text-decoration:none;display:inline-block;">
+      <img src="${logoUrl}" alt="${escapeHtml(SITE_NAME)}" width="120" height="auto" style="display:block;border:0;max-width:120px;height:auto;margin:0 auto;">
     </a>
   </td>
 </tr>`;
@@ -262,11 +273,12 @@ export function emailSignOff(): string {
 </p>`;
 }
 
-export function emailFooter(): string {
+export function emailFooter(siteUrl?: string): string {
+  const { url, host } = resolveEmailSiteUrl(siteUrl);
   return `<tr>
   <td style="padding:24px 32px 8px;text-align:center;">
     <p style="margin:0 0 6px;font-family:${FONT_BODY};font-size:13px;line-height:1.5;">
-      <a class="email-link" href="${SITE_URL}" style="color:${COLORS.accent};text-decoration:none;">${SITE_HOST}</a>
+      <a class="email-link" href="${url}" style="color:${COLORS.accent};text-decoration:none;">${host}</a>
     </p>
     <p style="margin:0;font-family:${FONT_BODY};font-size:12px;line-height:1.5;opacity:${MUTED_OPACITY};">
       &copy; ${new Date().getFullYear()} ${escapeHtml(SITE_NAME)}. All rights reserved.
@@ -278,10 +290,12 @@ export function emailFooter(): string {
 export function composeEmail(opts: {
   preheader: string;
   contentHtml: string;
+  siteUrl?: string;
 }): string {
+  const siteUrl = opts.siteUrl;
   return emailShell({
     preheader: opts.preheader,
-    bodyHtml: `${emailHeader()}${emailContentBlock(opts.contentHtml)}${emailFooter()}`,
+    bodyHtml: `${emailHeader(siteUrl)}${emailContentBlock(opts.contentHtml)}${emailFooter(siteUrl)}`,
   });
 }
 

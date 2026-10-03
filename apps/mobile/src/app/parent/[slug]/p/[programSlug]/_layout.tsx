@@ -1,5 +1,6 @@
 import { Redirect, Slot, useLocalSearchParams } from 'expo-router';
 
+import { ParentHomeSkeleton } from '@/components/parent/parent-home-skeleton';
 import { ParentProgramHomeProvider } from '@/contexts/parent-program-home-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import { useAuth } from '@/contexts/auth-context';
@@ -10,7 +11,7 @@ export default function ProgramParentPortalLayout() {
   const { user, isLoading: authLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <ParentHomeSkeleton />;
   }
 
   if (!programSlug || !programsByPortalSlug[programSlug]) {

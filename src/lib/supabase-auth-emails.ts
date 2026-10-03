@@ -7,6 +7,7 @@ import {
   emailParagraph,
   emailSignOff,
 } from "@/lib/email-layout";
+import { PRODUCTION_SITE_URL } from "@/lib/site";
 
 export const SUPABASE_OTP_TOKEN_PLACEHOLDER = "{{ .Token }}";
 
@@ -20,8 +21,10 @@ export const SUPABASE_CONFIRM_SIGNUP_SUBJECT =
 
 export function buildSupabaseMagicLinkOtpHtml(
   tokenHtml: string = SUPABASE_OTP_TOKEN_PLACEHOLDER,
+  siteUrl: string = PRODUCTION_SITE_URL,
 ): string {
   return composeEmail({
+    siteUrl,
     preheader: "{{ .Token }} is your sign-in code — enter it to continue your application.",
     contentHtml: `
       ${emailBadge("Sign In")}
@@ -40,8 +43,10 @@ export function buildSupabaseMagicLinkOtpHtml(
 
 export function buildSupabaseConfirmSignupOtpHtml(
   tokenHtml: string = SUPABASE_OTP_TOKEN_PLACEHOLDER,
+  siteUrl: string = PRODUCTION_SITE_URL,
 ): string {
   return composeEmail({
+    siteUrl,
     preheader: "{{ .Token }} is your verification code — finish creating your account.",
     contentHtml: `
       ${emailBadge("Verify Email")}

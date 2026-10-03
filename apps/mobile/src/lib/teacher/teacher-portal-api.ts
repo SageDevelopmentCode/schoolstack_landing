@@ -319,6 +319,42 @@ export async function fetchTeacherCommitteeWorkspace(
   return payload.committee;
 }
 
+export async function fetchTeacherCommitteeActivity(
+  organizationId: string,
+  committeeId: string,
+  options?: { limit?: number },
+): Promise<import('@/lib/parent/parent-committees-types').CommitteeActivityItem[]> {
+  const query = new URLSearchParams({
+    organizationId,
+    limit: String(options?.limit ?? 30),
+  });
+  const payload = await fetchTeacherApi<{
+    items?: import('@/lib/parent/parent-committees-types').CommitteeActivityItem[];
+  }>(`/api/teacher-portal/committees/${committeeId}/activity?${query}`);
+  return payload.items ?? [];
+}
+
+export async function fetchTeacherCommitteeUnreadSummary(
+  organizationId: string,
+): Promise<import('@/lib/committees/committee-unread-types').CommitteeUnreadSummary> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchTeacherApi<
+    import('@/lib/committees/committee-unread-types').CommitteeUnreadSummary
+  >(`/api/teacher-portal/committees/unread-summary?${query}`);
+  return payload ?? { totalUnread: 0, byCommittee: [] };
+}
+
+export async function markTeacherCommitteeSectionRead(
+  organizationId: string,
+  committeeId: string,
+  section: import('@/lib/parent/parent-committees-types').CommitteeWorkspaceSection,
+): Promise<void> {
+  await fetchTeacherApi(`/api/teacher-portal/committees/${committeeId}/mark-read`, {
+    method: 'POST',
+    body: { organizationId, section },
+  });
+}
+
 export type SubmitTeacherCommitteeJoinRequestInput = {
   organizationId: string;
   committeeId: string;

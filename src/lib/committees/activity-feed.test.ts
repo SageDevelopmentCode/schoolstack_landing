@@ -81,4 +81,59 @@ describe("mapCommitteeActivityItem preview hrefs", () => {
       "/school/rooted-meadows/parent/committees?committee=committee-abc&section=resources&tab=mine",
     );
   });
+
+  it("builds live teacher committees URLs for teacher surface", () => {
+    const item = mapCommitteeActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_MESSAGE_POSTED,
+        summary: "New message",
+      }),
+      {
+        slug: "rooted-meadows",
+        committeeId: "committee-abc",
+        linkSurface: "teacher",
+      },
+    );
+
+    assert.equal(
+      item.href,
+      "/school/rooted-meadows/teacher/committees?committee=committee-abc&section=messages&tab=mine",
+    );
+  });
+
+  it("builds staff preview teacher committees URLs", () => {
+    const item = mapCommitteeActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_TASK_CREATED,
+        summary: "Task added",
+      }),
+      {
+        slug: "rooted-meadows",
+        committeeId: "committee-abc",
+        staffMemberId: "staff-1",
+        linkSurface: "teacherPreview",
+      },
+    );
+
+    assert.equal(
+      item.href,
+      "/admin/preview/rooted-meadows/teacher/staff-1/committees?committee=committee-abc&section=tasks&tab=mine",
+    );
+  });
+
+  it("omits href for teacherPreview surface without staffMemberId", () => {
+    const item = mapCommitteeActivityItem(
+      event({
+        action: ACTIVITY_ACTIONS.COMMITTEE_EVENT_CREATED,
+        summary: "Event added",
+      }),
+      {
+        slug: "rooted-meadows",
+        committeeId: "committee-abc",
+        linkSurface: "teacherPreview",
+      },
+    );
+
+    assert.equal(item.href, undefined);
+  });
 });

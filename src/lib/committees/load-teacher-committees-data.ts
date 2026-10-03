@@ -1,4 +1,11 @@
 import {
+  fetchCommitteeActivityEvents,
+  mapCommitteeActivityItems,
+  type CommitteeActivityItem,
+} from "@/lib/committees/activity-feed";
+import { getCommitteeUnreadSummaryForUser } from "@/lib/committees/committee-unread";
+import type { CommitteeUnreadSummary } from "@/lib/committees/committee-unread-types";
+import {
   getTeacherCommitteeWorkspace,
   listBrowsableCommitteesForTeacher,
   listTeacherCommitteeMemberships,
@@ -18,6 +25,9 @@ export type TeacherCommitteesInitialData = {
   browseCommittees: ParentCommitteeBrowseItem[];
   myCommittees: ParentCommitteeListItem[];
   workspacesByCommitteeId: Record<string, Committee>;
+  committeeUnreadSummary?: CommitteeUnreadSummary;
+  committeeActivityByCommitteeId?: Record<string, CommitteeActivityItem[]>;
+  previewGuardianUserId?: string | null;
 };
 
 export async function loadTeacherCommitteesInitialData(input: {
@@ -62,6 +72,7 @@ export async function loadTeacherCommitteesInitialData(input: {
 export async function loadTeacherCommitteesPreviewData(input: {
   organizationId: string;
   staffMemberId: string;
+  schoolSlug: string;
   selectedCommitteeId?: string | null;
 }): Promise<TeacherCommitteesInitialData> {
   const admin = createAdminClient();
@@ -85,10 +96,19 @@ export async function loadTeacherCommitteesPreviewData(input: {
   ]);
 
   const workspacesByCommitteeId: Record<string, Committee> = {};
+  const committeeActivityByCommitteeId: Record<string, CommitteeActivityItem[]> = {};
+  let committeeUnreadSummary: CommitteeUnreadSummary | undefined;
+
   if (previewContext.userId) {
     const workspaceIds = new Set<string>();
     if (input.selectedCommitteeId) workspaceIds.add(input.selectedCommitteeId);
     for (const committee of myCommittees) workspaceIds.add(committee.id);
+
+    committeeUnreadSummary = await getCommitteeUnreadSummaryForUser(
+      admin,
+      input.organizationId,
+      previewContext.userId,
+    );
 
     await Promise.all(
       [...workspaceIds].map(async (committeeId) => {
@@ -102,6 +122,24 @@ export async function loadTeacherCommitteesPreviewData(input: {
         } catch {
           // Workspace loads on selection when preload fails.
         }
+
+        try {
+          const rows = await fetchCommitteeActivityEvents(admin, {
+            organizationId: input.organizationId,
+            committeeId,
+            limit: 8,
+            audience: "parent",
+          });
+          committeeActivityByCommitteeId[committeeId] = mapCommitteeActivityItems(rows, {
+            slug: input.schoolSlug,
+            committeeId,
+            staffMemberId: input.staffMemberId,
+            linkSurface: "teacherPreview",
+            includeHref: true,
+          });
+        } catch {
+          committeeActivityByCommitteeId[committeeId] = [];
+        }
       }),
     );
   }
@@ -110,5 +148,8 @@ export async function loadTeacherCommitteesPreviewData(input: {
     browseCommittees,
     myCommittees,
     workspacesByCommitteeId,
+    committeeUnreadSummary,
+    committeeActivityByCommitteeId,
+    previewGuardianUserId: previewContext.userId,
   };
 }

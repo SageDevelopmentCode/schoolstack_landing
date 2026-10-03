@@ -42,6 +42,7 @@ import {
   type ResolvedParentOnboardingItem,
 } from '@/lib/parent/parent-portal-api';
 import { buildParentActivityNotificationContext } from '@/lib/parent/fetch-activity-notifications';
+import { programPortalChildrenEmptyMessage } from '@/lib/parent/parent-children-utils';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 
 export type ParentHomeDashboardProps = {
@@ -75,10 +76,6 @@ export type ParentHomeDashboardProps = {
   onCoopMessageThread: (threadId: string) => void;
   parentNavBasePath?: string;
 };
-
-function programPortalChildrenEmptyMessage(portalLabel: string): string {
-  return `No learners enrolled in ${portalLabel} yet.`;
-}
 
 export function ParentHomeDashboard({
   slug,

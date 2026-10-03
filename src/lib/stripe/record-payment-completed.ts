@@ -122,6 +122,24 @@ export async function recordTuitionPaymentCompleted(
   return { payment, newlyRecorded: true, settleResult };
 }
 
+export async function tuitionPaymentCompletedActivityExists(
+  admin: SupabaseClient,
+  organizationId: string,
+  paymentId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("activity_events")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED)
+    .filter("metadata->>paymentId", "eq", paymentId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data?.id);
+}
+
 export async function logTuitionPaymentCompletedActivities(
   admin: SupabaseClient,
   input: {

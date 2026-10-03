@@ -37,7 +37,7 @@ Defined in code as `SUPABASE_MAGIC_LINK_SUBJECT` and `SUPABASE_CONFIRM_SIGNUP_SU
    ```bash
    npm run preview:emails
    ```
-   This updates `magic-link.html` and `confirm-signup.html` here, and writes browser previews to `.email-previews/`.
+   This updates `magic-link.html` and `confirm-signup.html` here (always **production** logo/footer URLs, even when `.env.local` points at localhost), and writes browser previews to `.email-previews/` (previews use your local `NEXT_PUBLIC_SITE_URL` when set).
 
    Zoho-style previews in `.email-previews/` include the unsubscribe footer when `EMAIL_UNSUBSCRIBE_SECRET` is set in `.env.local` (Supabase OTP preview files do not).
 

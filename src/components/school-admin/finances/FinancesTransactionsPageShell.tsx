@@ -20,6 +20,7 @@ import {
 import type { PaymentStatus, PaymentType } from "@/lib/stripe/application-payments";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { TransactionsPageMeta } from "@/lib/school-admin/transactions-page-meta";
+import { paymentRecordAdminStatusBadge } from "@/lib/tuition/stripe-provider-status-display";
 import {
   clearAttentionDismiss,
   dismissAttention,
@@ -395,6 +396,7 @@ export default function FinancesTransactionsPageShell({
               "Payer",
               "Type",
               "Method",
+              "Status",
               "Amount",
               "Application",
             ].map((heading) => (
@@ -409,7 +411,9 @@ export default function FinancesTransactionsPageShell({
           </tr>
         </thead>
         <tbody>
-          {loadedRows.map((row) => (
+          {loadedRows.map((row) => {
+            const statusBadge = paymentRecordAdminStatusBadge(row);
+            return (
             <tr
               key={row.id}
               onMouseEnter={() => setHoveredId(row.id)}
@@ -442,6 +446,11 @@ export default function FinancesTransactionsPageShell({
                   ? PAYMENT_METHOD_LABELS[row.paymentMethodType]
                   : "—"}
               </td>
+              <td className="px-4 py-3">
+                <AdminChip theme={theme} tone={statusBadge.tone}>
+                  {statusBadge.label}
+                </AdminChip>
+              </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 <span className="text-xs font-semibold tabular-nums" style={{ color: theme.ink }}>
                   {formatFeeAmount(row.amountCents)}
@@ -467,7 +476,8 @@ export default function FinancesTransactionsPageShell({
                 )}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

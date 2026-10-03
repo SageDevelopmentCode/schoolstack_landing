@@ -17,6 +17,7 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import { CommitteeUnreadRefreshProvider } from "@/lib/committees/committee-unread-refresh-context";
 import { MessagesRefreshProvider } from "@/lib/messages/messages-refresh-context";
 import { fraunces, dmSans } from "@/lib/fonts";
 
@@ -113,6 +114,7 @@ function SchoolTeacherBaselineInner({
   }, []);
 
   return (
+    <CommitteeUnreadRefreshProvider>
     <MessagesRefreshProvider
       organizationId={organizationId}
       enabled={messagesEnabled}
@@ -162,6 +164,7 @@ function SchoolTeacherBaselineInner({
         />
       </div>
     </MessagesRefreshProvider>
+    </CommitteeUnreadRefreshProvider>
   );
 }
 
