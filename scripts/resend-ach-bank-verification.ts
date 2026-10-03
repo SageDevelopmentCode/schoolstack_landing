@@ -1,0 +1,193 @@
+/**
+ * Resend ACH micro-deposit verification email, or print manual ops copy.
+ *
+ * Usage:
+ *   PAYMENT_ID=040a76f7-... npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-ach-bank-verification.ts
+ *   PAYMENT_IDS=uuid1,uuid2 PRINT_MANUAL=1 ...  # combined manual email draft
+ *   DRY_RUN=1  # fetch only, no Zoho send
+ *
+ * Env (default 1 = on):
+ *   SEND_FAMILY=1  — family/applicant verification email via MudKitchen
+ *   SEND_OPS=1     — school admin email, Discord, activity_events
+ *   FORCE_OPS=1    — re-send admin + Discord even if ops activity already logged
+ */
+
+import { resolve } from "node:path";
+import { config } from "dotenv";
+
+import type { PaymentRecord } from "@/lib/stripe/application-payments";
+import type { AchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
+
+config({ path: resolve(process.cwd(), ".env.local") });
+
+function log(message: string) {
+  console.log(`[resend-ach-bank-verification] ${message}`);
+}
+
+function envFlag(name: string, defaultOn = true): boolean {
+  const value = process.env[name]?.trim();
+  if (value === undefined || value === "") return defaultOn;
+  return value === "1" || value.toLowerCase() === "true";
+}
+
+type ReadyPayment = {
+  payment: PaymentRecord;
+  verificationAction: AchVerificationAction;
+};
+
+async function main() {
+  const paymentIds = (
+    process.env.PAYMENT_IDS ??
+    process.env.PAYMENT_ID ??
+    ""
+  )
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .sort();
+
+  if (paymentIds.length === 0) {
+    console.error(
+      "[resend-ach-bank-verification] Set PAYMENT_ID or PAYMENT_IDS (comma-separated)",
+    );
+    process.exit(1);
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    console.error(
+      "[resend-ach-bank-verification] Supabase credentials missing in .env.local",
+    );
+    process.exit(1);
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY?.trim()) {
+    console.error(
+      "[resend-ach-bank-verification] STRIPE_SECRET_KEY missing in .env.local",
+    );
+    process.exit(1);
+  }
+
+  const printManual = process.env.PRINT_MANUAL === "1";
+  const dryRun = process.env.DRY_RUN === "1";
+  const sendFamily = envFlag("SEND_FAMILY");
+  const sendOps = envFlag("SEND_OPS");
+  const forceOps = envFlag("FORCE_OPS", false);
+
+  const { createAdminClient } = await import("@/utils/supabase/admin");
+  const { getPaymentById } = await import("@/lib/stripe/application-payments");
+  const {
+    resolveAchVerificationActionForPaymentIntent,
+  } = await import("@/lib/stripe/payment-intent-bank-verification");
+  const { sendAchBankVerificationNotificationsForPayments } = await import(
+    "@/lib/stripe/ach-bank-verification-notifications"
+  );
+  const { loadFamilyNotificationEmails } = await import(
+    "@/lib/notifications/family-notification-emails"
+  );
+
+  const admin = createAdminClient();
+  const blocks: string[] = [];
+  const readyByOrg = new Map<string, ReadyPayment[]>();
+
+  for (const paymentId of paymentIds) {
+    const payment = await getPaymentById(admin, paymentId);
+    if (!payment) {
+      log(`Payment not found: ${paymentId}`);
+      continue;
+    }
+    if (!payment.stripePaymentIntentId) {
+      log(`Payment ${paymentId} has no stripe_payment_intent_id`);
+      continue;
+    }
+
+    const verificationAction = await resolveAchVerificationActionForPaymentIntent(
+      payment.stripePaymentIntentId,
+    );
+
+    if (!verificationAction) {
+      log(
+        `Payment ${paymentId} PI is not awaiting micro-deposit verification (check Stripe Dashboard).`,
+      );
+      continue;
+    }
+
+    log(`OK ${payment.label ?? paymentId}: ${verificationAction.hostedVerificationUrl}`);
+
+    blocks.push(
+      `${payment.label ?? "Tuition"} (${(payment.chargedAmountCents ?? payment.amountCents) / 100} USD):\n${verificationAction.hostedVerificationUrl}`,
+    );
+
+    const orgBatch = readyByOrg.get(payment.organizationId) ?? [];
+    orgBatch.push({ payment, verificationAction });
+    readyByOrg.set(payment.organizationId, orgBatch);
+  }
+
+  if (blocks.length === 0) {
+    process.exit(1);
+  }
+
+  if (printManual || dryRun) {
+    const firstPayment = await getPaymentById(admin, paymentIds[0]!);
+    const emails =
+      firstPayment?.familyId != null
+        ? await loadFamilyNotificationEmails(admin, firstPayment.familyId)
+        : [];
+
+    console.log("\n--- Manual email draft ---\n");
+    console.log(`To: ${emails.join(", ") || "(set family notification emails)"}`);
+    console.log(
+      "Subject: Action needed: verify your bank for tuition (Rooted Meadows)\n",
+    );
+    console.log(
+      "Hi,\n\nStripe still needs you to verify your bank account before your tuition payment can go through. Until you complete verification, no debit has been submitted.\n",
+    );
+    for (const block of blocks) {
+      console.log(block);
+      console.log("");
+    }
+    console.log(
+      "Watch your bank for a small Stripe entry with a verification code in the description, then open the matching link above.\n",
+    );
+    console.log("--- end draft ---\n");
+    return;
+  }
+
+  for (const [organizationId, readyPayments] of readyByOrg) {
+    const payments = readyPayments.map((row) => row.payment);
+    const sortedIds = payments.map((p) => p.id).sort();
+    const checkoutSessionId =
+      payments[0]?.stripeCheckoutSessionId ??
+      `manual-resend-${sortedIds.join("-")}`;
+
+    const uniqueUrls = new Set(
+      readyPayments.map((row) => row.verificationAction.hostedVerificationUrl),
+    );
+    if (uniqueUrls.size > 1) {
+      log(
+        `Note: ${payments.length} payments have different Stripe verification URLs. ` +
+          "The automated family email uses the first payment's verify button; include all links in manual follow-up if needed.",
+      );
+    }
+
+    const verificationAction = readyPayments[0]!.verificationAction;
+
+    await sendAchBankVerificationNotificationsForPayments(admin, {
+      organizationId,
+      checkoutSessionId,
+      payments,
+      verificationAction,
+      sendFamily,
+      sendOps,
+      forceOps,
+    });
+
+    log(
+      `Sent batched notifications for ${payments.length} payment(s) (family=${sendFamily}, ops=${sendOps}, forceOps=${forceOps})`,
+    );
+  }
+}
+
+main().catch((error) => {
+  console.error("[resend-ach-bank-verification] Failed:", error);
+  process.exit(1);
+});

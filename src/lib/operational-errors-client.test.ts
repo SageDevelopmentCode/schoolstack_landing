@@ -6,6 +6,7 @@ import {
   shouldReportApplyClientError,
   shouldReportPortalClientError,
 } from "./operational-errors-client";
+import { isBenignClientNetworkError } from "./client-network-errors";
 
 describe("shouldReportPortalClientError", () => {
   it("skips expected 4xx response statuses", () => {
@@ -24,6 +25,13 @@ describe("shouldReportPortalClientError", () => {
 
   it("reports real Error instances", () => {
     assert.equal(shouldReportPortalClientError(new Error("failed")), true);
+  });
+
+  it("skips benign client network errors", () => {
+    assert.equal(shouldReportPortalClientError(new Error("Load failed")), false);
+    assert.equal(shouldReportPortalClientError(new Error("Failed to fetch")), false);
+    assert.equal(shouldReportPortalClientError(new Error("Network request failed")), false);
+    assert.equal(isBenignClientNetworkError("Load failed"), true);
   });
 });
 

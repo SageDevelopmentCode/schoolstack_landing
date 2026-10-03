@@ -35,6 +35,8 @@ import {
   buildTuitionDueReminderHtml,
   buildTuitionLateFeeHtml,
   buildTuitionAutopayConfirmationHtml,
+  buildAchBankVerificationHtml,
+  buildAchBankVerificationAdminNotificationHtml,
   buildTuitionPaymentReceiptHtml,
 } from "../src/lib/emails";
 import {
@@ -452,6 +454,50 @@ const previews = [
       chargeLabel: "Aug Tuition",
     }),
     checks: ["ACH", "$5.00", "Processing fee", "$725.00"],
+  },
+  {
+    filename: "ach-bank-verification-tuition.html",
+    html: buildAchBankVerificationHtml({
+      name: "Hayley Calvert",
+      schoolName: "Rooted Meadows",
+      verificationUrl: "https://payments.stripe.com/microdeposit/pacs_live_example",
+      portalUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
+      microdepositType: "descriptor_code",
+      arrivalDateLabel: "October 5, 2026",
+      lineItems: [
+        { label: "Sep Tuition", amountCents: 72500, studentName: "Arrow" },
+        { label: "Oct Tuition", amountCents: 72500, studentName: "Arrow" },
+      ],
+    }),
+    checks: [
+      "Action required",
+      "Verify bank account",
+      "verification code",
+      "Sep Tuition",
+      "Open portal",
+    ],
+  },
+  {
+    filename: "ach-bank-verification-admin-tuition.html",
+    html: buildAchBankVerificationAdminNotificationHtml({
+      schoolName: "Rooted Meadows",
+      paymentTypeLabel: "Tuition",
+      payerLabel: "Hayley Calvert",
+      familyEmailSent: true,
+      lineItems: [
+        { label: "Sep Tuition", amountCents: 72000, studentName: "Arrow" },
+        { label: "Oct Tuition", amountCents: 72000, studentName: "Arrow" },
+      ],
+      financesAdminUrl:
+        "https://trymudkitchen.com/school/rooted-meadows/admin/finances/transactions",
+    }),
+    checks: [
+      "Payment update",
+      "pending bank verification",
+      "No action is needed",
+      "View transactions",
+      "Sep Tuition",
+    ],
   },
   {
     filename: "tuition-autopay-confirmation.html",

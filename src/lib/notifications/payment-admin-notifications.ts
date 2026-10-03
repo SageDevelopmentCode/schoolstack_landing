@@ -6,6 +6,7 @@ import {
 } from "@/lib/admissions/payment-records";
 import {
   buildEmailNotificationContext,
+  sendAchBankVerificationAdminNotification,
   sendPaymentReceivedAdminNotification,
   type PaymentReceivedAdminLineItem,
 } from "@/lib/emails";
@@ -187,6 +188,94 @@ export async function sendPaymentReceivedAdminNotifications(
     );
   } catch (error) {
     console.error("Payment received admin notifications failed:", paymentId, error);
+  }
+}
+
+export async function sendAchBankVerificationAdminNotifications(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    payments: PaymentRecord[];
+    payerLabel: string;
+    familyEmailSent: boolean;
+  },
+): Promise<void> {
+  try {
+    const payments = input.payments.filter(Boolean);
+    if (payments.length === 0) return;
+
+    const notifyEmails = await resolvePaymentNotificationEmails(
+      admin,
+      input.organizationId,
+    );
+    if (notifyEmails.length === 0) return;
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("name, slug")
+      .eq("id", input.organizationId)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org?.slug) return;
+
+    const firstPayment = payments[0]!;
+    const lineItems: PaymentReceivedAdminLineItem[] = [];
+    for (const payment of payments) {
+      lineItems.push({
+        label: payment.label ?? PAYMENT_TYPE_LABELS[payment.paymentType],
+        amountCents: payment.amountCents,
+        studentName: await getStudentNameForCharge(admin, payment.tuitionChargeId),
+      });
+    }
+
+    const financesAdminUrl = `${SITE_URL}${schoolAdminPath(String(org.slug), "finances", "transactions")}`;
+    const adminEmailContext = buildEmailNotificationContext({
+      organizationId: input.organizationId,
+      organizationSlug: String(org.slug),
+      surface: "web",
+      entityType: "payment",
+      entityId: firstPayment.id,
+    });
+
+    const results = await Promise.allSettled(
+      notifyEmails.map((email) =>
+        sendAchBankVerificationAdminNotification({
+          email,
+          schoolName: String(org.name),
+          paymentTypeLabel: PAYMENT_TYPE_LABELS[firstPayment.paymentType],
+          payerLabel: input.payerLabel,
+          familyEmailSent: input.familyEmailSent,
+          lineItems,
+          financesAdminUrl,
+          notificationContext: adminEmailContext,
+        }),
+      ),
+    );
+
+    const failures = results.filter(
+      (result) =>
+        result.status === "rejected" ||
+        (result.status === "fulfilled" && !result.value.success),
+    );
+    if (failures.length > 0) {
+      const { logNotificationFailure } = await import(
+        "@/lib/admissions/notification-logging"
+      );
+      await logNotificationFailure(admin, {
+        organizationId: input.organizationId,
+        operation: "ach_bank_verification_admin_email",
+        error: `${failures.length} admin email(s) failed`,
+        entityType: "payment",
+        entityId: firstPayment.id,
+      });
+    }
+  } catch (error) {
+    console.error(
+      "ACH bank verification admin notifications failed:",
+      input.payments.map((p) => p.id).join(","),
+      error,
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import type { ParentTuitionPaymentRecord } from "./payments";
+import { pickStripeStatusSourceForPayments } from "./stripe-provider-status-display";
 
 export type TuitionPaymentReceiptLineItem = {
   studentName: string;
@@ -21,6 +22,11 @@ export type TuitionPaymentReceiptDetail = {
   isCombined: boolean;
   studentNames: string[];
   enrollmentIds: string[];
+  /** When set, parent receipt can show ACH Stripe status badge. */
+  stripeStatusSource: Pick<
+    ParentTuitionPaymentRecord,
+    "paymentMethodType" | "stripeProviderStatus" | "status"
+  > | null;
 };
 
 function formatPaidAtLabel(iso: string): string {
@@ -135,5 +141,6 @@ export function buildTuitionPaymentReceiptDetail(
     isCombined,
     studentNames,
     enrollmentIds,
+    stripeStatusSource: pickStripeStatusSourceForPayments(succeeded),
   };
 }

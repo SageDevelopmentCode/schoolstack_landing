@@ -1239,6 +1239,53 @@ export async function notifyPaymentCompleted(payload: {
   });
 }
 
+export async function notifyAchBankVerificationRequired(payload: {
+  schoolName: string;
+  payerLabel: string;
+  payerEmail?: string | null;
+  paymentTypeLabel: string;
+  paymentIds: string[];
+  lineItemSummary: string;
+  financesUrl: string;
+  familyEmailSent: boolean;
+}) {
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(payload.schoolName), true),
+    embedField("Family / payer", truncate(payload.payerLabel), true),
+    embedField("Type", payload.paymentTypeLabel, true),
+    embedField("Payments", payload.lineItemSummary, false),
+    embedField(
+      "Family email",
+      payload.familyEmailSent ? "Verification link sent" : "Could not confirm — follow up",
+      true,
+    ),
+    embedField("Finances", payload.financesUrl, false),
+  ];
+
+  if (payload.payerEmail) {
+    fields.splice(2, 0, contactField(payload.payerEmail, null));
+  }
+
+  if (payload.paymentIds.length === 1) {
+    fields.push(embedField("Payment ID", formatId(payload.paymentIds[0]!), true));
+  } else {
+    fields.push(
+      embedField(
+        "Payment IDs",
+        payload.paymentIds.map((id) => formatId(id)).join(", "),
+        false,
+      ),
+    );
+  }
+
+  await sendAdmissionsDiscordEmbed({
+    title: `⚠️ Bank verification needed · ${truncate(payload.schoolName)}`,
+    description: `**${payload.payerLabel}** must verify their bank before this ACH payment can settle.`,
+    color: DISCORD_EMBED_COLORS.warning,
+    fields,
+  });
+}
+
 const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
   schedule_campus_tour: "Campus tour scheduled",
   schedule_family_interview: "Family interview scheduled",

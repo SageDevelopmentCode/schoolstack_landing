@@ -22,6 +22,10 @@ import {
   parentMoreMenuItemIdForFeatureKey,
 } from '@/lib/parent/parent-more-menu-meta';
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
+import {
+  ParentPortalMoreMenuItemsSkeleton,
+  ParentPortalProgramSwitcherCardSkeleton,
+} from '@/components/parent/parent-portal-program-chrome-skeleton';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -56,10 +60,18 @@ export function ParentMoreMenuSheet({
   const {
     contexts,
     activeContext,
+    activeProgramSlug,
     showSwitcher,
     switchToContext,
     activePortalFeatures,
+    isLoading: portalContextsLoading,
+    programsByPortalSlug,
   } = useParentPortalContext();
+
+  const programPortalFeaturesPending = Boolean(
+    activeProgramSlug &&
+      (portalContextsLoading || !programsByPortalSlug[activeProgramSlug]),
+  );
 
   const displayName = useMemo(() => {
     const profileName = homeData?.userProfile.displayName?.trim();
@@ -70,11 +82,16 @@ export function ParentMoreMenuSheet({
   const portalFeatureRecord = activePortalFeatures?.parent ?? homeData?.features?.parent;
 
   const visibleMenuItemIds = useMemo(() => {
+    if (programPortalFeaturesPending) {
+      return [] as ParentMoreMenuItemId[];
+    }
+
     if (!portalFeatureRecord) {
       return Object.keys(PARENT_MORE_MENU_META) as ParentMoreMenuItemId[];
     }
 
     const featureKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: activeProgramSlug ? 'program' : 'main',
       parentFeatures: portalFeatureRecord as Parameters<
         typeof resolveMobileMoreMenuFeatureKeys
       >[0]['parentFeatures'],
@@ -106,7 +123,13 @@ export function ParentMoreMenuSheet({
       }
       return true;
     });
-  }, [activePortalFeatures, homeData?.features?.parent_home, portalFeatureRecord]);
+  }, [
+    activePortalFeatures,
+    activeProgramSlug,
+    homeData?.features?.parent_home,
+    portalFeatureRecord,
+    programPortalFeaturesPending,
+  ]);
 
   const visibleMenuItems = useMemo(
     () =>
@@ -130,7 +153,9 @@ export function ParentMoreMenuSheet({
         subtitle="Children and account settings"
       />
 
-      {showSwitcher && activeContext ? (
+      {portalContextsLoading ? <ParentPortalProgramSwitcherCardSkeleton /> : null}
+
+      {!portalContextsLoading && showSwitcher && activeContext ? (
         <StoryCard compact style={styles.programCard}>
           <Text style={[styles.programKicker, { color: theme.muted }]}>Program</Text>
           {contexts.map((context) => {
@@ -170,24 +195,28 @@ export function ParentMoreMenuSheet({
         </StoryCard>
       ) : null}
 
-      <StoryMoreMenuItemsCard>
-        {visibleMenuItems.map((item, index) => (
-          <StoryMoreMenuItemRow
-            key={item.id}
-            isFirst={index === 0}
-            label={item.label}
-            subtitle={item.subtitle}
-            onPress={() => onSelect(item.id)}
-            icon={
-              <StoryMoreMenuIcon
-                name={item.icon}
-                iconBg={item.iconBg}
-                iconColor={item.iconColor}
-              />
-            }
-          />
-        ))}
-      </StoryMoreMenuItemsCard>
+      {programPortalFeaturesPending ? (
+        <ParentPortalMoreMenuItemsSkeleton />
+      ) : (
+        <StoryMoreMenuItemsCard>
+          {visibleMenuItems.map((item, index) => (
+            <StoryMoreMenuItemRow
+              key={item.id}
+              isFirst={index === 0}
+              label={item.label}
+              subtitle={item.subtitle}
+              onPress={() => onSelect(item.id)}
+              icon={
+                <StoryMoreMenuIcon
+                  name={item.icon}
+                  iconBg={item.iconBg}
+                  iconColor={item.iconColor}
+                />
+              }
+            />
+          ))}
+        </StoryMoreMenuItemsCard>
+      )}
 
       {user ? (
         <StoryCard compact style={styles.accountCard}>

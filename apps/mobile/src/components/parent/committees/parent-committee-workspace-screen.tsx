@@ -14,7 +14,11 @@ import { ParentCommitteeMembersSection } from '@/components/parent/committees/se
 import { ParentCommitteeMessagesSection } from '@/components/parent/committees/sections/parent-committee-messages-section';
 import { ParentCommitteeResourcesSection } from '@/components/parent/committees/sections/parent-committee-resources-section';
 import { ParentCommitteeTasksSection } from '@/components/parent/committees/sections/parent-committee-tasks-section';
+import { useCommitteeUnreadRefresh } from '@/contexts/committee-unread-refresh-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { sectionUnreadForCommittee } from '@/lib/committees/committee-unread-section-labels';
+import type { CommitteesPortal } from '@/lib/committees/committees-portal-config';
+import { useCommitteeUnreadSummary } from '@/lib/committees/use-committee-unread-summary';
 import { PARENT_VISIBLE_SECTIONS } from '@/lib/parent/committees/constants';
 import type { ParentCommitteeSectionProps } from '@/lib/parent/committees/section-props';
 import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
@@ -22,6 +26,7 @@ import {
   fetchParentCommitteeWorkspace,
   markParentCommitteeSectionRead,
 } from '@/lib/parent/parent-portal-api';
+import { markTeacherCommitteeSectionRead } from '@/lib/teacher/teacher-portal-api';
 import type { Committee, CommitteeWorkspaceSection } from '@/lib/parent/parent-committees-types';
 import { Story, StoryFonts } from '@/constants/story-theme';
 import { SCREEN_HORIZONTAL_PADDING } from '@/constants/screen-layout';
@@ -45,6 +50,12 @@ function resolveVisibleSection(
   return visible[0] ?? 'home';
 }
 
+function portalFromApiNamespace(
+  portalApiNamespace: CommitteePortalApiNamespace,
+): CommitteesPortal {
+  return portalApiNamespace === 'teacher-portal' ? 'teacher' : 'parent';
+}
+
 function CommitteeWorkspaceScreen({
   organizationId,
   committeeId,
@@ -53,6 +64,13 @@ function CommitteeWorkspaceScreen({
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
+  const committeeUnreadRefresh = useCommitteeUnreadRefresh();
+  const portal = portalFromApiNamespace(portalApiNamespace);
+  const { summary: unreadSummary } = useCommitteeUnreadSummary(portal, organizationId);
+  const sectionUnreadCounts = useMemo(
+    () => sectionUnreadForCommittee(unreadSummary, committeeId),
+    [committeeId, unreadSummary],
+  );
   const supabase = useMemo(() => getSupabaseClient(), []);
 
   const [committee, setCommittee] = useState<Committee | null>(null);
@@ -115,7 +133,7 @@ function CommitteeWorkspaceScreen({
   }, [committee, supabase]);
 
   useEffect(() => {
-    if (!currentMemberId || portalApiNamespace !== 'parent-portal') return;
+    if (!currentMemberId) return;
     const section = activeSection;
     if (
       section !== 'messages' &&
@@ -125,17 +143,24 @@ function CommitteeWorkspaceScreen({
     ) {
       return;
     }
-    void markParentCommitteeSectionRead(organizationId, committeeId, section).catch(
-      (markReadError) => {
+    const markRead =
+      portalApiNamespace === 'teacher-portal'
+        ? markTeacherCommitteeSectionRead(organizationId, committeeId, section)
+        : markParentCommitteeSectionRead(organizationId, committeeId, section);
+    void markRead
+      .then(() => {
+        committeeUnreadRefresh?.notifyCommitteeUnreadChanged();
+      })
+      .catch((markReadError) => {
         reportError('committees.mark_section_read', markReadError, {
           entityType: 'committee',
           entityId: committeeId,
         });
-      },
-    );
+      });
   }, [
     activeSection,
     committeeId,
+    committeeUnreadRefresh,
     currentMemberId,
     organizationId,
     portalApiNamespace,
@@ -189,6 +214,7 @@ function CommitteeWorkspaceScreen({
           <ParentCommitteeHomeSection
             committee={sectionProps.committee}
             organizationId={sectionProps.organizationId}
+            portalApiNamespace={portalApiNamespace}
             onNavigate={sectionProps.onNavigate ?? setActiveSection}
           />
         );
@@ -210,6 +236,7 @@ function CommitteeWorkspaceScreen({
       <ParentCommitteeWorkspaceHeader
         committee={committee}
         activeSection={activeSection}
+        sectionUnreadCounts={sectionUnreadCounts}
         onSectionChange={setActiveSection}
       />
 

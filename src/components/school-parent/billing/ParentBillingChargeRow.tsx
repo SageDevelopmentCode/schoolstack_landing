@@ -12,6 +12,7 @@ import {
   PAY_AHEAD_REDUCTION_HINT,
   PAY_AHEAD_REDUCTION_LABEL,
 } from "@/lib/tuition/tuition-pay-copy";
+import { pendingCheckoutPaymentHint } from "@/lib/tuition/stripe-provider-status-display";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { TuitionAdjustment, TuitionCharge } from "@/lib/tuition/types";
@@ -126,7 +127,8 @@ export default function ParentBillingChargeRow({
             style={{ color: C.textSecondary }}
             data-testid="parent-billing-charge-processing-hint"
           >
-            Bank payment processing — usually 3–5 business days
+            {pendingCheckoutPaymentHint(pendingCheckoutPayment) ??
+              "Bank payment processing — usually 3–5 business days"}
           </p>
         ) : null}
       </div>

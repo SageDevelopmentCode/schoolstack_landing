@@ -17,6 +17,8 @@ import { ParentCommitteeMineListItem } from '@/components/parent/committees/pare
 import { ParentCommitteesSkeleton } from '@/components/parent/committees/parent-committees-skeleton';
 import { ParentCommitteesStoryHeader } from '@/components/parent/committees/parent-committees-story-header';
 import { StoryErrorBanner } from '@/components/story/story-error-banner';
+import { buildUnreadMaps } from '@/lib/committees/committee-unread-section-labels';
+import { useCommitteeUnreadSummary } from '@/lib/committees/use-committee-unread-summary';
 import { useParentCommittees } from '@/contexts/parent-committees-context';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import type {
@@ -47,9 +49,22 @@ type ListItem =
   | { kind: 'browse'; committee: ParentCommitteeBrowseItem }
   | { kind: 'mine'; committee: ParentCommitteeListItem };
 
-function CommitteesScreen({ slug, portal, useCommittees }: CommitteesScreenProps) {
+function CommitteesScreen({
+  slug,
+  organizationId,
+  portal,
+  useCommittees,
+}: CommitteesScreenProps) {
   const theme = useParentTheme();
   const router = useRouter();
+  const { summary: unreadSummary, refreshUnreadSummary } = useCommitteeUnreadSummary(
+    portal,
+    organizationId,
+  );
+  const { unreadByCommitteeId, unreadSectionLabelsByCommitteeId } = useMemo(
+    () => buildUnreadMaps(unreadSummary),
+    [unreadSummary],
+  );
   const {
     browseCommittees,
     myCommittees,
@@ -60,7 +75,7 @@ function CommitteesScreen({ slug, portal, useCommittees }: CommitteesScreenProps
     ensureLoaded,
     refresh,
   } = useCommittees();
-  const [activeTab, setActiveTab] = useState<ParentCommitteesTab>('explore');
+  const [activeTab, setActiveTab] = useState<ParentCommitteesTab>('mine');
 
   useEffect(() => {
     ensureLoaded();
@@ -126,7 +141,10 @@ function CommitteesScreen({ slug, portal, useCommittees }: CommitteesScreenProps
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => void refresh()}
+            onRefresh={() => {
+              void refresh();
+              void refreshUnreadSummary();
+            }}
             tintColor={theme.primary}
           />
         }
@@ -147,6 +165,8 @@ function CommitteesScreen({ slug, portal, useCommittees }: CommitteesScreenProps
             ) : (
               <ParentCommitteeMineListItem
                 committee={item.committee}
+                unreadCount={unreadByCommitteeId[item.committee.id] ?? 0}
+                unreadSectionLabels={unreadSectionLabelsByCommitteeId[item.committee.id]}
                 onPress={() => handleOpenWorkspace(item.committee.id)}
               />
             )}

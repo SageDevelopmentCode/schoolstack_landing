@@ -41,6 +41,8 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.APPLICATION_SUBMITTED]: "submitted an application",
   [ACTIVITY_ACTIONS.APPLICATION_PAYMENT_STARTED]: "started a payment",
   [ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED]: "completed a payment",
+  [ACTIVITY_ACTIONS.PAYMENT_ACH_VERIFICATION_REQUIRED]:
+    "needs bank verification before an ACH payment can settle",
   [ACTIVITY_ACTIONS.APPLICATION_FILE_UPLOADED]: "uploaded a file",
   [ACTIVITY_ACTIONS.APPLICATION_FILE_REMOVED]: "removed a file",
   [ACTIVITY_ACTIONS.APPLICATION_UNDER_REVIEW]: "marked an application under review",

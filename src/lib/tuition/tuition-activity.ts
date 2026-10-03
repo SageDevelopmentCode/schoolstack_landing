@@ -451,6 +451,26 @@ export function summarizePaymentAction(input: {
   }
 }
 
+export function summarizeAchVerificationRequired(input: {
+  payerLabel: string;
+  chargeLabels: string[];
+  familyEmailSent: boolean;
+}): TuitionChangeSummary {
+  const labels =
+    input.chargeLabels.length > 0
+      ? input.chargeLabels.map((label) => `“${label}”`).join(", ")
+      : "tuition";
+  const emailNote = input.familyEmailSent
+    ? "The family was emailed a Stripe verification link."
+    : "We could not confirm the family verification email was sent — follow up in billing.";
+  return {
+    changedFields: ["payment", "stripeProviderStatus"],
+    changes: [
+      `${input.payerLabel} must verify their bank before ACH payment for ${labels} can settle. ${emailNote}`,
+    ],
+  };
+}
+
 export function summarizeBillingRunSummary(
   counts: BillingRunCounts,
   input?: { manual?: boolean },

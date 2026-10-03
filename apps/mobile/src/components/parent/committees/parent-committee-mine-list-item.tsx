@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ParentCommitteeUnreadCallout } from '@/components/parent/committees/parent-committee-unread-callout';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
@@ -11,11 +12,15 @@ import { Spacing } from '@/constants/theme';
 
 type ParentCommitteeMineListItemProps = {
   committee: ParentCommitteeListItem;
+  unreadCount?: number;
+  unreadSectionLabels?: string[];
   onPress: () => void;
 };
 
 export function ParentCommitteeMineListItem({
   committee,
+  unreadCount = 0,
+  unreadSectionLabels,
   onPress,
 }: ParentCommitteeMineListItemProps) {
   const theme = useParentTheme();
@@ -26,6 +31,12 @@ export function ParentCommitteeMineListItem({
       onPress={onPress}
       style={({ pressed }) => [pressed && { opacity: 0.95 }]}>
       <StoryCard compact style={styles.card}>
+        {unreadCount > 0 ? (
+          <ParentCommitteeUnreadCallout
+            unreadCount={unreadCount}
+            sectionLabels={unreadSectionLabels}
+          />
+        ) : null}
         <View style={styles.headerRow}>
           <View style={styles.titleBlock}>
             <View style={styles.titleRow}>

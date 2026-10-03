@@ -3,7 +3,7 @@ import { createInterface } from "node:readline";
 
 const WEBHOOK_FORWARD_TO = "localhost:3000/api/stripe/webhook";
 const STRIPE_EVENTS =
-  "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,account.updated";
+  "checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,payment_intent.requires_action,account.updated";
 const WEBHOOK_SECRET_PATTERN = /whsec_[a-zA-Z0-9]+/;
 
 const children: ChildProcess[] = [];

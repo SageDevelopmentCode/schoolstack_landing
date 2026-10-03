@@ -104,17 +104,34 @@ describe("checkoutPaymentMethodForStripeType", () => {
 
 describe("executeTuitionAutopayCharge", () => {
   it("charges a saved bank account as us_bank_account with the ACH fee", async () => {
-    const { supabase, inserted } = createSupabaseMock();
+    const { supabase, inserted, updates } = createSupabaseMock();
     let captured: Stripe.PaymentIntentCreateParams | undefined;
     const stripe = createStripeMock({
       paymentMethodType: "us_bank_account",
       create: async (params) => {
         captured = params;
-        return { id: "pi_ach", status: "requires_action" };
+        return {
+          id: "pi_ach",
+          status: "requires_action",
+          next_action: {
+            type: "verify_with_microdeposits",
+            verify_with_microdeposits: {
+              hosted_verification_url: "https://payments.stripe.com/microdeposit/test",
+              microdeposit_type: "descriptor_code",
+            },
+          },
+        };
       },
     });
 
-    await executeTuitionAutopayCharge(supabase as never, baseInput, { stripe });
+    const recordCompleted = async () => {
+      throw new Error("should not record completed for requires_action");
+    };
+
+    await executeTuitionAutopayCharge(supabase as never, baseInput, {
+      stripe,
+      recordCompleted: recordCompleted as never,
+    });
 
     const achQuote = quoteProcessingFee(60000, "us_bank_account");
     assert.deepEqual(captured?.payment_method_types, ["us_bank_account"]);
@@ -122,6 +139,7 @@ describe("executeTuitionAutopayCharge", () => {
     assert.equal(captured?.metadata?.payment_method, "us_bank_account");
     assert.equal(inserted[0]?.payment_method_type, "us_bank_account");
     assert.equal(inserted[0]?.charged_amount_cents, achQuote.grossAmountCents);
+    assert.equal(updates[0]?.stripe_provider_status, "requires_action");
   });
 
   it("charges a saved card as card with the card fee", async () => {

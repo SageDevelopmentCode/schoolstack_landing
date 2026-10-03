@@ -50,7 +50,7 @@ export async function GET(request: Request, context: RouteContext) {
     const items = mapCommitteeActivityItems(rows, {
       slug,
       committeeId,
-      linkSurface: "parent",
+      linkSurface: "teacher",
       includeHref: Boolean(slug),
     });
 

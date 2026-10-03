@@ -61,6 +61,7 @@ import {
   reportPortalOperationalError,
   type PortalOperationalSurface,
 } from "@/lib/portal-operational-errors";
+import { isBenignClientNetworkError } from "@/lib/client-network-errors";
 
 export type MessagesApiConfig = {
   basePath: string;
@@ -507,6 +508,12 @@ export default function MessagesInboxLayout({
     const body = input.trim();
     if (!body && stagedFiles.length === 0) return;
 
+    const priorMessageIds = new Set(
+      (activeThread?.id === activeThreadId ? activeThread.messages : []).map(
+        (message) => message.id,
+      ),
+    );
+
     const optimisticId = `pending-${crypto.randomUUID()}`;
     const optimisticMessage: PortalMessage = {
       id: optimisticId,
@@ -541,6 +548,7 @@ export default function MessagesInboxLayout({
     setStagedFiles([]);
     setSending(true);
 
+    let responseStatus: number | undefined;
     try {
       let response: Response;
       if (filesToSend.length > 0) {
@@ -569,6 +577,7 @@ export default function MessagesInboxLayout({
         });
       }
 
+      responseStatus = response.status;
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? "Failed to send message.");
@@ -586,21 +595,77 @@ export default function MessagesInboxLayout({
       });
       await loadThread(activeThreadId, { silent: true });
     } catch (err) {
-      optimisticSendRef.current.fail(optimisticId);
-      setActiveThread((prev) =>
-        prev
-          ? {
-              ...prev,
-              messages: prev.messages.filter((message) => message.id !== optimisticId),
-            }
-          : prev,
-      );
-      setError(err instanceof Error ? err.message : "Failed to send message.");
-      reportMessagesError("messages.send", err);
+      let recovered = false;
+      if (isBenignClientNetworkError(err)) {
+        try {
+          const data = await fetchJson<{ thread: MessageThreadDetail }>(
+            `${api.basePath}/threads/${activeThreadId}?${query}`,
+          );
+          const newOwnMessages = data.thread.messages.filter(
+            (message) =>
+              message.isOwn &&
+              !priorMessageIds.has(message.id) &&
+              !message.id.startsWith("pending-"),
+          );
+          const matched =
+            filesToSend.length === 0
+              ? newOwnMessages.find((message) => message.body.trim() === body)
+              : newOwnMessages.at(-1);
+          if (matched) {
+            optimisticSendRef.current.confirm(optimisticId, matched.id);
+            setActiveThread((prev) => {
+              if (!prev || prev.id !== activeThreadId) {
+                return {
+                  ...data.thread,
+                  messages: reconcileThreadMessages(
+                    data.thread.messages,
+                    [],
+                    optimisticSendRef.current.getReconcileOptions(),
+                  ),
+                };
+              }
+              const withoutPending = prev.messages.filter(
+                (message) => message.id !== optimisticId,
+              );
+              return {
+                ...data.thread,
+                messages: reconcileThreadMessages(
+                  data.thread.messages,
+                  withoutPending,
+                  optimisticSendRef.current.getReconcileOptions(),
+                ),
+              };
+            });
+            setThreads((prev) =>
+              upsertThreadSummary(prev, threadSummaryFromDetail(data.thread)),
+            );
+            void loadInbox({ silent: true });
+            recovered = true;
+            setError(null);
+          }
+        } catch {
+          // keep failure path below
+        }
+      }
+
+      if (!recovered) {
+        optimisticSendRef.current.fail(optimisticId);
+        setActiveThread((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.filter((message) => message.id !== optimisticId),
+              }
+            : prev,
+        );
+        setError(err instanceof Error ? err.message : "Failed to send message.");
+        reportMessagesError("messages.send", err, responseStatus);
+      }
     } finally {
       setSending(false);
     }
   }, [
+    activeThread,
     activeThreadId,
     api.basePath,
     api.organizationId,
@@ -608,7 +673,9 @@ export default function MessagesInboxLayout({
     api.schoolName,
     api.viewer,
     input,
+    loadInbox,
     loadThread,
+    query,
     readOnly,
     reportMessagesError,
     stagedFiles,

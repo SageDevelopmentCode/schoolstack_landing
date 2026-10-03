@@ -13,7 +13,9 @@ import type {
   CommitteeActivityItem,
   CommitteeWorkspaceSection,
 } from '@/lib/parent/parent-committees-types';
+import type { CommitteePortalApiNamespace } from '@/lib/committees/notify-committee-task-assignment';
 import { fetchParentCommitteeActivity } from '@/lib/parent/parent-portal-api';
+import { fetchTeacherCommitteeActivity } from '@/lib/teacher/teacher-portal-api';
 import { useMobileErrorReporter } from '@/lib/use-mobile-error-reporter';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
@@ -21,12 +23,14 @@ import { Radius, Spacing } from '@/constants/theme';
 type ParentCommitteeHomeSectionProps = {
   committee: Committee;
   organizationId: string;
+  portalApiNamespace?: CommitteePortalApiNamespace;
   onNavigate: (section: CommitteeWorkspaceSection) => void;
 };
 
 export function ParentCommitteeHomeSection({
   committee,
   organizationId,
+  portalApiNamespace = 'parent-portal',
   onNavigate,
 }: ParentCommitteeHomeSectionProps) {
   const theme = useParentTheme();
@@ -39,9 +43,10 @@ export function ParentCommitteeHomeSection({
     (async () => {
       setLoadingActivity(true);
       try {
-        const items = await fetchParentCommitteeActivity(organizationId, committee.id, {
-          limit: 8,
-        });
+        const items =
+          portalApiNamespace === 'teacher-portal'
+            ? await fetchTeacherCommitteeActivity(organizationId, committee.id, { limit: 8 })
+            : await fetchParentCommitteeActivity(organizationId, committee.id, { limit: 8 });
         if (!cancelled) setActivityItems(items);
       } catch (error) {
         reportError('committees.activity.home_load', error, {
@@ -57,7 +62,7 @@ export function ParentCommitteeHomeSection({
     return () => {
       cancelled = true;
     };
-  }, [committee.id, organizationId, reportError]);
+  }, [committee.id, organizationId, portalApiNamespace, reportError]);
   const upcomingEvents = committee.events.slice(0, 3);
   const urgentTasks = committee.tasks.filter((task) => task.status !== 'done').slice(0, 4);
   const leaders = committee.members.filter((member) => member.role === 'lead');

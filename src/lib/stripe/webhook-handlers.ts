@@ -40,8 +40,8 @@ import {
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
 import {
-  inferStripeProviderStatusFromCheckoutSession,
-} from "@/lib/stripe/stripe-provider-status";
+  getAchVerificationAction,
+} from "@/lib/stripe/payment-intent-bank-verification";
 import { recordTuitionPaymentCompleted } from "@/lib/stripe/record-payment-completed";
 import {
   backfillStripeCustomerId,
@@ -50,6 +50,13 @@ import {
 } from "@/lib/stripe/customer";
 import { notifyPaymentsReadyIfNeeded } from "@/lib/stripe/connect-notifications";
 import { syncPaymentAccountFromStripe } from "@/lib/stripe/organization-payment-account";
+import {
+  sendAchBankVerificationNotificationsForPayments,
+  sendDeferredAdmissionsReceiptsIfAchSettled,
+  sendDeferredTuitionReceiptsIfAchSettled,
+  sendTuitionAchSettlementFailedNotifications,
+} from "@/lib/stripe/ach-bank-verification-notifications";
+import { resolveAchCheckoutFollowUp } from "@/lib/stripe/checkout-ach-followup";
 
 async function tryMarkPaymentSucceeded(
   admin: SupabaseClient,
@@ -98,6 +105,7 @@ export async function handleCheckoutSessionCompleted(
     metadata.organization_id
   ) {
     await handleCombinedEnrollmentChecklistCheckoutCompleted(admin, {
+      session,
       checkoutSessionId,
       paymentIntentId,
       metadata,
@@ -224,6 +232,12 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
           },
           severity: "warning",
         });
+        if (payment.paymentType === "tuition") {
+          void sendTuitionAchSettlementFailedNotifications(admin, {
+            payment,
+            settlementFailure: true,
+          });
+        }
       }
       continue;
     }
@@ -270,6 +284,12 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
         },
         severity: "warning",
       });
+      if (payment.paymentType === "tuition") {
+        void sendTuitionAchSettlementFailedNotifications(admin, {
+          payment: updatedPayment,
+          settlementFailure: false,
+        });
+      }
     }
   }
 }
@@ -307,15 +327,17 @@ async function resolveCheckoutSessionPayments(
 async function handleCombinedEnrollmentChecklistCheckoutCompleted(
   admin: SupabaseClient,
   input: {
+    session: Stripe.Checkout.Session;
     checkoutSessionId: string;
     paymentIntentId: string | undefined;
     metadata: Stripe.Metadata;
   },
 ): Promise<void> {
-  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const { session, checkoutSessionId, paymentIntentId, metadata } = input;
   const organizationId = metadata.organization_id as string;
   const checklistItemIds = parseCsvMetadata(metadata.checklist_item_ids);
   const paymentIds = parseCsvMetadata(metadata.payment_ids);
+  const achFollowUp = await resolveAchCheckoutFollowUp(session, paymentIntentId);
 
   let payments: PaymentRecord[] = [];
   if (paymentIds.length > 0) {
@@ -340,7 +362,14 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
       });
     if (newlySucceeded) {
       newlySucceededAny = true;
-      void sendPaymentCompletedNotifications(admin, updatedPayment.id);
+      await updateStripeProviderStatus(
+        admin,
+        updatedPayment.id,
+        achFollowUp.stripeProviderStatus,
+      );
+      if (!achFollowUp.verificationAction) {
+        void sendPaymentCompletedNotifications(admin, updatedPayment.id);
+      }
     }
   }
 
@@ -362,7 +391,29 @@ async function handleCombinedEnrollmentChecklistCheckoutCompleted(
   }
 
   if (!newlySucceededAny) {
+    const refreshedPayments = await resolveCheckoutSessionPayments(admin, {
+      checkoutSessionId,
+      metadata,
+    });
+    await sendDeferredAdmissionsReceiptsIfAchSettled(admin, {
+      sessionPaymentStatus: session.payment_status,
+      payments: refreshedPayments,
+    });
+    if (session.payment_status === "paid") {
+      for (const payment of refreshedPayments) {
+        await updateStripeProviderStatus(admin, payment.id, "succeeded");
+      }
+    }
     return;
+  }
+
+  if (achFollowUp.verificationAction && payments.length > 0) {
+    void sendAchBankVerificationNotificationsForPayments(admin, {
+      organizationId,
+      checkoutSessionId,
+      payments,
+      verificationAction: achFollowUp.verificationAction,
+    });
   }
 
   for (const instanceId of instanceIds) {
@@ -399,7 +450,8 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     metadata: Stripe.Metadata;
   },
 ): Promise<void> {
-  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const { session, checkoutSessionId, paymentIntentId, metadata } = input;
+  const achFollowUp = await resolveAchCheckoutFollowUp(session, paymentIntentId);
   const paymentId =
     typeof metadata.payment_id === "string" ? metadata.payment_id : null;
   let payment = paymentId ? await getPaymentById(admin, paymentId) : null;
@@ -420,7 +472,21 @@ async function handleEnrollmentChecklistCheckoutCompleted(
     payment = result.payment;
     newlySucceeded = result.newlySucceeded;
     if (newlySucceeded) {
-      void sendPaymentCompletedNotifications(admin, payment.id);
+      await updateStripeProviderStatus(
+        admin,
+        payment.id,
+        achFollowUp.stripeProviderStatus,
+      );
+      if (achFollowUp.verificationAction) {
+        void sendAchBankVerificationNotificationsForPayments(admin, {
+          organizationId: String(metadata.organization_id),
+          checkoutSessionId,
+          payments: [payment],
+          verificationAction: achFollowUp.verificationAction,
+        });
+      } else {
+        void sendPaymentCompletedNotifications(admin, payment.id);
+      }
     }
   }
 
@@ -433,6 +499,16 @@ async function handleEnrollmentChecklistCheckoutCompleted(
   fireEnrollmentCompletedNotificationsIfNeeded(admin, newlyCompletedEnrollment);
 
   if (!newlySucceeded) {
+    if (payment) {
+      const refreshed = (await getPaymentById(admin, payment.id)) ?? payment;
+      await sendDeferredAdmissionsReceiptsIfAchSettled(admin, {
+        sessionPaymentStatus: session.payment_status,
+        payments: [refreshed],
+      });
+      if (session.payment_status === "paid") {
+        await updateStripeProviderStatus(admin, refreshed.id, "succeeded");
+      }
+    }
     return;
   }
 
@@ -531,7 +607,7 @@ async function handleCombinedTuitionCheckoutCompleted(
   },
 ): Promise<void> {
   const { session, checkoutSessionId, paymentIntentId, metadata } = input;
-  const stripeProviderStatus = inferStripeProviderStatusFromCheckoutSession(session);
+  const achFollowUp = await resolveAchCheckoutFollowUp(session, paymentIntentId);
   const tuitionChargeIds = parseCsvMetadata(metadata.tuition_charge_ids);
   const payments = await resolveCheckoutSessionPayments(admin, {
     checkoutSessionId,
@@ -547,7 +623,7 @@ async function handleCombinedTuitionCheckoutCompleted(
       organizationId: String(metadata.organization_id),
       checkoutSessionId,
       paymentIntentId,
-      stripeProviderStatus,
+      stripeProviderStatus: achFollowUp.stripeProviderStatus,
       skipReceipt: true,
       skipActivity: true,
     });
@@ -562,13 +638,22 @@ async function handleCombinedTuitionCheckoutCompleted(
   });
 
   if (newlyRecordedAny && refreshedPayments.length > 0) {
-    void sendCombinedTuitionPaymentReceiptNotifications(admin, {
-      checkoutSessionId,
-      paymentIds: refreshedPayments.map((payment) => payment.id),
-    });
-    void sendCombinedPaymentReceivedAdminNotifications(admin, {
-      paymentIds: refreshedPayments.map((payment) => payment.id),
-    });
+    if (achFollowUp.verificationAction) {
+      void sendAchBankVerificationNotificationsForPayments(admin, {
+        organizationId: String(metadata.organization_id),
+        checkoutSessionId,
+        payments: refreshedPayments,
+        verificationAction: achFollowUp.verificationAction,
+      });
+    } else {
+      void sendCombinedTuitionPaymentReceiptNotifications(admin, {
+        checkoutSessionId,
+        paymentIds: refreshedPayments.map((payment) => payment.id),
+      });
+      void sendCombinedPaymentReceivedAdminNotifications(admin, {
+        paymentIds: refreshedPayments.map((payment) => payment.id),
+      });
+    }
   }
 
   const firstPayment = refreshedPayments[0];
@@ -590,11 +675,19 @@ async function handleCombinedTuitionCheckoutCompleted(
   }
 
   if (!newlyRecordedAny) {
+    await sendDeferredTuitionReceiptsIfAchSettled(admin, {
+      sessionPaymentStatus: session.payment_status,
+      payments: refreshedPayments,
+    });
     if (session.payment_status === "paid") {
       for (const payment of refreshedPayments) {
         await updateStripeProviderStatus(admin, payment.id, "succeeded");
       }
     }
+    return;
+  }
+
+  if (achFollowUp.verificationAction) {
     return;
   }
 
@@ -654,13 +747,17 @@ async function handleTuitionCheckoutCompleted(
   const activityMetadata =
     activityClientMetadataFromStripeMetadata(metadata) ?? undefined;
 
+  const achFollowUp = await resolveAchCheckoutFollowUp(session, paymentIntentId);
+
   const { newlyRecorded } = await recordTuitionPaymentCompleted(admin, {
     payment,
     organizationId: String(metadata.organization_id),
     tuitionChargeId: chargeId,
     checkoutSessionId,
     paymentIntentId,
-    stripeProviderStatus: inferStripeProviderStatusFromCheckoutSession(session),
+    stripeProviderStatus: achFollowUp.stripeProviderStatus,
+    skipReceipt: achFollowUp.skipImmediateReceipt,
+    skipActivity: achFollowUp.skipImmediateReceipt,
     activityMetadata,
   });
 
@@ -682,10 +779,24 @@ async function handleTuitionCheckoutCompleted(
   }
 
   if (!newlyRecorded) {
+    const refreshed = (await getPaymentById(admin, payment.id)) ?? payment;
+    await sendDeferredTuitionReceiptsIfAchSettled(admin, {
+      sessionPaymentStatus: session.payment_status,
+      payments: [refreshed],
+    });
     if (session.payment_status === "paid") {
-      await updateStripeProviderStatus(admin, payment.id, "succeeded");
+      await updateStripeProviderStatus(admin, refreshed.id, "succeeded");
     }
     return;
+  }
+
+  if (achFollowUp.verificationAction) {
+    void sendAchBankVerificationNotificationsForPayments(admin, {
+      organizationId: String(metadata.organization_id),
+      checkoutSessionId,
+      payments: [payment],
+      verificationAction: achFollowUp.verificationAction,
+    });
   }
 }
 
@@ -698,7 +809,8 @@ async function handleApplicationFeeCheckoutCompleted(
     metadata: Stripe.Metadata;
   },
 ): Promise<void> {
-  const { checkoutSessionId, paymentIntentId, metadata } = input;
+  const { session, checkoutSessionId, paymentIntentId, metadata } = input;
+  const achFollowUp = await resolveAchCheckoutFollowUp(session, paymentIntentId);
 
   let payment = await getApplicationPaymentByCheckoutSession(
     admin,
@@ -721,13 +833,38 @@ async function handleApplicationFeeCheckoutCompleted(
     payment = result.payment;
     newlySucceeded = result.newlySucceeded;
     if (newlySucceeded) {
-      void sendPaymentCompletedNotifications(admin, payment.id);
+      await updateStripeProviderStatus(
+        admin,
+        payment.id,
+        achFollowUp.stripeProviderStatus,
+      );
+      if (achFollowUp.verificationAction) {
+        void sendAchBankVerificationNotificationsForPayments(admin, {
+          organizationId: payment.organizationId,
+          checkoutSessionId,
+          payments: [payment],
+          verificationAction: achFollowUp.verificationAction,
+        });
+      } else {
+        void sendPaymentCompletedNotifications(admin, payment.id);
+      }
     }
   }
 
   if (!payment) {
     console.warn("checkout.session.completed: payment not found", checkoutSessionId);
     return;
+  }
+
+  if (!newlySucceeded) {
+    const refreshed = (await getPaymentById(admin, payment.id)) ?? payment;
+    await sendDeferredAdmissionsReceiptsIfAchSettled(admin, {
+      sessionPaymentStatus: session.payment_status,
+      payments: [refreshed],
+    });
+    if (session.payment_status === "paid") {
+      await updateStripeProviderStatus(admin, refreshed.id, "succeeded");
+    }
   }
 
   await processApplicationFeePayment(
@@ -840,6 +977,41 @@ async function processApplicationFeePayment(
       paymentId: payment.id,
       checkoutSessionId,
     },
+  });
+}
+
+export async function handlePaymentIntentRequiresAction(
+  admin: SupabaseClient,
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<void> {
+  const verificationAction = getAchVerificationAction(paymentIntent);
+  if (!verificationAction) return;
+
+  const paymentId =
+    typeof paymentIntent.metadata?.payment_id === "string"
+      ? paymentIntent.metadata.payment_id
+      : null;
+  const organizationId =
+    typeof paymentIntent.metadata?.organization_id === "string"
+      ? paymentIntent.metadata.organization_id
+      : null;
+
+  if (!paymentId || !organizationId) return;
+
+  const payment = await getPaymentById(admin, paymentId);
+  if (!payment || payment.status !== "succeeded") return;
+  if (payment.stripeProviderStatus === "requires_action") return;
+
+  await updateStripeProviderStatus(admin, payment.id, "requires_action");
+
+  const checkoutSessionId = payment.stripeCheckoutSessionId;
+  if (!checkoutSessionId) return;
+
+  void sendAchBankVerificationNotificationsForPayments(admin, {
+    organizationId,
+    checkoutSessionId,
+    payments: [payment],
+    verificationAction,
   });
 }
 

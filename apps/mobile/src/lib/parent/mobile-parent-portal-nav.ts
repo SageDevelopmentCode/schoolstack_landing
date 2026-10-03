@@ -287,21 +287,14 @@ export function resolveMobileParentTabBar(input: {
 }
 
 export function resolveMobileMoreMenuFeatureKeys(input: {
+  mode?: 'main' | 'program';
   parentFeatures: MobileParentFeatures;
   portalNav?: MobilePortalFeatureNav;
   coopMode?: boolean;
 }): MobileMoreMenuFeatureKey[] {
-  const items = buildMobileParentNavItemKeys(input.parentFeatures, input.portalNav);
-  const { more } = splitMobileParentNavForTabBar(items, {
-    coopMode: input.coopMode,
-  });
-  const moreNavKeys = new Set(more.map((item) => item.key));
-
   return MOBILE_MORE_MENU_FEATURE_KEYS.filter((key) => {
-    if (!input.parentFeatures[key]) return false;
-    if (moreNavKeys.has(key)) return true;
-    if (key === 'notifications' && input.parentFeatures.notifications) return true;
-    return false;
+    if (key === 'notifications') return true;
+    return Boolean(input.parentFeatures[key]);
   });
 }
 

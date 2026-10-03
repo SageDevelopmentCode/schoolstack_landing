@@ -1,3 +1,5 @@
+import { isBenignClientNetworkError } from "@/lib/client-network-errors";
+
 export type ClientOperationalErrorPayload = {
   organizationId: string;
   operation: string;
@@ -154,6 +156,10 @@ export function shouldReportPortalClientError(
   }
 
   if (err instanceof DOMException && err.name === "AbortError") {
+    return false;
+  }
+
+  if (isBenignClientNetworkError(err)) {
     return false;
   }
 

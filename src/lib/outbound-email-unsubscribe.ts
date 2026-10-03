@@ -24,6 +24,7 @@ export const TRANSACTIONAL_OUTBOUND_EMAIL_CHANNELS = new Set<string>([
   "application_submitted_owner_notification",
   "post_submit_visit_owner_notification",
   "payment_received_admin_notification",
+  "ach_bank_verification_admin_notification",
   "stripe_payments_ready",
   "friday_branch_enrollment_admin",
   "committee_join_request_admin",

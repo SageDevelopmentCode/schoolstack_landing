@@ -432,6 +432,133 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(chargeRow?.paid_cents, 720_000);
   });
 
+  it("records requires_action provider status when ACH micro-deposit verification is pending", async () => {
+    setStripeClientForTests(
+      createMockStripeClient({
+        paymentIntentsRetrieve: async (paymentIntentId) =>
+          ({
+            id: paymentIntentId,
+            object: "payment_intent",
+            status: "requires_action",
+            payment_method: "pm_test_mock",
+            next_action: {
+              type: "verify_with_microdeposits",
+              verify_with_microdeposits: {
+                hosted_verification_url:
+                  "https://payments.stripe.com/microdeposit/test",
+                microdeposit_type: "descriptor_code",
+                arrival_date: Math.floor(Date.now() / 1000) + 86_400,
+              },
+            },
+          }) as Stripe.PaymentIntent,
+      }),
+    );
+
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    await handleCheckoutSessionCompleted(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        paymentStatus: "unpaid",
+        metadata: {
+          payment_type: "tuition",
+          tuition_charge_id: fixture.chargeId,
+          organization_id: fixture.organizationId,
+          payment_id: fixture.paymentId,
+          payment_method: "us_bank_account",
+        },
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status, stripe_provider_status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(paymentRow?.stripe_provider_status, "requires_action");
+
+    const { data: verificationEvents } = await admin
+      .from("activity_events")
+      .select("action, entity_id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.PAYMENT_ACH_VERIFICATION_REQUIRED)
+      .eq("entity_id", fixture.paymentId);
+
+    assert.equal(verificationEvents?.length, 1);
+
+    const { data: completedEvents } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED)
+      .filter("metadata->>paymentId", "eq", fixture.paymentId);
+
+    assert.equal(completedEvents?.length ?? 0, 0);
+
+    setupWebhookIntegrationTestEnv();
+  });
+
+  it("sends tuition receipt after async success when bank verification was pending", async () => {
+    setStripeClientForTests(
+      createMockStripeClient({
+        paymentIntentsRetrieve: async (paymentIntentId) =>
+          ({
+            id: paymentIntentId,
+            object: "payment_intent",
+            status: "requires_action",
+            payment_method: "pm_test_mock",
+            next_action: {
+              type: "verify_with_microdeposits",
+              verify_with_microdeposits: {
+                hosted_verification_url:
+                  "https://payments.stripe.com/microdeposit/test",
+                microdeposit_type: "descriptor_code",
+              },
+            },
+          }) as Stripe.PaymentIntent,
+      }),
+    );
+
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+    await handleCheckoutSessionAsyncPaymentSucceeded(
+      admin,
+      buildCheckoutSession({
+        id: fixture.checkoutSessionId,
+        paymentStatus: "paid",
+        metadata: session.metadata as Record<string, string>,
+      }),
+    );
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("stripe_provider_status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    assert.equal(paymentRow?.stripe_provider_status, "succeeded");
+
+    setupWebhookIntegrationTestEnv();
+  });
+
   it("is idempotent when checkout and async_payment_succeeded both fire for tuition", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedTuitionPaymentWebhook(admin);

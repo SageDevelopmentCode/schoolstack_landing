@@ -9,6 +9,9 @@ import {
 import { recordTuitionPaymentCompleted } from "@/lib/stripe/record-payment-completed";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { createTuitionPaymentRecord } from "@/lib/tuition/payments";
+import { getAchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
+import { sendAchBankVerificationNotificationsForPayments } from "@/lib/stripe/ach-bank-verification-notifications";
+import { updateStripeProviderStatus } from "@/lib/stripe/application-payments";
 
 export type AutopayChargeInput = {
   organizationId: string;
@@ -119,6 +122,20 @@ export async function executeTuitionAutopayCharge(
       });
     }
     throw error;
+  }
+
+  const verificationAction = getAchVerificationAction(paymentIntent);
+  if (paymentIntent.status === "requires_action" && verificationAction) {
+    await updateStripeProviderStatus(supabase, payment.id, "requires_action");
+    if (input.suppressEmails !== true) {
+      void sendAchBankVerificationNotificationsForPayments(supabase, {
+        organizationId: input.organizationId,
+        checkoutSessionId: `autopay-${payment.id}`,
+        payments: [payment],
+        verificationAction,
+      });
+    }
+    return { paymentIntentId: paymentIntent.id, paymentId: payment.id };
   }
 
   if (

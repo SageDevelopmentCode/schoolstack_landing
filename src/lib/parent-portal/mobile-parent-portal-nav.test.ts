@@ -105,6 +105,63 @@ describe("mobile-parent-portal-nav", () => {
     assert.equal(tabs.filter((tab) => tab.tabId !== "more").length, 4);
   });
 
+  it("includes children and committees in main portal More menu when enabled", () => {
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "main",
+      parentFeatures: {
+        ...DEFAULT_FEATURES.parent,
+        portal: true,
+        billing: true,
+        messages: true,
+        calendar: true,
+        attendance: true,
+        children: true,
+        committees: true,
+        classroom_signups: true,
+        forms_documents: true,
+      },
+    });
+
+    assert.equal(moreKeys.includes("children"), true);
+    assert.equal(moreKeys.includes("committees"), true);
+    assert.equal(moreKeys.includes("attendance"), true);
+    assert.equal(moreKeys.includes("notifications"), true);
+  });
+
+  it("always includes notifications in More menu without a parent feature flag", () => {
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "main",
+      parentFeatures: {
+        ...DEFAULT_FEATURES.parent,
+        portal: true,
+      },
+    });
+
+    assert.equal(moreKeys.includes("notifications"), true);
+    assert.equal(moreKeys.includes("children"), true);
+  });
+
+  it("includes children, committees, and notifications in program More menu when enabled (non-co-op)", () => {
+    const moreKeys = resolveMobileMoreMenuFeatureKeys({
+      mode: "program",
+      coopMode: false,
+      parentFeatures: {
+        ...DEFAULT_FEATURES.parent,
+        portal: true,
+        billing: true,
+        messages: true,
+        calendar: true,
+        children: true,
+        committees: true,
+        notifications: true,
+      } as typeof DEFAULT_FEATURES.parent & { notifications: boolean },
+    });
+
+    assert.equal(moreKeys.includes("children"), true);
+    assert.equal(moreKeys.includes("committees"), true);
+    assert.equal(moreKeys.includes("notifications"), true);
+  });
+
   it("routes committees and children to More menu in co-op mode", () => {
     const moreKeys = resolveMobileMoreMenuFeatureKeys({
       coopMode: true,

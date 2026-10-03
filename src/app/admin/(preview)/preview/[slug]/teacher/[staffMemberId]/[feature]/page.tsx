@@ -241,6 +241,7 @@ export default async function StaffTeacherPreviewFeaturePage({
     const initialData = await loadTeacherCommitteesPreviewData({
       organizationId: org.id,
       staffMemberId,
+      schoolSlug: slug,
       selectedCommitteeId,
     });
     const staffName =

@@ -255,22 +255,16 @@ export function resolveMobileParentTabBar(input: {
 }
 
 export function resolveMobileMoreMenuFeatureKeys(input: {
+  mode?: "main" | "program";
   parentFeatures: ParentFeatures;
   portalNav?: PortalFeatureNav;
   coopMode?: boolean;
 }): MobileMoreMenuFeatureKey[] {
   const record = toParentFeatureRecord(input.parentFeatures);
-  const items = buildMobileParentNavItemKeys(input.parentFeatures, input.portalNav);
-  const { more } = splitMobileParentNavForTabBar(items, {
-    coopMode: input.coopMode,
-  });
-  const moreNavKeys = new Set(more.map((item) => item.key));
 
   return MOBILE_MORE_MENU_FEATURE_KEYS.filter((key) => {
-    if (!record[key]) return false;
-    if (moreNavKeys.has(key)) return true;
-    if (key === "notifications" && record.notifications) return true;
-    return false;
+    if (key === "notifications") return true;
+    return Boolean(record[key]);
   });
 }
 
