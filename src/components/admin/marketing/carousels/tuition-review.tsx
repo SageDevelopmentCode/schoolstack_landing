@@ -3,13 +3,14 @@
 /* eslint-disable @next/next/no-img-element -- PNG export needs a plain img, not next/image. */
 import type { ReactNode } from "react";
 import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import { CarouselProductSlide } from "@/components/admin/marketing/carousels/carousel-product-slide";
+import { CarouselProductSlide, DEMO_SLIDE_PAPER } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import {
   MarketingParentDemoWindow,
   MarketingStudentsDemoWindow,
   MarketingTuitionDemoWindow,
   MarketingTuitionOptionsWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
+import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
 
 export type MarketingSlide = {
   id: string;
@@ -74,7 +75,7 @@ export const TUITION_REVIEW_CAROUSEL = {
 
 function CoverSlide() {
   return (
-    <SlideCanvas>
+    <SlideCanvas background={DEMO_SLIDE_PAPER}>
       <div style={{ padding: "156px 72px 0", maxWidth: 820 }}>
         <p style={{ margin: "0 0 24px", fontSize: 22, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: SLIDE.forest }}>
           Before you raise tuition
@@ -211,7 +212,7 @@ function OptionsSlide() {
 
 function SaveSlide() {
   return (
-    <SlideCanvas>
+    <SlideCanvas background={DEMO_SLIDE_PAPER}>
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 72, background: "#E7C2C2" }} />
       <div style={{ height: "100%", boxSizing: "border-box", padding: "140px 80px 72px 120px", display: "flex", flexDirection: "column" }}>
         <p style={{ ...displayStyle(36, SLIDE.clay), letterSpacing: "0.08em", textTransform: "uppercase" }}>Save this</p>
@@ -248,11 +249,10 @@ function HomePromoSlide() {
   return (
     <CarouselProductSlide
       variant="promo"
+      demoPresentation="phones"
       kicker="MudKitchen"
       title="See how MudKitchen handles tuition."
       body=""
-      contentHeight={700}
-      cropFocus="top"
       footer={
         <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 20 }}>
           <p style={{ margin: 0, fontSize: 32, color: "rgba(247, 241, 231, 0.82)" }}>trymudkitchen.com</p>
@@ -272,7 +272,7 @@ function HomePromoSlide() {
         </div>
       }
     >
-      <MarketingParentDemoWindow tab="home" hideNav={false} contentHeight={700} />
+      <MarketingMobilePromoCluster />
     </CarouselProductSlide>
   );
 }

@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
 import SlideCanvas, { displayStyle, SLIDE, SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
 
-export const DEMO_SLIDE_PAPER = "#F8F8F3";
+/** Slide backing for product slides; demo canvas stays #F8F8F3 for contrast inside laptop chrome. */
+export const DEMO_SLIDE_PAPER = "#E4DDD0";
 
 export const CAROUSEL_DEMO_INNER_WIDTH = 1100;
 
@@ -37,6 +38,7 @@ function readChromeBodySize(element: HTMLElement) {
 
 type CarouselProductSide = "copyLeft" | "copyRight";
 type CarouselProductVariant = "default" | "promo";
+type CarouselDemoPresentation = "laptop" | "phones";
 
 type CarouselProductSlideProps = {
   title: string;
@@ -47,6 +49,7 @@ type CarouselProductSlideProps = {
   contentHeight?: number;
   side?: CarouselProductSide;
   variant?: CarouselProductVariant;
+  demoPresentation?: CarouselDemoPresentation;
   cropFocus?: "top" | "center";
   footer?: ReactNode;
 };
@@ -60,10 +63,12 @@ export function CarouselProductSlide({
   contentHeight = 860,
   side = "copyLeft",
   variant = "default",
+  demoPresentation = "laptop",
   cropFocus = "top",
   footer,
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
+  const showPhones = isPromo && demoPresentation === "phones";
   const copyOnRight = !isPromo && side === "copyRight";
   const copyPadding = isPromo
     ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
@@ -162,26 +167,31 @@ export function CarouselProductSlide({
               marginTop: WINDOW_GAP,
               position: "relative",
               zIndex: 1,
-              ...windowMargins,
+              overflow: showPhones ? "visible" : "hidden",
+              ...(showPhones ? { marginLeft: 0, marginRight: 0 } : windowMargins),
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                ...(WINDOW_CHROME_SCALE !== 1
-                  ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
-                  : {}),
-              }}
-            >
-              <CarouselLaptopWindow
-                contentHeight={contentHeight}
-                cropFocus={cropFocus}
-                defaultBodyWidth={defaultBodyWidth}
+            {showPhones ? (
+              <div style={{ position: "absolute", inset: 0, overflow: "visible" }}>{children}</div>
+            ) : (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  ...(WINDOW_CHROME_SCALE !== 1
+                    ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
+                    : {}),
+                }}
               >
-                {children}
-              </CarouselLaptopWindow>
-            </div>
+                <CarouselLaptopWindow
+                  contentHeight={contentHeight}
+                  cropFocus={cropFocus}
+                  defaultBodyWidth={defaultBodyWidth}
+                >
+                  {children}
+                </CarouselLaptopWindow>
+              </div>
+            )}
           </div>
         </div>
       </div>
