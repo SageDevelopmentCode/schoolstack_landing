@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- PNG export needs a plain img, not next/image. */
 import type { ReactNode } from "react";
 import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import { CarouselProductSlide, DEMO_SLIDE_PAPER } from "@/components/admin/marketing/carousels/carousel-product-slide";
+import { CarouselProductSlide } from "@/components/admin/marketing/carousels/carousel-product-slide";
 import {
   MarketingParentDemoWindow,
   MarketingStudentsDemoWindow,
@@ -143,7 +143,6 @@ function MyStudentsSlide() {
   return (
     <CarouselProductSlide
       side="copyLeft"
-      kicker="02"
       title="How many students are you counting on?"
       body="Start from the students already on the roster."
       contentHeight={920}
@@ -158,7 +157,6 @@ function EnrollmentSlide() {
   return (
     <CarouselProductSlide
       side="copyRight"
-      kicker="03"
       title="Count a realistic enrollment."
       body="Make your plan using a realistic enrollment number—not just a full classroom."
       contentHeight={700}
@@ -173,7 +171,6 @@ function BillingSlide() {
   return (
     <CarouselProductSlide
       side="copyLeft"
-      kicker="04"
       title="This is the page families see."
       body="Family tuition, the next payment, and each child’s balance."
       contentHeight={700}
@@ -188,7 +185,6 @@ function IncludedSlide() {
   return (
     <CarouselProductSlide
       side="copyRight"
-      kicker="05"
       title="What’s included in tuition?"
       body="Make it clear what tuition covers and what families pay for separately."
       contentHeight={920}
@@ -203,7 +199,6 @@ function OptionsSlide() {
   return (
     <CarouselProductSlide
       side="copyLeft"
-      kicker="06"
       title="What discounts or payment options do you offer?"
       body="Write down the rules for sibling discounts, payment plans, scholarships, or fee waivers."
       contentHeight={720}
@@ -252,21 +247,20 @@ function SaveSlide() {
 function HomePromoSlide() {
   return (
     <CarouselProductSlide
-      side="copyRight"
-      background={DEMO_SLIDE_PAPER}
+      variant="promo"
       kicker="MudKitchen"
       title="See how MudKitchen handles tuition."
       body=""
       contentHeight={700}
       cropFocus="top"
       footer={
-        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-          <p style={{ margin: 0, fontSize: 32, color: SLIDE.muted }}>trymudkitchen.com</p>
+        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 20 }}>
+          <p style={{ margin: 0, fontSize: 32, color: "rgba(247, 241, 231, 0.82)" }}>trymudkitchen.com</p>
           <span
             style={{
               display: "inline-block",
-              background: SLIDE.forest,
-              color: "#F7F1E7",
+              background: SLIDE.white,
+              color: SLIDE.forest,
               borderRadius: 999,
               padding: "16px 28px",
               fontSize: 26,

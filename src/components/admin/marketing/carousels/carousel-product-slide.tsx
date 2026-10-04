@@ -9,14 +9,20 @@ export const DEMO_SLIDE_PAPER = "#F8F8F3";
 export const CAROUSEL_DEMO_INNER_WIDTH = 1100;
 
 const CHROME_BAR_HEIGHT = 49;
-const COPY_TOP_PADDING = 96;
+const COPY_TOP_PADDING = 80;
 const COPY_BOTTOM_PADDING = 14;
-const WINDOW_GAP = 24;
-const WINDOW_LEFT = 36;
-const WINDOW_RIGHT_BLEED = -120;
+const COPY_LOGO_GUTTER = 140;
+const COPY_MAX_WIDTH = 1000;
+const BODY_MAX_WIDTH = 980;
+const WINDOW_GAP = 48;
+const WINDOW_CHROME_SCALE = 1;
+const WINDOW_LEFT = 48;
+const WINDOW_RIGHT_BLEED = -100;
 const WINDOW_BOTTOM_BLEED = -72;
+const PROMO_WINDOW_BLEED = 120;
 
 const DEFAULT_BODY_WIDTH = SLIDE_WIDTH - WINDOW_LEFT + Math.abs(WINDOW_RIGHT_BLEED);
+const DEFAULT_PROMO_BODY_WIDTH = SLIDE_WIDTH + PROMO_WINDOW_BLEED * 2;
 /** Approx flex slot below copy band; refined on layout measure. */
 const DEFAULT_BODY_HEIGHT =
   SLIDE_HEIGHT - COPY_TOP_PADDING - 320 - COPY_BOTTOM_PADDING - WINDOW_GAP + Math.abs(WINDOW_BOTTOM_BLEED) - CHROME_BAR_HEIGHT;
@@ -31,38 +37,61 @@ function readChromeBodySize(element: HTMLElement) {
 }
 
 type CarouselProductSide = "copyLeft" | "copyRight";
+type CarouselProductVariant = "default" | "promo";
 
 type CarouselProductSlideProps = {
-  kicker: string;
   title: string;
   body: string;
   children: ReactNode;
+  kicker?: string;
   background?: string;
   contentHeight?: number;
   side?: CarouselProductSide;
+  variant?: CarouselProductVariant;
   cropFocus?: "top" | "center";
   footer?: ReactNode;
 };
 
 export function CarouselProductSlide({
-  kicker,
   title,
   body,
   children,
-  background = DEMO_SLIDE_PAPER,
+  kicker,
+  background,
   contentHeight = 860,
   side = "copyLeft",
+  variant = "default",
   cropFocus = "top",
   footer,
 }: CarouselProductSlideProps) {
-  const copyOnRight = side === "copyRight";
-  const copyPadding = copyOnRight
-    ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 200px`
-    : `${COPY_TOP_PADDING}px 200px ${COPY_BOTTOM_PADDING}px 64px`;
-  const textAlign = copyOnRight ? "right" : "left";
+  const isPromo = variant === "promo";
+  const copyOnRight = !isPromo && side === "copyRight";
+  const copyPadding = isPromo
+    ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
+    : copyOnRight
+      ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px ${COPY_LOGO_GUTTER}px`
+      : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
+  const textAlign = isPromo ? "center" : copyOnRight ? "right" : "left";
+  const slideBackground = background ?? (isPromo ? SLIDE.forest : DEMO_SLIDE_PAPER);
+  const titleColor = isPromo ? SLIDE.white : SLIDE.ink;
+  const bodyColor = isPromo ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
+
+  const windowMargins = isPromo
+    ? {
+        marginLeft: -PROMO_WINDOW_BLEED,
+        marginRight: -PROMO_WINDOW_BLEED,
+        marginBottom: WINDOW_BOTTOM_BLEED,
+      }
+    : {
+        marginLeft: WINDOW_LEFT,
+        marginRight: WINDOW_RIGHT_BLEED,
+        marginBottom: WINDOW_BOTTOM_BLEED,
+      };
+
+  const defaultBodyWidth = isPromo ? DEFAULT_PROMO_BODY_WIDTH : DEFAULT_BODY_WIDTH;
 
   return (
-    <SlideCanvas background={background}>
+    <SlideCanvas background={slideBackground}>
       <div
         style={{
           height: SLIDE_HEIGHT,
@@ -73,61 +102,94 @@ export function CarouselProductSlide({
       >
         <div
           style={{
-            flexShrink: 0,
-            zIndex: 2,
-            boxSizing: "border-box",
-            padding: copyPadding,
-            textAlign,
-          }}
-        >
-          <div style={{ maxWidth: 900, marginLeft: copyOnRight ? "auto" : undefined, marginRight: copyOnRight ? 0 : undefined }}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 22,
-                fontWeight: 700,
-                letterSpacing: "0.16em",
-                textTransform: "uppercase",
-                color: SLIDE.forest,
-              }}
-            >
-              {kicker}
-            </p>
-            <h1 style={{ ...displayStyle(80), marginTop: 14 }}>{title}</h1>
-            {body ? (
-              <p
-                style={{
-                  margin: "18px 0 0",
-                  maxWidth: 820,
-                  fontSize: 36,
-                  lineHeight: 1.28,
-                  color: SLIDE.muted,
-                  marginLeft: copyOnRight ? "auto" : undefined,
-                }}
-              >
-                {body}
-              </p>
-            ) : null}
-            {footer ? (
-              <div style={{ display: "flex", justifyContent: copyOnRight ? "flex-end" : "flex-start" }}>{footer}</div>
-            ) : null}
-          </div>
-        </div>
-        <div
-          style={{
+            display: "flex",
+            flexDirection: "column",
             flex: 1,
             minHeight: 0,
-            marginTop: WINDOW_GAP,
-            marginLeft: WINDOW_LEFT,
-            marginRight: WINDOW_RIGHT_BLEED,
-            marginBottom: WINDOW_BOTTOM_BLEED,
-            position: "relative",
-            zIndex: 1,
+            marginTop: "auto",
           }}
         >
-          <CarouselLaptopWindow contentHeight={contentHeight} cropFocus={cropFocus}>
-            {children}
-          </CarouselLaptopWindow>
+          <div
+            style={{
+              flexShrink: 0,
+              zIndex: 2,
+              boxSizing: "border-box",
+              padding: copyPadding,
+              textAlign,
+            }}
+          >
+            <div
+              style={{
+                maxWidth: COPY_MAX_WIDTH,
+                marginLeft: isPromo ? "auto" : copyOnRight ? "auto" : undefined,
+                marginRight: isPromo ? "auto" : copyOnRight ? 0 : undefined,
+              }}
+            >
+              {isPromo && kicker ? (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 22,
+                    fontWeight: 700,
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: SLIDE.white,
+                  }}
+                >
+                  {kicker}
+                </p>
+              ) : null}
+              <h1 style={{ ...displayStyle(80, titleColor), marginTop: isPromo && kicker ? 14 : 0 }}>{title}</h1>
+              {body ? (
+                <p
+                  style={{
+                    margin: "18px 0 0",
+                    maxWidth: BODY_MAX_WIDTH,
+                    fontSize: 36,
+                    lineHeight: 1.28,
+                    color: bodyColor,
+                    marginLeft: isPromo || copyOnRight ? "auto" : undefined,
+                    marginRight: isPromo ? "auto" : undefined,
+                  }}
+                >
+                  {body}
+                </p>
+              ) : null}
+              {footer ? (
+                <div style={{ display: "flex", justifyContent: isPromo ? "center" : copyOnRight ? "flex-end" : "flex-start" }}>
+                  {footer}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              marginTop: WINDOW_GAP,
+              position: "relative",
+              zIndex: 1,
+              ...windowMargins,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                ...(WINDOW_CHROME_SCALE !== 1
+                  ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
+                  : {}),
+              }}
+            >
+              <CarouselLaptopWindow
+                contentHeight={contentHeight}
+                cropFocus={cropFocus}
+                defaultBodyWidth={defaultBodyWidth}
+              >
+                {children}
+              </CarouselLaptopWindow>
+            </div>
+          </div>
         </div>
       </div>
     </SlideCanvas>
@@ -138,13 +200,15 @@ function CarouselLaptopWindow({
   children,
   contentHeight,
   cropFocus,
+  defaultBodyWidth,
 }: {
   children: ReactNode;
   contentHeight: number;
   cropFocus: "top" | "center";
+  defaultBodyWidth: number;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [bodySize, setBodySize] = useState({ width: DEFAULT_BODY_WIDTH, height: DEFAULT_BODY_HEIGHT });
+  const [bodySize, setBodySize] = useState({ width: defaultBodyWidth, height: DEFAULT_BODY_HEIGHT });
 
   useLayoutEffect(() => {
     const element = bodyRef.current;
