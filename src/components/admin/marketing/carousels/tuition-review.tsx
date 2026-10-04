@@ -254,7 +254,7 @@ function HomePromoSlide() {
       title="See how MudKitchen handles tuition."
       body=""
       footer={
-        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 20 }}>
+        <div style={{ marginTop: 20, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 20 }}>
           <p style={{ margin: 0, fontSize: 32, color: "rgba(247, 241, 231, 0.82)" }}>trymudkitchen.com</p>
           <span
             style={{

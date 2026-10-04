@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import SlideCanvas, { displayStyle, SLIDE, SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
 
 /** Slide backing for product slides; demo canvas stays #F8F8F3 for contrast inside laptop chrome. */
-export const DEMO_SLIDE_PAPER = "#E4DDD0";
+export const DEMO_SLIDE_PAPER = "#F0EDE6";
 
 export const CAROUSEL_DEMO_INNER_WIDTH = 1100;
 
@@ -164,7 +164,7 @@ export function CarouselProductSlide({
             style={{
               flex: 1,
               minHeight: 0,
-              marginTop: WINDOW_GAP,
+              marginTop: showPhones ? 72 : WINDOW_GAP,
               position: "relative",
               zIndex: 1,
               overflow: showPhones ? "visible" : "hidden",

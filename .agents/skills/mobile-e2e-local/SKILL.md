@@ -109,6 +109,12 @@ Password: `E2eTestPassword123!`
 | Maestro can't find `Sign in to your school` on Android CI | Usually a **stale cached APK** from `restore-keys` partial hit — the workflow now validates an `.e2e-stamp` beside the APK and rebuilds when source/Maestro inputs change. Symptom: log shows `Using cached debug APK` but Maestro never reaches login. Re-run after the stamp fix lands, or delete `apps/mobile/android/app/build/outputs/apk/debug/` locally and rebuild |
 | Maestro can't find intro/login CTA on Android | Under `EXPO_PUBLIC_E2E=1`, the app redirects to `/login`; `intro-to-login.yaml` also taps `Log in to continue` when the intro is still visible. **CI** embeds JS in the debug APK (`debuggableVariants = []` in `build-android-debug-ci.sh`; no Metro on the emulator). **Local** dev uses Metro; set `ANDROID_E2E_USE_METRO=1` when running `run-e2e-android-ci.sh` |
 
+## Marketing carousel slide 8 (optional sim capture)
+
+**Primary:** Tuition carousel slide 8 uses **React mocks** in Marketing Studio (`src/components/admin/marketing/screens/mobile/marketing-mobile-*.tsx`). Edit those files and export from Admin → Marketing.
+
+**Optional parity audit:** Capture real **Mud School** simulator screens (Mitchell persona) with [`capture-marketing-screenshots.sh`](../../apps/mobile/scripts/capture-marketing-screenshots.sh). See [`public/images/marketing/mobile-promo/README.md`](../../public/images/marketing/mobile-promo/README.md) for seeds and fiction ($1,250 / $4,500). PNGs are reference-only—not wired into the carousel.
+
 ## More detail
 
 - Human docs: [`apps/mobile/README.md`](../../apps/mobile/README.md)

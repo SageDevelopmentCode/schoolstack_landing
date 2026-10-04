@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -20,7 +20,7 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
-import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
+import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchParentMessagesUnreadCount } from '@/lib/parent/parent-portal-api';
@@ -91,10 +91,7 @@ function ParentLayoutContent() {
     }
   }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
 
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
+  const organization = selectedSchool?.slug === slug ? selectedSchool : null;
 
   if (isLoading || !organization) {
     return (
@@ -113,55 +110,20 @@ function ParentLayoutContent() {
 }
 
 export default function ParentLayout() {
-  const { selectedSchool, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { isPreview } = usePortalPreview();
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
-
-  const [loadedOrg, setLoadedOrg] = useState(organization);
-  const [orgLoadState, setOrgLoadState] = useState<'loading' | 'ready' | 'failed'>(
-    organization ? 'ready' : 'loading',
-  );
+  const { organization: loadedOrg, status: orgLoadState } = usePortalOrganization(slug);
 
   useRecoverableAuthRedirect(!user, isLoading);
-
-  useEffect(() => {
-    if (!user) {
-      setLoadedOrg(null);
-      setOrgLoadState('loading');
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (organization) {
-      setLoadedOrg(organization);
-      setOrgLoadState('ready');
-      return;
-    }
-    if (!slug) return;
-
-    setOrgLoadState('loading');
-    void fetchOrganizationBySlug(slug).then((org) => {
-      if (org) {
-        setLoadedOrg(org);
-        setOrgLoadState('ready');
-        return;
-      }
-      setOrgLoadState('failed');
-    });
-  }, [organization, slug]);
 
   useEffect(() => {
     if (orgLoadState !== 'failed') return;
     router.replace('/portal');
   }, [orgLoadState, router]);
 
-  if (!loadedOrg) {
+  if (!loadedOrg || orgLoadState === 'loading') {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Story.primary} />
