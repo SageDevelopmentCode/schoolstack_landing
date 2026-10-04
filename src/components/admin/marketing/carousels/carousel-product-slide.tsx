@@ -9,7 +9,8 @@ export const DEMO_SLIDE_PAPER = "#F8F8F3";
 export const CAROUSEL_DEMO_INNER_WIDTH = 1100;
 
 const CHROME_BAR_HEIGHT = 49;
-const COPY_TOP_PADDING = 80;
+const CONTENT_TOP_INSET = 128;
+const COPY_TOP_PADDING = 56;
 const COPY_BOTTOM_PADDING = 14;
 const COPY_LOGO_GUTTER = 140;
 const COPY_MAX_WIDTH = 1000;
@@ -19,10 +20,8 @@ const WINDOW_CHROME_SCALE = 1;
 const WINDOW_LEFT = 48;
 const WINDOW_RIGHT_BLEED = -100;
 const WINDOW_BOTTOM_BLEED = -72;
-const PROMO_WINDOW_BLEED = 120;
 
 const DEFAULT_BODY_WIDTH = SLIDE_WIDTH - WINDOW_LEFT + Math.abs(WINDOW_RIGHT_BLEED);
-const DEFAULT_PROMO_BODY_WIDTH = SLIDE_WIDTH + PROMO_WINDOW_BLEED * 2;
 /** Approx flex slot below copy band; refined on layout measure. */
 const DEFAULT_BODY_HEIGHT =
   SLIDE_HEIGHT - COPY_TOP_PADDING - 320 - COPY_BOTTOM_PADDING - WINDOW_GAP + Math.abs(WINDOW_BOTTOM_BLEED) - CHROME_BAR_HEIGHT;
@@ -76,19 +75,13 @@ export function CarouselProductSlide({
   const titleColor = isPromo ? SLIDE.white : SLIDE.ink;
   const bodyColor = isPromo ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
 
-  const windowMargins = isPromo
-    ? {
-        marginLeft: -PROMO_WINDOW_BLEED,
-        marginRight: -PROMO_WINDOW_BLEED,
-        marginBottom: WINDOW_BOTTOM_BLEED,
-      }
-    : {
-        marginLeft: WINDOW_LEFT,
-        marginRight: WINDOW_RIGHT_BLEED,
-        marginBottom: WINDOW_BOTTOM_BLEED,
-      };
+  const windowMargins = {
+    marginLeft: WINDOW_LEFT,
+    marginRight: WINDOW_RIGHT_BLEED,
+    marginBottom: WINDOW_BOTTOM_BLEED,
+  };
 
-  const defaultBodyWidth = isPromo ? DEFAULT_PROMO_BODY_WIDTH : DEFAULT_BODY_WIDTH;
+  const defaultBodyWidth = DEFAULT_BODY_WIDTH;
 
   return (
     <SlideCanvas background={slideBackground}>
@@ -100,13 +93,13 @@ export function CarouselProductSlide({
           boxSizing: "border-box",
         }}
       >
+        <div aria-hidden style={{ flexShrink: 0, minHeight: CONTENT_TOP_INSET }} />
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             flex: 1,
             minHeight: 0,
-            marginTop: "auto",
           }}
         >
           <div
