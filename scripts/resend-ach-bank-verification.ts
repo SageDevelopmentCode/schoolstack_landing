@@ -10,6 +10,10 @@
  *   SEND_FAMILY=1  — family/applicant verification email via MudKitchen
  *   SEND_OPS=1     — school admin email, Discord, activity_events
  *   FORCE_OPS=1    — re-send admin + Discord even if ops activity already logged
+ *   EMAIL_SITE_URL — force MudKitchen links/logo base (default: production if unset before .env.local)
+ *   HOSTED_VERIFICATION_URL — skip Stripe PI lookup; use this Stripe hosted verification link
+ *
+ * See .agents/skills/outbound-email-ops/SKILL.md for production URL requirements.
  */
 
 import { resolve } from "node:path";
@@ -19,11 +23,18 @@ import type { PaymentRecord } from "@/lib/stripe/application-payments";
 import type { AchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
 
 import { validateAchResendBatch } from "./lib/resend-ach-batch-validation";
+import {
+  assertNoLocalhostInOutboundHtml,
+  ensureProductionSiteUrlForOutboundEmail,
+  logOutboundEmailSiteUrl,
+} from "./lib/outbound-email-production-site";
 
 config({ path: resolve(process.cwd(), ".env.local") });
 
+const SCRIPT_PREFIX = "resend-ach-bank-verification";
+
 function log(message: string) {
-  console.log(`[resend-ach-bank-verification] ${message}`);
+  console.log(`[${SCRIPT_PREFIX}] ${message}`);
 }
 
 function envFlag(name: string, defaultOn = true): boolean {
@@ -57,6 +68,9 @@ function validateOrgBatches(
 }
 
 async function main() {
+  ensureProductionSiteUrlForOutboundEmail();
+  logOutboundEmailSiteUrl(SCRIPT_PREFIX);
+
   const paymentIds = (
     process.env.PAYMENT_IDS ??
     process.env.PAYMENT_ID ??
@@ -127,9 +141,32 @@ async function main() {
       continue;
     }
 
-    const verificationAction = await resolveAchVerificationActionForPaymentIntent(
-      payment.stripePaymentIntentId,
-    );
+    const hostedOverride = process.env.HOSTED_VERIFICATION_URL?.trim();
+    let verificationAction: AchVerificationAction | null = null;
+
+    if (hostedOverride) {
+      verificationAction = {
+        hostedVerificationUrl: hostedOverride,
+        microdepositType: "descriptor_code",
+        arrivalDate: null,
+      };
+    } else {
+      try {
+        verificationAction = await resolveAchVerificationActionForPaymentIntent(
+          payment.stripePaymentIntentId,
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        if (process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
+          console.error(
+            "[resend-ach-bank-verification] Stripe lookup failed with sk_test_*. " +
+              "Use live STRIPE_SECRET_KEY or set HOSTED_VERIFICATION_URL from Stripe Dashboard.",
+          );
+        }
+        throw error;
+      }
+    }
 
     if (!verificationAction) {
       log(
@@ -182,6 +219,34 @@ async function main() {
     console.log("--- end draft ---\n");
     return;
   }
+
+  const { getRuntimeSiteUrl } = await import("@/lib/site");
+  const {
+    buildAchBankVerificationAdminNotificationHtml,
+    buildAchBankVerificationHtml,
+  } = await import("@/lib/emails");
+  const { schoolAdminPath } = await import(
+    "@/lib/organization-settings/admin-routes"
+  );
+  const siteUrl = getRuntimeSiteUrl();
+  const sampleVerifyUrl =
+    readyByOrg.values().next().value?.[0]?.verificationAction
+      .hostedVerificationUrl ?? "https://payments.stripe.com/microdeposit/sample";
+  const sampleFamilyHtml = buildAchBankVerificationHtml({
+    name: "Family",
+    schoolName: "School",
+    verificationUrl: sampleVerifyUrl,
+    portalUrl: `${siteUrl}/school/sample/parent/billing`,
+  });
+  const sampleAdminHtml = buildAchBankVerificationAdminNotificationHtml({
+    schoolName: "School",
+    paymentTypeLabel: "Tuition",
+    payerLabel: "Family",
+    familyEmailSent: true,
+    financesAdminUrl: `${siteUrl}${schoolAdminPath("sample", "finances", "transactions")}`,
+  });
+  assertNoLocalhostInOutboundHtml(sampleFamilyHtml);
+  assertNoLocalhostInOutboundHtml(sampleAdminHtml);
 
   for (const [organizationId, readyPayments] of readyByOrg) {
     const payments = readyPayments.map((row) => row.payment);

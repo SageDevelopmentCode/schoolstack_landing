@@ -77,7 +77,8 @@
     "assert:production-eas-env": "bash scripts/assert-production-eas-env.sh",
     "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
     "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android",
-    "update:production": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform ios"
+    "update:production": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform ios",
+    "update:production:android": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform android"
   },
   "private": true,
   "expo": {

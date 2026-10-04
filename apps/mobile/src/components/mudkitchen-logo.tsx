@@ -19,7 +19,7 @@ export function MudKitchenLogo({ variant = 'light', size = 'md', style }: MudKit
     <View style={[styles.container, style]}>
       <View style={[styles.badge, isDark ? styles.badgeDark : styles.badgeLight]}>
         <Image
-          source={require('@/assets/images/logo.webp')}
+          source={require('@/assets/images/logo.png')}
           style={{ width: logoSize, height: logoSize }}
           contentFit="contain"
         />

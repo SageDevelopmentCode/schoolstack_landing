@@ -62,16 +62,16 @@ export async function recordTuitionPaymentCompleted(
     return { payment, newlyRecorded: false };
   }
 
-  const updated = await markPaymentSucceeded(admin, payment.id, {
+  const markResult = await markPaymentSucceeded(admin, payment.id, {
     stripePaymentIntentId: paymentIntentId,
     stripeCheckoutSessionId: checkoutSessionId,
   });
 
-  if (!updated || updated.status !== "succeeded") {
-    return { payment: updated ?? payment, newlyRecorded: false };
+  if (!markResult.payment || !markResult.transitioned) {
+    return { payment: markResult.payment ?? payment, newlyRecorded: false };
   }
 
-  payment = updated;
+  payment = markResult.payment;
 
   if (stripeProviderStatus) {
     await updateStripeProviderStatus(admin, payment.id, stripeProviderStatus);

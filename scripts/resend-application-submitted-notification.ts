@@ -12,20 +12,17 @@
 import { resolve } from "node:path";
 import { config } from "dotenv";
 
+import {
+  ensureProductionSiteUrlForOutboundEmail,
+  logOutboundEmailSiteUrl,
+} from "./lib/outbound-email-production-site";
+
 config({ path: resolve(process.cwd(), ".env.local") });
 
-const PRODUCTION_SITE_URL = "https://trymudkitchen.com";
+const SCRIPT_PREFIX = "resend-application-submitted-notification";
 
 function log(message: string) {
-  console.log(`[resend-application-submitted-notification] ${message}`);
-}
-
-function ensureProductionSiteUrl(): string {
-  const current = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
-  if (!current || current.includes("localhost")) {
-    process.env.NEXT_PUBLIC_SITE_URL = PRODUCTION_SITE_URL;
-  }
-  return process.env.NEXT_PUBLIC_SITE_URL!;
+  console.log(`[${SCRIPT_PREFIX}] ${message}`);
 }
 
 function isDryRun(): boolean {
@@ -63,8 +60,8 @@ function parseApplicationIds(): string[] {
 }
 
 async function main() {
-  const siteUrl = ensureProductionSiteUrl();
-  log(`Using site URL: ${siteUrl}`);
+  const siteUrl = ensureProductionSiteUrlForOutboundEmail();
+  logOutboundEmailSiteUrl(SCRIPT_PREFIX);
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     console.error(

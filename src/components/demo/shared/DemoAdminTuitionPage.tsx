@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import DemoSchoolAdminStoryProvider from "@/components/demo/shared/DemoSchoolAdminStoryProvider";
 import TuitionDashboard from "@/components/school-admin/tuition/TuitionDashboard";
+import type { TuitionDashboardTabId } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
 import {
   buildDemoAdminBranding,
   DEMO_PORTAL_ORG_ID,
@@ -16,10 +17,12 @@ import {
 
 type DemoAdminTuitionPageProps = {
   initialFamilyId?: string;
+  initialDashboardTab?: TuitionDashboardTabId;
 };
 
 export default function DemoAdminTuitionPage({
   initialFamilyId = "family-rivera",
+  initialDashboardTab,
 }: DemoAdminTuitionPageProps) {
   const branding = useMemo(() => buildDemoAdminBranding(), []);
   const dashboardData = useMemo(() => buildDemoTuitionDashboardData(), []);
@@ -37,6 +40,7 @@ export default function DemoAdminTuitionPage({
           initialDashboardData={dashboardData}
           initialFamilies={families}
           initialFamilyId={initialFamilyId}
+          initialDashboardTab={initialDashboardTab}
           previewMode
           onOpenSetupWizard={() => {}}
         />

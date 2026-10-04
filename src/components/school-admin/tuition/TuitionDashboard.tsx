@@ -55,6 +55,7 @@ type TuitionDashboardProps = {
   initialFamilyId?: string | null;
   dashboardDeferred?: boolean;
   previewMode?: boolean;
+  initialDashboardTab?: TuitionDashboardTabId;
   onOpenSetupWizard: () => void;
 };
 
@@ -156,6 +157,7 @@ export default function TuitionDashboard({
   initialFamilyId = null,
   dashboardDeferred = false,
   previewMode = false,
+  initialDashboardTab,
   onOpenSetupWizard,
 }: TuitionDashboardProps) {
   const { theme } = useSchoolAdminStoryTheme();
@@ -164,7 +166,8 @@ export default function TuitionDashboard({
   const reducedMotion = useReducedMotion() ?? false;
 
   const [tab, setTab] = useState<TuitionDashboardTabId>(
-    setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog",
+    initialDashboardTab ??
+      (setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog"),
   );
   const [ratePlans, setRatePlans] = useState<RatePlanWithDetails[]>(
     initialDashboardData?.ratePlans ?? [],

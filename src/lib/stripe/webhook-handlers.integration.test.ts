@@ -606,6 +606,53 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(activityEvents?.length, 1);
   });
 
+  it("is idempotent when payment_intent.succeeded and checkout.session.completed both fire for card tuition", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+    const paymentIntentId = `pi_test_${randomUUID().slice(0, 8)}`;
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentIntentId,
+      paymentStatus: "paid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "card",
+      },
+    });
+
+    const paymentIntent = {
+      id: paymentIntentId,
+      object: "payment_intent",
+      status: "succeeded",
+      metadata: session.metadata,
+    } as Stripe.PaymentIntent;
+
+    await handlePaymentIntentSucceeded(admin, paymentIntent);
+    await handleCheckoutSessionCompleted(admin, session);
+
+    const { data: paymentRow } = await admin
+      .from("application_payments")
+      .select("status, stripe_provider_status")
+      .eq("id", fixture.paymentId)
+      .single();
+
+    const { data: activityEvents, error } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED)
+      .contains("metadata", { paymentId: fixture.paymentId });
+
+    assert.ifError(error);
+    assert.equal(paymentRow?.status, "succeeded");
+    assert.equal(paymentRow?.stripe_provider_status, "succeeded");
+    assert.equal(activityEvents?.length, 1);
+  });
+
   it("reopens tuition charge when ACH settlement fails after optimistic record", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedTuitionPaymentWebhook(admin);
