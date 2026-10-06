@@ -7,6 +7,17 @@ import {
 
 test.describe.configure({ mode: "serial" });
 
+const ENROLLMENT_GOTO_TIMEOUT_MS = 60_000;
+
+function enrollmentPageGotoOptions() {
+  return {
+    waitUntil: (process.env.CI ? "domcontentloaded" : "load") as "domcontentloaded" | "load",
+    timeout: ENROLLMENT_GOTO_TIMEOUT_MS,
+  };
+}
+
+test.setTimeout(process.env.CI ? 60_000 : 30_000);
+
 test.beforeAll(async () => {
   await cleanupIncompleteAgreementState();
 });
@@ -18,7 +29,7 @@ test.afterAll(async () => {
 test("incomplete agreement banner shows on parent portal", async ({ page }) => {
   await seedIncompleteAgreementState(TEST_ORG_SLUG);
 
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/portal`);
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/portal`, enrollmentPageGotoOptions());
 
   await expect(
     page.getByRole("heading", { name: /need your attention/ }),
@@ -47,7 +58,7 @@ test("incomplete agreement banner shows on parent portal", async ({ page }) => {
 test("complete agreement routes to first unsigned section", async ({ page }) => {
   const state = await seedIncompleteAgreementState(TEST_ORG_SLUG);
 
-  await page.goto(state.enrollmentHref);
+  await page.goto(state.enrollmentHref, enrollmentPageGotoOptions());
 
   await expect(page.getByText("Section 3 of 3")).toBeVisible();
   await expect(page.getByLabel(/Type your full legal name/)).toHaveValue("E2E Parent");

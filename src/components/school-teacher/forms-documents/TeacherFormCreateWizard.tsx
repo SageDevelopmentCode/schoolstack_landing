@@ -773,7 +773,19 @@ export default function TeacherFormCreateWizard({
                 theme={theme}
                 variant="outline"
                 disabled={!hasContent || publishing}
-                onClick={() => setPreviewOpen(true)}
+                onClick={() => {
+                  if (
+                    draft.formType === "upload" &&
+                    draft.uploadFormat === "pdf" &&
+                    draft.uploadFile
+                  ) {
+                    setUploadPreviewUrl((current) => {
+                      if (current) URL.revokeObjectURL(current);
+                      return URL.createObjectURL(draft.uploadFile!);
+                    });
+                  }
+                  setPreviewOpen(true);
+                }}
                 className="w-full sm:w-auto"
               >
                 Preview

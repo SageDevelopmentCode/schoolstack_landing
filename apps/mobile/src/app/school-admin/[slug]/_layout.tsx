@@ -28,6 +28,7 @@ import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
+import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import { isPortalSessionAllowed } from '@/lib/platform-admin/portal-preview-layout';
@@ -243,14 +244,10 @@ function SchoolAdminLayoutContent() {
 }
 
 export default function SchoolAdminLayout() {
-  const { selectedSchool, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { isPreview } = usePortalPreview();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
+  const { organization, status: orgLoadState } = usePortalOrganization(slug);
 
   useRecoverableAuthRedirect(!user, isLoading);
 
@@ -258,7 +255,10 @@ export default function SchoolAdminLayout() {
     return null;
   }
 
-  if (!organization) {
+  const orgReady =
+    organization && organization.slug === slug && orgLoadState === 'ready';
+
+  if (!orgReady) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color="#2E4A3C" />

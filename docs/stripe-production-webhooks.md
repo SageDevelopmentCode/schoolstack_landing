@@ -26,7 +26,9 @@ Local forwarding (`npm run dev:stripe` or `scripts/dev-with-stripe.ts`) uses the
 
 For families stuck on micro-deposit verification after checkout (e.g. before deploy).
 
-By default the script **does not send** — it fetches Stripe state and prints a manual email draft. Use live `STRIPE_SECRET_KEY` in `.env.local` when PaymentIntents are live mode.
+Follow [`.agents/skills/outbound-email-ops/SKILL.md`](../.agents/skills/outbound-email-ops/SKILL.md): scripts force production `trymudkitchen.com` for logo/links (not `.env.local` localhost). Use live `STRIPE_SECRET_KEY` when PaymentIntents are live mode, or `HOSTED_VERIFICATION_URL` from the Dashboard when local env is test-only.
+
+By default the script **does not send** — it fetches Stripe state and prints a manual email draft.
 
 Preview / manual copy (default):
 

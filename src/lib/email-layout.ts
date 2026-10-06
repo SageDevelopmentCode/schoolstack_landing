@@ -1,4 +1,4 @@
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
 
 const COLORS = {
   accent: "#2E4A3C",
@@ -16,7 +16,7 @@ function resolveEmailSiteUrl(siteUrl?: string): {
   host: string;
   logoUrl: string;
 } {
-  const url = siteUrl ?? SITE_URL;
+  const url = siteUrl ?? getRuntimeSiteUrl();
   return {
     url,
     host: url.replace(/^https?:\/\//, ""),

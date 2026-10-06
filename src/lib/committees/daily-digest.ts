@@ -24,7 +24,7 @@ import {
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 const DIGEST_WINDOW_HOURS = 24;
 
@@ -85,14 +85,14 @@ function memberPortalUrl(
   member: CommitteeMemberRow,
 ): string {
   if (member.staff_member_id) {
-    return `${SITE_URL}${schoolTeacherPath(schoolSlug, "committees")}?tab=mine`;
+    return `${getRuntimeSiteUrl()}${schoolTeacherPath(schoolSlug, "committees")}?tab=mine`;
   }
 
-  return `${SITE_URL}${schoolParentRootPath(schoolSlug)}/committees?tab=mine`;
+  return `${getRuntimeSiteUrl()}${schoolParentRootPath(schoolSlug)}/committees?tab=mine`;
 }
 
 function adminPortalUrl(schoolSlug: string): string {
-  return `${SITE_URL}${schoolAdminPath(schoolSlug, "committees")}`;
+  return `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "committees")}`;
 }
 
 function buildDigestSubject(

@@ -84,6 +84,84 @@ export async function listRatePlansWithDetails(
   }));
 }
 
+export async function listActiveRatePlansForProgram(
+  supabase: SupabaseClient,
+  organizationId: string,
+  programId: string,
+): Promise<TuitionRatePlan[]> {
+  const { data, error } = await supabase
+    .from("tuition_rate_plans")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("program_id", programId)
+    .eq("status", "active")
+    .order("name", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []).map(rowToRatePlan);
+}
+
+/** Active catalog for assignment only when the program has exactly one active rate plan. */
+export async function getAutoAssignableRatePlanForProgram(
+  supabase: SupabaseClient,
+  organizationId: string,
+  programId: string,
+): Promise<RatePlanWithDetails | null> {
+  const plans = await listActiveRatePlansForProgram(
+    supabase,
+    organizationId,
+    programId,
+  );
+  if (plans.length !== 1) return null;
+  return getRatePlanWithDetails(supabase, plans[0].id);
+}
+
+export type ResolveEnrollmentRatePlanResult =
+  | { ratePlan: RatePlanWithDetails; ambiguous: false }
+  | { ratePlan: null; ambiguous: boolean };
+
+export async function resolveRatePlanForEnrollmentAssignment(
+  supabase: SupabaseClient,
+  input: {
+    organizationId: string;
+    programId: string;
+    ratePlanId?: string | null;
+  },
+): Promise<ResolveEnrollmentRatePlanResult> {
+  if (input.ratePlanId) {
+    const ratePlan = await getRatePlanWithDetails(supabase, input.ratePlanId);
+    if (
+      !ratePlan ||
+      ratePlan.organizationId !== input.organizationId ||
+      ratePlan.programId !== input.programId
+    ) {
+      throw new Error("Invalid rate catalog for this enrollment.");
+    }
+    if (ratePlan.status !== "active") {
+      throw new Error("Rate catalog is not active.");
+    }
+    return { ratePlan, ambiguous: false };
+  }
+
+  const plans = await listActiveRatePlansForProgram(
+    supabase,
+    input.organizationId,
+    input.programId,
+  );
+  if (plans.length === 0) {
+    return { ratePlan: null, ambiguous: false };
+  }
+  if (plans.length > 1) {
+    return { ratePlan: null, ambiguous: true };
+  }
+  const ratePlan = await getRatePlanWithDetails(supabase, plans[0].id);
+  if (!ratePlan) {
+    return { ratePlan: null, ambiguous: false };
+  }
+  return { ratePlan, ambiguous: false };
+}
+
 export async function getDefaultRatePlanForProgram(
   supabase: SupabaseClient,
   organizationId: string,

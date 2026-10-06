@@ -50,6 +50,31 @@ type FetchParentApiOptions = {
   body?: unknown;
 };
 
+type ParentApiErrorPayload = {
+  error?: string;
+  code?: string;
+};
+
+export class ParentPortalApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ParentPortalApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function throwParentApiError(payload: ParentApiErrorPayload, status: number): never {
+  throw new ParentPortalApiError(
+    typeof payload.error === 'string' ? payload.error : 'Request failed.',
+    status,
+    typeof payload.code === 'string' ? payload.code : undefined,
+  );
+}
+
 export async function fetchParentApi<T>(
   path: string,
   options: FetchParentApiOptions = {},
@@ -70,9 +95,9 @@ export async function fetchParentApi<T>(
     signOutOnFailure: false,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const payload = (await response.json().catch(() => ({}))) as T & ParentApiErrorPayload;
   if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+    throwParentApiError(payload, response.status);
   }
 
   return payload;
@@ -99,12 +124,12 @@ export async function fetchParentApiSoft<T>(
     signOutOnFailure: false,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const payload = (await response.json().catch(() => ({}))) as T & ParentApiErrorPayload;
   if (response.status === 401) {
     throwUnauthorized();
   }
   if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Request failed.');
+    throwParentApiError(payload, response.status);
   }
 
   return payload;
@@ -256,6 +281,7 @@ export type ParentHomeData = {
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
+  fridayBranchParentPortalPaused?: boolean;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   documentationGuides?: ParentDocGuide[];
 };
@@ -1113,8 +1139,15 @@ export async function fetchParentFridayBranchFlyerDataUri(
 
   await assertApiAuthenticated(response);
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Failed to load flyer.');
+    const payload = (await response.json().catch(() => ({}))) as ParentApiErrorPayload;
+    throwParentApiError(
+      {
+        error:
+          typeof payload.error === 'string' ? payload.error : 'Failed to load flyer.',
+        code: payload.code,
+      },
+      response.status,
+    );
   }
 
   const buffer = await response.arrayBuffer();

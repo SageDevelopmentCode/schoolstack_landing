@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { autoAssignTuitionForEnrollment } from "@/lib/tuition/assignments";
+import { resolveRatePlanForEnrollmentAssignment } from "@/lib/tuition/rate-plans";
 import {
   requireSchoolAdminUser,
   SchoolAdminAuthError,
@@ -49,7 +50,26 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const organizationId = String(enrollment.organization_id);
+    const programId = String(enrollment.program_id);
     const user = await requireSchoolAdminUser(supabase, organizationId);
+
+    const body = (await request.json().catch(() => ({}))) as {
+      ratePlanId?: string;
+    };
+
+    const resolved = await resolveRatePlanForEnrollmentAssignment(admin, {
+      organizationId,
+      programId,
+      ratePlanId: body.ratePlanId,
+    });
+    if (resolved.ambiguous) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Choose a rate catalog for this student.",
+        code: "rate_catalog_required",
+      });
+    }
 
     const { data: student, error: studentError } = await admin
       .from("students")
@@ -71,8 +91,9 @@ export async function POST(request: Request, context: RouteContext) {
       organizationId,
       enrollmentId,
       familyId: String(student.family_id),
-      programId: String(enrollment.program_id),
+      programId,
       assignedByUserId: user.id,
+      ratePlanId: body.ratePlanId,
     });
 
     if (!assignment) {

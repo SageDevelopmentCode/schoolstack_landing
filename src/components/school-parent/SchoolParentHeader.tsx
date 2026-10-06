@@ -21,6 +21,7 @@ import {
   splitParentNavForHeader,
   type ParentNavItem,
 } from "@/lib/organization-settings/parent-nav";
+import { isParentNavFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
 import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
 import {
   CLIENT_AUTH_ACTIVITY_ACTIONS,
@@ -43,6 +44,7 @@ import type {
   OrganizationBranding,
   OrganizationFeatures,
 } from "@/lib/organization-settings/types";
+import type { OrganizationFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   GuardianProfilePhotoClientError,
@@ -75,6 +77,7 @@ type SchoolParentHeaderProps = {
   activityUnreadCount?: number;
   initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
   onOpenNotifications?: () => void;
+  fridayBranchSettings?: OrganizationFridayBranchSettings | null;
 };
 
 const parentNavTextClass = "text-[13px] font-semibold";
@@ -171,6 +174,7 @@ export default function SchoolParentHeader({
   activityUnreadCount = 0,
   initialCommitteeUnreadSummary,
   onOpenNotifications,
+  fridayBranchSettings,
 }: SchoolParentHeaderProps) {
   const routerPathname = usePathname();
   const pathname = embeddedPreview?.pathname ?? routerPathname;
@@ -208,14 +212,27 @@ export default function SchoolParentHeader({
     `/school/${slug}/parent`;
 
   const navItems = useMemo(
-    () =>
-      buildParentNavItems(
+    () => {
+      const items = buildParentNavItems(
         slug,
         features.parent,
         features.feature_nav?.parent,
         resolvedNavBasePath,
-      ),
-    [slug, features.parent, features.feature_nav?.parent, resolvedNavBasePath],
+      );
+      return items.filter(
+        (item) =>
+          item.key !== "friday_branch" ||
+          isParentNavFridayBranchEnabled(features, fridayBranchSettings),
+      );
+    },
+    [
+      slug,
+      features,
+      features.parent,
+      features.feature_nav?.parent,
+      resolvedNavBasePath,
+      fridayBranchSettings,
+    ],
   );
   const messagesEnabled = Boolean(features.parent.messages);
   const committeesEnabled = Boolean(features.parent.committees);

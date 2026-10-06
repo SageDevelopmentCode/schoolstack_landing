@@ -12,6 +12,10 @@ import {
   requireParentFridayBranchAccess,
 } from "@/lib/parent-portal/friday-branch/parent-friday-branch-auth";
 import {
+  FridayBranchParentPortalPausedError,
+  assertFridayBranchParentPortalOpen,
+} from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import {
   notifyFridayBranchEnrollmentFromParentPortal,
   notifyFridayBranchWithdrawalFromParentPortal,
 } from "@/lib/friday-branch/friday-branch-admin-notifications";
@@ -61,6 +65,7 @@ export async function GET(request: Request, context: RouteContext) {
     );
 
     const admin = createAdminClient();
+    await assertFridayBranchParentPortalOpen(admin, organizationId);
     const detail = await loadParentFridayBranchClassDetail(
       admin,
       organizationId,
@@ -81,6 +86,16 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ detail, studentOptions });
   } catch (err) {
     if (err instanceof ParentFridayBranchAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
+    if (err instanceof FridayBranchParentPortalPausedError) {
       return apiError(ROUTE, {
         request,
         status: err.status,
@@ -194,6 +209,16 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ParentFridayBranchAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
+    if (err instanceof FridayBranchParentPortalPausedError) {
       return apiError(ROUTE, {
         request,
         status: err.status,
@@ -327,6 +352,16 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ detail });
   } catch (err) {
     if (err instanceof ParentFridayBranchAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
+    if (err instanceof FridayBranchParentPortalPausedError) {
       return apiError(ROUTE, {
         request,
         status: err.status,

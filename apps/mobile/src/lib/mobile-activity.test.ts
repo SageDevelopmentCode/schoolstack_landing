@@ -4,6 +4,7 @@ import {
   portalTypeToMobileSurface,
   shouldReportMobileOperationalError,
 } from '@/lib/mobile-activity';
+import { ParentPortalApiError } from '@/lib/parent/parent-portal-api';
 
 describe('parseMobileOperationalError', () => {
   it('extracts message from Error instances', () => {
@@ -20,6 +21,11 @@ describe('parseMobileOperationalError', () => {
 describe('shouldReportMobileOperationalError', () => {
   it('skips expected 4xx responses', () => {
     expect(shouldReportMobileOperationalError(new Error('Bad request'), 400)).toBe(false);
+  });
+
+  it('skips parent portal paused responses when status is preserved', () => {
+    const err = new ParentPortalApiError('Friday Branch signup is paused.', 403, 'friday_branch_paused');
+    expect(shouldReportMobileOperationalError(err, err.status)).toBe(false);
   });
 
   it('reports unexpected server failures', () => {

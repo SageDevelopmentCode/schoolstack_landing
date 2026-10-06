@@ -95,6 +95,7 @@ export default async function SchoolParentMainLayout({
       parentPortalContexts={parentPortalContexts}
       initialActivityUnreadCount={initialActivityUnreadCount}
       notificationContext={notificationContext}
+      fridayBranchSettings={org.fridayBranchSettings}
     >
       {children}
     </SchoolParentBaseline>

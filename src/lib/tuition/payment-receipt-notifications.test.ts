@@ -42,6 +42,7 @@ function buildDeps(payments: PaymentRecord[]) {
   const deps: AutopayConfirmationDeps = {
     loadPayment: async (_admin, id) => payments.find((p) => p.id === id) ?? null,
     loadOrganization: async () => ({ name: "Rooted Meadows", slug: "rooted-meadows" }),
+    loadOrganizationTimezone: async () => "America/Chicago",
     resolveContact: async (_admin, { familyId }) =>
       familyId === "family-a"
         ? { emails: ["a1@example.com", "a2@example.com"], name: "Amelia Thompson" }

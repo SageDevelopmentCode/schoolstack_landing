@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
-import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { ADMIN_TUITION_PATH } from "../helpers/constants";
+import { ensureE2eRateCatalogForProgram } from "../helpers/tuition-rate-plan";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -17,35 +17,6 @@ function createAdminClient() {
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { transport: ws as never },
-  });
-}
-
-async function ensureSmokeRatePlan(
-  admin: ReturnType<typeof createAdminClient>,
-  organizationId: string,
-  programId: string,
-) {
-  const { data: existingPlan } = await admin
-    .from("tuition_rate_plans")
-    .select("id")
-    .eq("organization_id", organizationId)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-
-  if (existingPlan?.id) return;
-
-  await createRatePlanFromWizard(admin, {
-    organizationId,
-    programId,
-    name: `E2E Forms Tab ${Date.now()}`,
-    billingBasis: "annual",
-    tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
-    effectiveStart: "2026-08-01",
-    effectiveEnd: "2027-06-01",
-    paymentCounts: [10],
-    defaultPaymentCount: 10,
-    fees: [],
   });
 }
 
@@ -65,7 +36,12 @@ test.describe("Tuition forms tab", () => {
       .maybeSingle();
 
     expect(program?.id).toBeTruthy();
-    await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
+    await ensureE2eRateCatalogForProgram(
+      admin,
+      organizationId,
+      String(program!.id),
+      "E2E Forms Tab",
+    );
 
     await page.goto(ADMIN_TUITION_PATH);
     await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();

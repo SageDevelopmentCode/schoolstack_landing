@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
   buildAttentionItems,
+  buildPortalAttentionItems,
   type ParentHomeAttentionItem,
 } from '@/components/parent/home/parent-home-attention';
 import { StoryAttentionItem } from '@/components/story/story-attention-item';
@@ -69,6 +70,16 @@ export function ParentHomeStartHereCard({
     signupAttentionItems,
     familyChildren,
   });
+  const portalAttentionItems = buildPortalAttentionItems({
+    slug,
+    programSlug,
+    enrollmentAmendmentBannerItems,
+    enrollmentIncompleteBannerItems,
+    formAttentionItems,
+    signupAttentionItems,
+  });
+  const showTodosLink =
+    portalAttentionItems.length > 0 || onboardingItems.length > 0;
 
   const headline =
     attentionItems.length > 0
@@ -126,7 +137,7 @@ export function ParentHomeStartHereCard({
         </Text>
       )}
 
-      {onboardingItems.length > 0 ? (
+      {showTodosLink ? (
         <StoryTextLink
           label="Review today's to-dos"
           onPress={onOpenOnboarding}

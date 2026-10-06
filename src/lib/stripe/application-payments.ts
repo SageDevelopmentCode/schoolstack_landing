@@ -317,6 +317,12 @@ export async function listPaymentRecords(
   );
 }
 
+export type MarkPaymentSucceededResult = {
+  payment: PaymentRecord | null;
+  /** True only when this call atomically moved status from pending to succeeded. */
+  transitioned: boolean;
+};
+
 export async function markPaymentSucceeded(
   supabase: SupabaseClient,
   paymentId: string,
@@ -324,7 +330,7 @@ export async function markPaymentSucceeded(
     stripePaymentIntentId?: string;
     stripeCheckoutSessionId?: string;
   } = {},
-): Promise<PaymentRecord | null> {
+): Promise<MarkPaymentSucceededResult> {
   const { data: existing, error: existingError } = await supabase
     .from("application_payments")
     .select("*")
@@ -332,10 +338,15 @@ export async function markPaymentSucceeded(
     .maybeSingle();
 
   if (existingError) throw existingError;
-  if (!existing) return null;
+  if (!existing) {
+    return { payment: null, transitioned: false };
+  }
 
   if (existing.status === "succeeded") {
-    return rowToPayment(existing as Record<string, unknown>);
+    return {
+      payment: rowToPayment(existing as Record<string, unknown>),
+      transitioned: false,
+    };
   }
 
   const updatePayload: Record<string, unknown> = {
@@ -360,7 +371,10 @@ export async function markPaymentSucceeded(
 
   if (error) throw error;
   if (data) {
-    return rowToPayment(data as Record<string, unknown>);
+    return {
+      payment: rowToPayment(data as Record<string, unknown>),
+      transitioned: true,
+    };
   }
 
   const { data: current, error: currentError } = await supabase
@@ -370,7 +384,10 @@ export async function markPaymentSucceeded(
     .maybeSingle();
 
   if (currentError) throw currentError;
-  return current ? rowToPayment(current as Record<string, unknown>) : null;
+  return {
+    payment: current ? rowToPayment(current as Record<string, unknown>) : null,
+    transitioned: false,
+  };
 }
 
 /** @deprecated Use markPaymentSucceeded */

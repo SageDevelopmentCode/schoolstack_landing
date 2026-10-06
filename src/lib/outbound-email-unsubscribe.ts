@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { OutboundEmailDiscordMeta } from "@/lib/discord";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { OutboundEmailSuppressionRow } from "@/lib/outbound-email-suppressions-types";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -88,7 +88,7 @@ export function buildUnsubscribeUrl(email: string): string {
     email: normalized,
     token,
   });
-  return `${SITE_URL}/email/unsubscribe?${params.toString()}`;
+  return `${getRuntimeSiteUrl()}/email/unsubscribe?${params.toString()}`;
 }
 
 export function appendUnsubscribeFooter(html: string, email: string): string {

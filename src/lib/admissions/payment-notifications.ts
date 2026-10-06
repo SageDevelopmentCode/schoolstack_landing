@@ -6,10 +6,11 @@ import {
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import { logNotificationFailure, logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { notifyPaymentCompleted } from "@/lib/discord";
+import { getOrganizationTimezone } from "@/lib/admissions/admissions-availability";
 import { buildEmailNotificationContext, sendPaymentReceiptConfirmation } from "@/lib/emails";
 import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import { getPaymentById } from "@/lib/stripe/application-payments";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 async function resolvePayerContact(
   admin: SupabaseClient,
@@ -102,6 +103,10 @@ export async function sendPaymentCompletedNotifications(
 
     const schoolName = String(org.name);
     const schoolSlug = String(org.slug);
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      payment.organizationId,
+    );
     const paymentEmailContext = buildEmailNotificationContext({
       organizationId: payment.organizationId,
       organizationSlug: schoolSlug,
@@ -143,7 +148,8 @@ export async function sendPaymentCompletedNotifications(
           processingFeeCents: payment.processingFeeCents,
           paymentMethodLabel,
           paidAt,
-          applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
+          organizationTimeZone,
+          applyDashboardUrl: `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`,
           notificationContext: paymentEmailContext,
         }),
       ),

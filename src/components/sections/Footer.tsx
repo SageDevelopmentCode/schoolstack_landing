@@ -3,8 +3,8 @@ import Image from "next/image";
 import { Info, Layers, Users } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "About", href: "#about", icon: Info },
-  { label: "Product", href: "#product", icon: Layers },
+  { label: "About", href: "/about", icon: Info },
+  { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
 ];
 
@@ -40,14 +40,14 @@ export default function Footer() {
             aria-label="Footer navigation"
           >
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="flex items-center gap-1.5 text-sm font-medium text-white/55 hover:text-white/90 transition-colors duration-150"
               >
                 <link.icon size={14} className="shrink-0" />
                 {link.label}
-              </a>
+              </Link>
             ))}
             <a
               href="/get-started"

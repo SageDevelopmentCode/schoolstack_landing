@@ -25,7 +25,6 @@ export default function TuitionPageShell({
 }: TuitionPageShellProps) {
   const [dashboardData, setDashboardData] = useState<TuitionDashboardData | null>(null);
   const [dashboardHydrated, setDashboardHydrated] = useState(false);
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
 
   const hydrateDashboard = useCallback((data: TuitionDashboardData) => {
     setDashboardData(data);
@@ -50,21 +49,6 @@ export default function TuitionPageShell({
     );
   }
 
-  if (showSetupWizard) {
-    return (
-      <TuitionSetupWizard
-        organizationId={organizationId}
-        branding={branding}
-        draftRatePlanId={setupStatus.draftRatePlanId}
-        onComplete={() => {
-          setShowSetupWizard(false);
-          window.location.reload();
-        }}
-        onCancelEdit={() => setShowSetupWizard(false)}
-      />
-    );
-  }
-
   return (
     <TuitionPageContext.Provider value={contextValue}>
       <TuitionDashboard
@@ -75,7 +59,6 @@ export default function TuitionPageShell({
         setupStatus={setupStatus}
         initialDashboardData={dashboardData}
         dashboardDeferred={!dashboardHydrated}
-        onOpenSetupWizard={() => setShowSetupWizard(true)}
       />
       {children}
     </TuitionPageContext.Provider>

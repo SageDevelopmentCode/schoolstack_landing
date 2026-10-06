@@ -2,7 +2,6 @@
  * Resend payment-received admin notification emails for succeeded payments.
  *
  * Usage:
- *   NEXT_PUBLIC_SITE_URL=https://trymudkitchen.com \
  *   PAYMENT_IDS=<uuid>,<uuid> \
  *   npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-payment-admin-notification.ts
  *
@@ -13,9 +12,15 @@
 import { resolve } from "node:path";
 import { config } from "dotenv";
 
+import {
+  assertNoLocalhostInOutboundHtml,
+  ensureProductionSiteUrlForOutboundEmail,
+  logOutboundEmailSiteUrl,
+} from "./lib/outbound-email-production-site";
+
 config({ path: resolve(process.cwd(), ".env.local") });
 
-const PRODUCTION_SITE_URL = "https://trymudkitchen.com";
+const SCRIPT_PREFIX = "resend-payment-admin-notification";
 
 const DEFAULT_PAYMENT_IDS = [
   "6694f4f0-fc6e-4708-b2b4-e26b1e324273",
@@ -25,15 +30,7 @@ const DEFAULT_PAYMENT_IDS = [
 ];
 
 function log(message: string) {
-  console.log(`[resend-payment-admin-notification] ${message}`);
-}
-
-function ensureProductionSiteUrl(): string {
-  const current = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
-  if (!current || current.includes("localhost")) {
-    process.env.NEXT_PUBLIC_SITE_URL = PRODUCTION_SITE_URL;
-  }
-  return process.env.NEXT_PUBLIC_SITE_URL!;
+  console.log(`[${SCRIPT_PREFIX}] ${message}`);
 }
 
 function isDryRun(): boolean {
@@ -71,8 +68,8 @@ function parsePaymentIds(): string[] {
 }
 
 async function main() {
-  const siteUrl = ensureProductionSiteUrl();
-  log(`Using site URL: ${siteUrl}`);
+  const siteUrl = ensureProductionSiteUrlForOutboundEmail();
+  logOutboundEmailSiteUrl(SCRIPT_PREFIX);
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     console.error(
@@ -112,6 +109,21 @@ async function main() {
   );
 
   const admin = createAdminClient();
+
+  const { buildPaymentReceivedAdminNotificationHtml } = await import(
+    "@/lib/emails"
+  );
+  const sampleAdminHtml = buildPaymentReceivedAdminNotificationHtml({
+    schoolName: "School",
+    paymentTypeLabel: "Tuition",
+    payerLabel: "Family",
+    amountCents: 10000,
+    chargedAmountCents: 10000,
+    paymentMethodLabel: "Card",
+    paidAtLabel: "Jan 1, 2026",
+    paymentsAdminUrl: `${siteUrl}${schoolAdminPath("sample", "admissions", "payments")}`,
+  });
+  assertNoLocalhostInOutboundHtml(sampleAdminHtml);
 
   for (const paymentId of paymentIds) {
     const payment = await getPaymentById(admin, paymentId);

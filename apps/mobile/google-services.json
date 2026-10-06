@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009041424247",
+    "project_id": "mudkitchen",
+    "storage_bucket": "mudkitchen.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009041424247:android:60ddaa44cdb981904eab72",
+        "android_client_info": {
+          "package_name": "com.mudkitchen.schoolstack.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVudsO5RR9r-OUq6LfPoANaciGlAt4s6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

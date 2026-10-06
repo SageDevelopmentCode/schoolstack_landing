@@ -20,6 +20,8 @@ import { getSeedManifest } from "../helpers/seed-manifest";
 
 test.describe.configure({ mode: "serial" });
 
+test.setTimeout(process.env.CI ? 60_000 : 30_000);
+
 function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -11,6 +11,7 @@ export const LUFF_LEARNING_ADMIN_LOGO = LUFF_LEARNING_LOGO;
 
 export const LUFF_LEARNING_ADMIN_COMPACT_ROWS = 5;
 
+/** Homepage admin demo palette; also applied to live Mud School via seed_mud_school_homepage_demo_branding_2026_10_04.sql */
 export const LUFF_LEARNING_ADMIN_COLORS = {
   bg: "#f7fafc",
   border: "#eeeeee",

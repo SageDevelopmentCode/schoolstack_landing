@@ -26,6 +26,8 @@ Sep and Oct use **different** Stripe verification URLs. Do **not** batch both ID
 
 ## Send via MudKitchen (after deploy + live Zoho)
 
+**Note:** Early resends from a machine with `NEXT_PUBLIC_SITE_URL=http://localhost:3000` could embed localhost in the email shell; the resend script now forces production URLs (see outbound-email-ops skill). Re-send from script after that fix if needed.
+
 Run **once per payment** that still needs verification on Stripe (`requires_action` / micro-deposits). September may already be succeeded in checkout; the script skips PIs that are not awaiting verification.
 
 ```bash

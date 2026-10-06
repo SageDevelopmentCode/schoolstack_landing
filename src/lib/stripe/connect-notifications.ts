@@ -6,7 +6,7 @@ import {
 } from "@/lib/activity-log";
 import { buildEmailNotificationContext, sendStripePaymentsReadyNotification } from "@/lib/emails";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 async function hasPaymentsReadyNotification(
   admin: SupabaseClient,
@@ -76,7 +76,7 @@ export async function notifyPaymentsReadyIfNeeded(
 
   const schoolName = String(org.name);
   const schoolSlug = String(org.slug);
-  const paymentsAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "payments")}`;
+  const paymentsAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "admissions", "payments")}`;
 
   const memberships = await listOrganizationMemberships(admin, input.organizationId);
   const notifyEmails = [

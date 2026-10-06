@@ -8,11 +8,15 @@ import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-serv
 import { isPaymentPlanAllowedForBillingStart } from "@/lib/tuition/billing-start";
 import {
   getAssignmentById,
+  resolveCatalogChangeAssignmentFields,
   shouldSetBillingStartLocked,
   updateAssignment,
 } from "@/lib/tuition/assignments";
-import { getRatePlanWithDetails } from "@/lib/tuition/rate-plans";
-import { getTierById } from "@/lib/tuition/rate-tiers";
+import {
+  getRatePlanWithDetails,
+  resolveRatePlanForEnrollmentAssignment,
+} from "@/lib/tuition/rate-plans";
+import { getDefaultTierForRatePlan, getTierById } from "@/lib/tuition/rate-tiers";
 import { schoolAdminActivityContext } from "@/lib/tuition/tuition-activity";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
@@ -61,14 +65,87 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const body = (await request.json()) as {
+      ratePlanId?: string;
       rateTierId?: string | null;
       paymentPlanId?: string;
       effectiveStart?: string | null;
     };
 
-    if (body.rateTierId) {
-      const tier = await getTierById(admin, body.rateTierId);
-      if (!tier || tier.ratePlanId !== assignment.ratePlanId) {
+    const { data: enrollment, error: enrollmentError } = await admin
+      .from("enrollments")
+      .select("program_id")
+      .eq("id", assignment.enrollmentId)
+      .maybeSingle();
+
+    if (enrollmentError) throw enrollmentError;
+    if (!enrollment?.program_id) {
+      return apiError(ROUTE, {
+        request,
+        status: 400,
+        error: "Enrollment program not found.",
+        code: "invalid_request",
+      });
+    }
+
+    const programId = String(enrollment.program_id);
+    let targetRatePlanId = assignment.ratePlanId;
+    let rateTierId = body.rateTierId;
+    let paymentPlanId = body.paymentPlanId;
+    let metadata: typeof assignment.metadata | undefined;
+
+    if (body.ratePlanId && body.ratePlanId !== assignment.ratePlanId) {
+      try {
+        const resolved = await resolveRatePlanForEnrollmentAssignment(admin, {
+          organizationId: assignment.organizationId,
+          programId,
+          ratePlanId: body.ratePlanId,
+        });
+        if (!resolved.ratePlan) {
+          return apiError(ROUTE, {
+            request,
+            status: 400,
+            error: "Invalid rate catalog for this enrollment.",
+            code: "invalid_rate_plan",
+          });
+        }
+        const newPlan = resolved.ratePlan;
+        targetRatePlanId = newPlan.id;
+        const defaultPaymentPlan =
+          newPlan.paymentPlans.find((plan) => plan.isDefault) ??
+          newPlan.paymentPlans[0];
+        if (!defaultPaymentPlan) {
+          return apiError(ROUTE, {
+            request,
+            status: 400,
+            error: "Rate catalog has no payment schedules.",
+            code: "invalid_rate_plan",
+          });
+        }
+        const defaultTier = await getDefaultTierForRatePlan(admin, newPlan.id);
+        const resolvedFields = resolveCatalogChangeAssignmentFields({
+          newPlan,
+          submittedRateTierId: body.rateTierId,
+          submittedPaymentPlanId: body.paymentPlanId,
+          defaultRateTierId: defaultTier?.id ?? null,
+          defaultPaymentPlanId: defaultPaymentPlan.id,
+          existingMetadata: assignment.metadata,
+        });
+        rateTierId = resolvedFields.rateTierId;
+        paymentPlanId = resolvedFields.paymentPlanId;
+        metadata = resolvedFields.metadata;
+      } catch {
+        return apiError(ROUTE, {
+          request,
+          status: 400,
+          error: "Invalid rate catalog for this enrollment.",
+          code: "invalid_rate_plan",
+        });
+      }
+    }
+
+    if (rateTierId) {
+      const tier = await getTierById(admin, rateTierId);
+      if (!tier || tier.ratePlanId !== targetRatePlanId) {
         return apiError(ROUTE, {
           request,
           status: 400,
@@ -78,7 +155,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     }
 
-    const ratePlan = await getRatePlanWithDetails(admin, assignment.ratePlanId);
+    const ratePlan = await getRatePlanWithDetails(admin, targetRatePlanId);
     if (!ratePlan) {
       return apiError(ROUTE, {
         request,
@@ -89,9 +166,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     let paymentPlanInstallmentCount: number | null = null;
-    if (body.paymentPlanId) {
+    if (paymentPlanId) {
       const paymentPlan = ratePlan.paymentPlans.find(
-        (plan) => plan.id === body.paymentPlanId,
+        (plan) => plan.id === paymentPlanId,
       );
       if (!paymentPlan) {
         return apiError(ROUTE, {
@@ -145,25 +222,30 @@ export async function PATCH(request: Request, context: RouteContext) {
       });
     }
 
-    let metadata: typeof assignment.metadata | undefined;
-    if (body.paymentPlanId != null || body.effectiveStart !== undefined) {
+    const ratePlanChanged =
+      body.ratePlanId != null && body.ratePlanId !== assignment.ratePlanId;
+
+    if (metadata === undefined && (paymentPlanId != null || body.effectiveStart !== undefined)) {
       metadata = { ...assignment.metadata };
-      if (body.paymentPlanId != null) {
-        metadata.pendingPaymentPlanSelection = false;
-      }
-      if (
-        shouldSetBillingStartLocked(
-          assignment.effectiveStart,
-          body.effectiveStart,
-        )
-      ) {
-        metadata.billingStartLocked = true;
-      }
+    }
+    if (metadata && paymentPlanId != null && !ratePlanChanged) {
+      metadata.pendingPaymentPlanSelection = false;
+    }
+    if (
+      metadata &&
+      body.effectiveStart !== undefined &&
+      shouldSetBillingStartLocked(assignment.effectiveStart, body.effectiveStart)
+    ) {
+      metadata.billingStartLocked = true;
     }
 
     const updated = await updateAssignment(admin, assignmentId, {
-      rateTierId: body.rateTierId,
-      paymentPlanId: body.paymentPlanId,
+      ratePlanId:
+        body.ratePlanId && body.ratePlanId !== assignment.ratePlanId
+          ? targetRatePlanId
+          : undefined,
+      rateTierId,
+      paymentPlanId,
       effectiveStart: body.effectiveStart,
       metadata,
     }, { context: schoolAdminActivityContext(user) });

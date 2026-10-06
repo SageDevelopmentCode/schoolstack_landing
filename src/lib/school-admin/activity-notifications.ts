@@ -10,6 +10,15 @@ import {
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
 import { formatCents } from "@/lib/tuition/pricing";
+import {
+  fetchAssignmentActivityContexts,
+  isTuitionAssignmentAction,
+  type AssignmentActivityContext,
+} from "@/lib/activity-event-context";
+import {
+  resolveActivityEventLinks,
+  tuitionFamiliesAdminHref,
+} from "@/lib/activity-event-links";
 
 export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.APPLICATION_SUBMITTED,
@@ -27,6 +36,8 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
+  ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
+  ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED,
   ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED,
   ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
   ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED,
@@ -126,6 +137,8 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED]: "Tuition assigned",
+  [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED]: "Tuition unassigned",
   [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED]: "Payment plan selected",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED]: "Tuition payment received",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED]: "Payment method saved",
@@ -633,8 +646,11 @@ async function fetchPaymentNotificationContexts(
   return contextsByEventId;
 }
 
-function resolveTuitionChargeIdForEvent(
-  event: ActivityEventForNotification,
+export function resolveTuitionChargeIdForEvent(
+  event: Pick<
+    ActivityEventForNotification,
+    "entity_type" | "entity_id" | "metadata"
+  >,
 ): string | null {
   if (event.entity_type === "tuition_charge" && event.entity_id) {
     return event.entity_id;
@@ -933,8 +949,100 @@ export function formatActivityNotificationDetail(
     guardianLabel?: string | null;
     paymentLabel?: string | null;
     entityType?: string | null;
+    assignmentContext?: AssignmentActivityContext | null;
+    metadata?: Record<string, unknown>;
   },
 ): string {
+  const metadata = options?.metadata ?? {};
+  const assignmentContext = options?.assignmentContext ?? null;
+
+  if (isTuitionAssignmentAction(action)) {
+    const changes = metadata.changes;
+    if (Array.isArray(changes) && typeof changes[0] === "string") {
+      const first = changes[0].trim();
+      if (first) return first;
+    }
+
+    const ctx = assignmentContext;
+    const student = ctx?.studentName ?? subjectLabel;
+    const family = ctx?.familyName ?? options?.guardianLabel ?? null;
+    const plan = ctx?.ratePlanName;
+
+    if (action === ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED) {
+      const subject = student ?? family ?? "a student";
+      const planPart = plan ? ` (${plan})` : "";
+      return `Unassigned tuition for ${subject}${planPart} and voided open charges`;
+    }
+
+    if (
+      action === ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED &&
+      fallbackSummary.toLowerCase().includes("payment plan")
+    ) {
+      const subject = student ?? family ?? "a family";
+      const planName = ctx?.paymentPlanName;
+      if (planName) {
+        return `${subject} selected payment plan “${planName}”`;
+      }
+      return family
+        ? `${family} selected a tuition payment plan`
+        : fallbackSummary;
+    }
+
+    if (student || family || plan) {
+      const subject = student ?? family ?? "a student";
+      const familyPart =
+        student && family && student !== family ? ` (${family})` : "";
+      const planPart = plan ? `“${plan}”` : "tuition";
+      return `Assigned ${planPart} to ${subject}${familyPart}`;
+    }
+  }
+
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) {
+    const summary = fallbackSummary.trim();
+    if (summary.includes('"') || summary.toLowerCase().includes("posted ")) {
+      return summary;
+    }
+    const formTitle = metadataString(metadata, "formTitle");
+    const teacherName = metadataString(metadata, "teacherName");
+    const dueDate = metadataString(metadata, "dueDate");
+    if (formTitle && teacherName) {
+      return dueDate
+        ? `Published “${formTitle}” from ${teacherName} · Due ${dueDate}`
+        : `Published “${formTitle}” from ${teacherName} for families to sign`;
+    }
+    if (formTitle) {
+      return `Published “${formTitle}” for families to sign`;
+    }
+  }
+
+  if (action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED) {
+    const formTitle = metadataString(metadata, "formTitle");
+    const familyName = metadataString(metadata, "familyName");
+    if (formTitle && familyName) {
+      return `${familyName} signed “${formTitle}”`;
+    }
+    if (fallbackSummary.trim()) return fallbackSummary.trim();
+  }
+
+  if (
+    action === ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED &&
+    tuitionContext == null
+  ) {
+    const payer =
+      metadataString(metadata, "payerLabel") ??
+      metadataString(metadata, "guardianName") ??
+      metadataString(metadata, "familyName");
+    const amountCents = metadataNumber(metadata, "amountCents");
+    const amountLabel =
+      amountCents != null && amountCents > 0 ? formatCents(amountCents) : null;
+    if (payer && amountLabel) {
+      return `${payer} paid ${amountLabel}`;
+    }
+    if (payer && Array.isArray(metadata.changes) && metadata.changes[0]) {
+      return String(metadata.changes[0]);
+    }
+  }
+
   const isTuitionPayment =
     (action === ACTIVITY_ACTIONS.APPLICATION_PAYMENT_COMPLETED ||
       action === ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED) &&
@@ -1235,7 +1343,29 @@ export async function resolveActivityNotificationLink(
     event.entity_type === "tuition_charge" ||
     event.action.startsWith("tuition.")
   ) {
+    const familyId = metadataString(event.metadata, "familyId");
+    if (isTuitionAssignmentAction(event.action) || familyId) {
+      return {
+        href: tuitionFamiliesAdminHref(slug, familyId),
+        ctaLabel: familyId ? "Open family billing" : "View tuition",
+      };
+    }
     return { href: tuitionHref(slug), ctaLabel: "View tuition" };
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED ||
+    event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED
+  ) {
+    const resolved = resolveActivityEventLinks(slug, {
+      action: event.action,
+      entity_type: event.entity_type,
+      entity_id: event.entity_id,
+      metadata: event.metadata,
+    });
+    if (resolved) {
+      return resolved.primary;
+    }
   }
 
   if (
@@ -1382,6 +1512,7 @@ export function mapActivityEventToNotification(
   paymentAmountLabel?: string | null,
   tuitionContext?: TuitionNotificationContext | null,
   paymentLabel?: string | null,
+  assignmentContext?: AssignmentActivityContext | null,
 ): SchoolAdminActivityNotification {
   const metadataSubject = metadataString(event.metadata, "guardianName");
   const metadataFamilyName = metadataString(event.metadata, "familyName");
@@ -1429,6 +1560,13 @@ export function mapActivityEventToNotification(
       : subjectLabel;
   }
 
+  if (assignmentContext?.familyName && !guardianLabel) {
+    guardianLabel = assignmentContext.familyName;
+  }
+  if (assignmentContext?.studentName && !subjectLabel) {
+    subjectLabel = shortenSubjectLabel(assignmentContext.studentName);
+  }
+
   const programName = context?.programName ?? null;
 
   const title =
@@ -1454,6 +1592,8 @@ export function mapActivityEventToNotification(
         guardianLabel,
         paymentLabel,
         entityType: event.entity_type,
+        assignmentContext,
+        metadata: event.metadata,
       },
     ),
     createdAt: event.created_at,
@@ -1559,6 +1699,10 @@ export async function fetchSchoolAdminActivityNotifications(
     supabase,
     events,
   );
+  const assignmentContexts = await fetchAssignmentActivityContexts(
+    supabase,
+    events,
+  );
 
   const notifications: SchoolAdminActivityNotification[] = [];
 
@@ -1603,6 +1747,7 @@ export async function fetchSchoolAdminActivityNotifications(
         paymentAmountLabel,
         tuitionContext,
         paymentContext?.label ?? null,
+        assignmentContexts.get(event.id) ?? null,
       ),
     );
   }

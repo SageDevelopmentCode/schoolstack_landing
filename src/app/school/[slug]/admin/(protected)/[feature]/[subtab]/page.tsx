@@ -281,6 +281,7 @@ export default async function SchoolAdminSubtabPage({ params }: PageProps) {
           organizationId={org.id}
           branding={org.branding}
           slug={slug}
+          initialParentPortalPaused={org.fridayBranchSettings.parent_portal_paused}
         />
       </Suspense>
     );

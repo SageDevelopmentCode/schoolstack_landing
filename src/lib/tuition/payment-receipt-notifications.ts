@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
+import {
   buildEmailNotificationContext,
   buildTuitionAutopayConfirmationHtml,
   sendTuitionAutopayConfirmationEmail,
@@ -12,7 +16,7 @@ import {
   getPaymentById,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { SettleTuitionPaymentResult } from "./payment-settlement";
 
 async function resolvePayerContact(
@@ -176,8 +180,7 @@ async function getStudentNamesByChargeIds(
 }
 
 function buildBillingUrl(orgSlug: string): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? SITE_URL;
-  return `${siteUrl}/school/${orgSlug}/parent/billing`;
+  return `${getRuntimeSiteUrl()}/school/${orgSlug}/parent/billing`;
 }
 
 function paymentMethodLabel(
@@ -265,6 +268,10 @@ export async function sendTuitionPaymentReceiptNotifications(
     const chargedAmountCents =
       payment.chargedAmountCents ?? payment.amountCents;
     const paidAt = payment.paidAt ?? new Date().toISOString();
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      payment.organizationId,
+    );
 
     await Promise.all(
       contact.emails.map((email) =>
@@ -274,6 +281,7 @@ export async function sendTuitionPaymentReceiptNotifications(
           schoolName: org.name,
           billingUrl: buildBillingUrl(org.slug),
           paidAt,
+          organizationTimeZone,
           paymentMethodLabel: paymentMethodLabel(payment, options?.manual),
           amountCents: payment.amountCents,
           chargedAmountCents,
@@ -379,6 +387,10 @@ export async function sendCombinedTuitionPaymentReceiptNotifications(
         .at(-1) ?? new Date().toISOString();
 
     const paymentMethodType = firstPayment.paymentMethodType;
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      firstPayment.organizationId,
+    );
 
     await Promise.all(
       contact.emails.map((email) =>
@@ -388,6 +400,7 @@ export async function sendCombinedTuitionPaymentReceiptNotifications(
           schoolName: org.name,
           billingUrl: buildBillingUrl(org.slug),
           paidAt,
+          organizationTimeZone,
           paymentMethodLabel: paymentMethodType
             ? PAYMENT_METHOD_LABELS[paymentMethodType]
             : "—",
@@ -430,6 +443,7 @@ export type AutopayConfirmationResult = {
 export type AutopayConfirmationDeps = {
   loadPayment?: typeof getPaymentById;
   loadOrganization?: typeof loadOrganization;
+  loadOrganizationTimezone?: typeof getOrganizationTimezone;
   resolveContact?: typeof resolvePayerContact;
   loadStudentNames?: typeof getStudentNamesByChargeIds;
   loadChargeDueDates?: typeof getChargeDueDates;
@@ -477,6 +491,7 @@ export async function sendAutopayConfirmationNotifications(
 ): Promise<AutopayConfirmationResult> {
   const loadPayment = deps.loadPayment ?? getPaymentById;
   const loadOrg = deps.loadOrganization ?? loadOrganization;
+  const loadTimezone = deps.loadOrganizationTimezone ?? getOrganizationTimezone;
   const resolveContact = deps.resolveContact ?? resolvePayerContact;
   const loadStudentNames = deps.loadStudentNames ?? getStudentNamesByChargeIds;
   const loadDueDates = deps.loadChargeDueDates ?? getChargeDueDates;
@@ -484,6 +499,8 @@ export async function sendAutopayConfirmationNotifications(
 
   const org = await loadOrg(admin, input.organizationId);
   if (!org) throw new Error("Organization not found.");
+
+  const organizationTimeZone = await loadTimezone(admin, input.organizationId);
 
   const skippedPaymentIds: AutopayConfirmationResult["skippedPaymentIds"] = [];
   const paymentsByFamily = new Map<string, PaymentRecord[]>();
@@ -558,10 +575,7 @@ export async function sendAutopayConfirmationNotifications(
       schoolName: org.name,
       billingUrl: buildBillingUrl(org.slug),
       periodLabel,
-      paidAtLabel: new Date(paidAt).toLocaleDateString("en-US", {
-        dateStyle: "long",
-        timeZone: "America/Chicago",
-      }),
+      paidAtLabel: formatInstantDateTimeInTimezone(paidAt, organizationTimeZone),
       paymentMethodLabel: autopayPaymentMethodLabel(payments[0]!),
       lineItems,
       amountCents,

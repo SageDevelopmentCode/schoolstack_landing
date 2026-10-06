@@ -1,6 +1,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import type { ActivitySurface } from "@/lib/activity-log";
@@ -23,7 +27,7 @@ import { committeeTaskAssigneeTasksUrl } from "@/lib/committees/committee-portal
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 export async function sendCommitteeJoinRequestedNotifications(
   supabase: SupabaseClient,
@@ -72,11 +76,15 @@ export async function sendCommitteeJoinRequestedNotifications(
     supabase,
     input.organizationId,
   );
-  const committeesAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "committees")}`;
-  const submittedAtLabel = new Date().toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const committeesAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(input.schoolSlug, "committees")}`;
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    input.organizationId,
+  );
+  const submittedAtLabel = formatInstantDateTimeInTimezone(
+    new Date(),
+    organizationTimeZone,
+  );
 
   const results = await Promise.allSettled([
     notifyCommitteeJoinRequested({
@@ -179,7 +187,7 @@ export async function sendCommitteeJoinApprovedNotifications(
     input.requesterType === "staff"
       ? schoolTeacherPath(input.schoolSlug, "committees")
       : schoolParentPath(input.schoolSlug, "committees");
-  const committeesUrl = `${SITE_URL}${portalPath}?${committeeParams.toString()}`;
+  const committeesUrl = `${getRuntimeSiteUrl()}${portalPath}?${committeeParams.toString()}`;
 
   const trimmedEmail = input.memberEmail?.trim() ?? "";
   if (!trimmedEmail) return;

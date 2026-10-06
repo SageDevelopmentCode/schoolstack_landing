@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { getFamilyIdsForUser } from "@/lib/admissions/application-auth";
 import { userHasEnrolledAccess } from "@/lib/admissions/parent-portal-access";
+import { isUuid } from "@/lib/school-events/event-payload";
 import { assertParentFormAccess } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { getParentFormUploadStoragePath } from "@/lib/school-parent/forms-documents/mutations";
 import { createTeacherFormSignedUrl } from "@/lib/school-teacher/forms-documents/teacher-form-file-storage";
@@ -25,6 +26,15 @@ export async function GET(request: Request, context: RouteContext) {
       status: 400,
       error: "organizationId is required.",
       code: "missing_fields",
+    });
+  }
+
+  if (!isUuid(formId)) {
+    return apiError(ROUTE, {
+      request,
+      status: 404,
+      error: "Form not found.",
+      code: "not_found",
     });
   }
 

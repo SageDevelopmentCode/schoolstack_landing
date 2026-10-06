@@ -29,6 +29,7 @@ import {
 import type { SchoolAdminUserProfile } from "@/lib/school-admin/access";
 import { getAdminNavIconColor } from "@/lib/organization-settings/admin-feature-icon-styles";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
+import FridayBranchPausedBadge from "@/components/school-admin/friday-branch/FridayBranchPausedBadge";
 
 function formatNavGroupLabel(label: string): string {
   if (label === "Main") return "Workspace";
@@ -59,6 +60,7 @@ function SidebarNavItem({
   isOpen,
   onToggleOpen,
   messagesUnreadCount,
+  fridayBranchParentPortalPaused = false,
 }: {
   slug: string;
   item: AdminNavItem;
@@ -67,6 +69,7 @@ function SidebarNavItem({
   isOpen: boolean;
   onToggleOpen: () => void;
   messagesUnreadCount: number;
+  fridayBranchParentPortalPaused?: boolean;
 }) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const Icon = item.icon;
@@ -185,7 +188,14 @@ function SidebarNavItem({
                       textDecoration: "none",
                     }}
                   >
-                    {child.name}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate">{child.name}</span>
+                      {item.key === "my_school" &&
+                      child.key === "friday_branch" &&
+                      fridayBranchParentPortalPaused ? (
+                        <FridayBranchPausedBadge compact />
+                      ) : null}
+                    </span>
                   </Link>
                 );
               })}
@@ -213,6 +223,7 @@ type SchoolAdminStorySidebarProps = {
   portalOptions?: SchoolPortalOption[];
   openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
+  fridayBranchParentPortalPaused?: boolean;
 };
 
 export default function SchoolAdminStorySidebar({
@@ -231,6 +242,7 @@ export default function SchoolAdminStorySidebar({
   portalOptions = [],
   openPortalLinksInNewTab = false,
   previewMode = false,
+  fridayBranchParentPortalPaused = false,
 }: SchoolAdminStorySidebarProps) {
   const pathname = usePathname();
   const { theme, C } = useSchoolAdminStoryTheme();
@@ -315,6 +327,7 @@ export default function SchoolAdminStorySidebar({
                   isExpanded={isExpanded}
                   isOpen={openParents[item.key] ?? false}
                   messagesUnreadCount={messagesUnreadCount}
+                  fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
                   onToggleOpen={() =>
                     setOpenParents((prev) => ({
                       ...prev,

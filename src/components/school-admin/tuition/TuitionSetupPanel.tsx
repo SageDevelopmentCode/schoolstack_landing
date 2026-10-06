@@ -12,6 +12,7 @@ import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminSectionKicker from "@/components/school-admin/ui/story/AdminSectionKicker";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import { toastTuitionSyncResult } from "@/lib/tuition/sync-assignments-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import {
   assignTuitionLabel,
@@ -145,16 +146,21 @@ export default function TuitionSetupPanel({
         error?: string;
         assignedCount?: number;
         failedCount?: number;
+        skippedAmbiguousCount?: number;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to sync tuition assignments.");
       }
-      if ((payload.failedCount ?? 0) > 0 && (payload.assignedCount ?? 0) === 0) {
+      if (
+        (payload.failedCount ?? 0) > 0 &&
+        (payload.assignedCount ?? 0) === 0 &&
+        (payload.skippedAmbiguousCount ?? 0) === 0
+      ) {
         throw new Error(
           "No tuition assignments were created. Confirm an active rate plan exists for each program.",
         );
       }
-      adminToast.success("Tuition assigned");
+      toastTuitionSyncResult(payload);
       await onRefresh();
       onSwitchToFamilies();
     } catch (error) {

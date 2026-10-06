@@ -22,7 +22,7 @@ import {
   chunkArray,
   fetchAllPostgrestRows,
 } from "@/lib/supabase/fetch-all-rows";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 /** Keeps `thread_id` IN lists under PostgREST URL and row limits. */
 const MESSAGE_THREAD_READS_THREAD_ID_CHUNK_SIZE = 300;
@@ -463,7 +463,7 @@ export async function sendUnreadMessageDigestsForOrganization(
     if (threads.length === 0) continue;
 
     const totalUnread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
-    const messagesUrl = `${SITE_URL}${portalPath(schoolSlug, "teacher")}`;
+    const messagesUrl = `${getRuntimeSiteUrl()}${portalPath(schoolSlug, "teacher")}`;
 
     const result = await Promise.allSettled([
       sendUnreadMessagesDigestEmail({
@@ -537,7 +537,7 @@ export async function sendUnreadMessageDigestsForOrganization(
     if (threads.length === 0) continue;
 
     const totalUnread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
-    const messagesUrl = `${SITE_URL}${portalPath(schoolSlug, "parent")}`;
+    const messagesUrl = `${getRuntimeSiteUrl()}${portalPath(schoolSlug, "parent")}`;
 
     let emailed = false;
     for (const email of emails) {

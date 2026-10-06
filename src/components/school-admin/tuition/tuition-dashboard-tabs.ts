@@ -34,3 +34,19 @@ export const TUITION_DASHBOARD_TABS_WITH_KPI: ReadonlySet<TuitionDashboardTabId>
 export function tuitionDashboardTabShowsKpi(tab: TuitionDashboardTabId): boolean {
   return TUITION_DASHBOARD_TABS_WITH_KPI.has(tab);
 }
+
+const TUITION_DASHBOARD_TAB_ID_SET = new Set<TuitionDashboardTabId>(
+  TUITION_DASHBOARD_TABS.map((entry) => entry.id),
+);
+
+export function isValidTuitionDashboardTab(
+  value: string | null,
+): value is TuitionDashboardTabId {
+  return value !== null && TUITION_DASHBOARD_TAB_ID_SET.has(value as TuitionDashboardTabId);
+}
+
+export function parseTuitionDashboardTabFromSearchParam(
+  value: string | null,
+): TuitionDashboardTabId | null {
+  return isValidTuitionDashboardTab(value) ? value : null;
+}

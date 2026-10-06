@@ -31,7 +31,7 @@ import {
   summarizeAchVerificationRequired,
 } from "@/lib/tuition/tuition-activity";
 import { formatCents } from "@/lib/tuition/pricing";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 async function loadOrganization(
   admin: SupabaseClient,
@@ -271,7 +271,7 @@ async function sendAchBankVerificationOpsNotifications(
     }
   }
 
-  const financesUrl = `${SITE_URL}${schoolAdminPath(org.slug, "finances", "transactions")}`;
+  const financesUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(org.slug, "finances", "transactions")}`;
 
   try {
     await notifyAchBankVerificationRequired({
@@ -353,7 +353,7 @@ export async function sendAchBankVerificationNotificationsForPayments(
         if (contact) {
           payerLabel = contact.name;
           payerEmail = contact.emails[0] ?? null;
-          const billingUrl = `${SITE_URL}/school/${org.slug}/parent/billing`;
+          const billingUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/parent/billing`;
           const results = await Promise.allSettled(
             contact.emails.map((email) =>
               sendAchBankVerificationEmail({
@@ -390,7 +390,7 @@ export async function sendAchBankVerificationNotificationsForPayments(
         if (admissionsContact) {
           payerLabel = admissionsContact.displayName;
           payerEmail = admissionsContact.emails[0] ?? null;
-          const applyUrl = `${SITE_URL}/school/${org.slug}/apply`;
+          const applyUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/apply`;
           const results = await Promise.allSettled(
             admissionsContact.emails.map((email) =>
               sendAchBankVerificationEmail({
@@ -551,7 +551,7 @@ export async function sendTuitionAchSettlementFailedNotifications(
     const { buildEmailNotificationContext, sendTuitionAchSettlementFailedEmail } =
       await import("@/lib/emails");
 
-    const billingUrl = `${SITE_URL}/school/${org.slug}/parent/billing`;
+    const billingUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/parent/billing`;
     const notificationContext = buildEmailNotificationContext({
       organizationId: payment.organizationId,
       organizationSlug: org.slug,

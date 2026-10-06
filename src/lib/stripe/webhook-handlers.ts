@@ -73,16 +73,19 @@ async function tryMarkPaymentSucceeded(
     return { payment, newlySucceeded: false };
   }
 
-  const updated = await markPaymentSucceeded(admin, payment.id, {
+  const markResult = await markPaymentSucceeded(admin, payment.id, {
     stripePaymentIntentId: stripeRefs.paymentIntentId,
     stripeCheckoutSessionId: stripeRefs.checkoutSessionId,
   });
 
-  if (!updated) {
+  if (!markResult.payment) {
     return { payment, newlySucceeded: false };
   }
 
-  return { payment: updated, newlySucceeded: true };
+  return {
+    payment: markResult.payment,
+    newlySucceeded: markResult.transitioned,
+  };
 }
 
 export async function handleCheckoutSessionCompleted(

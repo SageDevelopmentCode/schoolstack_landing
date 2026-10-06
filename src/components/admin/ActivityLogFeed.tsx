@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   formatActivityEventNarrative,
   getActivityEventVisual,
@@ -22,7 +23,11 @@ function ActivityNarrativeText({
   event: EnrichedActivityEvent;
   actorLabel: string;
 }) {
-  const narrative = formatActivityEventNarrative(event, event);
+  const narrative = formatActivityEventNarrative(event, {
+    ...event,
+    assignmentContext: event.assignmentContext,
+    tuitionContext: event.tuitionContext,
+  });
   if (!narrative.startsWith(actorLabel)) {
     return (
       <p className="text-sm font-normal text-admin-text leading-snug line-clamp-3">
@@ -77,6 +82,18 @@ function ActivityLogRow({
             <span className="text-[10px] px-1.5 py-0.5 rounded-admin-md border bg-admin-bg text-admin-muted border-admin-border">
               {formatActivityActionLabel(event.action)}
             </span>
+            {event.links?.primary ? (
+              <>
+                <span className="text-[11px] text-admin-faint">·</span>
+                <Link
+                  href={event.links.primary.href}
+                  onClick={(clickEvent) => clickEvent.stopPropagation()}
+                  className="text-[11px] font-medium text-admin-accent hover:underline"
+                >
+                  {event.links.primary.ctaLabel}
+                </Link>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

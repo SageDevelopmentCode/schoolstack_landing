@@ -74,6 +74,10 @@ const FIELD_LABELS: Record<string, string> = {
   "Autopay charged detail": "✅ Charged",
   "Autopay failed detail": "❌ Failed",
   "Autopay skipped detail": "⏭️ Skipped",
+  "Activity events purged": "🗑️ Activity purged",
+  "Activity retention cutoff": "📅 Retention cutoff",
+  "Activity purge truncated": "⏭️ Purge truncated",
+  "Activity retention warning": "⚠️ Retention warning",
   "Prospect school": "🏫 Prospect school",
   "Concept demo": "🎯 Concept demo",
   Role: "👔 Role",
@@ -435,6 +439,13 @@ export async function notifyTuitionBillingCronSummary(payload: {
   scheduledVisitReminderFailures?: number;
   bulletinEmailsSent?: number;
   bulletinEmailFailures?: number;
+  activityEventsRetentionMonths?: number;
+  activityEventsRetentionWarnDays?: number;
+  activityEventsRetentionCutoff?: string | null;
+  activityEventsApproachingCount?: number;
+  activityEventsOldestApproachingAt?: string | null;
+  activityEventsPurged?: number;
+  activityEventsPurgeTruncated?: boolean;
 }) {
   const fields: DiscordEmbedField[] = [
     embedField("Organizations", String(payload.organizations), true),
@@ -553,13 +564,69 @@ export async function notifyTuitionBillingCronSummary(payload: {
     );
   }
 
+  if (payload.activityEventsPurged != null) {
+    fields.push(
+      embedField(
+        "Activity events purged",
+        String(payload.activityEventsPurged),
+        true,
+      ),
+    );
+  }
+
+  if (payload.activityEventsRetentionCutoff) {
+    const cutoffLabel = new Date(
+      payload.activityEventsRetentionCutoff,
+    ).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    fields.push(
+      embedField("Activity retention cutoff", cutoffLabel, true),
+    );
+  }
+
+  if (payload.activityEventsPurgeTruncated) {
+    fields.push(
+      embedField(
+        "Activity purge truncated",
+        "More rows will be purged on the next cron run.",
+        true,
+      ),
+    );
+  }
+
+  const approachingCount = payload.activityEventsApproachingCount ?? 0;
+  if (approachingCount > 0) {
+    const months = payload.activityEventsRetentionMonths ?? 12;
+    const warnDays = payload.activityEventsRetentionWarnDays ?? 30;
+    const oldest = payload.activityEventsOldestApproachingAt
+      ? new Date(payload.activityEventsOldestApproachingAt).toLocaleDateString(
+          "en-US",
+          { month: "short", day: "numeric", year: "numeric" },
+        )
+      : "unknown";
+    fields.push(
+      embedField(
+        "Activity retention warning",
+        `${approachingCount} event${approachingCount === 1 ? "" : "s"} will be deleted within ${warnDays} days (${months}-month retention). Oldest in window: ${oldest}.`,
+      ),
+    );
+  }
+
+  const retentionWarning = approachingCount > 0;
+
   await sendTuitionBillingDiscordEmbed(
     {
       title: "📊 Tuition billing cron · daily summary",
       color:
         payload.autopayFailed > 0
           ? DISCORD_EMBED_COLORS.error
-          : DISCORD_EMBED_COLORS.ops,
+          : retentionWarning
+            ? DISCORD_EMBED_COLORS.warning
+            : DISCORD_EMBED_COLORS.ops,
       fields,
     },
     payload.autopayFailed > 0 ? { content: "@everyone" } : undefined,

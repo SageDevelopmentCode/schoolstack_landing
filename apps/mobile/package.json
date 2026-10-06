@@ -54,6 +54,7 @@
     "eslint-config-expo": "~57.0.0",
     "jest": "^29.7.0",
     "jest-expo": "~57.0.0",
+    "react-test-renderer": "^19.2.4",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -77,7 +78,8 @@
     "assert:production-eas-env": "bash scripts/assert-production-eas-env.sh",
     "build:production:ios": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform ios",
     "build:production:android": "EXPO_PUBLIC_SITE_URL=https://trymudkitchen.com bash scripts/assert-production-mobile-env.sh && eas build --profile production --platform android",
-    "update:production": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform ios"
+    "update:production": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform ios",
+    "update:production:android": "bash scripts/assert-production-eas-env.sh && eas update --channel production --environment production --platform android"
   },
   "private": true,
   "expo": {

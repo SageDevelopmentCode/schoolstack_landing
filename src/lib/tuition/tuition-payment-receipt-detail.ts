@@ -1,3 +1,4 @@
+import { formatInstantDateTimeInTimezone } from "@/lib/admissions/admissions-availability";
 import type { ParentTuitionPaymentRecord } from "./payments";
 import { pickStripeStatusSourceForPayments } from "./stripe-provider-status-display";
 
@@ -29,7 +30,10 @@ export type TuitionPaymentReceiptDetail = {
   > | null;
 };
 
-function formatPaidAtLabel(iso: string): string {
+function formatPaidAtLabel(iso: string, timezone?: string): string {
+  if (timezone) {
+    return formatInstantDateTimeInTimezone(iso, timezone);
+  }
   return new Date(iso).toLocaleString("en-US", {
     dateStyle: "long",
     timeStyle: "short",
@@ -77,6 +81,7 @@ export function resolveRelatedTuitionPayments(
 
 export function buildTuitionPaymentReceiptDetail(
   payments: ParentTuitionPaymentRecord[],
+  options?: { organizationTimeZone?: string },
 ): TuitionPaymentReceiptDetail | null {
   const succeeded = payments.filter((payment) => payment.status === "succeeded");
   if (succeeded.length === 0) return null;
@@ -131,7 +136,7 @@ export function buildTuitionPaymentReceiptDetail(
   ];
 
   return {
-    paidAtLabel: formatPaidAtLabel(paidAt),
+    paidAtLabel: formatPaidAtLabel(paidAt, options?.organizationTimeZone),
     paymentMethodLabel: resolvePaymentMethodLabel(succeeded[0]!),
     lineItems,
     schoolAmountCents,

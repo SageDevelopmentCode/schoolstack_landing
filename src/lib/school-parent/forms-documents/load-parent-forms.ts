@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isUuid } from "@/lib/school-events/event-payload";
 import {
   mapTeacherParentFormRow,
   resolveSignatureStatus,
@@ -136,6 +137,8 @@ export async function getParentFormDetail(
   familyId: string,
   formId: string,
 ): Promise<ParentFormDetail | null> {
+  if (!isUuid(formId)) return null;
+
   const { data, error } = await admin
     .from("teacher_parent_form_responses")
     .select(

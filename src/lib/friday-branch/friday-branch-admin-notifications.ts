@@ -1,10 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { buildEmailNotificationContext, sendFridayBranchEnrollmentAdminNotification } from "@/lib/emails";
 import { resolveProgramSignupNotificationEmails } from "@/lib/notifications/org-notification-settings";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { ParentFridayBranchClassDetailBundle } from "@/lib/parent-portal/friday-branch/types";
 import type { FridayBranchClassEnrollmentStatus } from "@/lib/school-admin/friday-branch/friday-branch-types";
 
@@ -131,11 +135,15 @@ export async function sendFridayBranchEnrollmentAdminNotifications(
   );
   if (adminEmails.length === 0) return;
 
-  const fridayBranchAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "my_school", "friday_branch")}?class=${encodeURIComponent(input.classId)}`;
-  const submittedAtLabel = new Date().toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    input.organizationId,
+  );
+  const fridayBranchAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(input.schoolSlug, "my_school", "friday_branch")}?class=${encodeURIComponent(input.classId)}`;
+  const submittedAtLabel = formatInstantDateTimeInTimezone(
+    new Date(),
+    organizationTimeZone,
+  );
   const statusLabel = formatEnrollmentStatusLabel(input.status);
 
   const results = await Promise.allSettled(

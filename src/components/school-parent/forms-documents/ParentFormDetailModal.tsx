@@ -457,8 +457,11 @@ export default function ParentFormDetailModal({
                     form={detail.form}
                     organizationId={organizationId}
                     readOnly={readOnly}
+                    remoteDownloadEnabled={!isStaffPreview}
                     previewUrl={readOnly ? uploadPreviewUrl : null}
-                    localPreviewUrl={readOnly ? null : uploadPreviewUrl}
+                    localPreviewUrl={
+                      isStaffPreview || !readOnly ? uploadPreviewUrl : null
+                    }
                     previewHeightClass={PARENT_FORM_MODAL_PREVIEW_HEIGHT_CLASS}
                   />
                 ) : null}

@@ -46,6 +46,9 @@ import { buildProgramCoopFamilyNameMap } from "@/lib/admissions/program-coop-fam
 import { listProgramCoopSupplyList } from "@/lib/admissions/program-coop-supply-list-storage";
 import { listProgramCoopTeachingSchedule } from "@/lib/admissions/program-coop-teaching-schedule-storage";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
+import ParentFridayBranchPausedState from "@/components/school-parent/friday-branch/ParentFridayBranchPausedState";
+import { isFridayBranchParentPortalAvailable } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import ParentTeachingSchedulePage from "@/components/school-parent/teaching-schedule/ParentTeachingSchedulePage";
 import { loadParentAttendanceEligibleChildren } from "@/lib/parent-portal/attendance/load-parent-attendance-page-data";
 import { loadParentAttendancePreviewHistory } from "@/lib/parent-portal/attendance/load-parent-attendance-preview-data";
@@ -216,6 +219,7 @@ export default async function FamilyPreviewProgramParentFeaturePage({
               previewBasePath={programContext.parentNavBasePath}
               programId={programContext.programId}
               coopModeEnabled={programContext.coopMode}
+              fridayBranchSettings={org.fridayBranchSettings}
             />
           </Suspense>
         </ParentHomePageShell>
@@ -452,6 +456,20 @@ export default async function FamilyPreviewProgramParentFeaturePage({
   }
 
   if (feature === "friday_branch") {
+    if (
+      !isFridayBranchParentPortalAvailable(
+        programContext.effectiveFeatures,
+        org.fridayBranchSettings,
+      )
+    ) {
+      const theme = buildParentThemeTokens(org.branding);
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <ParentFridayBranchPausedState theme={theme} />
+        </SchoolParentPageShell>
+      );
+    }
+
     const allFamilyChildren = await listFamilyChildrenForHomeByFamilyId(
       admin,
       org.id,

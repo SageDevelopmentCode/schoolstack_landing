@@ -24,7 +24,7 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
-import { fetchOrganizationBySlug } from '@/lib/school-admin/fetch-organization';
+import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
   fetchTeacherMessagesUnreadCount,
@@ -187,37 +187,17 @@ function TeacherLayoutContent() {
 }
 
 export default function TeacherLayout() {
-  const { selectedSchool, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { isPreview } = usePortalPreview();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-
-  const organization = useMemo(() => {
-    if (selectedSchool?.slug === slug) return selectedSchool;
-    return null;
-  }, [selectedSchool, slug]);
-
-  const [loadedOrg, setLoadedOrg] = useState(organization);
+  const { organization: loadedOrg, status: orgLoadState } = usePortalOrganization(slug);
 
   useRecoverableAuthRedirect(!user, isLoading);
 
-  useEffect(() => {
-    if (!user) {
-      setLoadedOrg(null);
-    }
-  }, [user]);
+  const orgReady =
+    loadedOrg && loadedOrg.slug === slug && orgLoadState === 'ready';
 
-  useEffect(() => {
-    if (organization) {
-      setLoadedOrg(organization);
-      return;
-    }
-    if (!slug) return;
-    void fetchOrganizationBySlug(slug).then((org) => {
-      if (org) setLoadedOrg(org);
-    });
-  }, [organization, slug]);
-
-  if (!loadedOrg) {
+  if (!orgReady) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Story.primary} />

@@ -9,6 +9,34 @@ import type {
 
 export const MAX_ROSTER_RECIPIENTS = 5;
 
+export type FridayBranchOrgSettings = {
+  parent_portal_paused: boolean;
+};
+
+export async function fetchFridayBranchSettings(
+  organizationId: string,
+): Promise<FridayBranchOrgSettings> {
+  const query = new URLSearchParams({ organizationId }).toString();
+  const payload = await fetchSchoolAdminApi<{ settings: FridayBranchOrgSettings }>(
+    `/api/school-admin/friday-branch/settings?${query}`,
+  );
+  return payload.settings ?? { parent_portal_paused: false };
+}
+
+export async function patchFridayBranchSettings(
+  organizationId: string,
+  settings: FridayBranchOrgSettings,
+): Promise<FridayBranchOrgSettings> {
+  const payload = await fetchSchoolAdminApi<{ settings: FridayBranchOrgSettings }>(
+    '/api/school-admin/friday-branch/settings',
+    {
+      method: 'PATCH',
+      body: { organizationId, settings },
+    },
+  );
+  return payload.settings ?? settings;
+}
+
 export async function fetchFridayBranchSchedule(
   organizationId: string,
 ): Promise<FridayBranchBlock[]> {

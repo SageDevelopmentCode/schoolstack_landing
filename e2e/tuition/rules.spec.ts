@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { autoAssignTuitionForEnrollment } from "../../src/lib/tuition/assignments";
 import { createAdjustmentRule } from "../../src/lib/tuition/rules-engine";
-import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
+import { ensureE2eRateCatalogForProgram } from "../helpers/tuition-rate-plan";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -35,18 +35,12 @@ test("sibling discount rule auto-applies when second child is assigned tuition",
   expect(program?.id).toBeTruthy();
   const programId = String(program!.id);
 
-  await createRatePlanFromWizard(admin, {
+  const { ratePlanId } = await ensureE2eRateCatalogForProgram(
+    admin,
     organizationId,
     programId,
-    name: `E2E Rules ${Date.now()}`,
-    billingBasis: "annual",
-    tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
-    effectiveStart: "2026-08-01",
-    effectiveEnd: "2027-06-01",
-    paymentCounts: [10],
-    defaultPaymentCount: 10,
-    fees: [],
-  });
+    "E2E Rules",
+  );
 
   const siblingRule = await createAdjustmentRule(admin, {
     organizationId,
@@ -121,6 +115,7 @@ test("sibling discount rule auto-applies when second child is assigned tuition",
     enrollmentId: firstEnrollmentId,
     familyId,
     programId,
+    ratePlanId,
   });
   expect(firstAssignment?.id).toBeTruthy();
 
@@ -139,6 +134,7 @@ test("sibling discount rule auto-applies when second child is assigned tuition",
     enrollmentId: secondEnrollmentId,
     familyId,
     programId,
+    ratePlanId,
   });
   expect(secondAssignment?.id).toBeTruthy();
 

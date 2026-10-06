@@ -4,8 +4,8 @@ import { Info, Layers, Users } from "lucide-react";
 import NavbarFrame from "./NavbarFrame";
 
 const NAV_LINKS = [
-  { label: "About", href: "#about", icon: Info },
-  { label: "Product", href: "#product", icon: Layers },
+  { label: "About", href: "/about", icon: Info },
+  { label: "Product", href: "/#product", icon: Layers },
 ];
 
 export default function Navbar() {
@@ -32,14 +32,14 @@ export default function Navbar() {
           aria-label="Main navigation"
         >
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
             >
               <link.icon size={14} className="shrink-0" />
               {link.label}
-            </a>
+            </Link>
           ))}
 
           <a

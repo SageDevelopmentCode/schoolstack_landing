@@ -1,7 +1,7 @@
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { CommitteeWorkspaceSection } from "@/lib/committees/types";
 
 export type CommitteePortalMember = {
@@ -46,7 +46,7 @@ export function committeeMemberWorkspaceUrl(
   section: CommitteeWorkspaceSection,
   member: CommitteePortalMember,
 ): string {
-  return `${SITE_URL}${committeeMemberWorkspacePath(schoolSlug, committeeId, section, member)}`;
+  return `${getRuntimeSiteUrl()}${committeeMemberWorkspacePath(schoolSlug, committeeId, section, member)}`;
 }
 
 export function committeeTaskAssigneeTasksPath(
@@ -70,5 +70,5 @@ export function committeeTaskAssigneeTasksUrl(
   committeeId: string,
   member: CommitteePortalMember,
 ): string {
-  return `${SITE_URL}${committeeTaskAssigneeTasksPath(schoolSlug, committeeId, member)}`;
+  return `${getRuntimeSiteUrl()}${committeeTaskAssigneeTasksPath(schoolSlug, committeeId, member)}`;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
 import {
@@ -20,12 +21,15 @@ import TuitionPaymentHistoryPanel from "@/components/school-admin/tuition/Tuitio
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
+import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
 import TuitionStoryHeader from "@/components/school-admin/tuition/TuitionStoryHeader";
 import {
+  parseTuitionDashboardTabFromSearchParam,
   tuitionDashboardTabShowsKpi,
   type TuitionDashboardTabId,
 } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
 import { formatCents } from "@/lib/tuition/pricing";
+import { toastTuitionSyncResult } from "@/lib/tuition/sync-assignments-toast";
 import { listRatePlansWithDetails } from "@/lib/tuition/rate-plans";
 import type { RatePlanWithDetails } from "@/lib/tuition/types";
 import type { TuitionKpiBreakdownKind } from "@/lib/tuition/kpi-breakdown";
@@ -55,7 +59,7 @@ type TuitionDashboardProps = {
   initialFamilyId?: string | null;
   dashboardDeferred?: boolean;
   previewMode?: boolean;
-  onOpenSetupWizard: () => void;
+  initialDashboardTab?: TuitionDashboardTabId;
 };
 
 const CLICKABLE_KPI_CARDS: Array<{
@@ -156,16 +160,22 @@ export default function TuitionDashboard({
   initialFamilyId = null,
   dashboardDeferred = false,
   previewMode = false,
-  onOpenSetupWizard,
+  initialDashboardTab,
 }: TuitionDashboardProps) {
   const { theme } = useSchoolAdminStoryTheme();
+  const searchParams = useSearchParams();
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
   const supabase = useMemo(() => createClient(), []);
   const reducedMotion = useReducedMotion() ?? false;
 
-  const [tab, setTab] = useState<TuitionDashboardTabId>(
-    setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog",
-  );
+  const [tab, setTab] = useState<TuitionDashboardTabId>(() => {
+    const fromUrl = parseTuitionDashboardTabFromSearchParam(searchParams.get("tab"));
+    if (fromUrl) return fromUrl;
+    return (
+      initialDashboardTab ??
+      (setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog")
+    );
+  });
   const [ratePlans, setRatePlans] = useState<RatePlanWithDetails[]>(
     initialDashboardData?.ratePlans ?? [],
   );
@@ -199,11 +209,33 @@ export default function TuitionDashboard({
   const [kpiBreakdownKind, setKpiBreakdownKind] = useState<TuitionKpiBreakdownKind | null>(
     null,
   );
-  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(initialFamilyId);
+  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(() => {
+    const raw = searchParams.get("family") ?? searchParams.get("familyId");
+    const trimmed = raw?.trim();
+    return trimmed || initialFamilyId;
+  });
+
+  useEffect(() => {
+    const familyFromUrl =
+      searchParams.get("family") ?? searchParams.get("familyId");
+    const tabParam = searchParams.get("tab");
+
+    queueMicrotask(() => {
+      if (familyFromUrl?.trim()) {
+        setFocusFamilyId(familyFromUrl.trim());
+      }
+      const tabFromUrl = parseTuitionDashboardTabFromSearchParam(tabParam);
+      if (tabFromUrl) {
+        setTab(tabFromUrl);
+      }
+    });
+  }, [searchParams]);
+
   const [outstandingPeriodSelection, setOutstandingPeriod] =
     useState<OutstandingPeriod>("current_month");
   const [unassignedBannerDismissed, setUnassignedBannerDismissed] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [createRatePlanWizardOpen, setCreateRatePlanWizardOpen] = useState(false);
   const hasLoadedDashboardRef = useRef(Boolean(initialDashboardData));
   const skipOutstandingPeriodEffectRef = useRef(true);
 
@@ -233,7 +265,7 @@ export default function TuitionDashboard({
     hasLoadedDashboardRef.current = true;
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (): Promise<RatePlanWithDetails[] | void> => {
     if (previewMode) return;
 
     if (hasLoadedDashboardRef.current) {
@@ -251,6 +283,7 @@ export default function TuitionDashboard({
         schoolYearBounds: bounds,
       });
       applyDashboardData({ ratePlans: plans, pageMeta });
+      return plans;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load tuition data.");
       void reportPortalOperationalError("school_admin", {
@@ -258,11 +291,30 @@ export default function TuitionDashboard({
         operation: "tuition.dashboard.load",
         error: "",
       }, err);
+      return undefined;
     } finally {
       setInitialLoading(false);
       setIsRefetching(false);
     }
   }, [applyDashboardData, organizationId, outstandingPeriod, previewMode, supabase]);
+
+  const openCreateRatePlanWizard = useCallback(() => {
+    setCreateRatePlanWizardOpen(true);
+  }, []);
+
+  const handleCreateRatePlanComplete = useCallback(async () => {
+    setCreateRatePlanWizardOpen(false);
+    setTab("catalog");
+    const plans = await loadData();
+    if (!plans?.length) return;
+    const activePlans = plans.filter((plan) => plan.status !== "draft");
+    const newest = [...activePlans].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    )[0];
+    if (newest) {
+      setSelectedPlanId(newest.id);
+    }
+  }, [loadData]);
 
   useEffect(() => {
     if (previewMode || dashboardDeferred && !initialDashboardData) return;
@@ -294,11 +346,15 @@ export default function TuitionDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        assignedCount?: number;
+        skippedAmbiguousCount?: number;
+      };
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to sync tuition assignments.");
       }
-      adminToast.success("Tuition assigned");
+      toastTuitionSyncResult(payload);
       setUnassignedBannerDismissed(false);
       setFamiliesReloadToken((value) => value + 1);
       await loadData();
@@ -338,7 +394,7 @@ export default function TuitionDashboard({
             loadingTabKey={isRefetching ? tab : null}
             onTabChange={setTab}
             onOpenSetupPanel={() => setShowSetupPanel(true)}
-            onOpenSetupWizard={onOpenSetupWizard}
+            onOpenSetupWizard={openCreateRatePlanWizard}
           />
 
           {showUnassignedBanner && tuitionDashboardTabShowsKpi(tab) ? (
@@ -452,6 +508,7 @@ export default function TuitionDashboard({
                   organizationId={organizationId}
                   slug={slug}
                   branding={branding}
+                  ratePlans={ratePlans}
                   initialFamilyId={focusFamilyId}
                   initialFamilies={initialFamilies}
                   previewMode={previewMode}
@@ -473,7 +530,7 @@ export default function TuitionDashboard({
                   selectedPlanId={selectedPlanId}
                   onSelectPlan={setSelectedPlanId}
                   onRefresh={() => void loadData()}
-                  onStartSetup={onOpenSetupWizard}
+                  onStartSetup={openCreateRatePlanWizard}
                   saving={isRefetching}
                 />
               ) : null}
@@ -512,6 +569,7 @@ export default function TuitionDashboard({
             organizationId={organizationId}
             assignmentId={editAssignmentId ?? ""}
             branding={branding}
+            ratePlans={ratePlans}
             onClose={() => setEditAssignmentId(null)}
             onSaved={() => {
               setEditAssignmentId(null);
@@ -575,7 +633,7 @@ export default function TuitionDashboard({
               onClose={() => setShowSetupPanel(false)}
               onOpenSetupWizard={() => {
                 setShowSetupPanel(false);
-                onOpenSetupWizard();
+                openCreateRatePlanWizard();
               }}
               onSwitchToCatalog={() => {
                 setShowSetupPanel(false);
@@ -585,9 +643,20 @@ export default function TuitionDashboard({
                 setShowSetupPanel(false);
                 setTab("families");
               }}
-              onRefresh={loadData}
+              onRefresh={async () => {
+                await loadData();
+              }}
             />
           ) : null}
+
+          <TuitionSetupWizardModal
+            open={createRatePlanWizardOpen}
+            organizationId={organizationId}
+            branding={branding}
+            draftRatePlanId={setupStatus.draftRatePlanId}
+            onClose={() => setCreateRatePlanWizardOpen(false)}
+            onComplete={() => void handleCreateRatePlanComplete()}
+          />
         </div>
       </div>
     </div>

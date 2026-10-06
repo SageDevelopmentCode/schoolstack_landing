@@ -4,16 +4,9 @@ import Link from "next/link";
 import StudentPhoto from "@/components/students/StudentPhoto";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  CircleAlert,
-  ClipboardCheck,
-  ClipboardList,
-  FileText,
-  Sprout,
-} from "lucide-react";
+import { ClipboardCheck, Sprout } from "lucide-react";
 import type { ParentSignupAttentionItem } from "@/lib/classroom-signups/types";
 import type { ParentPortalHomeMeta } from "@/lib/parent-portal/parent-portal-home-meta";
-import { parentClassroomSignupPath } from "@/lib/organization-settings/parent-routes";
 import type {
   FamilyChildOverview,
   FamilyUserProfile,
@@ -47,13 +40,14 @@ import {
 import type { OrganizationEvent } from "@/lib/school-events/types";
 import { PORTAL_HOME_CONTAINER_CLASS } from "@/lib/portal-home/layout";
 import { parseEventDate } from "@/lib/committees/calendar-utils";
-import ParentOnboardingItemIcon from "@/components/school-parent/ParentOnboardingItemIcon";
 import ParentOnboardingSidebar from "@/components/school-parent/ParentOnboardingSidebar";
 import type { EnrollmentAgreementAmendmentBannerItem } from "@/lib/admissions/enrollment-agreement-amendment-banner";
+import type { EnrollmentAgreementIncompleteBannerItem } from "@/lib/admissions/enrollment-agreement-incomplete-banner";
 import {
-  ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE,
-  type EnrollmentAgreementIncompleteBannerItem,
-} from "@/lib/admissions/enrollment-agreement-incomplete-banner";
+  buildPortalAttentionItems,
+  buildStartHereAttentionItems,
+} from "@/lib/parent-portal/parent-home-attention";
+import { parentPortalAttentionIcon } from "@/components/school-parent/parent-portal-attention-icons";
 import ParentCoopFamiliesSection from "@/components/school-parent/ParentCoopFamiliesSection";
 import type { ProgramCoopFamily } from "@/lib/admissions/program-coop-directory";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
@@ -78,12 +72,12 @@ import {
 import ParentHomeFormsSnapshotSection from "@/components/school-parent/home/ParentHomeFormsSnapshotSection";
 import ParentHomeFridayBranchSection from "@/components/school-parent/home/ParentHomeFridayBranchSection";
 import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
-import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
-import { formatFormDueDate } from "@/lib/school-teacher/forms-documents/utils";
+import type { OrganizationFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 
 type ParentHomePageProps = {
   branding: OrganizationBranding;
@@ -117,17 +111,7 @@ type ParentHomePageProps = {
   parentNavBasePath?: string;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
-};
-
-type AttentionItem = {
-  key: string;
-  title: string;
-  subtitle?: string;
-  href?: string;
-  icon: React.ReactNode;
-  iconBg?: string;
-  iconIncludesWrapper?: boolean;
-  urgent?: boolean;
+  fridayBranchSettings?: OrganizationFridayBranchSettings | null;
 };
 
 const fadeUp = {
@@ -204,83 +188,6 @@ function childDetailsHref(
     ? `${previewBasePath}/parent/children`
     : schoolParentPath(schoolSlug, "children");
   return `${base}?applicationId=${encodeURIComponent(applicationId)}`;
-}
-
-function buildAttentionItems(input: {
-  onboardingItems: ResolvedParentOnboardingItem[];
-  enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
-  enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
-  formAttentionItems: ParentFormAttentionItem[];
-  classroomSignupAttentionItems: ParentSignupAttentionItem[];
-  schoolSlug: string;
-  previewBasePath?: string;
-}): AttentionItem[] {
-  const items: AttentionItem[] = [];
-
-  for (const form of input.formAttentionItems) {
-    items.push({
-      key: `form-${form.formId}`,
-      title: `Sign ${form.formTitle}`,
-      subtitle: form.dueDate
-        ? `Due ${formatFormDueDate(form.dueDate)}`
-        : "This form needs your signature.",
-      href: form.formsHref,
-      icon: <FileText className="h-4 w-4" style={{ color: "#B5594A" }} />,
-      urgent: true,
-    });
-  }
-
-  for (const signup of input.classroomSignupAttentionItems) {
-    items.push({
-      key: `signup-${signup.signupId}`,
-      title: "Help in the classroom",
-      subtitle: `${signup.teacherName} needs help with ${signup.title}${
-        signup.classroomName ? ` (${signup.classroomName})` : ""
-      }`,
-      href: parentClassroomSignupPath(
-        input.schoolSlug,
-        signup.signupId,
-        input.previewBasePath,
-      ),
-      icon: <ClipboardList className="h-4 w-4" style={{ color: "#3D6B4F" }} />,
-      iconBg: "#E9F2EA",
-    });
-  }
-
-  for (const item of input.enrollmentIncompleteBannerItems) {
-    items.push({
-      key: `incomplete-${item.applicationId}`,
-      title: `Sign ${item.studentName.split(" ")[0]}'s enrollment agreement`,
-      subtitle: ENROLLMENT_AGREEMENT_INCOMPLETE_NOTICE,
-      href: item.enrollmentHref,
-      icon: <CircleAlert className="h-4 w-4" style={{ color: "#B5594A" }} />,
-      urgent: true,
-    });
-  }
-
-  for (const item of input.enrollmentAmendmentBannerItems) {
-    items.push({
-      key: `amendment-${item.applicationId}`,
-      title: `Review ${item.studentName.split(" ")[0]}'s agreement update`,
-      subtitle: item.amendmentNotice,
-      href: item.enrollmentHref,
-      icon: <CircleAlert className="h-4 w-4" style={{ color: "#B5594A" }} />,
-      urgent: true,
-    });
-  }
-
-  for (const item of input.onboardingItems) {
-    if (item.completed || !item.autoTracked) continue;
-    items.push({
-      key: `onboarding-${item.id}`,
-      title: item.label,
-      href: item.href,
-      icon: <ParentOnboardingItemIcon item={item} variant="attention" />,
-      iconIncludesWrapper: true,
-    });
-  }
-
-  return items;
 }
 
 function ChildStoryCard({
@@ -420,6 +327,7 @@ export default function ParentHomePage({
   parentNavBasePath,
   featureAnnouncements = [],
   fridayBranchHome = null,
+  fridayBranchSettings,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeGuide, setActiveGuide] = useState<ParentDocGuide | null>(null);
@@ -456,7 +364,7 @@ export default function ParentHomePage({
     ? isParentFeatureEnabled(features, "forms_documents")
     : false;
   const fridayBranchHomeEnabled = features
-    ? isParentHomeFridayBranchEnabled(features)
+    ? isParentHomeFridayBranchEnabled(features, fridayBranchSettings)
     : false;
 
   const howToGuides = useMemo(() => {
@@ -510,15 +418,38 @@ export default function ParentHomePage({
   const messagesAction = quickActions.find((a) => a.key === "messages");
   const messagesHref = messagesAction?.href;
   const messagesEnabled = Boolean(messagesHref);
-  const attentionItems = buildAttentionItems({
-    onboardingItems,
-    enrollmentAmendmentBannerItems,
-    enrollmentIncompleteBannerItems,
-    formAttentionItems,
-    classroomSignupAttentionItems,
-    schoolSlug,
-    previewBasePath,
-  });
+  const portalAttentionInput = useMemo(
+    () => ({
+      enrollmentAmendmentBannerItems,
+      enrollmentIncompleteBannerItems,
+      formAttentionItems,
+      classroomSignupAttentionItems,
+      schoolSlug,
+      previewBasePath,
+    }),
+    [
+      enrollmentAmendmentBannerItems,
+      enrollmentIncompleteBannerItems,
+      formAttentionItems,
+      classroomSignupAttentionItems,
+      schoolSlug,
+      previewBasePath,
+    ],
+  );
+  const portalAttentionItems = useMemo(
+    () => buildPortalAttentionItems(portalAttentionInput),
+    [portalAttentionInput],
+  );
+  const attentionItems = useMemo(
+    () =>
+      buildStartHereAttentionItems({
+        ...portalAttentionInput,
+        onboardingItems,
+      }),
+    [portalAttentionInput, onboardingItems],
+  );
+  const showTodosLink =
+    portalAttentionItems.length > 0 || onboardingItems.length > 0;
   const nextEvent = upcomingEvents[0] ?? null;
   const todayLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -598,33 +529,31 @@ export default function ParentHomePage({
                         : "You're all caught up"}
                   </h3>
                   {attentionItems.length > 0 ? (
-                    attentionItems.slice(0, 4).map((item) => (
-                      <div key={item.key}>
-                        {item.href ? (
-                          <Link href={item.href} className="block hover:opacity-90">
-                            <ParentAttentionItem
-                              theme={theme}
-                              icon={item.icon}
-                              title={item.title}
-                              subtitle={item.subtitle}
-                              iconBg={item.iconBg}
-                              iconIncludesWrapper={item.iconIncludesWrapper}
-                              urgent={item.urgent}
-                            />
-                          </Link>
-                        ) : (
-                          <ParentAttentionItem
-                            theme={theme}
-                            icon={item.icon}
-                            title={item.title}
-                            subtitle={item.subtitle}
-                            iconBg={item.iconBg}
-                            iconIncludesWrapper={item.iconIncludesWrapper}
-                            urgent={item.urgent}
-                          />
-                        )}
-                      </div>
-                    ))
+                    attentionItems.slice(0, 4).map((item) => {
+                      const iconProps = parentPortalAttentionIcon(item);
+                      const attentionRow = (
+                        <ParentAttentionItem
+                          theme={theme}
+                          icon={iconProps.icon}
+                          title={item.title}
+                          subtitle={item.subtitle}
+                          iconBg={iconProps.iconBg ?? item.iconBg}
+                          iconIncludesWrapper={iconProps.iconIncludesWrapper}
+                          urgent={item.urgent}
+                        />
+                      );
+                      return (
+                        <div key={item.key}>
+                          {item.href ? (
+                            <Link href={item.href} className="block hover:opacity-90">
+                              {attentionRow}
+                            </Link>
+                          ) : (
+                            attentionRow
+                          )}
+                        </div>
+                      );
+                    })
                   ) : onboardingItems.length > 0 ? (
                     <ParentAttentionItem
                       theme={theme}
@@ -643,7 +572,7 @@ export default function ParentHomePage({
                       No urgent tasks right now. Check back for updates from school.
                     </p>
                   )}
-                  {onboardingItems.length > 0 ? (
+                  {showTodosLink ? (
                     <div className="mt-3">
                       <ParentTextLink
                         theme={theme}
@@ -841,8 +770,10 @@ export default function ParentHomePage({
 
       <ParentOnboardingSidebar
         C={adminCompat}
+        theme={theme}
         open={onboardingOpen}
         items={onboardingItems}
+        attentionItems={portalAttentionItems}
         onClose={() => setOnboardingOpen(false)}
       />
 

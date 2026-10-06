@@ -4,7 +4,10 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { HomeBulletinSheet } from '@/components/bulletin/home-bulletin-sheet';
-import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
+import {
+  buildPortalAttentionItems,
+  type ParentHomeAttentionItem,
+} from '@/components/parent/home/parent-home-attention';
 import { ParentHomeChildStoryCard } from '@/components/parent/home/parent-home-child-story-card';
 import { ParentHomeCoopFamiliesCard } from '@/components/parent/home/parent-home-coop-families-card';
 import { ParentHomeEventsCard } from '@/components/parent/home/parent-home-events-card';
@@ -146,6 +149,26 @@ export function ParentHomeDashboard({
   const firstChildApplicationId =
     data.familyChildren.find((child) => Boolean(child.studentId))?.applicationId ?? null;
 
+  const portalAttentionItems = useMemo(
+    () =>
+      buildPortalAttentionItems({
+        slug,
+        programSlug,
+        enrollmentAmendmentBannerItems: data.enrollmentAmendmentBannerItems,
+        enrollmentIncompleteBannerItems,
+        formAttentionItems: data.formAttentionItems ?? [],
+        signupAttentionItems,
+      }),
+    [
+      slug,
+      programSlug,
+      data.enrollmentAmendmentBannerItems,
+      enrollmentIncompleteBannerItems,
+      data.formAttentionItems,
+      signupAttentionItems,
+    ],
+  );
+
   const handleOnboardingItem = async (item: ResolvedParentOnboardingItem) => {
     setOnboardingOpen(false);
     if (item.completed) return;
@@ -222,7 +245,9 @@ export function ParentHomeDashboard({
         </Animated.View>
       ) : null}
 
-      {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
+      {isParentHomeFridayBranchEnabled(data.features, {
+        parent_portal_paused: Boolean(data.fridayBranchParentPortalPaused),
+      }) && data.fridayBranchHome ? (
         <Animated.View entering={FadeInDown.delay(100).duration(350)}>
           <ParentHomeFridayBranchCard
             slug={slug}
@@ -395,8 +420,13 @@ export function ParentHomeDashboard({
       <ParentOnboardingSheet
         visible={onboardingOpen}
         items={data.onboardingItems}
+        attentionItems={portalAttentionItems}
         onClose={() => setOnboardingOpen(false)}
         onSelectItem={(item) => void handleOnboardingItem(item)}
+        onSelectAttentionItem={(item) => {
+          setOnboardingOpen(false);
+          onAttentionItem(item);
+        }}
       />
     </>
   );

@@ -50,19 +50,18 @@ function formatFormDueDate(dueDate: string): string {
   });
 }
 
-export function buildAttentionItems(input: {
+export type BuildPortalAttentionInput = {
   slug: string;
   programSlug?: string;
-  onboardingItems: ResolvedParentOnboardingItem[];
   enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
   enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
   formAttentionItems?: ParentFormAttentionItem[];
   signupAttentionItems?: ParentSignupAttentionItem[];
-  familyChildren?: FamilyChildOverview[];
-}): ParentHomeAttentionItem[] {
-  const firstChildApplicationId = firstChildApplicationIdWithStudent(
-    input.familyChildren ?? [],
-  );
+};
+
+export function buildPortalAttentionItems(
+  input: BuildPortalAttentionInput,
+): ParentHomeAttentionItem[] {
   const items: ParentHomeAttentionItem[] = [];
 
   for (const form of input.formAttentionItems ?? []) {
@@ -146,6 +145,24 @@ export function buildAttentionItems(input: {
       urgent: true,
     });
   }
+
+  return items;
+}
+
+export function buildAttentionItems(input: {
+  slug: string;
+  programSlug?: string;
+  onboardingItems: ResolvedParentOnboardingItem[];
+  enrollmentAmendmentBannerItems: EnrollmentAgreementAmendmentBannerItem[];
+  enrollmentIncompleteBannerItems: EnrollmentAgreementIncompleteBannerItem[];
+  formAttentionItems?: ParentFormAttentionItem[];
+  signupAttentionItems?: ParentSignupAttentionItem[];
+  familyChildren?: FamilyChildOverview[];
+}): ParentHomeAttentionItem[] {
+  const firstChildApplicationId = firstChildApplicationIdWithStudent(
+    input.familyChildren ?? [],
+  );
+  const items = buildPortalAttentionItems(input);
 
   for (const item of input.onboardingItems) {
     if (item.completed || !item.autoTracked) continue;

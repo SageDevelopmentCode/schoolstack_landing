@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
+import {
+  buildRateCatalogDetailLabel,
+  formatRateCatalogPeriodLabel,
+} from "./rate-catalog-display";
 import type {
+  BillingBasis,
   FamilyAssignmentSummary,
   FamilyBillingReadinessState,
   UnassignedEnrollmentSummary,
@@ -413,11 +418,11 @@ export async function fetchFamilyBillingReadiness(
     supabase.from("programs").select("id, name").eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_plans")
-      .select("id, name")
+      .select("id, name, billing_basis, effective_start, effective_end")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_tiers")
-      .select("id, label")
+      .select("id, rate_plan_id, label, amount_cents")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_payment_plans")
@@ -451,6 +456,25 @@ export async function fetchFamilyBillingReadiness(
   const paymentPlanMap = new Map(
     (paymentPlans ?? []).map((plan) => [String(plan.id), String(plan.name)]),
   );
+  const tiersByRatePlanId = new Map<string, Array<{ amountCents: number }>>();
+  for (const tier of tiers ?? []) {
+    const ratePlanId = String(tier.rate_plan_id);
+    const existing = tiersByRatePlanId.get(ratePlanId) ?? [];
+    existing.push({ amountCents: Number(tier.amount_cents) });
+    tiersByRatePlanId.set(ratePlanId, existing);
+  }
+  const ratePlanMetaById = new Map(
+    (ratePlans ?? []).map((plan) => [
+      String(plan.id),
+      {
+        billingBasis: String(plan.billing_basis ?? "annual") as BillingBasis,
+        effectiveStart:
+          plan.effective_start != null ? String(plan.effective_start) : null,
+        effectiveEnd:
+          plan.effective_end != null ? String(plan.effective_end) : null,
+      },
+    ]),
+  );
 
   const familyEnrollments = enrollments ?? [];
   const enrolledEnrollmentIds = familyEnrollments.map((enrollment) =>
@@ -468,14 +492,32 @@ export async function fetchFamilyBillingReadiness(
       const enrollment = familyEnrollments.find(
         (row) => String(row.id) === enrollmentId,
       );
+      const ratePlanId = String(assignment.rate_plan_id);
+      const ratePlanMeta = ratePlanMetaById.get(ratePlanId);
+      const programId = enrollment?.program_id
+        ? String(enrollment.program_id)
+        : null;
       return {
         assignmentId: String(assignment.id),
         enrollmentId,
         studentName: studentId ? studentMap.get(String(studentId)) ?? null : null,
         enrollmentStatus: "enrolled",
         enrolledAt: enrollment?.enrolled_at ? String(enrollment.enrolled_at) : null,
-        ratePlanName:
-          ratePlanMap.get(String(assignment.rate_plan_id)) ?? "Rate plan",
+        ratePlanId,
+        ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
+        programName: programId ? programMap.get(programId) ?? null : null,
+        rateCatalogDetailLabel: ratePlanMeta
+          ? buildRateCatalogDetailLabel(
+              tiersByRatePlanId.get(ratePlanId) ?? [],
+              ratePlanMeta.billingBasis,
+            )
+          : null,
+        rateCatalogPeriodLabel: ratePlanMeta
+          ? formatRateCatalogPeriodLabel(
+              ratePlanMeta.effectiveStart,
+              ratePlanMeta.effectiveEnd,
+            )
+          : null,
         tierLabel:
           typeof assignment.rate_tier_id === "string"
             ? tierMap.get(assignment.rate_tier_id) ?? null
@@ -498,6 +540,7 @@ export async function fetchFamilyBillingReadiness(
     .map((enrollment) => ({
       enrollmentId: String(enrollment.id),
       studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
+      programId: String(enrollment.program_id),
       programName: programMap.get(String(enrollment.program_id)) ?? "Program",
       status: "enrolled" as const,
     }));

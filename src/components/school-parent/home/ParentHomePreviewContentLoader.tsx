@@ -12,6 +12,7 @@ type ParentHomePreviewContentLoaderProps = {
   previewBasePath?: string;
   programId?: string;
   coopModeEnabled?: boolean;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 };
 
 export default async function ParentHomePreviewContentLoader({
@@ -22,6 +23,7 @@ export default async function ParentHomePreviewContentLoader({
   previewBasePath,
   programId,
   coopModeEnabled,
+  fridayBranchSettings,
 }: ParentHomePreviewContentLoaderProps) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -33,6 +35,7 @@ export default async function ParentHomePreviewContentLoader({
     previewBasePath,
     programId,
     coopModeEnabled,
+    fridayBranchSettings,
     supabase,
   });
 

@@ -126,7 +126,11 @@ export type FamilyAssignmentSummary = {
   enrollmentStatus: EnrollmentBillingStatus;
   /** Enroll-complete timestamp; null while checklist is still pending. */
   enrolledAt: string | null;
+  ratePlanId: string;
   ratePlanName: string;
+  programName: string | null;
+  rateCatalogDetailLabel: string | null;
+  rateCatalogPeriodLabel: string | null;
   tierLabel: string | null;
   paymentPlanLabel: string;
   pendingPaymentPlanSelection: boolean;
@@ -274,6 +278,7 @@ export type FamilyEnrollmentSummary = {
 export type UnassignedEnrollmentSummary = {
   enrollmentId: string;
   studentName: string;
+  programId: string;
   programName: string;
   status: EnrollmentBillingStatus;
 };

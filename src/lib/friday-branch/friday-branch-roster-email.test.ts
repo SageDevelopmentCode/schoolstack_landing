@@ -39,7 +39,7 @@ describe("buildFridayBranchClassRosterEmailHtml", () => {
       teacher: "Ms. Rivera",
       blockLabel: "Fall Block",
       blockDateRange: "Sep 5 – Nov 21",
-      sentAtLabel: "September 18, 2026 at 3:15 PM",
+      sentAtLabel: "September 18, 2026 at 3:15 PM MDT",
       rows: [
         {
           studentName: "Autumn Evensen",
@@ -74,6 +74,7 @@ describe("buildFridayBranchClassRosterEmailPreview", () => {
   it("returns subject and html with roster rows", () => {
     const preview = buildFridayBranchClassRosterEmailPreview(
       sampleRoster,
+      "America/Denver",
       new Date("2026-09-18T20:15:00.000Z"),
     );
 
@@ -93,10 +94,13 @@ describe("buildFridayBranchClassRosterEmailPreview", () => {
   });
 
   it("returns empty roster copy when no students are signed up", () => {
-    const preview = buildFridayBranchClassRosterEmailPreview({
-      ...sampleRoster,
-      rows: [],
-    });
+    const preview = buildFridayBranchClassRosterEmailPreview(
+      {
+        ...sampleRoster,
+        rows: [],
+      },
+      "America/Denver",
+    );
 
     assert.match(preview.html, /No students are signed up for this class yet/);
   });

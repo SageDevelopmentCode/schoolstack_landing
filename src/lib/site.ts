@@ -3,6 +3,25 @@ export const PRODUCTION_SITE_URL = "https://trymudkitchen.com";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? PRODUCTION_SITE_URL;
 
+/** Site base for outbound email and ops scripts — reads env at call time, never localhost. */
+export function getRuntimeSiteUrl(): string {
+  const override = process.env.EMAIL_SITE_URL?.trim();
+  if (override && !override.includes("localhost") && !override.includes("127.0.0.1")) {
+    return override.replace(/\/$/, "");
+  }
+
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw || raw.includes("localhost") || raw.includes("127.0.0.1")) {
+    return PRODUCTION_SITE_URL;
+  }
+  return raw.replace(/\/$/, "");
+}
+
+/** Base URL for absolute links in outbound email (reads env at call time; never localhost). */
+export function outboundEmailSiteUrl(): string {
+  return getRuntimeSiteUrl();
+}
+
 /** Absolute public URL for a path (path must start with `/`). */
 export function publicSiteAbsoluteUrl(path: string): string {
   return `${SITE_URL}${path}`;

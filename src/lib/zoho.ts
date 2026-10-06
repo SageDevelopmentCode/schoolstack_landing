@@ -267,6 +267,10 @@ export async function sendZohoEmail(opts: {
   }
 
   const content = appendUnsubscribeFooter(opts.content, toAddress);
+  const { assertNoLocalhostInOutboundHtml } = await import(
+    "@/lib/outbound-email-localhost-guard"
+  );
+  assertNoLocalhostInOutboundHtml(content);
   const sendOpts = { ...opts, toAddress, content };
 
   const { isSmtpConfigured, sendViaSmtp } = await import("@/lib/zoho-smtp");

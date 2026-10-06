@@ -10,6 +10,7 @@ import {
   sendTuitionAutopayFailedEmail,
 } from "@/lib/emails";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import { formatCents } from "@/lib/tuition/pricing";
 
 export async function notifyAutopaySucceeded(
@@ -121,8 +122,7 @@ export async function notifyAutopayFailed(
 
   const schoolName = String(org?.name ?? "Your school");
   const orgSlug = String(org?.slug ?? input.orgSlug);
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
-  const billingUrl = `${baseUrl}/school/${orgSlug}/parent/billing`;
+  const billingUrl = `${getRuntimeSiteUrl()}/school/${orgSlug}/parent/billing`;
 
   const html = buildTuitionAutopayFailedHtml({
     familyName: String(family?.name ?? "Family"),

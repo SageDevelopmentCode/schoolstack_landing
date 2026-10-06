@@ -62,6 +62,28 @@ describe("composeEmail siteUrl", () => {
     assert.doesNotMatch(html, /trymudkitchen\.com/);
   });
 
+  it("defaults to production logo when env is localhost and siteUrl omitted", () => {
+    const previous = process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+    try {
+      const html = composeEmail({
+        preheader: "Test",
+        contentHtml: "<p>Body</p>",
+      });
+      assert.match(
+        html,
+        new RegExp(`src="${PRODUCTION_SITE_URL}/images/Logo.png"`),
+      );
+      assert.doesNotMatch(html, /localhost/);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.NEXT_PUBLIC_SITE_URL;
+      } else {
+        process.env.NEXT_PUBLIC_SITE_URL = previous;
+      }
+    }
+  });
+
   it("defaults header links to production when siteUrl is omitted", () => {
     const html = composeEmail({
       preheader: "Test",

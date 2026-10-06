@@ -68,6 +68,7 @@ type AuthContextValue = {
   exitSchoolAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
   restorePortalState: () => Promise<void>;
+  refreshSelectedSchool: (school: LiveOrganization) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -452,6 +453,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
   }, [portalType, selectedSchool?.id]);
 
+  const refreshSelectedSchool = useCallback(
+    async (school: LiveOrganization) => {
+      const normalized = normalizeStoredOrganization(school);
+      if (
+        selectedSchool?.slug !== normalized.slug &&
+        selectedSchool?.id !== normalized.id
+      ) {
+        return;
+      }
+      if (!portalType) return;
+
+      setSelectedSchool(normalized);
+      await persistPortalState(
+        { portalType, school: normalized },
+        isPlatformAdminSession,
+        previewSession,
+      );
+    },
+    [
+      isPlatformAdminSession,
+      portalType,
+      previewSession,
+      selectedSchool?.id,
+      selectedSchool?.slug,
+    ],
+  );
+
   const value = useMemo(
     () => ({
       session,
@@ -468,6 +496,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exitSchoolAdmin,
       signOut,
       restorePortalState,
+      refreshSelectedSchool,
     }),
     [
       session,
@@ -484,6 +513,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exitSchoolAdmin,
       signOut,
       restorePortalState,
+      refreshSelectedSchool,
     ],
   );
 

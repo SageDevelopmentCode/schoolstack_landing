@@ -103,6 +103,7 @@ export default async function FamilyPreviewMainParentLayout({
       initialActivityUnreadCount={initialActivityUnreadCount}
       initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
       notificationContext={notificationContext}
+      fridayBranchSettings={org.fridayBranchSettings}
     >
       {children}
     </SchoolParentBaseline>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Info, Layers, Menu, Users, X } from "lucide-react";
 
 const MOBILE_LINKS = [
-  { label: "About", href: "#about", icon: Info },
-  { label: "Product", href: "#product", icon: Layers },
+  { label: "About", href: "/about", icon: Info },
+  { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
 ];
 
@@ -71,7 +72,7 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
         >
           <div className="flex flex-col px-4 pb-3 pt-1">
             {MOBILE_LINKS.map((link, index) => (
-              <a
+              <Link
                 key={link.href}
                 ref={index === 0 ? firstLinkRef : undefined}
                 href={link.href}
@@ -80,7 +81,7 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
               >
                 <link.icon size={16} className="shrink-0" />
                 {link.label}
-              </a>
+              </Link>
             ))}
 
             <a

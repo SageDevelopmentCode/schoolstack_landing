@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   formatActivityEventNarrative,
@@ -64,7 +65,11 @@ function readMetadataString(
 export default function ActivityLogDetail({ event }: ActivityLogDetailProps) {
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const actorLabel = resolveActorDisplayLabel(event, event);
-  const narrative = formatActivityEventNarrative(event, event);
+  const narrative = formatActivityEventNarrative(event, {
+    ...event,
+    assignmentContext: event.assignmentContext,
+    tuitionContext: event.tuitionContext,
+  });
   const actorName = event.resolvedActorName ?? event.actor_name?.trim() ?? "—";
   const actorEmail = event.displayActorEmail ?? event.actor_email ?? "—";
   const isOperationalError = isOperationalErrorAction(event.action);
@@ -92,6 +97,42 @@ export default function ActivityLogDetail({ event }: ActivityLogDetailProps) {
           {formatDateTime(event.created_at)}
         </p>
       </div>
+
+      {event.links?.primary ? (
+        <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">
+            Actions
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={event.links.primary.href}
+              className="inline-flex items-center rounded-admin-md border border-admin-border bg-admin-bg px-3 py-1.5 text-sm font-medium text-admin-accent hover:bg-admin-accent-soft"
+            >
+              {event.links.primary.ctaLabel}
+            </Link>
+            {event.links.previewFamily ? (
+              <Link
+                href={event.links.previewFamily.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-admin-md border border-admin-border bg-admin-bg px-3 py-1.5 text-sm text-admin-text hover:bg-admin-neutral-bg"
+              >
+                {event.links.previewFamily.ctaLabel}
+              </Link>
+            ) : null}
+            {event.links.previewTeacher ? (
+              <Link
+                href={event.links.previewTeacher.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-admin-md border border-admin-border bg-admin-bg px-3 py-1.5 text-sm text-admin-text hover:bg-admin-neutral-bg"
+              >
+                {event.links.previewTeacher.ctaLabel}
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="bg-admin-surface border border-admin-border rounded-admin-md p-4 space-y-4">
         <h2 className="text-xs font-semibold text-admin-faint uppercase tracking-wide">

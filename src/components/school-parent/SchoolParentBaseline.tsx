@@ -63,6 +63,7 @@ type SchoolParentBaselineProps = {
   initialCommitteeUnreadSummary?: CommitteeUnreadSummary;
   notificationContext?: ParentNotificationContext;
   embeddedPreview?: SchoolParentEmbeddedPreview;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 };
 
 function isParentHelpPage(pathname: string, slug: string): boolean {
@@ -95,6 +96,7 @@ function SchoolParentBaselineInner({
   initialCommitteeUnreadSummary,
   notificationContext,
   embeddedPreview,
+  fridayBranchSettings,
   searchParams,
 }: SchoolParentBaselineProps & {
   searchParams: ReturnType<typeof useSearchParams>;
@@ -241,6 +243,7 @@ function SchoolParentBaselineInner({
           activityUnreadCount={activityUnreadCount}
           initialCommitteeUnreadSummary={initialCommitteeUnreadSummary}
           onOpenNotifications={openNotifications}
+          fridayBranchSettings={fridayBranchSettings}
         />
 
         <main

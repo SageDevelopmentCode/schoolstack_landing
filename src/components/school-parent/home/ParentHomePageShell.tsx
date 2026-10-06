@@ -38,6 +38,7 @@ type ParentHomePageShellProps = {
   programSlug?: string;
   parentNavBasePath?: string;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
   children?: React.ReactNode;
 };
 
@@ -63,6 +64,7 @@ export default function ParentHomePageShell({
   programSlug,
   parentNavBasePath,
   featureAnnouncements = [],
+  fridayBranchSettings,
   children,
 }: ParentHomePageShellProps) {
   const [homeContent, setHomeContent] = useState<ParentHomeContentData | null>(null);
@@ -109,6 +111,7 @@ export default function ParentHomePageShell({
         programSlug={programSlug}
         parentNavBasePath={parentNavBasePath}
         featureAnnouncements={featureAnnouncements}
+        fridayBranchSettings={fridayBranchSettings}
       />
       {children}
     </ParentHomePageContext.Provider>
