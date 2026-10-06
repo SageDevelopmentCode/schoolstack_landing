@@ -443,6 +443,7 @@ export type AutopayConfirmationResult = {
 export type AutopayConfirmationDeps = {
   loadPayment?: typeof getPaymentById;
   loadOrganization?: typeof loadOrganization;
+  loadOrganizationTimezone?: typeof getOrganizationTimezone;
   resolveContact?: typeof resolvePayerContact;
   loadStudentNames?: typeof getStudentNamesByChargeIds;
   loadChargeDueDates?: typeof getChargeDueDates;
@@ -490,6 +491,7 @@ export async function sendAutopayConfirmationNotifications(
 ): Promise<AutopayConfirmationResult> {
   const loadPayment = deps.loadPayment ?? getPaymentById;
   const loadOrg = deps.loadOrganization ?? loadOrganization;
+  const loadTimezone = deps.loadOrganizationTimezone ?? getOrganizationTimezone;
   const resolveContact = deps.resolveContact ?? resolvePayerContact;
   const loadStudentNames = deps.loadStudentNames ?? getStudentNamesByChargeIds;
   const loadDueDates = deps.loadChargeDueDates ?? getChargeDueDates;
@@ -498,10 +500,7 @@ export async function sendAutopayConfirmationNotifications(
   const org = await loadOrg(admin, input.organizationId);
   if (!org) throw new Error("Organization not found.");
 
-  const organizationTimeZone = await getOrganizationTimezone(
-    admin,
-    input.organizationId,
-  );
+  const organizationTimeZone = await loadTimezone(admin, input.organizationId);
 
   const skippedPaymentIds: AutopayConfirmationResult["skippedPaymentIds"] = [];
   const paymentsByFamily = new Map<string, PaymentRecord[]>();
