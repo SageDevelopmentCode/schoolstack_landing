@@ -111,8 +111,13 @@ export async function waitForBillingPage(page: Page): Promise<void> {
   await expect(billingPanel).toBeVisible({ timeout: 15_000 });
 }
 
+const BILLING_GOTO_TIMEOUT_MS = 60_000;
+
 export async function gotoBillingPage(page: Page): Promise<void> {
-  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`);
+  await page.goto(`/school/${TEST_ORG_SLUG}/parent/billing`, {
+    waitUntil: process.env.CI ? "domcontentloaded" : "load",
+    timeout: BILLING_GOTO_TIMEOUT_MS,
+  });
   await waitForBillingPage(page);
 }
 

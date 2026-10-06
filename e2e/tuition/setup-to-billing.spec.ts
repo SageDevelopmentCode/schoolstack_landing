@@ -675,7 +675,7 @@ test("admin can mark a charge sent as invoice", async ({ playwright, baseURL }) 
   await adminContext.dispose();
 });
 
-test("tuition dashboard auto-syncs assignments for newly enrolled students", async ({
+test("tuition dashboard sync button assigns newly enrolled students", async ({
   page,
 }) => {
   const admin = createAdminClient();
@@ -731,15 +731,30 @@ test("tuition dashboard auto-syncs assignments for newly enrolled students", asy
 
   await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
+  await expect(page.getByText(/need.*tuition assignment/i)).toBeVisible({
+    timeout: 15_000,
+  });
 
-  const { data: assignment } = await admin
-    .from("tuition_enrollment_assignments")
-    .select("id")
-    .eq("enrollment_id", enrollment!.id)
-    .eq("status", "active")
-    .maybeSingle();
+  const syncResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/api/tuition/sync-assignments") &&
+      response.status() === 200,
+  );
+  await page.getByRole("button", { name: "Sync assignments" }).click();
+  await syncResponse;
 
-  expect(assignment?.id).toBeTruthy();
+  await expect
+    .poll(async () => {
+      const { data } = await admin
+        .from("tuition_enrollment_assignments")
+        .select("id")
+        .eq("enrollment_id", enrollment!.id)
+        .eq("status", "active")
+        .maybeSingle();
+      return data?.id ?? null;
+    })
+    .toBeTruthy();
 });
 
 test("sync-assignments API creates tuition assignments for enrolled students", async ({

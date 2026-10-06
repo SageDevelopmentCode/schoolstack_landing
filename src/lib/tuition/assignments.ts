@@ -73,7 +73,7 @@ export function resolveCatalogChangeAssignmentFields(input: {
     input.newPlan.tiers.some((tier) => tier.id === input.submittedRateTierId);
 
   const rateTierId = tierBelongs
-    ? input.submittedRateTierId
+    ? input.submittedRateTierId!
     : input.defaultRateTierId;
 
   const planBelongs =
