@@ -184,6 +184,35 @@ export function formatInstantInTimezone(iso: string, timezone: string): string {
   }
 }
 
+/** Long date + short time in the school's timezone, with abbreviation (e.g. MDT). */
+export function formatInstantDateTimeInTimezone(
+  value: string | Date,
+  timezone: string,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return typeof value === "string" ? value : "";
+  }
+
+  const baseOptions: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  };
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      ...baseOptions,
+      timeZone: timezone,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat("en-US", baseOptions).format(date);
+  }
+}
+
 export function availabilitySlotKey(date: string, timeSlot: string): AdmissionsAvailabilitySlotKey {
   return `${date}|${timeSlot}`;
 }

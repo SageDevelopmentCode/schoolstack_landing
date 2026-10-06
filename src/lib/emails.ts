@@ -16,6 +16,7 @@ import {
   formatDateOnlyLongLabel,
   formatDateOnlyWithWeekdayLabel,
   formatDurationLabel,
+  formatInstantDateTimeInTimezone,
 } from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
@@ -1193,15 +1194,16 @@ export async function sendPaymentReceiptConfirmation(payload: {
   processingFeeCents?: number | null;
   paymentMethodLabel: string;
   paidAt: string;
+  organizationTimeZone: string;
   applyDashboardUrl: string;
   notificationContext?: OutboundEmailNotificationContext;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
-  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const paidAtLabel = formatInstantDateTimeInTimezone(
+    payload.paidAt,
+    payload.organizationTimeZone,
+  );
 
   const content = buildPaymentReceiptConfirmationHtml({
     ...payload,
@@ -1549,6 +1551,7 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
   name: string;
   billingUrl: string;
   paidAt: string;
+  organizationTimeZone: string;
   paymentMethodLabel: string;
   amountCents: number;
   chargedAmountCents: number;
@@ -1561,10 +1564,10 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
-  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const paidAtLabel = formatInstantDateTimeInTimezone(
+    payload.paidAt,
+    payload.organizationTimeZone,
+  );
 
   const content = buildTuitionPaymentReceiptHtml({
     name: payload.name,
@@ -1820,6 +1823,7 @@ export async function sendPaymentReceivedAdminNotification(payload: {
   processingFeeCents?: number | null;
   paymentMethodLabel: string;
   paidAt: string;
+  organizationTimeZone: string;
   studentName?: string | null;
   chargeLabel?: string | null;
   lineItems?: PaymentReceivedAdminLineItem[];
@@ -1828,10 +1832,10 @@ export async function sendPaymentReceivedAdminNotification(payload: {
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 
-  const paidAtLabel = new Date(payload.paidAt).toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const paidAtLabel = formatInstantDateTimeInTimezone(
+    payload.paidAt,
+    payload.organizationTimeZone,
+  );
 
   const content = buildPaymentReceivedAdminNotificationHtml({
     ...payload,

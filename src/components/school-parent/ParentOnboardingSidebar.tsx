@@ -4,13 +4,19 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClipboardCheck, X } from "lucide-react";
 import ParentOnboardingItemIcon from "@/components/school-parent/ParentOnboardingItemIcon";
+import { parentPortalAttentionIcon } from "@/components/school-parent/parent-portal-attention-icons";
+import ParentAttentionItem from "@/components/school-parent/ui/ParentAttentionItem";
 import type { ResolvedParentOnboardingItem } from "@/lib/organization-settings/parent-onboarding";
+import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
+import type { ParentPortalAttentionItem } from "@/lib/parent-portal/parent-home-attention";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
 type ParentOnboardingSidebarProps = {
   C: AdminThemeTokens;
+  theme: ParentThemeTokens;
   open: boolean;
   items: ResolvedParentOnboardingItem[];
+  attentionItems: ParentPortalAttentionItem[];
   onClose: () => void;
 };
 
@@ -43,8 +49,10 @@ function OnboardingProgressBar({
 
 export default function ParentOnboardingSidebar({
   C,
+  theme,
   open,
   items,
+  attentionItems,
   onClose,
 }: ParentOnboardingSidebarProps) {
   const trackedItems = items.filter((item) => item.autoTracked);
@@ -98,7 +106,7 @@ export default function ParentOnboardingSidebar({
                   className="text-sm font-semibold"
                   style={{ color: C.textPrimary }}
                 >
-                  Onboarding checklist
+                  Today&apos;s to-dos
                 </h2>
               </div>
               <button type="button" onClick={onClose} aria-label="Close">
@@ -128,6 +136,39 @@ export default function ParentOnboardingSidebar({
             ) : null}
 
             <div className="flex-1 overflow-y-auto">
+              {attentionItems.length > 0 ? (
+                <div className="border-b border-gray-100 px-5 py-4">
+                  {attentionItems.map((item) => {
+                    const iconProps = parentPortalAttentionIcon(item);
+                    const row = (
+                      <ParentAttentionItem
+                        theme={theme}
+                        icon={iconProps.icon}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        iconBg={iconProps.iconBg ?? item.iconBg}
+                        iconIncludesWrapper={iconProps.iconIncludesWrapper}
+                        urgent={item.urgent}
+                      />
+                    );
+                    return (
+                      <div key={item.key} className="mb-2 last:mb-0">
+                        {item.href ? (
+                          <Link
+                            href={item.href}
+                            onClick={onClose}
+                            className="block hover:opacity-90"
+                          >
+                            {row}
+                          </Link>
+                        ) : (
+                          row
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
               <ul className="divide-y divide-gray-100">
                 {items.map((item) => {
                   const rowContent = (

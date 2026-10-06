@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import type { ParentHomeAttentionItem } from '@/components/parent/home/parent-home-attention';
 import { BottomSheetShell } from '@/components/story/bottom-sheet-shell';
+import { StoryAttentionItem } from '@/components/story/story-attention-item';
 import { ThemedText } from '@/components/themed-text';
 import { useAdminTheme } from '@/contexts/admin-theme-context';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { Radius, Spacing } from '@/constants/theme';
 import type { ResolvedParentOnboardingItem } from '@/lib/parent/parent-portal-api';
 import { getQuickActionIconStyle } from '@/lib/parent/parent-nav';
@@ -12,15 +15,30 @@ import { getQuickActionIconStyle } from '@/lib/parent/parent-nav';
 type ParentOnboardingSheetProps = {
   visible: boolean;
   items: ResolvedParentOnboardingItem[];
+  attentionItems: ParentHomeAttentionItem[];
   onClose: () => void;
   onSelectItem: (item: ResolvedParentOnboardingItem) => void;
+  onSelectAttentionItem: (item: ParentHomeAttentionItem) => void;
 };
+
+function AttentionIcon({ item }: { item: ParentHomeAttentionItem }) {
+  const theme = useParentTheme();
+  const iconStyle = getQuickActionIconStyle(item.iconSlug);
+
+  if (item.urgent) {
+    return <Ionicons name="alert-circle-outline" size={18} color={theme.alert} />;
+  }
+
+  return <Ionicons name={iconStyle.icon} size={18} color={iconStyle.iconColor} />;
+}
 
 export function ParentOnboardingSheet({
   visible,
   items,
+  attentionItems,
   onClose,
   onSelectItem,
+  onSelectAttentionItem,
 }: ParentOnboardingSheetProps) {
   const theme = useAdminTheme();
 
@@ -57,6 +75,34 @@ export function ParentOnboardingSheet({
         </View>
       }
       scrollContentStyle={styles.list}>
+      {attentionItems.map((item, index) => {
+        const iconStyle = getQuickActionIconStyle(item.iconSlug);
+        const row = (
+          <StoryAttentionItem
+            icon={<AttentionIcon item={item} />}
+            title={item.title}
+            subtitle={item.subtitle}
+            iconBg={item.urgent ? undefined : iconStyle.iconBg}
+            urgent={item.urgent}
+            isFirst={index === 0}
+          />
+        );
+
+        return (
+          <Pressable
+            key={item.key}
+            accessibilityRole="button"
+            onPress={() => onSelectAttentionItem(item)}
+            style={({ pressed }) => [
+              styles.attentionRow,
+              { borderColor: theme.border },
+              pressed && { backgroundColor: theme.elevated },
+            ]}>
+            <View style={styles.attentionCopy}>{row}</View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+          </Pressable>
+        );
+      })}
       {items.map((item) => {
         const iconStyle = getQuickActionIconStyle(item.icon ?? 'puzzle');
         return (
@@ -118,6 +164,18 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingVertical: Spacing.two,
+  },
+  attentionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    gap: Spacing.two,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  attentionCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   itemRow: {
     flexDirection: 'row',

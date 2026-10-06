@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { buildEmailNotificationContext, sendFridayBranchEnrollmentAdminNotification } from "@/lib/emails";
@@ -131,11 +135,15 @@ export async function sendFridayBranchEnrollmentAdminNotifications(
   );
   if (adminEmails.length === 0) return;
 
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    input.organizationId,
+  );
   const fridayBranchAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "my_school", "friday_branch")}?class=${encodeURIComponent(input.classId)}`;
-  const submittedAtLabel = new Date().toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const submittedAtLabel = formatInstantDateTimeInTimezone(
+    new Date(),
+    organizationTimeZone,
+  );
   const statusLabel = formatEnrollmentStatusLabel(input.status);
 
   const results = await Promise.allSettled(

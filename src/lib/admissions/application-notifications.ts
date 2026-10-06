@@ -1,16 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   formatDurationLabel,
+  formatInstantDateTimeInTimezone,
   formatOrganizationTimezoneLabel,
   formatScheduledVisitWhenLabel,
   formatVisitDayCountLabel,
+  getOrganizationTimezone,
   listAdmissionsAvailabilitySlotRecords,
 } from "@/lib/admissions/admissions-availability";
 import type { ScheduledVisitRecord } from "@/lib/admissions/admissions-booking";
 import {
   parseApplicationFormPostSubmitConfig,
 } from "@/lib/admissions/application-form-schema";
-import { extractStudentLabel, formatShortDate } from "@/lib/admissions/application-submissions";
+import { extractStudentLabel } from "@/lib/admissions/application-submissions";
 import {
   POST_SUBMIT_ACTION_TEMPLATES,
   postSubmitActionLabel,
@@ -189,7 +191,14 @@ export async function sendApplicationSubmittedNotifications(
     const submittedAt = application.submitted_at
       ? String(application.submitted_at)
       : new Date().toISOString();
-    const submittedAtLabel = formatShortDate(submittedAt);
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      String(application.organization_id),
+    );
+    const submittedAtLabel = formatInstantDateTimeInTimezone(
+      submittedAt,
+      organizationTimeZone,
+    );
     const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
     const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
 

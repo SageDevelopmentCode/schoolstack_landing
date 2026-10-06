@@ -332,7 +332,7 @@ const previews = [
       chargedAmountCents: 7725,
       processingFeeCents: 225,
       paymentMethodLabel: "Visa",
-      paidAtLabel: "July 27, 2026 at 2:30 PM",
+      paidAtLabel: "July 27, 2026 at 2:30 PM CDT",
       applyDashboardUrl: "https://trymudkitchen.com/apply/rooted-meadows",
     }),
     checks: ["Payment Receipt", "Thank you", "$77.25", "View apply dashboard"],
@@ -384,7 +384,7 @@ const previews = [
       name: "Jon Cecilia",
       schoolName: "Rooted Meadows",
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
-      paidAtLabel: "August 8, 2026 at 2:30 PM",
+      paidAtLabel: "August 8, 2026 at 2:30 PM CDT",
       paymentMethodLabel: "Card",
       amountCents: 72000,
       chargedAmountCents: 74182,
@@ -408,7 +408,7 @@ const previews = [
       name: "Jon Cecilia",
       schoolName: "Rooted Meadows",
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
-      paidAtLabel: "August 8, 2026 at 3:00 PM",
+      paidAtLabel: "August 8, 2026 at 3:00 PM CDT",
       paymentMethodLabel: "Card",
       amountCents: 500000,
       chargedAmountCents: 514550,
@@ -434,7 +434,7 @@ const previews = [
       name: "Cecilia Family",
       schoolName: "Rooted Meadows",
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
-      paidAtLabel: "August 8, 2026 at 4:00 PM",
+      paidAtLabel: "August 8, 2026 at 4:00 PM CDT",
       paymentMethodLabel: "Card",
       amountCents: 144000,
       chargedAmountCents: 148364,
@@ -466,7 +466,7 @@ const previews = [
       name: "Jon Cecilia",
       schoolName: "Rooted Meadows",
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
-      paidAtLabel: "August 8, 2026 at 5:00 PM",
+      paidAtLabel: "August 8, 2026 at 5:00 PM CDT",
       paymentMethodLabel: "ACH",
       amountCents: 72000,
       chargedAmountCents: 72500,
@@ -527,7 +527,7 @@ const previews = [
       schoolName: "Rooted Meadows Waldorf School",
       billingUrl: "https://trymudkitchen.com/school/rooted-meadows/parent/billing",
       periodLabel: "October",
-      paidAtLabel: "October 1, 2026",
+      paidAtLabel: "October 1, 2026 at 9:00 AM CDT",
       paymentMethodLabel: "Bank account (ACH)",
       lineItems: [
         { studentName: "Maggie Thompson", chargeLabel: "Oct Tuition", amountCents: 72000 },
@@ -614,7 +614,7 @@ const previews = [
       contactName: "Rachael Sparhawk",
       contactEmail: "rachael@example.com",
       programName: "Grade 1",
-      submittedAtLabel: "August 29, 2026 at 2:30 PM",
+      submittedAtLabel: "August 29, 2026 at 2:30 PM CDT",
       submissionAdminUrl:
         "https://trymudkitchen.com/school/rooted-meadows/admin/admissions/submissions?application=app-1",
     }),
@@ -637,7 +637,7 @@ const previews = [
       chargedAmountCents: 42339,
       processingFeeCents: 339,
       paymentMethodLabel: "ACH",
-      paidAtLabel: "August 29, 2026 at 2:47 PM",
+      paidAtLabel: "August 29, 2026 at 2:47 PM CDT",
       studentName: "Olivia Sparhawk",
       chargeLabel: "Aug Tuition",
       paymentsAdminUrl:
@@ -662,7 +662,7 @@ const previews = [
       chargedAmountCents: 145000,
       processingFeeCents: 1000,
       paymentMethodLabel: "ACH",
-      paidAtLabel: "August 29, 2026 at 2:52 PM",
+      paidAtLabel: "August 29, 2026 at 2:52 PM CDT",
       lineItems: [
         {
           studentName: "Maggie Thompson",
@@ -880,7 +880,7 @@ const previews = [
       teacher: "Ms. Rivera",
       blockLabel: "Fall Block",
       blockDateRange: "Sep 5 – Nov 21",
-      sentAtLabel: "September 18, 2026 at 3:15 PM",
+      sentAtLabel: "September 18, 2026 at 3:15 PM MDT",
       rows: [
         {
           studentName: "Autumn Evensen",
@@ -923,7 +923,7 @@ const previews = [
       guardianName: "Holly Evensen",
       guardianEmail: "holly@example.com",
       statusLabel: "Signed up",
-      submittedAtLabel: "September 17, 2026 at 3:15 PM",
+      submittedAtLabel: "September 17, 2026 at 3:15 PM MDT",
       fridayBranchAdminUrl:
         "https://trymudkitchen.com/school/rooted-meadows/admin/my_school/friday_branch?class=class-1",
     }),
@@ -1249,7 +1249,7 @@ const previews = [
       preferredDutyRoleTitle: "Community Outreach Lead",
       grade: "3rd",
       note: "Farm to table nutritionist and owner of regenerative farm",
-      submittedAtLabel: "September 10, 2026 at 3:15 PM",
+      submittedAtLabel: "September 10, 2026 at 3:15 PM MDT",
       committeesAdminUrl:
         "https://trymudkitchen.com/school/rooted-meadows/admin/committees",
     }),

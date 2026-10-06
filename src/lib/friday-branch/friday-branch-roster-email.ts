@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import {
   buildEmailNotificationContext,
@@ -35,11 +39,11 @@ export type FridayBranchClassRosterEmailPayload = {
   }[];
 };
 
-function formatRosterSentAtLabel(date = new Date()): string {
-  return date.toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+function formatRosterSentAtLabel(
+  organizationTimeZone: string,
+  date = new Date(),
+): string {
+  return formatInstantDateTimeInTimezone(date, organizationTimeZone);
 }
 
 export function buildFridayBranchClassRosterEmailSubject(
@@ -51,6 +55,7 @@ export function buildFridayBranchClassRosterEmailSubject(
 
 export function buildFridayBranchClassRosterEmailPayload(
   roster: FridayBranchClassRosterForEmail,
+  organizationTimeZone: string,
   sentAt = new Date(),
 ): FridayBranchClassRosterEmailPayload {
   return {
@@ -62,7 +67,7 @@ export function buildFridayBranchClassRosterEmailPayload(
     teacher: roster.teacher,
     blockLabel: roster.blockLabel,
     blockDateRange: roster.blockDateRange,
-    sentAtLabel: formatRosterSentAtLabel(sentAt),
+    sentAtLabel: formatRosterSentAtLabel(organizationTimeZone, sentAt),
     rows: roster.rows.map((row) => ({
       studentName: row.studentName,
       familyName: row.familyName,
@@ -76,9 +81,14 @@ export function buildFridayBranchClassRosterEmailPayload(
 
 export function buildFridayBranchClassRosterEmailPreview(
   roster: FridayBranchClassRosterForEmail,
+  organizationTimeZone: string,
   sentAt = new Date(),
 ): { subject: string; html: string } {
-  const payload = buildFridayBranchClassRosterEmailPayload(roster, sentAt);
+  const payload = buildFridayBranchClassRosterEmailPayload(
+    roster,
+    organizationTimeZone,
+    sentAt,
+  );
 
   return {
     subject: buildFridayBranchClassRosterEmailSubject(
@@ -104,7 +114,12 @@ export async function loadFridayBranchClassRosterEmailPreview(
 
   if (!roster) return null;
 
-  return buildFridayBranchClassRosterEmailPreview(roster);
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    organizationId,
+  );
+
+  return buildFridayBranchClassRosterEmailPreview(roster, organizationTimeZone);
 }
 
 export async function sendFridayBranchClassRosterEmails(
@@ -129,7 +144,14 @@ export async function sendFridayBranchClassRosterEmails(
     throw new Error("No students signed up yet.");
   }
 
-  const payload = buildFridayBranchClassRosterEmailPayload(roster);
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    input.organizationId,
+  );
+  const payload = buildFridayBranchClassRosterEmailPayload(
+    roster,
+    organizationTimeZone,
+  );
 
   const { data: orgRow } = await supabase
     .from("organizations")

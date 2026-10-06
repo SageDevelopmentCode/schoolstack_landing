@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveApplicantContact } from "@/lib/admissions/application-notifications";
+import { getOrganizationTimezone } from "@/lib/admissions/admissions-availability";
 import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_TYPE_LABELS,
@@ -168,6 +169,10 @@ export async function sendPaymentReceivedAdminNotifications(
       return;
     }
 
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      payment.organizationId,
+    );
     const payload = await buildAdminNotificationPayload(admin, payment, org);
     const adminEmailContext = buildEmailNotificationContext({
       organizationId: payment.organizationId,
@@ -182,6 +187,7 @@ export async function sendPaymentReceivedAdminNotifications(
         sendPaymentReceivedAdminNotification({
           email,
           ...payload,
+          organizationTimeZone,
           notificationContext: adminEmailContext,
         }),
       ),
@@ -342,6 +348,10 @@ export async function sendCombinedPaymentReceivedAdminNotifications(
       0,
     );
 
+    const organizationTimeZone = await getOrganizationTimezone(
+      admin,
+      firstPayment.organizationId,
+    );
     const payload = await buildAdminNotificationPayload(admin, firstPayment, org, {
       lineItems,
     });
@@ -363,6 +373,7 @@ export async function sendCombinedPaymentReceivedAdminNotifications(
           processingFeeCents,
           studentName: null,
           chargeLabel: null,
+          organizationTimeZone,
           notificationContext: adminEmailContext,
         }),
       ),

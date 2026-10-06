@@ -1,6 +1,10 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  formatInstantDateTimeInTimezone,
+  getOrganizationTimezone,
+} from "@/lib/admissions/admissions-availability";
 import { logSettledNotificationFailures } from "@/lib/admissions/notification-logging";
 import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import type { ActivitySurface } from "@/lib/activity-log";
@@ -73,10 +77,14 @@ export async function sendCommitteeJoinRequestedNotifications(
     input.organizationId,
   );
   const committeesAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "committees")}`;
-  const submittedAtLabel = new Date().toLocaleString("en-US", {
-    dateStyle: "long",
-    timeStyle: "short",
-  });
+  const organizationTimeZone = await getOrganizationTimezone(
+    supabase,
+    input.organizationId,
+  );
+  const submittedAtLabel = formatInstantDateTimeInTimezone(
+    new Date(),
+    organizationTimeZone,
+  );
 
   const results = await Promise.allSettled([
     notifyCommitteeJoinRequested({
