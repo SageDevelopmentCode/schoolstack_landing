@@ -24,6 +24,7 @@ import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPan
 import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
 import TuitionStoryHeader from "@/components/school-admin/tuition/TuitionStoryHeader";
 import {
+  parseTuitionDashboardTabFromSearchParam,
   tuitionDashboardTabShowsKpi,
   type TuitionDashboardTabId,
 } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
@@ -167,10 +168,14 @@ export default function TuitionDashboard({
   const supabase = useMemo(() => createClient(), []);
   const reducedMotion = useReducedMotion() ?? false;
 
-  const [tab, setTab] = useState<TuitionDashboardTabId>(
-    initialDashboardTab ??
-      (setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog"),
-  );
+  const [tab, setTab] = useState<TuitionDashboardTabId>(() => {
+    const fromUrl = parseTuitionDashboardTabFromSearchParam(searchParams.get("tab"));
+    if (fromUrl) return fromUrl;
+    return (
+      initialDashboardTab ??
+      (setupStatus.familiesWithBillingCount > 0 ? "families" : "catalog")
+    );
+  });
   const [ratePlans, setRatePlans] = useState<RatePlanWithDetails[]>(
     initialDashboardData?.ratePlans ?? [],
   );
@@ -204,24 +209,26 @@ export default function TuitionDashboard({
   const [kpiBreakdownKind, setKpiBreakdownKind] = useState<TuitionKpiBreakdownKind | null>(
     null,
   );
-  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(initialFamilyId);
+  const [focusFamilyId, setFocusFamilyId] = useState<string | null>(() => {
+    const raw = searchParams.get("family") ?? searchParams.get("familyId");
+    const trimmed = raw?.trim();
+    return trimmed || initialFamilyId;
+  });
 
   useEffect(() => {
     const familyFromUrl =
       searchParams.get("family") ?? searchParams.get("familyId");
     const tabParam = searchParams.get("tab");
-    if (familyFromUrl?.trim()) {
-      setFocusFamilyId(familyFromUrl.trim());
-    }
-    if (
-      tabParam === "families" ||
-      tabParam === "catalog" ||
-      tabParam === "rules" ||
-      tabParam === "payment_history" ||
-      tabParam === "forms"
-    ) {
-      setTab(tabParam);
-    }
+
+    queueMicrotask(() => {
+      if (familyFromUrl?.trim()) {
+        setFocusFamilyId(familyFromUrl.trim());
+      }
+      const tabFromUrl = parseTuitionDashboardTabFromSearchParam(tabParam);
+      if (tabFromUrl) {
+        setTab(tabFromUrl);
+      }
+    });
   }, [searchParams]);
 
   const [outstandingPeriodSelection, setOutstandingPeriod] =
