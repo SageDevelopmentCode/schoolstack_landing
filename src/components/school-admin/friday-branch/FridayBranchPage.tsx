@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import ConfirmDialog from "@/components/school-admin/ConfirmDialog";
 import { FridayBranchPageSkeleton } from "@/components/school-admin/skeletons";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
@@ -20,10 +21,12 @@ import {
 import { diffRemovedFridayBranchFlyerPaths } from "@/lib/school-admin/friday-branch/friday-branch-flyer-paths";
 import { removeFridayBranchClassFlyer } from "@/lib/school-admin/friday-branch/friday-branch-class-flyer-storage";
 import { putFridayBranchSchedule } from "@/lib/school-admin/friday-branch/friday-branch-schedule-api";
+import { patchFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-settings-api";
 import type { FridayBranchBlock } from "@/lib/school-admin/friday-branch/friday-branch-types";
 import { createClient } from "@/utils/supabase/client";
 import FridayBranchBlockDetailsSheet from "./FridayBranchBlockDetailsSheet";
 import FridayBranchBlockStrip from "./FridayBranchBlockStrip";
+import FridayBranchPausedBadge from "./FridayBranchPausedBadge";
 import FridayBranchRecentActivity from "./FridayBranchRecentActivity";
 import FridayBranchScheduleCard from "./FridayBranchScheduleCard";
 
@@ -31,6 +34,7 @@ type FridayBranchPageProps = {
   organizationId: string;
   branding: OrganizationBranding;
   slug: string;
+  initialParentPortalPaused?: boolean;
 };
 
 function cloneBlocks(blocks: FridayBranchBlock[]): FridayBranchBlock[] {
@@ -41,10 +45,12 @@ export default function FridayBranchPage({
   organizationId,
   branding,
   slug,
+  initialParentPortalPaused = false,
 }: FridayBranchPageProps) {
   void branding;
   void slug;
 
+  const router = useRouter();
   const { theme, C } = useSchoolAdminStoryTheme();
   const reduceMotion = useReducedMotion();
   const scheduleRef = useRef<HTMLDivElement>(null);
@@ -56,6 +62,9 @@ export default function FridayBranchPage({
   const [blockDetailsOpen, setBlockDetailsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [parentPortalPaused, setParentPortalPaused] = useState(initialParentPortalPaused);
+  const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
+  const [togglingPause, setTogglingPause] = useState(false);
 
   const selectedBlock = useMemo(
     () => blocks.find((block) => block.id === selectedBlockId) ?? null,
@@ -98,6 +107,10 @@ export default function FridayBranchPage({
       setLoading(false);
     }
   }, [organizationId]);
+
+  useEffect(() => {
+    setParentPortalPaused(initialParentPortalPaused);
+  }, [initialParentPortalPaused]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -201,6 +214,54 @@ export default function FridayBranchPage({
     [persistSchedule],
   );
 
+  const handleToggleParentPortalPause = async () => {
+    if (parentPortalPaused) {
+      setTogglingPause(true);
+      try {
+        const settings = await patchFridayBranchSettings(organizationId, {
+          parent_portal_paused: false,
+        });
+        setParentPortalPaused(settings.parent_portal_paused);
+        adminToast.success("Friday Branch parent signup resumed.");
+        router.refresh();
+      } catch (err) {
+        adminToast.error(formatActionError(err, "Failed to resume parent signup."));
+        void reportClientOperationalError({
+          organizationId,
+          operation: "friday_branch.settings.resume",
+          error: formatActionError(err, "Failed to resume parent signup."),
+        });
+      } finally {
+        setTogglingPause(false);
+      }
+      return;
+    }
+
+    setPauseDialogOpen(true);
+  };
+
+  const confirmPauseParentPortal = async () => {
+    setTogglingPause(true);
+    try {
+      const settings = await patchFridayBranchSettings(organizationId, {
+        parent_portal_paused: true,
+      });
+      setParentPortalPaused(settings.parent_portal_paused);
+      setPauseDialogOpen(false);
+      adminToast.success("Friday Branch parent signup paused.");
+      router.refresh();
+    } catch (err) {
+      adminToast.error(formatActionError(err, "Failed to pause parent signup."));
+      void reportClientOperationalError({
+        organizationId,
+        operation: "friday_branch.settings.pause",
+        error: formatActionError(err, "Failed to pause parent signup."),
+      });
+    } finally {
+      setTogglingPause(false);
+    }
+  };
+
   const transition = reduceMotion
     ? { duration: 0 }
     : { duration: 0.15, ease: "easeOut" as const };
@@ -209,13 +270,28 @@ export default function FridayBranchPage({
     <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <AdminSectionKicker theme={theme}>Friday Branch</AdminSectionKicker>
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminSectionKicker theme={theme}>Friday Branch</AdminSectionKicker>
+            {parentPortalPaused ? <FridayBranchPausedBadge /> : null}
+          </div>
           <AdminDisplayHeading theme={theme} as="h1" size="display" className="mt-1.5">
             Program schedule
           </AdminDisplayHeading>
           <p className="mt-2 text-[13px]" style={{ color: theme.muted }}>
             Pick a block, then build its Friday classes by time.
           </p>
+          {parentPortalPaused ? (
+            <p
+              className="mt-3 rounded-lg border px-3 py-2 text-[13px]"
+              style={{
+                backgroundColor: "#FFFBEB",
+                borderColor: "#FDE68A",
+                color: "#92400E",
+              }}
+            >
+              Paused — parent signup is hidden on the parent portal until you resume.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isDirty && !saving ? (
@@ -223,6 +299,19 @@ export default function FridayBranchPage({
               Unsaved changes
             </span>
           ) : null}
+          <AdminButton
+            theme={theme}
+            variant={parentPortalPaused ? "primary" : "outline"}
+            type="button"
+            onClick={() => void handleToggleParentPortalPause()}
+            disabled={loading || saving || togglingPause}
+          >
+            {togglingPause
+              ? "Updating…"
+              : parentPortalPaused
+                ? "Resume parent signup"
+                : "Pause parent signup"}
+          </AdminButton>
           <AdminButton
             theme={theme}
             variant="outline"
@@ -322,6 +411,18 @@ export default function FridayBranchPage({
         onChange={handleUpdateBlock}
         theme={theme}
         C={C}
+      />
+
+      <ConfirmDialog
+        C={C}
+        open={pauseDialogOpen}
+        title="Pause parent signup?"
+        description="Families will not see Friday Branch on the parent portal or mobile app until you resume. Existing enrollments stay on your roster."
+        confirmLabel="Pause parent signup"
+        cancelLabel="Keep open"
+        variant="destructive"
+        onConfirm={() => void confirmPauseParentPortal()}
+        onClose={() => setPauseDialogOpen(false)}
       />
 
       <ConfirmDialog

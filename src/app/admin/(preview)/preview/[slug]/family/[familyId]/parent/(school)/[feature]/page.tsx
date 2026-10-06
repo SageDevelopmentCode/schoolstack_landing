@@ -27,6 +27,9 @@ import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/Pa
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
 import ParentAttendancePage from "@/components/school-parent/attendance/ParentAttendancePage";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
+import ParentFridayBranchPausedState from "@/components/school-parent/friday-branch/ParentFridayBranchPausedState";
+import { isFridayBranchParentPortalAvailable } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
   loadParentClassroomSignupsPageBundle,
   loadParentSignupAttentionItems,
@@ -182,6 +185,7 @@ export default async function FamilyPreviewParentFeaturePage({
               slug={slug}
               features={features}
               previewBasePath={previewParentBasePath}
+              fridayBranchSettings={org.fridayBranchSettings}
             />
           </Suspense>
         </ParentHomePageShell>
@@ -393,6 +397,15 @@ export default async function FamilyPreviewParentFeaturePage({
   }
 
   if (feature === "friday_branch") {
+    if (!isFridayBranchParentPortalAvailable(features, org.fridayBranchSettings)) {
+      const theme = buildParentThemeTokens(org.branding);
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <ParentFridayBranchPausedState theme={theme} />
+        </SchoolParentPageShell>
+      );
+    }
+
     const familyChildren = await listFamilyChildrenForHomeByFamilyId(
       supabase,
       org.id,

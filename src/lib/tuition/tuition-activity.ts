@@ -222,11 +222,14 @@ export function summarizeAssignmentChanges(
 ): TuitionChangeSummary {
   if (!before) {
     const subject = labels?.studentName ?? labels?.familyName ?? "enrollment";
+    const plan = labels?.ratePlanName ? `“${labels.ratePlanName}”` : "tuition";
+    const familyPart =
+      labels?.studentName && labels?.familyName
+        ? ` (${labels.familyName})`
+        : "";
     return {
       changedFields: ["created"],
-      changes: [
-        `Assigned tuition to ${subject}${labels?.ratePlanName ? ` (${labels.ratePlanName})` : ""}`,
-      ],
+      changes: [`Assigned ${plan} to ${subject}${familyPart}`],
     };
   }
 
@@ -594,10 +597,17 @@ export function summarizeBackfillResult(input: {
   assignedCount: number;
   failedCount: number;
   total: number;
+  skippedAmbiguousCount?: number;
 }): TuitionChangeSummary {
   const changes = [
     `Assigned tuition to ${input.assignedCount} of ${input.total} enrollment${input.total === 1 ? "" : "s"}`,
   ];
+  if ((input.skippedAmbiguousCount ?? 0) > 0) {
+    const skipped = input.skippedAmbiguousCount ?? 0;
+    changes.push(
+      `${skipped} enrollment${skipped === 1 ? "" : "s"} need a rate catalog choice`,
+    );
+  }
   if (input.failedCount > 0) {
     changes.push(`${input.failedCount} assignment${input.failedCount === 1 ? "" : "s"} failed`);
   }

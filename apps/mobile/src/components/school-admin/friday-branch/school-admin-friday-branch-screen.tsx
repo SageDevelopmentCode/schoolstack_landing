@@ -23,6 +23,10 @@ import {
   type FridayBranchBlockTransitionDirection,
 } from '@/lib/school-admin/friday-branch/friday-branch-block-motion';
 import {
+  fetchFridayBranchSettings,
+  patchFridayBranchSettings,
+} from '@/lib/school-admin/friday-branch/friday-branch-api';
+import {
   findBlockIdForClass,
   formatBlockTabDateRange,
   formatGapReviewLabel,
@@ -72,6 +76,64 @@ export function SchoolAdminFridayBranchScreen({
   const [transitionDirection, setTransitionDirection] =
     useState<FridayBranchBlockTransitionDirection>('forward');
   const previousBlockIndexRef = useRef(0);
+  const [parentPortalPaused, setParentPortalPaused] = useState(false);
+  const [togglingPause, setTogglingPause] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchFridayBranchSettings(organizationId)
+      .then((settings) => {
+        if (!cancelled) setParentPortalPaused(settings.parent_portal_paused);
+      })
+      .catch(() => {
+        // Non-fatal — schedule still loads.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
+  const handleToggleParentPortalPause = useCallback(() => {
+    if (parentPortalPaused) {
+      void (async () => {
+        setTogglingPause(true);
+        try {
+          const settings = await patchFridayBranchSettings(organizationId, {
+            parent_portal_paused: false,
+          });
+          setParentPortalPaused(settings.parent_portal_paused);
+        } finally {
+          setTogglingPause(false);
+        }
+      })();
+      return;
+    }
+
+    Alert.alert(
+      'Pause parent signup?',
+      'Families will not see Friday Branch on the parent portal or mobile app until you resume.',
+      [
+        { text: 'Keep open', style: 'cancel' },
+        {
+          text: 'Pause parent signup',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setTogglingPause(true);
+              try {
+                const settings = await patchFridayBranchSettings(organizationId, {
+                  parent_portal_paused: true,
+                });
+                setParentPortalPaused(settings.parent_portal_paused);
+              } finally {
+                setTogglingPause(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [organizationId, parentPortalPaused]);
 
   useEffect(() => {
     if (!initialClassId || blocks.length === 0) return;
@@ -217,6 +279,30 @@ export function SchoolAdminFridayBranchScreen({
             tintColor={theme.primary}
           />
         }>
+        <Animated.View entering={FadeInDown.duration(300)} style={styles.headerSection}>
+          <SchoolAdminFridayBranchStoryHeader />
+          {parentPortalPaused ? (
+            <StoryCard compact style={styles.pausedBanner}>
+              <Text style={[styles.pausedTitle, { color: theme.ink }]}>
+                Paused — parent signup hidden
+              </Text>
+            </StoryCard>
+          ) : null}
+          <StoryButton
+            label={
+              togglingPause
+                ? 'Updating…'
+                : parentPortalPaused
+                  ? 'Resume parent signup'
+                  : 'Pause parent signup'
+            }
+            previewSafe
+            variant={parentPortalPaused ? 'primary' : 'outline'}
+            onPress={handleToggleParentPortalPause}
+            disabled={togglingPause}
+          />
+        </Animated.View>
+
         {error ? (
           <View style={styles.errorBanner}>
             <StoryErrorBanner message={error} />
@@ -368,6 +454,17 @@ const styles = StyleSheet.create({
     ...screenScrollContentPadding,
     paddingTop: Spacing.three,
     gap: Spacing.three,
+  },
+  headerSection: {
+    gap: Spacing.two,
+  },
+  pausedBanner: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  pausedTitle: {
+    fontFamily: StoryFonts.bodySemibold,
+    fontSize: 14,
   },
   saveFooterBar: {
     position: 'absolute',

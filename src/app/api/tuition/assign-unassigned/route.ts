@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { apiError } from "@/lib/api/route-errors";
 import { autoAssignTuitionForEnrollment } from "@/lib/tuition/assignments";
+import { resolveRatePlanForEnrollmentAssignment } from "@/lib/tuition/rate-plans";
 import { listUnassignedEnrollmentsForOrganization } from "@/lib/tuition/tuition-readiness";
 import {
   requireSchoolAdminUser,
@@ -42,9 +43,24 @@ export async function POST(request: Request) {
       assignmentId: string | null;
       error: string | null;
     }> = [];
+    let skippedAmbiguousCount = 0;
 
     for (const record of unassigned) {
       try {
+        const resolved = await resolveRatePlanForEnrollmentAssignment(admin, {
+          organizationId,
+          programId: record.programId,
+        });
+        if (resolved.ambiguous) {
+          skippedAmbiguousCount += 1;
+          results.push({
+            enrollmentId: record.enrollmentId,
+            assignmentId: null,
+            error: "Rate catalog choice required.",
+          });
+          continue;
+        }
+
         const assignment = await autoAssignTuitionForEnrollment(admin, {
           organizationId,
           enrollmentId: record.enrollmentId,
@@ -60,7 +76,7 @@ export async function POST(request: Request) {
             ? null
             : "No active rate plan is available for this program.",
         });
-      } catch (error) {
+      } catch {
         results.push({
           enrollmentId: record.enrollmentId,
           assignmentId: null,
@@ -70,11 +86,14 @@ export async function POST(request: Request) {
     }
 
     const assignedCount = results.filter((result) => result.assignmentId).length;
-    const failedCount = results.filter((result) => result.error).length;
+    const failedCount = results.filter(
+      (result) => result.error && result.error !== "Rate catalog choice required.",
+    ).length;
 
     return NextResponse.json({
       assignedCount,
       failedCount,
+      skippedAmbiguousCount,
       total: unassigned.length,
       results,
     });

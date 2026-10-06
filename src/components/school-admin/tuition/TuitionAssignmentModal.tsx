@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
@@ -17,7 +17,11 @@ import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-the
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
-import type { TuitionPaymentPlan } from "@/lib/tuition/types";
+import type {
+  RatePlanWithDetails,
+  TuitionEnrollmentAssignment,
+  TuitionPaymentPlan,
+} from "@/lib/tuition/types";
 import { createClient } from "@/utils/supabase/client";
 
 type TuitionAssignmentModalProps = {
@@ -25,15 +29,56 @@ type TuitionAssignmentModalProps = {
   organizationId: string;
   assignmentId: string;
   branding: OrganizationBranding;
+  ratePlans: RatePlanWithDetails[];
   onClose: () => void;
   onSaved: () => void;
 };
+
+type FormSnapshot = {
+  ratePlanId: string;
+  rateTierId: string;
+  paymentPlanId: string;
+  billingStart: string;
+};
+
+function resolveTierId(
+  ratePlan: RatePlanWithDetails,
+  assignment: TuitionEnrollmentAssignment | null,
+): string {
+  if (
+    assignment?.rateTierId &&
+    ratePlan.tiers.some((tier) => tier.id === assignment.rateTierId)
+  ) {
+    return assignment.rateTierId;
+  }
+  return (
+    ratePlan.tiers.find((tier) => tier.isDefault)?.id ??
+    ratePlan.tiers[0]?.id ??
+    ""
+  );
+}
+
+function resolvePaymentPlanId(
+  ratePlan: RatePlanWithDetails,
+  assignment: TuitionEnrollmentAssignment | null,
+): string {
+  if (
+    assignment?.paymentPlanId &&
+    ratePlan.paymentPlans.some((plan) => plan.id === assignment.paymentPlanId)
+  ) {
+    return assignment.paymentPlanId;
+  }
+  const defaultPlan =
+    ratePlan.paymentPlans.find((plan) => plan.isDefault) ?? ratePlan.paymentPlans[0];
+  return defaultPlan?.id ?? "";
+}
 
 export default function TuitionAssignmentModal({
   open,
   organizationId,
   assignmentId,
   branding,
+  ratePlans,
   onClose,
   onSaved,
 }: TuitionAssignmentModalProps) {
@@ -45,6 +90,8 @@ export default function TuitionAssignmentModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [enrollmentProgramId, setEnrollmentProgramId] = useState<string | null>(null);
+  const [ratePlanId, setRatePlanId] = useState("");
   const [rateTierId, setRateTierId] = useState<string>("");
   const [paymentPlanId, setPaymentPlanId] = useState<string>("");
   const [billingStart, setBillingStart] = useState<string>("");
@@ -63,15 +110,84 @@ export default function TuitionAssignmentModal({
     Array<{ value: string; label: string }>
   >([]);
   const [pendingPaymentPlanSelection, setPendingPaymentPlanSelection] = useState(false);
-  const [savedSnapshot, setSavedSnapshot] = useState<{
-    rateTierId: string;
-    paymentPlanId: string;
-    billingStart: string;
-  } | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<FormSnapshot | null>(null);
+  const [loadedAssignment, setLoadedAssignment] =
+    useState<TuitionEnrollmentAssignment | null>(null);
+
+  const catalogOptions = useMemo(
+    () =>
+      enrollmentProgramId
+        ? ratePlans.filter(
+            (plan) =>
+              plan.status === "active" && plan.programId === enrollmentProgramId,
+          )
+        : [],
+    [enrollmentProgramId, ratePlans],
+  );
+
+  const showRateCatalogSelect = catalogOptions.length > 1;
+
+  const applyRatePlanToForm = useCallback(
+    (
+      ratePlan: RatePlanWithDetails,
+      assignment: TuitionEnrollmentAssignment | null,
+      options?: { useAssignmentValues?: boolean },
+    ) => {
+      const useAssignment = options?.useAssignmentValues ?? false;
+      const nextTierId = useAssignment
+        ? resolveTierId(ratePlan, assignment)
+        : resolveTierId(ratePlan, null);
+      const nextPaymentPlanId = useAssignment
+        ? resolvePaymentPlanId(ratePlan, assignment)
+        : resolvePaymentPlanId(ratePlan, null);
+      const resolvedBillingStart =
+        (useAssignment ? assignment?.effectiveStart : null) ??
+        ratePlan.effectiveStart ??
+        "";
+
+      setRatePlanId(ratePlan.id);
+      setRatePlanName(ratePlan.name);
+      setRatePlanEffectiveStart(ratePlan.effectiveStart);
+      setRatePlanEffectiveEnd(ratePlan.effectiveEnd);
+      setBillingStart(resolvedBillingStart);
+      setPendingPaymentPlanSelection(
+        useAssignment
+          ? assignment?.metadata.pendingPaymentPlanSelection === true
+          : ratePlan.paymentPlans.length > 1,
+      );
+      setRateTierId(nextTierId);
+      setPaymentPlanId(nextPaymentPlanId);
+      setPaymentPlans(ratePlan.paymentPlans);
+
+      const maxInstallments = maxInstallmentsForBillingStart(
+        ratePlan.effectiveStart,
+        ratePlan.effectiveEnd,
+        resolvedBillingStart,
+      );
+      const allowedPlans = filterPaymentPlansForBillingStart(
+        ratePlan.paymentPlans,
+        maxInstallments,
+      );
+      setTierOptions(
+        ratePlan.tiers.map((tier) => ({
+          value: tier.id,
+          label: tier.label,
+        })),
+      );
+      setPaymentOptions(
+        allowedPlans.map((plan) => ({
+          value: plan.id,
+          label: plan.name || paymentScheduleLabel(plan.installmentCount),
+        })),
+      );
+    },
+    [],
+  );
 
   const isAssignmentDirty =
     savedSnapshot != null &&
-    (rateTierId !== savedSnapshot.rateTierId ||
+    (ratePlanId !== savedSnapshot.ratePlanId ||
+      rateTierId !== savedSnapshot.rateTierId ||
       paymentPlanId !== savedSnapshot.paymentPlanId ||
       billingStart !== savedSnapshot.billingStart);
 
@@ -87,73 +203,59 @@ export default function TuitionAssignmentModal({
           setError("Assignment not found.");
           return;
         }
+        setLoadedAssignment(assignment);
 
-        const ratePlan = await getRatePlanWithDetails(supabase, assignment.ratePlanId);
+        const { data: enrollment, error: enrollmentError } = await supabase
+          .from("enrollments")
+          .select("program_id")
+          .eq("id", assignment.enrollmentId)
+          .maybeSingle();
+
+        if (enrollmentError) throw enrollmentError;
+        const programId = enrollment?.program_id
+          ? String(enrollment.program_id)
+          : null;
+        setEnrollmentProgramId(programId);
+
+        const fromProps = ratePlans.find((plan) => plan.id === assignment.ratePlanId);
+        const ratePlan =
+          fromProps ?? (await getRatePlanWithDetails(supabase, assignment.ratePlanId));
         if (!ratePlan) {
           setError("Rate plan not found.");
           return;
         }
 
-        setRatePlanName(ratePlan.name);
-        setRatePlanEffectiveStart(ratePlan.effectiveStart);
-        setRatePlanEffectiveEnd(ratePlan.effectiveEnd);
-        setBillingStart(assignment.effectiveStart ?? ratePlan.effectiveStart ?? "");
-        setPendingPaymentPlanSelection(
-          assignment.metadata.pendingPaymentPlanSelection === true,
-        );
-        setRateTierId(
-          assignment.rateTierId ??
-            ratePlan.tiers.find((t) => t.isDefault)?.id ??
-            ratePlan.tiers[0]?.id ??
-            "",
-        );
-        setPaymentPlanId(assignment.paymentPlanId);
+        applyRatePlanToForm(ratePlan, assignment, { useAssignmentValues: true });
         const resolvedBillingStart =
           assignment.effectiveStart ?? ratePlan.effectiveStart ?? "";
-        const maxInstallments = maxInstallmentsForBillingStart(
-          ratePlan.effectiveStart,
-          ratePlan.effectiveEnd,
-          resolvedBillingStart,
-        );
-        setPaymentPlans(ratePlan.paymentPlans);
-        const allowedPlans = filterPaymentPlansForBillingStart(
-          ratePlan.paymentPlans,
-          maxInstallments,
-        );
-
         setSavedSnapshot({
-          rateTierId:
-            assignment.rateTierId ??
-            ratePlan.tiers.find((t) => t.isDefault)?.id ??
-            ratePlan.tiers[0]?.id ??
-            "",
-          paymentPlanId: assignment.paymentPlanId,
+          ratePlanId: assignment.ratePlanId,
+          rateTierId: resolveTierId(ratePlan, assignment),
+          paymentPlanId: resolvePaymentPlanId(ratePlan, assignment),
           billingStart: resolvedBillingStart,
         });
-        setTierOptions(
-          ratePlan.tiers.map((tier) => ({
-            value: tier.id,
-            label: tier.label,
-          })),
-        );
-        setPaymentOptions(
-          allowedPlans.map((plan) => ({
-            value: plan.id,
-            label: plan.name || paymentScheduleLabel(plan.installmentCount),
-          })),
-        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load assignment.");
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "tuition.assignment.load",
-        error: "",
-      }, err);
+        void reportPortalOperationalError(
+          "school_admin",
+          {
+            organizationId,
+            operation: "tuition.assignment.load",
+            error: "",
+          },
+          err,
+        );
       } finally {
         setLoading(false);
       }
     })();
-  }, [assignmentId, open, supabase]);
+  }, [applyRatePlanToForm, assignmentId, open, ratePlans, supabase]);
+
+  const handleRateCatalogChange = (nextPlanId: string) => {
+    const ratePlan = catalogOptions.find((plan) => plan.id === nextPlanId);
+    if (!ratePlan) return;
+    applyRatePlanToForm(ratePlan, loadedAssignment, { useAssignmentValues: false });
+  };
 
   const handleSave = async () => {
     if (!isAssignmentDirty) return;
@@ -161,6 +263,7 @@ export default function TuitionAssignmentModal({
     setError(null);
     try {
       const patchBody: {
+        ratePlanId?: string;
         rateTierId: string | null;
         paymentPlanId: string;
         effectiveStart?: string | null;
@@ -168,10 +271,10 @@ export default function TuitionAssignmentModal({
         rateTierId: rateTierId || null,
         paymentPlanId,
       };
-      if (
-        savedSnapshot != null &&
-        billingStart !== savedSnapshot.billingStart
-      ) {
+      if (savedSnapshot != null && ratePlanId !== savedSnapshot.ratePlanId) {
+        patchBody.ratePlanId = ratePlanId;
+      }
+      if (savedSnapshot != null && billingStart !== savedSnapshot.billingStart) {
         patchBody.effectiveStart = billingStart || null;
       }
 
@@ -184,16 +287,20 @@ export default function TuitionAssignmentModal({
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error ?? "Failed to update assignment.");
       }
-      setSavedSnapshot({ rateTierId, paymentPlanId, billingStart });
+      setSavedSnapshot({ ratePlanId, rateTierId, paymentPlanId, billingStart });
       adminToast.success("Billing setup saved");
       onSaved();
     } catch (err) {
       const message = formatActionError(err, "Failed to update assignment.");
-      void reportPortalOperationalError("school_admin", {
-        organizationId,
-        operation: "tuition.assignment.save",
-        error: "",
-      }, err);
+      void reportPortalOperationalError(
+        "school_admin",
+        {
+          organizationId,
+          operation: "tuition.assignment.save",
+          error: "",
+        },
+        err,
+      );
       setError(message);
       adminToast.error(message);
     } finally {
@@ -222,7 +329,7 @@ export default function TuitionAssignmentModal({
             {modalTitle}
           </h2>
           <p className="text-sm mt-0.5" style={{ color: C.textSecondary }}>
-            {ratePlanName || "Rate plan"}
+            {ratePlanName || "Rate catalog"}
           </p>
         </div>
         <button
@@ -244,6 +351,22 @@ export default function TuitionAssignmentModal({
           </div>
         ) : (
           <>
+            {showRateCatalogSelect ? (
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span style={{ color: C.textSecondary }}>Rate catalog</span>
+                <SchoolAdminSelect
+                  C={C}
+                  value={ratePlanId}
+                  onChange={(value) => handleRateCatalogChange(value)}
+                  options={catalogOptions.map((plan) => ({
+                    value: plan.id,
+                    label: plan.name,
+                  }))}
+                  ariaLabel="Rate catalog"
+                />
+              </label>
+            ) : null}
+
             <label className="flex flex-col gap-1.5 text-sm">
               <span style={{ color: C.textSecondary }}>Tuition rate tier</span>
               <SchoolAdminSelect
@@ -311,7 +434,7 @@ export default function TuitionAssignmentModal({
             <p className="text-xs" style={{ color: C.textTertiary }}>
               {pendingPaymentPlanSelection
                 ? "The family has not confirmed a payment schedule yet. You can override the schedule here if needed."
-                : "Changing tier or schedule regenerates future unpaid charges."}
+                : "Changing catalog, tier, or schedule regenerates future unpaid charges."}
             </p>
           </>
         )}

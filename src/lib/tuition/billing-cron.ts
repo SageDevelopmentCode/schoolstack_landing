@@ -4,6 +4,7 @@ import type { ScheduledVisitRemindersResult } from "@/lib/admissions/scheduled-v
 import { sendScheduledVisitRemindersForOrganization } from "@/lib/admissions/scheduled-visit-reminders";
 import { messageFromCause } from "@/lib/api/error-serialization";
 import { notifyTuitionBillingCronSummary } from "@/lib/discord";
+import { runActivityEventsRetentionSafely } from "@/lib/activity-events-retention";
 import { reportOperationalError } from "@/lib/operational-errors";
 import { markOverdueCharges } from "@/lib/tuition/charge-generator";
 import { processAutopayForOrganization } from "@/lib/tuition/autopay";
@@ -66,6 +67,13 @@ export type TuitionBillingCronSummary = {
   scheduledVisitReminderFailures: number;
   bulletinEmailsSent: number;
   bulletinEmailFailures: number;
+  activityEventsRetentionMonths?: number;
+  activityEventsRetentionWarnDays?: number;
+  activityEventsRetentionCutoff?: string | null;
+  activityEventsApproachingCount?: number;
+  activityEventsOldestApproachingAt?: string | null;
+  activityEventsPurged?: number;
+  activityEventsPurgeTruncated?: boolean;
 };
 
 export type TuitionBillingCronDeps = {
@@ -96,6 +104,7 @@ export type TuitionBillingCronDeps = {
     admin: SupabaseClient,
     organizationId: string,
   ) => Promise<PendingBulletinEmailCronResult>;
+  runActivityEventsRetention?: typeof runActivityEventsRetentionSafely;
 };
 
 export function authorizeTuitionBillingCronRequest(request: Request): boolean {
@@ -447,6 +456,24 @@ export async function runTuitionBillingCron(
     bulletinEmailsSent,
     bulletinEmailFailures,
   };
+
+  const runRetention =
+    deps.runActivityEventsRetention ?? runActivityEventsRetentionSafely;
+  const retentionResult = await runRetention(admin);
+  if (retentionResult) {
+    summary.activityEventsRetentionMonths =
+      retentionResult.approaching.retentionMonths;
+    summary.activityEventsRetentionWarnDays =
+      retentionResult.approaching.warnDays;
+    summary.activityEventsRetentionCutoff =
+      retentionResult.approaching.cutoffIso;
+    summary.activityEventsApproachingCount =
+      retentionResult.approaching.approachingCount;
+    summary.activityEventsOldestApproachingAt =
+      retentionResult.approaching.oldestApproachingAt;
+    summary.activityEventsPurged = retentionResult.purge.deletedCount;
+    summary.activityEventsPurgeTruncated = retentionResult.purge.truncated;
+  }
 
   try {
     await notifySummary(summary);

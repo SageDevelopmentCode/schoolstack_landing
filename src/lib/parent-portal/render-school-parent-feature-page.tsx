@@ -23,10 +23,13 @@ import ParentMessagesPageShell from "@/components/school-parent/messages/ParentM
 import { getRequestUser } from "@/lib/auth/session";
 import ParentClassroomSignupsPage from "@/components/classroom-signups/parent/ParentClassroomSignupsPage";
 import ParentFormsDocumentsPage from "@/components/school-parent/forms-documents/ParentFormsDocumentsPage";
+import ParentFridayBranchPausedState from "@/components/school-parent/friday-branch/ParentFridayBranchPausedState";
 import ParentFridayBranchPage from "@/components/school-parent/friday-branch/ParentFridayBranchPage";
 import { loadParentCommitteesInitialData } from "@/lib/committees/load-parent-committees-data";
 import { loadParentClassroomSignupsPageBundle } from "@/lib/classroom-signups/load-parent-signups";
 import { loadParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/load-parent-friday-branch";
+import { isFridayBranchParentPortalAvailable } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import { loadParentFormsDocumentsPageBundle } from "@/lib/school-parent/forms-documents/load-parent-forms";
 import { buildParentQuickActions } from "@/lib/organization-settings/parent-home";
 import { getParentPageLabel } from "@/lib/organization-settings/parent-nav";
@@ -274,6 +277,7 @@ export async function renderSchoolParentFeaturePage(
           programSlug={context.programSlug}
           parentNavBasePath={parentNavBasePath}
           featureAnnouncements={featureAnnouncements}
+          fridayBranchSettings={org.fridayBranchSettings}
         >
           {familyId ? (
             <Suspense fallback={null}>
@@ -284,6 +288,7 @@ export async function renderSchoolParentFeaturePage(
                 features={features}
                 programId={programId}
                 coopModeEnabled={coopModeEnabled}
+                fridayBranchSettings={org.fridayBranchSettings}
               />
             </Suspense>
           ) : null}
@@ -623,6 +628,15 @@ export async function renderSchoolParentFeaturePage(
   }
 
   if (context.feature === "friday_branch") {
+    if (!isFridayBranchParentPortalAvailable(features, org.fridayBranchSettings)) {
+      const theme = buildParentThemeTokens(org.branding);
+      return (
+        <SchoolParentPageShell title={pageName}>
+          <ParentFridayBranchPausedState theme={theme} />
+        </SchoolParentPageShell>
+      );
+    }
+
     if (!familyId) {
       return (
         <SchoolParentPageShell title={pageName}>

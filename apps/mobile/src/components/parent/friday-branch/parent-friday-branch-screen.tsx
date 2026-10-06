@@ -150,13 +150,23 @@ export function ParentFridayBranchScreen({
   }
 
   if (error && !bundle) {
+    const isPaused = error.toLowerCase().includes('paused');
     return (
       <View style={[styles.screen, styles.paddedContent]}>
         <ParentFridayBranchStoryHeader />
-        <View style={styles.errorContainer}>
-          <StoryErrorBanner message={error} />
-          <StoryButton label="Try again" previewSafe onPress={() => void refresh()} />
-        </View>
+        <StoryCard style={styles.emptyCard}>
+          <Text style={[styles.emptyTitle, { color: theme.ink }]}>
+            Friday Branch signup is paused
+          </Text>
+          <Text style={[styles.emptyCopy, { color: theme.muted }]}>
+            {isPaused
+              ? 'Your school will open enrollment again soon. If you have questions, contact the office.'
+              : error}
+          </Text>
+          {!isPaused ? (
+            <StoryButton label="Try again" previewSafe onPress={() => void refresh()} />
+          ) : null}
+        </StoryCard>
       </View>
     );
   }

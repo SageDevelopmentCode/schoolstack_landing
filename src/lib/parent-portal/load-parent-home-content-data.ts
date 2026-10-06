@@ -58,8 +58,9 @@ async function loadFridayBranchHomeBundle(input: {
   familyId: string;
   features: OrganizationFeatures;
   familyChildren: Awaited<ReturnType<typeof listFamilyChildrenForHome>>;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 }): Promise<ParentFridayBranchPageBundle | null> {
-  if (!isParentHomeFridayBranchEnabled(input.features)) {
+  if (!isParentHomeFridayBranchEnabled(input.features, input.fridayBranchSettings)) {
     return null;
   }
 
@@ -101,6 +102,7 @@ export async function loadParentHomeContentData(input: {
   programId?: string;
   coopModeEnabled?: boolean;
   supabase?: SupabaseClient;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 }): Promise<ParentHomeContentData> {
   const user = await getRequestUser();
   if (!user) {
@@ -139,6 +141,7 @@ export async function loadParentHomeContentDataForAuthUser(input: {
   previewBasePath?: string;
   programId?: string;
   coopModeEnabled?: boolean;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 }): Promise<ParentHomeContentData> {
   const hasProgramAccess = input.programId
     ? await userHasEnrolledAccessInProgram(
@@ -226,6 +229,7 @@ export async function loadParentHomeContentDataForAuthUser(input: {
       familyId: input.familyId,
       features: input.features,
       familyChildren,
+      fridayBranchSettings: input.fridayBranchSettings,
     }),
   ]);
 
@@ -260,6 +264,7 @@ export async function loadParentHomePreviewContentData(input: {
   programId?: string;
   coopModeEnabled?: boolean;
   supabase: SupabaseClient;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 }): Promise<ParentHomeContentData> {
   const hasProgramAccess = input.programId
     ? await familyHasEnrolledAccessInProgram(
@@ -352,6 +357,7 @@ export async function loadParentHomePreviewContentData(input: {
       familyId: input.familyId,
       features: input.features,
       familyChildren,
+      fridayBranchSettings: input.fridayBranchSettings,
     }),
   ]);
 

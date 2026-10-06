@@ -116,6 +116,7 @@ export default async function FamilyPreviewProgramParentLayout({
       coopProgramLabel={programContext.displayLabel}
       initialActivityUnreadCount={initialActivityUnreadCount}
       notificationContext={notificationContext}
+      fridayBranchSettings={org.fridayBranchSettings}
     >
       {children}
     </SchoolParentBaseline>

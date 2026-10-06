@@ -8,6 +8,10 @@ import {
   ParentFridayBranchAuthError,
   requireParentFridayBranchAccess,
 } from "@/lib/parent-portal/friday-branch/parent-friday-branch-auth";
+import {
+  FridayBranchParentPortalPausedError,
+  assertFridayBranchParentPortalOpen,
+} from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 import { createClientFromRequest, getUserFromRequest, signedInErrorForRequest } from "@/lib/supabase/request-client";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -51,6 +55,7 @@ export async function GET(request: Request) {
     await requireParentFridayBranchAccess(supabase, user, organizationId);
 
     const admin = createAdminClient();
+    await assertFridayBranchParentPortalOpen(admin, organizationId);
     const flyer = await getFridayBranchClassFlyer(admin, organizationId, classId);
 
     if (!flyer) {
@@ -105,6 +110,16 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     if (error instanceof ParentFridayBranchAuthError) {
+      return apiError(ROUTE, {
+        request,
+        status: error.status,
+        error: error.message,
+        code: error.code,
+        cause: error,
+      });
+    }
+
+    if (error instanceof FridayBranchParentPortalPausedError) {
       return apiError(ROUTE, {
         request,
         status: error.status,

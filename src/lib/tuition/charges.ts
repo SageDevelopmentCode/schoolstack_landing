@@ -12,7 +12,12 @@ import { computeFamilyAutopayStatus } from "./autopay-status";
 import { computeFamilyBillingReadiness } from "./tuition-readiness";
 import { rowToAdjustment, rowToCharge } from "./row-mappers";
 import { resolveFamilyCatalogTuition } from "./pricing";
+import {
+  buildRateCatalogDetailLabel,
+  formatRateCatalogPeriodLabel,
+} from "./rate-catalog-display";
 import type {
+  BillingBasis,
   ChargeStatus,
   EnrollmentBillingStatus,
   FamilyAssignmentSummary,
@@ -380,7 +385,7 @@ export async function listFamilyBillingSummaries(
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_plans")
-      .select("id, name, amount_cents")
+      .select("id, name, amount_cents, billing_basis, effective_start, effective_end")
       .eq("organization_id", organizationId),
     supabase
       .from("tuition_rate_tiers")
@@ -491,16 +496,33 @@ export async function listFamilyBillingSummaries(
     (tiers ?? []).map((tier) => [String(tier.id), Number(tier.amount_cents)]),
   );
   const defaultTierAmountByRatePlanId = new Map<string, number>();
+  const tiersByRatePlanId = new Map<string, Array<{ amountCents: number }>>();
   for (const tier of tiers ?? []) {
     const ratePlanId = String(tier.rate_plan_id);
+    const tierAmountCents = Number(tier.amount_cents);
+    const existingTiers = tiersByRatePlanId.get(ratePlanId) ?? [];
+    existingTiers.push({ amountCents: tierAmountCents });
+    tiersByRatePlanId.set(ratePlanId, existingTiers);
     if (tier.is_default === true) {
-      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+      defaultTierAmountByRatePlanId.set(ratePlanId, tierAmountCents);
       continue;
     }
     if (!defaultTierAmountByRatePlanId.has(ratePlanId)) {
-      defaultTierAmountByRatePlanId.set(ratePlanId, Number(tier.amount_cents));
+      defaultTierAmountByRatePlanId.set(ratePlanId, tierAmountCents);
     }
   }
+  const ratePlanMetaById = new Map(
+    (ratePlans ?? []).map((plan) => [
+      String(plan.id),
+      {
+        billingBasis: String(plan.billing_basis ?? "annual") as BillingBasis,
+        effectiveStart:
+          plan.effective_start != null ? String(plan.effective_start) : null,
+        effectiveEnd:
+          plan.effective_end != null ? String(plan.effective_end) : null,
+      },
+    ]),
+  );
   const paymentPlanMap = new Map(
     (paymentPlans ?? []).map((plan) => [
       String(plan.id),
@@ -689,13 +711,32 @@ export async function listFamilyBillingSummaries(
       const assignmentId = String(assignment.id);
       const assignmentAdjustments = adjustmentsByAssignment.get(assignmentId) ?? [];
 
+      const ratePlanMeta = ratePlanMetaById.get(ratePlanId);
+      const programNameForAssignment = programId
+        ? programMap.get(programId) ?? null
+        : null;
+
       assignmentSummaries.push({
         assignmentId,
         enrollmentId,
         studentName,
         enrollmentStatus: enrollmentToStatus.get(enrollmentId) ?? "enrolled",
         enrolledAt: enrollmentToEnrolledAt.get(enrollmentId) ?? null,
+        ratePlanId,
         ratePlanName: ratePlanMap.get(ratePlanId) ?? "Rate plan",
+        programName: programNameForAssignment,
+        rateCatalogDetailLabel: ratePlanMeta
+          ? buildRateCatalogDetailLabel(
+              tiersByRatePlanId.get(ratePlanId) ?? [],
+              ratePlanMeta.billingBasis,
+            )
+          : null,
+        rateCatalogPeriodLabel: ratePlanMeta
+          ? formatRateCatalogPeriodLabel(
+              ratePlanMeta.effectiveStart,
+              ratePlanMeta.effectiveEnd,
+            )
+          : null,
         tierLabel:
           typeof assignment.rate_tier_id === "string"
             ? tierMap.get(assignment.rate_tier_id) ?? null
@@ -734,6 +775,7 @@ export async function listFamilyBillingSummaries(
       .map((enrollment) => ({
         enrollmentId: String(enrollment.id),
         studentName: studentMap.get(String(enrollment.student_id)) ?? "Student",
+        programId: String(enrollment.program_id),
         programName:
           programMap.get(String(enrollment.program_id)) ?? "Program",
         status: String(enrollment.status) as UnassignedEnrollmentSummary["status"],

@@ -1,4 +1,7 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element -- PNG export needs a plain img, not next/image. */
+import { Link2 } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
 export const SLIDE_WIDTH = 1080;
@@ -44,14 +47,10 @@ export default function SlideCanvas({
   );
 }
 
-function CornerLogo() {
+function CornerLogoPill() {
   return (
     <div
       style={{
-        position: "absolute",
-        top: 28,
-        right: 28,
-        zIndex: 5,
         display: "flex",
         alignItems: "center",
         gap: 10,
@@ -73,6 +72,46 @@ function CornerLogo() {
       >
         MudKitchen
       </span>
+    </div>
+  );
+}
+
+function CornerLogo() {
+  return (
+    <div style={{ position: "absolute", top: 28, right: 28, zIndex: 5 }}>
+      <CornerLogoPill />
+    </div>
+  );
+}
+
+export function PromoSlideTopRow({ siteLabel }: { siteLabel: string }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 28,
+        left: 28,
+        right: 28,
+        zIndex: 6,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 24,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          color: "rgba(247, 241, 231, 0.82)",
+          minWidth: 0,
+        }}
+      >
+        <Link2 size={28} strokeWidth={2.25} aria-hidden />
+        <p style={{ margin: 0, fontSize: 30, fontWeight: 500 }}>{siteLabel}</p>
+      </div>
+      <CornerLogoPill />
     </div>
   );
 }

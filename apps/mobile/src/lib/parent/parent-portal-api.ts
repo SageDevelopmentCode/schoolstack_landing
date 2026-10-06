@@ -256,6 +256,7 @@ export type ParentHomeData = {
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
+  fridayBranchParentPortalPaused?: boolean;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   documentationGuides?: ParentDocGuide[];
 };

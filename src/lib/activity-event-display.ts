@@ -20,6 +20,27 @@ import {
   type ActorType,
 } from "@/lib/activity-log";
 import {
+  assignmentContextFromMetadata,
+  fetchAssignmentActivityContexts,
+  isTuitionAssignmentAction,
+  isTuitionPaymentActivityAction,
+  metadataStringFromEvent,
+  resolveTuitionPaymentDisplayContext,
+  type AssignmentActivityContext,
+  type TuitionPaymentDisplayContext,
+} from "@/lib/activity-event-context";
+import {
+  resolveActivityEventLinks,
+  type ActivityEventLinks,
+} from "@/lib/activity-event-links";
+import { formatCents } from "@/lib/tuition/pricing";
+import {
+  fetchTuitionNotificationContexts,
+  formatGuardianActionForStudent,
+  shortenSubjectLabel,
+  type TuitionNotificationContext,
+} from "@/lib/school-admin/activity-notifications";
+import {
   resolveSenderDisplayName,
   resolveThreadRecipientLabels,
 } from "@/lib/messages/message-notification-labels";
@@ -34,7 +55,12 @@ export type ActivityEventDisplayContext = {
   resolvedActorName: string | null;
 };
 
-export type EnrichedActivityEvent = ActivityEventRow & ActivityEventDisplayContext;
+export type EnrichedActivityEvent = ActivityEventRow &
+  ActivityEventDisplayContext & {
+    assignmentContext?: AssignmentActivityContext | null;
+    tuitionContext?: TuitionPaymentDisplayContext | null;
+    links?: ActivityEventLinks | null;
+  };
 
 const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.APPLICATION_STARTED]: "started an application",
@@ -513,9 +539,208 @@ function appendActivityClientLabel(
   return clientLabel ? `${narrative} (${clientLabel})` : narrative;
 }
 
+function metadataChangesPhrase(metadata: Record<string, unknown>): string | null {
+  const value = metadata.changes;
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const first = value[0];
+  if (typeof first !== "string" || !first.trim()) return null;
+  return lowercaseSummaryPhrase(first.trim());
+}
+
+function formatTuitionAssignmentNarrative(
+  event: ActivityEventRow,
+  actor: string,
+  school: string | null,
+  assignmentContext?: AssignmentActivityContext | null,
+): string | null {
+  const fromChanges = metadataChangesPhrase(event.metadata);
+  if (fromChanges) {
+    const base = `${actor} ${fromChanges}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  const context =
+    assignmentContext ?? assignmentContextFromMetadata(event.metadata);
+  const student = context.studentName;
+  const family = context.familyName;
+  const plan = context.ratePlanName;
+
+  if (event.action === ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED) {
+    const subject = student ?? family ?? "a student";
+    const planPart = plan ? ` (${plan})` : "";
+    const phrase = `unassigned tuition for ${subject}${planPart}`;
+    const base = `${actor} ${phrase}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED &&
+    event.summary.toLowerCase().includes("payment plan")
+  ) {
+    const subject = student ?? family ?? "a family";
+    const planName = context.paymentPlanName;
+    const phrase = planName
+      ? `selected payment plan “${planName}” for ${subject}`
+      : `updated tuition for ${subject}`;
+    const base = `${actor} ${phrase}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  if (student || family || plan) {
+    const subject = student ?? family ?? "a student";
+    const familyPart =
+      student && family && student !== family ? ` (${family})` : "";
+    const planPart = plan ? `“${plan}”` : "tuition";
+    const phrase = `assigned ${planPart} to ${subject}${familyPart}`;
+    const base = `${actor} ${phrase}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  return null;
+}
+
+function formatTeacherParentFormNarrative(
+  event: ActivityEventRow,
+  actor: string,
+  school: string | null,
+): string | null {
+  const summary = event.summary.trim();
+  if (
+    summary &&
+    (summary.includes('"') ||
+      summary.toLowerCase().includes("posted ") ||
+      summary.toLowerCase().includes("signed "))
+  ) {
+    const phrase = lowercaseSummaryPhrase(summary);
+    const base = `${actor} ${phrase}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  const formTitle = metadataStringFromEvent(event.metadata, "formTitle");
+  const teacherName = metadataStringFromEvent(event.metadata, "teacherName");
+  const dueDate = metadataStringFromEvent(event.metadata, "dueDate");
+
+  if (event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED) {
+    if (formTitle && teacherName) {
+      const phrase = dueDate
+        ? `published “${formTitle}” from ${teacherName} · Due ${dueDate}`
+        : `published “${formTitle}” from ${teacherName} for families to sign`;
+      const base = `${actor} ${phrase}`;
+      return school ? `${base} for ${school}` : base;
+    }
+    if (formTitle) {
+      const base = `${actor} published “${formTitle}” for families to sign`;
+      return school ? `${base} for ${school}` : base;
+    }
+  }
+
+  if (event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED) {
+    const familyName = metadataStringFromEvent(event.metadata, "familyName");
+    if (formTitle && familyName) {
+      const base = `${actor} signed “${formTitle}” for ${familyName}`;
+      return school ? `${base} for ${school}` : base;
+    }
+    if (formTitle) {
+      const base = `${actor} signed “${formTitle}”`;
+      return school ? `${base} for ${school}` : base;
+    }
+  }
+
+  return null;
+}
+
+function paymentAmountLabelFromMetadata(
+  metadata: Record<string, unknown>,
+): string | null {
+  const amountCents = metadata.amountCents;
+  if (typeof amountCents === "number" && amountCents > 0) {
+    return formatCents(amountCents);
+  }
+  if (typeof amountCents === "string" && amountCents.trim()) {
+    const parsed = Number(amountCents);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return formatCents(parsed);
+    }
+  }
+  return null;
+}
+
+function tuitionNotificationToDisplayContext(
+  context: TuitionNotificationContext,
+): TuitionPaymentDisplayContext {
+  return {
+    subjectLabel: context.subjectLabel,
+    chargeLabel: context.chargeLabel,
+    familyName: context.familyName,
+    studentName: context.studentName,
+    payerLabel: context.payerLabel,
+  };
+}
+
+function formatTuitionPaymentNarrative(
+  event: ActivityEventRow,
+  actor: string,
+  school: string | null,
+  tuitionContext?: TuitionPaymentDisplayContext | null,
+): string | null {
+  if (!isTuitionPaymentActivityAction(event.action)) {
+    return null;
+  }
+
+  const metadata = event.metadata;
+  const payer =
+    tuitionContext?.payerLabel ??
+    tuitionContext?.familyName ??
+    metadataStringFromEvent(metadata, "payerLabel") ??
+    metadataStringFromEvent(metadata, "familyName");
+
+  const amountLabel = paymentAmountLabelFromMetadata(metadata);
+  const student = tuitionContext?.studentName
+    ? shortenSubjectLabel(tuitionContext.studentName)
+    : null;
+
+  if (payer && amountLabel) {
+    let line: string;
+    if (student) {
+      line = formatGuardianActionForStudent(
+        payer !== student ? payer : null,
+        student,
+        `paid ${amountLabel}`,
+        `${payer} paid ${amountLabel} for ${student}`,
+      );
+    } else {
+      line = `${payer} paid ${amountLabel}`;
+    }
+    return school ? `${line} for ${school}` : line;
+  }
+
+  const fromChanges = metadataChangesPhrase(metadata);
+  if (fromChanges) {
+    const lead =
+      payer && actor === "A parent"
+        ? payer
+        : payer && payer !== actor
+          ? payer
+          : actor;
+    const base = `${lead} ${fromChanges}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  if (payer && actor === "A parent") {
+    const phrase = formatActivityActionPhrase(event.action, event.summary);
+    const base = `${payer} ${phrase}`;
+    return school ? `${base} for ${school}` : base;
+  }
+
+  return null;
+}
+
 export function formatActivityEventNarrative(
   event: ActivityEventRow,
-  context?: Partial<ActivityEventDisplayContext>,
+  context?: Partial<ActivityEventDisplayContext> & {
+    assignmentContext?: AssignmentActivityContext | null;
+    tuitionContext?: TuitionPaymentDisplayContext | null;
+  },
 ): string {
   if (
     event.action === ACTIVITY_ACTIONS.API_ERROR ||
@@ -536,8 +761,41 @@ export function formatActivityEventNarrative(
   }
 
   const actor = resolveActorDisplayLabel(event, context);
+  const school = event.organizations?.name?.trim() ?? null;
+
+  if (isTuitionAssignmentAction(event.action)) {
+    const tuitionNarrative = formatTuitionAssignmentNarrative(
+      event,
+      actor,
+      school,
+      context?.assignmentContext,
+    );
+    if (tuitionNarrative) {
+      return appendActivityClientLabel(tuitionNarrative, event.metadata);
+    }
+  }
+
+  if (
+    event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_PUBLISHED ||
+    event.action === ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED
+  ) {
+    const formNarrative = formatTeacherParentFormNarrative(event, actor, school);
+    if (formNarrative) {
+      return appendActivityClientLabel(formNarrative, event.metadata);
+    }
+  }
+
+  const paymentNarrative = formatTuitionPaymentNarrative(
+    event,
+    actor,
+    school,
+    context?.tuitionContext,
+  );
+  if (paymentNarrative) {
+    return appendActivityClientLabel(paymentNarrative, event.metadata);
+  }
+
   const phrase = formatActivityActionPhrase(event.action, event.summary);
-  const school = event.organizations?.name?.trim();
 
   if (school) {
     return appendActivityClientLabel(`${actor} ${phrase} for ${school}`, event.metadata);
@@ -779,4 +1037,60 @@ export async function enrichActivityEventsWithActors(
   }
 
   return enrichedEvents;
+}
+
+export async function enrichActivityEventsForDisplay(
+  supabase: SupabaseClient,
+  events: ActivityEventRow[],
+): Promise<EnrichedActivityEvent[]> {
+  const enrichedEvents = await enrichActivityEventsWithActors(supabase, events);
+  const assignmentContexts = await fetchAssignmentActivityContexts(
+    supabase,
+    enrichedEvents,
+  );
+
+  const notificationEvents = enrichedEvents.map((event) => ({
+    id: event.id,
+    action: event.action,
+    entity_type: event.entity_type,
+    entity_id: event.entity_id,
+    summary: event.summary,
+    metadata: event.metadata,
+    created_at: event.created_at,
+  }));
+
+  const tuitionContextsByChargeId = await fetchTuitionNotificationContexts(
+    supabase,
+    notificationEvents,
+  );
+  const tuitionDisplayByChargeId = new Map<string, TuitionPaymentDisplayContext>(
+    [...tuitionContextsByChargeId.entries()].map(([chargeId, context]) => [
+      chargeId,
+      tuitionNotificationToDisplayContext(context),
+    ]),
+  );
+
+  return enrichedEvents.map((event) => {
+    const assignmentContext = assignmentContexts.get(event.id) ?? null;
+    const tuitionContext = resolveTuitionPaymentDisplayContext(
+      event,
+      tuitionDisplayByChargeId,
+    );
+    const displayActorName =
+      tuitionContext?.payerLabel ??
+      tuitionContext?.familyName ??
+      event.displayActorName;
+
+    return {
+      ...event,
+      displayActorName,
+      assignmentContext,
+      tuitionContext,
+      links: resolveActivityEventLinks(
+        event.organizations?.slug,
+        event,
+        assignmentContext,
+      ),
+    };
+  });
 }

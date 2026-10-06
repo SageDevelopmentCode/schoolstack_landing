@@ -2,7 +2,13 @@
 
 import type { ReactNode } from "react";
 import { useLayoutEffect, useRef, useState } from "react";
-import SlideCanvas, { displayStyle, SLIDE, SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
+import SlideCanvas, {
+  displayStyle,
+  PromoSlideTopRow,
+  SLIDE,
+  SLIDE_HEIGHT,
+  SLIDE_WIDTH,
+} from "@/components/admin/marketing/slide-frame";
 
 /** Slide backing for product slides; demo canvas stays #F8F8F3 for contrast inside laptop chrome. */
 export const DEMO_SLIDE_PAPER = "#F0EDE6";
@@ -52,6 +58,7 @@ type CarouselProductSlideProps = {
   demoPresentation?: CarouselDemoPresentation;
   cropFocus?: "top" | "center";
   footer?: ReactNode;
+  promoSiteLabel?: string;
 };
 
 export function CarouselProductSlide({
@@ -66,16 +73,15 @@ export function CarouselProductSlide({
   demoPresentation = "laptop",
   cropFocus = "top",
   footer,
+  promoSiteLabel,
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
+  const showPromoTopRow = isPromo && Boolean(promoSiteLabel);
   const showPhones = isPromo && demoPresentation === "phones";
-  const copyOnRight = !isPromo && side === "copyRight";
   const copyPadding = isPromo
     ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
-    : copyOnRight
-      ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px ${COPY_LOGO_GUTTER}px`
-      : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
-  const textAlign = isPromo ? "center" : copyOnRight ? "right" : "left";
+    : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
+  const textAlign = isPromo ? "center" : "left";
   const slideBackground = background ?? (isPromo ? SLIDE.forest : DEMO_SLIDE_PAPER);
   const titleColor = isPromo ? SLIDE.white : SLIDE.ink;
   const bodyColor = isPromo ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
@@ -89,7 +95,8 @@ export function CarouselProductSlide({
   const defaultBodyWidth = DEFAULT_BODY_WIDTH;
 
   return (
-    <SlideCanvas background={slideBackground}>
+    <SlideCanvas background={slideBackground} logo={showPromoTopRow ? "none" : "corner"}>
+      {showPromoTopRow && promoSiteLabel ? <PromoSlideTopRow siteLabel={promoSiteLabel} /> : null}
       <div
         style={{
           height: SLIDE_HEIGHT,
@@ -119,11 +126,11 @@ export function CarouselProductSlide({
             <div
               style={{
                 maxWidth: COPY_MAX_WIDTH,
-                marginLeft: isPromo ? "auto" : copyOnRight ? "auto" : undefined,
-                marginRight: isPromo ? "auto" : copyOnRight ? 0 : undefined,
+                marginLeft: isPromo ? "auto" : undefined,
+                marginRight: isPromo ? "auto" : undefined,
               }}
             >
-              {isPromo && kicker ? (
+              {kicker ? (
                 <p
                   style={{
                     margin: 0,
@@ -131,13 +138,13 @@ export function CarouselProductSlide({
                     fontWeight: 700,
                     letterSpacing: "0.16em",
                     textTransform: "uppercase",
-                    color: SLIDE.white,
+                    color: isPromo ? SLIDE.white : SLIDE.clay,
                   }}
                 >
                   {kicker}
                 </p>
               ) : null}
-              <h1 style={{ ...displayStyle(80, titleColor), marginTop: isPromo && kicker ? 14 : 0 }}>{title}</h1>
+              <h1 style={{ ...displayStyle(80, titleColor), marginTop: kicker ? 14 : 0 }}>{title}</h1>
               {body ? (
                 <p
                   style={{
@@ -146,7 +153,7 @@ export function CarouselProductSlide({
                     fontSize: 36,
                     lineHeight: 1.28,
                     color: bodyColor,
-                    marginLeft: isPromo || copyOnRight ? "auto" : undefined,
+                    marginLeft: isPromo ? "auto" : undefined,
                     marginRight: isPromo ? "auto" : undefined,
                   }}
                 >
@@ -154,7 +161,7 @@ export function CarouselProductSlide({
                 </p>
               ) : null}
               {footer ? (
-                <div style={{ display: "flex", justifyContent: isPromo ? "center" : copyOnRight ? "flex-end" : "flex-start" }}>
+                <div style={{ display: "flex", justifyContent: isPromo ? "center" : "flex-start" }}>
                   {footer}
                 </div>
               ) : null}

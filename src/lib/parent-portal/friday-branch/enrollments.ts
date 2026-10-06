@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FridayBranchClassEnrollmentStatus } from "@/lib/school-admin/friday-branch/friday-branch-types";
 import {
+  FridayBranchParentPortalPausedError,
+  loadOrganizationFridayBranchSettings,
+} from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
+import {
   computeSpotsRemaining,
   loadParentFridayBranchClassDetail,
 } from "./load-parent-friday-branch";
@@ -115,6 +119,8 @@ export async function enrollStudentInFridayBranchClass(
   status: FridayBranchClassEnrollmentStatus;
   detail: ParentFridayBranchClassDetailBundle;
 }> {
+  await assertFridayBranchParentPortalOpenForEnrollments(admin, organizationId);
+
   const { data, error } = await admin.rpc("enroll_friday_branch_student_atomic", {
     p_organization_id: organizationId,
     p_class_id: classId,
@@ -162,6 +168,8 @@ export async function withdrawStudentFromFridayBranchClass(
   studentId: string,
   studentOptions: ParentFridayBranchStudentOption[],
 ): Promise<ParentFridayBranchClassDetailBundle> {
+  await assertFridayBranchParentPortalOpenForEnrollments(admin, organizationId);
+
   const { data, error } = await admin.rpc("withdraw_friday_branch_student_atomic", {
     p_organization_id: organizationId,
     p_class_id: classId,
@@ -199,3 +207,13 @@ export async function withdrawStudentFromFridayBranchClass(
 }
 
 export { computeSpotsRemaining };
+
+async function assertFridayBranchParentPortalOpenForEnrollments(
+  admin: SupabaseClient,
+  organizationId: string,
+): Promise<void> {
+  const settings = await loadOrganizationFridayBranchSettings(admin, organizationId);
+  if (settings.parent_portal_paused) {
+    throw new FridayBranchParentPortalPausedError();
+  }
+}

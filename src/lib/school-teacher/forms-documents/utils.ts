@@ -162,7 +162,7 @@ export function createFormFromDraft(
         : 0;
 
   return {
-    id: `form-${Date.now()}`,
+    id: "staff-preview-form",
     title: draft.title.trim(),
     description: draft.description.trim(),
     formType: draft.formType,

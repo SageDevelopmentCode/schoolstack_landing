@@ -14,8 +14,10 @@ import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
-import { isParentHomeFridayBranchEnabled } from '@/lib/parent/parent-features';
-import { isParentFeatureEnabled } from '@/lib/parent/parent-features';
+import {
+  isParentHomeFridayBranchEnabled,
+  isParentNavFridayBranchEnabled,
+} from '@/lib/parent/parent-features';
 import { resolveMobileMoreMenuFeatureKeys } from '@/lib/parent/mobile-parent-portal-nav';
 import {
   PARENT_MORE_MENU_META,
@@ -81,6 +83,10 @@ export function ParentMoreMenuSheet({
 
   const portalFeatureRecord = activePortalFeatures?.parent ?? homeData?.features?.parent;
 
+  const fridayBranchSettings = homeData?.fridayBranchParentPortalPaused
+    ? { parent_portal_paused: true as const }
+    : { parent_portal_paused: false as const };
+
   const visibleMenuItemIds = useMemo(() => {
     if (programPortalFeaturesPending) {
       return [] as ParentMoreMenuItemId[];
@@ -104,28 +110,32 @@ export function ParentMoreMenuSheet({
     const ids = featureKeys.map((key) => parentMoreMenuItemIdForFeatureKey(key));
 
     if (
-      isParentHomeFridayBranchEnabled({
-        parent: portalFeatureRecord,
-        parent_home: homeData?.features?.parent_home,
-      }) &&
+      isParentHomeFridayBranchEnabled(
+        {
+          parent: portalFeatureRecord,
+          parent_home: homeData?.features?.parent_home,
+        },
+        fridayBranchSettings,
+      ) &&
       ids.includes('friday-branch') === false &&
-      isParentFeatureEnabled({ parent: portalFeatureRecord }, 'friday_branch')
+      isParentNavFridayBranchEnabled({ parent: portalFeatureRecord }, fridayBranchSettings)
     ) {
       ids.push('friday-branch');
     }
 
     return ids.filter((id) => {
       if (id === 'friday-branch') {
-        return isParentHomeFridayBranchEnabled({
-          parent: portalFeatureRecord,
-          parent_home: homeData?.features?.parent_home,
-        });
+        return isParentNavFridayBranchEnabled(
+          { parent: portalFeatureRecord },
+          fridayBranchSettings,
+        );
       }
       return true;
     });
   }, [
     activePortalFeatures,
     activeProgramSlug,
+    fridayBranchSettings,
     homeData?.features?.parent_home,
     portalFeatureRecord,
     programPortalFeaturesPending,

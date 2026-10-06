@@ -55,6 +55,7 @@ type SchoolAdminBaselineProps = {
   initialMessagesUnreadCount?: number;
   initialActivityUnreadCount?: number;
   previewMode?: boolean;
+  fridayBranchParentPortalPaused?: boolean;
   children: ReactNode;
 };
 
@@ -70,6 +71,7 @@ function SchoolAdminBaselineInner({
   initialMessagesUnreadCount,
   initialActivityUnreadCount,
   previewMode = false,
+  fridayBranchParentPortalPaused = false,
   children,
 }: SchoolAdminBaselineProps) {
   const pathname = usePathname();
@@ -186,6 +188,7 @@ function SchoolAdminBaselineInner({
             onOpenNotifications={openNotifications}
             unreadCount={unreadCount}
             messagesUnreadCount={messagesUnreadCount}
+            fridayBranchParentPortalPaused={fridayBranchParentPortalPaused}
           />
 
           {supportOpen ? (

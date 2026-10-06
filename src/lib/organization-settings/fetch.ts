@@ -3,6 +3,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { cache } from "react";
 import { createClient } from "@/utils/supabase/server";
 import { mergeBranding, mergeFeatures } from "./merge";
+import {
+  parseOrganizationFridayBranchSettings,
+  type OrganizationFridayBranchSettings,
+} from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 import type { OrganizationBranding, OrganizationFeatures } from "./types";
 
 export type OrganizationWithSettings = {
@@ -11,6 +15,7 @@ export type OrganizationWithSettings = {
   name: string;
   branding: OrganizationBranding;
   features: OrganizationFeatures;
+  fridayBranchSettings: OrganizationFridayBranchSettings;
 };
 
 export async function fetchOrganizationWithSettingsUncached(
@@ -27,7 +32,7 @@ export async function fetchOrganizationWithSettingsUncached(
 
   const { data: settings } = await supabase
     .from("organization_settings")
-    .select("branding, features")
+    .select("branding, features, friday_branch")
     .eq("organization_id", org.id)
     .maybeSingle();
 
@@ -40,6 +45,9 @@ export async function fetchOrganizationWithSettingsUncached(
     ),
     features: mergeFeatures(
       settings?.features as Record<string, unknown> | null | undefined,
+    ),
+    fridayBranchSettings: parseOrganizationFridayBranchSettings(
+      settings?.friday_branch as Record<string, unknown> | null | undefined,
     ),
   };
 }

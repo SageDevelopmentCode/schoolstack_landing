@@ -10,6 +10,7 @@ const minimalOrg: OrganizationWithSettings = {
   name: "Demo School",
   branding: DEFAULT_BRANDING,
   features: DEFAULT_FEATURES,
+  fridayBranchSettings: { parent_portal_paused: false },
 };
 
 describe("mapPortalOptionToTeacherPreview", () => {

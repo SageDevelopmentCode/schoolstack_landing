@@ -91,6 +91,26 @@ describe("formatActivityNotificationDetail", () => {
     );
   });
 
+  it("falls back to metadata family name for tuition payment without context", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
+        null,
+        "Tuition payment completed",
+        null,
+        null,
+        {
+          metadata: {
+            familyName: "Nguyen family",
+            payerLabel: "Jane Nguyen",
+            amountCents: 120000,
+          },
+        },
+      ),
+      "Jane Nguyen paid $1,200",
+    );
+  });
+
   it("falls back when payment amount is missing", () => {
     assert.equal(
       formatActivityNotificationDetail(
@@ -361,6 +381,31 @@ describe("resolveActivityNotificationLink", () => {
 
     assert.equal(link.href, "/school/rooted-meadows/admin/messages");
     assert.equal(link.ctaLabel, "View message");
+  });
+
+  it("links tuition assignment events to a focused family on the tuition page", async () => {
+    const link = await resolveActivityNotificationLink(
+      {} as never,
+      "rooted-meadows",
+      {
+        id: "event-3",
+        action: ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
+        entity_type: "tuition_enrollment_assignment",
+        entity_id: "assignment-1",
+        summary: "Assigned tuition",
+        metadata: {
+          familyId: "family-1",
+        },
+        created_at: "2026-09-20T12:00:00.000Z",
+      },
+      null,
+    );
+
+    assert.equal(
+      link.href,
+      "/school/rooted-meadows/admin/my_school/tuition?tab=families&family=family-1",
+    );
+    assert.equal(link.ctaLabel, "Open family billing");
   });
 });
 

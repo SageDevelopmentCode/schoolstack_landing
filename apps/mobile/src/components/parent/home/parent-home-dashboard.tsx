@@ -222,7 +222,9 @@ export function ParentHomeDashboard({
         </Animated.View>
       ) : null}
 
-      {isParentHomeFridayBranchEnabled(data.features) && data.fridayBranchHome ? (
+      {isParentHomeFridayBranchEnabled(data.features, {
+        parent_portal_paused: Boolean(data.fridayBranchParentPortalPaused),
+      }) && data.fridayBranchHome ? (
         <Animated.View entering={FadeInDown.delay(100).duration(350)}>
           <ParentHomeFridayBranchCard
             slug={slug}

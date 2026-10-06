@@ -177,6 +177,7 @@ export type OrganizationSettingsRow = {
   admissions?: import("@/lib/admissions/admissions-org-settings").AdmissionsOrgSettings | Record<string, unknown> | null;
   notifications?: import("@/lib/notifications/org-notification-settings").OrganizationNotificationSettings | Record<string, unknown> | null;
   schedule?: import("@/lib/school-events/schedule-settings").OrganizationScheduleSettings | Record<string, unknown> | null;
+  friday_branch?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 };

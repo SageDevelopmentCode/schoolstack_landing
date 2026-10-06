@@ -1,0 +1,9 @@
+-- Activity events retention (operational note — no DDL)
+-- Purpose: Document automatic purge of activity_events older than ACTIVITY_EVENTS_RETENTION_MONTHS (default 12).
+-- Implemented in: src/lib/activity-events-retention.ts, run daily from /api/cron/tuition-billing.
+--
+-- Env (Vercel production):
+--   ACTIVITY_EVENTS_RETENTION_MONTHS=12
+--   ACTIVITY_EVENTS_RETENTION_WARN_DAYS=30
+--
+-- Discord: daily billing cron embed includes purge counts and a warning when events are 11–12 months old.

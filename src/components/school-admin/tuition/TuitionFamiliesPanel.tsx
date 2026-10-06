@@ -17,6 +17,7 @@ import TuitionFamilyListSidebar, {
 } from "@/components/school-admin/tuition/TuitionFamilyListSidebar";
 import TuitionFamilyTabBar from "@/components/school-admin/tuition/TuitionFamilyTabBar";
 import TuitionManualPaymentModal from "@/components/school-admin/tuition/TuitionManualPaymentModal";
+import TuitionRateCatalogAssignModal from "@/components/school-admin/tuition/TuitionRateCatalogAssignModal";
 import TuitionStudentBadge from "@/components/school-admin/tuition/TuitionStudentBadge";
 import {
   DEFAULT_TUITION_FAMILY_TAB,
@@ -44,14 +45,13 @@ import {
 } from "@/lib/tuition/student-badge-colors";
 import { parentThemeToAdminCompat } from "@/lib/organization-settings/parent-theme";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import {
-  assignTuitionLabel,
-  partitionUnassignedEnrollments,
-} from "@/lib/tuition/tuition-readiness";
+import { partitionUnassignedEnrollments } from "@/lib/tuition/tuition-readiness";
+import { toastTuitionSyncResult } from "@/lib/tuition/sync-assignments-toast";
 import type {
   CatalogTuitionSummary,
   FamilyAssignmentSummary,
   FamilyBillingSummary,
+  RatePlanWithDetails,
   TuitionCharge,
   UnassignedEnrollmentSummary,
 } from "@/lib/tuition/types";
@@ -150,6 +150,7 @@ type TuitionFamiliesPanelProps = {
   initialFamilyId?: string | null;
   initialFamilies?: FamilyBillingSummary[];
   previewMode?: boolean;
+  ratePlans: RatePlanWithDetails[];
   onAdjust: (familyId: string, assignmentId: string, studentName: string | null) => void;
   onEditAssignment: (assignmentId: string) => void;
   onRefresh: () => void;
@@ -186,21 +187,37 @@ function CatalogTuitionAmount({
 function UnassignedStudentRow({
   enrollment,
   theme,
+  onAssign,
+  assigning,
 }: {
   enrollment: UnassignedEnrollmentSummary;
   theme: ParentThemeTokens;
+  onAssign: () => void;
+  assigning: boolean;
 }) {
   return (
-    <li className="flex flex-col gap-1 text-sm">
-      <span className="font-medium" style={{ color: theme.ink }}>
-        {enrollment.studentName}
-      </span>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <EnrollmentStatusChip status={enrollment.status} theme={theme} />
-        <AdminChip theme={theme} tone="purple">
-          {enrollment.programName}
-        </AdminChip>
+    <li className="flex flex-col gap-2 text-sm sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-1">
+        <span className="font-medium" style={{ color: theme.ink }}>
+          {enrollment.studentName}
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <EnrollmentStatusChip status={enrollment.status} theme={theme} />
+          <AdminChip theme={theme} tone="purple">
+            {enrollment.programName}
+          </AdminChip>
+        </div>
       </div>
+      <AdminButton
+        theme={theme}
+        variant="primary"
+        size="compact"
+        className="self-start shrink-0"
+        disabled={assigning}
+        onClick={onAssign}
+      >
+        Assign tuition
+      </AdminButton>
     </li>
   );
 }
@@ -212,15 +229,20 @@ function AssignmentMetaBadges({
   assignment: FamilyAssignmentSummary;
   theme: ParentThemeTokens;
 }) {
+  const catalogDetail = [assignment.rateCatalogDetailLabel, assignment.rateCatalogPeriodLabel]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap gap-1.5">
       <EnrollmentStatusChip
         status={assignment.enrollmentStatus}
         theme={theme}
         enrolledAt={assignment.enrolledAt}
       />
-      <AdminChip theme={theme} tone="info">
-        {assignment.ratePlanName}
+      <AdminChip theme={theme} tone="purple">
+        Rate catalog: {assignment.ratePlanName}
       </AdminChip>
       {assignment.tierLabel ? (
         <AdminChip theme={theme} tone="info">
@@ -248,6 +270,12 @@ function AssignmentMetaBadges({
           </span>
         </AdminChip>
       ) : null}
+      </div>
+      {catalogDetail ? (
+        <p className="text-xs" style={{ color: theme.muted }}>
+          {catalogDetail}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -260,6 +288,7 @@ export default function TuitionFamiliesPanel({
   initialFamilyId = null,
   initialFamilies,
   previewMode = false,
+  ratePlans,
   onAdjust,
   onEditAssignment,
   onRefresh,
@@ -290,6 +319,9 @@ export default function TuitionFamiliesPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
   const [invoiceNotice, setInvoiceNotice] = useState<string | null>(null);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<UnassignedEnrollmentSummary | null>(
+    null,
+  );
   const [manualPaymentCharge, setManualPaymentCharge] = useState<{
     id: string;
     label: string;
@@ -639,7 +671,72 @@ export default function TuitionFamiliesPanel({
     }
   };
 
-  const handleSyncAssignments = async () => {
+  const activeCatalogsForProgram = useCallback(
+    (programId: string) =>
+      ratePlans.filter(
+        (plan) => plan.status === "active" && plan.programId === programId,
+      ),
+    [ratePlans],
+  );
+
+  const assignEnrollmentTuition = useCallback(
+    async (enrollment: UnassignedEnrollmentSummary, ratePlanId: string) => {
+      setActionLoading(enrollment.enrollmentId);
+      setPanelError(null);
+      try {
+        const response = await fetch(
+          `/api/tuition/enrollments/${enrollment.enrollmentId}/assign`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ratePlanId }),
+          },
+        );
+        const payload = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          const message = payload.error ?? "Failed to assign tuition.";
+          setPanelError(message);
+          adminToast.error(message);
+          return;
+        }
+        adminToast.success("Tuition assigned");
+        await loadFamilies();
+        onRefresh();
+      } catch (error) {
+        const message = formatActionError(error, "Failed to assign tuition.");
+        void reportPortalOperationalError("school_admin", {
+          organizationId,
+          operation: "tuition.families.assign",
+          error: "",
+        }, error);
+        setPanelError(message);
+        adminToast.error(message);
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [loadFamilies, onRefresh, organizationId],
+  );
+
+  const openAssignFlow = useCallback(
+    (enrollment: UnassignedEnrollmentSummary) => {
+      const catalogs = activeCatalogsForProgram(enrollment.programId);
+      if (catalogs.length === 0) {
+        adminToast.error(
+          "No active rate catalog for this program. Publish one in Rate catalog first.",
+        );
+        return;
+      }
+      if (catalogs.length === 1) {
+        void assignEnrollmentTuition(enrollment, catalogs[0].id);
+        return;
+      }
+      setAssignTarget(enrollment);
+    },
+    [activeCatalogsForProgram, assignEnrollmentTuition],
+  );
+
+  const handleSyncUnambiguousAssignments = async () => {
     setActionLoading("sync");
     setPanelError(null);
     try {
@@ -648,14 +745,18 @@ export default function TuitionFamiliesPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        assignedCount?: number;
+        skippedAmbiguousCount?: number;
+      };
       if (!response.ok) {
         const message = payload.error ?? "Failed to sync tuition assignments.";
         setPanelError(message);
         adminToast.error(message);
         return;
       }
-      adminToast.success("Tuition assigned");
+      toastTuitionSyncResult(payload);
       await loadFamilies();
       onRefresh();
     } catch (error) {
@@ -1029,19 +1130,11 @@ export default function TuitionFamiliesPanel({
                                 key={enrollment.enrollmentId}
                                 enrollment={enrollment}
                                 theme={theme}
+                                assigning={actionLoading === enrollment.enrollmentId}
+                                onAssign={() => openAssignFlow(enrollment)}
                               />
                             ))}
                           </ul>
-                          <AdminButton
-                            theme={theme}
-                            variant="primary"
-                            size="compact"
-                            className="self-start"
-                            disabled={actionLoading === "sync"}
-                            onClick={() => void handleSyncAssignments()}
-                          >
-                            {assignTuitionLabel(enrollingWithoutAssignment.length)}
-                          </AdminButton>
                         </div>
                       </div>
                     ) : null}
@@ -1071,19 +1164,20 @@ export default function TuitionFamiliesPanel({
                                 key={enrollment.enrollmentId}
                                 enrollment={enrollment}
                                 theme={theme}
+                                assigning={actionLoading === enrollment.enrollmentId}
+                                onAssign={() => openAssignFlow(enrollment)}
                               />
                             ))}
                           </ul>
-                          <AdminButton
-                            theme={theme}
-                            variant="primary"
-                            size="compact"
-                            className="self-start"
+                          <button
+                            type="button"
+                            className="text-xs text-left underline-offset-2 hover:underline self-start"
+                            style={{ color: theme.muted }}
                             disabled={actionLoading === "sync"}
-                            onClick={() => void handleSyncAssignments()}
+                            onClick={() => void handleSyncUnambiguousAssignments()}
                           >
-                            {assignTuitionLabel(enrolledUnassigned.length)}
-                          </AdminButton>
+                            Assign all with a single rate catalog (skip students who need a choice)
+                          </button>
                         </div>
                       </div>
                     ) : null}
@@ -1531,6 +1625,23 @@ export default function TuitionFamiliesPanel({
         onClose={() => setManualPaymentCharge(null)}
         onConfirm={handleManualPayment}
       />
+
+      {assignTarget ? (
+        <TuitionRateCatalogAssignModal
+          open={assignTarget != null}
+          organizationId={organizationId}
+          enrollmentId={assignTarget.enrollmentId}
+          studentName={assignTarget.studentName}
+          programId={assignTarget.programId}
+          programName={assignTarget.programName}
+          ratePlans={ratePlans}
+          onClose={() => setAssignTarget(null)}
+          onAssigned={() => {
+            void loadFamilies();
+            onRefresh();
+          }}
+        />
+      ) : null}
     </>
   );
 }

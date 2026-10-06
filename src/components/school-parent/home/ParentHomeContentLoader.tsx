@@ -10,6 +10,7 @@ type ParentHomeContentLoaderProps = {
   previewBasePath?: string;
   programId?: string;
   coopModeEnabled?: boolean;
+  fridayBranchSettings?: import("@/lib/school-admin/friday-branch/friday-branch-org-settings").OrganizationFridayBranchSettings | null;
 };
 
 export default async function ParentHomeContentLoader({
@@ -20,6 +21,7 @@ export default async function ParentHomeContentLoader({
   previewBasePath,
   programId,
   coopModeEnabled,
+  fridayBranchSettings,
 }: ParentHomeContentLoaderProps) {
   const contentData = await loadParentHomeContentData({
     organizationId,
@@ -29,6 +31,7 @@ export default async function ParentHomeContentLoader({
     previewBasePath,
     programId,
     coopModeEnabled,
+    fridayBranchSettings,
   });
 
   return <ParentHomeContentData contentData={contentData} />;

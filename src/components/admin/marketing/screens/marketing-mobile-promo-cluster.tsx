@@ -14,8 +14,8 @@ const SCALE_SIDE = 0.92;
 const SCALE_CENTER = 1.02;
 const PHONE_GAP = 8;
 const VISIBLE_PHONE_FRACTION = 0.92;
-/** Raises cluster slightly above pure crop offset (tune in Marketing Studio). */
-const CLUSTER_LIFT_PX = 20;
+/** Vertical nudge from the bottom crop anchor; negative moves phones down (tune in Marketing Studio). */
+const CLUSTER_LIFT_PX = -16;
 
 function clusterBottomOffset() {
   return -(MOBILE_PHONE_HEIGHT * SCALE_CENTER * (1 - VISIBLE_PHONE_FRACTION)) + CLUSTER_LIFT_PX;

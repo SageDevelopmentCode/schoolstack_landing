@@ -18,6 +18,79 @@ import {
 } from "@/lib/stripe/application-payments";
 import { getStripeClient } from "@/lib/stripe/client";
 import { expirePendingCheckoutSessionsForCharge } from "@/lib/tuition/expire-charge-checkout-sessions";
+import type { TuitionActivityContext } from "@/lib/tuition/tuition-activity";
+
+function formatPersonName(
+  firstName?: string | null,
+  lastName?: string | null,
+): string | null {
+  const name = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ");
+  return name || null;
+}
+
+async function loadTuitionPaymentActivityLabels(
+  admin: SupabaseClient,
+  payment: PaymentRecord,
+  familyId: string | null,
+): Promise<{
+  familyName: string | null;
+  payerLabel: string | null;
+  activityContext: TuitionActivityContext;
+}> {
+  let familyName: string | null = null;
+  let payerLabel: string | null = null;
+  let actorEmail: string | null = null;
+  let actorName: string | null = null;
+
+  if (familyId) {
+    const { data: family, error: familyError } = await admin
+      .from("families")
+      .select("name")
+      .eq("id", familyId)
+      .maybeSingle();
+    if (familyError) throw familyError;
+    familyName = family?.name?.trim() ?? null;
+  }
+
+  if (payment.payerUserId && familyId) {
+    const { data: guardian, error: guardianError } = await admin
+      .from("guardians")
+      .select("first_name, last_name, email")
+      .eq("family_id", familyId)
+      .eq("user_id", payment.payerUserId)
+      .maybeSingle();
+    if (guardianError) throw guardianError;
+    payerLabel = formatPersonName(guardian?.first_name, guardian?.last_name);
+    actorName = payerLabel;
+    actorEmail = guardian?.email?.trim() ?? null;
+  }
+
+  if (!actorEmail && payment.payerUserId) {
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("email")
+      .eq("id", payment.payerUserId)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    actorEmail = profile?.email?.trim() ?? null;
+  }
+
+  if (!payerLabel && familyName) {
+    payerLabel = familyName;
+  }
+
+  return {
+    familyName,
+    payerLabel,
+    activityContext: {
+      actorType: "parent",
+      actorUserId: payment.payerUserId,
+      actorEmail,
+      actorName,
+      surface: "parent_portal",
+    },
+  };
+}
 
 export type RecordTuitionPaymentCompletedInput = {
   payment: PaymentRecord;
@@ -157,6 +230,19 @@ export async function logTuitionPaymentCompletedActivities(
     input.charge ??
     (chargeId != null ? await getChargeById(admin, chargeId) : null);
 
+  const familyId = payment.familyId ?? charge?.familyId ?? null;
+  const { familyName, payerLabel, activityContext } =
+    await loadTuitionPaymentActivityLabels(admin, payment, familyId);
+
+  const amountCents = payment.amountCents ?? charge?.amountCents ?? 0;
+  const chargeLabel = charge?.label ?? payment.label ?? "Tuition charge";
+  const changeSummary = summarizePaymentAction({
+    kind: "completed",
+    amountCents,
+    chargeLabel,
+    familyName: familyName ?? undefined,
+  });
+
   void logActivityEvent(admin, {
     organizationId,
     actorType: "system",
@@ -169,9 +255,12 @@ export async function logTuitionPaymentCompletedActivities(
       checkoutSessionId: checkoutSessionId ?? null,
       paymentId: payment.id,
       tuitionChargeId: chargeId ?? null,
-      familyId: payment.familyId ?? charge?.familyId ?? null,
+      familyId,
       amountCents: payment.amountCents ?? null,
-      chargeLabel: charge?.label ?? payment.label ?? null,
+      chargeLabel,
+      familyName,
+      payerLabel,
+      guardianName: payerLabel,
       ...(input.activityMetadata ?? {}),
     },
   });
@@ -181,19 +270,21 @@ export async function logTuitionPaymentCompletedActivities(
     action: ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED,
     entityType: "tuition_charge",
     entityId: chargeId ?? payment.id,
-    summary: "Tuition payment completed",
-    changeSummary: summarizePaymentAction({
-      kind: "completed",
-      amountCents: payment.amountCents ?? charge?.amountCents ?? 0,
-      chargeLabel: charge?.label ?? payment.label ?? "Tuition charge",
-    }),
+    summary: changeSummary.changes[0] ?? "Tuition payment completed",
+    changeSummary,
     logWhenEmpty: true,
     metadata: {
       checkoutSessionId: checkoutSessionId ?? null,
       paymentId: payment.id,
-      familyId: payment.familyId ?? charge?.familyId ?? null,
+      tuitionChargeId: chargeId ?? null,
+      familyId,
+      familyName,
+      payerLabel,
+      guardianName: payerLabel,
+      amountCents,
+      chargeLabel,
       ...(input.activityMetadata ?? {}),
     },
-    context: { actorType: "parent", surface: "parent_portal" },
+    context: activityContext,
   });
 }

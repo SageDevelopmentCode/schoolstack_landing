@@ -42,7 +42,6 @@ export default function DemoAdminTuitionPage({
           initialFamilyId={initialFamilyId}
           initialDashboardTab={initialDashboardTab}
           previewMode
-          onOpenSetupWizard={() => {}}
         />
       </div>
     </DemoSchoolAdminStoryProvider>

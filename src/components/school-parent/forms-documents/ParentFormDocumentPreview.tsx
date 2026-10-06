@@ -10,11 +10,15 @@ import ParentButton from "@/components/school-parent/ui/ParentButton";
 
 const PREVIEW_UNAVAILABLE = "Document preview unavailable in preview mode.";
 
+const STAFF_PREVIEW_PENDING = "Loading document preview…";
+
 type ParentFormDocumentPreviewProps = {
   theme: ParentThemeTokens;
   form: TeacherParentForm;
   organizationId: string;
   readOnly?: boolean;
+  /** When false, never calls parent-portal download (staff create preview). */
+  remoteDownloadEnabled?: boolean;
   previewUrl?: string | null;
   localPreviewUrl?: string | null;
   previewHeightClass?: string;
@@ -30,6 +34,7 @@ export default function ParentFormDocumentPreview({
   form,
   organizationId,
   readOnly = false,
+  remoteDownloadEnabled = true,
   previewUrl = null,
   localPreviewUrl = null,
   previewHeightClass = TEACHER_FORM_DOCUMENT_PREVIEW_HEIGHT_CLASS,
@@ -58,6 +63,11 @@ export default function ParentFormDocumentPreview({
       return;
     }
 
+    if (!remoteDownloadEnabled) {
+      setPreviewState({ status: "loading" });
+      return;
+    }
+
     setPreviewState({ status: "loading" });
     try {
       const signedUrl = await fetchParentFormDownloadUrl(form.id, organizationId);
@@ -71,7 +81,15 @@ export default function ParentFormDocumentPreview({
         message: error instanceof Error ? error.message : "Failed to load preview.",
       });
     }
-  }, [form.id, form.uploadFormat, localPreviewUrl, organizationId, previewUrl, readOnly]);
+  }, [
+    form.id,
+    form.uploadFormat,
+    localPreviewUrl,
+    organizationId,
+    previewUrl,
+    readOnly,
+    remoteDownloadEnabled,
+  ]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -94,6 +112,21 @@ export default function ParentFormDocumentPreview({
   }
 
   if (previewState.status === "loading") {
+    if (!remoteDownloadEnabled && !previewUrl && !localPreviewUrl) {
+      return (
+        <div
+          className="flex min-h-[160px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 text-center"
+          style={{ borderColor: theme.line, backgroundColor: "#F3F6F3" }}
+          aria-busy="true"
+          aria-label="Loading document preview"
+        >
+          <p className="text-sm" style={{ color: theme.muted }}>
+            {STAFF_PREVIEW_PENDING}
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div
         className={`${previewHeightClass} w-full animate-pulse rounded-xl`}

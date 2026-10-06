@@ -78,11 +78,12 @@ import {
 import ParentHomeFormsSnapshotSection from "@/components/school-parent/home/ParentHomeFormsSnapshotSection";
 import ParentHomeFridayBranchSection from "@/components/school-parent/home/ParentHomeFridayBranchSection";
 import { isParentHomeFridayBranchEnabled } from "@/lib/organization-settings/parent-home-features";
+import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
 import type { ParentFridayBranchPageBundle } from "@/lib/parent-portal/friday-branch/types";
 import type { ResolvedParentFeatureAnnouncement } from "@/lib/parent-portal/parent-feature-announcements";
 import type { ParentFormAttentionItem } from "@/lib/school-parent/forms-documents/load-parent-form-attention-items";
 import type { ParentFormHomeSnapshot } from "@/lib/school-parent/forms-documents/load-parent-form-home-snapshot";
-import { isParentFeatureEnabled } from "@/lib/organization-settings/parent-routes";
+import type { OrganizationFridayBranchSettings } from "@/lib/school-admin/friday-branch/friday-branch-org-settings";
 import { formatFormDueDate } from "@/lib/school-teacher/forms-documents/utils";
 
 type ParentHomePageProps = {
@@ -117,6 +118,7 @@ type ParentHomePageProps = {
   parentNavBasePath?: string;
   featureAnnouncements?: ResolvedParentFeatureAnnouncement[];
   fridayBranchHome?: ParentFridayBranchPageBundle | null;
+  fridayBranchSettings?: OrganizationFridayBranchSettings | null;
 };
 
 type AttentionItem = {
@@ -420,6 +422,7 @@ export default function ParentHomePage({
   parentNavBasePath,
   featureAnnouncements = [],
   fridayBranchHome = null,
+  fridayBranchSettings,
 }: ParentHomePageProps) {
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [activeGuide, setActiveGuide] = useState<ParentDocGuide | null>(null);
@@ -456,7 +459,7 @@ export default function ParentHomePage({
     ? isParentFeatureEnabled(features, "forms_documents")
     : false;
   const fridayBranchHomeEnabled = features
-    ? isParentHomeFridayBranchEnabled(features)
+    ? isParentHomeFridayBranchEnabled(features, fridayBranchSettings)
     : false;
 
   const howToGuides = useMemo(() => {

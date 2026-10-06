@@ -7,7 +7,7 @@ import ActivityLogDetail from "@/components/admin/ActivityLogDetail";
 import ActivityLogFeed from "@/components/admin/ActivityLogFeed";
 import { AdminDrawer } from "@/components/admin/ui/AdminDrawer";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
-import { enrichActivityEventsWithActors, type EnrichedActivityEvent } from "@/lib/activity-event-display";
+import { enrichActivityEventsForDisplay, type EnrichedActivityEvent } from "@/lib/activity-event-display";
 import {
   fetchActivityEvents,
   type ActivityDatePreset,
@@ -219,7 +219,7 @@ export default function AdminActivityPage() {
         organizationId: organizationId || undefined,
         surface: surfaceFilter || undefined,
       });
-      const enriched = await enrichActivityEventsWithActors(supabase, data);
+      const enriched = await enrichActivityEventsForDisplay(supabase, data);
       setEvents(enriched);
       setSelectedId((current) => {
         if (current && enriched.some((event) => event.id === current)) {

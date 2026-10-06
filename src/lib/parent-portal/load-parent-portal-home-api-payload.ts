@@ -71,6 +71,7 @@ export type ParentPortalHomeApiPayload = {
   bulletinEnabled: boolean;
   bulletinPosts: BulletinPost[];
   fridayBranchHome: ParentFridayBranchPageBundle | null;
+  fridayBranchParentPortalPaused: boolean;
   programId?: string;
   programSlug?: string;
   programPortalLabel?: string;
@@ -135,6 +136,7 @@ export async function loadParentPortalHomeApiPayload(input: {
           familyId,
           slug,
           features: org.features,
+          fridayBranchSettings: org.fridayBranchSettings,
         })
       : null;
 
@@ -181,6 +183,7 @@ export async function loadParentPortalHomeApiPayload(input: {
       bulletinEnabled,
       bulletinPosts,
       fridayBranchHome: contentData?.fridayBranchHome ?? null,
+      fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
       featureAnnouncements,
       documentationGuides,
     };
@@ -222,6 +225,7 @@ export async function loadParentPortalHomeApiPayload(input: {
         features,
         programId,
         coopModeEnabled,
+        fridayBranchSettings: org.fridayBranchSettings,
       })
     : null;
 
@@ -282,6 +286,7 @@ export async function loadParentPortalHomeApiPayload(input: {
     bulletinEnabled,
     bulletinPosts,
     fridayBranchHome: contentData?.fridayBranchHome ?? null,
+    fridayBranchParentPortalPaused: org.fridayBranchSettings.parent_portal_paused,
     programId,
     programSlug: input.programSlug,
     programPortalLabel: programContext.displayLabel,

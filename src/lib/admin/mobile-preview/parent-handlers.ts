@@ -341,6 +341,7 @@ export async function handleParentMobilePreviewGet(
         slug,
         features,
         previewBasePath: previewParentBasePath,
+        fridayBranchSettings: org.fridayBranchSettings,
         supabase: admin,
       });
       const bulletinEnabled = Boolean(org.features.admin?.bulletin);
