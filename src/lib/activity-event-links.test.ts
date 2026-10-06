@@ -24,7 +24,7 @@ describe("resolveActivityEventLinks", () => {
     assert.equal(links!.primary.ctaLabel, "Open family billing");
     assert.equal(
       links!.previewFamily!.href,
-      "/admin/preview/rooted-meadows/family/family-1/parent/(school)/billing",
+      "/admin/preview/rooted-meadows/family/family-1/parent/billing",
     );
   });
 
@@ -62,7 +62,7 @@ describe("resolveActivityEventLinks", () => {
     assert.ok(links);
     assert.equal(
       links!.previewFamily!.href,
-      "/admin/preview/rooted-meadows/family/family-2/parent/(school)/forms_documents?form=form-1",
+      "/admin/preview/rooted-meadows/family/family-2/parent/forms_documents?form=form-1",
     );
     assert.equal(
       links!.previewTeacher!.href,

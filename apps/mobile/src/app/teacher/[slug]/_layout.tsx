@@ -194,7 +194,10 @@ export default function TeacherLayout() {
 
   useRecoverableAuthRedirect(!user, isLoading);
 
-  if (!loadedOrg || orgLoadState === 'loading') {
+  const orgReady =
+    loadedOrg && loadedOrg.slug === slug && orgLoadState === 'ready';
+
+  if (!orgReady) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color={Story.primary} />

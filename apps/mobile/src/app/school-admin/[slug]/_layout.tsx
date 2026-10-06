@@ -255,7 +255,10 @@ export default function SchoolAdminLayout() {
     return null;
   }
 
-  if (!organization || orgLoadState === 'loading') {
+  const orgReady =
+    organization && organization.slug === slug && orgLoadState === 'ready';
+
+  if (!orgReady) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator color="#2E4A3C" />

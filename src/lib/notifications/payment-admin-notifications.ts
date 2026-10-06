@@ -17,7 +17,7 @@ import {
   getPaymentById,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 async function getStudentNameForCharge(
   admin: SupabaseClient,
@@ -132,7 +132,7 @@ async function buildAdminNotificationPayload(
     studentName,
     chargeLabel: payment.label ?? null,
     lineItems: options?.lineItems,
-    paymentsAdminUrl: `${SITE_URL}${schoolAdminPath(String(org.slug), "admissions", "payments")}`,
+    paymentsAdminUrl: `${getRuntimeSiteUrl()}${schoolAdminPath(String(org.slug), "admissions", "payments")}`,
   };
 }
 
@@ -235,7 +235,7 @@ export async function sendAchBankVerificationAdminNotifications(
       });
     }
 
-    const financesAdminUrl = `${SITE_URL}${schoolAdminPath(String(org.slug), "finances", "transactions")}`;
+    const financesAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(String(org.slug), "finances", "transactions")}`;
     const adminEmailContext = buildEmailNotificationContext({
       organizationId: input.organizationId,
       organizationSlug: String(org.slug),

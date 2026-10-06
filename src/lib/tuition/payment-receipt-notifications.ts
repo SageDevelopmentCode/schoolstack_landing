@@ -16,7 +16,7 @@ import {
   getPaymentById,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { SettleTuitionPaymentResult } from "./payment-settlement";
 
 async function resolvePayerContact(
@@ -180,8 +180,7 @@ async function getStudentNamesByChargeIds(
 }
 
 function buildBillingUrl(orgSlug: string): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? SITE_URL;
-  return `${siteUrl}/school/${orgSlug}/parent/billing`;
+  return `${getRuntimeSiteUrl()}/school/${orgSlug}/parent/billing`;
 }
 
 function paymentMethodLabel(

@@ -73,3 +73,29 @@ describe("composeEmail with localhost env", () => {
     assertNoLocalhostInOutboundHtml(html);
   });
 });
+
+describe("payment admin notification URLs after ensureProduction", () => {
+  it("builds production admin links when env was localhost", async () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+    ensureProductionSiteUrlForOutboundEmail();
+    const { schoolAdminPath } = await import(
+      "@/lib/organization-settings/admin-routes"
+    );
+    const { buildPaymentReceivedAdminNotificationHtml } = await import(
+      "@/lib/emails"
+    );
+    const paymentsAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath("demo-school", "admissions", "payments")}`;
+    assert.equal(paymentsAdminUrl.startsWith(PRODUCTION_SITE_URL), true);
+    const html = buildPaymentReceivedAdminNotificationHtml({
+      schoolName: "Demo School",
+      paymentTypeLabel: "Tuition",
+      payerLabel: "Demo Family",
+      amountCents: 10000,
+      chargedAmountCents: 10000,
+      paymentMethodLabel: "Card",
+      paidAtLabel: "Jan 1, 2026",
+      paymentsAdminUrl,
+    });
+    assertNoLocalhostInOutboundHtml(html);
+  });
+});

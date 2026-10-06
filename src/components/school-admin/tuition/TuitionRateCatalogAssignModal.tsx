@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import SchoolAdminModalShell from "@/components/school-admin/ui/SchoolAdminModalShell";
 import { useSchoolAdminStoryTheme } from "@/components/school-admin/SchoolAdminStoryShell";
@@ -49,15 +49,11 @@ export default function TuitionRateCatalogAssignModal({
     [programId, ratePlans],
   );
 
-  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState(
+    () => catalogOptions[0]?.id ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setError(null);
-    setSelectedPlanId(catalogOptions[0]?.id ?? "");
-  }, [catalogOptions, open]);
 
   const handleAssign = async () => {
     if (!selectedPlanId) {

@@ -2,7 +2,6 @@
  * Resend payment-received admin notification emails for succeeded payments.
  *
  * Usage:
- *   NEXT_PUBLIC_SITE_URL=https://trymudkitchen.com \
  *   PAYMENT_IDS=<uuid>,<uuid> \
  *   npx tsx --require ./src/test/integration/mock-server-only.cjs scripts/resend-payment-admin-notification.ts
  *
@@ -14,6 +13,7 @@ import { resolve } from "node:path";
 import { config } from "dotenv";
 
 import {
+  assertNoLocalhostInOutboundHtml,
   ensureProductionSiteUrlForOutboundEmail,
   logOutboundEmailSiteUrl,
 } from "./lib/outbound-email-production-site";
@@ -109,6 +109,21 @@ async function main() {
   );
 
   const admin = createAdminClient();
+
+  const { buildPaymentReceivedAdminNotificationHtml } = await import(
+    "@/lib/emails"
+  );
+  const sampleAdminHtml = buildPaymentReceivedAdminNotificationHtml({
+    schoolName: "School",
+    paymentTypeLabel: "Tuition",
+    payerLabel: "Family",
+    amountCents: 10000,
+    chargedAmountCents: 10000,
+    paymentMethodLabel: "Card",
+    paidAtLabel: "Jan 1, 2026",
+    paymentsAdminUrl: `${siteUrl}${schoolAdminPath("sample", "admissions", "payments")}`,
+  });
+  assertNoLocalhostInOutboundHtml(sampleAdminHtml);
 
   for (const paymentId of paymentIds) {
     const payment = await getPaymentById(admin, paymentId);

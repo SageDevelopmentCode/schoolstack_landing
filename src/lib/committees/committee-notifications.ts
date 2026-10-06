@@ -27,7 +27,7 @@ import { committeeTaskAssigneeTasksUrl } from "@/lib/committees/committee-portal
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 export async function sendCommitteeJoinRequestedNotifications(
   supabase: SupabaseClient,
@@ -76,7 +76,7 @@ export async function sendCommitteeJoinRequestedNotifications(
     supabase,
     input.organizationId,
   );
-  const committeesAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "committees")}`;
+  const committeesAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(input.schoolSlug, "committees")}`;
   const organizationTimeZone = await getOrganizationTimezone(
     supabase,
     input.organizationId,
@@ -187,7 +187,7 @@ export async function sendCommitteeJoinApprovedNotifications(
     input.requesterType === "staff"
       ? schoolTeacherPath(input.schoolSlug, "committees")
       : schoolParentPath(input.schoolSlug, "committees");
-  const committeesUrl = `${SITE_URL}${portalPath}?${committeeParams.toString()}`;
+  const committeesUrl = `${getRuntimeSiteUrl()}${portalPath}?${committeeParams.toString()}`;
 
   const trimmedEmail = input.memberEmail?.trim() ?? "";
   if (!trimmedEmail) return;

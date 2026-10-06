@@ -4,6 +4,7 @@ import {
   portalTypeToMobileSurface,
   reportMobileOperationalError,
 } from '@/lib/mobile-activity';
+import { ParentPortalApiError } from '@/lib/parent/parent-portal-api';
 import { TeacherPortalApiError } from '@/lib/teacher/teacher-portal-api';
 
 function resolveResponseStatus(err: unknown, explicit?: number): number | undefined {
@@ -11,10 +12,24 @@ function resolveResponseStatus(err: unknown, explicit?: number): number | undefi
     return explicit;
   }
 
+  if (err instanceof ParentPortalApiError) {
+    return err.status;
+  }
+
   if (err instanceof TeacherPortalApiError) {
     return err.status;
   }
 
+  return undefined;
+}
+
+function resolveApiErrorCode(err: unknown): string | undefined {
+  if (err instanceof ParentPortalApiError) {
+    return err.code;
+  }
+  if (err instanceof TeacherPortalApiError) {
+    return err.code;
+  }
   return undefined;
 }
 
@@ -56,10 +71,7 @@ export function createMobileErrorReporter(
         surface,
         operation,
         error: options.error ?? parsed.message,
-        code:
-          options.code ??
-          parsed.code ??
-          (err instanceof TeacherPortalApiError ? err.code : undefined),
+        code: options.code ?? parsed.code ?? resolveApiErrorCode(err),
         details: options.details ?? parsed.details,
         entityType: options.entityType,
         entityId: options.entityId,

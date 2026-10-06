@@ -13,6 +13,7 @@ import { resolve } from "node:path";
 import { config } from "dotenv";
 
 import {
+  assertNoLocalhostInOutboundHtml,
   ensureProductionSiteUrlForOutboundEmail,
   logOutboundEmailSiteUrl,
 } from "./lib/outbound-email-production-site";
@@ -101,8 +102,18 @@ async function main() {
   const { schoolAdminPath } = await import(
     "@/lib/organization-settings/admin-routes"
   );
+  const { buildApplicationSubmittedOwnerNotificationHtml } = await import(
+    "@/lib/emails"
+  );
 
   const admin = createAdminClient();
+  const sampleOwnerHtml = buildApplicationSubmittedOwnerNotificationHtml({
+    schoolName: "School",
+    formTitle: "Application",
+    submittedAtLabel: "Jan 1, 2026",
+    submissionAdminUrl: `${siteUrl}${schoolAdminPath("sample", "admissions", "submissions")}?application=sample`,
+  });
+  assertNoLocalhostInOutboundHtml(sampleOwnerHtml);
 
   for (const applicationId of applicationIds) {
     const { data: application, error } = await admin

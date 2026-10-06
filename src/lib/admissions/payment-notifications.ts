@@ -10,7 +10,7 @@ import { getOrganizationTimezone } from "@/lib/admissions/admissions-availabilit
 import { buildEmailNotificationContext, sendPaymentReceiptConfirmation } from "@/lib/emails";
 import { sendPaymentReceivedAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
 import { getPaymentById } from "@/lib/stripe/application-payments";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 async function resolvePayerContact(
   admin: SupabaseClient,
@@ -149,7 +149,7 @@ export async function sendPaymentCompletedNotifications(
           paymentMethodLabel,
           paidAt,
           organizationTimeZone,
-          applyDashboardUrl: `${SITE_URL}/school/${schoolSlug}/apply`,
+          applyDashboardUrl: `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`,
           notificationContext: paymentEmailContext,
         }),
       ),

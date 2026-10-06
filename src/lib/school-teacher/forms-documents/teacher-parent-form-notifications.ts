@@ -17,7 +17,7 @@ import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notific
 import { schoolParentPath } from "@/lib/organization-settings/parent-routes";
 import { schoolTeacherPath } from "@/lib/organization-settings/teacher-routes";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import { resolveFormAudienceForType } from "./audience";
 import type { TeacherParentForm } from "./types";
 
@@ -170,8 +170,8 @@ export async function sendTeacherParentFormPublishedNotifications(
 
   const formUrl =
     input.form.formCategory === "tuition"
-      ? `${SITE_URL}${schoolParentPath(org.schoolSlug, "billing")}?tab=agreements&form=${encodeURIComponent(input.form.id)}`
-      : `${SITE_URL}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
+      ? `${getRuntimeSiteUrl()}${schoolParentPath(org.schoolSlug, "billing")}?tab=agreements&form=${encodeURIComponent(input.form.id)}`
+      : `${getRuntimeSiteUrl()}${schoolParentPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.form.id)}`;
   const formEmailContext = buildEmailNotificationContext({
     organizationId: input.organizationId,
     organizationSlug: org.schoolSlug,
@@ -254,7 +254,7 @@ export async function sendTeacherParentFormResponseSignedNotification(
   const teacherEmail = await loadStaffEmail(supabase, input.staffMemberId);
   if (!teacherEmail) return;
 
-  const formUrl = `${SITE_URL}${schoolTeacherPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.formId)}`;
+  const formUrl = `${getRuntimeSiteUrl()}${schoolTeacherPath(org.schoolSlug, "forms_documents")}?form=${encodeURIComponent(input.formId)}`;
   const emailResults = await Promise.allSettled([
     sendSignedEmail({
       to: teacherEmail,

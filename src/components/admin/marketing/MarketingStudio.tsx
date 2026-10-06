@@ -41,9 +41,7 @@ export default function MarketingStudio() {
   const exportRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const carouselParam = searchParams.get("carousel");
-  const [selectedCarouselId, setSelectedCarouselId] = useState(() =>
-    resolveMarketingCarouselId(carouselParam),
-  );
+  const selectedCarouselId = resolveMarketingCarouselId(carouselParam);
   const [index, setIndex] = useState(0);
   const [scale, setScale] = useState(0.42);
   const [exporting, setExporting] = useState<"slide" | "all" | null>(null);
@@ -55,18 +53,12 @@ export default function MarketingStudio() {
   const slide = slides[index] ?? slides[0];
 
   useEffect(() => {
-    const resolved = resolveMarketingCarouselId(carouselParam);
-    setSelectedCarouselId((current) => (current === resolved ? current : resolved));
-  }, [carouselParam]);
-
-  useEffect(() => {
     exportRefs.current = [];
   }, [carouselId]);
 
   const selectCarousel = useCallback(
     (id: string) => {
       const nextId = resolveMarketingCarouselId(id);
-      setSelectedCarouselId(nextId);
       setIndex(0);
       setExportError(null);
 
@@ -79,7 +71,7 @@ export default function MarketingStudio() {
       const query = params.toString();
       router.replace(query ? `/admin/marketing?${query}` : "/admin/marketing", { scroll: false });
     },
-    [router, searchParams],
+    [router, searchParams, setIndex, setExportError],
   );
 
   useEffect(() => {
@@ -102,7 +94,7 @@ export default function MarketingStudio() {
     (delta: number) => {
       setIndex((current) => (current + delta + slides.length) % slides.length);
     },
-    [slides.length],
+    [slides.length, setIndex],
   );
 
   useEffect(() => {

@@ -9,6 +9,12 @@
 import { resolve } from "node:path";
 import { config } from "dotenv";
 
+import {
+  assertNoLocalhostInOutboundHtml,
+  ensureProductionSiteUrlForOutboundEmail,
+  logOutboundEmailSiteUrl,
+} from "./lib/outbound-email-production-site";
+
 config({ path: resolve(process.cwd(), ".env.local") });
 
 const DEFAULT_PAYMENT_ID = "6694f4f0-fc6e-4708-b2b4-e26b1e324273";
@@ -78,6 +84,9 @@ async function resolveTargetEmails(
 }
 
 async function main() {
+  ensureProductionSiteUrlForOutboundEmail();
+  logOutboundEmailSiteUrl("resend-tuition-receipt");
+
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
     console.error("[resend-tuition-receipt] Supabase credentials not configured in .env.local");
     process.exit(1);
@@ -136,6 +145,19 @@ async function main() {
   log(`Label: ${payment.label ?? "Tuition"}`);
   log(`Amount: ${payment.amountCents} cents (charged ${payment.chargedAmountCents ?? payment.amountCents})`);
   log(`Sending receipt to: ${emails.join(", ")}`);
+
+  const { getRuntimeSiteUrl } = await import("@/lib/site");
+  const { buildTuitionPaymentReceiptHtml } = await import("@/lib/emails");
+  const sampleHtml = buildTuitionPaymentReceiptHtml({
+    name: "Family",
+    schoolName: "School",
+    billingUrl: `${getRuntimeSiteUrl()}/school/sample/parent/billing`,
+    paidAtLabel: "Jan 1, 2026",
+    paymentMethodLabel: "Card",
+    amountCents: 10000,
+    chargedAmountCents: 10000,
+  });
+  assertNoLocalhostInOutboundHtml(sampleHtml);
 
   await sendTuitionPaymentReceiptNotifications(admin, paymentId);
 

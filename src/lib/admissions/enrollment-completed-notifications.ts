@@ -13,7 +13,7 @@ import {
   schoolParentPath,
 } from "@/lib/organization-settings/parent-routes";
 import type { OrganizationFeatures } from "@/lib/organization-settings/types";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 export async function sendEnrollmentCompletedNotifications(
   admin: SupabaseClient,
@@ -115,8 +115,8 @@ export async function sendEnrollmentCompletedNotifications(
     const parentPortalEnabled = isParentPortalEnabled(features);
     const schoolSlug = String(org.slug);
     const parentPortalUrl = parentPortalEnabled
-      ? `${SITE_URL}${schoolParentPath(schoolSlug, "portal")}`
-      : `${SITE_URL}/school/${schoolSlug}/apply`;
+      ? `${getRuntimeSiteUrl()}${schoolParentPath(schoolSlug, "portal")}`
+      : `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`;
     const schoolName = String(org.name);
     const enrollmentEmailContext = buildEmailNotificationContext({
       organizationId: String(application.organization_id),

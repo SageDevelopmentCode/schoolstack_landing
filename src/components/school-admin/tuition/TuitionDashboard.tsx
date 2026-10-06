@@ -223,6 +223,7 @@ export default function TuitionDashboard({
       setTab(tabParam);
     }
   }, [searchParams]);
+
   const [outstandingPeriodSelection, setOutstandingPeriod] =
     useState<OutstandingPeriod>("current_month");
   const [unassignedBannerDismissed, setUnassignedBannerDismissed] = useState(false);

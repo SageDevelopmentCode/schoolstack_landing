@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts/auth-context';
 import { toLiveOrganization } from '@/lib/portal-organization';
@@ -12,6 +12,16 @@ export function usePortalOrganization(slug: string | undefined) {
   const { user, refreshSelectedSchool } = useAuth();
   const [organization, setOrganization] = useState<LiveOrganization | null>(null);
   const [status, setStatus] = useState<PortalOrganizationStatus>('loading');
+
+  useEffect(() => {
+    if (!slug) {
+      setOrganization(null);
+      setStatus('failed');
+      return;
+    }
+    setOrganization(null);
+    setStatus('loading');
+  }, [slug]);
 
   useFocusEffect(
     useCallback(() => {
@@ -38,6 +48,7 @@ export function usePortalOrganization(slug: string | undefined) {
         }
 
         const live = toLiveOrganization(org);
+        if (live.slug !== slug) return;
         setOrganization(live);
         setStatus('ready');
         void refreshSelectedSchool(live);

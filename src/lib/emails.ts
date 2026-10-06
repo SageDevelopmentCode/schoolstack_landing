@@ -19,7 +19,7 @@ import {
   formatInstantDateTimeInTimezone,
 } from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
-import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
 import type {
   OutboundEmailAudience,
   OutboundEmailDiscordMeta,
@@ -118,7 +118,7 @@ export function buildDemoBookingConfirmationHtml(payload: {
       ${emailParagraph(
         "We'll send a calendar invite or follow up shortly if we need anything else before your session."
       )}
-      ${emailCta({ label: "Visit MudKitchen", href: SITE_URL })}
+      ${emailCta({ label: "Visit MudKitchen", href: getRuntimeSiteUrl() })}
       ${emailSignOff()}
     `,
   });
@@ -136,7 +136,7 @@ export function buildHomepageQuestionConfirmationHtml(payload: { name: string })
       ${emailParagraph(
         "In the meantime, feel free to explore how MudKitchen helps microschool founders replace the patchwork of tools they're stitching together."
       )}
-      ${emailCta({ label: "Explore MudKitchen", href: SITE_URL })}
+      ${emailCta({ label: "Explore MudKitchen", href: getRuntimeSiteUrl() })}
       ${emailSignOff()}
     `,
   });
@@ -154,7 +154,7 @@ export function buildDemoFeedbackConfirmationHtml(payload: {
       ${emailParagraph(
         `Thanks for sharing feedback on the ${escapeHtml(payload.schoolName)} demo. Your perspective helps us build better tools for microschool founders who need one system for enrollment, billing, and daily operations.`
       )}
-      ${emailCta({ label: "Book a Demo", href: `${SITE_URL}/get-started` })}
+      ${emailCta({ label: "Book a Demo", href: `${getRuntimeSiteUrl()}/get-started` })}
       ${emailSignOff()}
     `,
   });
@@ -217,7 +217,7 @@ export function buildPublicSupportRequestConfirmationHtml(payload: {
       ${emailParagraph(
         "If your question is urgent, you can also book a demo to speak with us directly.",
       )}
-      ${emailCta({ label: "Book a Demo", href: `${SITE_URL}/get-started` })}
+      ${emailCta({ label: "Book a Demo", href: `${getRuntimeSiteUrl()}/get-started` })}
       ${emailSignOff()}
     `,
   });
@@ -2388,7 +2388,7 @@ export function buildCommitteeUnreadCatchUpEmailHtml(payload: {
     .map((committee) => {
       const messagesUrl = committee.messagesUrl.startsWith("http")
         ? committee.messagesUrl
-        : `${SITE_URL}${committee.messagesUrl}`;
+        : `${getRuntimeSiteUrl()}${committee.messagesUrl}`;
       const unreadLabel =
         committee.unreadCount === 1
           ? "1 unread message"
@@ -2501,7 +2501,7 @@ export function buildCommitteeUnreadWorkspaceDigestEmailHtml(payload: {
     .map((committee) => {
       const workspaceUrl = committee.workspaceUrl.startsWith("http")
         ? committee.workspaceUrl
-        : `${SITE_URL}${committee.workspaceUrl}`;
+        : `${getRuntimeSiteUrl()}${committee.workspaceUrl}`;
       const sectionsLabel = committee.sectionLabels.join(" · ");
       const unreadLabel =
         committee.unreadCount === 1
@@ -3141,7 +3141,7 @@ export function buildNewMessageEmailHtml(payload: {
 }): string {
   const absoluteUrl = payload.threadUrl.startsWith("http")
     ? payload.threadUrl
-    : `${SITE_URL}${payload.threadUrl}`;
+    : `${getRuntimeSiteUrl()}${payload.threadUrl}`;
 
   return composeEmail({
     preheader: `New message from ${payload.senderName}`,
@@ -3212,13 +3212,13 @@ export function buildUnreadMessagesDigestEmailHtml(payload: {
   const portalLabel = payload.recipientPortal === "teacher" ? "staff" : "family";
   const absoluteInboxUrl = payload.messagesUrl.startsWith("http")
     ? payload.messagesUrl
-    : `${SITE_URL}${payload.messagesUrl}`;
+    : `${getRuntimeSiteUrl()}${payload.messagesUrl}`;
 
   const threadSections = payload.threads
     .map((thread) => {
       const threadUrl = thread.threadUrl.startsWith("http")
         ? thread.threadUrl
-        : `${SITE_URL}${thread.threadUrl}`;
+        : `${getRuntimeSiteUrl()}${thread.threadUrl}`;
       const unreadLabel =
         thread.unreadCount === 1
           ? "1 unread message"
@@ -3317,7 +3317,7 @@ export function buildTeacherParentFormPublishedEmailHtml(payload: {
 }): string {
   const absoluteUrl = payload.formUrl.startsWith("http")
     ? payload.formUrl
-    : `${SITE_URL}${payload.formUrl}`;
+    : `${getRuntimeSiteUrl()}${payload.formUrl}`;
 
   const details: { label: string; value: string }[] = [
     { label: "School", value: payload.schoolName },
@@ -3394,7 +3394,7 @@ export function buildTeacherParentFormResponseSignedEmailHtml(payload: {
 }): string {
   const absoluteUrl = payload.formUrl.startsWith("http")
     ? payload.formUrl
-    : `${SITE_URL}${payload.formUrl}`;
+    : `${getRuntimeSiteUrl()}${payload.formUrl}`;
 
   return composeEmail({
     preheader: `${payload.familyName} signed ${payload.formTitle}`,
@@ -3467,7 +3467,7 @@ export function buildBulletinPublishedEmailHtml(payload: {
 }): string {
   const absoluteUrl = payload.portalUrl.startsWith("http")
     ? payload.portalUrl
-    : `${SITE_URL}${payload.portalUrl}`;
+    : `${getRuntimeSiteUrl()}${payload.portalUrl}`;
 
   const details: { label: string; value: string }[] = [
     { label: "School", value: payload.schoolName },

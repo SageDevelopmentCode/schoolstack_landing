@@ -43,7 +43,7 @@ function tuitionAdminHref(slug: string): string {
 }
 
 function parentPreviewBase(slug: string, familyId: string): string {
-  return `/admin/preview/${slug}/family/${familyId}/parent/(school)`;
+  return `/admin/preview/${slug}/family/${familyId}/parent`;
 }
 
 function teacherFormPreviewHref(

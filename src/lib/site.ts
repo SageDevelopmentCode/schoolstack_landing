@@ -17,6 +17,11 @@ export function getRuntimeSiteUrl(): string {
   return raw.replace(/\/$/, "");
 }
 
+/** Base URL for absolute links in outbound email (reads env at call time; never localhost). */
+export function outboundEmailSiteUrl(): string {
+  return getRuntimeSiteUrl();
+}
+
 /** Absolute public URL for a path (path must start with `/`). */
 export function publicSiteAbsoluteUrl(path: string): string {
   return `${SITE_URL}${path}`;

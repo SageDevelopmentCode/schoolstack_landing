@@ -47,7 +47,7 @@ import {
   resolveApplicationNotificationEmails,
   resolveVisitNotificationEmails,
 } from "@/lib/notifications/org-notification-settings";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 
 export type ApplicantContact = {
   email: string;
@@ -199,8 +199,8 @@ export async function sendApplicationSubmittedNotifications(
       submittedAt,
       organizationTimeZone,
     );
-    const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
-    const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
+    const applyDashboardUrl = `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`;
+    const submissionAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
 
     const responses =
       application.responses && typeof application.responses === "object" && !Array.isArray(application.responses)
@@ -368,7 +368,7 @@ export async function sendApplicationAcceptedEnrollmentNotifications(
       entityType: "application",
       entityId: applicationId,
     });
-    const enrollmentChecklistUrl = `${SITE_URL}/school/${schoolSlug}/apply/${applicationId}/enrollment`;
+    const enrollmentChecklistUrl = `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply/${applicationId}/enrollment`;
 
     const notificationTasks = contact.emails.map((email) =>
       sendApplicationAcceptedEnrollmentEmail({
@@ -514,8 +514,8 @@ export function buildPostSubmitVisitNotificationTasks(input: {
 
   const whenLabel = formatScheduledVisitWhenLabel(booking);
   const durationLabel = resolveVisitDurationLabel(booking);
-  const applyDashboardUrl = `${SITE_URL}/school/${schoolSlug}/apply`;
-  const submissionAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
+  const applyDashboardUrl = `${getRuntimeSiteUrl()}/school/${schoolSlug}/apply`;
+  const submissionAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "admissions", "submissions")}?application=${applicationId}`;
   const visitEmailContext = buildEmailNotificationContext({
     organizationId,
     organizationSlug: schoolSlug,
@@ -795,7 +795,7 @@ export async function sendPreApplicationCampusTourAdminNotifications(
     const timezoneLabel = formatOrganizationTimezoneLabel(timezone);
     const whenLabel = formatScheduledVisitWhenLabel(input.booking);
     const durationLabel = resolveVisitDurationLabel(input.booking);
-    const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
+    const scheduleAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "schedule")}`;
     const familyName = family?.name ? String(family.name) : undefined;
     const visitEmailContext = buildEmailNotificationContext({
       organizationId: input.organizationId,
@@ -914,7 +914,7 @@ export async function sendPublicTourBookingAdminNotifications(
       durationMinutes: input.booking.durationMinutes,
     });
     const durationLabel = formatDurationLabel(input.booking.durationMinutes);
-    const scheduleAdminUrl = `${SITE_URL}${schoolAdminPath(schoolSlug, "schedule")}`;
+    const scheduleAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(schoolSlug, "schedule")}`;
     const answers = input.booking.registrant.answers;
     const contactName =
       typeof answers.contact_name === "string"

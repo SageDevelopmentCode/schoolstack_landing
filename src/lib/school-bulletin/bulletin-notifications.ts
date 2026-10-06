@@ -10,7 +10,7 @@ import {
 import { mergeFeatures } from "@/lib/organization-settings/merge";
 import { schoolParentRootPath } from "@/lib/organization-settings/parent-routes";
 import { reportOperationalError } from "@/lib/operational-errors";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import {
   formatBulletinAudiencesLabel,
   isBulletinPostActive,
@@ -254,8 +254,8 @@ export async function sendBulletinPublishedEmailNotifications(
     return { emailsAttempted: 0, emailsSucceeded: 0 };
   }
 
-  const parentPortalUrl = `${SITE_URL}${schoolParentRootPath(org.schoolSlug)}`;
-  const teacherPortalUrl = `${SITE_URL}/school/${org.schoolSlug}/teacher`;
+  const parentPortalUrl = `${getRuntimeSiteUrl()}${schoolParentRootPath(org.schoolSlug)}`;
+  const teacherPortalUrl = `${getRuntimeSiteUrl()}/school/${org.schoolSlug}/teacher`;
   const emailNotificationContext = buildEmailNotificationContext({
     organizationId: input.organizationId,
     organizationSlug: org.schoolSlug,

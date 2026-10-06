@@ -28,6 +28,7 @@ import {
 } from "./tuition-activity";
 import type {
   AssignmentSource,
+  RatePlanWithDetails,
   TuitionBillingAccount,
   TuitionEnrollmentAssignment,
 } from "./types";
@@ -51,6 +52,52 @@ export function shouldSetBillingStartLocked(
 ): boolean {
   if (incomingEffectiveStart === undefined) return false;
   return (incomingEffectiveStart ?? null) !== (storedEffectiveStart ?? null);
+}
+
+/** Resolve tier, schedule, and pending flag when an assignment switches rate catalogs. */
+export function resolveCatalogChangeAssignmentFields(input: {
+  newPlan: Pick<RatePlanWithDetails, "tiers" | "paymentPlans">;
+  submittedRateTierId?: string | null;
+  submittedPaymentPlanId?: string;
+  defaultRateTierId: string | null;
+  defaultPaymentPlanId: string;
+  existingMetadata: TuitionEnrollmentAssignment["metadata"];
+}): {
+  rateTierId: string | null;
+  paymentPlanId: string;
+  metadata: TuitionEnrollmentAssignment["metadata"];
+} {
+  const tierBelongs =
+    typeof input.submittedRateTierId === "string" &&
+    input.submittedRateTierId.length > 0 &&
+    input.newPlan.tiers.some((tier) => tier.id === input.submittedRateTierId);
+
+  const rateTierId = tierBelongs
+    ? input.submittedRateTierId
+    : input.defaultRateTierId;
+
+  const planBelongs =
+    typeof input.submittedPaymentPlanId === "string" &&
+    input.submittedPaymentPlanId.length > 0 &&
+    input.newPlan.paymentPlans.some(
+      (plan) => plan.id === input.submittedPaymentPlanId,
+    );
+
+  const paymentPlanId = planBelongs
+    ? input.submittedPaymentPlanId!
+    : input.defaultPaymentPlanId;
+
+  const multiplePaymentPlans = input.newPlan.paymentPlans.length > 1;
+  const pendingPaymentPlanSelection = multiplePaymentPlans && !planBelongs;
+
+  return {
+    rateTierId,
+    paymentPlanId,
+    metadata: {
+      ...input.existingMetadata,
+      pendingPaymentPlanSelection,
+    },
+  };
 }
 
 /** Enroll-complete date for billing; null while enrollment is still pending. */
@@ -462,6 +509,7 @@ export async function backfillTuitionAssignmentsForRatePlan(
       organizationId: String(ratePlan.organization_id),
       programId: String(ratePlan.program_id),
       assignedByUserId,
+      ratePlanId,
     },
   );
 }
@@ -472,6 +520,7 @@ export async function backfillTuitionAssignmentsForProgram(
     organizationId: string;
     programId: string;
     assignedByUserId?: string | null;
+    ratePlanId?: string | null;
   },
 ): Promise<TuitionAssignmentBackfillResult> {
   const { data: enrollments, error: enrollmentsError } = await supabase
@@ -535,7 +584,7 @@ export async function backfillTuitionAssignmentsForProgram(
       continue;
     }
 
-    if (programHasMultipleCatalogs) {
+    if (programHasMultipleCatalogs && !input.ratePlanId) {
       skippedAmbiguousCount += 1;
       continue;
     }
@@ -547,6 +596,7 @@ export async function backfillTuitionAssignmentsForProgram(
         familyId,
         programId: input.programId,
         assignedByUserId: input.assignedByUserId,
+        ratePlanId: input.ratePlanId ?? undefined,
       }, { skip: true });
       if (assignment) assignedCount += 1;
       else failedCount += 1;

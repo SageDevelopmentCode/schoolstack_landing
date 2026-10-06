@@ -4,7 +4,6 @@ import ws from "ws";
 import { materializeApplicationStudent } from "../../src/lib/admissions/application-entity-materialization";
 import { autoAssignTuitionForEnrollment, computeInstallmentAmountCents } from "../../src/lib/tuition/assignments";
 import { regenerateFutureCharges } from "../../src/lib/tuition/charge-generator";
-import { createRatePlanFromWizard } from "../../src/lib/tuition/setup-wizard";
 import { AUTH_STATE_PATHS } from "../fixtures/constants";
 import { E2E_PARENT_EMAIL } from "../fixtures/constants";
 import { ADMIN_TUITION_PATH } from "../helpers/constants";
@@ -16,6 +15,7 @@ import {
   openUpcomingChargesPanel,
   resetFamilyBillingState,
 } from "../helpers/billing-fixtures";
+import { ensureE2eRateCatalogForProgram } from "../helpers/tuition-rate-plan";
 import { getSeedManifest } from "../helpers/seed-manifest";
 
 function createAdminClient() {
@@ -30,28 +30,6 @@ function createAdminClient() {
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { transport: ws as never },
   });
-}
-
-async function ensureSmokeRatePlan(
-  admin: ReturnType<typeof createAdminClient>,
-  organizationId: string,
-  programId: string,
-) {
-  const planName = `E2E Smoke ${Date.now()}`;
-  const ratePlan = await createRatePlanFromWizard(admin, {
-    organizationId,
-    programId,
-    name: planName,
-    billingBasis: "annual",
-    tiers: [{ label: "Standard", amount: "7200", isDefault: true }],
-    effectiveStart: "2026-08-01",
-    effectiveEnd: "2027-06-01",
-    paymentCounts: [10],
-    defaultPaymentCount: 10,
-    fees: [],
-  });
-
-  return ratePlan;
 }
 
 async function seedParentApplicationForSmoke(
@@ -113,7 +91,7 @@ test("full tuition setup to parent billing smoke", async ({
   expect(program?.id).toBeTruthy();
   const programId = String(program!.id);
 
-  await ensureSmokeRatePlan(admin, organizationId, programId);
+  await ensureE2eRateCatalogForProgram(admin, organizationId, programId, "E2E Smoke");
 
   await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
@@ -207,7 +185,12 @@ test("tuition assignment PATCH requires admin", async ({ playwright, baseURL }) 
 
   expect(program?.id).toBeTruthy();
   const programId = String(program!.id);
-  await ensureSmokeRatePlan(admin, organizationId, programId);
+  const { ratePlanId } = await ensureE2eRateCatalogForProgram(
+    admin,
+    organizationId,
+    programId,
+    "E2E Smoke",
+  );
 
   const { data: family } = await admin
     .from("families")
@@ -246,6 +229,7 @@ test("tuition assignment PATCH requires admin", async ({ playwright, baseURL }) 
     enrollmentId: String(enrollment!.id),
     familyId: String(family!.id),
     programId,
+    ratePlanId,
   });
 
   expect(assignment?.id).toBeTruthy();
@@ -705,6 +689,14 @@ test("tuition dashboard auto-syncs assignments for newly enrolled students", asy
     .limit(1)
     .maybeSingle();
 
+  expect(program?.id).toBeTruthy();
+  await ensureE2eRateCatalogForProgram(
+    admin,
+    organizationId,
+    String(program!.id),
+    "E2E Smoke",
+  );
+
   const { data: family } = await admin
     .from("families")
     .select("id")
@@ -737,8 +729,6 @@ test("tuition dashboard auto-syncs assignments for newly enrolled students", asy
 
   expect(enrollment?.id).toBeTruthy();
 
-  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
-
   await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();
 
@@ -768,7 +758,12 @@ test("sync-assignments API creates tuition assignments for enrolled students", a
     .maybeSingle();
 
   expect(program?.id).toBeTruthy();
-  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
+  await ensureE2eRateCatalogForProgram(
+    admin,
+    organizationId,
+    String(program!.id),
+    "E2E Smoke",
+  );
 
   const { data: family } = await admin
     .from("families")
@@ -846,7 +841,12 @@ test("tuition setup panel opens from header button with three steps", async ({
     .maybeSingle();
 
   expect(program?.id).toBeTruthy();
-  await ensureSmokeRatePlan(admin, organizationId, String(program!.id));
+  await ensureE2eRateCatalogForProgram(
+    admin,
+    organizationId,
+    String(program!.id),
+    "E2E Smoke",
+  );
 
   await page.goto(ADMIN_TUITION_PATH);
   await expect(page.getByRole("heading", { name: "Tuition" })).toBeVisible();

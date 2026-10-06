@@ -8,7 +8,7 @@ import { ACTIVITY_ACTIONS, logActivityEvent } from "@/lib/activity-log";
 import { buildEmailNotificationContext, sendFridayBranchEnrollmentAdminNotification } from "@/lib/emails";
 import { resolveProgramSignupNotificationEmails } from "@/lib/notifications/org-notification-settings";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
-import { SITE_URL } from "@/lib/site";
+import { getRuntimeSiteUrl } from "@/lib/site";
 import type { ParentFridayBranchClassDetailBundle } from "@/lib/parent-portal/friday-branch/types";
 import type { FridayBranchClassEnrollmentStatus } from "@/lib/school-admin/friday-branch/friday-branch-types";
 
@@ -139,7 +139,7 @@ export async function sendFridayBranchEnrollmentAdminNotifications(
     supabase,
     input.organizationId,
   );
-  const fridayBranchAdminUrl = `${SITE_URL}${schoolAdminPath(input.schoolSlug, "my_school", "friday_branch")}?class=${encodeURIComponent(input.classId)}`;
+  const fridayBranchAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(input.schoolSlug, "my_school", "friday_branch")}?class=${encodeURIComponent(input.classId)}`;
   const submittedAtLabel = formatInstantDateTimeInTimezone(
     new Date(),
     organizationTimeZone,

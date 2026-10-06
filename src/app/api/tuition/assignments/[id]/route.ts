@@ -8,6 +8,7 @@ import { requireAuthenticatedUser } from "@/lib/admissions/application-auth-serv
 import { isPaymentPlanAllowedForBillingStart } from "@/lib/tuition/billing-start";
 import {
   getAssignmentById,
+  resolveCatalogChangeAssignmentFields,
   shouldSetBillingStartLocked,
   updateAssignment,
 } from "@/lib/tuition/assignments";
@@ -121,12 +122,17 @@ export async function PATCH(request: Request, context: RouteContext) {
           });
         }
         const defaultTier = await getDefaultTierForRatePlan(admin, newPlan.id);
-        rateTierId = defaultTier?.id ?? null;
-        paymentPlanId = defaultPaymentPlan.id;
-        metadata = {
-          ...assignment.metadata,
-          pendingPaymentPlanSelection: newPlan.paymentPlans.length > 1,
-        };
+        const resolvedFields = resolveCatalogChangeAssignmentFields({
+          newPlan,
+          submittedRateTierId: body.rateTierId,
+          submittedPaymentPlanId: body.paymentPlanId,
+          defaultRateTierId: defaultTier?.id ?? null,
+          defaultPaymentPlanId: defaultPaymentPlan.id,
+          existingMetadata: assignment.metadata,
+        });
+        rateTierId = resolvedFields.rateTierId;
+        paymentPlanId = resolvedFields.paymentPlanId;
+        metadata = resolvedFields.metadata;
       } catch {
         return apiError(ROUTE, {
           request,

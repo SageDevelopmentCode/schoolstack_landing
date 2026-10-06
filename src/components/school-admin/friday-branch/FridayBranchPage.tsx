@@ -63,6 +63,11 @@ export default function FridayBranchPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [parentPortalPaused, setParentPortalPaused] = useState(initialParentPortalPaused);
+  const [prevInitialPaused, setPrevInitialPaused] = useState(initialParentPortalPaused);
+  if (initialParentPortalPaused !== prevInitialPaused) {
+    setPrevInitialPaused(initialParentPortalPaused);
+    setParentPortalPaused(initialParentPortalPaused);
+  }
   const [pauseDialogOpen, setPauseDialogOpen] = useState(false);
   const [togglingPause, setTogglingPause] = useState(false);
 
@@ -107,10 +112,6 @@ export default function FridayBranchPage({
       setLoading(false);
     }
   }, [organizationId]);
-
-  useEffect(() => {
-    setParentPortalPaused(initialParentPortalPaused);
-  }, [initialParentPortalPaused]);
 
   useEffect(() => {
     queueMicrotask(() => {
