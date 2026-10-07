@@ -19,6 +19,23 @@ function createActivityEventsMockSupabase(): {
       }),
     },
     from(table: string) {
+      if (table === "organizations") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  maybeSingle: async () => ({
+                    data: { name: "Test Org", slug: "test-org" },
+                    error: null,
+                  }),
+                };
+              },
+            };
+          },
+        };
+      }
+
       return {
         insert(row: Record<string, unknown>) {
           if (table === "activity_events") {
