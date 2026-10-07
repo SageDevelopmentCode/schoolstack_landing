@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import DemoSchoolAdminStoryProvider from "@/components/demo/shared/DemoSchoolAdminStoryProvider";
 import DemoApplicationSubmissionsTab from "@/components/demo/shared/DemoApplicationSubmissionsTab";
@@ -22,24 +22,29 @@ export default function DemoAdminAdmissionsSubmissionsPage({
   initialSelectedLeadId,
 }: DemoAdminAdmissionsSubmissionsPageProps) {
   const leads = useMemo(() => DEMO_ADMIN_SUBMISSION_LEADS, []);
-  const [selectedLead, setSelectedLead] = useState<DemoSubmissionLead | null>(() => {
-    if (!initialSelectedLeadId) return null;
-    return leads.find((lead) => lead.id === initialSelectedLeadId) ?? null;
-  });
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(
+    () => initialSelectedLeadId ?? null,
+  );
+  const [prevInitialSelectedLeadId, setPrevInitialSelectedLeadId] = useState(
+    initialSelectedLeadId,
+  );
+  if (initialSelectedLeadId !== prevInitialSelectedLeadId) {
+    setPrevInitialSelectedLeadId(initialSelectedLeadId);
+    setSelectedLeadId(initialSelectedLeadId ?? null);
+  }
 
-  useEffect(() => {
-    if (!initialSelectedLeadId) return;
-    const lead = leads.find((item) => item.id === initialSelectedLeadId) ?? null;
-    setSelectedLead(lead);
-  }, [initialSelectedLeadId, leads]);
+  const selectedLead = useMemo((): DemoSubmissionLead | null => {
+    if (!selectedLeadId) return null;
+    return leads.find((lead) => lead.id === selectedLeadId) ?? null;
+  }, [leads, selectedLeadId]);
 
   return (
     <DemoSchoolAdminStoryProvider className="h-full">
       <div className="pointer-events-none relative h-full min-h-0 select-none overflow-hidden">
         <DemoApplicationSubmissionsTab
           leads={leads}
-          onSelectLead={setSelectedLead}
-          selectedLeadId={selectedLead?.id ?? null}
+          onSelectLead={(lead) => setSelectedLeadId(lead.id)}
+          selectedLeadId={selectedLeadId}
         />
         <AnimatePresence>
           {selectedLead ? (
@@ -48,7 +53,7 @@ export default function DemoAdminAdmissionsSubmissionsPage({
               lead={selectedLead}
               submission={mapDemoLeadToSubmission(selectedLead)}
               flow={getDemoSubmissionFlow(selectedLead.flowId)}
-              onClose={() => setSelectedLead(null)}
+              onClose={() => setSelectedLeadId(null)}
             />
           ) : null}
         </AnimatePresence>

@@ -120,16 +120,15 @@ export default function TuitionAdjustPanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [manageReasonsOpen, open, onClose]);
 
-  useEffect(() => {
-    if (!open || !previewSnapshot) return;
-
-    setReasonOptions(previewSnapshot.reasonOptions);
-    setReason(previewSnapshot.reasonOptions[0] ?? "");
-    setBaseAmountCents(previewSnapshot.baseAmountCents);
-    setPendingSchedule(previewSnapshot.pendingSchedule);
-    setExisting(previewSnapshot.existing);
-    setCharges(previewSnapshot.charges);
-  }, [open, previewSnapshot]);
+  const effectiveReasonOptions = previewSnapshot?.reasonOptions ?? reasonOptions;
+  const effectiveCharges = previewSnapshot?.charges ?? charges;
+  const effectiveExisting = previewSnapshot?.existing ?? existing;
+  const effectiveBaseAmountCents = previewSnapshot?.baseAmountCents ?? baseAmountCents;
+  const effectivePendingSchedule = previewSnapshot?.pendingSchedule ?? pendingSchedule;
+  const reasonForUi =
+    previewSnapshot && reason.trim().length === 0
+      ? (previewSnapshot.reasonOptions[0] ?? "")
+      : reason;
 
   useEffect(() => {
     if (!open || !organizationId || previewSnapshot) return;
@@ -215,26 +214,32 @@ export default function TuitionAdjustPanel({
           : adjustType === "waiver"
             ? 0
             : null,
-      priority: existing.length,
+      priority: effectiveExisting.length,
       scope: "installment" as const,
     }),
-    [adjustType, amountCents, existing.length, percentValue],
+    [adjustType, amountCents, effectiveExisting.length, percentValue],
   );
 
   const impactPreview = useMemo(
     () =>
       computeAdjustmentImpactPreview({
-        charges,
-        baseAmountCents,
-        existingAdjustments: existing,
+        charges: effectiveCharges,
+        baseAmountCents: effectiveBaseAmountCents,
+        existingAdjustments: effectiveExisting,
         draftAdjustment,
-        pendingSchedule,
+        pendingSchedule: effectivePendingSchedule,
       }),
-    [baseAmountCents, charges, draftAdjustment, existing, pendingSchedule],
+    [
+      effectiveBaseAmountCents,
+      effectiveCharges,
+      draftAdjustment,
+      effectiveExisting,
+      effectivePendingSchedule,
+    ],
   );
 
-  const adjustedPerInstallment = computeAdjustedAmountCents(baseAmountCents, [
-    ...existing.map((adjustment) => ({
+  const adjustedPerInstallment = computeAdjustedAmountCents(effectiveBaseAmountCents, [
+    ...effectiveExisting.map((adjustment) => ({
       adjustmentType: adjustment.adjustmentType,
       valuePercent: adjustment.valuePercent,
       valueCents: adjustment.valueCents,
@@ -254,7 +259,7 @@ export default function TuitionAdjustPanel({
     impactPreview.scenario !== "no_charges" &&
     percentInputValid &&
     amountInputValid &&
-    reason.trim().length > 0;
+    reasonForUi.trim().length > 0;
 
   const handleSave = async () => {
     if (!canSave || previewSnapshot) return;
@@ -270,7 +275,7 @@ export default function TuitionAdjustPanel({
           adjustType === "fixed_discount" || adjustType === "custom_amount"
             ? amountCents
             : null,
-        reason,
+        reason: reasonForUi,
         source: "manual",
       });
       adminToast.success("Adjustment saved");
@@ -305,7 +310,7 @@ export default function TuitionAdjustPanel({
   const hiddenUpcomingCount = upcomingPreview.length - visibleUpcoming.length;
 
   const handleReasonsSaved = (savedReasons: string[]) => {
-    const previousReasons = reasonOptions;
+    const previousReasons = effectiveReasonOptions;
     setReasonOptions(savedReasons);
 
     const addedReasons = savedReasons.filter(
@@ -316,7 +321,7 @@ export default function TuitionAdjustPanel({
       return;
     }
 
-    if (!savedReasons.includes(reason)) {
+    if (!savedReasons.includes(reasonForUi)) {
       setReason(savedReasons[0] ?? "");
     }
   };
@@ -384,7 +389,7 @@ export default function TuitionAdjustPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 flex flex-col gap-4">
-              {existing.length > 0 ? (
+              {effectiveExisting.length > 0 ? (
                 <div
                   className="rounded-md p-3 text-sm flex flex-col gap-2"
                   style={{
@@ -396,7 +401,7 @@ export default function TuitionAdjustPanel({
                     Current adjustments on this assignment
                   </p>
                   <ul className="flex flex-col gap-1">
-                    {existing.map((adjustment) => (
+                    {effectiveExisting.map((adjustment) => (
                       <li key={adjustment.id} style={{ color: C.textSecondary }}>
                         {formatAdjustmentDetailLine(adjustment)}
                       </li>
@@ -505,10 +510,10 @@ export default function TuitionAdjustPanel({
                   </span>
                   <TuitionAdjustmentReasonSelect
                     C={C}
-                    value={reason}
+                    value={reasonForUi}
                     onChange={setReason}
-                    reasons={reasonOptions}
-                    disabled={reasonOptions.length === 0}
+                    reasons={effectiveReasonOptions}
+                    disabled={effectiveReasonOptions.length === 0}
                     onManageReasons={() => setManageReasonsOpen(true)}
                   />
                 </label>
@@ -520,7 +525,9 @@ export default function TuitionAdjustPanel({
               >
                 <p style={{ color: C.textSecondary }}>
                   Standard installment:{" "}
-                  <span style={{ color: C.textSecondary }}>{formatCents(baseAmountCents)}</span>
+                  <span style={{ color: C.textSecondary }}>
+                    {formatCents(effectiveBaseAmountCents)}
+                  </span>
                   {" → "}
                   <strong style={{ color: C.accentDark }}>
                     {formatCents(adjustedPerInstallment)}
@@ -651,7 +658,7 @@ export default function TuitionAdjustPanel({
     <TuitionAdjustmentReasonsModal
       open={manageReasonsOpen}
       organizationId={organizationId}
-      reasons={reasonOptions}
+      reasons={effectiveReasonOptions}
       C={C}
       onClose={() => setManageReasonsOpen(false)}
       onSaved={handleReasonsSaved}

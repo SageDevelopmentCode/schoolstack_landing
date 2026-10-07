@@ -234,7 +234,7 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
             },
             severity: "warning",
           });
-          void sendTuitionAchSettlementFailedNotifications(admin, {
+          await sendTuitionAchSettlementFailedNotifications(admin, {
             payment: revertResult.payment,
             settlementFailure: true,
             chargeReopened: revertResult.chargeReopened,
@@ -332,7 +332,7 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
         severity: "warning",
       });
       if (payment.paymentType === "tuition") {
-        void sendTuitionAchSettlementFailedNotifications(admin, {
+        await sendTuitionAchSettlementFailedNotifications(admin, {
           payment: updatedPayment,
           settlementFailure: false,
         });
@@ -1160,7 +1160,7 @@ async function handleTuitionPaymentIntentTerminalFailure(
         paymentIntentId: paymentIntent.id,
         settlementFailure: true,
       });
-      void sendTuitionAchSettlementFailedNotifications(admin, {
+      await sendTuitionAchSettlementFailedNotifications(admin, {
         payment: revertResult.payment,
         settlementFailure: true,
         chargeReopened: revertResult.chargeReopened,
@@ -1182,7 +1182,7 @@ async function handleTuitionPaymentIntentTerminalFailure(
     paymentIntentId: paymentIntent.id,
     settlementFailure: false,
   });
-  void sendTuitionAchSettlementFailedNotifications(admin, {
+  await sendTuitionAchSettlementFailedNotifications(admin, {
     payment: updatedPayment,
     settlementFailure: false,
   });

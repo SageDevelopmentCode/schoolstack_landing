@@ -1,12 +1,19 @@
 import { Platform } from 'react-native';
 
 import {
-  buildAndroidPdfJsHtml,
+  buildAndroidPdfViewerHtml,
+  buildAndroidPdfViewerLoadMessage,
+  getAndroidPdfWebViewSource,
   getMobilePdfWebViewSource,
   stripViewerFragment,
 } from '@/lib/pdf/mobile-pdf-webview-source';
 
 const signedUrl = 'https://example.supabase.co/storage/v1/object/sign/forms/doc.pdf?token=abc';
+
+const shellOptions = {
+  pdfModuleUri: 'file:///bundled/pdf.min.mjs',
+  workerModuleUri: 'file:///bundled/pdf.worker.min.mjs',
+};
 
 describe('stripViewerFragment', () => {
   it('removes viewer hash parameters', () => {
@@ -18,18 +25,32 @@ describe('stripViewerFragment', () => {
   });
 });
 
-describe('buildAndroidPdfJsHtml', () => {
-  it('embeds pdf.js and escapes the document url', () => {
-    const html = buildAndroidPdfJsHtml(signedUrl);
-    expect(html).toContain('pdf.min.js');
-    expect(html).toContain('pdf.worker.min.js');
-    expect(html).toContain(JSON.stringify(signedUrl));
+describe('buildAndroidPdfViewerHtml', () => {
+  it('uses bundled pdf.js modules and disables eval in getDocument', () => {
+    const html = buildAndroidPdfViewerHtml(shellOptions);
+    expect(html).not.toContain('cdnjs.cloudflare.com');
+    expect(html).toContain('file:///bundled/pdf.min.mjs');
+    expect(html).toContain('file:///bundled/pdf.worker.min.mjs');
+    expect(html).toContain('isEvalSupported: false');
+    expect(html).not.toContain(signedUrl);
+  });
+
+  it('loads document via host postMessage', () => {
+    const html = buildAndroidPdfViewerHtml(shellOptions);
+    expect(html).toContain("payload.type !== 'load-pdf'");
+  });
+});
+
+describe('buildAndroidPdfViewerLoadMessage', () => {
+  it('serializes load payload', () => {
+    expect(buildAndroidPdfViewerLoadMessage(signedUrl)).toBe(
+      JSON.stringify({ type: 'load-pdf', url: signedUrl }),
+    );
   });
 
   it('supports data uris', () => {
     const dataUri = 'data:application/pdf;base64,QUJD';
-    const html = buildAndroidPdfJsHtml(dataUri);
-    expect(html).toContain(JSON.stringify(dataUri));
+    expect(buildAndroidPdfViewerLoadMessage(dataUri)).toContain(dataUri);
   });
 });
 
@@ -47,14 +68,15 @@ describe('getMobilePdfWebViewSource', () => {
       uri: `${signedUrl}#navpanes=0&view=FitH`,
     });
   });
+});
 
-  it('returns pdf.js html on android', () => {
-    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
-    const source = getMobilePdfWebViewSource(signedUrl);
+describe('getAndroidPdfWebViewSource', () => {
+  it('returns local html shell without embedding the document url', () => {
+    const source = getAndroidPdfWebViewSource(shellOptions);
     expect(source).toMatchObject({
       baseUrl: 'https://localhost',
     });
-    expect('html' in source && source.html).toContain('pdf.min.js');
-    expect('html' in source && source.html).toContain(JSON.stringify(signedUrl));
+    expect('html' in source && source.html).not.toContain(signedUrl);
+    expect('html' in source && source.html).toContain('isEvalSupported: false');
   });
 });

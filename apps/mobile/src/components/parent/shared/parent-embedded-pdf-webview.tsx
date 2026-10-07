@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -15,11 +15,16 @@ import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser'
 import { StoryButton } from '@/components/story/story-button';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
+import { isAllowedAndroidPdfWebViewNavigation } from '@/lib/pdf/mobile-pdf-webview-navigation';
 import {
+  buildAndroidPdfViewerLoadMessage,
+  getAndroidPdfWebViewSource,
   getMobilePdfExternalOpenUrl,
   getMobilePdfWebViewSource,
+  stripViewerFragment,
   usesAndroidPdfJsHtml,
 } from '@/lib/pdf/mobile-pdf-webview-source';
+import { useAndroidPdfViewerAssets } from '@/lib/pdf/use-android-pdf-viewer-assets';
 
 const LOAD_TIMEOUT_MS = 45_000;
 
@@ -38,12 +43,30 @@ export function ParentEmbeddedPdfWebView({
   pointerEvents,
   startInLoadingState = false,
 }: ParentEmbeddedPdfWebViewProps) {
-  const source = useMemo(() => getMobilePdfWebViewSource(url), [url]);
   const androidPdfJs = usesAndroidPdfJsHtml(url);
+  const documentUrl = useMemo(() => stripViewerFragment(url), [url]);
+  const { assetUris, assetsFailed, assetsReady } = useAndroidPdfViewerAssets(androidPdfJs);
+  const webViewRef = useRef<WebView>(null);
+  const [viewerReady, setViewerReady] = useState(false);
+
+  const source = useMemo(() => {
+    if (!androidPdfJs) {
+      return getMobilePdfWebViewSource(url);
+    }
+    if (!assetUris) {
+      return null;
+    }
+    return getAndroidPdfWebViewSource({
+      pdfModuleUri: assetUris.pdfModuleUri,
+      workerModuleUri: assetUris.workerModuleUri,
+    });
+  }, [androidPdfJs, assetUris, url]);
+
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
   useEffect(() => {
     setPhase('loading');
+    setViewerReady(false);
   }, [url]);
 
   useEffect(() => {
@@ -51,6 +74,16 @@ export function ParentEmbeddedPdfWebView({
     const timer = setTimeout(() => setPhase('error'), LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [phase, url]);
+
+  const postLoadDocument = useCallback(() => {
+    if (!androidPdfJs || !documentUrl) return;
+    webViewRef.current?.postMessage(buildAndroidPdfViewerLoadMessage(documentUrl));
+  }, [androidPdfJs, documentUrl]);
+
+  useEffect(() => {
+    if (!androidPdfJs || !viewerReady) return;
+    postLoadDocument();
+  }, [androidPdfJs, documentUrl, postLoadDocument, viewerReady]);
 
   const markReady = useCallback(() => {
     setPhase('ready');
@@ -63,6 +96,10 @@ export function ParentEmbeddedPdfWebView({
   const handleMessage = useCallback(
     (event: { nativeEvent: { data: string } }) => {
       const data = event.nativeEvent.data;
+      if (data === 'pdf-viewer-ready') {
+        setViewerReady(true);
+        return;
+      }
       if (data === 'pdf-loaded') {
         markReady();
       } else if (data === 'pdf-error') {
@@ -83,21 +120,22 @@ export function ParentEmbeddedPdfWebView({
     });
   }, [url]);
 
+  const bundledAssetUris = useMemo(
+    () => (assetUris ? [assetUris.pdfModuleUri, assetUris.workerModuleUri] : []),
+    [assetUris],
+  );
+
   const handleShouldStartLoadWithRequest = useCallback(
     (request: { url: string }) => {
       if (Platform.OS !== 'android' || !androidPdfJs) {
         return true;
       }
-      const allowed =
-        request.url === 'about:blank' ||
-        request.url.startsWith('https://localhost') ||
-        request.url.includes('cdnjs.cloudflare.com');
-      return allowed;
+      return isAllowedAndroidPdfWebViewNavigation(request.url, { bundledAssetUris });
     },
-    [androidPdfJs],
+    [androidPdfJs, bundledAssetUris],
   );
 
-  if (phase === 'error') {
+  if (phase === 'error' || (androidPdfJs && assetsFailed)) {
     return (
       <View style={[styles.fallback, style]}>
         <Text style={styles.fallbackText}>This document could not be shown in the app.</Text>
@@ -106,15 +144,28 @@ export function ParentEmbeddedPdfWebView({
     );
   }
 
+  if (!source) {
+    return (
+      <View style={[styles.wrap, style]}>
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator color="#64748B" />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.wrap, style]}>
       <WebView
+        ref={webViewRef}
         source={source}
         style={styles.webView}
         scrollEnabled={scrollEnabled}
         pointerEvents={pointerEvents}
-        originWhitelist={['*']}
+        originWhitelist={['https://*', 'http://*', 'file://*', 'about:*', 'data:*']}
         mixedContentMode="always"
+        allowFileAccess
+        allowUniversalAccessFromFileURLs={androidPdfJs}
         setSupportMultipleWindows={false}
         allowsInlineMediaPlayback
         startInLoadingState={startInLoadingState}
@@ -124,7 +175,7 @@ export function ParentEmbeddedPdfWebView({
         onHttpError={markError}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       />
-      {phase === 'loading' ? (
+      {phase === 'loading' || (androidPdfJs && !assetsReady) ? (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator color="#64748B" />
         </View>

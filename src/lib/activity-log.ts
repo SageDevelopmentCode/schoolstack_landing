@@ -72,6 +72,7 @@ export const ACTIVITY_ACTIONS = {
   TUITION_PAYMENT_COMPLETED: "tuition.payment.completed",
   TUITION_PAYMENT_FAILED: "tuition.payment.failed",
   TUITION_PAYMENT_FAILED_PARENT_EMAIL: "tuition.payment_failed_parent_email",
+  TUITION_PAYMENT_FAILED_SCHOOL_OPS: "tuition.payment_failed_school_ops",
   TUITION_PAYMENT_REFUNDED: "tuition.payment.refunded",
   TUITION_BILLING_RUN_COMPLETED: "tuition.billing_run.completed",
   TUITION_LATE_FEE_APPLIED: "tuition.late_fee.applied",

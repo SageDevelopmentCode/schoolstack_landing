@@ -470,11 +470,17 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
         surplusCents,
       },
     });
-    const failedOnly = await revertSucceededPaymentToFailed(supabase, payment.id, input);
+    const revertResult = await revertSucceededPaymentToFailed(
+      supabase,
+      payment.id,
+      input,
+    );
+    const revertedPayment = revertResult.payment ?? payment;
     return {
-      payment: failedOnly ?? payment,
+      payment: revertedPayment,
       chargeReopened: false,
-      alreadyHandled: false,
+      alreadyHandled:
+        !revertResult.transitioned && revertedPayment.status === "failed",
     };
   }
 
@@ -528,20 +534,32 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
         metadata: { paymentId: payment.id },
       });
     }
-    const failedOnly = await revertSucceededPaymentToFailed(supabase, payment.id, input);
+    const revertResult = await revertSucceededPaymentToFailed(
+      supabase,
+      payment.id,
+      input,
+    );
+    const revertedPayment = revertResult.payment ?? payment;
+    const paymentAlreadyFailed =
+      !revertResult.transitioned && revertedPayment.status === "failed";
     return {
-      payment: failedOnly ?? payment,
+      payment: revertedPayment,
       chargeReopened: chargeAlreadyReverted,
-      alreadyHandled: false,
+      alreadyHandled: chargeAlreadyReverted || paymentAlreadyFailed,
     };
   }
 
-  const updatedPayment = await revertSucceededPaymentToFailed(
+  const revertResult = await revertSucceededPaymentToFailed(
     supabase,
     payment.id,
     input,
   );
-  if (!updatedPayment || updatedPayment.status !== "failed") {
+  const updatedPayment = revertResult.payment;
+  if (
+    !revertResult.transitioned ||
+    !updatedPayment ||
+    updatedPayment.status !== "failed"
+  ) {
     throw new ChargeStatusConflictError(
       "Payment could not be marked failed after charge revert.",
     );

@@ -1,10 +1,15 @@
 import { Platform } from 'react-native';
 import type { WebViewSource } from 'react-native-webview/lib/WebViewTypes';
 
+import { ANDROID_PDF_VIEWER_BASE_URL } from '@/lib/pdf/mobile-pdf-webview-navigation';
 import { buildEmbeddedPdfViewerUrl } from '@/lib/school-bulletin/bulletin-format';
 
-const PDF_JS_VERSION = '3.11.174';
-const PDF_JS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}`;
+export { ANDROID_PDF_VIEWER_BASE_URL };
+
+export type AndroidPdfViewerShellOptions = {
+  pdfModuleUri: string;
+  workerModuleUri: string;
+};
 
 /** Removes iframe-style viewer fragments added by {@link buildEmbeddedPdfViewerUrl}. */
 export function stripViewerFragment(url: string): string {
@@ -18,8 +23,17 @@ export function getMobilePdfExternalOpenUrl(pdfUrl: string): string {
   return stripViewerFragment(pdfUrl);
 }
 
-export function buildAndroidPdfJsHtml(pdfUrl: string): string {
-  const safeUrlLiteral = JSON.stringify(pdfUrl);
+/** Message posted from React Native to start loading a document (keeps signed URLs out of static HTML). */
+export function buildAndroidPdfViewerLoadMessage(pdfUrl: string): string {
+  return JSON.stringify({ type: 'load-pdf', url: pdfUrl });
+}
+
+/**
+ * Static Android viewer shell: bundled pdf.js only (no CDN). Document URL is supplied later via postMessage.
+ */
+export function buildAndroidPdfViewerHtml(options: AndroidPdfViewerShellOptions): string {
+  const pdfModuleUri = JSON.stringify(options.pdfModuleUri);
+  const workerModuleUri = JSON.stringify(options.workerModuleUri);
 
   return `<!DOCTYPE html>
 <html>
@@ -33,15 +47,15 @@ export function buildAndroidPdfJsHtml(pdfUrl: string): string {
   #status { padding: 24px 16px; font-family: system-ui, sans-serif; font-size: 14px; color: #64748b; text-align: center; }
   #error { display: none; padding: 16px; font-family: system-ui, sans-serif; font-size: 14px; color: #b91c1c; text-align: center; }
 </style>
-<script src="${PDF_JS_CDN}/pdf.min.js"></script>
 </head>
 <body>
 <div id="status">Loading document…</div>
 <div id="pages"></div>
 <div id="error"></div>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '${PDF_JS_CDN}/pdf.worker.min.js';
-  const pdfUrl = ${safeUrlLiteral};
+<script type="module">
+  import * as pdfjsLib from ${pdfModuleUri};
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = ${workerModuleUri};
 
   function post(type) {
     if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -49,12 +63,25 @@ export function buildAndroidPdfJsHtml(pdfUrl: string): string {
     }
   }
 
-  (async function () {
+  function showError() {
+    document.getElementById('status').style.display = 'none';
+    const errorEl = document.getElementById('error');
+    errorEl.style.display = 'block';
+    errorEl.textContent = 'Could not display this PDF.';
+    post('pdf-error');
+  }
+
+  async function renderPdf(pdfUrl) {
+    const container = document.getElementById('pages');
+    const status = document.getElementById('status');
+    container.replaceChildren();
+    status.style.display = 'block';
+    status.textContent = 'Loading document…';
+    document.getElementById('error').style.display = 'none';
+
     try {
-      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const loadingTask = pdfjsLib.getDocument({ url: pdfUrl, isEvalSupported: false });
       const pdf = await loadingTask.promise;
-      const container = document.getElementById('pages');
-      const status = document.getElementById('status');
       status.style.display = 'none';
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -73,31 +100,44 @@ export function buildAndroidPdfJsHtml(pdfUrl: string): string {
       }
       post('pdf-loaded');
     } catch (err) {
-      document.getElementById('status').style.display = 'none';
-      const errorEl = document.getElementById('error');
-      errorEl.style.display = 'block';
-      errorEl.textContent = 'Could not display this PDF.';
-      post('pdf-error');
+      showError();
     }
-  })();
+  }
+
+  function handleHostMessage(event) {
+    let payload;
+    try {
+      payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+    } catch {
+      return;
+    }
+    if (!payload || payload.type !== 'load-pdf' || typeof payload.url !== 'string') {
+      return;
+    }
+    void renderPdf(payload.url);
+  }
+
+  document.addEventListener('message', handleHostMessage);
+  window.addEventListener('message', handleHostMessage);
+  post('pdf-viewer-ready');
 </script>
 </body>
 </html>`;
+}
+
+export function getAndroidPdfWebViewSource(shell: AndroidPdfViewerShellOptions): WebViewSource {
+  return {
+    html: buildAndroidPdfViewerHtml(shell),
+    baseUrl: ANDROID_PDF_VIEWER_BASE_URL,
+  };
 }
 
 export function usesAndroidPdfJsHtml(pdfUrl: string): boolean {
   return Platform.OS === 'android' && Boolean(pdfUrl);
 }
 
+/** iOS (and tests): native WebView PDF via signed URL. Android uses {@link getAndroidPdfWebViewSource}. */
 export function getMobilePdfWebViewSource(pdfUrl: string): WebViewSource {
   const baseUrl = stripViewerFragment(pdfUrl);
-
-  if (Platform.OS !== 'android') {
-    return { uri: buildEmbeddedPdfViewerUrl(baseUrl) };
-  }
-
-  return {
-    html: buildAndroidPdfJsHtml(baseUrl),
-    baseUrl: 'https://localhost',
-  };
+  return { uri: buildEmbeddedPdfViewerUrl(baseUrl) };
 }

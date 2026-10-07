@@ -448,6 +448,12 @@ export async function markPaymentFailed(
   return current ? rowToPayment(current as Record<string, unknown>) : null;
 }
 
+export type RevertSucceededPaymentToFailedResult = {
+  payment: PaymentRecord | null;
+  /** True when this call moved the row from succeeded → failed. */
+  transitioned: boolean;
+};
+
 /** After optimistic ACH record, move succeeded → failed when Stripe settlement fails. */
 export async function revertSucceededPaymentToFailed(
   supabase: SupabaseClient,
@@ -456,7 +462,7 @@ export async function revertSucceededPaymentToFailed(
     stripePaymentIntentId?: string;
     stripeCheckoutSessionId?: string;
   } = {},
-): Promise<PaymentRecord | null> {
+): Promise<RevertSucceededPaymentToFailedResult> {
   const updatePayload: Record<string, unknown> = {
     status: "failed",
     stripe_provider_status: "failed",
@@ -480,7 +486,10 @@ export async function revertSucceededPaymentToFailed(
 
   if (error) throw error;
   if (data) {
-    return rowToPayment(data as Record<string, unknown>);
+    return {
+      payment: rowToPayment(data as Record<string, unknown>),
+      transitioned: true,
+    };
   }
 
   const { data: current, error: currentError } = await supabase
@@ -490,7 +499,10 @@ export async function revertSucceededPaymentToFailed(
     .maybeSingle();
 
   if (currentError) throw currentError;
-  return current ? rowToPayment(current as Record<string, unknown>) : null;
+  return {
+    payment: current ? rowToPayment(current as Record<string, unknown>) : null,
+    transitioned: false,
+  };
 }
 
 type CheckoutMetadataPaymentFields = {
