@@ -68,6 +68,7 @@ type TuitionRateCatalogPanelProps = {
   onRefresh: () => void;
   onStartSetup: () => void;
   saving?: boolean;
+  initialRateCatalogTab?: TuitionRateCatalogTabId;
 };
 
 type WizardLaunch = {
@@ -139,6 +140,7 @@ export default function TuitionRateCatalogPanel({
   onRefresh,
   onStartSetup,
   saving = false,
+  initialRateCatalogTab,
 }: TuitionRateCatalogPanelProps) {
   void branding;
   const { theme } = useSchoolAdminStoryTheme();
@@ -166,7 +168,7 @@ export default function TuitionRateCatalogPanel({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeCatalogTab, setActiveCatalogTab] = useState<TuitionRateCatalogTabId>(
-    DEFAULT_TUITION_RATE_CATALOG_TAB,
+    () => initialRateCatalogTab ?? DEFAULT_TUITION_RATE_CATALOG_TAB,
   );
 
   const activePlan = localPlan ?? selectedPlan;

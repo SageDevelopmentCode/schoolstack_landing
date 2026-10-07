@@ -64,6 +64,7 @@ import { getAdminButtonStyle } from "@/lib/organization-settings/admin-button-st
 import type { CombinedEnrollmentPaymentCandidate } from "@/lib/admissions/combined-enrollment-payment";
 import type { CheckoutPaymentMethod } from "@/lib/stripe/processing-fee";
 import { createClient } from "@/utils/supabase/client";
+import { useOptionalParentTheme } from "@/components/school-parent/ParentThemeContext";
 
 type EnrollmentChecklistItemPanelProps = {
   C: AdminThemeTokens;
@@ -83,6 +84,7 @@ type EnrollmentChecklistItemPanelProps = {
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
   initialSectionId?: string;
+  initialPreviewSignerName?: string;
 };
 
 function buildErrorContext(
@@ -229,6 +231,7 @@ function DocumentSignInlinePanel({
   onComplete,
   onPartialProgress,
   initialSectionId,
+  initialPreviewSignerName,
 }: {
   C: AdminThemeTokens;
   item: EnrollmentChecklistItem;
@@ -243,7 +246,9 @@ function DocumentSignInlinePanel({
   onComplete?: (responses?: Record<string, unknown>) => Promise<void> | void;
   onPartialProgress?: (responses: Record<string, unknown>) => Promise<void> | void;
   initialSectionId?: string;
+  initialPreviewSignerName?: string;
 }) {
+  const parentThemeCtx = useOptionalParentTheme();
   const sections = item.document?.kind === "inline_sections" ? item.document.sections : [];
   const consentOptions =
     item.document?.kind === "inline_sections" ? item.document.consentOptions ?? [] : [];
@@ -293,12 +298,12 @@ function DocumentSignInlinePanel({
     storedSectionSignature != null &&
     !isPendingResignSection;
 
+  const sectionSignerName = section ? signatureBySectionId.get(section.id)?.signerName ?? "" : "";
+  const previewSignerFallback =
+    !isLive && initialPreviewSignerName?.trim() ? initialPreviewSignerName.trim() : "";
   const expectedSignature = isCompleted
-    ? parseStoredSignerName(existingResponses) ||
-        (section ? signatureBySectionId.get(section.id)?.signerName ?? "" : "")
-    : section
-      ? signatureBySectionId.get(section.id)?.signerName ?? ""
-      : "";
+    ? parseStoredSignerName(existingResponses) || sectionSignerName
+    : sectionSignerName || previewSignerFallback;
   const signatureSourceKey = isCompleted
     ? `completed:${section?.id ?? ""}`
     : `${section?.id ?? ""}:${expectedSignature}`;
@@ -554,7 +559,17 @@ function DocumentSignInlinePanel({
             <p className="text-xs font-medium" style={{ color: C.textTertiary }}>
               Section {sectionIndex + 1} of {sections.length}
             </p>
-            <h2 className="mt-2 text-lg font-semibold" style={{ color: C.textPrimary }}>
+            <h2
+              className={`mt-2 text-lg font-semibold ${parentThemeCtx ? "font-heading" : ""}`}
+              style={
+                parentThemeCtx
+                  ? {
+                      fontFamily: parentThemeCtx.theme.fontDisplay,
+                      color: parentThemeCtx.theme.ink,
+                    }
+                  : { color: C.textPrimary }
+              }
+            >
               {section.title}
             </h2>
             {isPendingResignSection && amendmentNotice ? (
@@ -1931,6 +1946,7 @@ export default function EnrollmentChecklistItemPanel({
   onComplete,
   onPartialProgress,
   initialSectionId,
+  initialPreviewSignerName,
 }: EnrollmentChecklistItemPanelProps) {
   const content = useMemo(() => {
     if (isPreviewAlternate) {
@@ -1960,6 +1976,7 @@ export default function EnrollmentChecklistItemPanel({
               onComplete={onComplete}
               onPartialProgress={onPartialProgress}
               initialSectionId={initialSectionId}
+              initialPreviewSignerName={initialPreviewSignerName}
             />
           </div>
         </div>
@@ -2013,6 +2030,7 @@ export default function EnrollmentChecklistItemPanel({
             onComplete={onComplete}
             onPartialProgress={onPartialProgress}
             initialSectionId={initialSectionId}
+            initialPreviewSignerName={initialPreviewSignerName}
           />
         );
       case "form":
@@ -2086,6 +2104,7 @@ export default function EnrollmentChecklistItemPanel({
     checklistId,
     existingResponses,
     hasNextIncompleteItem,
+    initialPreviewSignerName,
     initialSectionId,
     instanceId,
     instancePaymentStatus,

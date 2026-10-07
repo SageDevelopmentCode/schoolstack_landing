@@ -19,6 +19,7 @@ import TuitionOutstandingPeriodSelect from "@/components/school-admin/tuition/Tu
 import TuitionFormsPanel from "@/components/school-admin/tuition/TuitionFormsPanel";
 import TuitionPaymentHistoryPanel from "@/components/school-admin/tuition/TuitionPaymentHistoryPanel";
 import TuitionRateCatalogPanel from "@/components/school-admin/tuition/TuitionRateCatalogPanel";
+import type { TuitionRateCatalogTabId } from "@/components/school-admin/tuition/tuition-rate-catalog-tabs";
 import TuitionRulesPanel from "@/components/school-admin/tuition/TuitionRulesPanel";
 import TuitionSetupPanel from "@/components/school-admin/tuition/TuitionSetupPanel";
 import TuitionSetupWizardModal from "@/components/school-admin/tuition/TuitionSetupWizardModal";
@@ -48,6 +49,13 @@ import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
+import type { TuitionAdjustPreviewSnapshot } from "@/lib/tuition/tuition-adjust-preview";
+
+export type TuitionInitialOpenAdjust = {
+  familyId: string;
+  assignmentId: string;
+  studentName: string | null;
+};
 
 type TuitionDashboardProps = {
   organizationId: string;
@@ -60,6 +68,9 @@ type TuitionDashboardProps = {
   dashboardDeferred?: boolean;
   previewMode?: boolean;
   initialDashboardTab?: TuitionDashboardTabId;
+  initialRateCatalogTab?: TuitionRateCatalogTabId;
+  initialOpenAdjust?: TuitionInitialOpenAdjust;
+  adjustPreviewSnapshot?: TuitionAdjustPreviewSnapshot;
 };
 
 const CLICKABLE_KPI_CARDS: Array<{
@@ -161,6 +172,9 @@ export default function TuitionDashboard({
   dashboardDeferred = false,
   previewMode = false,
   initialDashboardTab,
+  initialRateCatalogTab,
+  initialOpenAdjust,
+  adjustPreviewSnapshot,
 }: TuitionDashboardProps) {
   const { theme } = useSchoolAdminStoryTheme();
   const searchParams = useSearchParams();
@@ -197,9 +211,17 @@ export default function TuitionDashboard({
       activeAssignments: 0,
     },
   );
-  const [adjustFamilyId, setAdjustFamilyId] = useState<string | null>(null);
-  const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(null);
-  const [adjustStudentName, setAdjustStudentName] = useState<string | null>(null);
+  const [adjustFamilyId, setAdjustFamilyId] = useState<string | null>(
+    () => initialOpenAdjust?.familyId ?? null,
+  );
+  const [adjustAssignmentId, setAdjustAssignmentId] = useState<string | null>(
+    () => initialOpenAdjust?.assignmentId ?? null,
+  );
+  const [adjustStudentName, setAdjustStudentName] = useState<string | null>(
+    () => initialOpenAdjust?.studentName ?? null,
+  );
+  const embeddedAdjustPreview =
+    previewMode && Boolean(initialOpenAdjust) && Boolean(adjustPreviewSnapshot);
   const [editAssignmentId, setEditAssignmentId] = useState<string | null>(null);
   const [showSetupPanel, setShowSetupPanel] = useState(false);
   const [readiness, setReadiness] = useState<TuitionReadinessStatus | null>(
@@ -382,7 +404,9 @@ export default function TuitionDashboard({
     (readiness?.unassignedEnrollmentCount ?? 0) > 0;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div
+      className={`relative flex h-full min-h-0 flex-col${embeddedAdjustPreview ? " overflow-hidden" : ""}`}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
           <TuitionStoryHeader
@@ -532,6 +556,7 @@ export default function TuitionDashboard({
                   onRefresh={() => void loadData()}
                   onStartSetup={openCreateRatePlanWizard}
                   saving={isRefetching}
+                  initialRateCatalogTab={initialRateCatalogTab}
                 />
               ) : null}
 
@@ -573,27 +598,6 @@ export default function TuitionDashboard({
             onClose={() => setEditAssignmentId(null)}
             onSaved={() => {
               setEditAssignmentId(null);
-              void refreshMetaOnly();
-            }}
-          />
-
-          <TuitionAdjustPanel
-            open={adjustFamilyId != null && adjustAssignmentId != null}
-            organizationId={organizationId}
-            familyId={adjustFamilyId ?? ""}
-            assignmentId={adjustAssignmentId ?? ""}
-            studentName={adjustStudentName}
-            branding={branding}
-            onClose={() => {
-              setAdjustFamilyId(null);
-              setAdjustAssignmentId(null);
-              setAdjustStudentName(null);
-            }}
-            onSaved={() => {
-              setAdjustFamilyId(null);
-              setAdjustAssignmentId(null);
-              setAdjustStudentName(null);
-              setFamiliesReloadToken((value) => value + 1);
               void refreshMetaOnly();
             }}
           />
@@ -659,6 +663,29 @@ export default function TuitionDashboard({
           />
         </div>
       </div>
+
+      <TuitionAdjustPanel
+        open={adjustFamilyId != null && adjustAssignmentId != null}
+        organizationId={organizationId}
+        familyId={adjustFamilyId ?? ""}
+        assignmentId={adjustAssignmentId ?? ""}
+        studentName={adjustStudentName}
+        branding={branding}
+        layout={embeddedAdjustPreview ? "embedded" : "overlay"}
+        previewSnapshot={embeddedAdjustPreview ? adjustPreviewSnapshot : undefined}
+        onClose={() => {
+          setAdjustFamilyId(null);
+          setAdjustAssignmentId(null);
+          setAdjustStudentName(null);
+        }}
+        onSaved={() => {
+          setAdjustFamilyId(null);
+          setAdjustAssignmentId(null);
+          setAdjustStudentName(null);
+          setFamiliesReloadToken((value) => value + 1);
+          void refreshMetaOnly();
+        }}
+      />
     </div>
   );
 }

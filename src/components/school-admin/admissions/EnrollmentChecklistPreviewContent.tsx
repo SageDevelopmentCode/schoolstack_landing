@@ -18,6 +18,7 @@ type EnrollmentChecklistPreviewContentProps = {
   items: EnrollmentChecklistItem[];
   allItems?: EnrollmentChecklistItem[];
   initialItemId?: string;
+  initialPreviewSignerName?: string;
   headerAction: ReactNode;
 };
 
@@ -68,6 +69,7 @@ export function EnrollmentChecklistPreviewContent({
   items,
   allItems,
   initialItemId,
+  initialPreviewSignerName,
   headerAction,
 }: EnrollmentChecklistPreviewContentProps) {
   const C = buildAdminThemeTokens(branding);
@@ -90,6 +92,7 @@ export function EnrollmentChecklistPreviewContent({
             allItems={allItems}
             mode="preview"
             initialItemId={initialItemId}
+            initialPreviewSignerName={initialPreviewSignerName}
           />
         </ApplicationFormPageShell>
       </div>

@@ -273,6 +273,26 @@ describe("formatActivityNotificationDetail", () => {
       "Autopay succeeded for Aug Tuition (Julius) — $360.00",
     );
   });
+
+  it("formats tuition bank payment failed with payer and student", () => {
+    assert.equal(
+      formatActivityNotificationDetail(
+        ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED,
+        "Arrow C.",
+        "ACH settlement failed after payment was recorded",
+        null,
+        {
+          subjectLabel: "Arrow C.",
+          chargeLabel: "Sep Tuition",
+          familyName: "Calvert Family",
+          studentName: "Arrow Calvert",
+          payerLabel: "Calvert Family",
+        },
+        { metadata: { amountCents: 72000 } },
+      ),
+      "Calvert Family's bank payment for Arrow C.'s Sep Tuition ($720) did not go through",
+    );
+  });
 });
 
 describe("formatSchoolAdminMessageNotificationTitle", () => {
@@ -330,6 +350,13 @@ describe("getActivityNotificationCategory", () => {
     assert.equal(
       getActivityNotificationCategory(ACTIVITY_ACTIONS.MESSAGES_RECEIVED),
       "messages",
+    );
+  });
+
+  it("returns payments for tuition bank payment failures", () => {
+    assert.equal(
+      getActivityNotificationCategory(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED),
+      "payments",
     );
   });
 });

@@ -782,7 +782,7 @@ export default function TuitionFamiliesPanel({
   };
 
   useEffect(() => {
-    if (!selectedFamilyId) return;
+    if (!selectedFamilyId || previewMode) return;
     void Promise.all([
       listChargesForFamily(supabase, selectedFamilyId),
       listTuitionPaymentsForFamily(supabase, selectedFamilyId),
@@ -790,10 +790,12 @@ export default function TuitionFamiliesPanel({
       setFamilyCharges(charges);
       setFamilyPayments(payments);
     });
-  }, [selectedFamilyId, supabase, families]);
+  }, [previewMode, selectedFamilyId, supabase, families]);
 
-  const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
-  const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];
+  const displayedFamilyCharges =
+    !previewMode && selectedFamilyId ? familyCharges : [];
+  const displayedFamilyPayments =
+    !previewMode && selectedFamilyId ? familyPayments : [];
 
   const assignmentContextByAssignmentId = useMemo(() => {
     if (!selectedFamily) {

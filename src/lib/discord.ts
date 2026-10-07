@@ -1353,6 +1353,57 @@ export async function notifyAchBankVerificationRequired(payload: {
   });
 }
 
+export async function notifyTuitionPaymentFailed(payload: {
+  schoolName: string;
+  payerLabel: string;
+  payerEmail?: string | null;
+  studentName?: string | null;
+  chargeLabel: string;
+  amountCents: number;
+  paymentId: string;
+  settlementFailure: boolean;
+  chargeReopened?: boolean;
+  financesUrl: string;
+  parentEmailSent: boolean;
+}) {
+  const failureKind = payload.settlementFailure
+    ? payload.chargeReopened
+      ? "ACH returned — billing reopened"
+      : "ACH returned after optimistic record"
+    : "ACH checkout did not complete";
+
+  const fields: DiscordEmbedField[] = [
+    embedField("School", truncate(payload.schoolName), true),
+    embedField("Family / payer", truncate(payload.payerLabel), true),
+    embedField("Charge", truncate(payload.chargeLabel), true),
+    embedField("Amount", formatMoneyCents(payload.amountCents), true),
+    embedField("Outcome", failureKind, false),
+    embedField(
+      "Parent email",
+      payload.parentEmailSent
+        ? "MudKitchen failure notice sent"
+        : "Deferred or not sent — follow up",
+      true,
+    ),
+    embedField("Payment ID", formatId(payload.paymentId), true),
+    embedField("Finances", payload.financesUrl, false),
+  ];
+
+  if (payload.payerEmail) {
+    fields.splice(2, 0, contactField(payload.payerEmail, null));
+  }
+  if (payload.studentName) {
+    fields.splice(3, 0, embedField("Student", truncate(payload.studentName), true));
+  }
+
+  await sendAdmissionsDiscordEmbed({
+    title: `❌ Tuition bank payment failed · ${truncate(payload.chargeLabel)}`,
+    description: `**${payload.payerLabel}** · ${formatMoneyCents(payload.amountCents)} at **${truncate(payload.schoolName)}**`,
+    color: DISCORD_EMBED_COLORS.error,
+    fields,
+  });
+}
+
 const POST_SUBMIT_VISIT_DISCORD_TITLES: Record<string, string> = {
   schedule_campus_tour: "Campus tour scheduled",
   schedule_family_interview: "Family interview scheduled",

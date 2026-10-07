@@ -32,6 +32,12 @@ const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 const ZOHO_REDIRECT_URI = process.env.ZOHO_REDIRECT_URI;
 const ZOHO_ACCOUNT_ID = process.env.ZOHO_ACCOUNT_ID;
 const ZOHO_FROM_ADDRESS = process.env.ZOHO_FROM_ADDRESS;
+
+/** Read at call time so script `dotenv` can load after module import. */
+function getZohoFromAddress(): string | undefined {
+  return process.env.ZOHO_FROM_ADDRESS;
+}
+
 const ACCOUNTS_BASE = "https://accounts.zoho.com";
 const MAIL_BASE = "https://mail.zoho.com";
 
@@ -60,11 +66,15 @@ function summaryToEmailContent(
 export async function isZohoConfigured(): Promise<boolean> {
   const { isOutboundEmailDisabled } = await import("@/lib/outbound-email");
   if (isOutboundEmailDisabled()) return false;
+  if (!getZohoFromAddress()) return false;
+
+  const { isSmtpConfigured } = await import("@/lib/zoho-smtp");
+  if (isSmtpConfigured()) return true;
 
   return !!(
-    ZOHO_CLIENT_ID &&
-    ZOHO_CLIENT_SECRET &&
-    ZOHO_REDIRECT_URI &&
+    process.env.ZOHO_CLIENT_ID &&
+    process.env.ZOHO_CLIENT_SECRET &&
+    process.env.ZOHO_REDIRECT_URI &&
     process.env.ZOHO_REFRESH_TOKEN
   );
 }
@@ -177,7 +187,7 @@ async function sendViaRestApi(opts: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fromAddress: ZOHO_FROM_ADDRESS,
+          fromAddress: getZohoFromAddress(),
           toAddress: opts.toAddress,
           subject: opts.subject,
           content: opts.content,
@@ -226,7 +236,8 @@ export async function sendZohoEmail(opts: {
     return { success: true };
   }
 
-  if (!ZOHO_FROM_ADDRESS) {
+  const fromAddress = getZohoFromAddress();
+  if (!fromAddress) {
     return { success: false, error: "ZOHO_FROM_ADDRESS is not set" };
   }
 

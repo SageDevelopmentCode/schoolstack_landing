@@ -52,3 +52,7 @@ export function useParentTheme(): ParentThemeContextValue {
   }
   return ctx;
 }
+
+export function useOptionalParentTheme(): ParentThemeContextValue | null {
+  return useContext(ParentThemeContext);
+}

@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import EnrollmentChecklistItemPanel from "@/components/admissions/EnrollmentChecklistItemPanel";
+import { useOptionalParentTheme } from "@/components/school-parent/ParentThemeContext";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
 import type {
   EnrollmentChecklistItem,
@@ -53,6 +54,7 @@ export type EnrollmentChecklistExperienceProps = {
   combinedPaymentCandidates?: CombinedEnrollmentPaymentCandidate[];
   initialItemId?: string;
   initialSectionId?: string;
+  initialPreviewSignerName?: string;
   instances?: EnrollmentChecklistItemInstance[];
   onInstancesChange?: (instances: EnrollmentChecklistItemInstance[]) => void;
   onActiveItemChange?: (templateItemId: string) => void;
@@ -272,6 +274,7 @@ export default function EnrollmentChecklistExperience({
   combinedPaymentCandidates = [],
   initialItemId,
   initialSectionId,
+  initialPreviewSignerName,
   instances = EMPTY_CHECKLIST_INSTANCES,
   onInstancesChange,
   onActiveItemChange,
@@ -279,6 +282,7 @@ export default function EnrollmentChecklistExperience({
   backLink,
   helpButton,
 }: EnrollmentChecklistExperienceProps) {
+  const parentThemeCtx = useOptionalParentTheme();
   const C = useMemo(() => buildAdminThemeTokens(branding), [branding]);
   const previewLayout = useMemo(() => {
     if (mode === "preview" && allItems && allItems.length > 0) {
@@ -421,6 +425,7 @@ export default function EnrollmentChecklistExperience({
           initialSectionId={
             initialItemId && activeItem?.id === initialItemId ? initialSectionId : undefined
           }
+          initialPreviewSignerName={initialPreviewSignerName}
         />
       </motion.div>
     </AnimatePresence>
@@ -462,7 +467,14 @@ export default function EnrollmentChecklistExperience({
             />
           ) : null}
         </div>
-        <h1 className="mt-4 text-xl font-semibold sm:text-2xl" style={{ color: C.accentDark }}>
+        <h1
+          className={`mt-4 text-xl font-semibold sm:text-2xl ${parentThemeCtx ? "font-heading" : ""}`}
+          style={
+            parentThemeCtx
+              ? { fontFamily: parentThemeCtx.theme.fontDisplay, color: parentThemeCtx.theme.ink }
+              : { color: C.accentDark }
+          }
+        >
           {title}
         </h1>
         <p className="mt-1 text-sm" style={{ color: C.textSecondary }}>

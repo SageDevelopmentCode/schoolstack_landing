@@ -19,6 +19,8 @@ import {
 } from "@/test/integration/seed-admissions";
 import { saveFamilyPaymentMethod } from "@/lib/tuition/autopay";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
+import { sendTuitionAchSettlementFailedNotifications } from "@/lib/stripe/ach-bank-verification-notifications";
+import { getPaymentById } from "@/lib/stripe/application-payments";
 import {
   handleAccountUpdated,
   handleCheckoutSessionAsyncPaymentFailed,
@@ -27,6 +29,7 @@ import {
   handlePaymentIntentPaymentFailed,
   handlePaymentIntentSucceeded,
 } from "@/lib/stripe/webhook-handlers";
+import { revertTuitionPaymentAfterAchSettlementFailure } from "@/lib/tuition/payment-settlement";
 
 const describeIntegration = integrationTestsEnabled() ? describe : describe.skip;
 
@@ -689,7 +692,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .from("activity_events")
       .select("summary, metadata")
       .eq("organization_id", fixture.organizationId)
-      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED)
       .contains("metadata", { paymentId: fixture.paymentId });
 
     assert.ifError(error);
@@ -709,10 +712,132 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .from("activity_events")
       .select("id")
       .eq("organization_id", fixture.organizationId)
-      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED)
       .contains("metadata", { paymentId: fixture.paymentId });
 
     assert.equal(failureEventsAfterRetry?.length, 1);
+  });
+
+  it("dedupes tuition failure notifications across async_payment_failed and payment_intent.payment_failed", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+    const paymentIntentId = `pi_ach_fail_${randomUUID().slice(0, 8)}`;
+
+    const { data: guardian, error: guardianError } = await admin
+      .from("guardians")
+      .select("email")
+      .eq("id", fixture.guardianId)
+      .single();
+    assert.ifError(guardianError);
+    assert.ok(guardian?.email);
+
+    const { error: familyUpdateError } = await admin
+      .from("families")
+      .update({ notification_emails: [guardian.email] })
+      .eq("id", fixture.familyId);
+    assert.ifError(familyUpdateError);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentIntentId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+    await handleCheckoutSessionAsyncPaymentFailed(admin, session);
+
+    await handlePaymentIntentPaymentFailed(
+      admin,
+      {
+        id: paymentIntentId,
+        object: "payment_intent",
+        status: "requires_payment_method",
+        metadata: {
+          payment_type: "tuition",
+          payment_id: fixture.paymentId,
+          organization_id: fixture.organizationId,
+        },
+      } as unknown as Stripe.PaymentIntent,
+    );
+
+    const countPaymentActivity = async (action: string): Promise<number> => {
+      const { data, error } = await admin
+        .from("activity_events")
+        .select("id")
+        .eq("organization_id", fixture.organizationId)
+        .eq("action", action)
+        .eq("entity_type", "payment")
+        .eq("entity_id", fixture.paymentId);
+
+      assert.ifError(error);
+      return data?.length ?? 0;
+    };
+
+    assert.equal(
+      await countPaymentActivity(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_PARENT_EMAIL),
+      1,
+    );
+    assert.equal(
+      await countPaymentActivity(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_SCHOOL_OPS),
+      1,
+    );
+
+    const payment = await getPaymentById(admin, fixture.paymentId);
+    assert.ok(payment);
+
+    await sendTuitionAchSettlementFailedNotifications(admin, {
+      payment,
+      settlementFailure: true,
+      chargeReopened: true,
+    });
+
+    assert.equal(
+      await countPaymentActivity(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_PARENT_EMAIL),
+      1,
+    );
+    assert.equal(
+      await countPaymentActivity(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_SCHOOL_OPS),
+      1,
+    );
+  });
+
+  it("treats revertTuitionPaymentAfterAchSettlementFailure as already handled when payment is failed", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+    await handleCheckoutSessionAsyncPaymentFailed(admin, session);
+
+    const payment = await getPaymentById(admin, fixture.paymentId);
+    assert.ok(payment);
+    assert.equal(payment.status, "failed");
+
+    const revertResult = await revertTuitionPaymentAfterAchSettlementFailure(
+      admin,
+      payment,
+      { stripeCheckoutSessionId: fixture.checkoutSessionId },
+    );
+
+    assert.equal(revertResult.alreadyHandled, true);
   });
 
   it("replaces an existing guardian payment method row in place", async () => {

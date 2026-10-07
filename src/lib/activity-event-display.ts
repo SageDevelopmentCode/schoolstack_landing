@@ -133,6 +133,7 @@ const ACTION_PHRASES: Record<string, string> = {
   [ACTIVITY_ACTIONS.TUITION_CHARGE_WAIVED]: "waived a tuition charge",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_MANUAL]: "recorded a manual tuition payment",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_COMPLETED]: "completed a tuition payment",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED]: "had a tuition bank payment fail",
   [ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED]: "refunded a tuition payment",
   [ACTIVITY_ACTIONS.TUITION_BILLING_RUN_COMPLETED]: "completed a tuition billing run",
   [ACTIVITY_ACTIONS.TUITION_LATE_FEE_APPLIED]: "applied tuition late fees",

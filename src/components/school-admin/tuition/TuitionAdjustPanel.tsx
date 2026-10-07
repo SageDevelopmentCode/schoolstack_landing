@@ -30,6 +30,9 @@ import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
+import type { TuitionAdjustPreviewSnapshot } from "@/lib/tuition/tuition-adjust-preview";
+
+export type { TuitionAdjustPreviewSnapshot };
 
 const ADJUST_TYPE_HELP: Record<AdjustmentType, string> = {
   percent_discount: "Reduce each installment by a percentage.",
@@ -72,6 +75,8 @@ type TuitionAdjustPanelProps = {
   branding: OrganizationBranding;
   onClose: () => void;
   onSaved: () => void;
+  previewSnapshot?: TuitionAdjustPreviewSnapshot;
+  layout?: "overlay" | "embedded";
 };
 
 export default function TuitionAdjustPanel({
@@ -82,6 +87,8 @@ export default function TuitionAdjustPanel({
   branding,
   onClose,
   onSaved,
+  previewSnapshot,
+  layout = "overlay",
 }: TuitionAdjustPanelProps) {
   void branding;
   const { theme } = useSchoolAdminStoryTheme();
@@ -113,8 +120,18 @@ export default function TuitionAdjustPanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [manageReasonsOpen, open, onClose]);
 
+  const effectiveReasonOptions = previewSnapshot?.reasonOptions ?? reasonOptions;
+  const effectiveCharges = previewSnapshot?.charges ?? charges;
+  const effectiveExisting = previewSnapshot?.existing ?? existing;
+  const effectiveBaseAmountCents = previewSnapshot?.baseAmountCents ?? baseAmountCents;
+  const effectivePendingSchedule = previewSnapshot?.pendingSchedule ?? pendingSchedule;
+  const reasonForUi =
+    previewSnapshot && reason.trim().length === 0
+      ? (previewSnapshot.reasonOptions[0] ?? "")
+      : reason;
+
   useEffect(() => {
-    if (!open || !organizationId) return;
+    if (!open || !organizationId || previewSnapshot) return;
 
     void (async () => {
       try {
@@ -141,10 +158,10 @@ export default function TuitionAdjustPanel({
       }, err);
       }
     })();
-  }, [assignmentId, open, organizationId]);
+  }, [assignmentId, open, organizationId, previewSnapshot]);
 
   useEffect(() => {
-    if (!open || !assignmentId) return;
+    if (!open || !assignmentId || previewSnapshot) return;
 
     void (async () => {
       const [adjustments, assignmentCharges, assignment] = await Promise.all([
@@ -185,7 +202,7 @@ export default function TuitionAdjustPanel({
 
       setBaseAmountCents(installmentAmountCents);
     })();
-  }, [assignmentId, open, supabase]);
+  }, [assignmentId, open, previewSnapshot, supabase]);
 
   const draftAdjustment = useMemo(
     () => ({
@@ -197,26 +214,32 @@ export default function TuitionAdjustPanel({
           : adjustType === "waiver"
             ? 0
             : null,
-      priority: existing.length,
+      priority: effectiveExisting.length,
       scope: "installment" as const,
     }),
-    [adjustType, amountCents, existing.length, percentValue],
+    [adjustType, amountCents, effectiveExisting.length, percentValue],
   );
 
   const impactPreview = useMemo(
     () =>
       computeAdjustmentImpactPreview({
-        charges,
-        baseAmountCents,
-        existingAdjustments: existing,
+        charges: effectiveCharges,
+        baseAmountCents: effectiveBaseAmountCents,
+        existingAdjustments: effectiveExisting,
         draftAdjustment,
-        pendingSchedule,
+        pendingSchedule: effectivePendingSchedule,
       }),
-    [baseAmountCents, charges, draftAdjustment, existing, pendingSchedule],
+    [
+      effectiveBaseAmountCents,
+      effectiveCharges,
+      draftAdjustment,
+      effectiveExisting,
+      effectivePendingSchedule,
+    ],
   );
 
-  const adjustedPerInstallment = computeAdjustedAmountCents(baseAmountCents, [
-    ...existing.map((adjustment) => ({
+  const adjustedPerInstallment = computeAdjustedAmountCents(effectiveBaseAmountCents, [
+    ...effectiveExisting.map((adjustment) => ({
       adjustmentType: adjustment.adjustmentType,
       valuePercent: adjustment.valuePercent,
       valueCents: adjustment.valueCents,
@@ -236,10 +259,10 @@ export default function TuitionAdjustPanel({
     impactPreview.scenario !== "no_charges" &&
     percentInputValid &&
     amountInputValid &&
-    reason.trim().length > 0;
+    reasonForUi.trim().length > 0;
 
   const handleSave = async () => {
-    if (!canSave) return;
+    if (!canSave || previewSnapshot) return;
 
     setSaving(true);
     try {
@@ -252,7 +275,7 @@ export default function TuitionAdjustPanel({
           adjustType === "fixed_discount" || adjustType === "custom_amount"
             ? amountCents
             : null,
-        reason,
+        reason: reasonForUi,
         source: "manual",
       });
       adminToast.success("Adjustment saved");
@@ -287,7 +310,7 @@ export default function TuitionAdjustPanel({
   const hiddenUpcomingCount = upcomingPreview.length - visibleUpcoming.length;
 
   const handleReasonsSaved = (savedReasons: string[]) => {
-    const previousReasons = reasonOptions;
+    const previousReasons = effectiveReasonOptions;
     setReasonOptions(savedReasons);
 
     const addedReasons = savedReasons.filter(
@@ -298,17 +321,20 @@ export default function TuitionAdjustPanel({
       return;
     }
 
-    if (!savedReasons.includes(reason)) {
+    if (!savedReasons.includes(reasonForUi)) {
       setReason(savedReasons[0] ?? "");
     }
   };
+
+  const isEmbedded = layout === "embedded";
+  const shellClass = isEmbedded ? "absolute inset-0 z-[50]" : "fixed inset-0 z-[100]";
 
   return (
     <>
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100]"
+          className={shellClass}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -316,15 +342,19 @@ export default function TuitionAdjustPanel({
         >
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+            style={{ backgroundColor: isEmbedded ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.45)" }}
             onClick={onClose}
             aria-hidden="true"
           />
           <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            initial={isEmbedded ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+            animate={isEmbedded ? { opacity: 1 } : { x: 0, opacity: 1 }}
+            exit={isEmbedded ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+            transition={
+              isEmbedded
+                ? { duration: 0.2 }
+                : { type: "spring", damping: 28, stiffness: 300 }
+            }
             className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
             style={{
               backgroundColor: "#F8FAF8",
@@ -359,7 +389,7 @@ export default function TuitionAdjustPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 flex flex-col gap-4">
-              {existing.length > 0 ? (
+              {effectiveExisting.length > 0 ? (
                 <div
                   className="rounded-md p-3 text-sm flex flex-col gap-2"
                   style={{
@@ -371,7 +401,7 @@ export default function TuitionAdjustPanel({
                     Current adjustments on this assignment
                   </p>
                   <ul className="flex flex-col gap-1">
-                    {existing.map((adjustment) => (
+                    {effectiveExisting.map((adjustment) => (
                       <li key={adjustment.id} style={{ color: C.textSecondary }}>
                         {formatAdjustmentDetailLine(adjustment)}
                       </li>
@@ -480,10 +510,10 @@ export default function TuitionAdjustPanel({
                   </span>
                   <TuitionAdjustmentReasonSelect
                     C={C}
-                    value={reason}
+                    value={reasonForUi}
                     onChange={setReason}
-                    reasons={reasonOptions}
-                    disabled={reasonOptions.length === 0}
+                    reasons={effectiveReasonOptions}
+                    disabled={effectiveReasonOptions.length === 0}
                     onManageReasons={() => setManageReasonsOpen(true)}
                   />
                 </label>
@@ -495,7 +525,9 @@ export default function TuitionAdjustPanel({
               >
                 <p style={{ color: C.textSecondary }}>
                   Standard installment:{" "}
-                  <span style={{ color: C.textSecondary }}>{formatCents(baseAmountCents)}</span>
+                  <span style={{ color: C.textSecondary }}>
+                    {formatCents(effectiveBaseAmountCents)}
+                  </span>
                   {" → "}
                   <strong style={{ color: C.accentDark }}>
                     {formatCents(adjustedPerInstallment)}
@@ -612,7 +644,7 @@ export default function TuitionAdjustPanel({
               </AdminButton>
               <AdminButton
                 theme={theme}
-                disabled={saving || !canSave}
+                disabled={saving || !canSave || Boolean(previewSnapshot)}
                 onClick={() => void handleSave()}
               >
                 {saving ? "Saving…" : "Apply adjustment"}
@@ -626,7 +658,7 @@ export default function TuitionAdjustPanel({
     <TuitionAdjustmentReasonsModal
       open={manageReasonsOpen}
       organizationId={organizationId}
-      reasons={reasonOptions}
+      reasons={effectiveReasonOptions}
       C={C}
       onClose={() => setManageReasonsOpen(false)}
       onSaved={handleReasonsSaved}

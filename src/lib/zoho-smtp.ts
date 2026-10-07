@@ -1,16 +1,21 @@
 import nodemailer from "nodemailer";
 import { isOutboundEmailDisabled } from "@/lib/outbound-email";
 
-const ZOHO_SMTP_HOST = process.env.ZOHO_SMTP_HOST ?? "smtp.zoho.com";
-const ZOHO_SMTP_PORT = parseInt(process.env.ZOHO_SMTP_PORT ?? "465", 10);
-const ZOHO_SMTP_USER = process.env.ZOHO_SMTP_USER;
-const ZOHO_SMTP_PASSWORD = process.env.ZOHO_SMTP_PASSWORD;
-const ZOHO_FROM_ADDRESS = process.env.ZOHO_FROM_ADDRESS;
-const ZOHO_FROM_NAME = process.env.ZOHO_FROM_NAME ?? "Julius Cecilia";
+function readSmtpEnv() {
+  return {
+    host: process.env.ZOHO_SMTP_HOST ?? "smtp.zoho.com",
+    port: parseInt(process.env.ZOHO_SMTP_PORT ?? "465", 10),
+    user: process.env.ZOHO_SMTP_USER,
+    password: process.env.ZOHO_SMTP_PASSWORD,
+    fromAddress: process.env.ZOHO_FROM_ADDRESS,
+    fromName: process.env.ZOHO_FROM_NAME ?? "Julius Cecilia",
+  };
+}
 
 export function isSmtpConfigured(): boolean {
   if (isOutboundEmailDisabled()) return false;
-  return !!(ZOHO_SMTP_USER && ZOHO_SMTP_PASSWORD && ZOHO_FROM_ADDRESS);
+  const env = readSmtpEnv();
+  return !!(env.user && env.password && env.fromAddress);
 }
 
 export async function sendViaSmtp(opts: {
@@ -18,25 +23,26 @@ export async function sendViaSmtp(opts: {
   subject: string;
   html: string;
 }): Promise<{ success: boolean; error?: string }> {
+  const env = readSmtpEnv();
   if (!isSmtpConfigured()) {
     return { success: false, error: "Zoho SMTP is not configured" };
   }
 
   try {
     const transport = nodemailer.createTransport({
-      host: ZOHO_SMTP_HOST,
-      port: ZOHO_SMTP_PORT,
-      secure: ZOHO_SMTP_PORT === 465,
+      host: env.host,
+      port: env.port,
+      secure: env.port === 465,
       auth: {
-        user: ZOHO_SMTP_USER,
-        pass: ZOHO_SMTP_PASSWORD,
+        user: env.user,
+        pass: env.password,
       },
     });
 
     await transport.sendMail({
       from: {
-        name: ZOHO_FROM_NAME,
-        address: ZOHO_FROM_ADDRESS!,
+        name: env.fromName,
+        address: env.fromAddress!,
       },
       to: opts.toAddress,
       subject: opts.subject,

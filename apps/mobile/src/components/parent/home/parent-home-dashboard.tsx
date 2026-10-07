@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -18,9 +18,11 @@ import { ParentHomeHeader } from '@/components/parent/home/parent-home-header';
 import { ParentHomeHowToGuidesCard } from '@/components/parent/home/parent-home-how-to-guides-card';
 import { ParentHomeSchoolUpdatesCard } from '@/components/parent/home/parent-home-school-updates-card';
 import { ParentHomeStartHereCard } from '@/components/parent/home/parent-home-start-here-card';
+import { ParentHomeSubTabPanel } from '@/components/parent/home/parent-home-sub-tab-panel';
 import {
   PARENT_HOME_SUB_TAB_OVERVIEW,
   ParentHomeSubTabBar,
+  resolveParentHomeSubTabs,
   type ParentHomeSubTabId,
 } from '@/components/parent/home/parent-home-sub-tab-bar';
 import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
@@ -124,14 +126,33 @@ export function ParentHomeDashboard({
     [coopModeEnabled, parentNavBasePath, programId, programSlug, slug],
   );
   const [activeSubTab, setActiveSubTab] = useState<ParentHomeSubTabId>(PARENT_HOME_SUB_TAB_OVERVIEW);
+  const [visitedSubTabs, setVisitedSubTabs] = useState<Set<ParentHomeSubTabId>>(
+    () => new Set([PARENT_HOME_SUB_TAB_OVERVIEW]),
+  );
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
   const [bulletinOpen, setBulletinOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  const subTabs = useMemo(
+    () => resolveParentHomeSubTabs(coopModeEnabled),
+    [coopModeEnabled],
+  );
+
   useEffect(() => {
     setActiveSubTab(PARENT_HOME_SUB_TAB_OVERVIEW);
+    setVisitedSubTabs(new Set([PARENT_HOME_SUB_TAB_OVERVIEW]));
   }, [coopModeEnabled, programSlug]);
+
+  const handleSubTabChange = useCallback((tabId: ParentHomeSubTabId) => {
+    setVisitedSubTabs((previous) => {
+      if (previous.has(tabId)) return previous;
+      const next = new Set(previous);
+      next.add(tabId);
+      return next;
+    });
+    setActiveSubTab(tabId);
+  }, []);
 
   const openWebUrl = async (href: string) => {
     await openBrowserAsync(resolveWebUrl(href), {
@@ -175,102 +196,72 @@ export function ParentHomeDashboard({
     onOnboardingItem(item);
   };
 
-  const showLearnOnOverview = !coopModeEnabled;
-  const showNeedHelpOnOverview = !coopModeEnabled;
+  const renderFeatureAnnouncements = () =>
+    featureAnnouncements.length > 0 ? (
+      <ParentHomeFeatureAnnouncementsCard
+        announcements={featureAnnouncements}
+        onPressAnnouncement={onFeatureAnnouncement}
+      />
+    ) : null;
 
-  const renderLearnContent = ({
-    includeNeedHelp,
-    delayBase,
-  }: {
-    includeNeedHelp: boolean;
-    delayBase: number;
-  }) => (
+  const renderHelpSections = () => (
     <>
-      {featureAnnouncements.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(delayBase).duration(350)}>
-          <ParentHomeFeatureAnnouncementsCard
-            announcements={featureAnnouncements}
-            onPressAnnouncement={onFeatureAnnouncement}
-          />
-        </Animated.View>
-      ) : null}
-
       {documentationGuides.length > 0 ? (
-        <Animated.View entering={FadeInDown.delay(delayBase + 40).duration(350)}>
-          <ParentHomeHowToGuidesCard
-            guides={documentationGuides}
-            onStepAction={onDocumentationStep}
-          />
-        </Animated.View>
+        <ParentHomeHowToGuidesCard
+          guides={documentationGuides}
+          onStepAction={onDocumentationStep}
+        />
       ) : null}
 
-      {includeNeedHelp ? (
-        <Animated.View entering={FadeInDown.delay(delayBase + 80).duration(350)}>
-          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-        </Animated.View>
-      ) : null}
+      <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
     </>
   );
 
   const renderOverviewSections = () => (
     <>
-      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-        <ParentHomeStartHereCard
-          slug={slug}
-          programSlug={programSlug}
-          onboardingItems={data.onboardingItems}
-          enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
-          enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
-          formAttentionItems={data.formAttentionItems ?? []}
-          signupAttentionItems={signupAttentionItems}
-          familyChildren={data.familyChildren}
-          onPressAttentionItem={onAttentionItem}
-          onOpenOnboarding={() => setOnboardingOpen(true)}
-        />
-      </Animated.View>
+      <ParentHomeStartHereCard
+        slug={slug}
+        programSlug={programSlug}
+        onboardingItems={data.onboardingItems}
+        enrollmentAmendmentBannerItems={data.enrollmentAmendmentBannerItems}
+        enrollmentIncompleteBannerItems={enrollmentIncompleteBannerItems}
+        formAttentionItems={data.formAttentionItems ?? []}
+        signupAttentionItems={signupAttentionItems}
+        familyChildren={data.familyChildren}
+        onPressAttentionItem={onAttentionItem}
+        onOpenOnboarding={() => setOnboardingOpen(true)}
+      />
 
-      <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-        <ParentHomeEventsCard nextEvent={nextEvent} onViewCalendar={onViewCalendar} />
-      </Animated.View>
+      <ParentHomeEventsCard nextEvent={nextEvent} onViewCalendar={onViewCalendar} />
 
       {showCoopSchoolUpdates ? (
-        <Animated.View entering={FadeInDown.delay(90).duration(350)}>
-          <ParentHomeSchoolUpdatesCard
-            bulletinEnabled={false}
-            bulletinPosts={bulletinPosts}
-            messagesEnabled={messagesEnabled}
-            onOpenMessages={onOpenMessages}
-            onOpenBulletinPost={onOpenBulletinPost}
-          />
-        </Animated.View>
+        <ParentHomeSchoolUpdatesCard
+          bulletinEnabled={false}
+          bulletinPosts={bulletinPosts}
+          messagesEnabled={messagesEnabled}
+          onOpenMessages={onOpenMessages}
+          onOpenBulletinPost={onOpenBulletinPost}
+        />
       ) : null}
 
       {isParentHomeFridayBranchEnabled(data.features, {
         parent_portal_paused: Boolean(data.fridayBranchParentPortalPaused),
       }) && data.fridayBranchHome ? (
-        <Animated.View entering={FadeInDown.delay(100).duration(350)}>
-          <ParentHomeFridayBranchCard
-            slug={slug}
-            programSlug={programSlug}
-            organizationId={data.organizationId}
-            initialBundle={data.fridayBranchHome}
-          />
-        </Animated.View>
+        <ParentHomeFridayBranchCard
+          slug={slug}
+          programSlug={programSlug}
+          organizationId={data.organizationId}
+          initialBundle={data.fridayBranchHome}
+        />
       ) : null}
 
-      {showLearnOnOverview ? renderLearnContent({ includeNeedHelp: false, delayBase: 120 }) : null}
-
-      {showNeedHelpOnOverview ? (
-        <Animated.View entering={FadeInDown.delay(200).duration(350)}>
-          <PortalNeedHelpCard onPress={() => setSupportSheetOpen(true)} />
-        </Animated.View>
-      ) : null}
+      {renderFeatureAnnouncements()}
     </>
   );
 
   const renderFamilySections = () => (
     <>
-      <Animated.View entering={FadeInDown.delay(40).duration(350)} style={styles.section}>
+      <View style={styles.section}>
         <StoryDisplayHeading size="section">Your children</StoryDisplayHeading>
 
         {data.familyChildren.length === 0 ? (
@@ -303,45 +294,38 @@ export function ParentHomeDashboard({
             ))}
           </View>
         )}
-      </Animated.View>
+      </View>
 
       {data.formSnapshot ? (
-        <Animated.View entering={FadeInDown.delay(80).duration(350)}>
-          <ParentHomeFormsSnapshotCard
-            snapshot={data.formSnapshot}
-            onOpenForm={onOpenForm}
-            onViewAll={onViewAllForms}
-          />
-        </Animated.View>
+        <ParentHomeFormsSnapshotCard
+          snapshot={data.formSnapshot}
+          onOpenForm={onOpenForm}
+          onViewAll={onViewAllForms}
+        />
       ) : null}
     </>
   );
 
   const renderCoopSections = () =>
     coopModeEnabled && programPortalLabel && programId ? (
-      <Animated.View entering={FadeInDown.delay(40).duration(350)}>
-        <ParentHomeCoopFamiliesCard
-          programLabel={programPortalLabel}
-          families={coopFamilies}
-          organizationId={data.organizationId}
-          programId={programId}
-          messagesEnabled={messagesEnabled}
-          onOpenThread={onCoopMessageThread}
-        />
-      </Animated.View>
+      <ParentHomeCoopFamiliesCard
+        programLabel={programPortalLabel}
+        families={coopFamilies}
+        organizationId={data.organizationId}
+        programId={programId}
+        messagesEnabled={messagesEnabled}
+        onOpenThread={onCoopMessageThread}
+      />
     ) : null;
 
-  const renderLearnSections = () =>
-    renderLearnContent({ includeNeedHelp: true, delayBase: 40 });
-
-  const renderActiveSubTabContent = () => {
-    switch (activeSubTab) {
+  const renderSubTabPanel = (tabId: ParentHomeSubTabId) => {
+    switch (tabId) {
       case 'family':
         return renderFamilySections();
       case 'coop':
         return renderCoopSections();
-      case 'learn':
-        return renderLearnSections();
+      case 'help':
+        return renderHelpSections();
       case 'overview':
       default:
         return renderOverviewSections();
@@ -369,21 +353,34 @@ export function ParentHomeDashboard({
         <ParentHomeSubTabBar
           coopModeEnabled={coopModeEnabled}
           activeTabId={activeSubTab}
-          onChange={setActiveSubTab}
+          onChange={handleSubTabChange}
         />
 
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={onRefresh}
-              tintColor={theme.primary}
-            />
-          }>
-          {renderActiveSubTabContent()}
-        </ScrollView>
+        <View style={styles.tabPanels}>
+          {subTabs.map((tab) => {
+            const tabId = tab.id as ParentHomeSubTabId;
+            if (!visitedSubTabs.has(tabId)) return null;
+
+            const visible = activeSubTab === tabId;
+
+            return (
+              <ParentHomeSubTabPanel key={tabId} visible={visible}>
+                <ScrollView
+                  style={styles.scroll}
+                  contentContainerStyle={styles.content}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isRefreshing}
+                      onRefresh={onRefresh}
+                      tintColor={theme.primary}
+                    />
+                  }>
+                  {renderSubTabPanel(tabId)}
+                </ScrollView>
+              </ParentHomeSubTabPanel>
+            );
+          })}
+        </View>
       </View>
 
       <HomeBulletinSheet
@@ -436,6 +433,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Story.paper,
+  },
+  tabPanels: {
+    flex: 1,
   },
   scroll: {
     flex: 1,

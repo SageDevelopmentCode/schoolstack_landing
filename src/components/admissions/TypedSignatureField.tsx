@@ -3,6 +3,9 @@
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { greatVibes } from "@/lib/fonts";
 
+const SIGNATURE_PREVIEW_FONT_FAMILY =
+  'var(--font-great-vibes), "Great Vibes", cursive';
+
 type TypedSignatureFieldProps = {
   C: AdminThemeTokens;
   value: string;
@@ -52,6 +55,7 @@ export default function TypedSignatureField({
           style={{
             color: trimmedValue ? C.accentDark : C.textTertiary,
             letterSpacing: "0.02em",
+            fontFamily: SIGNATURE_PREVIEW_FONT_FAMILY,
           }}
         >
           {previewText}

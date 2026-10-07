@@ -470,11 +470,17 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
         surplusCents,
       },
     });
-    const failedOnly = await revertSucceededPaymentToFailed(supabase, payment.id, input);
+    const revertResult = await revertSucceededPaymentToFailed(
+      supabase,
+      payment.id,
+      input,
+    );
+    const revertedPayment = revertResult.payment ?? payment;
     return {
-      payment: failedOnly ?? payment,
+      payment: revertedPayment,
       chargeReopened: false,
-      alreadyHandled: false,
+      alreadyHandled:
+        !revertResult.transitioned && revertedPayment.status === "failed",
     };
   }
 
@@ -504,31 +510,56 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
   if (updateError) throw updateError;
 
   if (!updatedRow) {
-    await reportOperationalError({
+    const refreshedCharge = await getChargeById(supabase, charge.id);
+    const expectedStatus =
+      nextPaidCents < charge.amountCents
+        ? openChargeStatusAfterRevert(charge.dueDate)
+        : charge.status;
+    const chargeAlreadyReverted =
+      refreshedCharge != null &&
+      refreshedCharge.paidCents === nextPaidCents &&
+      refreshedCharge.status === expectedStatus &&
+      (nextPaidCents >= charge.amountCents || refreshedCharge.paidAt == null);
+
+    if (!chargeAlreadyReverted) {
+      await reportOperationalError({
+        supabase,
+        surface: "system",
+        operation: "revert_tuition_ach_settlement_failure",
+        error: "Charge balance changed before ACH settlement revert",
+        organizationId: payment.organizationId,
+        entityType: "tuition_charge",
+        entityId: charge.id,
+        actor: { type: "system" },
+        metadata: { paymentId: payment.id },
+      });
+    }
+    const revertResult = await revertSucceededPaymentToFailed(
       supabase,
-      surface: "system",
-      operation: "revert_tuition_ach_settlement_failure",
-      error: "Charge balance changed before ACH settlement revert",
-      organizationId: payment.organizationId,
-      entityType: "tuition_charge",
-      entityId: charge.id,
-      actor: { type: "system" },
-      metadata: { paymentId: payment.id },
-    });
-    const failedOnly = await revertSucceededPaymentToFailed(supabase, payment.id, input);
+      payment.id,
+      input,
+    );
+    const revertedPayment = revertResult.payment ?? payment;
+    const paymentAlreadyFailed =
+      !revertResult.transitioned && revertedPayment.status === "failed";
     return {
-      payment: failedOnly ?? payment,
-      chargeReopened: false,
-      alreadyHandled: false,
+      payment: revertedPayment,
+      chargeReopened: chargeAlreadyReverted,
+      alreadyHandled: chargeAlreadyReverted || paymentAlreadyFailed,
     };
   }
 
-  const updatedPayment = await revertSucceededPaymentToFailed(
+  const revertResult = await revertSucceededPaymentToFailed(
     supabase,
     payment.id,
     input,
   );
-  if (!updatedPayment || updatedPayment.status !== "failed") {
+  const updatedPayment = revertResult.payment;
+  if (
+    !revertResult.transitioned ||
+    !updatedPayment ||
+    updatedPayment.status !== "failed"
+  ) {
     throw new ChargeStatusConflictError(
       "Payment could not be marked failed after charge revert.",
     );

@@ -36,6 +36,7 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED,
   ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED,
+  ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED,
   ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED,
   ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED,
   ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED,
@@ -137,6 +138,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_DISABLED]: "Autopay disabled",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_SUCCEEDED]: "Autopay charge succeeded",
   [ACTIVITY_ACTIONS.TUITION_AUTOPAY_FAILED]: "Autopay charge failed",
+  [ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED]: "Tuition bank payment failed",
   [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_CREATED]: "Tuition assigned",
   [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UNASSIGNED]: "Tuition unassigned",
   [ACTIVITY_ACTIONS.TUITION_ASSIGNMENT_UPDATED]: "Payment plan selected",
@@ -1087,6 +1089,36 @@ export function formatActivityNotificationDetail(
     return familyLabel
       ? `${familyLabel} disabled tuition autopay`
       : "A family disabled tuition autopay";
+  }
+
+  if (action === ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED) {
+    const payer =
+      tuitionContext?.payerLabel ??
+      tuitionContext?.familyName ??
+      familyLabel ??
+      subjectLabel;
+    const charge =
+      tuitionContext?.chargeLabel ??
+      metadataString(metadata, "chargeLabel") ??
+      "tuition";
+    const amountCents = metadataNumber(metadata, "amountCents");
+    const amountPart =
+      amountCents != null && amountCents > 0
+        ? ` (${formatCents(amountCents)})`
+        : paymentAmountLabel
+          ? ` (${paymentAmountLabel})`
+          : "";
+    const student = tuitionContext?.studentName
+      ? shortenSubjectLabel(tuitionContext.studentName)
+      : null;
+
+    if (student && payer) {
+      return `${payer}'s bank payment for ${student}'s ${charge}${amountPart} did not go through`;
+    }
+    if (payer) {
+      return `${payer}'s bank payment for ${charge}${amountPart} did not go through`;
+    }
+    return fallbackSummary;
   }
 
   if (action === ACTIVITY_ACTIONS.TUITION_PAYMENT_METHOD_SAVED) {

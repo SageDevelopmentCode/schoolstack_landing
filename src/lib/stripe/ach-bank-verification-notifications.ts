@@ -3,7 +3,11 @@ import {
   type ApplicantContact,
   resolveApplicantContact,
 } from "@/lib/admissions/application-notifications";
-import { logNotificationFailure } from "@/lib/admissions/notification-logging";
+import {
+  logNotificationFailure,
+  logOutboundEmailSettledFailures,
+  type OutboundEmailSendResult,
+} from "@/lib/admissions/notification-logging";
 import {
   PAYMENT_TYPE_LABELS,
 } from "@/lib/admissions/payment-records";
@@ -13,13 +17,19 @@ import {
   sendAchBankVerificationEmail,
   type AchBankVerificationLineItem,
 } from "@/lib/emails";
-import { notifyAchBankVerificationRequired } from "@/lib/discord";
+import { notifyAchBankVerificationRequired, notifyTuitionPaymentFailed } from "@/lib/discord";
 import { loadFamilyNotificationEmails } from "@/lib/notifications/family-notification-emails";
-import { sendAchBankVerificationAdminNotifications } from "@/lib/notifications/payment-admin-notifications";
+import {
+  getStudentNameForCharge,
+  sendAchBankVerificationAdminNotifications,
+  sendTuitionPaymentFailedAdminNotifications,
+} from "@/lib/notifications/payment-admin-notifications";
+import { getChargeById } from "@/lib/tuition/charges";
 import { schoolAdminPath } from "@/lib/organization-settings/admin-routes";
 import {
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
+import { tuitionAchParentEmailDeliveredFromResults } from "@/lib/stripe/ach-failure-parent-email-result";
 import type { AchVerificationAction } from "@/lib/stripe/payment-intent-bank-verification";
 import { hasAchVerificationOpsBeenNotified } from "@/lib/stripe/ach-verification-ops-idempotency";
 import {
@@ -164,32 +174,6 @@ function familyEmailSentFromResults(
   return results.some(
     (result) => result.status === "fulfilled" && result.value.ok === true,
   );
-}
-
-async function logOutboundEmailSettledFailures(
-  admin: SupabaseClient,
-  input: {
-    organizationId: string;
-    operation: string;
-    entityType: string;
-    entityId: string;
-  },
-  results: PromiseSettledResult<{ ok: boolean }>[],
-): Promise<void> {
-  const failures = results.filter(
-    (result) =>
-      result.status === "rejected" ||
-      (result.status === "fulfilled" && !result.value.ok),
-  );
-  if (failures.length === 0) return;
-
-  await logNotificationFailure(admin, {
-    organizationId: input.organizationId,
-    operation: input.operation,
-    error: `${failures.length} email(s) failed`,
-    entityType: input.entityType,
-    entityId: input.entityId,
-  });
 }
 
 async function sendAchBankVerificationOpsNotifications(
@@ -463,8 +447,8 @@ async function sendDeferredTuitionReceiptsForPayments(
     if (prior !== "requires_action" && prior !== "processing") {
       continue;
     }
-    void sendTuitionPaymentReceiptNotifications(admin, payment.id);
-    void sendPaymentReceivedAdminNotifications(admin, payment.id);
+    await sendTuitionPaymentReceiptNotifications(admin, payment.id);
+    await sendPaymentReceivedAdminNotifications(admin, payment.id);
 
     const exists = await tuitionPaymentCompletedActivityExists(
       admin,
@@ -525,67 +509,433 @@ export async function sendDeferredAdmissionsReceiptsIfAchSettled(
   }
 }
 
-export async function sendTuitionAchSettlementFailedNotifications(
+type ParentAchFailureEmailVariant = "initial" | "charge_reopened";
+
+async function hasParentAchFailureEmailBeenSent(
+  admin: SupabaseClient,
+  paymentId: string,
+  variant: ParentAchFailureEmailVariant,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("activity_events")
+    .select("id")
+    .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_PARENT_EMAIL)
+    .eq("entity_type", "payment")
+    .eq("entity_id", paymentId)
+    .contains("metadata", { variant })
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+async function claimParentAchFailureEmailSend(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    paymentId: string;
+    variant: ParentAchFailureEmailVariant;
+  },
+): Promise<boolean> {
+  if (await hasParentAchFailureEmailBeenSent(admin, input.paymentId, input.variant)) {
+    return false;
+  }
+
+  await logActivityEvent(admin, {
+    organizationId: input.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_PARENT_EMAIL,
+    entityType: "payment",
+    entityId: input.paymentId,
+    summary: "Tuition ACH failure parent email sent",
+    metadata: {
+      paymentId: input.paymentId,
+      variant: input.variant,
+    },
+    severity: "info",
+  });
+
+  return true;
+}
+
+async function hasTuitionAchFailureSchoolOpsBeenSent(
+  admin: SupabaseClient,
+  paymentId: string,
+  settlementFailure: boolean,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("activity_events")
+    .select("id")
+    .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_SCHOOL_OPS)
+    .eq("entity_type", "payment")
+    .eq("entity_id", paymentId)
+    .contains("metadata", { settlementFailure })
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+async function claimTuitionAchFailureSchoolOps(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    paymentId: string;
+    settlementFailure: boolean;
+  },
+): Promise<boolean> {
+  if (
+    await hasTuitionAchFailureSchoolOpsBeenSent(
+      admin,
+      input.paymentId,
+      input.settlementFailure,
+    )
+  ) {
+    return false;
+  }
+
+  await logActivityEvent(admin, {
+    organizationId: input.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_SCHOOL_OPS,
+    entityType: "payment",
+    entityId: input.paymentId,
+    summary: "Tuition ACH failure school ops notification sent",
+    metadata: {
+      paymentId: input.paymentId,
+      settlementFailure: input.settlementFailure,
+    },
+    severity: "info",
+  });
+
+  return true;
+}
+
+async function resolveParentAchFailureEmailDecision(
   admin: SupabaseClient,
   input: {
     payment: PaymentRecord;
     settlementFailure: boolean;
     chargeReopened?: boolean;
   },
-): Promise<void> {
+): Promise<{
+  sendParentEmail: boolean;
+  chargeReopened: boolean;
+  variant: ParentAchFailureEmailVariant;
+}> {
+  if (!input.settlementFailure) {
+    return {
+      sendParentEmail: true,
+      chargeReopened: false,
+      variant: "initial",
+    };
+  }
+
+  let chargeReopened = input.chargeReopened === true;
+  const charge =
+    input.payment.tuitionChargeId != null
+      ? await getChargeById(admin, input.payment.tuitionChargeId)
+      : null;
+
+  if (!chargeReopened && charge && charge.paidCents < charge.amountCents) {
+    chargeReopened = true;
+  }
+
+  if (!chargeReopened) {
+    if (charge && charge.paidCents >= charge.amountCents) {
+      return {
+        sendParentEmail: false,
+        chargeReopened: false,
+        variant: "initial",
+      };
+    }
+
+    return {
+      sendParentEmail: true,
+      chargeReopened: false,
+      variant: "initial",
+    };
+  }
+
+  return {
+    sendParentEmail: true,
+    chargeReopened: true,
+    variant: "charge_reopened",
+  };
+}
+
+export type TuitionAchSettlementFailedParentEmailAttempt = {
+  email: string;
+  result: OutboundEmailSendResult;
+  skippedReason?: "already_sent" | "deferred_until_billing_reopened";
+};
+
+export type TuitionAchSettlementFailedNotificationResult = {
+  parentEmailAttempts: TuitionAchSettlementFailedParentEmailAttempt[];
+};
+
+export async function sendTuitionAchSettlementFailedNotifications(
+  admin: SupabaseClient,
+  input: {
+    payment: PaymentRecord;
+    settlementFailure: boolean;
+    chargeReopened?: boolean;
+    /** Resend scripts: email parents even if a variant was already sent. */
+    forceParentEmail?: boolean;
+    /** Resend scripts: skip school admin email and ops Discord. */
+    parentEmailOnly?: boolean;
+  },
+): Promise<TuitionAchSettlementFailedNotificationResult> {
+  const parentEmailAttempts: TuitionAchSettlementFailedParentEmailAttempt[] = [];
+
   try {
     const { payment } = input;
     if (payment.paymentType !== "tuition" || !payment.familyId) {
-      return;
+      return { parentEmailAttempts };
     }
 
     const org = await loadOrganization(admin, payment.organizationId);
-    if (!org) return;
+    if (!org) return { parentEmailAttempts };
 
     const contact = await resolveTuitionPayerContact(admin, {
       familyId: payment.familyId,
       payerUserId: payment.payerUserId,
     });
-    if (!contact) return;
+    if (!contact) return { parentEmailAttempts };
 
-    const { buildEmailNotificationContext, sendTuitionAchSettlementFailedEmail } =
-      await import("@/lib/emails");
-
-    const billingUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/parent/billing`;
-    const notificationContext = buildEmailNotificationContext({
-      organizationId: payment.organizationId,
-      organizationSlug: org.slug,
-      surface: "web",
-      entityType: "payment",
-      entityId: payment.id,
+    const emailDecision = await resolveParentAchFailureEmailDecision(admin, {
+      payment,
+      settlementFailure: input.settlementFailure,
+      chargeReopened: input.chargeReopened,
     });
 
-    const results = await Promise.allSettled(
-      contact.emails.map((email) =>
-        sendTuitionAchSettlementFailedEmail({
+    let parentEmailSent = false;
+    let ownsSchoolOpsBundle = false;
+
+    if (!emailDecision.sendParentEmail) {
+      for (const email of contact.emails) {
+        parentEmailAttempts.push({
           email,
-          name: contact.name,
+          result: { ok: false },
+          skippedReason: "deferred_until_billing_reopened",
+        });
+      }
+
+      if (!input.parentEmailOnly) {
+        ownsSchoolOpsBundle = await claimTuitionAchFailureSchoolOps(admin, {
+          organizationId: payment.organizationId,
+          paymentId: payment.id,
+          settlementFailure: input.settlementFailure,
+        });
+      }
+    } else {
+      const variant = emailDecision.variant;
+      const alreadySent = input.forceParentEmail
+        ? false
+        : await hasParentAchFailureEmailBeenSent(admin, payment.id, variant);
+      const reopenedAlreadySent =
+        input.forceParentEmail || variant !== "initial"
+          ? false
+          : await hasParentAchFailureEmailBeenSent(
+              admin,
+              payment.id,
+              "charge_reopened",
+            );
+
+      if (alreadySent || reopenedAlreadySent) {
+        for (const email of contact.emails) {
+          parentEmailAttempts.push({
+            email,
+            result: { ok: true },
+            skippedReason: "already_sent",
+          });
+        }
+      } else if (input.forceParentEmail) {
+        const { buildEmailNotificationContext, sendTuitionAchSettlementFailedEmail } =
+          await import("@/lib/emails");
+
+        const billingUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/parent/billing`;
+        const notificationContext = buildEmailNotificationContext({
+          organizationId: payment.organizationId,
+          organizationSlug: org.slug,
+          surface: "web",
+          entityType: "payment",
+          entityId: payment.id,
+        });
+
+        const results = await Promise.allSettled(
+          contact.emails.map((email) =>
+            sendTuitionAchSettlementFailedEmail({
+              email,
+              name: contact.name,
+              schoolName: org.name,
+              billingUrl,
+              chargeLabel: payment.label ?? "Tuition",
+              amountCents: payment.amountCents,
+              settlementFailure: input.settlementFailure,
+              chargeReopened: emailDecision.chargeReopened,
+              notificationContext,
+            }),
+          ),
+        );
+
+        contact.emails.forEach((email, index) => {
+          const settled = results[index];
+          if (settled?.status === "fulfilled") {
+            parentEmailAttempts.push({ email, result: settled.value });
+          } else if (settled?.status === "rejected") {
+            const message =
+              settled.reason instanceof Error
+                ? settled.reason.message
+                : String(settled.reason);
+            parentEmailAttempts.push({
+              email,
+              result: { ok: false, error: message },
+            });
+          }
+        });
+
+        await logOutboundEmailSettledFailures(
+          admin,
+          {
+            organizationId: payment.organizationId,
+            operation: "tuition_ach_settlement_failed_email",
+            entityType: "payment",
+            entityId: payment.id,
+          },
+          results,
+        );
+
+        parentEmailSent = tuitionAchParentEmailDeliveredFromResults(results);
+      } else {
+        const claimedParentEmail = await claimParentAchFailureEmailSend(admin, {
+          organizationId: payment.organizationId,
+          paymentId: payment.id,
+          variant,
+        });
+
+        if (!claimedParentEmail) {
+          for (const email of contact.emails) {
+            parentEmailAttempts.push({
+              email,
+              result: { ok: true },
+              skippedReason: "already_sent",
+            });
+          }
+        } else {
+          if (!input.parentEmailOnly) {
+            ownsSchoolOpsBundle = await claimTuitionAchFailureSchoolOps(admin, {
+              organizationId: payment.organizationId,
+              paymentId: payment.id,
+              settlementFailure: input.settlementFailure,
+            });
+          }
+
+          const { buildEmailNotificationContext, sendTuitionAchSettlementFailedEmail } =
+            await import("@/lib/emails");
+
+          const billingUrl = `${getRuntimeSiteUrl()}/school/${org.slug}/parent/billing`;
+          const notificationContext = buildEmailNotificationContext({
+            organizationId: payment.organizationId,
+            organizationSlug: org.slug,
+            surface: "web",
+            entityType: "payment",
+            entityId: payment.id,
+          });
+
+          const results = await Promise.allSettled(
+            contact.emails.map((email) =>
+              sendTuitionAchSettlementFailedEmail({
+                email,
+                name: contact.name,
+                schoolName: org.name,
+                billingUrl,
+                chargeLabel: payment.label ?? "Tuition",
+                amountCents: payment.amountCents,
+                settlementFailure: input.settlementFailure,
+                chargeReopened: emailDecision.chargeReopened,
+                notificationContext,
+              }),
+            ),
+          );
+
+          contact.emails.forEach((email, index) => {
+            const settled = results[index];
+            if (settled?.status === "fulfilled") {
+              parentEmailAttempts.push({ email, result: settled.value });
+            } else if (settled?.status === "rejected") {
+              const message =
+                settled.reason instanceof Error
+                  ? settled.reason.message
+                  : String(settled.reason);
+              parentEmailAttempts.push({
+                email,
+                result: { ok: false, error: message },
+              });
+            }
+          });
+
+          await logOutboundEmailSettledFailures(
+            admin,
+            {
+              organizationId: payment.organizationId,
+              operation: "tuition_ach_settlement_failed_email",
+              entityType: "payment",
+              entityId: payment.id,
+            },
+            results,
+          );
+
+          parentEmailSent = tuitionAchParentEmailDeliveredFromResults(results);
+        }
+      }
+    }
+
+    if (!input.parentEmailOnly && ownsSchoolOpsBundle) {
+      await sendTuitionPaymentFailedAdminNotifications(admin, {
+        payment,
+        settlementFailure: input.settlementFailure,
+        chargeReopened: emailDecision.chargeReopened,
+        familyEmailSent: parentEmailSent,
+      });
+
+      const financesUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(org.slug, "finances", "transactions")}`;
+      const studentName = await getStudentNameForCharge(admin, payment.tuitionChargeId);
+
+      try {
+        await notifyTuitionPaymentFailed({
           schoolName: org.name,
-          billingUrl,
+          payerLabel: contact.name,
+          payerEmail: contact.emails[0] ?? null,
+          studentName,
           chargeLabel: payment.label ?? "Tuition",
           amountCents: payment.amountCents,
+          paymentId: payment.id,
           settlementFailure: input.settlementFailure,
-          chargeReopened: input.chargeReopened,
-          notificationContext,
-        }),
-      ),
-    );
-    await logOutboundEmailSettledFailures(admin, {
-      organizationId: payment.organizationId,
-      operation: "tuition_ach_settlement_failed_email",
-      entityType: "payment",
-      entityId: payment.id,
-    }, results);
+          chargeReopened: emailDecision.chargeReopened,
+          financesUrl,
+          parentEmailSent,
+        });
+      } catch (error) {
+        await logNotificationFailure(admin, {
+          organizationId: payment.organizationId,
+          operation: "tuition_payment_failed_discord",
+          error,
+          entityType: "payment",
+          entityId: payment.id,
+        });
+      }
+    }
+
+    return { parentEmailAttempts };
   } catch (error) {
     console.error(
       "Tuition ACH settlement failed notification error:",
       input.payment.id,
       error,
     );
+    return { parentEmailAttempts };
   }
 }

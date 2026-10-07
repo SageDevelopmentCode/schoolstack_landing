@@ -1,5 +1,7 @@
 "use client";
 
+import { MarketingMobileAdminAdmissionsDetailScreen } from "@/components/admin/marketing/screens/mobile/marketing-mobile-admin-admissions-detail";
+import { MarketingMobileAdminAdmissionsScreen } from "@/components/admin/marketing/screens/mobile/marketing-mobile-admin-admissions";
 import { MarketingMobileAdminTransactionsScreen } from "@/components/admin/marketing/screens/mobile/marketing-mobile-admin-transactions";
 import { MarketingMobileParentBillingScreen } from "@/components/admin/marketing/screens/mobile/marketing-mobile-parent-billing";
 import { MarketingMobileParentHomeScreen } from "@/components/admin/marketing/screens/mobile/marketing-mobile-parent-home";
@@ -40,7 +42,26 @@ function ClippedPhoneFrame({
   );
 }
 
-export function MarketingMobilePromoCluster() {
+export type MarketingMobilePromoClusterVariant = "tuition" | "admissions";
+
+export function MarketingMobilePromoCluster({
+  variant = "tuition",
+}: {
+  variant?: MarketingMobilePromoClusterVariant;
+}) {
+  const centerScreen =
+    variant === "admissions" ? (
+      <MarketingMobileAdminAdmissionsScreen />
+    ) : (
+      <MarketingMobileParentBillingScreen />
+    );
+  const rightScreen =
+    variant === "admissions" ? (
+      <MarketingMobileAdminAdmissionsDetailScreen />
+    ) : (
+      <MarketingMobileAdminTransactionsScreen />
+    );
+
   return (
     <div
       style={{
@@ -59,10 +80,10 @@ export function MarketingMobilePromoCluster() {
         <MarketingMobileParentHomeScreen />
       </ClippedPhoneFrame>
       <ClippedPhoneFrame scale={SCALE_CENTER} style={{ zIndex: 3 }}>
-        <MarketingMobileParentBillingScreen />
+        {centerScreen}
       </ClippedPhoneFrame>
       <ClippedPhoneFrame scale={SCALE_SIDE} style={{ zIndex: 2 }}>
-        <MarketingMobileAdminTransactionsScreen />
+        {rightScreen}
       </ClippedPhoneFrame>
     </div>
   );

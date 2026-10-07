@@ -161,10 +161,10 @@ export async function recordTuitionPaymentCompleted(
   }
 
   if (!skipReceipt) {
-    void sendTuitionPaymentReceiptNotifications(admin, payment.id, {
+    await sendTuitionPaymentReceiptNotifications(admin, payment.id, {
       settleResult,
     });
-    void sendPaymentReceivedAdminNotifications(admin, payment.id);
+    await sendPaymentReceivedAdminNotifications(admin, payment.id);
   }
 
   if (!skipActivity) {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logOutboundEmailSettledFailures } from "@/lib/admissions/notification-logging";
 import { PAYMENT_METHOD_LABELS } from "@/lib/admissions/payment-records";
 import {
   formatInstantDateTimeInTimezone,
@@ -273,7 +274,7 @@ export async function sendTuitionPaymentReceiptNotifications(
       payment.organizationId,
     );
 
-    await Promise.all(
+    const receiptResults = await Promise.allSettled(
       contact.emails.map((email) =>
         sendTuitionPaymentReceiptEmail({
           email,
@@ -298,6 +299,16 @@ export async function sendTuitionPaymentReceiptNotifications(
           }),
         }),
       ),
+    );
+    await logOutboundEmailSettledFailures(
+      admin,
+      {
+        organizationId: payment.organizationId,
+        operation: "tuition_payment_receipt_email",
+        entityType: "payment",
+        entityId: paymentId,
+      },
+      receiptResults,
     );
   } catch (error) {
     console.error("Tuition payment receipt notification failed:", paymentId, error);
