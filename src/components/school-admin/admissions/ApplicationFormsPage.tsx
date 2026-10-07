@@ -117,6 +117,9 @@ type ApplicationFormsPageProps = {
   slug: string;
   initialListData?: EnrollmentFlowsListData;
   listDeferred?: boolean;
+  previewMode?: boolean;
+  initialFlowSelection?: FlowListSelection;
+  previewChecklistItemsByTemplateId?: Record<string, EnrollmentChecklistItem[]>;
 };
 
 type EditableFormState = EditableFormSnapshot;
@@ -393,6 +396,9 @@ export default function ApplicationFormsPage({
   slug,
   initialListData,
   listDeferred = false,
+  previewMode = false,
+  initialFlowSelection,
+  previewChecklistItemsByTemplateId,
 }: ApplicationFormsPageProps) {
   const theme = useMemo(() => buildParentThemeTokens(branding), [branding]);
   const C = useMemo(() => parentThemeToAdminCompat(theme), [theme]);
@@ -410,16 +416,18 @@ export default function ApplicationFormsPage({
   const [programs, setPrograms] = useState<ProgramOption[]>(
     initialListData?.programs ?? [],
   );
-  const [selection, setSelection] = useState<FlowListSelection>(() =>
-    initialListData
-      ? resolveFlowSelection(
-          initialListData.forms,
-          initialListData.checklists,
-          flowParam,
-          null,
-        )
-      : null,
-  );
+  const [selection, setSelection] = useState<FlowListSelection>(() => {
+    if (initialFlowSelection) return initialFlowSelection;
+    if (initialListData) {
+      return resolveFlowSelection(
+        initialListData.forms,
+        initialListData.checklists,
+        flowParam,
+        null,
+      );
+    }
+    return null;
+  });
   const [editable, setEditable] = useState<EditableFormState | null>(null);
   const [focus, setFocus] = useState<BuilderFocus>(DEFAULT_BUILDER_FOCUS);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -427,7 +435,9 @@ export default function ApplicationFormsPage({
   const [checklistPreviewInitialItemId, setChecklistPreviewInitialItemId] = useState<
     string | undefined
   >();
-  const [loading, setLoading] = useState(!hasInitialList || listDeferred);
+  const [loading, setLoading] = useState(
+    previewMode ? false : !hasInitialList || listDeferred,
+  );
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -474,6 +484,14 @@ export default function ApplicationFormsPage({
     loadedFullFormIdsRef.current = new Set();
     setLoadedFormIds(new Set());
   }, []);
+
+  useEffect(() => {
+    if (!previewMode || !initialListData) return;
+    const formIds = initialListData.forms.map((form) => form.id);
+    if (formIds.length === 0) return;
+    markFormsLoaded(formIds);
+    queueMicrotask(() => setSelectedApplyFormHydrated(true));
+  }, [previewMode, initialListData, markFormsLoaded]);
 
   const selectedForm =
     selection?.kind === "apply"
@@ -637,6 +655,7 @@ export default function ApplicationFormsPage({
 
   const ensureFormsLoaded = useCallback(
     async (formIds: string[]) => {
+      if (previewMode) return;
       const pending = formIds.filter((id) => !loadedFullFormIdsRef.current.has(id));
       if (pending.length === 0) return;
 
@@ -662,7 +681,7 @@ export default function ApplicationFormsPage({
         }, err);
       }
     },
-    [markFormsLoaded, organizationId, supabase],
+    [markFormsLoaded, organizationId, previewMode, supabase],
   );
 
   useEffect(() => {
@@ -689,6 +708,11 @@ export default function ApplicationFormsPage({
       return;
     }
     const formId = selectedApplyFormId;
+    if (previewMode) {
+      markFormsLoaded([formId]);
+      queueMicrotask(() => setSelectedApplyFormHydrated(true));
+      return;
+    }
     if (loadedFullFormIdsRef.current.has(formId)) {
       queueMicrotask(() => setSelectedApplyFormHydrated(true));
       return;
@@ -721,7 +745,7 @@ export default function ApplicationFormsPage({
     return () => {
       cancelled = true;
     };
-  }, [markFormsLoaded, selectedApplyFormId, supabase]);
+  }, [markFormsLoaded, previewMode, selectedApplyFormId, supabase]);
 
   const selectedChecklistId =
     selection?.kind === "checklist" ? selection.id : null;
@@ -741,10 +765,17 @@ export default function ApplicationFormsPage({
 
     async function syncChecklistEditable() {
       try {
-        const loaded = await getEnrollmentChecklistWithItems(supabase, checklist.id);
-        if (cancelled) return;
+        const previewItems = previewMode
+          ? previewChecklistItemsByTemplateId?.[checklist.id]
+          : undefined;
+        const items = previewItems
+          ? previewItems
+          : (await getEnrollmentChecklistWithItems(supabase, checklist.id))?.items ?? [];
 
-        const items = loaded?.items ?? [];
+        if (previewMode && previewItems === undefined) {
+          return;
+        }
+        if (cancelled) return;
 
         if (!isChecklistDirtyRef.current) {
           const nextChecklist: ChecklistEditableState = {
@@ -775,9 +806,9 @@ export default function ApplicationFormsPage({
       cancelled = true;
     };
   }, [
-    selectedChecklist?.id,
-    selectedChecklist?.updatedAt,
-    selectedChecklist?.status,
+    previewChecklistItemsByTemplateId,
+    previewMode,
+    selectedChecklist,
     supabase,
   ]);
 
@@ -803,6 +834,7 @@ export default function ApplicationFormsPage({
         if (applySystemSchemaChanged(next.schema, ensured)) {
           next = { ...next, schema: ensured };
           if (
+            !previewMode &&
             canPersistApplySystemSchemaUpgrade(form, {
               hasLoadedFullForm: loadedFullFormIdsRef.current.has(form.id),
             })
@@ -851,6 +883,7 @@ export default function ApplicationFormsPage({
     selectedForm?.updated_at,
     selectedForm?.status,
     selectedApplyFormHydrated,
+    previewMode,
     supabase,
   ]);
 

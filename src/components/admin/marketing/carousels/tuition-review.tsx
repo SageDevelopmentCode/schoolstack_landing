@@ -6,7 +6,6 @@ import { CarouselProductSlide, DEMO_SLIDE_PAPER } from "@/components/admin/marke
 import {
   MarketingStudentsDemoWindow,
   MarketingTuitionDemoWindow,
-  MarketingTuitionOptionsWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
 import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
@@ -21,11 +20,21 @@ const HOOK_NUMBERS = [
 
 const COST_CATEGORIES = ["Payroll", "Rent", "Insurance", "Supplies", "Software", "Programming"];
 
-const EXAMPLE_ROWS = [
-  { label: "Annual operating costs", value: "$180,000" },
-  { label: "Other revenue", value: "−$18,000" },
-  { label: "Reserve", value: "+$18,000" },
-  { label: "Paid enrollment", value: "20 students" },
+const EXAMPLE_ROW_VALUE_COLOR = {
+  cost: SLIDE.clay,
+  credit: "#4A7C59",
+  neutral: SLIDE.ink,
+} as const;
+
+const EXAMPLE_ROWS: Array<{
+  label: string;
+  value: string;
+  tone: keyof typeof EXAMPLE_ROW_VALUE_COLOR;
+}> = [
+  { label: "Annual operating costs", value: "$180,000", tone: "cost" },
+  { label: "Other revenue", value: "−$18,000", tone: "credit" },
+  { label: "Reserve", value: "+$18,000", tone: "credit" },
+  { label: "Paid enrollment", value: "20 students", tone: "neutral" },
 ];
 
 const CHECKLIST = [
@@ -287,26 +296,28 @@ function MarginSlide() {
               key={row.label}
               style={{
                 display: "flex",
-                alignItems: "baseline",
+                alignItems: "center",
                 justifyContent: "space-between",
                 gap: 24,
-                margin: "0 32px",
-                height: 84,
+                boxSizing: "border-box",
+                minHeight: 84,
+                padding: "0 32px",
                 borderBottom: ROW_RULE,
               }}
             >
               <span style={{ fontSize: 30, color: SLIDE.muted }}>{row.label}</span>
-              <span style={{ ...displayStyle(36) }}>{row.value}</span>
+              <span style={{ ...displayStyle(36, EXAMPLE_ROW_VALUE_COLOR[row.tone]) }}>{row.value}</span>
             </div>
           ))}
           <div
             style={{
               display: "flex",
-              alignItems: "baseline",
+              alignItems: "center",
               justifyContent: "space-between",
               gap: 24,
-              marginTop: 8,
-              padding: "28px 32px 32px",
+              boxSizing: "border-box",
+              minHeight: 84,
+              padding: "28px 32px",
               background: SLIDE.forest,
               color: SLIDE.paper,
             }}
@@ -330,7 +341,7 @@ function IncludedSlide() {
       contentHeight={920}
       cropFocus="top"
     >
-      <MarketingTuitionDemoWindow initialDashboardTab="catalog" contentHeight={920} />
+      <MarketingTuitionDemoWindow initialDashboardTab="families" contentHeight={920} />
     </CarouselProductSlide>
   );
 }
@@ -342,10 +353,19 @@ function OptionsSlide() {
       side="copyLeft"
       title="What discounts and payment options can you sustain?"
       body="Price sibling discounts, scholarships, fee waivers, and payment plans into the model before you publish the rate."
-      contentHeight={720}
+      contentHeight={920}
       cropFocus="top"
     >
-      <MarketingTuitionOptionsWindow contentHeight={720} />
+      <MarketingTuitionDemoWindow
+        initialDashboardTab="families"
+        initialFamilyId="family-rivera"
+        initialOpenAdjust={{
+          familyId: "family-rivera",
+          assignmentId: "assignment-rivera",
+          studentName: "Emma Rivera",
+        }}
+        contentHeight={920}
+      />
     </CarouselProductSlide>
   );
 }

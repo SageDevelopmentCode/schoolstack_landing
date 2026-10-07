@@ -217,16 +217,18 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
             organizationId,
             actorType: "system",
             surface: "system",
-            action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+            action: ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED,
             entityType: "tuition_charge",
             entityId: payment.tuitionChargeId ?? payment.id,
             summary: "ACH settlement failed after payment was recorded",
             metadata: {
               checkoutSessionId,
               paymentId: payment.id,
+              familyId: payment.familyId,
               applicationId: payment.applicationId,
               paymentType: payment.paymentType,
               tuitionChargeId: payment.tuitionChargeId,
+              amountCents: payment.amountCents,
               settlementFailure: true,
               chargeReopened: revertResult.chargeReopened,
             },
@@ -307,16 +309,25 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
         organizationId,
         actorType: "system",
         surface: "system",
-        action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+        action:
+          payment.paymentType === "tuition"
+            ? ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED
+            : ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
         entityType,
         entityId,
-        summary: "Payment failed (ACH)",
+        summary:
+          payment.paymentType === "tuition"
+            ? "Tuition bank payment failed (ACH)"
+            : "Payment failed (ACH)",
         metadata: {
           checkoutSessionId,
           paymentId: payment.id,
+          familyId: payment.familyId,
           applicationId: payment.applicationId,
           paymentType: payment.paymentType,
           tuitionChargeId: payment.tuitionChargeId,
+          amountCents: payment.amountCents,
+          settlementFailure: false,
         },
         severity: "warning",
       });
@@ -1048,17 +1059,19 @@ async function logTuitionPaymentIntentFailedActivity(
     organizationId: input.organizationId,
     actorType: "system",
     surface: "system",
-    action: ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED,
+    action: ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED,
     entityType: "tuition_charge",
     entityId: input.payment.tuitionChargeId ?? input.payment.id,
     summary: input.settlementFailure
       ? "ACH settlement failed after payment was recorded"
-      : "Payment failed (ACH)",
+      : "Tuition bank payment failed (ACH)",
     metadata: {
       paymentId: input.payment.id,
+      familyId: input.payment.familyId,
       paymentType: input.payment.paymentType,
       tuitionChargeId: input.payment.tuitionChargeId,
       paymentIntentId: input.paymentIntentId,
+      amountCents: input.payment.amountCents,
       settlementFailure: input.settlementFailure,
     },
     severity: input.settlementFailure ? "warning" : undefined,

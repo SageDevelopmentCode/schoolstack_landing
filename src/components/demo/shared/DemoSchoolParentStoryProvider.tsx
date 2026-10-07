@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { ParentThemeProvider } from "@/components/school-parent/ParentThemeContext";
 import { PARENT_DEMO_STORY_THEME } from "@/components/demo/shared/parent-demo-runtime";
 import { buildDemoParentBranding } from "@/data/school-demos/demo-portal-shared";
-import { fraunces, dmSans } from "@/lib/fonts";
+import { dmSans, fraunces, greatVibes } from "@/lib/fonts";
 
 type DemoSchoolParentStoryProviderProps = {
   children: ReactNode;
@@ -20,7 +20,7 @@ export default function DemoSchoolParentStoryProvider({
   return (
     <ParentThemeProvider branding={branding} themeOverride={PARENT_DEMO_STORY_THEME}>
       <div
-        className={`${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${className ?? ""}`}
+        className={`${fraunces.variable} ${dmSans.variable} ${greatVibes.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${className ?? ""}`}
       >
         {children}
       </div>

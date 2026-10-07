@@ -504,21 +504,34 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
   if (updateError) throw updateError;
 
   if (!updatedRow) {
-    await reportOperationalError({
-      supabase,
-      surface: "system",
-      operation: "revert_tuition_ach_settlement_failure",
-      error: "Charge balance changed before ACH settlement revert",
-      organizationId: payment.organizationId,
-      entityType: "tuition_charge",
-      entityId: charge.id,
-      actor: { type: "system" },
-      metadata: { paymentId: payment.id },
-    });
+    const refreshedCharge = await getChargeById(supabase, charge.id);
+    const expectedStatus =
+      nextPaidCents < charge.amountCents
+        ? openChargeStatusAfterRevert(charge.dueDate)
+        : charge.status;
+    const chargeAlreadyReverted =
+      refreshedCharge != null &&
+      refreshedCharge.paidCents === nextPaidCents &&
+      refreshedCharge.status === expectedStatus &&
+      (nextPaidCents >= charge.amountCents || refreshedCharge.paidAt == null);
+
+    if (!chargeAlreadyReverted) {
+      await reportOperationalError({
+        supabase,
+        surface: "system",
+        operation: "revert_tuition_ach_settlement_failure",
+        error: "Charge balance changed before ACH settlement revert",
+        organizationId: payment.organizationId,
+        entityType: "tuition_charge",
+        entityId: charge.id,
+        actor: { type: "system" },
+        metadata: { paymentId: payment.id },
+      });
+    }
     const failedOnly = await revertSucceededPaymentToFailed(supabase, payment.id, input);
     return {
       payment: failedOnly ?? payment,
-      chargeReopened: false,
+      chargeReopened: chargeAlreadyReverted,
       alreadyHandled: false,
     };
   }

@@ -30,6 +30,9 @@ import SchoolAdminSelect from "@/components/school-admin/ui/SchoolAdminSelect";
 import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
 import { reportPortalOperationalError } from "@/lib/portal-operational-errors";
 import { createClient } from "@/utils/supabase/client";
+import type { TuitionAdjustPreviewSnapshot } from "@/lib/tuition/tuition-adjust-preview";
+
+export type { TuitionAdjustPreviewSnapshot };
 
 const ADJUST_TYPE_HELP: Record<AdjustmentType, string> = {
   percent_discount: "Reduce each installment by a percentage.",
@@ -72,6 +75,8 @@ type TuitionAdjustPanelProps = {
   branding: OrganizationBranding;
   onClose: () => void;
   onSaved: () => void;
+  previewSnapshot?: TuitionAdjustPreviewSnapshot;
+  layout?: "overlay" | "embedded";
 };
 
 export default function TuitionAdjustPanel({
@@ -82,6 +87,8 @@ export default function TuitionAdjustPanel({
   branding,
   onClose,
   onSaved,
+  previewSnapshot,
+  layout = "overlay",
 }: TuitionAdjustPanelProps) {
   void branding;
   const { theme } = useSchoolAdminStoryTheme();
@@ -114,7 +121,18 @@ export default function TuitionAdjustPanel({
   }, [manageReasonsOpen, open, onClose]);
 
   useEffect(() => {
-    if (!open || !organizationId) return;
+    if (!open || !previewSnapshot) return;
+
+    setReasonOptions(previewSnapshot.reasonOptions);
+    setReason(previewSnapshot.reasonOptions[0] ?? "");
+    setBaseAmountCents(previewSnapshot.baseAmountCents);
+    setPendingSchedule(previewSnapshot.pendingSchedule);
+    setExisting(previewSnapshot.existing);
+    setCharges(previewSnapshot.charges);
+  }, [open, previewSnapshot]);
+
+  useEffect(() => {
+    if (!open || !organizationId || previewSnapshot) return;
 
     void (async () => {
       try {
@@ -141,10 +159,10 @@ export default function TuitionAdjustPanel({
       }, err);
       }
     })();
-  }, [assignmentId, open, organizationId]);
+  }, [assignmentId, open, organizationId, previewSnapshot]);
 
   useEffect(() => {
-    if (!open || !assignmentId) return;
+    if (!open || !assignmentId || previewSnapshot) return;
 
     void (async () => {
       const [adjustments, assignmentCharges, assignment] = await Promise.all([
@@ -185,7 +203,7 @@ export default function TuitionAdjustPanel({
 
       setBaseAmountCents(installmentAmountCents);
     })();
-  }, [assignmentId, open, supabase]);
+  }, [assignmentId, open, previewSnapshot, supabase]);
 
   const draftAdjustment = useMemo(
     () => ({
@@ -239,7 +257,7 @@ export default function TuitionAdjustPanel({
     reason.trim().length > 0;
 
   const handleSave = async () => {
-    if (!canSave) return;
+    if (!canSave || previewSnapshot) return;
 
     setSaving(true);
     try {
@@ -303,12 +321,15 @@ export default function TuitionAdjustPanel({
     }
   };
 
+  const isEmbedded = layout === "embedded";
+  const shellClass = isEmbedded ? "absolute inset-0 z-[50]" : "fixed inset-0 z-[100]";
+
   return (
     <>
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100]"
+          className={shellClass}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -316,15 +337,19 @@ export default function TuitionAdjustPanel({
         >
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+            style={{ backgroundColor: isEmbedded ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.45)" }}
             onClick={onClose}
             aria-hidden="true"
           />
           <motion.div
-            initial={{ x: "100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "100%", opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 300 }}
+            initial={isEmbedded ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+            animate={isEmbedded ? { opacity: 1 } : { x: 0, opacity: 1 }}
+            exit={isEmbedded ? { opacity: 0 } : { x: "100%", opacity: 0 }}
+            transition={
+              isEmbedded
+                ? { duration: 0.2 }
+                : { type: "spring", damping: 28, stiffness: 300 }
+            }
             className="absolute inset-y-0 right-0 z-[15] flex w-[min(100%,28rem)] max-w-full flex-col overflow-hidden"
             style={{
               backgroundColor: "#F8FAF8",
@@ -612,7 +637,7 @@ export default function TuitionAdjustPanel({
               </AdminButton>
               <AdminButton
                 theme={theme}
-                disabled={saving || !canSave}
+                disabled={saving || !canSave || Boolean(previewSnapshot)}
                 onClick={() => void handleSave()}
               >
                 {saving ? "Saving…" : "Apply adjustment"}

@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 
+import { ParentEmbeddedPdfWebView } from '@/components/parent/shared/parent-embedded-pdf-webview';
 import { StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -58,12 +58,7 @@ export function ParentEmbeddedPdfViewerModal({
           </View>
 
           <View style={[styles.webViewArea, { paddingBottom: insets.bottom }]}>
-            <WebView
-              source={{ uri: url }}
-              style={styles.webView}
-              allowsInlineMediaPlayback
-              startInLoadingState
-            />
+            <ParentEmbeddedPdfWebView url={url} style={styles.webView} startInLoadingState />
           </View>
         </View>
       </View>

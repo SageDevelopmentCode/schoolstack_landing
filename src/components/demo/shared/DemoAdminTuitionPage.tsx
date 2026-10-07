@@ -2,8 +2,12 @@
 
 import { useMemo } from "react";
 import DemoSchoolAdminStoryProvider from "@/components/demo/shared/DemoSchoolAdminStoryProvider";
-import TuitionDashboard from "@/components/school-admin/tuition/TuitionDashboard";
+import TuitionDashboard, {
+  type TuitionInitialOpenAdjust,
+} from "@/components/school-admin/tuition/TuitionDashboard";
+import { buildDemoTuitionAdjustPreviewSnapshot } from "@/lib/tuition/tuition-adjust-preview";
 import type { TuitionDashboardTabId } from "@/components/school-admin/tuition/tuition-dashboard-tabs";
+import type { TuitionRateCatalogTabId } from "@/components/school-admin/tuition/tuition-rate-catalog-tabs";
 import {
   buildDemoAdminBranding,
   DEMO_PORTAL_ORG_ID,
@@ -18,16 +22,24 @@ import {
 type DemoAdminTuitionPageProps = {
   initialFamilyId?: string;
   initialDashboardTab?: TuitionDashboardTabId;
+  initialRateCatalogTab?: TuitionRateCatalogTabId;
+  initialOpenAdjust?: TuitionInitialOpenAdjust;
 };
 
 export default function DemoAdminTuitionPage({
   initialFamilyId = "family-rivera",
   initialDashboardTab,
+  initialRateCatalogTab,
+  initialOpenAdjust,
 }: DemoAdminTuitionPageProps) {
   const branding = useMemo(() => buildDemoAdminBranding(), []);
   const dashboardData = useMemo(() => buildDemoTuitionDashboardData(), []);
   const setupStatus = useMemo(() => buildDemoTuitionSetupStatus(), []);
   const families = useMemo(() => buildDemoTuitionFamilies(), []);
+  const adjustPreviewSnapshot = useMemo(
+    () => (initialOpenAdjust ? buildDemoTuitionAdjustPreviewSnapshot() : undefined),
+    [initialOpenAdjust],
+  );
 
   return (
     <DemoSchoolAdminStoryProvider className="h-full">
@@ -41,6 +53,9 @@ export default function DemoAdminTuitionPage({
           initialFamilies={families}
           initialFamilyId={initialFamilyId}
           initialDashboardTab={initialDashboardTab}
+          initialRateCatalogTab={initialRateCatalogTab}
+          initialOpenAdjust={initialOpenAdjust}
+          adjustPreviewSnapshot={adjustPreviewSnapshot}
           previewMode
         />
       </div>

@@ -3,6 +3,9 @@
 import { useId } from "react";
 import { useParentTheme } from "@/components/school-parent/ParentThemeContext";
 import { greatVibes } from "@/lib/fonts";
+
+const SIGNATURE_PREVIEW_FONT_FAMILY =
+  'var(--font-great-vibes), "Great Vibes", cursive';
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 
 type ParentFormSignatureFieldProps = {
@@ -52,6 +55,7 @@ export default function ParentFormSignatureField({
           style={{
             color: trimmedValue ? C.accentDark : C.textTertiary,
             letterSpacing: "0.02em",
+            fontFamily: SIGNATURE_PREVIEW_FONT_FAMILY,
           }}
         >
           {previewText}

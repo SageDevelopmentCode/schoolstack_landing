@@ -90,6 +90,84 @@ export const TRANSACTION_STATUS_FILTERS = ["All", "Pending", "Succeeded", "Faile
 
 export const TRANSACTION_TYPE_FILTERS = ["All", "Application", "Enrollment", "Tuition"] as const;
 
+export const ADMISSIONS_ACTIVE_COUNT = 12;
+
+export const ADMISSIONS_SUBTITLE = `${ADMISSIONS_ACTIVE_COUNT} active applications in your pipeline.`;
+
+export const ADMISSIONS_METRICS = [
+  { value: 12, label: "All applications", accent: "#315E4F" },
+  { value: 3, label: "In progress", accent: "#8ABAC6" },
+  { value: 2, label: "Ready to review", accent: "#E4BD65" },
+  { value: 47, label: "Enrolled learners", accent: "#B66A83" },
+] as const;
+
+export const ADMISSIONS_NEEDS_ATTENTION = {
+  guardianName: "Priya Patel",
+  submittedLabel: " · Submitted Apr 18",
+  reviewButtonLabel: "Review Priya →",
+  copy: "Priya Patel's completed application is ready for your review · Submitted Apr 18.",
+} as const;
+
+export const ADMISSIONS_STATUS_FILTERS = [
+  "All · 12",
+  "Applying · 3",
+  "Enrolling · 4",
+  "Enrolled · 47",
+  "Withdrawn · 1",
+] as const;
+
+export type MarketingAdmissionsSubmissionRow = {
+  id: string;
+  studentName: string;
+  contactLine: string;
+  initials: string;
+  statusLabel: string;
+  statusTone: "success" | "pending" | "info";
+  programLabel: string;
+  metaLine: string;
+  nextStepLabel?: string;
+  nextStepTone?: "success" | "pending" | "info";
+};
+
+export const ADMISSIONS_SUBMISSION_ROWS: MarketingAdmissionsSubmissionRow[] = [
+  {
+    id: "priya",
+    studentName: "Aanya Patel",
+    contactLine: "Priya Patel · priya.patel@email.com",
+    initials: "AP",
+    statusLabel: "Submitted · ready for review",
+    statusTone: "pending",
+    programLabel: "Lower School",
+    metaLine: "Application complete · 2h ago",
+    nextStepLabel: "Schedule interview",
+    nextStepTone: "info",
+  },
+  {
+    id: "marcus",
+    studentName: "Marcus Webb",
+    contactLine: "James Webb · jwebb@email.com",
+    initials: "MW",
+    statusLabel: "Enrolling · 5 of 8 steps",
+    statusTone: "info",
+    programLabel: "Middle School",
+    metaLine: "Enrollment checklist in progress · 1d ago",
+    nextStepLabel: "Review health form",
+    nextStepTone: "pending",
+  },
+];
+
+export const ADMISSIONS_DETAIL = {
+  studentName: "Aanya Patel",
+  statusLabel: "Submitted · ready for review",
+  statusTone: "pending" as const,
+  guardianLine: "Priya Patel · priya.patel@email.com",
+  programLabel: "Lower School · 2026–27",
+  formTitle: "General application",
+  submittedAt: "Apr 18, 2026",
+  nextStepLabel: "Schedule interview",
+  nextStepTone: "info" as const,
+} as const;
+
 export const TRANSACTION_ROWS = [
   {
     title: "May tuition — Emma Mitchell",

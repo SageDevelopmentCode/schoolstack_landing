@@ -782,7 +782,13 @@ export default function TuitionFamiliesPanel({
   };
 
   useEffect(() => {
-    if (!selectedFamilyId) return;
+    if (!selectedFamilyId || previewMode) {
+      if (previewMode) {
+        setFamilyCharges([]);
+        setFamilyPayments([]);
+      }
+      return;
+    }
     void Promise.all([
       listChargesForFamily(supabase, selectedFamilyId),
       listTuitionPaymentsForFamily(supabase, selectedFamilyId),
@@ -790,7 +796,7 @@ export default function TuitionFamiliesPanel({
       setFamilyCharges(charges);
       setFamilyPayments(payments);
     });
-  }, [selectedFamilyId, supabase, families]);
+  }, [previewMode, selectedFamilyId, supabase, families]);
 
   const displayedFamilyCharges = selectedFamilyId ? familyCharges : [];
   const displayedFamilyPayments = selectedFamilyId ? familyPayments : [];

@@ -689,7 +689,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .from("activity_events")
       .select("summary, metadata")
       .eq("organization_id", fixture.organizationId)
-      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED)
       .contains("metadata", { paymentId: fixture.paymentId });
 
     assert.ifError(error);
@@ -709,7 +709,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       .from("activity_events")
       .select("id")
       .eq("organization_id", fixture.organizationId)
-      .eq("action", ACTIVITY_ACTIONS.APPLICATION_PAYMENT_FAILED)
+      .eq("action", ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED)
       .contains("metadata", { paymentId: fixture.paymentId });
 
     assert.equal(failureEventsAfterRetry?.length, 1);

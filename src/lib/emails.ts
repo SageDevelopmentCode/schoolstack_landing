@@ -1519,9 +1519,9 @@ export async function sendTuitionAchSettlementFailedEmail(payload: {
   settlementFailure: boolean;
   chargeReopened?: boolean;
   notificationContext?: OutboundEmailNotificationContext;
-}): Promise<{ ok: boolean }> {
+}): Promise<{ ok: boolean; error?: string; skipped?: string }> {
   if (!(await isZohoConfigured())) {
-    return { ok: false };
+    return { ok: false, error: "Zoho is not configured" };
   }
 
   const content = buildTuitionAchSettlementFailedHtml(payload);
@@ -1530,6 +1530,7 @@ export async function sendTuitionAchSettlementFailedEmail(payload: {
     toAddress: payload.email,
     subject: `Bank payment did not go through — ${payload.schoolName}`,
     content,
+    sendClass: "transactional",
     discord: schoolOutboundDiscord(
       "tuition_ach_settlement_failed",
       "parent",
@@ -1538,8 +1539,14 @@ export async function sendTuitionAchSettlementFailedEmail(payload: {
     ),
   });
 
-  if (!result.success || result.skipped) {
-    return { ok: false };
+  if (result.success && result.skipped === "unsubscribed") {
+    return { ok: true, skipped: "unsubscribed" };
+  }
+
+  if (!result.success) {
+    const error = result.error ?? "Zoho send failed";
+    console.error("Tuition ACH settlement failed email failed:", error);
+    return { ok: false, error };
   }
 
   return { ok: true };
@@ -1561,8 +1568,8 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
   lumpSumBreakdown?: TuitionPaymentReceiptLumpSumBreakdown;
   combinedLineItems?: TuitionPaymentReceiptLineItem[];
   notificationContext?: OutboundEmailNotificationContext;
-}): Promise<void> {
-  if (!(await isZohoConfigured())) return;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) return { ok: false };
 
   const paidAtLabel = formatInstantDateTimeInTimezone(
     payload.paidAt,
@@ -1598,7 +1605,10 @@ export async function sendTuitionPaymentReceiptEmail(payload: {
 
   if (!result.success) {
     console.error("Tuition payment receipt email failed:", result.error);
+    return { ok: false };
   }
+
+  return { ok: true };
 }
 
 export function buildTuitionAutopayConfirmationHtml(payload: {
@@ -1829,8 +1839,8 @@ export async function sendPaymentReceivedAdminNotification(payload: {
   lineItems?: PaymentReceivedAdminLineItem[];
   paymentsAdminUrl: string;
   notificationContext?: OutboundEmailNotificationContext;
-}): Promise<void> {
-  if (!(await isZohoConfigured())) return;
+}): Promise<{ ok: boolean }> {
+  if (!(await isZohoConfigured())) return { ok: false };
 
   const paidAtLabel = formatInstantDateTimeInTimezone(
     payload.paidAt,
@@ -1856,7 +1866,10 @@ export async function sendPaymentReceivedAdminNotification(payload: {
 
   if (!result.success) {
     console.error("Payment received admin notification email failed:", result.error);
+    return { ok: false };
   }
+
+  return { ok: true };
 }
 
 export function buildAchBankVerificationAdminNotificationHtml(payload: {
@@ -1935,6 +1948,89 @@ export async function sendAchBankVerificationAdminNotification(payload: {
       "ACH bank verification admin notification email failed:",
       result.error,
     );
+  }
+
+  return result;
+}
+
+export function buildTuitionPaymentFailedAdminNotificationHtml(payload: {
+  schoolName: string;
+  payerLabel: string;
+  studentName?: string | null;
+  chargeLabel: string;
+  amountCents: number;
+  settlementFailure: boolean;
+  chargeReopened?: boolean;
+  familyEmailSent: boolean;
+  financesAdminUrl: string;
+}): string {
+  const amountLabel = formatFeeAmount(payload.amountCents);
+  const studentLine = payload.studentName
+    ? `${escapeHtml(payload.studentName)} — `
+    : "";
+
+  let situation: string;
+  if (payload.settlementFailure) {
+    situation = payload.chargeReopened
+      ? "The bank transfer did not settle. Billing was reopened so the family can pay again."
+      : "The bank transfer did not settle after we had recorded the payment. Review billing in case the charge still shows paid.";
+  } else {
+    situation =
+      "The family’s bank payment did not complete. No tuition was collected for this charge.";
+  }
+
+  const familyStatus = payload.familyEmailSent
+    ? "MudKitchen emailed the family with a link to billing."
+    : "We did not send the family a failure email yet (for example, billing may still be updating). You may want to follow up.";
+
+  return composeEmail({
+    preheader: `A tuition bank payment failed at ${payload.schoolName}.`,
+    contentHtml: `
+      ${emailBadge("Payment issue")}
+      ${emailHeading("Tuition bank payment failed")}
+      ${emailParagraph(
+        `${escapeHtml(payload.payerLabel)} attempted to pay ${studentLine}${escapeHtml(payload.chargeLabel)} (${amountLabel}) at ${escapeHtml(payload.schoolName)}. ${situation}`,
+      )}
+      ${emailParagraph(familyStatus)}
+      ${emailCta({ label: "View transactions", href: payload.financesAdminUrl })}
+      ${emailSignOff()}
+    `,
+  });
+}
+
+export async function sendTuitionPaymentFailedAdminNotification(payload: {
+  email: string;
+  schoolName: string;
+  payerLabel: string;
+  studentName?: string | null;
+  chargeLabel: string;
+  amountCents: number;
+  settlementFailure: boolean;
+  chargeReopened?: boolean;
+  familyEmailSent: boolean;
+  financesAdminUrl: string;
+  notificationContext?: OutboundEmailNotificationContext;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!(await isZohoConfigured())) {
+    return { success: false, error: "Zoho not configured" };
+  }
+
+  const content = buildTuitionPaymentFailedAdminNotificationHtml(payload);
+
+  const result = await sendZohoEmail({
+    toAddress: payload.email,
+    subject: `Tuition bank payment failed — ${payload.schoolName}`,
+    content,
+    discord: schoolOutboundDiscord(
+      "tuition_payment_failed_admin_notification",
+      "school_admin",
+      payload.schoolName,
+      payload.notificationContext,
+    ),
+  });
+
+  if (!result.success) {
+    console.error("Tuition payment failed admin notification email failed:", result.error);
   }
 
   return result;

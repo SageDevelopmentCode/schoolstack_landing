@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { WebView } from 'react-native-webview';
 
 import { ParentEmbeddedPdfViewerModal } from '@/components/parent/shared/parent-embedded-pdf-viewer-modal';
+import { ParentEmbeddedPdfWebView } from '@/components/parent/shared/parent-embedded-pdf-webview';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
 
@@ -27,8 +27,8 @@ export function ParentEmbeddedPdfPreview({
         accessibilityLabel="Expand document"
         onPress={() => setExpanded(true)}
         style={[styles.container, { minHeight }]}>
-        <WebView
-          source={{ uri: url }}
+        <ParentEmbeddedPdfWebView
+          url={url}
           style={[styles.webView, { minHeight }]}
           scrollEnabled={false}
           pointerEvents="none"

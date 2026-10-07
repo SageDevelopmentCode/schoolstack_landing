@@ -45,6 +45,7 @@ function readChromeBodySize(element: HTMLElement) {
 type CarouselProductSide = "copyLeft" | "copyRight";
 type CarouselProductVariant = "default" | "promo";
 type CarouselDemoPresentation = "laptop" | "phones";
+export type CarouselPromoDensity = "default" | "compact";
 
 type CarouselProductSlideProps = {
   title: string;
@@ -59,6 +60,7 @@ type CarouselProductSlideProps = {
   cropFocus?: "top" | "center";
   footer?: ReactNode;
   promoSiteLabel?: string;
+  promoDensity?: CarouselPromoDensity;
 };
 
 export function CarouselProductSlide({
@@ -74,13 +76,17 @@ export function CarouselProductSlide({
   cropFocus = "top",
   footer,
   promoSiteLabel,
+  promoDensity = "default",
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
+  const isCompactPromo = isPromo && promoDensity === "compact";
   const showPromoTopRow = isPromo && Boolean(promoSiteLabel);
   const showPhones = isPromo && demoPresentation === "phones";
-  const copyPadding = isPromo
-    ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
-    : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
+  const copyPadding = isCompactPromo
+    ? `${COPY_TOP_PADDING}px 64px 32px 64px`
+    : isPromo
+      ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
+      : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
   const textAlign = isPromo ? "center" : "left";
   const slideBackground = background ?? (isPromo ? SLIDE.forest : DEMO_SLIDE_PAPER);
   const titleColor = isPromo ? SLIDE.white : SLIDE.ink;
@@ -144,13 +150,20 @@ export function CarouselProductSlide({
                   {kicker}
                 </p>
               ) : null}
-              <h1 style={{ ...displayStyle(80, titleColor), marginTop: kicker ? 14 : 0 }}>{title}</h1>
+              <h1
+                style={{
+                  ...displayStyle(isCompactPromo ? 68 : 80, titleColor),
+                  marginTop: kicker ? 14 : 0,
+                }}
+              >
+                {title}
+              </h1>
               {body ? (
                 <p
                   style={{
-                    margin: "18px 0 0",
+                    margin: isCompactPromo ? "20px 0 0" : "18px 0 0",
                     maxWidth: BODY_MAX_WIDTH,
-                    fontSize: 36,
+                    fontSize: isCompactPromo ? 32 : 36,
                     lineHeight: 1.28,
                     color: bodyColor,
                     marginLeft: isPromo ? "auto" : undefined,
@@ -171,7 +184,7 @@ export function CarouselProductSlide({
             style={{
               flex: 1,
               minHeight: 0,
-              marginTop: showPhones ? 72 : WINDOW_GAP,
+              marginTop: showPhones ? (isCompactPromo ? 124 : 72) : WINDOW_GAP,
               position: "relative",
               zIndex: 1,
               overflow: showPhones ? "visible" : "hidden",

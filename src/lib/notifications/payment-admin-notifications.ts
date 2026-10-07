@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { resolveApplicantContact } from "@/lib/admissions/application-notifications";
+import { logOutboundEmailSettledFailures } from "@/lib/admissions/notification-logging";
 import { getOrganizationTimezone } from "@/lib/admissions/admissions-availability";
 import {
   PAYMENT_METHOD_LABELS,
@@ -9,6 +10,7 @@ import {
   buildEmailNotificationContext,
   sendAchBankVerificationAdminNotification,
   sendPaymentReceivedAdminNotification,
+  sendTuitionPaymentFailedAdminNotification,
   type PaymentReceivedAdminLineItem,
 } from "@/lib/emails";
 import { resolvePaymentNotificationEmails } from "@/lib/notifications/org-notification-settings";
@@ -19,7 +21,7 @@ import {
 } from "@/lib/stripe/application-payments";
 import { getRuntimeSiteUrl } from "@/lib/site";
 
-async function getStudentNameForCharge(
+export async function getStudentNameForCharge(
   admin: SupabaseClient,
   chargeId: string | null | undefined,
 ): Promise<string | null> {
@@ -182,7 +184,7 @@ export async function sendPaymentReceivedAdminNotifications(
       entityId: paymentId,
     });
 
-    await Promise.allSettled(
+    const adminResults = await Promise.allSettled(
       notifyEmails.map((email) =>
         sendPaymentReceivedAdminNotification({
           email,
@@ -192,8 +194,97 @@ export async function sendPaymentReceivedAdminNotifications(
         }),
       ),
     );
+    await logOutboundEmailSettledFailures(
+      admin,
+      {
+        organizationId: payment.organizationId,
+        operation: "payment_received_admin_notification_email",
+        entityType: "payment",
+        entityId: paymentId,
+      },
+      adminResults,
+    );
   } catch (error) {
     console.error("Payment received admin notifications failed:", paymentId, error);
+  }
+}
+
+export async function sendTuitionPaymentFailedAdminNotifications(
+  admin: SupabaseClient,
+  input: {
+    payment: PaymentRecord;
+    settlementFailure: boolean;
+    chargeReopened?: boolean;
+    familyEmailSent: boolean;
+  },
+): Promise<void> {
+  try {
+    const { payment } = input;
+    if (payment.paymentType !== "tuition") return;
+
+    const notifyEmails = await resolvePaymentNotificationEmails(
+      admin,
+      payment.organizationId,
+    );
+    if (notifyEmails.length === 0) return;
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .select("name, slug")
+      .eq("id", payment.organizationId)
+      .maybeSingle();
+
+    if (orgError) throw orgError;
+    if (!org?.slug) return;
+
+    const studentName = await getStudentNameForCharge(admin, payment.tuitionChargeId);
+    const payerLabel = await resolvePayerLabel(admin, payment);
+    const financesAdminUrl = `${getRuntimeSiteUrl()}${schoolAdminPath(String(org.slug), "finances", "transactions")}`;
+    const adminEmailContext = buildEmailNotificationContext({
+      organizationId: payment.organizationId,
+      organizationSlug: String(org.slug),
+      surface: "web",
+      entityType: "payment",
+      entityId: payment.id,
+    });
+
+    const adminResults = await Promise.allSettled(
+      notifyEmails.map((email) =>
+        sendTuitionPaymentFailedAdminNotification({
+          email,
+          schoolName: String(org.name),
+          payerLabel,
+          studentName,
+          chargeLabel: payment.label ?? "Tuition",
+          amountCents: payment.amountCents,
+          settlementFailure: input.settlementFailure,
+          chargeReopened: input.chargeReopened,
+          familyEmailSent: input.familyEmailSent,
+          financesAdminUrl,
+          notificationContext: adminEmailContext,
+        }),
+      ),
+    );
+    await logOutboundEmailSettledFailures(
+      admin,
+      {
+        organizationId: payment.organizationId,
+        operation: "tuition_payment_failed_admin_notification_email",
+        entityType: "payment",
+        entityId: payment.id,
+      },
+      adminResults.map((result) =>
+        result.status === "fulfilled"
+          ? { status: "fulfilled" as const, value: { ok: result.value.success } }
+          : result,
+      ),
+    );
+  } catch (error) {
+    console.error(
+      "Tuition payment failed admin notifications error:",
+      input.payment.id,
+      error,
+    );
   }
 }
 
