@@ -1109,10 +1109,7 @@ export async function handlePaymentIntentSucceeded(
 
   if (payment.status !== "succeeded") return;
 
-  if (
-    priorProviderStatus === "requires_action" ||
-    priorProviderStatus === "processing"
-  ) {
+  if (priorProviderStatus === "requires_action") {
     await sendDeferredTuitionReceiptsForInFlightAchPayments(admin, [payment]);
   }
 

@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AccountDeletionRequest } from '@/components/account-deletion-request';
 import { AccountLegalLinks } from '@/components/account-legal-links';
+import { SwitchSchoolButton } from '@/components/switch-school-button';
 import { TEACHER_FLOATING_TAB_BAR_HEIGHT } from '@/components/teacher/teacher-floating-tab-bar';
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
@@ -88,6 +89,8 @@ export function TeacherAccountScreen() {
           ) : null}
         </View>
 
+        <SwitchSchoolButton style={styles.switchSchoolButton} />
+
         <PrimaryButton
           label="Sign out"
           variant="surface"
@@ -139,7 +142,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three,
   },
-  signOutButton: {
+  switchSchoolButton: {
     marginTop: Spacing.two,
+  },
+  signOutButton: {
+    marginTop: 0,
   },
 });

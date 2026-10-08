@@ -1,27 +1,37 @@
 "use client";
 
 import SlideCanvas, { displayStyle, SLIDE } from "@/components/admin/marketing/slide-frame";
-import { CarouselProductSlide, DEMO_SLIDE_PAPER } from "@/components/admin/marketing/carousels/carousel-product-slide";
+import {
+  CarouselProductSlide,
+  type CarouselDemoCrop,
+} from "@/components/admin/marketing/carousels/carousel-product-slide";
 import type { MarketingCarousel, MarketingSlide } from "@/components/admin/marketing/carousels/types";
 import {
-  MARKETING_DEMO_APPLY_FLOW_SELECTION,
   MARKETING_DEMO_CHECKLIST_FLOW_SELECTION,
   MarketingAdmissionsSubmissionsDemoWindow,
-  MarketingEnrollmentChecklistPreviewDemoWindow,
   MarketingEnrollmentFlowsDemoWindow,
   MarketingParentEnrollmentDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
+import { buildDemoMarketingSlide1Leads } from "@/data/school-demos/demo-admin-admissions-fixtures";
 import { MarketingMobilePromoCluster } from "@/components/admin/marketing/screens/marketing-mobile-promo-cluster";
 
-const ROW_RULE = "1px solid #E7D9C6";
+const FOREST_RULE = "1px solid rgba(247, 241, 231, 0.28)";
+const FOREST_BODY = "rgba(247, 241, 231, 0.82)";
 
 const HANDOFF_STEPS = [
-  { label: "Application", detail: "Families submit interest and answers in one place." },
-  { label: "Decision", detail: "Staff review, follow up, and move status forward." },
+  { label: "Application", detail: "Families submit their answers in one place." },
+  { label: "Decision", detail: "Staff review and decide what happens next." },
   { label: "Enrollment checklist", detail: "Accepted families complete agreements, forms, and fees." },
 ];
 
 const DEMO_CONTENT_HEIGHT = 920;
+const SPOTLIGHT_LEAD_ID = "l3";
+
+const SUBMITTED_INBOX_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
+const REVIEW_ANSWERS_CROP: CarouselDemoCrop = { zoom: 1.2, originX: 0.21, originY: 0 };
+const NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.25, originX: 0.23, originY: 0.1 };
+const CHECKLIST_CROP: CarouselDemoCrop = { zoom: 1.35, originX: 0, originY: 0.05 };
+const FAMILY_PROGRESS_CROP: CarouselDemoCrop = { zoom: 1.45, originX: 0, originY: 0 };
 
 export const APPLICATION_FINISH_LINE_CAROUSEL = {
   id: "application-finish-line",
@@ -31,42 +41,37 @@ export const APPLICATION_FINISH_LINE_CAROUSEL = {
   slides: [
     {
       id: "submitted",
-      fileName: "01-application-submitted-now-what.png",
+      fileName: "01-application-submitted-who-owns-the-next-step.png",
       render: () => <SubmittedSlide />,
     },
     {
+      id: "stages",
+      fileName: "02-three-stages-one-connected-path.png",
+      render: () => <StagesSlide />,
+    },
+    {
       id: "review",
-      fileName: "02-review-the-familys-submission.png",
+      fileName: "03-review-the-application-in-one-place.png",
       render: () => <ReviewSlide />,
     },
     {
-      id: "workflow",
-      fileName: "03-move-the-process-forward.png",
-      render: () => <WorkflowSlide />,
+      id: "next-action",
+      fileName: "04-make-the-next-action-clear.png",
+      render: () => <NextActionSlide />,
     },
     {
       id: "checklist",
-      fileName: "04-give-accepted-families-a-checklist.png",
+      fileName: "05-accepted-give-families-one-checklist.png",
       render: () => <ChecklistBuilderSlide />,
     },
     {
-      id: "preview",
-      fileName: "05-preview-before-families-see-it.png",
-      render: () => <PreviewSlide />,
-    },
-    {
-      id: "visible",
-      fileName: "06-make-the-next-step-visible.png",
-      render: () => <VisibleSlide />,
-    },
-    {
-      id: "handoff",
-      fileName: "07-the-handoff-matters.png",
-      render: () => <HandoffSlide />,
+      id: "family-progress",
+      fileName: "06-let-families-see-whats-left.png",
+      render: () => <FamilyProgressSlide />,
     },
     {
       id: "promo",
-      fileName: "08-from-application-to-enrollment.png",
+      fileName: "07-from-application-to-enrollment.png",
       render: () => <PromoSlide />,
     },
   ] satisfies MarketingSlide[],
@@ -76,104 +81,24 @@ function SubmittedSlide() {
   return (
     <CarouselProductSlide
       kicker="Admissions"
-      side="copyLeft"
-      title="Application submitted. Now what?"
-      body="The space between “interested” and “enrolled” is where families need clear next steps."
+      title="Application submitted. Who owns the next step?"
+      body="Give staff and families a clear path from application to enrollment."
       contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-    >
-      <MarketingAdmissionsSubmissionsDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
-  );
-}
-
-function ReviewSlide() {
-  return (
-    <CarouselProductSlide
-      kicker="Admissions"
-      side="copyRight"
-      title="Review the family’s submission."
-      body="Keep the application and its answers together for staff review."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
+      crop={SUBMITTED_INBOX_CROP}
     >
       <MarketingAdmissionsSubmissionsDemoWindow
-        initialSelectedLeadId="l3"
+        leads={buildDemoMarketingSlide1Leads()}
+        highlightLeadId={SPOTLIGHT_LEAD_ID}
         contentHeight={DEMO_CONTENT_HEIGHT}
+        compactForMarketing
       />
     </CarouselProductSlide>
   );
 }
 
-function WorkflowSlide() {
+function StagesSlide() {
   return (
-    <CarouselProductSlide
-      kicker="Admissions"
-      side="copyLeft"
-      title="Move the process forward."
-      body="Use the school’s admissions workflow to manage next steps and follow-up."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-    >
-      <MarketingEnrollmentFlowsDemoWindow
-        initialFlowSelection={MARKETING_DEMO_APPLY_FLOW_SELECTION}
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
-  );
-}
-
-function ChecklistBuilderSlide() {
-  return (
-    <CarouselProductSlide
-      kicker="Enrollment"
-      side="copyRight"
-      title="Give accepted families a checklist."
-      body="Agreements, forms, uploads, acknowledgments, and payments can live in an enrollment flow."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-    >
-      <MarketingEnrollmentFlowsDemoWindow
-        initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION}
-        contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
-  );
-}
-
-function PreviewSlide() {
-  return (
-    <CarouselProductSlide
-      kicker="Enrollment"
-      side="copyLeft"
-      title="Preview before families see it."
-      body="Staff can preview the checklist before sharing it with a family."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-    >
-      <MarketingEnrollmentChecklistPreviewDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
-  );
-}
-
-function VisibleSlide() {
-  return (
-    <CarouselProductSlide
-      kicker="Example"
-      side="copyLeft"
-      title="Make the next step visible."
-      body="A clear process helps families know what’s still needed and helps staff see what needs attention."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      cropFocus="top"
-    >
-      <MarketingParentEnrollmentDemoWindow contentHeight={DEMO_CONTENT_HEIGHT} />
-    </CarouselProductSlide>
-  );
-}
-
-function HandoffSlide() {
-  return (
-    <SlideCanvas background={DEMO_SLIDE_PAPER}>
+    <SlideCanvas background={SLIDE.forest}>
       <div
         style={{
           height: "100%",
@@ -183,12 +108,14 @@ function HandoffSlide() {
           flexDirection: "column",
         }}
       >
-        <p style={{ ...displayStyle(36, SLIDE.clay), letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          The handoff
+        <p style={{ ...displayStyle(36, SLIDE.white), letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Admissions
         </p>
-        <h1 style={{ ...displayStyle(72), marginTop: 16, maxWidth: 900 }}>The handoff matters.</h1>
-        <p style={{ margin: "22px 0 0", maxWidth: 860, fontSize: 32, lineHeight: 1.32, color: SLIDE.muted }}>
-          Application → decision → enrollment checklist. One connected path, shaped by the school.
+        <h1 style={{ ...displayStyle(72, SLIDE.white), marginTop: 16, maxWidth: 900 }}>
+          Three stages. One connected path.
+        </h1>
+        <p style={{ margin: "22px 0 0", maxWidth: 860, fontSize: 32, lineHeight: 1.32, color: FOREST_BODY }}>
+          Families apply. Staff review and decide. Accepted families complete enrollment.
         </p>
         <div style={{ marginTop: 48, display: "flex", flexDirection: "column" }}>
           {HANDOFF_STEPS.map((step, index) => (
@@ -199,15 +126,15 @@ function HandoffSlide() {
                 alignItems: "flex-start",
                 gap: 20,
                 padding: "28px 0",
-                borderBottom: index === HANDOFF_STEPS.length - 1 ? "none" : ROW_RULE,
+                borderBottom: index === HANDOFF_STEPS.length - 1 ? "none" : FOREST_RULE,
               }}
             >
-              <span style={{ ...displayStyle(36, SLIDE.forest), width: 48, flexShrink: 0 }}>
+              <span style={{ ...displayStyle(36, SLIDE.white), width: 48, flexShrink: 0 }}>
                 {index + 1}
               </span>
               <div>
-                <p style={{ ...displayStyle(40), fontWeight: 620, margin: 0 }}>{step.label}</p>
-                <p style={{ margin: "8px 0 0", fontSize: 26, lineHeight: 1.35, color: SLIDE.muted }}>
+                <p style={{ ...displayStyle(40, SLIDE.white), fontWeight: 620, margin: 0 }}>{step.label}</p>
+                <p style={{ margin: "8px 0 0", fontSize: 26, lineHeight: 1.35, color: FOREST_BODY }}>
                   {step.detail}
                 </p>
               </div>
@@ -219,6 +146,79 @@ function HandoffSlide() {
   );
 }
 
+function ReviewSlide() {
+  return (
+    <CarouselProductSlide
+      kicker="Admissions"
+      title="Review the application in one place."
+      body="See the family’s answers, contact details, and status together."
+      contentHeight={DEMO_CONTENT_HEIGHT}
+      crop={REVIEW_ANSWERS_CROP}
+    >
+      <MarketingAdmissionsSubmissionsDemoWindow
+        initialSelectedLeadId={SPOTLIGHT_LEAD_ID}
+        initialDetailTab="application"
+        contentHeight={DEMO_CONTENT_HEIGHT}
+      />
+    </CarouselProductSlide>
+  );
+}
+
+function NextActionSlide() {
+  return (
+    <CarouselProductSlide
+      kicker="Admissions"
+      tone="forest"
+      title="Make the next action clear."
+      body="Review this application. The next step stays visible — here, it’s with staff."
+      contentHeight={DEMO_CONTENT_HEIGHT}
+      crop={NEXT_STEP_CROP}
+    >
+      <MarketingAdmissionsSubmissionsDemoWindow
+        initialSelectedLeadId={SPOTLIGHT_LEAD_ID}
+        initialDetailTab="overview"
+        contentHeight={DEMO_CONTENT_HEIGHT}
+      />
+    </CarouselProductSlide>
+  );
+}
+
+function ChecklistBuilderSlide() {
+  return (
+    <CarouselProductSlide
+      kicker="Enrollment"
+      title="Accepted? Give families one checklist."
+      body="Agreements, forms, uploads, and fees belong in one enrollment checklist."
+      contentHeight={DEMO_CONTENT_HEIGHT}
+      crop={CHECKLIST_CROP}
+    >
+      <MarketingEnrollmentFlowsDemoWindow
+        initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION}
+        wrapOutlineLabels
+        contentHeight={DEMO_CONTENT_HEIGHT}
+      />
+    </CarouselProductSlide>
+  );
+}
+
+function FamilyProgressSlide() {
+  return (
+    <CarouselProductSlide
+      kicker="Enrollment"
+      tone="forest"
+      title="Let families see what’s left."
+      body="Preview their checklist before sharing it. Completed items stay marked, and what’s left stays visible."
+      contentHeight={DEMO_CONTENT_HEIGHT}
+      crop={FAMILY_PROGRESS_CROP}
+    >
+      <MarketingParentEnrollmentDemoWindow
+        initialActiveItem="registration-fee"
+        contentHeight={DEMO_CONTENT_HEIGHT}
+      />
+    </CarouselProductSlide>
+  );
+}
+
 function PromoSlide() {
   return (
     <CarouselProductSlide
@@ -227,7 +227,7 @@ function PromoSlide() {
       promoDensity="compact"
       promoSiteLabel="trymudkitchen.com"
       title="From application to enrollment, in one place."
-      body="Submissions, admissions workflows, and enrollment checklists—connected for your school."
+      body="See how your school’s review steps and enrollment requirements fit together."
       footer={
         <div style={{ marginTop: 22, display: "flex", justifyContent: "center" }}>
           <span

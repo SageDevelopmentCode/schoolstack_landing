@@ -4,8 +4,7 @@ env:
   E2E_TEST_PASSWORD: E2eTestPassword123!
 ---
 - runFlow: intro-to-login.yaml
-- tapOn: 'Rooted Meadows Waldorf School'
-- tapOn: 'Use password instead'
+- tapOn: 'Use password'
 - tapOn:
     text: 'Email'
 - inputText: ${E2E_ADMIN_EMAIL}

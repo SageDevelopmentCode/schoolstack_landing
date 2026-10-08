@@ -224,10 +224,23 @@ describe("mobile bearer auth route wiring", () => {
     });
   }
 
+  it("portal-options route uses createClientFromRequest", () => {
+    const source = readRoute("app/api/portal-options/route.ts");
+
+    assert.match(
+      source,
+      /import \{ createClientFromRequest, getUserFromRequest, signedInErrorForRequest \} from "@\/lib\/supabase\/request-client"/,
+    );
+    assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
+    assert.doesNotMatch(source, /createClient\(cookieStore\)/);
+    assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
+  });
+
   const bearerMigratedPortalRoutes = [
     "app/api/school-admin/operational-errors/route.ts",
     "app/api/teacher-portal/operational-errors/route.ts",
     "app/api/teacher-portal/profile-photo/route.ts",
+    "app/api/school-admin/profile-photo/route.ts",
     "app/api/parent-portal/students/[studentId]/health/route.ts",
     "app/api/teacher-portal/forms-documents/route.ts",
     "app/api/parent-portal/committees/[committeeId]/mark-read/route.ts",

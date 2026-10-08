@@ -24,6 +24,8 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
+import { useCompletePortalTransitionOnMount } from '@/contexts/portal-transition-context';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
@@ -77,6 +79,14 @@ function TeacherLayoutContent() {
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  useCompletePortalTransitionOnMount();
+
+  useEffect(() => {
+    if (selectedSchool?.id && slug) {
+      void prefetchSchoolPortalOptions(selectedSchool.id, slug);
+    }
+  }, [selectedSchool?.id, slug]);
 
   const pathTab = getActiveTab(pathname);
   const activeTab = moreSheetOpen ? 'more' : pathTab;

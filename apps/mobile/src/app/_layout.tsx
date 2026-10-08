@@ -24,6 +24,7 @@ import { SupabaseAuthLifecycle } from '@/components/supabase-auth-lifecycle';
 import { PushNotificationManager } from '@/components/push-notification-manager';
 import { SplashOverlay } from '@/components/splash-overlay';
 import { AuthProvider } from '@/contexts/auth-context';
+import { PortalTransitionProvider } from '@/contexts/portal-transition-context';
 import { Brand } from '@/constants/theme';
 import { isMobileE2e } from '@/lib/e2e';
 
@@ -52,12 +53,13 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <AuthSessionGuard />
-      <SupabaseAuthLifecycle />
-      <OtaUpdateManager />
-      <PushNotificationManager />
-      <SplashOverlay />
-      <Stack
+      <PortalTransitionProvider>
+        <AuthSessionGuard />
+        <SupabaseAuthLifecycle />
+        <OtaUpdateManager />
+        <PushNotificationManager />
+        <SplashOverlay />
+        <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: Brand.bg },
@@ -90,7 +92,8 @@ export default function RootLayout() {
           options={{ animation: isMobileE2e ? 'none' : 'slide_from_right' }}
         />
         <Stack.Screen name="stripe-checkout" options={{ animation: 'none' }} />
-      </Stack>
+        </Stack>
+      </PortalTransitionProvider>
     </AuthProvider>
   );
 }

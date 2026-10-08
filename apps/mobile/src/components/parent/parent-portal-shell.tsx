@@ -27,6 +27,8 @@ import {
   type ParentMoreMenuItemId,
   type ParentTab,
 } from '@/lib/parent/parent-nav';
+import { useCompletePortalTransitionOnMount } from '@/contexts/portal-transition-context';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalPreview, useExitPortalPreviewNavigation } from '@/lib/portal-preview-gating';
 
 export function ParentPortalShell() {
@@ -46,7 +48,16 @@ export function ParentPortalShell() {
     showSwitcher,
     activeContext,
     activePortalFeatures,
+    organizationId,
   } = useParentPortalContext();
+
+  useCompletePortalTransitionOnMount();
+
+  useEffect(() => {
+    if (organizationId && slug) {
+      void prefetchSchoolPortalOptions(organizationId, slug);
+    }
+  }, [organizationId, slug]);
 
   const pathTab = getParentActiveTabFromPathname(pathname, tabBarTabs);
   const activeTab = moreSheetOpen ? 'more' : pathTab;

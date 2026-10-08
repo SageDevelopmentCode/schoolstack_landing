@@ -9,7 +9,8 @@ type TeacherHomeHeaderProps = {
   bulletinPostCount: number;
   notificationUnreadCount?: number;
   onOpenBulletin?: () => void;
-  onPressHelp?: () => void;
+  profilePhotoUrl?: string | null;
+  onPressProfile?: () => void;
   onPressNotifications?: () => void;
 };
 
@@ -19,7 +20,8 @@ export function TeacherHomeHeader({
   bulletinPostCount,
   notificationUnreadCount = 0,
   onOpenBulletin,
-  onPressHelp,
+  profilePhotoUrl,
+  onPressProfile,
   onPressNotifications,
 }: TeacherHomeHeaderProps) {
   const name = firstName(displayName);
@@ -37,7 +39,11 @@ export function TeacherHomeHeader({
             ? { postCount: bulletinPostCount, onPress: onOpenBulletin }
             : undefined
         }
-        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        profile={
+          onPressProfile
+            ? { displayName, photoUrl: profilePhotoUrl, onPress: onPressProfile }
+            : undefined
+        }
         notifications={
           onPressNotifications
             ? { unreadCount: notificationUnreadCount, onPress: onPressNotifications }

@@ -4,7 +4,7 @@ env:
   E2E_TEST_PASSWORD: E2eTestPassword123!
 ---
 - runFlow: intro-to-login.yaml
-- tapOn: 'Admin sign in'
+- tapOn: 'Admin login'
 - tapOn:
     text: 'Email'
 - inputText: ${E2E_PLATFORM_ADMIN_EMAIL}

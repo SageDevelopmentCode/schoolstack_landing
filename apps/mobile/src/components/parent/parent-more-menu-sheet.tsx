@@ -1,17 +1,27 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import {
+  AccountPortalSwitcherPanel,
+  useAccountPortalSwitcherVisibility,
+} from '@/components/account-portal-switcher-panel';
+import { ProgramSwitcherPanel } from '@/components/program-switcher-panel';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
 import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
 import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
 import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
+import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
+import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
+import { useProgramSwitcherVisibility } from '@/components/program-switcher-panel';
 import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useParentHome } from '@/contexts/parent-home-context';
 import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import {
@@ -25,9 +35,11 @@ import {
 } from '@/lib/parent/parent-more-menu-meta';
 import type { ParentMoreMenuItemId } from '@/lib/parent/parent-nav';
 import {
-  ParentPortalMoreMenuItemsSkeleton,
-  ParentPortalProgramSwitcherCardSkeleton,
-} from '@/components/parent/parent-portal-program-chrome-skeleton';
+  buildMoreMenuTabs,
+  shouldShowMoreMenuSectionTabs,
+  type MoreMenuTabId,
+} from '@/lib/more-menu-tab-ids';
+import { ParentPortalMoreMenuItemsSkeleton } from '@/components/parent/parent-portal-program-chrome-skeleton';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -57,8 +69,9 @@ export function ParentMoreMenuSheet({
   onSelectAccount,
 }: ParentMoreMenuSheetProps) {
   const theme = useParentTheme();
-  const { user } = useAuth();
+  const { user, portalType } = useAuth();
   const { data: homeData, ensureLoaded } = useParentHome();
+  const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
   const {
     contexts,
     activeContext,
@@ -68,7 +81,50 @@ export function ParentMoreMenuSheet({
     activePortalFeatures,
     isLoading: portalContextsLoading,
     programsByPortalSlug,
+    slug,
+    organizationId,
   } = useParentPortalContext();
+
+  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
+    organizationId,
+    slug,
+    visible,
+  );
+
+  const showProgramSection = useProgramSwitcherVisibility({
+    loading: portalContextsLoading,
+    showSwitcher,
+    contextCount: contexts.length,
+  });
+
+  const tabs = useMemo(
+    () =>
+      buildMoreMenuTabs({
+        showAccountPortal: showAccountPortalSection,
+        showProgram: showProgramSection,
+      }),
+    [showAccountPortalSection, showProgramSection],
+  );
+
+  const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+
+  useEffect(() => {
+    if (visible && organizationId && slug) {
+      void prefetchSchoolPortalOptions(organizationId, slug);
+    }
+  }, [organizationId, slug, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      setActiveTab('menu');
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!tabs.some((tab) => tab.id === activeTab)) {
+      setActiveTab('menu');
+    }
+  }, [activeTab, tabs]);
 
   const programPortalFeaturesPending = Boolean(
     activeProgramSlug &&
@@ -155,6 +211,12 @@ export function ParentMoreMenuSheet({
     }
   }, [visible, ensureLoaded]);
 
+  const showMenuPanel = !useSectionTabs || activeTab === 'menu';
+  const showAccountPortalPanel = useSectionTabs && activeTab === 'account_portal';
+  const showProgramPanel = useSectionTabs && activeTab === 'program';
+
+  const currentPortalId = portalTypeToAccountPortalId(portalType);
+
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
       <StoryMoreMenuHeader
@@ -163,127 +225,90 @@ export function ParentMoreMenuSheet({
         subtitle="Children and account settings"
       />
 
-      {portalContextsLoading ? <ParentPortalProgramSwitcherCardSkeleton /> : null}
+      {useSectionTabs ? (
+        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+      ) : null}
 
-      {!portalContextsLoading && showSwitcher && activeContext ? (
-        <StoryCard compact style={styles.programCard}>
-          <Text style={[styles.programKicker, { color: theme.muted }]}>Program</Text>
-          {contexts.map((context) => {
-            const isCurrent = context.id === activeContext.id;
-            return (
-              <Pressable
-                key={context.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isCurrent }}
-                onPress={() => {
-                  if (!isCurrent) {
-                    onClose();
-                    switchToContext(context);
+      <StoryMoreMenuTabPanel visible={showProgramPanel}>
+        <ProgramSwitcherPanel
+          contexts={contexts}
+          activeContextId={activeContext?.id ?? null}
+          loading={portalContextsLoading}
+          onSelect={(context) => {
+            onClose();
+            const match = contexts.find((c) => c.id === context.id);
+            if (match) {
+              switchToContext(match);
+            }
+          }}
+        />
+      </StoryMoreMenuTabPanel>
+
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(organizationId && slug)}>
+        {organizationId && slug ? (
+          <AccountPortalSwitcherPanel
+            organizationId={organizationId}
+            slug={slug}
+            currentPortalId={currentPortalId}
+            enabled={visible}
+            onAfterSelect={onClose}
+          />
+        ) : null}
+      </StoryMoreMenuTabPanel>
+
+      <StoryMoreMenuTabPanel visible={showMenuPanel}>
+        <>
+          {programPortalFeaturesPending ? (
+            <ParentPortalMoreMenuItemsSkeleton />
+          ) : (
+            <StoryMoreMenuItemsCard>
+              {visibleMenuItems.map((item, index) => (
+                <StoryMoreMenuItemRow
+                  key={item.id}
+                  isFirst={index === 0}
+                  label={item.label}
+                  subtitle={item.subtitle}
+                  onPress={() => onSelect(item.id)}
+                  icon={
+                    <StoryMoreMenuIcon
+                      name={item.icon}
+                      iconBg={item.iconBg}
+                      iconColor={item.iconColor}
+                    />
                   }
-                }}
-                style={({ pressed }) => [
-                  styles.programRow,
-                  isCurrent && { backgroundColor: theme.primarySoft },
-                  pressed && !isCurrent && styles.pressed,
-                ]}>
-                {isCurrent ? (
-                  <Ionicons name="checkmark" size={18} color={theme.primary} />
-                ) : (
-                  <View style={styles.programRowSpacer} />
-                )}
-                <Text
-                  style={[
-                    styles.programLabel,
-                    { color: isCurrent ? theme.primary : theme.ink },
-                  ]}
-                  numberOfLines={2}>
-                  {context.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </StoryCard>
-      ) : null}
-
-      {programPortalFeaturesPending ? (
-        <ParentPortalMoreMenuItemsSkeleton />
-      ) : (
-        <StoryMoreMenuItemsCard>
-          {visibleMenuItems.map((item, index) => (
-            <StoryMoreMenuItemRow
-              key={item.id}
-              isFirst={index === 0}
-              label={item.label}
-              subtitle={item.subtitle}
-              onPress={() => onSelect(item.id)}
-              icon={
-                <StoryMoreMenuIcon
-                  name={item.icon}
-                  iconBg={item.iconBg}
-                  iconColor={item.iconColor}
                 />
-              }
-            />
-          ))}
-        </StoryMoreMenuItemsCard>
-      )}
+              ))}
+            </StoryMoreMenuItemsCard>
+          )}
 
-      {user ? (
-        <StoryCard compact style={styles.accountCard}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Account for ${displayName}`}
-            onPress={onSelectAccount}
-            style={({ pressed }) => [styles.accountRow, pressed && styles.pressed]}>
-            <MessagesAvatar
-              name={displayName}
-              color={theme.primary}
-              photoUrl={homeData?.userProfile.profilePhotoUrl}
-              size="md"
-            />
-            <View style={styles.accountCopy}>
-              <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
-              <Text style={[styles.accountMeta, { color: theme.muted }]}>Account settings</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-          </Pressable>
-        </StoryCard>
-      ) : null}
+          {user ? (
+            <StoryCard compact style={styles.accountCard}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Account for ${displayName}`}
+                onPress={onSelectAccount}
+                style={({ pressed }) => [styles.accountRow, pressed && styles.pressed]}>
+                <MessagesAvatar
+                  name={displayName}
+                  color={theme.primary}
+                  photoUrl={homeData?.userProfile.profilePhotoUrl}
+                  size="md"
+                />
+                <View style={styles.accountCopy}>
+                  <Text style={[styles.accountName, { color: theme.ink }]}>{displayName}</Text>
+                  <Text style={[styles.accountMeta, { color: theme.muted }]}>Account settings</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+              </Pressable>
+            </StoryCard>
+          ) : null}
+        </>
+      </StoryMoreMenuTabPanel>
     </StoryMoreMenuSheetShell>
   );
 }
 
 const styles = StyleSheet.create({
-  programCard: {
-    padding: StoryCardPadding,
-    gap: Spacing.one,
-    marginBottom: Spacing.two,
-  },
-  programKicker: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: Spacing.one,
-  },
-  programRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.two,
-    borderRadius: 8,
-  },
-  programRowSpacer: {
-    width: 18,
-  },
-  programLabel: {
-    flex: 1,
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 14,
-    lineHeight: 20,
-  },
   accountCard: {
     padding: StoryCardPadding,
   },

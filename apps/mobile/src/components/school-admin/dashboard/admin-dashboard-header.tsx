@@ -8,7 +8,9 @@ type AdminDashboardHeaderProps = {
   userFirstName?: string | null;
   unreadCount?: number;
   onPressBulletin?: () => void;
-  onPressHelp?: () => void;
+  displayName?: string;
+  profilePhotoUrl?: string | null;
+  onPressProfile?: () => void;
   onPressNotifications?: () => void;
 };
 
@@ -16,10 +18,13 @@ export function AdminDashboardHeader({
   userFirstName,
   unreadCount = 0,
   onPressBulletin,
-  onPressHelp,
+  displayName,
+  profilePhotoUrl,
+  onPressProfile,
   onPressNotifications,
 }: AdminDashboardHeaderProps) {
   const greetingName = userFirstName?.trim() || 'there';
+  const profileLabel = displayName?.trim() || greetingName;
   const { prefix: greetingPrefix, emoji: greetingEmoji } = greetingParts();
 
   return (
@@ -34,7 +39,11 @@ export function AdminDashboardHeader({
         }
         dateLabel={todayLabel()}
         bulletin={onPressBulletin ? { onPress: onPressBulletin } : undefined}
-        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        profile={
+          onPressProfile
+            ? { displayName: profileLabel, photoUrl: profilePhotoUrl, onPress: onPressProfile }
+            : undefined
+        }
         notifications={
           onPressNotifications
             ? { unreadCount, onPress: onPressNotifications }

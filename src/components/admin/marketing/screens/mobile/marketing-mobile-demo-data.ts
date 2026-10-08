@@ -102,10 +102,10 @@ export const ADMISSIONS_METRICS = [
 ] as const;
 
 export const ADMISSIONS_NEEDS_ATTENTION = {
-  guardianName: "Priya Patel",
+  guardianName: "Sarah Mitchell",
   submittedLabel: " · Submitted Apr 18",
-  reviewButtonLabel: "Review Priya →",
-  copy: "Priya Patel's completed application is ready for your review · Submitted Apr 18.",
+  reviewButtonLabel: "Review Sarah →",
+  copy: "Sarah Mitchell's completed application is ready for your review · Submitted Apr 18.",
 } as const;
 
 export const ADMISSIONS_STATUS_FILTERS = [
@@ -131,15 +131,15 @@ export type MarketingAdmissionsSubmissionRow = {
 
 export const ADMISSIONS_SUBMISSION_ROWS: MarketingAdmissionsSubmissionRow[] = [
   {
-    id: "priya",
-    studentName: "Aanya Patel",
-    contactLine: "Priya Patel · priya.patel@email.com",
-    initials: "AP",
+    id: "emma",
+    studentName: "Emma Mitchell",
+    contactLine: "Sarah Mitchell · sarah.mitchell@email.com",
+    initials: "EM",
     statusLabel: "Submitted · ready for review",
     statusTone: "pending",
     programLabel: "Lower School",
     metaLine: "Application complete · 2h ago",
-    nextStepLabel: "Schedule interview",
+    nextStepLabel: "Review application",
     nextStepTone: "info",
   },
   {
@@ -157,14 +157,14 @@ export const ADMISSIONS_SUBMISSION_ROWS: MarketingAdmissionsSubmissionRow[] = [
 ];
 
 export const ADMISSIONS_DETAIL = {
-  studentName: "Aanya Patel",
+  studentName: "Emma Mitchell",
   statusLabel: "Submitted · ready for review",
   statusTone: "pending" as const,
-  guardianLine: "Priya Patel · priya.patel@email.com",
+  guardianLine: "Sarah Mitchell · sarah.mitchell@email.com",
   programLabel: "Lower School · 2026–27",
   formTitle: "General application",
   submittedAt: "Apr 18, 2026",
-  nextStepLabel: "Schedule interview",
+  nextStepLabel: "Review application",
   nextStepTone: "info" as const,
 } as const;
 

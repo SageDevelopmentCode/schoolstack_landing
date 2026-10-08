@@ -28,6 +28,8 @@ type DemoParentEnrollmentPageProps = {
   enrolled: boolean;
   isJakePending: boolean;
   renderDetailPanel: (activeItem: DemoParentModalId) => ReactNode;
+  initialActiveItem?: DemoParentModalId;
+  fillHeight?: boolean;
 };
 
 function StoryProgressBar({
@@ -63,10 +65,12 @@ export default function DemoParentEnrollmentPage({
   enrolled,
   isJakePending,
   renderDetailPanel,
+  initialActiveItem,
+  fillHeight = false,
 }: DemoParentEnrollmentPageProps) {
   const theme = PARENT_DEMO_STORY_THEME;
   const [activeItem, setActiveItem] = useState<DemoParentModalId>(
-    checklistItems[0]?.modal ?? "contract-1",
+    initialActiveItem ?? checklistItems[0]?.modal ?? "contract-1",
   );
 
   const reqCompleted = checklistItems.filter(
@@ -85,8 +89,16 @@ export default function DemoParentEnrollmentPage({
   ];
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[1250px] flex-1 flex-col px-4 py-6 sm:py-8 md:px-9">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div
+      className={`mx-auto flex min-h-0 w-full max-w-[1250px] flex-1 flex-col ${
+        fillHeight ? "h-full" : "px-4 py-6 sm:py-8 md:px-9"
+      }`}
+    >
+      <div
+        className={`mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between ${
+          fillHeight ? "hidden" : ""
+        }`}
+      >
         <div>
           <ParentSectionKicker theme={theme}>Enrollment</ParentSectionKicker>
           <ParentDisplayHeading theme={theme} as="h1" size="section" className="mt-1">
@@ -128,10 +140,12 @@ export default function DemoParentEnrollmentPage({
         <ParentCard theme={theme} className="!p-0 flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
             <aside
-              className="flex w-full flex-col border-b lg:w-[34%] lg:border-b-0 lg:border-r"
+              className={`flex w-full flex-col border-b lg:w-[34%] lg:border-b-0 lg:border-r ${
+                fillHeight ? "min-h-0 overflow-hidden lg:h-full" : ""
+              }`}
               style={{ borderColor: theme.line }}
             >
-              <div className="px-4 py-4 sm:px-5">
+              <div className={`px-4 py-4 sm:px-5 ${fillHeight ? "hidden" : ""}`}>
                 {enrolled ? (
                   <div className="mb-3 flex items-center gap-1.5" style={{ color: theme.success }}>
                     <CheckCircle className="h-3.5 w-3.5" />
@@ -154,8 +168,32 @@ export default function DemoParentEnrollmentPage({
                 </div>
               </div>
 
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 sm:px-4">
-                {checklistItems.map((item, idx) => {
+              <div
+                className={`min-h-0 flex-1 space-y-2 px-3 pb-3 sm:px-4 ${
+                  fillHeight ? "overflow-hidden pt-3" : "overflow-y-auto"
+                }`}
+              >
+                {fillHeight ? (
+                  <div
+                    className="rounded-2xl border px-4 py-3.5"
+                    style={{ borderColor: theme.line, backgroundColor: theme.white }}
+                  >
+                    <p className="text-sm font-semibold" style={{ color: theme.ink }}>
+                      {reqCompleted} of {reqTotal} required steps complete
+                    </p>
+                    <div className="mt-3">
+                      <StoryProgressBar value={reqCompleted} max={reqTotal} theme={theme} />
+                    </div>
+                  </div>
+                ) : null}
+                {(fillHeight
+                  ? [...checklistItems].sort((a, b) => {
+                      if (a.modal === activeItem) return -1;
+                      if (b.modal === activeItem) return 1;
+                      return 0;
+                    })
+                  : checklistItems
+                ).map((item, idx) => {
                   const done = completions[item.id - 1];
                   const Icon = item.icon;
                   const isActive = activeItem === item.modal;
@@ -165,6 +203,7 @@ export default function DemoParentEnrollmentPage({
                       key={item.id}
                       type="button"
                       data-tour-id={idx === 0 ? "checklist-item-0" : undefined}
+                      data-checklist-modal={item.modal}
                       onClick={() => setActiveItem(item.modal)}
                       className="flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors"
                       style={{

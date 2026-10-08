@@ -319,22 +319,30 @@ function PaymentsSection({ submission }: { submission: AdminApplicationSubmissio
   );
 }
 
+const SUBMISSION_DETAIL_BACKDROP = "rgba(34,48,44,0.47)";
+
 export default function DemoApplicationSubmissionDetailPanel({
   lead,
   submission,
   flow,
   onClose,
   autoSendEnrollmentLink = false,
+  initialTab = "overview",
+  appearImmediately = false,
+  showBackdrop = true,
 }: {
   lead: DemoSubmissionLead;
   submission: AdminApplicationSubmission;
   flow?: DemoSubmissionFlow | null;
   onClose: () => void;
   autoSendEnrollmentLink?: boolean;
+  initialTab?: DetailTab["id"];
+  appearImmediately?: boolean;
+  showBackdrop?: boolean;
 }) {
   const theme = ADMIN_DEMO_STORY_THEME;
   const C = ADMIN_DEMO_STORY_COMPAT;
-  const [activeTab, setActiveTab] = useState<DetailTab["id"]>("overview");
+  const [activeTab, setActiveTab] = useState<DetailTab["id"]>(initialTab);
   const [linkSentDelayed, setLinkSentDelayed] = useState(false);
   const enrollmentLinkSent = !autoSendEnrollmentLink || linkSentDelayed;
   const activity = useMemo(() => buildDemoSubmissionActivity(lead), [lead]);
@@ -362,9 +370,9 @@ export default function DemoApplicationSubmissionDetailPanel({
     .filter(Boolean)
     .join(" · ");
 
-  return (
+  const drawer = (
     <motion.div
-      initial={{ x: "100%", opacity: 0 }}
+      initial={appearImmediately ? false : { x: "100%", opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: "100%", opacity: 0 }}
       transition={{ type: "spring", damping: 28, stiffness: 300 }}
@@ -515,6 +523,27 @@ export default function DemoApplicationSubmissionDetailPanel({
           </AnimatePresence>
         </motion.button>
       </div>
+    </motion.div>
+  );
+
+  if (!showBackdrop) {
+    return drawer;
+  }
+
+  return (
+    <motion.div
+      className="absolute inset-0 z-[10]"
+      initial={appearImmediately ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: SUBMISSION_DETAIL_BACKDROP }}
+        aria-hidden="true"
+      />
+      {drawer}
     </motion.div>
   );
 }

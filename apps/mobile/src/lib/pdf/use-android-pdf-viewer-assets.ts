@@ -1,11 +1,17 @@
 import { Asset } from 'expo-asset';
 import { useEffect, useState } from 'react';
 
-// Bundled via Metro (see apps/mobile/metro.config.js — `.mjs` in assetExts).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfMinModule = require('pdfjs-dist/build/pdf.min.mjs');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfWorkerModule = require('pdfjs-dist/build/pdf.worker.min.mjs');
+function loadPdfJsModules(): {
+  pdfMinModule: unknown;
+  pdfWorkerModule: unknown;
+} {
+  // Lazy require so pdfjs is not evaluated during app startup (expo-router context load).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfMinModule = require('pdfjs-dist/build/pdf.min.mjs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const pdfWorkerModule = require('pdfjs-dist/build/pdf.worker.min.mjs');
+  return { pdfMinModule, pdfWorkerModule };
+}
 
 export type AndroidPdfViewerAssetUris = {
   pdfModuleUri: string;
@@ -33,6 +39,7 @@ export function useAndroidPdfViewerAssets(enabled: boolean): {
 
     void (async () => {
       try {
+        const { pdfMinModule, pdfWorkerModule } = loadPdfJsModules();
         const [pdfAsset, workerAsset] = await Promise.all([
           Asset.fromModule(pdfMinModule).downloadAsync(),
           Asset.fromModule(pdfWorkerModule).downloadAsync(),

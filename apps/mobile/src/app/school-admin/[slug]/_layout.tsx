@@ -26,6 +26,8 @@ import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissi
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useCompletePortalTransitionOnMount } from '@/contexts/portal-transition-context';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
@@ -81,6 +83,14 @@ function SchoolAdminLayoutContent() {
   const exitPreview = useExitPortalPreviewNavigation();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  useCompletePortalTransitionOnMount();
+
+  useEffect(() => {
+    if (selectedSchool?.id && slug) {
+      void prefetchSchoolPortalOptions(selectedSchool.id, slug);
+    }
+  }, [selectedSchool?.id, slug]);
 
   const pathTab = getActiveTab(pathname);
   const activeTab = moreSheetOpen ? 'more' : pathTab;

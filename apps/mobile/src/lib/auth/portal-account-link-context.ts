@@ -101,3 +101,31 @@ export async function resolvePortalAccountMemberUserIds(
   );
   return context.memberUserIds;
 }
+
+/** All user ids in any link group the session user belongs to (for global school lists). */
+export async function resolveAllPortalAccountPeerUserIds(
+  supabase: SupabaseClient,
+  sessionUserId: string,
+): Promise<string[]> {
+  const ids = new Set<string>([sessionUserId]);
+
+  const { data: myRows, error: myRowsError } = await supabase
+    .from('organization_portal_account_link_members')
+    .select('group_id')
+    .eq('user_id', sessionUserId);
+
+  if (myRowsError) throw myRowsError;
+
+  const groupIds = [
+    ...new Set((myRows ?? []).map((row) => String(row.group_id))),
+  ];
+
+  for (const groupId of groupIds) {
+    const memberUserIds = await listMemberUserIdsForGroup(supabase, groupId);
+    for (const memberUserId of memberUserIds) {
+      ids.add(memberUserId);
+    }
+  }
+
+  return [...ids];
+}

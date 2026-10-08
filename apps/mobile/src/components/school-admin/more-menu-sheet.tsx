@@ -1,9 +1,13 @@
 import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import {
+  AccountPortalSwitcherPanel,
+  useAccountPortalSwitcherVisibility,
+} from '@/components/account-portal-switcher-panel';
 import { AccountDeletionRequest } from '@/components/account-deletion-request';
 import { AccountLegalLinks } from '@/components/account-legal-links';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
@@ -13,12 +17,22 @@ import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-hea
 import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
 import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
 import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
+import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
+import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
 import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
+import {
+  buildMoreMenuTabs,
+  shouldShowMoreMenuSectionTabs,
+  type MoreMenuTabId,
+} from '@/lib/more-menu-tab-ids';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { StoryTextLink } from '@/components/story/story-text-link';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import { useCanSwitchSchool } from '@/lib/auth/use-can-switch-school';
 import { useSchoolAdminFeatures } from '@/contexts/school-admin-features-context';
 import { getAccountRoleLabel } from '@/lib/auth/resolve-portal';
+import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -127,8 +141,17 @@ function getDisplayName(user: User): string {
 export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps) {
   const router = useRouter();
   const theme = useParentTheme();
-  const { user, portalType, isPlatformAdminSession, selectedSchool, exitSchoolAdmin, signOut } =
-    useAuth();
+  const {
+    user,
+    portalType,
+    isPlatformAdminSession,
+    selectedSchool,
+    exitSchoolAdmin,
+    signOut,
+    switchSchool,
+    previewSession,
+  } = useAuth();
+  const canSwitchSchool = useCanSwitchSchool(user?.id);
   const { fridayBranchEnabled } = useSchoolAdminFeatures();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const roleLabel = useMemo(
@@ -156,6 +179,39 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
     router.replace('/platform-admin/organizations');
   };
 
+  const handleSwitchSchool = async () => {
+    onClose();
+    await switchSchool();
+    router.replace('/login/choose-school?mode=switch');
+  };
+
+  const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
+  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
+    selectedSchool?.id,
+    selectedSchool?.slug,
+    visible,
+  );
+  const tabs = useMemo(
+    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalSection, showProgram: false }),
+    [showAccountPortalSection],
+  );
+  const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+
+  useEffect(() => {
+    if (visible && selectedSchool?.id && selectedSchool.slug) {
+      void prefetchSchoolPortalOptions(selectedSchool.id, selectedSchool.slug);
+    }
+  }, [selectedSchool?.id, selectedSchool?.slug, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      setActiveTab('menu');
+    }
+  }, [visible]);
+
+  const showMenuPanel = !useSectionTabs || activeTab === 'menu';
+  const showAccountPortalPanel = useSectionTabs && activeTab === 'account_portal';
+
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
       <StoryMoreMenuHeader
@@ -164,6 +220,23 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
         subtitle="Finances, scheduling, and school operations"
       />
 
+      {useSectionTabs ? (
+        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+      ) : null}
+
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(selectedSchool)}>
+        {selectedSchool ? (
+          <AccountPortalSwitcherPanel
+            organizationId={selectedSchool.id}
+            slug={selectedSchool.slug}
+            currentPortalId={portalTypeToAccountPortalId(portalType)}
+            enabled={visible}
+            onAfterSelect={onClose}
+          />
+        ) : null}
+      </StoryMoreMenuTabPanel>
+
+      <StoryMoreMenuTabPanel visible={showMenuPanel}>
       {isPlatformAdminSession && selectedSchool ? (
         <View style={styles.platformBanner}>
           <Pressable
@@ -218,12 +291,21 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
                 </Text>
               ) : null}
             </View>
-            <StoryTextLink
-              label="Sign out"
-              onPress={() => void handleSignOut()}
-              accessibilityLabel="Sign out"
-              style={styles.signOutLink}
-            />
+            <View style={styles.accountActions}>
+              {canSwitchSchool && !previewSession && !isPlatformAdminSession ? (
+                <StoryTextLink
+                  label="Switch school"
+                  onPress={() => void handleSwitchSchool()}
+                  accessibilityLabel="Switch school"
+                />
+              ) : null}
+              <StoryTextLink
+                label="Sign out"
+                onPress={() => void handleSignOut()}
+                accessibilityLabel="Sign out"
+                style={styles.signOutLink}
+              />
+            </View>
           </View>
           {selectedSchool?.id ? (
             <AccountDeletionRequest
@@ -235,6 +317,7 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
           <AccountLegalLinks />
         </StoryCard>
       ) : null}
+      </StoryMoreMenuTabPanel>
     </StoryMoreMenuSheetShell>
   );
 }
@@ -289,6 +372,10 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 12,
     lineHeight: 18,
+  },
+  accountActions: {
+    alignItems: 'flex-end',
+    gap: Spacing.two,
   },
   signOutLink: {
     paddingVertical: 0,

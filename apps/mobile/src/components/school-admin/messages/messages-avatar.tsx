@@ -9,12 +9,13 @@ type MessagesAvatarProps = {
   name: string;
   color: string;
   photoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'toolbar';
 };
 
 const SIZES = {
   sm: { dimension: 32, fontSize: 10 },
   md: { dimension: 40, fontSize: 12 },
+  toolbar: { dimension: 40, fontSize: 12 },
   lg: { dimension: 44, fontSize: 14 },
 } as const;
 

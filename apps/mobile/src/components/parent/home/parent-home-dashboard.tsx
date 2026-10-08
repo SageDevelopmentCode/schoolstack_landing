@@ -27,8 +27,11 @@ import {
 } from '@/components/parent/home/parent-home-sub-tab-bar';
 import { ParentActivityNotificationsSheet } from '@/components/parent/parent-activity-notifications-sheet';
 import { ParentOnboardingSheet } from '@/components/parent/parent-onboarding-sheet';
+import { PortalAccountSheet } from '@/components/portal-account-sheet';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
+import { useParentHome } from '@/contexts/parent-home-context';
+import { useParentPortalContext } from '@/contexts/parent-portal-context';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryDisplayHeading } from '@/components/story/story-display-heading';
 import { useParentTheme } from '@/contexts/parent-theme-context';
@@ -131,6 +134,19 @@ export function ParentHomeDashboard({
   );
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(
+    data.userProfile.profilePhotoUrl,
+  );
+  const { refresh: refreshParentHome } = useParentHome();
+  const {
+    contexts,
+    activeContext,
+    showSwitcher,
+    switchToContext,
+    isLoading: portalContextsLoading,
+    organizationId,
+  } = useParentPortalContext();
   const [bulletinOpen, setBulletinOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
@@ -143,6 +159,10 @@ export function ParentHomeDashboard({
     setActiveSubTab(PARENT_HOME_SUB_TAB_OVERVIEW);
     setVisitedSubTabs(new Set([PARENT_HOME_SUB_TAB_OVERVIEW]));
   }, [coopModeEnabled, programSlug]);
+
+  useEffect(() => {
+    setHeroProfilePhotoUrl(data.userProfile.profilePhotoUrl);
+  }, [data.userProfile.profilePhotoUrl]);
 
   const handleSubTabChange = useCallback((tabId: ParentHomeSubTabId) => {
     setVisitedSubTabs((previous) => {
@@ -345,7 +365,8 @@ export function ParentHomeDashboard({
             bulletinPostCount={bulletinPosts.length}
             notificationUnreadCount={notificationUnreadCount}
             onOpenBulletin={() => setBulletinOpen(true)}
-            onPressHelp={() => setSupportSheetOpen(true)}
+            profilePhotoUrl={heroProfilePhotoUrl}
+            onPressProfile={() => setAccountSheetOpen(true)}
             onPressNotifications={() => setNotificationsOpen(true)}
           />
         </Animated.View>
@@ -412,6 +433,37 @@ export function ParentHomeDashboard({
         sourcePagePath={sourcePagePath}
         errorOperation="parent_portal_support_request_submit"
         onSubmit={submitParentSupportRequest}
+      />
+
+      <PortalAccountSheet
+        visible={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+        displayName={data.userProfile.displayName}
+        photoUrl={heroProfilePhotoUrl}
+        organizationId={organizationId}
+        slug={slug}
+        onProfilePhotoUpdated={(url) => {
+          setHeroProfilePhotoUrl(url);
+          void refreshParentHome();
+        }}
+        programSwitcher={
+          portalContextsLoading || showSwitcher
+            ? {
+                contexts: contexts.map((context) => ({
+                  id: context.id,
+                  label: context.label,
+                })),
+                activeContextId: activeContext?.id ?? null,
+                loading: portalContextsLoading,
+                onSelect: (context) => {
+                  const match = contexts.find((item) => item.id === context.id);
+                  if (match) {
+                    switchToContext(match);
+                  }
+                },
+              }
+            : undefined
+        }
       />
 
       <ParentOnboardingSheet

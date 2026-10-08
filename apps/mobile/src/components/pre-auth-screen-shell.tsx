@@ -46,6 +46,8 @@ export function PreAuthScreenShell({
   contentStyle,
 }: PreAuthScreenShellProps) {
   const insets = useSafeAreaInsets();
+  const showHeaderLogoRow = Boolean(onBack && showMudKitchenLogo);
+  const showStandaloneLogo = showMudKitchenLogo && !showHeaderLogoRow;
 
   return (
     <ScrollView
@@ -57,14 +59,31 @@ export function PreAuthScreenShell({
       style={styles.wrapper}>
       <View style={[styles.card, contentStyle]}>
         {onBack ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            disabled={backDisabled}
-            onPress={onBack}
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-            <Text style={styles.backLabel}>{backLabel}</Text>
-          </Pressable>
+          showHeaderLogoRow ? (
+            <View style={[styles.headerRow, styles.headerRowWithLogo]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                disabled={backDisabled}
+                onPress={onBack}
+                style={({ pressed }) => [
+                  styles.backButtonInline,
+                  pressed && styles.backButtonPressed,
+                ]}>
+                <Text style={styles.backLabel}>{backLabel}</Text>
+              </Pressable>
+              <MudKitchenLogo size="sm" style={styles.headerLogo} />
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              disabled={backDisabled}
+              onPress={onBack}
+              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
+              <Text style={styles.backLabel}>{backLabel}</Text>
+            </Pressable>
+          )
         ) : null}
 
         {schoolLogo ? (
@@ -75,7 +94,7 @@ export function PreAuthScreenShell({
             name={schoolLogo.name}
             style={styles.schoolLogo}
           />
-        ) : showMudKitchenLogo ? (
+        ) : showStandaloneLogo ? (
           <MudKitchenLogo size="md" style={styles.logo} />
         ) : null}
 
@@ -106,14 +125,28 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   card: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: SCREEN_HORIZONTAL_PADDING,
     paddingTop: Spacing.two,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.three,
+    minHeight: 36,
+  },
+  headerRowWithLogo: {
+    marginBottom: Spacing.five,
   },
   backButton: {
     alignSelf: 'flex-start',
     marginBottom: Spacing.three,
     paddingVertical: 4,
+  },
+  backButtonInline: {
+    paddingVertical: 4,
+    paddingRight: Spacing.two,
   },
   backButtonPressed: {
     opacity: 0.7,
@@ -123,6 +156,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: Story.muted,
+  },
+  headerLogo: {
+    alignSelf: 'center',
   },
   logo: {
     marginBottom: Spacing.five,
@@ -144,10 +180,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
   },
   content: {
+    flexGrow: 1,
     gap: Spacing.three,
   },
   footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.five,
+    marginTop: 'auto',
+    paddingTop: Spacing.five,
   },
 });

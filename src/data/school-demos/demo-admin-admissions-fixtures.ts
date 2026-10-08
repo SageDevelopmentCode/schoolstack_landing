@@ -95,10 +95,10 @@ export const DEMO_ADMIN_SUBMISSION_LEADS: DemoSubmissionLead[] = [
   },
   {
     id: "l3",
-    name: "Priya Patel",
-    email: "ppatel@email.com",
-    phone: "(512) 555-0391",
-    childName: "Raj Patel",
+    name: "Sarah Mitchell",
+    email: "sarah.mitchell@email.com",
+    phone: "(512) 555-0101",
+    childName: "Emma Mitchell",
     childAge: 7,
     status: "emailed",
     tags: ["School Year"],
@@ -106,11 +106,11 @@ export const DEMO_ADMIN_SUBMISSION_LEADS: DemoSubmissionLead[] = [
     message: null,
     flowId: "flow-1",
     responses: {
-      f1: "Priya",
-      f2: "Patel",
-      f3: "ppatel@email.com",
-      f4: "(512) 555-0391",
-      f5: "Raj Patel",
+      f1: "Sarah",
+      f2: "Mitchell",
+      f3: "sarah.mitchell@email.com",
+      f4: "(512) 555-0101",
+      f5: "Emma Mitchell",
       f6: "2018-06-04",
       f7: "2nd",
       f8: "Half Day",
@@ -232,6 +232,23 @@ export const DEMO_ADMIN_SUBMISSION_LEADS: DemoSubmissionLead[] = [
     },
   },
 ];
+
+/** Carousel slide 1: inbox mix (admin vs family next steps); Sarah/Emma is the new submission. */
+const MARKETING_SLIDE1_LEAD_IDS = ["l3", "l2", "l8", "l5", "l0", "l1"] as const;
+
+export function buildDemoMarketingSlide1Leads(): DemoSubmissionLead[] {
+  const byId = new Map(DEMO_ADMIN_SUBMISSION_LEADS.map((lead) => [lead.id, lead]));
+  return MARKETING_SLIDE1_LEAD_IDS.map((id) => {
+    const lead = byId.get(id);
+    if (!lead) {
+      throw new Error(`Missing demo submission lead ${id} for marketing slide 1`);
+    }
+    if (id === "l3") {
+      return { ...lead, date: "Just now" };
+    }
+    return lead;
+  });
+}
 
 const FLOW_1_STEPS: DemoSubmissionFlowStep[] = [
   {

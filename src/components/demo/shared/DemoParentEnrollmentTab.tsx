@@ -36,7 +36,13 @@ function EnrollmentDetailPanel({ modalId }: { modalId: DemoParentModalId }) {
   );
 }
 
-export default function DemoParentEnrollmentTab() {
+export default function DemoParentEnrollmentTab({
+  initialActiveItem,
+  fillHeight = false,
+}: {
+  initialActiveItem?: DemoParentModalId;
+  fillHeight?: boolean;
+} = {}) {
   const [activeChildId, setActiveChildId] = useState<DemoParentChildId>("emma");
   const completions = useMemo(
     () => DEMO_PARENT_ENROLLMENT_COMPLETIONS[activeChildId],
@@ -46,15 +52,19 @@ export default function DemoParentEnrollmentTab() {
   const enrolled = activeChildId === "liam";
 
   return (
-    <DemoParentEnrollmentPage
-      activeChildId={activeChildId}
-      setActiveChildId={setActiveChildId}
-      childrenNav={DEMO_PARENT_CHILD_NAV}
-      checklistItems={DEMO_PARENT_CHECKLIST_ITEMS}
-      completions={completions}
-      enrolled={enrolled}
-      isJakePending={isJakePending}
-      renderDetailPanel={(modalId) => <EnrollmentDetailPanel modalId={modalId} />}
-    />
+    <div className={fillHeight ? "flex h-full min-h-0 flex-col" : undefined}>
+      <DemoParentEnrollmentPage
+        activeChildId={activeChildId}
+        setActiveChildId={setActiveChildId}
+        childrenNav={DEMO_PARENT_CHILD_NAV}
+        checklistItems={DEMO_PARENT_CHECKLIST_ITEMS}
+        completions={completions}
+        enrolled={enrolled}
+        isJakePending={isJakePending}
+        renderDetailPanel={(modalId) => <EnrollmentDetailPanel modalId={modalId} />}
+        initialActiveItem={initialActiveItem}
+        fillHeight={fillHeight}
+      />
+    </div>
   );
 }
