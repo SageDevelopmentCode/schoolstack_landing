@@ -11,9 +11,9 @@ import { ACCOUNT_PORTAL_MORE_MENU_META } from '@/lib/auth/account-portal-more-me
 import { getMobileEntryRoute } from '@/lib/auth/mobile-portal-entry';
 import {
   ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE,
+  accountPortalIdToPortalType,
   type AccountPortalId,
   type SchoolPortalOption,
-  shouldShowPortalSwitcher,
 } from '@/lib/auth/school-portal-options-types';
 import { useSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 
@@ -55,14 +55,19 @@ export function AccountPortalSwitcherPanel({
   onAfterSelect,
 }: AccountPortalSwitcherPanelProps) {
   const router = useRouter();
-  const { switchAccountPortal, isPlatformAdminSession, previewSession } = useAuth();
+  const {
+    switchAccountPortal,
+    clearAccountPortalSwitchInProgress,
+    isPlatformAdminSession,
+    previewSession,
+  } = useAuth();
   const { beginPortalTransition } = usePortalTransition();
   const [switching, setSwitching] = useState(false);
 
   const portalOptionsEnabled =
     enabled && !isPlatformAdminSession && !previewSession;
 
-  const { options, loading } = useSchoolPortalOptions({
+  const { options, loading, showSwitcher } = useSchoolPortalOptions({
     organizationId,
     slug,
     enabled: portalOptionsEnabled,
@@ -76,7 +81,7 @@ export function AccountPortalSwitcherPanel({
     return <StoryEmbeddedSwitcherSkeleton kicker={sectionTitle} />;
   }
 
-  if (!shouldShowPortalSwitcher(options)) {
+  if (!showSwitcher) {
     return null;
   }
 
@@ -88,10 +93,11 @@ export function AccountPortalSwitcherPanel({
     setSwitching(true);
     try {
       onAfterSelect?.();
-      beginPortalTransition();
+      beginPortalTransition({ targetPortalType: accountPortalIdToPortalType(option.id) });
       const portal = await switchAccountPortal(option.id);
       router.replace(getMobileEntryRoute(portal.portalType, slug));
     } finally {
+      clearAccountPortalSwitchInProgress();
       setSwitching(false);
     }
   };

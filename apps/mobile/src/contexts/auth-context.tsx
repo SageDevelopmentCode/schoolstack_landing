@@ -71,6 +71,8 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   switchSchool: () => Promise<void>;
   switchAccountPortal: (optionId: AccountPortalId) => Promise<ResolvedPortal>;
+  accountPortalSwitchInProgress: boolean;
+  clearAccountPortalSwitchInProgress: () => void;
   restorePortalState: () => Promise<void>;
   refreshSelectedSchool: (school: LiveOrganization) => Promise<void>;
 };
@@ -208,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPlatformAdminSession, setIsPlatformAdminSession] = useState(false);
   const [previewSession, setPreviewSession] = useState<PortalPreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accountPortalSwitchInProgress, setAccountPortalSwitchInProgress] = useState(false);
 
   const explicitSignOutRef = useRef(false);
   const hadEstablishedSessionRef = useRef(false);
@@ -467,6 +470,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearAllPersistedPortalCaches();
   }, []);
 
+  const clearAccountPortalSwitchInProgress = useCallback(() => {
+    setAccountPortalSwitchInProgress(false);
+  }, []);
+
   const switchAccountPortal = useCallback(
     async (optionId: AccountPortalId) => {
       const userId = user?.id;
@@ -475,6 +482,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('You must be signed in to a school to switch portals.');
       }
 
+      setAccountPortalSwitchInProgress(true);
       const supabase = getSupabaseClient();
       const portal = await resolvePortalForOption(supabase, userId, school, optionId);
       await clearAllPersistedPortalCaches();
@@ -528,6 +536,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       switchSchool,
       switchAccountPortal,
+      accountPortalSwitchInProgress,
+      clearAccountPortalSwitchInProgress,
       restorePortalState,
       refreshSelectedSchool,
     }),
@@ -547,6 +557,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       switchSchool,
       switchAccountPortal,
+      accountPortalSwitchInProgress,
+      clearAccountPortalSwitchInProgress,
       restorePortalState,
       refreshSelectedSchool,
     ],

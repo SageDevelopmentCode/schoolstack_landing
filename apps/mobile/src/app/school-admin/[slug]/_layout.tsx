@@ -78,13 +78,14 @@ function SchoolAdminLayoutContent() {
     previewSession,
     isLoading,
     enterSchoolAsPlatformAdmin,
+    accountPortalSwitchInProgress,
   } = useAuth();
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
-  useCompletePortalTransitionOnMount();
+  useCompletePortalTransitionOnMount('school_admin');
 
   useEffect(() => {
     if (selectedSchool?.id && slug) {
@@ -103,7 +104,7 @@ function SchoolAdminLayoutContent() {
   }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
-    if (isLoading || !slug || !user) return;
+    if (isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       isPortalSessionAllowed(
@@ -138,6 +139,7 @@ function SchoolAdminLayoutContent() {
       }
     })();
   }, [
+    accountPortalSwitchInProgress,
     enterSchoolAsPlatformAdmin,
     isLoading,
     isPlatformAdminSession,

@@ -27,20 +27,27 @@ function DemoCanvas({
   children,
   minHeight,
   innerPadding = 0,
+  marketingContained = false,
 }: {
   children: React.ReactNode;
   minHeight: number;
   innerPadding?: number;
+  marketingContained?: boolean;
 }) {
   return (
     <div
+      className={
+        marketingContained
+          ? "h-full min-h-0 overflow-hidden [&_[data-apply-portal]]:!min-h-0 [&_[data-apply-portal]]:h-full"
+          : undefined
+      }
       style={{
         width: CAROUSEL_DEMO_INNER_WIDTH,
         minHeight,
         height: minHeight,
         boxSizing: "border-box",
         padding: innerPadding,
-        overflow: innerPadding > 0 ? "hidden" : undefined,
+        overflow: innerPadding > 0 || marketingContained ? "hidden" : undefined,
         background: "#F8F8F3",
       }}
     >
@@ -137,16 +144,25 @@ export function MarketingParentApplyDemoWindow({
   contentHeight = 920,
   celebrateSubmission = true,
   story = "submitted",
+  innerPadding = 0,
+  suppressHelpFab = false,
 }: {
   contentHeight?: number;
   celebrateSubmission?: boolean;
   story?: "submitted" | "enrolling";
+  innerPadding?: number;
+  suppressHelpFab?: boolean;
 }) {
   return (
-    <DemoCanvas minHeight={contentHeight}>
+    <DemoCanvas
+      minHeight={contentHeight}
+      innerPadding={innerPadding}
+      marketingContained={suppressHelpFab}
+    >
       <DemoParentApplyDashboardPage
         celebrateSubmission={story === "enrolling" ? false : celebrateSubmission}
         story={story}
+        suppressHelpFab={suppressHelpFab}
       />
     </DemoCanvas>
   );

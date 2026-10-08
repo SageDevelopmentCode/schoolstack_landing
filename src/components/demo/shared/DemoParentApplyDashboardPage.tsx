@@ -21,9 +21,11 @@ import { fireCelebrationConfetti } from "@/lib/celebration-confetti";
 export default function DemoParentApplyDashboardPage({
   celebrateSubmission = false,
   story = "submitted",
+  suppressHelpFab = false,
 }: {
   celebrateSubmission?: boolean;
   story?: "submitted" | "enrolling";
+  suppressHelpFab?: boolean;
 } = {}) {
   const branding = useMemo(() => buildDemoParentBranding(), []);
   const schoolName = useMemo(() => resolveDemoSchoolName(), []);
@@ -63,6 +65,7 @@ export default function DemoParentApplyDashboardPage({
           userProfile={dashboardData.userProfile}
           previewMode
           focusApplicationId={DEMO_MARKETING_APPLY_APPLICATION_ID}
+          suppressHelpFab={suppressHelpFab}
         />
         {showCelebration ? <MarketingApplySubmittedConfettiOverlay /> : null}
       </div>

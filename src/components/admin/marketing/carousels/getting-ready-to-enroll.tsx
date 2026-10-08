@@ -26,7 +26,7 @@ const VISITS_CROP: CarouselDemoCrop = { zoom: 1.2, originX: 0, originY: 0 };
 const CHECKLIST_CROP: CarouselDemoCrop = { zoom: 1.35, originX: 0, originY: 0.05 };
 const PREVIEW_CROP: CarouselDemoCrop = { zoom: 1.28, originX: 0, originY: 0 };
 const TUITION_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
-const FAMILY_NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.15, originX: -0.04, originY: 0.24 };
+const FAMILY_NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.18, originX: 0, originY: 0.2 };
 
 export const GETTING_READY_TO_ENROLL_CAROUSEL = {
   id: "getting-ready-to-enroll",
@@ -188,6 +188,7 @@ function NextStepSlide() {
         story="enrolling"
         celebrateSubmission={false}
         contentHeight={DEMO_CONTENT_HEIGHT}
+        suppressHelpFab
       />
     </CarouselProductSlide>
   );

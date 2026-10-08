@@ -75,12 +75,19 @@ function TeacherLayoutContent() {
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, selectedSchool, portalType, previewSession, isLoading } = useAuth();
+  const {
+    user,
+    selectedSchool,
+    portalType,
+    previewSession,
+    isLoading,
+    accountPortalSwitchInProgress,
+  } = useAuth();
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
-  useCompletePortalTransitionOnMount();
+  useCompletePortalTransitionOnMount('teacher');
 
   useEffect(() => {
     if (selectedSchool?.id && slug) {
@@ -99,7 +106,7 @@ function TeacherLayoutContent() {
   useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
   useEffect(() => {
-    if (isLoading || !slug || !user) return;
+    if (isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       !isPortalSessionAllowed(
@@ -112,7 +119,16 @@ function TeacherLayoutContent() {
     ) {
       router.replace('/portal');
     }
-  }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
+  }, [
+    accountPortalSwitchInProgress,
+    isLoading,
+    portalType,
+    previewSession,
+    router,
+    selectedSchool?.slug,
+    slug,
+    user,
+  ]);
 
   const handleTabChange = (tab: TeacherTab) => {
     if (!slug) return;

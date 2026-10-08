@@ -71,8 +71,10 @@ type CarouselProductSlideProps = {
   footer?: ReactNode;
   promoSiteLabel?: string;
   promoDensity?: CarouselPromoDensity;
-  /** Left padding of the copy band; default matches logo gutter. */
+  /** Right padding of the copy band (logo clearance). */
   copyInsetLeft?: number;
+  /** Left padding of the copy band. */
+  copyPaddingLeft?: number;
   windowInsetLeft?: number;
   windowInsetRight?: number;
 };
@@ -94,6 +96,7 @@ export function CarouselProductSlide({
   promoSiteLabel,
   promoDensity = "default",
   copyInsetLeft = COPY_LOGO_GUTTER,
+  copyPaddingLeft = 64,
   windowInsetLeft = WINDOW_LEFT,
   windowInsetRight = WINDOW_RIGHT_BLEED,
 }: CarouselProductSlideProps) {
@@ -106,7 +109,7 @@ export function CarouselProductSlide({
     ? `${COPY_TOP_PADDING}px 64px 32px 64px`
     : isPromo
       ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
-      : `${COPY_TOP_PADDING}px ${copyInsetLeft}px ${COPY_BOTTOM_PADDING}px 64px`;
+      : `${COPY_TOP_PADDING}px ${copyInsetLeft}px ${COPY_BOTTOM_PADDING}px ${copyPaddingLeft}px`;
   const textAlign = isPromo ? "center" : "left";
   const slideBackground = background ?? (isForest ? SLIDE.forest : DEMO_SLIDE_PAPER);
   const titleColor = isForest ? SLIDE.white : SLIDE.ink;

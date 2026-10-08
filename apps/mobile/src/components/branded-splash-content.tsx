@@ -1,15 +1,25 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Brand } from '@/constants/theme';
 
 const LOGO_SIZE = 128;
 
-export function BrandedSplashContent() {
+type BrandedSplashContentProps = {
+  variant?: 'inline' | 'overlay';
+  showActivityIndicator?: boolean;
+};
+
+export function BrandedSplashContent({
+  variant = 'inline',
+  showActivityIndicator = false,
+}: BrandedSplashContentProps) {
+  const rootStyle = variant === 'overlay' ? styles.rootOverlay : styles.rootInline;
+
   return (
-    <>
+    <View style={rootStyle}>
       <LinearGradient
         colors={[Brand.surface, Brand.bg, Brand.claySoft]}
         start={{ x: 0.5, y: 0 }}
@@ -27,12 +37,26 @@ export function BrandedSplashContent() {
         <ThemedText type="logo" style={styles.wordmark}>
           MudKitchen
         </ThemedText>
+        {showActivityIndicator ? (
+          <ActivityIndicator color={Brand.accent} style={styles.spinner} />
+        ) : null}
       </View>
-    </>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootInline: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rootOverlay: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: {
     alignItems: 'center',
     gap: 20,
@@ -56,5 +80,8 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     fontSize: 28,
+  },
+  spinner: {
+    marginTop: 4,
   },
 });

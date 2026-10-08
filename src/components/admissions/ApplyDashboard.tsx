@@ -59,6 +59,7 @@ type ApplyDashboardProps = {
   previewBasePath?: string;
   focusApplicationId?: string | null;
   shadowDaySchedulingMode?: ShadowDaySchedulingMode;
+  suppressHelpFab?: boolean;
 };
 
 function formatApplicationDate(
@@ -222,6 +223,7 @@ export default function ApplyDashboard({
   previewBasePath,
   focusApplicationId = null,
   shadowDaySchedulingMode,
+  suppressHelpFab = false,
 }: ApplyDashboardProps) {
   const router = useRouter();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -298,6 +300,7 @@ export default function ApplyDashboard({
       openPortalLinksInNewTab={openPortalLinksInNewTab}
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
+      suppressHelpFab={suppressHelpFab}
     >
       <div className="flex flex-col gap-7">
         {showPortalStarter && parentPortalHref ? (

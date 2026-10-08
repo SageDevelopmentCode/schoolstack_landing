@@ -25,7 +25,11 @@ export function filterSchoolPortalOptionsForMobile(
 }
 
 export function shouldShowMobilePortalSwitcher(options: SchoolPortalOption[]): boolean {
-  return shouldShowPortalSwitcher(filterSchoolPortalOptionsForMobile(options));
+  const mobileOptions = filterSchoolPortalOptionsForMobile(options);
+  const hasStaffPortal = mobileOptions.some(
+    (option) => option.id === 'admin' || option.id === 'teacher',
+  );
+  return hasStaffPortal && mobileOptions.length >= 2;
 }
 
 export function portalTypeToAccountPortalId(
