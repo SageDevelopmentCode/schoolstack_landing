@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -26,7 +27,10 @@ import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissi
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
-import { useCompletePortalTransitionOnMount } from '@/contexts/portal-transition-context';
+import {
+  useCompletePortalTransitionOnMount,
+  useReleaseAccountPortalSwitchOnBlur,
+} from '@/contexts/portal-transition-context';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
@@ -66,6 +70,7 @@ function SchoolAdminMessagesInboxRealtimeBridge() {
 
 function SchoolAdminLayoutContent() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const pathname = usePathname();
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
@@ -86,6 +91,7 @@ function SchoolAdminLayoutContent() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useCompletePortalTransitionOnMount('school_admin');
+  useReleaseAccountPortalSwitchOnBlur();
 
   useEffect(() => {
     if (selectedSchool?.id && slug) {
@@ -104,7 +110,7 @@ function SchoolAdminLayoutContent() {
   }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
-    if (isLoading || !slug || !user || accountPortalSwitchInProgress) return;
+    if (!isFocused || isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       isPortalSessionAllowed(
@@ -154,6 +160,7 @@ function SchoolAdminLayoutContent() {
   }, [
     accountPortalSwitchInProgress,
     enterSchoolAsPlatformAdmin,
+    isFocused,
     isLoading,
     isPlatformAdminSession,
     portalType,

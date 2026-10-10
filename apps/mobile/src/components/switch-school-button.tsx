@@ -20,7 +20,7 @@ export function SwitchSchoolButton({ style }: SwitchSchoolButtonProps) {
 
   const handlePress = async () => {
     await switchSchool();
-    router.replace('/login/choose-school?mode=switch');
+    router.push('/login/choose-school?mode=switch');
   };
 
   return (

@@ -17,6 +17,7 @@ import {
   fetchLiveOrganizationsBySlugs,
   type LiveOrganization,
 } from '@/lib/organizations';
+import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const NO_ACCESS_MESSAGE =
@@ -49,6 +50,7 @@ export function ChooseSchoolExperience({
       }
 
       const portal = await completeSchoolSignIn(user.id, organization);
+      await clearAllPersistedPortalCaches();
       await setResolvedPortal(portal);
       void logMobileAuthSignedIn(portal);
       router.replace('/portal');
@@ -140,8 +142,12 @@ export function ChooseSchoolExperience({
       return;
     }
 
-    if (switchingSchool && router.canGoBack()) {
-      router.back();
+    if (switchingSchool) {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/portal');
+      }
       return;
     }
 

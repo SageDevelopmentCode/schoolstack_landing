@@ -10,6 +10,7 @@ const showcaseStoryTheme = MUDKITCHEN_MARKETING_STORY_THEME;
 type GetStartedShowcaseSlideProps = {
   slide: GetStartedShowcaseSlideConfig;
   ariaHidden?: boolean;
+  mountDemo?: boolean;
 };
 
 function showcaseBadgeLabel(caption: string): string {
@@ -30,6 +31,7 @@ function showcaseBadgeStyle(accent: string): {
 export default function GetStartedShowcaseSlide({
   slide,
   ariaHidden = false,
+  mountDemo = false,
 }: GetStartedShowcaseSlideProps) {
   const Icon = slide.icon;
   const badgeStyle = showcaseBadgeStyle(slide.accent);
@@ -37,7 +39,7 @@ export default function GetStartedShowcaseSlide({
   return (
     <article
       aria-hidden={ariaHidden}
-      className="flex h-[500px] min-w-[340px] max-w-[340px] shrink-0 flex-col overflow-hidden rounded-md border border-border bg-surface shadow-sm sm:h-[520px] sm:min-w-[400px] sm:max-w-[400px]"
+      className="flex h-auto min-w-[340px] max-w-[340px] shrink-0 flex-col overflow-hidden rounded-md border border-border bg-surface shadow-sm sm:min-w-[400px] sm:max-w-[400px]"
     >
       <div
         className="h-1 w-full shrink-0"
@@ -58,13 +60,12 @@ export default function GetStartedShowcaseSlide({
           {slide.description}
         </p>
       </div>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border">
+      <div className="relative shrink-0 overflow-hidden border-t border-border">
         <GetStartedShowcaseDemoViewport
-          fillHeight
           contentHeight={slide.demo.contentHeight}
           crop={slide.demo.crop}
         >
-          <GetStartedShowcaseSlideDemo demo={slide.demo} />
+          <GetStartedShowcaseSlideDemo demo={slide.demo} mountDemo={mountDemo} />
         </GetStartedShowcaseDemoViewport>
         <span
           className="pointer-events-none absolute bottom-3 right-3 z-20 flex max-w-[90%] items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm"

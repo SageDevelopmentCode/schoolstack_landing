@@ -182,7 +182,7 @@ export function MoreMenuSheet({ visible, onClose, onSelect }: MoreMenuSheetProps
   const handleSwitchSchool = async () => {
     onClose();
     await switchSchool();
-    router.replace('/login/choose-school?mode=switch');
+    router.push('/login/choose-school?mode=switch');
   };
 
   const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');

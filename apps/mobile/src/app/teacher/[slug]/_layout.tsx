@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -24,7 +25,10 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
-import { useCompletePortalTransitionOnMount } from '@/contexts/portal-transition-context';
+import {
+  useCompletePortalTransitionOnMount,
+  useReleaseAccountPortalSwitchOnBlur,
+} from '@/contexts/portal-transition-context';
 import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
@@ -71,6 +75,7 @@ function TeacherMessagesInboxRealtimeBridge() {
 
 function TeacherLayoutContent() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const pathname = usePathname();
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
@@ -88,6 +93,7 @@ function TeacherLayoutContent() {
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useCompletePortalTransitionOnMount('teacher');
+  useReleaseAccountPortalSwitchOnBlur();
 
   useEffect(() => {
     if (selectedSchool?.id && slug) {
@@ -106,7 +112,7 @@ function TeacherLayoutContent() {
   useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
   useEffect(() => {
-    if (isLoading || !slug || !user || accountPortalSwitchInProgress) return;
+    if (!isFocused || isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       !isPortalSessionAllowed(
@@ -121,6 +127,7 @@ function TeacherLayoutContent() {
     }
   }, [
     accountPortalSwitchInProgress,
+    isFocused,
     isLoading,
     portalType,
     previewSession,

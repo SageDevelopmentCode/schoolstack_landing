@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import {
   createContext,
   useCallback,
@@ -191,30 +192,28 @@ export function usePortalTransition(): PortalTransitionContextValue {
 }
 
 export function useCompletePortalTransitionOnMount(expectedPortal: PortalType): void {
-  const { portalType, clearAccountPortalSwitchInProgress } = useAuth();
+  const { portalType } = useAuth();
   const { tryCompletePortalTransition } = usePortalTransition();
 
   useEffect(() => {
     if (portalType !== expectedPortal) return;
-    clearAccountPortalSwitchInProgress();
     requestAnimationFrame(() => {
       tryCompletePortalTransition(expectedPortal);
     });
-  }, [
-    clearAccountPortalSwitchInProgress,
-    expectedPortal,
-    portalType,
-    tryCompletePortalTransition,
-  ]);
+  }, [expectedPortal, portalType, tryCompletePortalTransition]);
 }
 
-/** Clears portal-switch guard once a non-portal destination (e.g. choose-school) is mounted. */
-export function useClearAccountPortalSwitchInProgressOnMount(): void {
+/** Clears portal-switch guard when this portal layout loses focus (e.g. after stack transition). */
+export function useReleaseAccountPortalSwitchOnBlur(): void {
   const { clearAccountPortalSwitchInProgress } = useAuth();
 
-  useEffect(() => {
-    clearAccountPortalSwitchInProgress();
-  }, [clearAccountPortalSwitchInProgress]);
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        clearAccountPortalSwitchInProgress();
+      };
+    }, [clearAccountPortalSwitchInProgress]),
+  );
 }
 
 const styles = StyleSheet.create({

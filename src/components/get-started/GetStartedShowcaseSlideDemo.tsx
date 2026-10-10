@@ -1,6 +1,6 @@
 "use client";
 
-import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
+import { DemoSkeleton } from "@/components/ui/DemoSkeleton";
 import {
   MARKETING_DEMO_APPLY_FLOW_SELECTION,
   MARKETING_DEMO_CHECKLIST_FLOW_SELECTION,
@@ -22,15 +22,23 @@ import type { GetStartedShowcaseDemoConfig } from "@/lib/marketing/get-started-s
 
 type GetStartedShowcaseSlideDemoProps = {
   demo: GetStartedShowcaseDemoConfig;
+  mountDemo: boolean;
 };
 
 export default function GetStartedShowcaseSlideDemo({
   demo,
+  mountDemo,
 }: GetStartedShowcaseSlideDemoProps) {
   const contentHeight = demo.contentHeight;
 
+  if (!mountDemo) {
+    return (
+      <DemoSkeleton className="rounded-2xl border border-gray-200" />
+    );
+  }
+
   return (
-    <InViewDemoGate>
+    <>
       {demo.kind === "productPreview" && (
         <>
           {demo.tabId === "admin" && <LazyAdminDashboardDemo disableTour />}
@@ -101,6 +109,6 @@ export default function GetStartedShowcaseSlideDemo({
           )}
         </>
       )}
-    </InViewDemoGate>
+    </>
   );
 }

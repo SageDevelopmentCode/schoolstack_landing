@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import GetStartedShowcaseSlide from "@/components/get-started/GetStartedShowcaseSlide";
 import { GET_STARTED_SHOWCASE_SLIDES } from "@/lib/marketing/get-started-showcase-slides";
 import { prefetchProductPreviewTab } from "@/lib/marketing/product-preview-tabs";
@@ -11,17 +11,46 @@ import {
   prefetchWebsiteDemo,
 } from "@/components/sections/lazyDemos";
 import { scheduleOnIdle } from "@/lib/schedule-on-idle";
+import { useGetStartedShowcaseActiveSlideIds } from "@/hooks/useGetStartedShowcaseActiveSlideIds";
 
 const MARQUEE_DURATION = "110s";
 
-export default function GetStartedShowcaseCarousel() {
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [paused, setPaused] = useState(false);
+const SHOWCASE_SLIDE_IDS = GET_STARTED_SHOWCASE_SLIDES.map((slide) => slide.id);
 
-  const trackSlides = [
-    ...GET_STARTED_SHOWCASE_SLIDES,
-    ...GET_STARTED_SHOWCASE_SLIDES,
-  ];
+const DEMO_PREFETCHERS = {
+  prefetchWebsiteDemo,
+  prefetchParentDemo,
+  prefetchTeacherDemo,
+  prefetchAdminDemo,
+};
+
+function prefetchShowcaseSlides(slideIds: Set<string>) {
+  for (const slide of GET_STARTED_SHOWCASE_SLIDES) {
+    if (!slideIds.has(slide.id)) continue;
+    if (slide.demo.kind === "productPreview") {
+      prefetchProductPreviewTab(slide.demo.tabId, DEMO_PREFETCHERS);
+    }
+  }
+}
+
+export default function GetStartedShowcaseCarousel() {
+  const [reduceMotion, setReduceMotion] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+  const [paused, setPaused] = useState(false);
+  const scrollRootRef = useRef<HTMLDivElement>(null);
+
+  const slideIds = useMemo(() => SHOWCASE_SLIDE_IDS, []);
+
+  const { activeSlideIds, setSlideItemRef } = useGetStartedShowcaseActiveSlideIds(
+    slideIds,
+    {
+      marqueeAnimating: !reduceMotion,
+      scrollRootRef,
+      enableScrollListener: reduceMotion,
+    },
+  );
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -32,19 +61,8 @@ export default function GetStartedShowcaseCarousel() {
   }, []);
 
   useEffect(() => {
-    scheduleOnIdle(() => {
-      for (const slide of GET_STARTED_SHOWCASE_SLIDES) {
-        if (slide.demo.kind === "productPreview") {
-          prefetchProductPreviewTab(slide.demo.tabId, {
-            prefetchWebsiteDemo,
-            prefetchParentDemo,
-            prefetchTeacherDemo,
-            prefetchAdminDemo,
-          });
-        }
-      }
-    });
-  }, []);
+    scheduleOnIdle(() => prefetchShowcaseSlides(activeSlideIds));
+  }, [activeSlideIds]);
 
   return (
     <section
@@ -73,12 +91,21 @@ export default function GetStartedShowcaseCarousel() {
 
         {reduceMotion ? (
           <div
+            ref={scrollRootRef}
             className="flex items-stretch gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scroll-pl-4 sm:px-6"
             role="list"
           >
             {GET_STARTED_SHOWCASE_SLIDES.map((slide) => (
-              <div key={slide.id} role="listitem" className="snap-start">
-                <GetStartedShowcaseSlide slide={slide} />
+              <div
+                key={slide.id}
+                ref={(el) => setSlideItemRef(slide.id, el)}
+                role="listitem"
+                className="snap-start"
+              >
+                <GetStartedShowcaseSlide
+                  slide={slide}
+                  mountDemo={activeSlideIds.has(slide.id)}
+                />
               </div>
             ))}
           </div>
@@ -92,15 +119,29 @@ export default function GetStartedShowcaseCarousel() {
               }}
               role="list"
             >
-              {trackSlides.map((slide, index) => (
+              {GET_STARTED_SHOWCASE_SLIDES.map((slide) => (
                 <div
-                  key={`${slide.id}-${index}`}
+                  key={slide.id}
+                  ref={(el) => setSlideItemRef(slide.id, el)}
                   role="listitem"
-                  aria-hidden={index >= GET_STARTED_SHOWCASE_SLIDES.length}
                 >
                   <GetStartedShowcaseSlide
                     slide={slide}
-                    ariaHidden={index >= GET_STARTED_SHOWCASE_SLIDES.length}
+                    mountDemo={activeSlideIds.has(slide.id)}
+                  />
+                </div>
+              ))}
+              {GET_STARTED_SHOWCASE_SLIDES.map((slide) => (
+                <div
+                  key={`${slide.id}-clone`}
+                  role="listitem"
+                  aria-hidden
+                  className="pointer-events-none"
+                >
+                  <GetStartedShowcaseSlide
+                    slide={slide}
+                    mountDemo={false}
+                    ariaHidden
                   />
                 </div>
               ))}

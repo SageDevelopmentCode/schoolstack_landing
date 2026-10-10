@@ -20,6 +20,8 @@ npm run stills -- 9x16  # same for vertical
 npm run shotlist        # regenerate the tables in this doc from the timeline
 ```
 
+**Deploy 16:9 for `/get-started`:** upload `out/mudkitchen-16x9.mp4` to Supabase bucket `website-marketing` at `marketing/get-started/mudkitchen-16x9.mp4` (see `supabase/migrations_manual/add_website_marketing_storage_2026_10_10.sql`). Set Vercel `NEXT_PUBLIC_GET_STARTED_FILM_VIDEO_URL` to that object’s public URL. Local dev without the env var: `npm run film:sync-public` from the repo root.
+
 Compositions: `MudKitchenFilm16x9`, `MudKitchenFilm9x16`, `MudKitchenFilm16x9NoCaptions`, plus `Acts/ActI-16x9` through `ActVI-9x16` for per-act review.
 
 ---

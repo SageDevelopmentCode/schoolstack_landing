@@ -4,15 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ChooseSchoolExperience } from '@/components/choose-school-experience';
-import { useClearAccountPortalSwitchInProgressOnMount } from '@/contexts/portal-transition-context';
 import { Story } from '@/constants/story-theme';
 
 export default function ChooseSchoolScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const switchingSchool = mode === 'switch';
-
-  useClearAccountPortalSwitchInProgressOnMount();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -23,8 +20,14 @@ export default function ChooseSchoolScreen() {
         <ChooseSchoolExperience
           switchingSchool={switchingSchool}
           onBack={
-            switchingSchool && router.canGoBack()
-              ? () => router.back()
+            switchingSchool
+              ? () => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/portal');
+                  }
+                }
               : undefined
           }
         />

@@ -462,13 +462,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const switchSchool = useCallback(async () => {
     setAccountPortalSwitchInProgress(true);
-    setPortalType(null);
-    setSelectedSchool(null);
-    setIsPlatformAdminSession(false);
-    setActivePreviewSession(null);
-    setPreviewSession(null);
-    await clearPortalState();
-    await clearAllPersistedPortalCaches();
   }, []);
 
   const clearAccountPortalSwitchInProgress = useCallback(() => {
