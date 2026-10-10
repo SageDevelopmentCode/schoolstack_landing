@@ -6,6 +6,7 @@ import { StoryCard } from '@/components/story/story-card';
 import { StoryChip } from '@/components/story/story-chip';
 import {
   attendanceActionIcon,
+  attendanceActionLabel,
   attendancePrimaryActionType,
   attendanceStatusLabel,
   attendanceStatusTone,
@@ -29,7 +30,7 @@ function compactActionLabel(action: AttendanceActionType): string {
   switch (action) {
     case 'mark_present':
     case 'mark_present_again':
-      return 'Present';
+      return attendanceActionLabel(action);
     case 'record_pickup':
       return 'Pickup';
     case 'picked_up':
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     minWidth: 88,
-    maxWidth: 104,
+    maxWidth: 118,
     minHeight: 40,
     borderRadius: StoryRadius.button,
     borderWidth: 1,

@@ -113,4 +113,15 @@ describe('mapTeacherPortalPathToPreview', () => {
       '/api/admin/mobile-preview/teacher/calendar?organizationId=org-123&slug=rooted-meadows&month=2026-09&staffMemberId=staff-789',
     );
   });
+
+  it('maps teacher attendance roster to mobile preview route with staffMemberId', () => {
+    const mapped = mapTeacherPortalPathToPreview(
+      '/api/teacher-portal/attendance?organizationId=org-123&date=2026-10-09',
+      teacherSession,
+    );
+
+    expect(mapped).toBe(
+      '/api/admin/mobile-preview/teacher/attendance?organizationId=org-123&date=2026-10-09&slug=rooted-meadows&staffMemberId=staff-789',
+    );
+  });
 });

@@ -3,7 +3,6 @@
 import { useState, useRef, Fragment, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { LucideIcon, Globe, ClipboardList, CreditCard, CalendarCheck, Clock, Megaphone, LayoutDashboard } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { FadeInView } from '@/components/ui/FadeInView'
 import { InViewDemoGate } from '@/components/ui/InViewDemoGate'
@@ -18,97 +17,22 @@ import {
   prefetchWebsiteDemo,
 } from './lazyDemos'
 import { LandingScaledDemoFrame } from '@/components/demo/LandingScaledDemoFrame'
+import {
+  PRODUCT_PREVIEW_GROUP_COLORS,
+  PRODUCT_PREVIEW_GROUP_META,
+  PRODUCT_PREVIEW_GROUPS,
+  PRODUCT_PREVIEW_TABS,
+  prefetchProductPreviewTab,
+  type ProductPreviewTabGroup,
+  type ProductPreviewTabId,
+} from '@/lib/marketing/product-preview-tabs'
 
-type TabId = 'admin' | 'website' | 'enrollment' | 'parents' | 'teachers' | 'marketing' | 'timeclock'
-
-type TabGroup = 'website' | 'parent' | 'teacher' | 'admin'
-
-interface Tab {
-  id: TabId
-  label: string
-  caption: string
-  description: string
-  icon: LucideIcon
-  group: TabGroup
-}
-
-const GROUP_COLORS: Record<TabGroup, string> = {
-  website: 'var(--color-accent)',
-  parent:  '#3b82f6',
-  teacher: '#10b981',
-  admin:   '#f97316',
-}
-
-const TABS: Tab[] = [
-  {
-    id: 'website',
-    label: 'Website',
-    caption: 'School Website',
-    description: 'A full school website with programs, FAQs, team, and calls to action.',
-    icon: Globe,
-    group: 'website',
-  },
-  {
-    id: 'enrollment',
-    label: 'Enrollment',
-    caption: 'Enrollment System',
-    description: 'Enrollment with health info, emergency contacts, uploads, and signatures.',
-    icon: ClipboardList,
-    group: 'parent',
-  },
-  {
-    id: 'parents',
-    label: 'Tuition',
-    caption: 'Tuition & Billing',
-    description: 'Families view invoices, make payments, and track tuition history in one place.',
-    icon: CreditCard,
-    group: 'parent',
-  },
-  {
-    id: 'teachers',
-    label: 'Attendance',
-    caption: 'Attendance',
-    description: 'Log daily attendance for every student, track who showed up, and navigate week by week.',
-    icon: CalendarCheck,
-    group: 'teacher',
-  },
-  {
-    id: 'timeclock',
-    label: 'Timeclock',
-    caption: 'Timeclock',
-    description: 'Log hours, track sessions, and view weekly and monthly totals in one place.',
-    icon: Clock,
-    group: 'teacher',
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    caption: 'Marketing',
-    description: 'Automated email campaigns and lead nurture sequences, all tied to your pipeline.',
-    icon: Megaphone,
-    group: 'admin',
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    caption: 'Admin Portal',
-    description: 'Track every applicant from first click to enrolled — with notes, approvals, and follow-up.',
-    icon: LayoutDashboard,
-    group: 'admin',
-  },
-]
-
-const GROUP_META: { id: TabGroup; label: string }[] = [
-  { id: 'website', label: 'Web' },
-  { id: 'parent',  label: 'Parent' },
-  { id: 'teacher', label: 'Teacher' },
-  { id: 'admin',   label: 'Admin' },
-]
-
-const GROUPS = GROUP_META.map((g) => ({
-  ...g,
-  tabs: TABS.filter((t) => t.group === g.id),
-}))
+const GROUP_COLORS = PRODUCT_PREVIEW_GROUP_COLORS
+const GROUP_META = PRODUCT_PREVIEW_GROUP_META
+const GROUPS = PRODUCT_PREVIEW_GROUPS
+const TABS = PRODUCT_PREVIEW_TABS
+type TabId = ProductPreviewTabId
+type TabGroup = ProductPreviewTabGroup
 
 export default function ProductPreviewSection() {
   const [activeTab, setActiveTab] = useState<TabId>('website')
@@ -117,23 +41,12 @@ export default function ProductPreviewSection() {
   const tabRefs = useRef<Map<TabId, HTMLButtonElement>>(new Map())
 
   function prefetchTab(id: TabId) {
-    switch (id) {
-      case 'website':
-        prefetchWebsiteDemo()
-        break
-      case 'enrollment':
-      case 'parents':
-        prefetchParentDemo()
-        break
-      case 'teachers':
-      case 'timeclock':
-        prefetchTeacherDemo()
-        break
-      case 'admin':
-      case 'marketing':
-        prefetchAdminDemo()
-        break
-    }
+    prefetchProductPreviewTab(id, {
+      prefetchWebsiteDemo,
+      prefetchParentDemo,
+      prefetchTeacherDemo,
+      prefetchAdminDemo,
+    })
   }
 
   const activeGroup = TABS.find((t) => t.id === activeTab)!.group

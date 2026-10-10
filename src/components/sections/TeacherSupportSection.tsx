@@ -4,6 +4,7 @@ import { FadeInView } from "@/components/ui/FadeInView";
 import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
 import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame";
 import { LazyTeacherDashboardDemo } from "@/components/sections/lazyDemos";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 export default function TeacherSupportSection() {
   return (
@@ -77,7 +78,7 @@ export default function TeacherSupportSection() {
             <FadeInView delay={0.24}>
               <div className="mt-8">
                 <a
-                  href="/get-started"
+                  href={BOOK_DEMO_HREF}
                   className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Book a Demo

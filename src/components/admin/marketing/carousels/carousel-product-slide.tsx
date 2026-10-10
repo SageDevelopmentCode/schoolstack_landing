@@ -77,6 +77,10 @@ type CarouselProductSlideProps = {
   copyPaddingLeft?: number;
   windowInsetLeft?: number;
   windowInsetRight?: number;
+  /** Rendered above the laptop demo (e.g. cover slide callout card). */
+  demoOverlay?: ReactNode;
+  /** Top offset of the corner logo. */
+  logoTop?: number;
 };
 
 export function CarouselProductSlide({
@@ -99,6 +103,8 @@ export function CarouselProductSlide({
   copyPaddingLeft = 64,
   windowInsetLeft = WINDOW_LEFT,
   windowInsetRight = WINDOW_RIGHT_BLEED,
+  demoOverlay,
+  logoTop,
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
   const isForest = isPromo || tone === "forest";
@@ -123,9 +129,10 @@ export function CarouselProductSlide({
   };
 
   const defaultBodyWidth = DEFAULT_BODY_WIDTH;
+  const hasDemoOverlay = Boolean(demoOverlay) && !showPhones;
 
   return (
-    <SlideCanvas background={slideBackground} logo={showPromoTopRow ? "none" : "corner"}>
+    <SlideCanvas background={slideBackground} logo={showPromoTopRow ? "none" : "corner"} logoTop={logoTop}>
       {showPromoTopRow && promoSiteLabel ? <PromoSlideTopRow siteLabel={promoSiteLabel} /> : null}
       <div
         style={{
@@ -211,31 +218,39 @@ export function CarouselProductSlide({
               marginTop: showPhones ? (isCompactPromo ? 124 : 72) : WINDOW_GAP,
               position: "relative",
               zIndex: 1,
-              overflow: showPhones ? "visible" : "hidden",
+              overflow: showPhones || hasDemoOverlay ? "visible" : "hidden",
               ...(showPhones ? { marginLeft: 0, marginRight: 0 } : windowMargins),
             }}
           >
             {showPhones ? (
               <div style={{ position: "absolute", inset: 0, overflow: "visible" }}>{children}</div>
             ) : (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  ...(WINDOW_CHROME_SCALE !== 1
-                    ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
-                    : {}),
-                }}
-              >
-                <CarouselLaptopWindow
-                  contentHeight={contentHeight}
-                  cropFocus={cropFocus}
-                  crop={crop}
-                  defaultBodyWidth={defaultBodyWidth}
+              <>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 1,
+                    ...(WINDOW_CHROME_SCALE !== 1
+                      ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
+                      : {}),
+                  }}
                 >
-                  {children}
-                </CarouselLaptopWindow>
-              </div>
+                  <CarouselLaptopWindow
+                    contentHeight={contentHeight}
+                    cropFocus={cropFocus}
+                    crop={crop}
+                    defaultBodyWidth={defaultBodyWidth}
+                  >
+                    {children}
+                  </CarouselLaptopWindow>
+                </div>
+                {hasDemoOverlay ? (
+                  <div style={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none" }}>
+                    {demoOverlay}
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
@@ -244,19 +259,21 @@ export function CarouselProductSlide({
   );
 }
 
-function CarouselLaptopWindow({
-  children,
-  contentHeight,
-  cropFocus,
-  crop,
-  defaultBodyWidth,
-}: {
+export type CarouselLaptopWindowProps = {
   children: ReactNode;
   contentHeight: number;
   cropFocus: "top" | "center";
   crop?: CarouselDemoCrop;
   defaultBodyWidth: number;
-}) {
+};
+
+export function CarouselLaptopWindow({
+  children,
+  contentHeight,
+  cropFocus,
+  crop,
+  defaultBodyWidth,
+}: CarouselLaptopWindowProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodySize, setBodySize] = useState({ width: defaultBodyWidth, height: DEFAULT_BODY_HEIGHT });
 

@@ -19,6 +19,7 @@ type DemoAdminAdmissionsSubmissionsPageProps = {
   initialSelectedLeadId?: string;
   initialDetailTab?: "overview" | "application" | "history" | "payments";
   compactForMarketing?: boolean;
+  showcaseDense?: boolean;
   animateNewSubmission?: boolean;
   newSubmissionLeadId?: string;
   revealNewSubmissionImmediately?: boolean;
@@ -30,6 +31,7 @@ export default function DemoAdminAdmissionsSubmissionsPage({
   initialSelectedLeadId,
   initialDetailTab = "overview",
   compactForMarketing = false,
+  showcaseDense = false,
   animateNewSubmission = false,
   newSubmissionLeadId,
   revealNewSubmissionImmediately = false,
@@ -56,13 +58,18 @@ export default function DemoAdminAdmissionsSubmissionsPage({
   }, [leads, selectedLeadId]);
 
   return (
-    <DemoSchoolAdminStoryProvider className="h-full">
-      <div className="pointer-events-none relative h-full min-h-0 select-none overflow-hidden">
+    <DemoSchoolAdminStoryProvider
+      className={showcaseDense ? "h-auto" : "h-full"}
+    >
+      <div
+        className={`pointer-events-none relative select-none ${showcaseDense ? "overflow-visible" : "h-full min-h-0 overflow-hidden"}`}
+      >
         <DemoApplicationSubmissionsTab
           leads={leads}
           onSelectLead={(lead) => setSelectedLeadId(lead.id)}
           selectedLeadId={selectedLeadId}
           compactForMarketing={compactForMarketing}
+          showcaseDense={showcaseDense}
           animateNewSubmission={animateNewSubmission}
           newSubmissionLeadId={newSubmissionLeadId}
           revealNewSubmissionImmediately={revealNewSubmissionImmediately}

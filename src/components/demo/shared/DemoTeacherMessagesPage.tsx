@@ -15,7 +15,15 @@ import {
   buildDemoTeacherMessagesInbox,
 } from "@/data/school-demos/demo-teacher-portal-fixtures";
 
-export default function DemoTeacherMessagesPage() {
+type DemoTeacherMessagesPageProps = {
+  initialThreadId?: string;
+  fillHeight?: boolean;
+};
+
+export default function DemoTeacherMessagesPage({
+  initialThreadId,
+  fillHeight = false,
+}: DemoTeacherMessagesPageProps = {}) {
   const branding = useMemo(() => buildDemoTeacherBranding(), []);
   const inbox = useMemo(() => buildDemoTeacherMessagesInbox(), []);
   const previewThreadMessages = useMemo(
@@ -34,6 +42,8 @@ export default function DemoTeacherMessagesPage() {
           staffMemberId={DEMO_TEACHER_STAFF_ID}
           initialInbox={inbox}
           previewThreadMessages={previewThreadMessages}
+          initialThreadId={initialThreadId}
+          fillHeight={fillHeight}
           previewMode
         />
       </div>

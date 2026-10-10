@@ -191,6 +191,8 @@ export default function MessagesInboxLayout({
   theme,
   teacherPortal = null,
   onRegisterActions,
+  initialThreadId = null,
+  fillHeight = false,
 }: {
   api: MessagesApiConfig;
   initialInbox?: MessagesInboxData;
@@ -202,6 +204,8 @@ export default function MessagesInboxLayout({
   theme?: ParentThemeTokens;
   teacherPortal?: MessagesTeacherPortalConfig | null;
   onRegisterActions?: (actions: MessagesInboxActions) => void;
+  initialThreadId?: string | null;
+  fillHeight?: boolean;
 }) {
   const searchParams = useSearchParams();
   const reportMessagesError = useCallback(
@@ -223,8 +227,20 @@ export default function MessagesInboxLayout({
   const [contacts, setContacts] = useState<MessageContact[]>(initialInbox?.contacts ?? []);
   const [viewerContext, setViewerContext] = useState(initialInbox?.viewerContext);
   const [prevInitialInbox, setPrevInitialInbox] = useState(initialInbox);
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [activeThread, setActiveThread] = useState<MessageThreadDetail | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(() => {
+    if (!initialThreadId) return null;
+    const summary = initialInbox?.threads.find((thread) => thread.id === initialThreadId);
+    return summary?.id ?? null;
+  });
+  const [activeThread, setActiveThread] = useState<MessageThreadDetail | null>(() => {
+    if (!initialThreadId) return null;
+    const summary = initialInbox?.threads.find((thread) => thread.id === initialThreadId);
+    if (!summary) return null;
+    return threadDetailFromSummary(
+      summary,
+      previewThreadMessages?.[summary.id] ?? [],
+    );
+  });
   const [input, setInput] = useState("");
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [loadingInbox, setLoadingInbox] = useState(() =>
@@ -1085,7 +1101,7 @@ export default function MessagesInboxLayout({
   return (
     <div
       className={`flex flex-col overflow-hidden ${
-        splitPane
+        fillHeight || splitPane
           ? "h-full min-h-0 flex-1"
           : "flex-1 min-h-[480px] h-[calc(100vh-220px)] max-h-[720px] border rounded-xl"
       }`}
@@ -1095,9 +1111,9 @@ export default function MessagesInboxLayout({
               backgroundColor: theme.white,
             }
           : {
-              borderColor: splitPane ? undefined : C.border,
+              borderColor: splitPane || fillHeight ? undefined : C.border,
               backgroundColor: C.bg,
-              border: splitPane ? undefined : `1px solid ${C.border}`,
+              border: splitPane || fillHeight ? undefined : `1px solid ${C.border}`,
             }
       }
     >

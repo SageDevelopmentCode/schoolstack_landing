@@ -117,7 +117,7 @@ export function AttendanceActionRow({
   return (
     <View style={styles.row}>
       <AttendanceActionButton
-        label="Present"
+        label="Mark Present"
         icon="checkmark-circle-outline"
         variant="soft"
         disabled={actionsDisabled}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import HeroDemoSection, { type HeroDemoTab } from '@/components/sections/HeroDemoSection'
+import { BOOK_DEMO_HREF } from '@/lib/marketing/book-demo'
 
 const HERO_THEMES: Record<
   HeroDemoTab,
@@ -119,7 +120,7 @@ export default function HeroSectionContent() {
 
           <div className="hero-enter mt-8 flex items-center justify-center gap-4" style={{ '--hero-delay': '280ms' } as React.CSSProperties}>
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               className="font-secondary inline-flex h-11 items-center gap-2 rounded-pill bg-clay px-7 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90"
             >
               Book a Demo

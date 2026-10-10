@@ -4,6 +4,7 @@ import SectionFallback from "@/components/ui/SectionFallback";
 import { useInViewOnRestore } from "@/hooks/useInViewOnRestore";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useEntranceAnimation } from "@/hooks/useEntranceAnimation";
+import { useBookDemoHashTargeted } from "@/lib/marketing/book-demo-hash-context";
 
 interface InViewSectionGateProps {
   children: React.ReactNode;
@@ -18,12 +19,13 @@ export function InViewSectionGate({
 }: InViewSectionGateProps) {
   const hydrated = useHydrated();
   const { skip } = useEntranceAnimation();
+  const bookDemoTargeted = useBookDemoHashTargeted();
   const [ref, inView] = useInViewOnRestore<HTMLDivElement>({
     threshold: 0,
     rootMargin: "200px 0px 200px 0px",
   });
 
-  const show = hydrated && (inView || skip);
+  const show = hydrated && (inView || skip || bookDemoTargeted);
 
   return (
     <div ref={ref} className={className}>

@@ -12,7 +12,6 @@ import {
   MarketingAdminHomeDemoWindow,
   MarketingEnrollmentChecklistPreviewDemoWindow,
   MarketingEnrollmentFlowsDemoWindow,
-  MarketingParentApplyDemoWindow,
   MarketingScheduleToursDemoWindow,
   MarketingTuitionDemoWindow,
 } from "@/components/admin/marketing/screens/marketing-demo-windows";
@@ -26,7 +25,6 @@ const VISITS_CROP: CarouselDemoCrop = { zoom: 1.2, originX: 0, originY: 0 };
 const CHECKLIST_CROP: CarouselDemoCrop = { zoom: 1.35, originX: 0, originY: 0.05 };
 const PREVIEW_CROP: CarouselDemoCrop = { zoom: 1.28, originX: 0, originY: 0 };
 const TUITION_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
-const FAMILY_NEXT_STEP_CROP: CarouselDemoCrop = { zoom: 1.18, originX: 0, originY: 0.2 };
 
 export const GETTING_READY_TO_ENROLL_CAROUSEL = {
   id: "getting-ready-to-enroll",
@@ -65,13 +63,8 @@ export const GETTING_READY_TO_ENROLL_CAROUSEL = {
       render: () => <TuitionSlide />,
     },
     {
-      id: "next-step",
-      fileName: "07-make-the-familys-next-step-easy-to-find.png",
-      render: () => <NextStepSlide />,
-    },
-    {
       id: "promo",
-      fileName: "08-set-it-up-once.png",
+      fileName: "07-set-it-up-once.png",
       render: () => <PromoSlide />,
     },
   ] satisfies MarketingSlide[],
@@ -170,25 +163,6 @@ function TuitionSlide() {
         initialDashboardTab="catalog"
         initialRateCatalogTab="tuition_rates"
         contentHeight={DEMO_CONTENT_HEIGHT}
-      />
-    </CarouselProductSlide>
-  );
-}
-
-function NextStepSlide() {
-  return (
-    <CarouselProductSlide
-      kicker="Family"
-      title="Make the family’s next step easy to find."
-      body="Application. Visit. Enrollment. Tuition."
-      contentHeight={DEMO_CONTENT_HEIGHT}
-      crop={FAMILY_NEXT_STEP_CROP}
-    >
-      <MarketingParentApplyDemoWindow
-        story="enrolling"
-        celebrateSubmission={false}
-        contentHeight={DEMO_CONTENT_HEIGHT}
-        suppressHelpFab
       />
     </CarouselProductSlide>
   );

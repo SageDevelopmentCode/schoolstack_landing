@@ -16,8 +16,9 @@ function sortEvents(events: OrganizationEvent[]): OrganizationEvent[] {
 export function listUpcomingCalendarEvents(
   events: OrganizationEvent[],
   limit = UPCOMING_EVENT_LIMIT,
+  asOf: Date = new Date(),
 ): OrganizationEvent[] {
-  const todayKey = dateKey(new Date());
+  const todayKey = dateKey(asOf);
   return sortEvents(events.filter((event) => event.date >= todayKey)).slice(0, limit);
 }
 

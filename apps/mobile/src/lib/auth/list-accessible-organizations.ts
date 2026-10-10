@@ -90,6 +90,8 @@ async function listParentAccessibleLiveSlugs(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string[]> {
+  const peerUserIds = await resolveAllPortalAccountPeerUserIds(supabase, userId);
+
   const [guardianResult, membershipResult] = await Promise.all([
     supabase
       .from('guardians')
@@ -114,7 +116,7 @@ async function listParentAccessibleLiveSlugs(
         )
       `,
       )
-      .eq('user_id', userId)
+      .in('user_id', peerUserIds)
       .eq('status', 'active')
       .eq('role', 'parent'),
   ]);

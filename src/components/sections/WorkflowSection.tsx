@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { FadeInView } from "@/components/ui/FadeInView";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 type Step = {
   number: string;
@@ -838,7 +839,7 @@ export default function WorkflowSection() {
           </p>
           <div className="flex items-center gap-4 shrink-0">
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               className="inline-flex items-center gap-1.5 rounded-pill text-[13px] font-medium font-secondary px-5 h-10 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
               style={{ backgroundColor: "#A05C45", color: "#ffffff" }}
             >

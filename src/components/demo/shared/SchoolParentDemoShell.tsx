@@ -195,6 +195,7 @@ export type SchoolParentDemoShellProps = {
   initialTab?: ParentDemoNavTab;
   disableTour?: boolean;
   hideNav?: boolean;
+  desktopEmbed?: boolean;
   onMount?: () => void;
 };
 
@@ -203,6 +204,7 @@ export default function SchoolParentDemoShell({
   initialTab = "home",
   disableTour = false,
   hideNav = false,
+  desktopEmbed = false,
   onMount,
 }: SchoolParentDemoShellProps) {
   applyParentDemoRuntime(config);
@@ -302,7 +304,7 @@ export default function SchoolParentDemoShell({
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className={`relative flex h-full min-h-[700px] flex-col ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
+      className={`relative flex h-full min-h-[700px] flex-col ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${desktopEmbed ? "min-w-[1100px] w-[1100px]" : ""}`}
       style={demoStoryShellStyle(PARENT_DEMO_STORY_THEME)}
       data-parent-portal
     >

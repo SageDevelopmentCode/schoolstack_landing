@@ -91,6 +91,7 @@ export default function DemoApplicationSubmissionsTab({
   revealNewSubmissionImmediately = false,
   highlightLeadId = null,
   compactForMarketing = false,
+  showcaseDense = false,
 }: {
   leads: DemoSubmissionLead[];
   onSelectLead: (lead: DemoSubmissionLead) => void;
@@ -100,8 +101,10 @@ export default function DemoApplicationSubmissionsTab({
   revealNewSubmissionImmediately?: boolean;
   highlightLeadId?: string | null;
   compactForMarketing?: boolean;
+  showcaseDense?: boolean;
 }) {
   const theme = ADMIN_DEMO_STORY_THEME;
+  const cellPy = showcaseDense ? "py-1.5" : "py-3";
   const C = ADMIN_DEMO_STORY_COMPAT;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formFilter, setFormFilter] = useState<FormFilter>("all");
@@ -210,7 +213,7 @@ export default function DemoApplicationSubmissionsTab({
     return (
       <>
         {showFormColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             <div className="text-xs font-semibold" style={{ color: theme.ink }}>
               {submission.formTitle}
             </div>
@@ -221,7 +224,7 @@ export default function DemoApplicationSubmissionsTab({
             ) : null}
           </td>
         ) : null}
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionContactCell
             guardianName={submission.guardianName}
             contactEmail={submission.contactEmail}
@@ -232,16 +235,16 @@ export default function DemoApplicationSubmissionsTab({
             theme={theme}
           />
         </td>
-        <td className="px-[15px] py-3 text-xs" style={{ color: "#607078" }}>
+        <td className={`px-[15px] ${cellPy} text-xs`} style={{ color: "#607078" }}>
           {submission.studentLabel ?? "—"}
         </td>
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <AdminChip theme={theme} tone={applicationStatusChipTone(submission.status)}>
             {adminApplicationStatusLabel(submission.status)}
           </AdminChip>
         </td>
         {showEnrollmentColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             {submission.enrollmentSummary ? (
               <span
                 className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
@@ -259,7 +262,7 @@ export default function DemoApplicationSubmissionsTab({
           </td>
         ) : null}
         {showPostSubmitColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             {submission.postSubmitSummary ? (
               <span
                 className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-[10px] font-extrabold"
@@ -276,14 +279,14 @@ export default function DemoApplicationSubmissionsTab({
             )}
           </td>
         ) : null}
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionProgressCell submission={submission} theme={theme} />
         </td>
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionNextStepCell submission={submission} theme={theme} />
         </td>
         {showFeesColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             <SubmissionFeeBadges submission={submission} C={C} />
           </td>
         ) : null}
@@ -351,14 +354,22 @@ export default function DemoApplicationSubmissionsTab({
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col overflow-hidden"
+      className={`relative flex flex-col ${showcaseDense ? "overflow-visible" : "h-full min-h-0 overflow-hidden"}`}
       style={{ backgroundColor: DEMO_ADMIN_PAPER_BG }}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        className={
+          showcaseDense
+            ? "overflow-visible"
+            : "min-h-0 flex-1 overflow-y-auto"
+        }
+      >
         <div
           className={
             compactForMarketing
-              ? "mx-auto max-w-[1350px] px-4 py-3 pb-6"
+              ? showcaseDense
+                ? "mx-auto max-w-[1350px] px-4 py-2 pb-3"
+                : "mx-auto max-w-[1350px] px-4 py-3 pb-6"
               : "mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
           }
         >
@@ -491,7 +502,7 @@ export default function DemoApplicationSubmissionsTab({
                       {tableHeadings.map((heading) => (
                         <th
                           key={heading}
-                          className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                          className={`px-[15px] ${showcaseDense ? "py-1.5" : "py-2.5"} text-left text-[10px] font-extrabold uppercase tracking-[0.08em]`}
                           style={{ color: "#8B9699" }}
                         >
                           {heading}

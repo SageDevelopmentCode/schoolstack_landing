@@ -1,14 +1,19 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { StoryEmbeddedSwitcherSection } from '@/components/story/more/story-embedded-switcher-section';
 import { StoryEmbeddedSwitcherSkeleton } from '@/components/story/more/story-embedded-switcher-skeleton';
 import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
 import { StoryMoreMenuSelectionRow } from '@/components/story/more/story-more-menu-selection-row';
+import { useParentTheme } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
 import { usePortalTransition } from '@/contexts/portal-transition-context';
+import { StoryFonts } from '@/constants/story-theme';
+import { Spacing } from '@/constants/theme';
 import { ACCOUNT_PORTAL_MORE_MENU_META } from '@/lib/auth/account-portal-more-menu-meta';
 import { getMobileEntryRoute } from '@/lib/auth/mobile-portal-entry';
+import { PortalAccessError } from '@/lib/auth/resolve-portal';
 import {
   ACCOUNT_PORTAL_SWITCHER_SECTION_TITLE,
   accountPortalIdToPortalType,
@@ -55,6 +60,7 @@ export function AccountPortalSwitcherPanel({
   onAfterSelect,
 }: AccountPortalSwitcherPanelProps) {
   const router = useRouter();
+  const theme = useParentTheme();
   const {
     switchAccountPortal,
     clearAccountPortalSwitchInProgress,
@@ -63,6 +69,7 @@ export function AccountPortalSwitcherPanel({
   } = useAuth();
   const { beginPortalTransition } = usePortalTransition();
   const [switching, setSwitching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const portalOptionsEnabled =
     enabled && !isPlatformAdminSession && !previewSession;
@@ -91,41 +98,64 @@ export function AccountPortalSwitcherPanel({
     }
 
     setSwitching(true);
+    setError(null);
     try {
-      onAfterSelect?.();
       beginPortalTransition({ targetPortalType: accountPortalIdToPortalType(option.id) });
       const portal = await switchAccountPortal(option.id);
       router.replace(getMobileEntryRoute(portal.portalType, slug));
-    } finally {
+      onAfterSelect?.();
+    } catch (selectError) {
       clearAccountPortalSwitchInProgress();
+      setError(
+        selectError instanceof PortalAccessError || selectError instanceof Error
+          ? selectError.message
+          : 'Unable to switch portal. Please try again.',
+      );
       setSwitching(false);
     }
   };
 
   return (
-    <StoryEmbeddedSwitcherSection kicker={sectionTitle}>
-      {options.map((option, index) => {
-        const meta = ACCOUNT_PORTAL_MORE_MENU_META[option.id];
-        const isCurrent = option.id === currentPortalId;
-        return (
-          <StoryMoreMenuSelectionRow
-            key={option.id}
-            isFirst={index === 0}
-            label={option.label}
-            subtitle={meta.subtitle}
-            selected={isCurrent}
-            disabled={switching}
-            onPress={() => void handleSelect(option)}
-            icon={
-              <StoryMoreMenuIcon
-                name={meta.icon}
-                iconBg={meta.iconBg}
-                iconColor={meta.iconColor}
-              />
-            }
-          />
-        );
-      })}
-    </StoryEmbeddedSwitcherSection>
+    <View>
+      <StoryEmbeddedSwitcherSection kicker={sectionTitle}>
+        {options.map((option, index) => {
+          const meta = ACCOUNT_PORTAL_MORE_MENU_META[option.id];
+          const isCurrent = option.id === currentPortalId;
+          return (
+            <StoryMoreMenuSelectionRow
+              key={option.id}
+              isFirst={index === 0}
+              label={option.label}
+              subtitle={meta.subtitle}
+              selected={isCurrent}
+              disabled={switching}
+              onPress={() => void handleSelect(option)}
+              icon={
+                <StoryMoreMenuIcon
+                  name={meta.icon}
+                  iconBg={meta.iconBg}
+                  iconColor={meta.iconColor}
+                />
+              }
+            />
+          );
+        })}
+      </StoryEmbeddedSwitcherSection>
+      {error ? (
+        <Text style={[styles.errorText, { color: theme.muted }]} accessibilityRole="alert">
+          {error}
+        </Text>
+      ) : null}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  errorText: {
+    fontFamily: StoryFonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: Spacing.two,
+    paddingHorizontal: Spacing.one,
+  },
+});

@@ -118,8 +118,12 @@ function SchoolAdminLayoutContent() {
       return;
     }
 
+    let cancelled = false;
+
     void (async () => {
       const organization = await fetchOrganizationBySlug(slug);
+      if (cancelled) return;
+
       if (!organization) {
         router.replace(
           previewSession ? '/platform-admin/impersonate' : '/platform-admin/organizations',
@@ -132,12 +136,21 @@ function SchoolAdminLayoutContent() {
         return;
       }
 
+      if (cancelled) return;
+
       if (isPlatformAdminSession) {
         await enterSchoolAsPlatformAdmin(organization);
-      } else {
-        router.replace('/login');
+        return;
+      }
+
+      if (!cancelled) {
+        router.replace('/portal');
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     accountPortalSwitchInProgress,
     enterSchoolAsPlatformAdmin,

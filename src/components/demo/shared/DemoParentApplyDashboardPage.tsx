@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import ApplyDashboard from "@/components/admissions/ApplyDashboard";
 import MarketingApplySubmittedConfettiOverlay from "@/components/admin/marketing/screens/marketing-apply-submitted-confetti-overlay";
 import DemoSchoolParentStoryProvider from "@/components/demo/shared/DemoSchoolParentStoryProvider";
+import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
+import { buildShowcaseApplyDashboardData } from "@/data/school-demos/demo-showcase-fixtures";
 import { PARENT_DEMO_STORY_THEME } from "@/components/demo/shared/parent-demo-runtime";
 import {
   buildDemoMarketingApplyDashboardData,
@@ -27,16 +29,18 @@ export default function DemoParentApplyDashboardPage({
   story?: "submitted" | "enrolling";
   suppressHelpFab?: boolean;
 } = {}) {
+  const showcaseEmbed = useShowcaseDesktopEmbed();
   const branding = useMemo(() => buildDemoParentBranding(), []);
   const schoolName = useMemo(() => resolveDemoSchoolName(), []);
   const showCelebration = story === "submitted" && celebrateSubmission;
-  const dashboardData = useMemo(
-    () =>
-      story === "enrolling"
-        ? buildDemoMarketingEnrollingApplyDashboardData()
-        : buildDemoMarketingApplyDashboardData(),
-    [story],
-  );
+  const dashboardData = useMemo(() => {
+    if (showcaseEmbed && story === "submitted") {
+      return buildShowcaseApplyDashboardData();
+    }
+    return story === "enrolling"
+      ? buildDemoMarketingEnrollingApplyDashboardData()
+      : buildDemoMarketingApplyDashboardData();
+  }, [showcaseEmbed, story]);
   const celebrationFiredRef = useRef(false);
 
   useEffect(() => {
@@ -46,9 +50,11 @@ export default function DemoParentApplyDashboardPage({
   }, [showCelebration]);
 
   return (
-    <DemoSchoolParentStoryProvider className="flex h-full min-h-0 flex-col">
+    <DemoSchoolParentStoryProvider
+      className={`flex flex-col ${showcaseEmbed ? "h-auto" : "h-full min-h-0"}`}
+    >
       <div
-        className="pointer-events-none relative h-full min-h-0 select-none overflow-hidden"
+        className={`pointer-events-none relative select-none ${showcaseEmbed ? "overflow-visible" : "h-full min-h-0 overflow-hidden"}`}
         style={{ backgroundColor: branding.colors.bg }}
       >
         <ApplyDashboard

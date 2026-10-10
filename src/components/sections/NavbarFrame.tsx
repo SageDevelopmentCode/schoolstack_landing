@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Info, Layers, Menu, Users, X } from "lucide-react";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -85,7 +86,7 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
             ))}
 
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               onClick={() => setMenuOpen(false)}
               className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill bg-clay text-sm font-medium text-white transition-all duration-200 hover:opacity-90"
             >

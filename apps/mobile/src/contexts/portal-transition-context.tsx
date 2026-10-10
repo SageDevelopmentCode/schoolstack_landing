@@ -191,15 +191,30 @@ export function usePortalTransition(): PortalTransitionContextValue {
 }
 
 export function useCompletePortalTransitionOnMount(expectedPortal: PortalType): void {
-  const { portalType } = useAuth();
+  const { portalType, clearAccountPortalSwitchInProgress } = useAuth();
   const { tryCompletePortalTransition } = usePortalTransition();
 
   useEffect(() => {
     if (portalType !== expectedPortal) return;
+    clearAccountPortalSwitchInProgress();
     requestAnimationFrame(() => {
       tryCompletePortalTransition(expectedPortal);
     });
-  }, [expectedPortal, portalType, tryCompletePortalTransition]);
+  }, [
+    clearAccountPortalSwitchInProgress,
+    expectedPortal,
+    portalType,
+    tryCompletePortalTransition,
+  ]);
+}
+
+/** Clears portal-switch guard once a non-portal destination (e.g. choose-school) is mounted. */
+export function useClearAccountPortalSwitchInProgressOnMount(): void {
+  const { clearAccountPortalSwitchInProgress } = useAuth();
+
+  useEffect(() => {
+    clearAccountPortalSwitchInProgress();
+  }, [clearAccountPortalSwitchInProgress]);
 }
 
 const styles = StyleSheet.create({

@@ -4,6 +4,7 @@ import { luffLearningTeacherDemoConfig } from "@/data/school-demos/luff-learning
 import SchoolTeacherDemoShell, {
   type TeacherDemoNavTab,
 } from "@/components/demo/shared/SchoolTeacherDemoShell";
+import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
 
 export type NavTab = TeacherDemoNavTab;
 
@@ -18,12 +19,15 @@ export default function TeacherDashboardDemo({
   hideNav?: boolean;
   onMount?: () => void;
 }) {
+  const desktopEmbed = useShowcaseDesktopEmbed();
+
   return (
     <SchoolTeacherDemoShell
       config={luffLearningTeacherDemoConfig}
       initialTab={initialTab}
       disableTour={disableTour}
       hideNav={hideNav}
+      desktopEmbed={desktopEmbed}
       onMount={onMount}
     />
   );

@@ -112,6 +112,7 @@ export function AttendanceRosterPanel({
         activeDate={activeDate}
         summary={summary}
         loading={isLoading}
+        error={error}
         onDateChange={handleDateChange}
       />
 

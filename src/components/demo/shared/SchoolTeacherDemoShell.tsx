@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { SchoolTeacherDemoConfig } from "@/data/school-demos/demo-dashboard-types";
 import DemoTeacherAttendancePage from "@/components/demo/shared/DemoTeacherAttendancePage";
+import DemoTeacherHoursPage from "@/components/demo/shared/DemoTeacherHoursPage";
 import DemoTeacherCalendarPage from "@/components/demo/shared/DemoTeacherCalendarPage";
 import DemoTeacherDashboardPage from "@/components/demo/shared/DemoTeacherDashboardPage";
 import DemoTeacherMessagesPage from "@/components/demo/shared/DemoTeacherMessagesPage";
@@ -64,7 +65,6 @@ const MORE_NAV: { label: string; icon: LucideIcon; tab: TeacherDemoNavTab }[] = 
 ];
 
 const COMING_SOON_LABELS: Partial<Record<TeacherDemoNavTab, string>> = {
-  hours: "My Hours",
   feed: "Feed",
   payroll: "Payroll",
   forms: "Forms & Documents",
@@ -185,6 +185,7 @@ export type SchoolTeacherDemoShellProps = {
   initialTab?: TeacherDemoNavTab;
   disableTour?: boolean;
   hideNav?: boolean;
+  desktopEmbed?: boolean;
   onMount?: () => void;
   initialSelectedStudentId?: string;
   openInitialStudentDetailDelayMs?: number;
@@ -195,6 +196,7 @@ export default function SchoolTeacherDemoShell({
   initialTab = "dashboard",
   disableTour = false,
   hideNav = false,
+  desktopEmbed = false,
   onMount,
   initialSelectedStudentId,
   openInitialStudentDetailDelayMs,
@@ -296,7 +298,7 @@ export default function SchoolTeacherDemoShell({
       ref={containerRef}
       onMouseEnter={handleTourMouseEnter}
       onMouseLeave={handleTourMouseLeave}
-      className={`relative flex h-full flex-col ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)]`}
+      className={`relative flex h-full flex-col ${fraunces.variable} ${dmSans.variable} [&_.font-heading]:font-[family-name:var(--font-fraunces)] ${desktopEmbed ? "min-w-[1100px] w-[1100px]" : ""}`}
       style={demoStoryShellStyle(TEACHER_DEMO_STORY_THEME)}
       data-teacher-portal
     >
@@ -368,6 +370,7 @@ export default function SchoolTeacherDemoShell({
         {activeTab === "messages" ? <DemoTeacherMessagesPage /> : null}
         {activeTab === "calendar" ? <DemoTeacherCalendarPage /> : null}
         {activeTab === "attendance" ? <DemoTeacherAttendancePage /> : null}
+        {activeTab === "hours" ? <DemoTeacherHoursPage /> : null}
         {comingSoonLabel ? (
           <SchoolTeacherComingSoon branding={branding} featureLabel={comingSoonLabel} />
         ) : null}

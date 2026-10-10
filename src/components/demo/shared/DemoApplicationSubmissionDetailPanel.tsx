@@ -36,6 +36,10 @@ import {
 } from "@/lib/admissions/application-status-ui";
 import { deriveSubmissionNextStep } from "@/lib/admissions/admin-submission-next-step";
 import {
+  getApplicationDecisionActions,
+  type ApplicationDecisionAction,
+} from "@/lib/admissions/application-status-transitions";
+import {
   buildSubmissionFeeBadges,
   formatSubmissionFeeBadgeLabel,
   submissionFeeBadgeStyle,
@@ -117,6 +121,63 @@ function DemoActivityTimelineRow({
   );
 }
 
+function decisionButtonVariant(
+  variant: ApplicationDecisionAction["variant"],
+): "primary" | "soft" | "danger" {
+  if (variant === "primary") return "primary";
+  if (variant === "danger") return "danger";
+  return "soft";
+}
+
+function enrollmentActionDescription(programName: string | null | undefined): string {
+  if (programName) {
+    return `${programName} has no enrollment checklist — mark enrolled when paperwork and fees were handled offline.`;
+  }
+  return "Complete enrollment on the family's behalf when paperwork and fees were handled offline.";
+}
+
+function DemoSubmissionActionCard({
+  submission,
+}: {
+  submission: AdminApplicationSubmission;
+}) {
+  const theme = ADMIN_DEMO_STORY_THEME;
+  const isEnrollment =
+    submission.status === "accepted" || submission.status === "enrolling";
+  const actions = getApplicationDecisionActions(submission.status);
+
+  if (!isEnrollment && actions.length === 0) return null;
+
+  return (
+    <AdminCard theme={theme} padding="default">
+      <AdminSectionKicker theme={theme}>
+        {isEnrollment ? "Enrollment" : "Decision"}
+      </AdminSectionKicker>
+      <p className="mt-2 text-xs leading-relaxed" style={{ color: theme.muted }}>
+        {isEnrollment
+          ? enrollmentActionDescription(submission.programName)
+          : "Move this application through your admissions workflow."}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {isEnrollment ? (
+          <AdminButton theme={theme} variant="primary">
+            Mark as enrolled
+          </AdminButton>
+        ) : null}
+        {actions.map((action) => (
+          <AdminButton
+            key={action.status}
+            theme={theme}
+            variant={decisionButtonVariant(action.variant)}
+          >
+            {action.label}
+          </AdminButton>
+        ))}
+      </div>
+    </AdminCard>
+  );
+}
+
 function OverviewSection({
   submission,
   lead,
@@ -125,11 +186,11 @@ function OverviewSection({
   lead: DemoSubmissionLead;
 }) {
   const theme = ADMIN_DEMO_STORY_THEME;
-  const C = ADMIN_DEMO_STORY_COMPAT;
   const nextStep = deriveSubmissionNextStep(submission);
 
   return (
     <div className="space-y-4">
+      <DemoSubmissionActionCard submission={submission} />
       <AdminCard theme={theme} padding="default">
         <p
           className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.08em]"

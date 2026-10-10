@@ -49,6 +49,7 @@ export type OrganizationEventsCalendarProps = {
   parentTheme?: ParentThemeTokens;
   toolbarDetached?: boolean;
   loadingBehavior?: "full" | "grid-only";
+  initialDate?: Date;
 };
 
 export default function OrganizationEventsCalendar({
@@ -71,15 +72,17 @@ export default function OrganizationEventsCalendar({
   parentTheme,
   toolbarDetached: _toolbarDetached = false,
   loadingBehavior = "full",
+  initialDate,
 }: OrganizationEventsCalendarProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const viewDirection = view === "month" ? 1 : -1;
 
-  const now = useMemo(() => new Date(), []);
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
-  const [weekAnchor, setWeekAnchor] = useState(() => new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(dateKey(now));
+  const [year, setYear] = useState(() => (initialDate ?? new Date()).getFullYear());
+  const [month, setMonth] = useState(() => (initialDate ?? new Date()).getMonth());
+  const [weekAnchor, setWeekAnchor] = useState(() => initialDate ?? new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(() =>
+    dateKey(initialDate ?? new Date()),
+  );
 
   const eventsByDate = useMemo(() => groupOrganizationEventsByDate(events), [events]);
   const weekDates = useMemo(() => getWeekDates(weekAnchor), [weekAnchor]);

@@ -461,6 +461,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [portalType, selectedSchool?.id]);
 
   const switchSchool = useCallback(async () => {
+    setAccountPortalSwitchInProgress(true);
     setPortalType(null);
     setSelectedSchool(null);
     setIsPlatformAdminSession(false);

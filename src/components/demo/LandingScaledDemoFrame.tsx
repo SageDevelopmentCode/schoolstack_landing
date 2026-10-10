@@ -12,6 +12,8 @@ interface LandingScaledDemoFrameProps {
   preventHorizontalScroll?: boolean
   /** Below `lg`, anchor the scaled demo to the right instead of the left. */
   mobileAlign?: 'left' | 'right'
+  visibleHeight?: number
+  scale?: number
 }
 
 export function LandingScaledDemoFrame({
@@ -20,6 +22,8 @@ export function LandingScaledDemoFrame({
   gate = true,
   preventHorizontalScroll = false,
   mobileAlign = 'left',
+  visibleHeight = LANDING_DEMO_VISIBLE_HEIGHT,
+  scale = LANDING_DEMO_SCALE,
 }: LandingScaledDemoFrameProps) {
   const scrollLockClass = preventHorizontalScroll
     ? 'overflow-x-hidden overscroll-x-none touch-pan-y'
@@ -34,8 +38,11 @@ export function LandingScaledDemoFrame({
     <div
       className={`absolute top-0 w-[1100px] lg:w-[calc(100%/0.72)] rounded-2xl border border-border shadow-lg overflow-y-auto overflow-x-hidden ${horizontalAnchorClass} ${scrollLockClass}`}
       style={{
-        height: `calc(${LANDING_DEMO_VISIBLE_HEIGHT}px / ${LANDING_DEMO_SCALE})`,
-        transform: `scale(${LANDING_DEMO_SCALE})`,
+        height: `calc(${visibleHeight}px / ${scale})`,
+        transform: `scale(${scale})`,
+        ...(scale !== LANDING_DEMO_SCALE
+          ? { width: `calc(1100px / ${scale})`, maxWidth: "100%" }
+          : {}),
       }}
     >
       {children}
@@ -48,7 +55,7 @@ export function LandingScaledDemoFrame({
     return (
       <div
         className={outerClassName}
-        style={{ height: `${LANDING_DEMO_VISIBLE_HEIGHT}px` }}
+        style={{ height: `${visibleHeight}px` }}
       >
         {scaledShell}
       </div>
@@ -58,7 +65,7 @@ export function LandingScaledDemoFrame({
   return (
     <InViewDemoGate
       className={outerClassName}
-      style={{ height: `${LANDING_DEMO_VISIBLE_HEIGHT}px` }}
+      style={{ height: `${visibleHeight}px` }}
     >
       {scaledShell}
     </InViewDemoGate>

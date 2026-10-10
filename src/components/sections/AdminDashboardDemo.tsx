@@ -10,6 +10,7 @@ const ParentDashboardDemo = dynamic(() => import("./ParentDashboardDemo"), {
   ssr: false,
 });
 import DemoAdminDashboardPage from "@/components/demo/shared/DemoAdminDashboardPage";
+import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
 import DemoAdminClassroomsPage from "@/components/demo/shared/DemoAdminClassroomsPage";
 import DemoAdminProgramsPage from "@/components/demo/shared/DemoAdminProgramsPage";
 import DemoAdminStaffPage from "@/components/demo/shared/DemoAdminStaffPage";
@@ -20487,8 +20488,11 @@ const WIZARD_INITIAL_STATE: WizardState = {
 };
 
 function MarketingPage() {
+  const showcaseEmbed = useShowcaseDesktopEmbed();
   const [filter, setFilter] = useState<AutomationFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    showcaseEmbed ? "ap1" : null,
+  );
   const [pipelines, setPipelines] = useState<AutomationPipeline[]>(DEMO_AUTOMATION_PIPELINES);
   const [isCreating, setIsCreating] = useState(false);
   const [wizardState, setWizardState] = useState<WizardState>(WIZARD_INITIAL_STATE);
@@ -20574,7 +20578,7 @@ function MarketingPage() {
     >
       <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
         {/* KPI row — grid view only */}
-        {!selected && (
+        {!selected && !showcaseEmbed && (
           <>
             <div className="px-6 pt-5 pb-4 flex-shrink-0">
               <FeatureTip text="These numbers show how your automations are performing — open rates and conversions tell you what's working." />
@@ -21053,6 +21057,102 @@ function MarketingPage() {
                     })}
                 </div>
               </div>
+
+              {showcaseEmbed ? (
+                <div
+                  className="rounded-sm overflow-hidden"
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    backgroundColor: C.surface,
+                  }}
+                >
+                  <p
+                    className="px-4 py-2 text-[10px] font-semibold uppercase tracking-widest"
+                    style={{
+                      color: C.textTertiary,
+                      borderBottom: `1px solid ${C.border}`,
+                      backgroundColor: C.bg,
+                    }}
+                  >
+                    Other automations
+                  </p>
+                  {pipelines
+                    .filter((p) => p.id !== selected.id)
+                    .slice(0, 3)
+                    .map((pipeline) => {
+                      const sb = statusBadge(pipeline.status);
+                      return (
+                        <div
+                          key={pipeline.id}
+                          className="flex items-center gap-4 px-4 py-3"
+                          style={{
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className="truncate text-xs font-semibold"
+                                style={{ color: C.textPrimary }}
+                              >
+                                {pipeline.name}
+                              </p>
+                              <span
+                                className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                style={{
+                                  backgroundColor: sb.bg,
+                                  color: sb.fg,
+                                }}
+                              >
+                                {sb.label}
+                              </span>
+                            </div>
+                            <p
+                              className="mt-0.5 truncate text-[10px]"
+                              style={{ color: C.textTertiary }}
+                            >
+                              {pipeline.trigger}
+                            </p>
+                          </div>
+                          <div className="flex flex-shrink-0 items-center gap-3 text-right">
+                            <div>
+                              <p
+                                className="text-[9px]"
+                                style={{ color: C.textTertiary }}
+                              >
+                                Sent
+                              </p>
+                              <p
+                                className="text-[11px] font-semibold tabular-nums"
+                                style={{ color: C.textPrimary }}
+                              >
+                                {pipeline.stats.sent > 0
+                                  ? pipeline.stats.sent.toLocaleString()
+                                  : "—"}
+                              </p>
+                            </div>
+                            <div>
+                              <p
+                                className="text-[9px]"
+                                style={{ color: C.textTertiary }}
+                              >
+                                Open
+                              </p>
+                              <p
+                                className="text-[11px] font-semibold tabular-nums"
+                                style={{ color: C.success }}
+                              >
+                                {pipeline.stats.openRate > 0
+                                  ? `${pipeline.stats.openRate}%`
+                                  : "—"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : null}
             </motion.div>
           ) : (
             /* ── List view ─────────────────────────────────── */

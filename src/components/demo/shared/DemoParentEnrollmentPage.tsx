@@ -95,7 +95,7 @@ export default function DemoParentEnrollmentPage({
       }`}
     >
       <div
-        className={`mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between ${
+        className={`mb-5 flex flex-col gap-4 showcase:flex-row showcase:items-end showcase:justify-between lg:flex-row lg:items-end lg:justify-between ${
           fillHeight ? "hidden" : ""
         }`}
       >
@@ -138,10 +138,10 @@ export default function DemoParentEnrollmentPage({
         </ParentCard>
       ) : (
         <ParentCard theme={theme} className="!p-0 flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col showcase:flex-row lg:flex-row">
             <aside
-              className={`flex w-full flex-col border-b lg:w-[34%] lg:border-b-0 lg:border-r ${
-                fillHeight ? "min-h-0 overflow-hidden lg:h-full" : ""
+              className={`flex w-full flex-col border-b showcase:w-[34%] showcase:border-b-0 showcase:border-r lg:w-[34%] lg:border-b-0 lg:border-r ${
+                fillHeight ? "min-h-0 overflow-hidden showcase:h-full lg:h-full" : ""
               }`}
               style={{ borderColor: theme.line }}
             >
@@ -254,7 +254,7 @@ export default function DemoParentEnrollmentPage({
               </div>
             </aside>
 
-            <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden lg:min-h-0">
+            <div className="min-h-[320px] min-w-0 flex-1 overflow-hidden showcase:min-h-0 lg:min-h-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeItem ?? "empty"}
