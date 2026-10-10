@@ -6,6 +6,7 @@ import GetStartedDemoFlow, {
   type GetStartedDemoStep,
 } from "@/components/get-started/GetStartedDemoFlow";
 import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
+import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
 import GetStartedStoryShell from "@/components/get-started/GetStartedStoryShell";
 
 export default function GetStartedPage() {
@@ -23,6 +24,7 @@ export default function GetStartedPage() {
             showStepProgress={false}
           />
         </GetStartedStoryShell>
+        <GetStartedFilmSection />
       </div>
     </>
   );

@@ -8,6 +8,8 @@ type GetStartedStoryHeaderProps = {
   title: ReactNode;
   subtitle: string;
   className?: string;
+  headingAs?: "h1" | "h2";
+  titleId?: string;
 };
 
 export default function GetStartedStoryHeader({
@@ -16,6 +18,8 @@ export default function GetStartedStoryHeader({
   title,
   subtitle,
   className = "mb-8",
+  headingAs = "h1",
+  titleId,
 }: GetStartedStoryHeaderProps) {
   return (
     <div className={className}>
@@ -25,7 +29,12 @@ export default function GetStartedStoryHeader({
       >
         {kicker}
       </p>
-      <ParentDisplayHeading theme={theme} as="h1" className="font-display">
+      <ParentDisplayHeading
+        theme={theme}
+        as={headingAs}
+        id={titleId}
+        className="font-display"
+      >
         {title}
       </ParentDisplayHeading>
       <p
