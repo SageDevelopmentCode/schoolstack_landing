@@ -6,7 +6,6 @@ import {
   MARKETING_DEMO_CHECKLIST_FLOW_SELECTION,
   MarketingAdmissionsSubmissionsDemoWindow,
   MarketingEnrollmentFlowsDemoWindow,
-  MarketingParentApplyDemoWindow,
   MarketingParentEnrollmentDemoWindow,
   MarketingScheduleToursDemoWindow,
   MarketingStudentsDemoWindow,
@@ -87,13 +86,6 @@ export default function GetStartedShowcaseSlideDemo({
             <MarketingEnrollmentFlowsDemoWindow
               initialFlowSelection={MARKETING_DEMO_CHECKLIST_FLOW_SELECTION}
               contentHeight={contentHeight}
-            />
-          )}
-          {demo.variant === "parentApply" && (
-            <MarketingParentApplyDemoWindow
-              contentHeight={contentHeight}
-              suppressHelpFab
-              celebrateSubmission={false}
             />
           )}
           {demo.variant === "parentEnrollment" && (

@@ -3,7 +3,6 @@ import {
   Calendar,
   ClipboardList,
   CreditCard,
-  FileText,
   GraduationCap,
   Inbox,
   ListChecks,
@@ -21,7 +20,6 @@ export const GET_STARTED_PRODUCT_ADMIN_DEMO_HEIGHT = 920;
 export const GET_STARTED_PRODUCT_PORTAL_DEMO_HEIGHT = 680;
 export const SHOWCASE_COMPACT_PORTAL_HEIGHT = 680;
 export const SHOWCASE_PARENT_BILLING_HEIGHT = 680;
-export const SHOWCASE_PARENT_APPLY_HEIGHT = 900;
 export const SHOWCASE_MARKETING_HEIGHT = 660;
 export const SHOWCASE_ADMIN_HEIGHT = 800;
 export const SHOWCASE_INBOX_HEIGHT = 1000;
@@ -33,7 +31,6 @@ export type GetStartedMarketingDemoVariant =
   | "scheduleTours"
   | "admissionsInbox"
   | "enrollmentChecklist"
-  | "parentApply"
   | "parentEnrollment"
   | "tuitionAdmin"
   | "studentsRoster";
@@ -47,7 +44,6 @@ export const GET_STARTED_MARKETING_CROPS: Record<
   scheduleTours: { zoom: 1.2, originX: 0, originY: 0 },
   admissionsInbox: { zoom: 1.22, originX: 0, originY: 0 },
   enrollmentChecklist: { zoom: 1.35, originX: 0, originY: 0.05 },
-  parentApply: { zoom: 1.15, originX: 0, originY: 0 },
   parentEnrollment: { zoom: 1.45, originX: 0, originY: 0 },
   tuitionAdmin: { zoom: 1.22, originX: 0, originY: 0 },
   studentsRoster: { zoom: 1.2, originX: 0, originY: 0 },
@@ -126,10 +122,6 @@ const GET_STARTED_SHOWCASE_CARD_COPY: Record<
   "marketing-checklist-builder": {
     label: "What's left after you accept them?",
     description: "One checklist for forms, agreements, and fees.",
-  },
-  "marketing-parent-apply": {
-    label: "Can families apply online?",
-    description: "They apply, track progress, and finish next steps online.",
   },
   "marketing-parent-enrollment": {
     label: "What's left to enroll them?",
@@ -263,21 +255,6 @@ const marketingSlides: GetStartedShowcaseSlideConfig[] = [
       variant: "enrollmentChecklist",
       contentHeight: GET_STARTED_MARKETING_DEMO_HEIGHT,
       crop: GET_STARTED_MARKETING_CROPS.enrollmentChecklist,
-    },
-  },
-  {
-    id: "marketing-parent-apply",
-    caption: "Family portal",
-    label: "Family apply portal",
-    description:
-      "Families submit applications and track progress without digging through email threads.",
-    icon: FileText,
-    accent: PRODUCT_PREVIEW_GROUP_COLORS.parent,
-    demo: {
-      kind: "marketing",
-      variant: "parentApply",
-      contentHeight: SHOWCASE_PARENT_APPLY_HEIGHT,
-      crop: { zoom: 1.1, originX: 0, originY: 0.22 },
     },
   },
   {
