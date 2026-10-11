@@ -1,5 +1,6 @@
 import { APPLICATION_FINISH_LINE_CAROUSEL } from "@/components/admin/marketing/carousels/application-finish-line";
 import { GETTING_READY_TO_ENROLL_CAROUSEL } from "@/components/admin/marketing/carousels/getting-ready-to-enroll";
+import { ONE_PLACE_AD_CAROUSEL } from "@/components/admin/marketing/carousels/one-place-ad";
 import { TUITION_REVIEW_CAROUSEL } from "@/components/admin/marketing/carousels/tuition-review";
 import { WHERE_WAS_THAT_UPDATE_CAROUSEL } from "@/components/admin/marketing/carousels/where-was-that-update";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
@@ -9,6 +10,7 @@ export const MARKETING_CAROUSELS: MarketingCarousel[] = [
   APPLICATION_FINISH_LINE_CAROUSEL,
   GETTING_READY_TO_ENROLL_CAROUSEL,
   WHERE_WAS_THAT_UPDATE_CAROUSEL,
+  ONE_PLACE_AD_CAROUSEL,
 ];
 
 export const DEFAULT_CAROUSEL_ID = MARKETING_CAROUSELS[0]?.id ?? "tuition-review";

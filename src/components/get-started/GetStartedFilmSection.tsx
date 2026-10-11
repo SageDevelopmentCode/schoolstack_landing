@@ -3,7 +3,7 @@
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
 import {
   GET_STARTED_FILM_COPY,
-  GET_STARTED_FILM_VIDEO_SRC,
+  GET_STARTED_FILM_YOUTUBE_EMBED_SRC,
 } from "@/lib/marketing/get-started-film";
 import { MUDKITCHEN_MARKETING_STORY_THEME } from "@/lib/marketing/mudkitchen-story-theme";
 
@@ -37,13 +37,12 @@ export default function GetStartedFilmSection() {
           className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-border bg-black"
           style={{ boxShadow: theme.shadowCard }}
         >
-          <video
-            className="absolute inset-0 h-full w-full object-cover [transform:translateZ(0)]"
-            src={GET_STARTED_FILM_VIDEO_SRC}
-            controls
-            playsInline
-            preload="metadata"
-            aria-label="MudKitchen product overview"
+          <iframe
+            className="absolute inset-0 h-full w-full border-0"
+            src={GET_STARTED_FILM_YOUTUBE_EMBED_SRC}
+            title="MudKitchen product overview"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
           />
         </div>
       </div>
