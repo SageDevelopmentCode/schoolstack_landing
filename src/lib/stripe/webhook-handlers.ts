@@ -213,7 +213,7 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
           },
         );
         if (!revertResult.alreadyHandled && organizationId) {
-          void logActivityEvent(admin, {
+          await logActivityEvent(admin, {
             organizationId,
             actorType: "system",
             surface: "system",
@@ -258,7 +258,7 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
           payment.applicationId ??
           payment.id;
 
-        void logActivityEvent(admin, {
+        await logActivityEvent(admin, {
           organizationId,
           actorType: "system",
           surface: "system",
@@ -305,7 +305,7 @@ export async function handleCheckoutSessionAsyncPaymentFailed(
             payment.applicationId ??
             payment.id);
 
-      void logActivityEvent(admin, {
+      await logActivityEvent(admin, {
         organizationId,
         actorType: "system",
         surface: "system",
@@ -1055,7 +1055,7 @@ async function logTuitionPaymentIntentFailedActivity(
     settlementFailure: boolean;
   },
 ): Promise<void> {
-  void logActivityEvent(admin, {
+  await logActivityEvent(admin, {
     organizationId: input.organizationId,
     actorType: "system",
     surface: "system",

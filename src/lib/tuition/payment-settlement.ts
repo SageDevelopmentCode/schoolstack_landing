@@ -545,7 +545,7 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
     return {
       payment: revertedPayment,
       chargeReopened: chargeAlreadyReverted,
-      alreadyHandled: chargeAlreadyReverted || paymentAlreadyFailed,
+      alreadyHandled: paymentAlreadyFailed,
     };
   }
 

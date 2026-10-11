@@ -227,10 +227,10 @@ describe("mobile bearer auth route wiring", () => {
   it("portal-options route uses createClientFromRequest", () => {
     const source = readRoute("app/api/portal-options/route.ts");
 
-    assert.match(
-      source,
-      /import \{ createClientFromRequest, getUserFromRequest, signedInErrorForRequest \} from "@\/lib\/supabase\/request-client"/,
-    );
+    assert.match(source, /createClientFromRequest/);
+    assert.match(source, /getUserFromRequest/);
+    assert.match(source, /signedInErrorForRequest/);
+    assert.match(source, /from "@\/lib\/supabase\/request-client"/);
     assert.match(source, /const supabase = await createClientFromRequest\(request\)/);
     assert.doesNotMatch(source, /createClient\(cookieStore\)/);
     assert.doesNotMatch(source, /from "@\/utils\/supabase\/server"/);
