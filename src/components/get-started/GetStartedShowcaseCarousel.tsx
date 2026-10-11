@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import GetStartedShowcaseSlide from "@/components/get-started/GetStartedShowcaseSlide";
 import { GET_STARTED_SHOWCASE_SLIDES } from "@/lib/marketing/get-started-showcase-slides";
 import { prefetchProductPreviewTab } from "@/lib/marketing/product-preview-tabs";
@@ -17,12 +24,19 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 const MARQUEE_DURATION = "110s";
 /** Matches marquee: 50% of duplicated track width in 110s. */
 const MOBILE_AUTO_SCROLL_HALF_TRACK_MS = 110_000;
-const MOBILE_INTERACTION_RELEASE_MS = 150;
+const MOBILE_SCROLL_IDLE_MS = 250;
 
 const SHOWCASE_SLIDE_IDS = GET_STARTED_SHOWCASE_SLIDES.map((slide) => slide.id);
 
-const SCROLL_STRIP_CLASS =
-  "flex items-stretch gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory scroll-pl-4 touch-pan-x [-webkit-overflow-scrolling:touch] sm:px-6";
+const SCROLL_STRIP_BASE =
+  "flex items-stretch gap-4 overflow-x-auto px-4 pb-2 scroll-pl-4 touch-pan-x [-webkit-overflow-scrolling:touch] sm:px-6";
+
+function scrollStripClass(mode: "scrollOnly" | "mobileScrollAutoplay"): string {
+  if (mode === "scrollOnly") {
+    return `${SCROLL_STRIP_BASE} snap-x snap-mandatory`;
+  }
+  return `${SCROLL_STRIP_BASE} snap-none`;
+}
 
 const DEMO_PREFETCHERS = {
   prefetchWebsiteDemo,
@@ -60,9 +74,13 @@ export default function GetStartedShowcaseCarousel() {
   const scrollRootRef = useRef<HTMLDivElement>(null);
   const userInteractingRef = useRef(false);
   const pausedRef = useRef(false);
-  const releaseInteractionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const scrollIdleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
-  const isMobileStrip = useMediaQuery("(max-width: 639px)");
+  const isMobileStrip = useMediaQuery("(max-width: 639px)", {
+    serverSnapshot: true,
+  });
 
   const carouselMode: CarouselMode = reduceMotion
     ? "scrollOnly"
@@ -74,14 +92,12 @@ export default function GetStartedShowcaseCarousel() {
 
   const useScrollVisibility = carouselMode !== "desktopMarquee";
 
-  const { activeSlideIds, setSlideItemRef } = useGetStartedShowcaseActiveSlideIds(
-    slideIds,
-    {
+  const { activeSlideIds, setSlideItemRef, setSlideCloneRef } =
+    useGetStartedShowcaseActiveSlideIds(slideIds, {
       marqueeAnimating: carouselMode === "desktopMarquee",
       scrollRootRef: useScrollVisibility ? scrollRootRef : undefined,
       enableScrollListener: useScrollVisibility,
-    },
-  );
+    });
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -91,27 +107,49 @@ export default function GetStartedShowcaseCarousel() {
     userInteractingRef.current = userInteracting;
   }, [userInteracting]);
 
-  const scheduleReleaseInteraction = useCallback(() => {
-    if (releaseInteractionTimeoutRef.current) {
-      clearTimeout(releaseInteractionTimeoutRef.current);
+  const endUserInteraction = useCallback(() => {
+    if (scrollIdleTimeoutRef.current) {
+      clearTimeout(scrollIdleTimeoutRef.current);
+      scrollIdleTimeoutRef.current = null;
     }
-    releaseInteractionTimeoutRef.current = setTimeout(() => {
-      userInteractingRef.current = false;
-      setUserInteracting(false);
-    }, MOBILE_INTERACTION_RELEASE_MS);
+    userInteractingRef.current = false;
+    setUserInteracting(false);
   }, []);
 
-  const handleScrollPointerDown = useCallback(() => {
-    if (releaseInteractionTimeoutRef.current) {
-      clearTimeout(releaseInteractionTimeoutRef.current);
+  const scheduleEndAfterScrollIdle = useCallback(() => {
+    if (scrollIdleTimeoutRef.current) {
+      clearTimeout(scrollIdleTimeoutRef.current);
     }
-    userInteractingRef.current = true;
-    setUserInteracting(true);
-  }, []);
+    scrollIdleTimeoutRef.current = setTimeout(() => {
+      scrollIdleTimeoutRef.current = null;
+      endUserInteraction();
+    }, MOBILE_SCROLL_IDLE_MS);
+  }, [endUserInteraction]);
 
-  const handleScrollPointerUp = useCallback(() => {
-    scheduleReleaseInteraction();
-  }, [scheduleReleaseInteraction]);
+  const handleScrollPointerDown = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (scrollIdleTimeoutRef.current) {
+        clearTimeout(scrollIdleTimeoutRef.current);
+        scrollIdleTimeoutRef.current = null;
+      }
+      userInteractingRef.current = true;
+      setUserInteracting(true);
+      if (e.pointerType !== "mouse" || e.button === 0) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
+    },
+    [],
+  );
+
+  const handleScrollPointerUp = useCallback(
+    (e: PointerEvent<HTMLDivElement>) => {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+      scheduleEndAfterScrollIdle();
+    },
+    [scheduleEndAfterScrollIdle],
+  );
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -160,9 +198,34 @@ export default function GetStartedShowcaseCarousel() {
   }, [carouselMode]);
 
   useEffect(() => {
+    if (carouselMode !== "mobileScrollAutoplay") return;
+
+    const el = scrollRootRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      if (!userInteractingRef.current) return;
+      scheduleEndAfterScrollIdle();
+    };
+
+    const onScrollEnd = () => {
+      if (!userInteractingRef.current) return;
+      endUserInteraction();
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", onScrollEnd);
+
     return () => {
-      if (releaseInteractionTimeoutRef.current) {
-        clearTimeout(releaseInteractionTimeoutRef.current);
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onScrollEnd);
+    };
+  }, [carouselMode, endUserInteraction, scheduleEndAfterScrollIdle]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollIdleTimeoutRef.current) {
+        clearTimeout(scrollIdleTimeoutRef.current);
       }
     };
   }, []);
@@ -205,7 +268,7 @@ export default function GetStartedShowcaseCarousel() {
         {carouselMode === "scrollOnly" ? (
           <div
             ref={scrollRootRef}
-            className={SCROLL_STRIP_CLASS}
+            className={scrollStripClass("scrollOnly")}
             role="list"
           >
             {GET_STARTED_SHOWCASE_SLIDES.map((slide) => (
@@ -225,7 +288,7 @@ export default function GetStartedShowcaseCarousel() {
         ) : carouselMode === "mobileScrollAutoplay" ? (
           <div
             ref={scrollRootRef}
-            className={SCROLL_STRIP_CLASS}
+            className={scrollStripClass("mobileScrollAutoplay")}
             role="list"
             {...scrollPointerHandlers}
           >
@@ -234,7 +297,7 @@ export default function GetStartedShowcaseCarousel() {
                 key={slide.id}
                 ref={(el) => setSlideItemRef(slide.id, el)}
                 role="listitem"
-                className="snap-start"
+                className="shrink-0"
               >
                 <GetStartedShowcaseSlide
                   slide={slide}
@@ -245,13 +308,14 @@ export default function GetStartedShowcaseCarousel() {
             {GET_STARTED_SHOWCASE_SLIDES.map((slide) => (
               <div
                 key={`${slide.id}-clone`}
+                ref={(el) => setSlideCloneRef(slide.id, el)}
                 role="listitem"
                 aria-hidden
-                className="pointer-events-none snap-start"
+                className="pointer-events-none shrink-0"
               >
                 <GetStartedShowcaseSlide
                   slide={slide}
-                  mountDemo={false}
+                  mountDemo={activeSlideIds.has(slide.id)}
                   ariaHidden
                 />
               </div>

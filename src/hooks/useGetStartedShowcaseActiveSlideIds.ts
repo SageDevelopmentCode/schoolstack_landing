@@ -32,15 +32,36 @@ function defaultActiveIds(slideIds: readonly string[]): Set<string> {
   return next;
 }
 
+function slideInstanceOverlapsViewport(
+  slideId: string,
+  itemRefs: Map<string, HTMLElement>,
+  cloneItemRefs: Map<string, HTMLElement>,
+  horizontalMarginPx: number,
+): boolean {
+  const primary = itemRefs.get(slideId);
+  const clone = cloneItemRefs.get(slideId);
+  return (
+    (primary != null && elementOverlapsViewport(primary, horizontalMarginPx)) ||
+    (clone != null && elementOverlapsViewport(clone, horizontalMarginPx))
+  );
+}
+
 function computeActiveIds(
   slideIds: readonly string[],
   itemRefs: Map<string, HTMLElement>,
+  cloneItemRefs: Map<string, HTMLElement>,
   horizontalMarginPx: number,
 ): Set<string> {
   const visibleIndices: number[] = [];
   for (let i = 0; i < slideIds.length; i++) {
-    const el = itemRefs.get(slideIds[i]);
-    if (el && elementOverlapsViewport(el, horizontalMarginPx)) {
+    if (
+      slideInstanceOverlapsViewport(
+        slideIds[i],
+        itemRefs,
+        cloneItemRefs,
+        horizontalMarginPx,
+      )
+    ) {
       visibleIndices.push(i);
     }
   }
@@ -97,6 +118,7 @@ export function useGetStartedShowcaseActiveSlideIds(
   } = options;
 
   const itemRefs = useRef(new Map<string, HTMLElement>());
+  const cloneItemRefs = useRef(new Map<string, HTMLElement>());
   const everMountedIds = useRef(
     new Set(defaultActiveIds(slideIds)),
   );
@@ -109,10 +131,16 @@ export function useGetStartedShowcaseActiveSlideIds(
     else itemRefs.current.delete(id);
   }, []);
 
+  const setSlideCloneRef = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) cloneItemRefs.current.set(id, el);
+    else cloneItemRefs.current.delete(id);
+  }, []);
+
   const recomputeSlideVisibility = useCallback(() => {
     const visible = computeActiveIds(
       slideIds,
       itemRefs.current,
+      cloneItemRefs.current,
       horizontalMarginPx,
     );
     for (const id of visible) {
@@ -151,5 +179,10 @@ export function useGetStartedShowcaseActiveSlideIds(
     return () => cancelAnimationFrame(raf);
   }, [marqueeAnimating, recomputeSlideVisibility]);
 
-  return { activeSlideIds, setSlideItemRef, recomputeSlideVisibility };
+  return {
+    activeSlideIds,
+    setSlideItemRef,
+    setSlideCloneRef,
+    recomputeSlideVisibility,
+  };
 }

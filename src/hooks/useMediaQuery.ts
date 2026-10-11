@@ -2,6 +2,11 @@
 
 import { useSyncExternalStore } from "react";
 
+type UseMediaQueryOptions = {
+  /** Value during SSR / before hydration. Default false. */
+  serverSnapshot?: boolean;
+};
+
 function subscribe(query: string, callback: () => void) {
   const media = window.matchMedia(query);
   media.addEventListener("change", callback);
@@ -12,14 +17,15 @@ function getSnapshot(query: string) {
   return window.matchMedia(query).matches;
 }
 
-function getServerSnapshot() {
-  return false;
-}
+export function useMediaQuery(
+  query: string,
+  options: UseMediaQueryOptions = {},
+): boolean {
+  const { serverSnapshot = false } = options;
 
-export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (callback) => subscribe(query, callback),
     () => getSnapshot(query),
-    getServerSnapshot,
+    () => serverSnapshot,
   );
 }
