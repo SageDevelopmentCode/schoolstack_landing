@@ -6,7 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
-  type PointerEvent,
+  type FocusEvent,
 } from "react";
 import GetStartedShowcaseSlide from "@/components/get-started/GetStartedShowcaseSlide";
 import { GET_STARTED_SHOWCASE_SLIDES } from "@/lib/marketing/get-started-showcase-slides";
@@ -73,7 +73,8 @@ export default function GetStartedShowcaseCarousel() {
   const [userInteracting, setUserInteracting] = useState(false);
   const scrollRootRef = useRef<HTMLDivElement>(null);
   const userInteractingRef = useRef(false);
-  const pausedRef = useRef(false);
+  /** Fractional scroll position. Mobile Safari truncates scrollLeft, so sub-pixel steps must live here. */
+  const scrollOffsetRef = useRef(0);
   const scrollIdleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -100,12 +101,20 @@ export default function GetStartedShowcaseCarousel() {
     });
 
   useEffect(() => {
-    pausedRef.current = paused;
-  }, [paused]);
-
-  useEffect(() => {
     userInteractingRef.current = userInteracting;
   }, [userInteracting]);
+
+  const syncScrollOffsetFromElement = useCallback(() => {
+    const el = scrollRootRef.current;
+    if (!el) return;
+    const half = el.scrollWidth / 2;
+    let next = el.scrollLeft;
+    if (half > 0 && next >= half) {
+      next -= half;
+      el.scrollLeft = next;
+    }
+    scrollOffsetRef.current = next;
+  }, []);
 
   const endUserInteraction = useCallback(() => {
     if (scrollIdleTimeoutRef.current) {
@@ -113,8 +122,9 @@ export default function GetStartedShowcaseCarousel() {
       scrollIdleTimeoutRef.current = null;
     }
     userInteractingRef.current = false;
+    syncScrollOffsetFromElement();
     setUserInteracting(false);
-  }, []);
+  }, [syncScrollOffsetFromElement]);
 
   const scheduleEndAfterScrollIdle = useCallback(() => {
     if (scrollIdleTimeoutRef.current) {
@@ -126,30 +136,18 @@ export default function GetStartedShowcaseCarousel() {
     }, MOBILE_SCROLL_IDLE_MS);
   }, [endUserInteraction]);
 
-  const handleScrollPointerDown = useCallback(
-    (e: PointerEvent<HTMLDivElement>) => {
-      if (scrollIdleTimeoutRef.current) {
-        clearTimeout(scrollIdleTimeoutRef.current);
-        scrollIdleTimeoutRef.current = null;
-      }
-      userInteractingRef.current = true;
-      setUserInteracting(true);
-      if (e.pointerType !== "mouse" || e.button === 0) {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }
-    },
-    [],
-  );
+  const handleScrollPointerDown = useCallback(() => {
+    if (scrollIdleTimeoutRef.current) {
+      clearTimeout(scrollIdleTimeoutRef.current);
+      scrollIdleTimeoutRef.current = null;
+    }
+    userInteractingRef.current = true;
+    setUserInteracting(true);
+  }, []);
 
-  const handleScrollPointerUp = useCallback(
-    (e: PointerEvent<HTMLDivElement>) => {
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-      scheduleEndAfterScrollIdle();
-    },
-    [scheduleEndAfterScrollIdle],
-  );
+  const handleScrollPointerUp = useCallback(() => {
+    scheduleEndAfterScrollIdle();
+  }, [scheduleEndAfterScrollIdle]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -173,23 +171,22 @@ export default function GetStartedShowcaseCarousel() {
     const el = scrollRootRef.current;
     if (!el) return;
 
+    scrollOffsetRef.current = el.scrollLeft;
     let raf = 0;
     let last = performance.now();
 
     const tick = (now: number) => {
-      const half = el.scrollWidth / 2;
-      if (
-        half > 0 &&
-        !userInteractingRef.current &&
-        !pausedRef.current
-      ) {
-        const dt = now - last;
-        el.scrollLeft += (half / MOBILE_AUTO_SCROLL_HALF_TRACK_MS) * dt;
-        if (el.scrollLeft >= half) {
-          el.scrollLeft -= half;
-        }
-      }
+      const dt = now - last;
       last = now;
+      const half = el.scrollWidth / 2;
+      if (half > 0 && !userInteractingRef.current) {
+        let next =
+          scrollOffsetRef.current +
+          (half / MOBILE_AUTO_SCROLL_HALF_TRACK_MS) * dt;
+        if (next >= half) next %= half;
+        scrollOffsetRef.current = next;
+        el.scrollLeft = next;
+      }
       raf = requestAnimationFrame(tick);
     };
 
@@ -236,7 +233,6 @@ export default function GetStartedShowcaseCarousel() {
           onPointerDown: handleScrollPointerDown,
           onPointerUp: handleScrollPointerUp,
           onPointerCancel: handleScrollPointerUp,
-          onLostPointerCapture: handleScrollPointerUp,
         }
       : undefined;
 
@@ -247,14 +243,18 @@ export default function GetStartedShowcaseCarousel() {
     >
       <div
         className="relative"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocusCapture={() => setPaused(true)}
-        onBlurCapture={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setPaused(false);
-          }
-        }}
+        {...(carouselMode === "desktopMarquee"
+          ? {
+              onMouseEnter: () => setPaused(true),
+              onMouseLeave: () => setPaused(false),
+              onFocusCapture: () => setPaused(true),
+              onBlurCapture: (e: FocusEvent<HTMLDivElement>) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setPaused(false);
+                }
+              },
+            }
+          : undefined)}
       >
         <div
           className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-14 bg-gradient-to-r from-accent/85 via-accent/25 to-transparent sm:block"

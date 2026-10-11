@@ -1,7 +1,6 @@
 "use client";
 
 import GetStartedStoryHeader from "@/components/get-started/GetStartedStoryHeader";
-import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
 import {
   GET_STARTED_FILM_COPY,
   GET_STARTED_FILM_VIDEO_SRC,
@@ -34,23 +33,19 @@ export default function GetStartedFilmSection() {
           titleId="get-started-film-heading"
         />
 
-        <InViewSectionGate minHeight="12rem" className="w-full">
-          <div
-            className="overflow-hidden rounded-[22px] border border-border bg-bg"
-            style={{ boxShadow: theme.shadowCard }}
-          >
-            <div className="aspect-video w-full bg-ink/5">
-              <video
-                className="h-full w-full object-cover"
-                src={GET_STARTED_FILM_VIDEO_SRC}
-                controls
-                playsInline
-                preload="metadata"
-                aria-label="MudKitchen product overview"
-              />
-            </div>
-          </div>
-        </InViewSectionGate>
+        <div
+          className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-border bg-black"
+          style={{ boxShadow: theme.shadowCard }}
+        >
+          <video
+            className="absolute inset-0 h-full w-full object-cover [transform:translateZ(0)]"
+            src={GET_STARTED_FILM_VIDEO_SRC}
+            controls
+            playsInline
+            preload="metadata"
+            aria-label="MudKitchen product overview"
+          />
+        </div>
       </div>
     </section>
   );
