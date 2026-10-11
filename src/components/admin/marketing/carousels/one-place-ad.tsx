@@ -21,7 +21,7 @@ import { dmSans, fraunces } from "@/lib/fonts";
 
 export const ONE_PLACE_AD_CAROUSEL = {
   id: "one-place-ad",
-  title: "Run your whole school from one place",
+  title: "Run your Microschool from one place",
   description: "Single ad post: classroom photo, tagline, Book a demo, feature row.",
   fileSlug: "mudkitchen-one-place-ad",
   slides: [
@@ -59,6 +59,7 @@ const TILE_SIZE = 128;
 const TILE_GAP = 24;
 const TILE_RADIUS = 34;
 const FEATURE_ROW_WIDTH = AD_FEATURES.length * TILE_SIZE + (AD_FEATURES.length - 1) * TILE_GAP;
+const HERO_COPY_MAX_WIDTH = SLIDE_WIDTH - 48;
 
 const FONT_DISPLAY = "var(--font-fraunces), Georgia, serif";
 const FONT_BODY = "var(--font-dm-sans), system-ui, sans-serif";
@@ -79,13 +80,13 @@ function OnePlaceAdSlide() {
           display: "block",
         }}
       />
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.42)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0, 0, 0, 0.28)" }} />
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.45) 24%, rgba(0,0,0,0) 38%, rgba(0,0,0,0) 46%, rgba(0,0,0,0.35) 58%, rgba(0,0,0,0.7) 76%, rgba(0,0,0,0.92) 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.28) 24%, rgba(0,0,0,0) 38%, rgba(0,0,0,0) 46%, rgba(0,0,0,0.22) 58%, rgba(0,0,0,0.5) 76%, rgba(0,0,0,0.72) 100%)",
         }}
       />
 
@@ -112,12 +113,12 @@ function AdLogo() {
         gap: 14,
       }}
     >
-      <img src="/images/Logo.png" alt="" style={{ height: 76, width: "auto", display: "block" }} />
+      <img src="/images/Logo.png" alt="" style={{ height: 64, width: "auto", display: "block" }} />
       <span
         style={{
           margin: 0,
           fontFamily: FONT_DISPLAY,
-          fontSize: 46,
+          fontSize: 36,
           fontWeight: 560,
           lineHeight: 1,
           letterSpacing: "-0.03em",
@@ -137,8 +138,8 @@ function AdHero() {
         position: "absolute",
         top: 200,
         bottom: 220,
-        left: 56,
-        right: 56,
+        left: 40,
+        right: 40,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -147,7 +148,13 @@ function AdHero() {
         gap: 40,
       }}
     >
-      <div>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: HERO_COPY_MAX_WIDTH,
+          alignSelf: "center",
+        }}
+      >
         <h1
           style={{
             margin: 0,
@@ -160,8 +167,7 @@ function AdHero() {
             textShadow: "0 2px 24px rgba(0,0,0,0.35)",
           }}
         >
-          Run your whole school
-          <br />
+          <span style={{ display: "block", whiteSpace: "nowrap" }}>Run your Microschool</span>
           from one place
         </h1>
         <p
@@ -177,7 +183,7 @@ function AdHero() {
             textShadow: "0 2px 24px rgba(0,0,0,0.35)",
           }}
         >
-          and get back to the kids
+          and get back to your kids
         </p>
       </div>
 

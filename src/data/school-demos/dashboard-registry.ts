@@ -16,6 +16,7 @@ import { kineoSchoolAdminDemoConfig } from "./kineo-school-admin-demo";
 import { labLearningAdminDemoConfig } from "./lablearning-admin-demo";
 import { lighthouseHomeschoolAdminDemoConfig } from "./lighthouse-admin-demo";
 import { luffLearningAdminDemoConfig } from "./luff-learning-admin-demo";
+import { inspiredLearningAdminDemoConfig } from "./inspired-learning-academy-admin-demo";
 import { micahsMissionSchoolAdminDemoConfig } from "./micahmission-admin-demo";
 import { monarchHillsEducationAdminDemoConfig } from "./monarchhills-admin-demo";
 import { naplesMicroschoolsAdminDemoConfig } from "./naples-microschools-admin-demo";
@@ -58,6 +59,7 @@ export const schoolAdminDemoConfigs: Record<string, SchoolAdminDemoConfig> = {
   "lab-learning": labLearningAdminDemoConfig,
   "lighthouse-homeschool": lighthouseHomeschoolAdminDemoConfig,
   "luff-learning": luffLearningAdminDemoConfig,
+  "inspired-learning-academy": inspiredLearningAdminDemoConfig,
   "micahs-mission-school": micahsMissionSchoolAdminDemoConfig,
   "monarch-hills-education": monarchHillsEducationAdminDemoConfig,
   "naples-microschools": naplesMicroschoolsAdminDemoConfig,
@@ -101,6 +103,7 @@ import { kineoSchoolParentDemoConfig } from "./kineo-school-parent-demo";
 import { labLearningParentDemoConfig } from "./lablearning-parent-demo";
 import { lighthouseHomeschoolParentDemoConfig } from "./lighthouse-parent-demo";
 import { luffLearningParentDemoConfig } from "./luff-learning-parent-demo";
+import { inspiredLearningParentDemoConfig } from "./inspired-learning-academy-parent-demo";
 import { micahsMissionSchoolParentDemoConfig } from "./micahmission-parent-demo";
 import { monarchHillsEducationParentDemoConfig } from "./monarchhills-parent-demo";
 import { naplesMicroschoolsParentDemoConfig } from "./naples-microschools-parent-demo";
@@ -143,6 +146,7 @@ export const schoolParentDemoConfigs: Record<string, SchoolParentDemoConfig> = {
   "lab-learning": labLearningParentDemoConfig,
   "lighthouse-homeschool": lighthouseHomeschoolParentDemoConfig,
   "luff-learning": luffLearningParentDemoConfig,
+  "inspired-learning-academy": inspiredLearningParentDemoConfig,
   "micahs-mission-school": micahsMissionSchoolParentDemoConfig,
   "monarch-hills-education": monarchHillsEducationParentDemoConfig,
   "naples-microschools": naplesMicroschoolsParentDemoConfig,
@@ -185,6 +189,7 @@ import { kineoSchoolTeacherDemoConfig } from "./kineo-school-teacher-demo";
 import { labLearningTeacherDemoConfig } from "./lablearning-teacher-demo";
 import { lighthouseHomeschoolTeacherDemoConfig } from "./lighthouse-teacher-demo";
 import { luffLearningTeacherDemoConfig } from "./luff-learning-teacher-demo";
+import { inspiredLearningTeacherDemoConfig } from "./inspired-learning-academy-teacher-demo";
 import { micahsMissionSchoolTeacherDemoConfig } from "./micahmission-teacher-demo";
 import { monarchHillsEducationTeacherDemoConfig } from "./monarchhills-teacher-demo";
 import { naplesMicroschoolsTeacherDemoConfig } from "./naples-microschools-teacher-demo";
@@ -227,6 +232,7 @@ export const schoolTeacherDemoConfigs: Record<string, SchoolTeacherDemoConfig> =
   "lab-learning": labLearningTeacherDemoConfig,
   "lighthouse-homeschool": lighthouseHomeschoolTeacherDemoConfig,
   "luff-learning": luffLearningTeacherDemoConfig,
+  "inspired-learning-academy": inspiredLearningTeacherDemoConfig,
   "micahs-mission-school": micahsMissionSchoolTeacherDemoConfig,
   "monarch-hills-education": monarchHillsEducationTeacherDemoConfig,
   "naples-microschools": naplesMicroschoolsTeacherDemoConfig,
