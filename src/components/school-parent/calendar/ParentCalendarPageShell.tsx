@@ -13,6 +13,9 @@ type ParentCalendarPageShellProps = {
   previewMode?: boolean;
   agendaTitle?: string;
   programId?: string;
+  initialView?: "month" | "week";
+  previewAnchorDate?: string;
+  previewAgendaAsOf?: string;
   children?: React.ReactNode;
 };
 
@@ -23,6 +26,9 @@ export default function ParentCalendarPageShell({
   previewMode = false,
   agendaTitle,
   programId,
+  initialView,
+  previewAnchorDate,
+  previewAgendaAsOf,
   children,
 }: ParentCalendarPageShellProps) {
   const [events, setEvents] = useState<OrganizationEvent[]>([]);
@@ -44,6 +50,9 @@ export default function ParentCalendarPageShell({
         previewMode={previewMode}
         agendaTitle={agendaTitle}
         programId={programId}
+        initialView={initialView}
+        previewAnchorDate={previewAnchorDate}
+        previewAgendaAsOf={previewAgendaAsOf}
         events={events}
         eventsDeferred={!eventsHydrated}
       />

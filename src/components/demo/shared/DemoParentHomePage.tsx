@@ -12,13 +12,20 @@ import {
   DEMO_PORTAL_SLUG,
   resolveDemoParentSchoolName,
 } from "@/data/school-demos/demo-portal-shared";
+import { buildDemoParentBulletinPosts } from "@/data/school-demos/demo-communication-fixtures";
 import {
   buildDemoParentChildren,
   buildDemoParentEvents,
   DEMO_PARENT_FAMILY_ID,
 } from "@/data/school-demos/demo-parent-portal-fixtures";
 
-export default function DemoParentHomePage() {
+type DemoParentHomePageProps = {
+  showCommunicationCards?: boolean;
+};
+
+export default function DemoParentHomePage({
+  showCommunicationCards = false,
+}: DemoParentHomePageProps = {}) {
   const branding = useMemo(() => buildDemoParentBranding(), []);
   const schoolName = resolveDemoParentSchoolName();
   const familyChildren = useMemo(() => buildDemoParentChildren(), []);
@@ -29,6 +36,10 @@ export default function DemoParentHomePage() {
   const quickActions = useMemo(
     () => buildParentQuickActions(DEMO_PORTAL_SLUG, DEMO_PARENT_FEATURES, "#"),
     [],
+  );
+  const bulletinPosts = useMemo(
+    () => (showCommunicationCards ? buildDemoParentBulletinPosts() : undefined),
+    [showCommunicationCards],
   );
 
   return (
@@ -49,7 +60,9 @@ export default function DemoParentHomePage() {
           schoolName={schoolName}
           features={DEMO_PARENT_FEATURES}
           parentNavBasePath="#"
-          bulletinEnabled={false}
+          bulletinEnabled={showCommunicationCards}
+          bulletinPosts={bulletinPosts}
+          previewShowCommunicationCards={showCommunicationCards}
         />
       </div>
     </DemoSchoolParentStoryProvider>

@@ -14,15 +14,15 @@ export async function GET(request: Request) {
   const supabase = await createClientFromRequest(request);
   const {
     data: { user },
+    error: authError,
   } = await getUserFromRequest(supabase, request);
 
   if (!user) {
-    const signedInError = signedInErrorForRequest(request);
     return apiError(ROUTE, {
       request,
       status: 401,
-      error: signedInError.message,
-      code: signedInError.code,
+      error: await signedInErrorForRequest(request, authError),
+      code: "unauthorized",
     });
   }
 
