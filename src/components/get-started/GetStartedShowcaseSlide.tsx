@@ -67,25 +67,27 @@ export default function GetStartedShowcaseSlide({
         >
           <GetStartedShowcaseSlideDemo demo={slide.demo} mountDemo={mountDemo} />
         </GetStartedShowcaseDemoViewport>
-        <span
-          className="pointer-events-none absolute bottom-3 right-3 z-20 flex max-w-[90%] items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm"
-          style={badgeStyle}
-          aria-hidden
-        >
-          <Icon
-            size={12}
-            strokeWidth={2.5}
-            className="shrink-0"
-            style={{ color: badgeStyle.color }}
-            aria-hidden
-          />
+        {!ariaHidden ? (
           <span
-            className="truncate"
-            style={{ fontFamily: showcaseStoryTheme.fontBody }}
+            className="pointer-events-none absolute bottom-3 right-3 z-20 flex max-w-[90%] translate-z-0 items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm [backface-visibility:hidden]"
+            style={badgeStyle}
+            aria-hidden
           >
-            {showcaseBadgeLabel(slide.caption)}
+            <Icon
+              size={12}
+              strokeWidth={2.5}
+              className="shrink-0"
+              style={{ color: badgeStyle.color }}
+              aria-hidden
+            />
+            <span
+              className="truncate"
+              style={{ fontFamily: showcaseStoryTheme.fontBody }}
+            >
+              {showcaseBadgeLabel(slide.caption)}
+            </span>
           </span>
-        </span>
+        ) : null}
       </div>
     </article>
   );

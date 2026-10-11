@@ -1,5 +1,5 @@
 -- Public bucket for MudKitchen marketing site assets (e.g. get-started product film).
--- Path layout: marketing/get-started/mudkitchen-16x9.mp4
+-- Canonical get-started film object key: mudkitchen-16x9.mp4 (bucket root)
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

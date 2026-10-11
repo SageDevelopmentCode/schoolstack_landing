@@ -32,15 +32,36 @@ function defaultActiveIds(slideIds: readonly string[]): Set<string> {
   return next;
 }
 
+function slideInstanceOverlapsViewport(
+  slideId: string,
+  itemRefs: Map<string, HTMLElement>,
+  cloneItemRefs: Map<string, HTMLElement>,
+  horizontalMarginPx: number,
+): boolean {
+  const primary = itemRefs.get(slideId);
+  const clone = cloneItemRefs.get(slideId);
+  return (
+    (primary != null && elementOverlapsViewport(primary, horizontalMarginPx)) ||
+    (clone != null && elementOverlapsViewport(clone, horizontalMarginPx))
+  );
+}
+
 function computeActiveIds(
   slideIds: readonly string[],
   itemRefs: Map<string, HTMLElement>,
+  cloneItemRefs: Map<string, HTMLElement>,
   horizontalMarginPx: number,
 ): Set<string> {
   const visibleIndices: number[] = [];
   for (let i = 0; i < slideIds.length; i++) {
-    const el = itemRefs.get(slideIds[i]);
-    if (el && elementOverlapsViewport(el, horizontalMarginPx)) {
+    if (
+      slideInstanceOverlapsViewport(
+        slideIds[i],
+        itemRefs,
+        cloneItemRefs,
+        horizontalMarginPx,
+      )
+    ) {
       visibleIndices.push(i);
     }
   }
@@ -66,6 +87,16 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
+function mergeSlideIdSets(...sets: Set<string>[]): Set<string> {
+  const merged = new Set<string>();
+  for (const set of sets) {
+    for (const id of set) {
+      merged.add(id);
+    }
+  }
+  return merged;
+}
+
 type UseGetStartedShowcaseActiveSlideIdsOptions = {
   horizontalMarginPx?: number;
   /** Poll while CSS marquee animation runs (transform does not fire scroll). */
@@ -87,6 +118,10 @@ export function useGetStartedShowcaseActiveSlideIds(
   } = options;
 
   const itemRefs = useRef(new Map<string, HTMLElement>());
+  const cloneItemRefs = useRef(new Map<string, HTMLElement>());
+  const everMountedIds = useRef(
+    new Set(defaultActiveIds(slideIds)),
+  );
   const [activeSlideIds, setActiveSlideIds] = useState<Set<string>>(() =>
     defaultActiveIds(slideIds),
   );
@@ -96,12 +131,22 @@ export function useGetStartedShowcaseActiveSlideIds(
     else itemRefs.current.delete(id);
   }, []);
 
+  const setSlideCloneRef = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) cloneItemRefs.current.set(id, el);
+    else cloneItemRefs.current.delete(id);
+  }, []);
+
   const recomputeSlideVisibility = useCallback(() => {
-    const next = computeActiveIds(
+    const visible = computeActiveIds(
       slideIds,
       itemRefs.current,
+      cloneItemRefs.current,
       horizontalMarginPx,
     );
+    for (const id of visible) {
+      everMountedIds.current.add(id);
+    }
+    const next = mergeSlideIdSets(visible, everMountedIds.current);
     setActiveSlideIds((prev) => (setsEqual(prev, next) ? prev : next));
   }, [slideIds, horizontalMarginPx]);
 
@@ -134,5 +179,10 @@ export function useGetStartedShowcaseActiveSlideIds(
     return () => cancelAnimationFrame(raf);
   }, [marqueeAnimating, recomputeSlideVisibility]);
 
-  return { activeSlideIds, setSlideItemRef, recomputeSlideVisibility };
+  return {
+    activeSlideIds,
+    setSlideItemRef,
+    setSlideCloneRef,
+    recomputeSlideVisibility,
+  };
 }

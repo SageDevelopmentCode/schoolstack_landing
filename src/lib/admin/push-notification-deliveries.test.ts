@@ -25,11 +25,16 @@ describe("push notification delivery cursors", () => {
 
 describe("fetchAdminPushNotificationDeliveries", () => {
   it("maps rows with message hrefs", async () => {
+    const eqCalls: { column: string; value: string }[] = [];
     const query = {
       select() {
         return this;
       },
-      eq() {
+      eq(column: string, value: string) {
+        eqCalls.push({ column, value });
+        return this;
+      },
+      or() {
         return this;
       },
       order() {
@@ -75,5 +80,47 @@ describe("fetchAdminPushNotificationDeliveries", () => {
       "/school/river-oak-academy/parent/messages?thread=thread-1",
     );
     assert.equal(page.hasMore, false);
+  });
+
+  it("filters by recipient user id when provided", async () => {
+    const eqCalls: { column: string; value: string }[] = [];
+    const query = {
+      select() {
+        return this;
+      },
+      eq(column: string, value: string) {
+        eqCalls.push({ column, value });
+        return this;
+      },
+      or() {
+        return this;
+      },
+      order() {
+        return this;
+      },
+      limit() {
+        return Promise.resolve({ data: [], error: null });
+      },
+    };
+
+    const admin = {
+      from() {
+        return query;
+      },
+    };
+
+    await fetchAdminPushNotificationDeliveries(
+      admin as never,
+      "org-1",
+      "river-oak-academy",
+      { limit: 20, recipientUserId: "user-abc" },
+    );
+
+    assert.ok(
+      eqCalls.some(
+        (call) =>
+          call.column === "recipient_user_id" && call.value === "user-abc",
+      ),
+    );
   });
 });
