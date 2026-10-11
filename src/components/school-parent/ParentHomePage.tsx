@@ -106,6 +106,12 @@ type ParentHomePageProps = {
   coopFamilies?: ProgramCoopFamily[];
   bulletinEnabled?: boolean;
   bulletinPosts?: BulletinPost[];
+  /** Marketing preview only. Renders bulletin posts and a messages row together. */
+  previewShowCommunicationCards?: boolean;
+  previewMessagesPromo?: {
+    title: string;
+    subtitle: string;
+  };
   features?: OrganizationFeatures;
   programSlug?: string;
   parentNavBasePath?: string;
@@ -322,6 +328,8 @@ export default function ParentHomePage({
   coopFamilies = [],
   bulletinEnabled = false,
   bulletinPosts = [],
+  previewShowCommunicationCards = false,
+  previewMessagesPromo,
   features,
   programSlug,
   parentNavBasePath,
@@ -623,7 +631,17 @@ export default function ParentHomePage({
           </motion.aside>
         </div>
 
-        {coopModeEnabled && !bulletinEnabled && messagesHref ? (
+        {previewShowCommunicationCards ? (
+          <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
+            <PortalHomeSchoolUpdatesCard
+              theme={theme}
+              bulletinEnabled={bulletinEnabled}
+              bulletinPosts={bulletinPosts}
+              messagesHref={messagesEnabled ? messagesHref : undefined}
+              messagesPromo={previewMessagesPromo}
+            />
+          </motion.div>
+        ) : coopModeEnabled && !bulletinEnabled && messagesHref ? (
           <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
             <PortalHomeSchoolUpdatesCard
               theme={theme}

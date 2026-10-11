@@ -17,10 +17,12 @@ import {
 
 type DemoAdminEnrollmentFlowsPageProps = {
   initialFlowSelection?: FlowListSelection;
+  wrapOutlineLabels?: boolean;
 };
 
 export default function DemoAdminEnrollmentFlowsPage({
   initialFlowSelection,
+  wrapOutlineLabels = false,
 }: DemoAdminEnrollmentFlowsPageProps) {
   const branding = useMemo(() => buildDemoAdminBranding(), []);
   const schoolName = useMemo(() => resolveDemoSchoolName(), []);
@@ -32,7 +34,13 @@ export default function DemoAdminEnrollmentFlowsPage({
 
   return (
     <DemoSchoolAdminStoryProvider className="h-full">
-      <div className="pointer-events-none h-full select-none">
+      <div
+        className={`pointer-events-none h-full select-none ${
+          wrapOutlineLabels
+            ? "[&_.truncate]:overflow-visible [&_.truncate]:whitespace-normal [&_.truncate]:text-clip"
+            : ""
+        }`}
+      >
         <ApplicationFormsPage
           organizationId={DEMO_PORTAL_ORG_ID}
           branding={branding}

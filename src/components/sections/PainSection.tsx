@@ -1,5 +1,6 @@
 "use client";
 
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -254,7 +255,7 @@ export default function PainSection() {
       <FadeInView delay={0.15}>
         <div className="mt-6 flex justify-center">
           <a
-            href="/get-started"
+            href={BOOK_DEMO_HREF}
             className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
           >
             Book a Demo

@@ -48,7 +48,7 @@ function DemoAdminDashboardContent({ copy }: DemoAdminDashboardPageProps) {
         userFirstName="Admin"
       />
 
-      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.3fr_0.7fr]">
+      <div className="mb-[19px] grid grid-cols-1 gap-[15px] showcase:grid-cols-[1.3fr_0.7fr] lg:grid-cols-[1.3fr_0.7fr]">
         <AdminCard
           theme={theme}
           padding="canvas"
@@ -75,7 +75,7 @@ function DemoAdminDashboardContent({ copy }: DemoAdminDashboardPageProps) {
       </div>
 
       {summary.metrics.length > 0 ? (
-        <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-[19px] grid grid-cols-1 gap-[13px] showcase:grid-cols-4 sm:grid-cols-2 xl:grid-cols-4">
           {summary.metrics.map((metric) => (
             <AdminMetricCard
               key={metric.id}
@@ -98,7 +98,7 @@ function DemoAdminDashboardContent({ copy }: DemoAdminDashboardPageProps) {
                 students={summary.attendanceToday.students}
                 summary={summary.attendanceToday.summary}
                 attendanceHref="#"
-                gridClassName="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4"
+                gridClassName="grid grid-cols-1 gap-4 showcase:grid-cols-4 md:grid-cols-2 xl:grid-cols-4"
                 previewMode
               />
             </AttendanceApiProvider>
@@ -106,7 +106,7 @@ function DemoAdminDashboardContent({ copy }: DemoAdminDashboardPageProps) {
         </div>
       ) : null}
 
-      <div className="mb-[19px] grid grid-cols-1 gap-[15px] lg:grid-cols-[1.35fr_0.65fr]">
+      <div className="mb-[19px] grid grid-cols-1 gap-[15px] showcase:grid-cols-[1.35fr_0.65fr] lg:grid-cols-[1.35fr_0.65fr]">
         <AdminCard theme={theme} padding="none">
           <AdminActivityFeed theme={theme} items={summary.recentActivity} />
         </AdminCard>

@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet } from 'react-native';
@@ -20,6 +21,10 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
+import {
+  useCompletePortalTransitionOnMount,
+  useReleaseAccountPortalSwitchOnBlur,
+} from '@/contexts/portal-transition-context';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
@@ -69,14 +74,22 @@ function ParentMessagesInboxRealtimeBridge() {
 
 function ParentLayoutContent() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const theme = useAdminTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, selectedSchool, portalType, previewSession, isLoading } = useAuth();
+  const {
+    user,
+    selectedSchool,
+    portalType,
+    previewSession,
+    isLoading,
+    accountPortalSwitchInProgress,
+  } = useAuth();
 
   useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
   useEffect(() => {
-    if (isLoading || !slug || !user) return;
+    if (!isFocused || isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       !isPortalSessionAllowed(
@@ -89,9 +102,22 @@ function ParentLayoutContent() {
     ) {
       router.replace('/portal');
     }
-  }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
+  }, [
+    accountPortalSwitchInProgress,
+    isFocused,
+    isLoading,
+    portalType,
+    previewSession,
+    router,
+    selectedSchool?.slug,
+    slug,
+    user,
+  ]);
 
   const organization = selectedSchool?.slug === slug ? selectedSchool : null;
+
+  useCompletePortalTransitionOnMount('parent');
+  useReleaseAccountPortalSwitchOnBlur();
 
   if (isLoading || !organization) {
     return (

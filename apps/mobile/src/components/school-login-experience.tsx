@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { OrganizationSelector } from '@/components/organization-selector';
 import { OrganizationSelectorSkeleton } from '@/components/organization-selector-skeleton';
+import { PreAuthLinkRow } from '@/components/pre-auth-link-row';
 import { PreAuthScreenShell } from '@/components/pre-auth-screen-shell';
 import { StoryButton } from '@/components/story/story-button';
 import { StoryTextField } from '@/components/story/story-text-field';
@@ -13,8 +14,12 @@ import {
   completeSchoolSignIn,
   useAuth,
 } from '@/contexts/auth-context';
+import { resolveMobileSchoolAfterAuth } from '@/lib/auth/list-accessible-organizations';
 import { PortalAccessError } from '@/lib/auth/resolve-portal';
-import { listLiveOrganizations, type LiveOrganization } from '@/lib/organizations';
+import {
+  fetchLiveOrganizationsBySlugs,
+  type LiveOrganization,
+} from '@/lib/organizations';
 import { markExplicitMobileSignOut } from '@/lib/auth/mobile-explicit-sign-out';
 import { logMobileAuthSignedIn } from '@/lib/mobile-activity';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -22,16 +27,20 @@ import { Spacing } from '@/constants/theme';
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+const NO_SCHOOL_ACCESS_MESSAGE =
+  'You do not have access to any schools for this account. Try signing in with a different account.';
+
 type LoginPhase = 'select_org' | 'email' | 'verify' | 'password';
 
 export function SchoolLoginExperience() {
   const router = useRouter();
   const supabase = getSupabaseClient();
-  const { user, portalType, setResolvedPortal, isLoading: authLoading } = useAuth();
+  const { user, portalType, setResolvedPortal, signOut, isLoading: authLoading } = useAuth();
 
-  const [phase, setPhase] = useState<LoginPhase>('select_org');
+  const [phase, setPhase] = useState<LoginPhase>('email');
   const [organizations, setOrganizations] = useState<LiveOrganization[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+  const [accessibleSlugs, setAccessibleSlugs] = useState<string[] | null>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<LiveOrganization | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,39 +48,9 @@ export function SchoolLoginExperience() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const sessionResumeAttemptedRef = useRef(false);
 
   const normalizedCode = code.replace(/\D/g, '').slice(0, 6);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadOrganizations() {
-      try {
-        const orgs = await listLiveOrganizations();
-        if (!cancelled) {
-          setOrganizations(orgs);
-        }
-      } catch (loadError) {
-        if (!cancelled) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : 'Unable to load schools right now.',
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setOrgsLoading(false);
-        }
-      }
-    }
-
-    void loadOrganizations();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!authLoading && user && portalType) {
@@ -109,6 +88,76 @@ export function SchoolLoginExperience() {
     [router, setResolvedPortal, user],
   );
 
+  const loadOrganizationsForSlugs = useCallback(async (slugs: string[]) => {
+    setOrgsLoading(true);
+    try {
+      const orgs = await fetchLiveOrganizationsBySlugs(slugs);
+      setOrganizations(orgs);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Unable to load schools right now.',
+      );
+    } finally {
+      setOrgsLoading(false);
+    }
+  }, []);
+
+  const continueAfterAuthentication = useCallback(
+    async (signedInUserId: string, authMethod?: 'otp' | 'password') => {
+      const result = await resolveMobileSchoolAfterAuth(supabase, signedInUserId);
+
+      if (result.kind === 'none') {
+        markExplicitMobileSignOut();
+        await supabase.auth.signOut();
+        setError(NO_SCHOOL_ACCESS_MESSAGE);
+        goToPhase('email');
+        return;
+      }
+
+      if (result.kind === 'single') {
+        const orgs = await fetchLiveOrganizationsBySlugs([result.slug]);
+        const organization = orgs[0];
+        if (!organization) {
+          throw new Error('School not found. Please try again.');
+        }
+        setSelectedOrganization(organization);
+        const portal = await completeSchoolSignIn(signedInUserId, organization);
+        await setResolvedPortal(portal);
+        void logMobileAuthSignedIn(portal, authMethod ? { method: authMethod } : undefined);
+        router.replace('/portal');
+        return;
+      }
+
+      setAccessibleSlugs(result.slugs);
+      await loadOrganizationsForSlugs(result.slugs);
+      goToPhase('select_org');
+    },
+    [goToPhase, loadOrganizationsForSlugs, router, setResolvedPortal, supabase],
+  );
+
+  useEffect(() => {
+    if (authLoading || !user || portalType || sessionResumeAttemptedRef.current) {
+      return;
+    }
+
+    sessionResumeAttemptedRef.current = true;
+    setIsSubmitting(true);
+
+    void continueAfterAuthentication(user.id)
+      .catch((resumeError) => {
+        setError(
+          resumeError instanceof Error
+            ? resumeError.message
+            : 'Unable to continue with your existing session.',
+        );
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  }, [authLoading, continueAfterAuthentication, portalType, user]);
+
   const handleOrganizationSelect = useCallback(
     async (organization: LiveOrganization) => {
       setSelectedOrganization(organization);
@@ -116,16 +165,7 @@ export function SchoolLoginExperience() {
       setIsSubmitting(true);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          await finishSignIn(organization, session.user.id);
-          return;
-        }
-
-        goToPhase('email');
+        await finishSignIn(organization);
       } catch (selectError) {
         if (selectError instanceof PortalAccessError) {
           markExplicitMobileSignOut();
@@ -140,7 +180,7 @@ export function SchoolLoginExperience() {
         setIsSubmitting(false);
       }
     },
-    [finishSignIn, goToPhase, supabase.auth],
+    [finishSignIn, supabase.auth],
   );
 
   const sendOtp = useCallback(async () => {
@@ -179,8 +219,6 @@ export function SchoolLoginExperience() {
   };
 
   const handleVerifySubmit = async () => {
-    if (!selectedOrganization) return;
-
     setIsSubmitting(true);
     setError(null);
 
@@ -203,10 +241,7 @@ export function SchoolLoginExperience() {
         throw new Error('Sign in failed. Please try again.');
       }
 
-      const portal = await completeSchoolSignIn(signedInUser.id, selectedOrganization);
-      await setResolvedPortal(portal);
-      void logMobileAuthSignedIn(portal, { method: 'otp' });
-      router.replace('/portal');
+      await continueAfterAuthentication(signedInUser.id, 'otp');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {
         markExplicitMobileSignOut();
@@ -223,8 +258,6 @@ export function SchoolLoginExperience() {
   };
 
   const handlePasswordSubmit = async () => {
-    if (!selectedOrganization) return;
-
     setIsSubmitting(true);
     setError(null);
 
@@ -246,10 +279,7 @@ export function SchoolLoginExperience() {
         throw new Error('Sign in failed. Please try again.');
       }
 
-      const portal = await completeSchoolSignIn(signedInUser.id, selectedOrganization);
-      await setResolvedPortal(portal);
-      void logMobileAuthSignedIn(portal, { method: 'password' });
-      router.replace('/portal');
+      await continueAfterAuthentication(signedInUser.id, 'password');
     } catch (submitError) {
       if (submitError instanceof PortalAccessError) {
         markExplicitMobileSignOut();
@@ -284,12 +314,15 @@ export function SchoolLoginExperience() {
     }
   };
 
-  const handleBackToOrganizations = () => {
+  const handleBackFromSchoolPicker = async () => {
     setSelectedOrganization(null);
+    setAccessibleSlugs(null);
+    setOrganizations([]);
     setEmail('');
     setPassword('');
     setCode('');
-    goToPhase('select_org');
+    await signOut();
+    goToPhase('email');
   };
 
   const handleBackToEmail = () => {
@@ -297,39 +330,79 @@ export function SchoolLoginExperience() {
     goToPhase('email');
   };
 
+  const isPostAuthSchoolPicker = phase === 'select_org' && accessibleSlugs !== null;
+
   const heading =
     phase === 'select_org'
-      ? 'Sign in to your school'
+      ? 'Choose your school'
       : phase === 'email' || phase === 'password'
-        ? 'Sign in to continue'
+        ? 'Sign in to your school'
         : 'Check your email';
 
   const subtext =
     phase === 'select_org'
-      ? 'Choose your school to continue to your portal.'
+      ? 'Choose which school to open.'
       : phase === 'email'
-        ? `Enter the email you use with ${selectedOrganization?.name}. We'll send you a one-time code.`
+        ? "Enter the email you use with your school. We'll send you a one-time code."
         : phase === 'password'
           ? 'Sign in with your email and password.'
           : `We sent a 6-digit code to ${email.trim().toLowerCase()}. If it doesn't arrive within a minute, check your spam or junk folder.`;
 
   const handleBack =
-    phase === 'select_org'
+    phase === 'email' || phase === 'password'
       ? () => router.back()
-      : phase === 'email' || phase === 'password'
-        ? handleBackToOrganizations
+      : phase === 'select_org'
+        ? handleBackFromSchoolPicker
         : handleBackToEmail;
+
+  const showMudKitchenLogo =
+    phase === 'email' || phase === 'password' || (phase === 'select_org' && !selectedOrganization);
+
+  const loginFooter =
+    phase === 'email'
+      ? (
+          <PreAuthLinkRow
+            items={[
+              {
+                label: 'Use password',
+                icon: 'key-outline',
+                accessibilityLabel: 'Use password instead',
+                onPress: () => goToPhase('password'),
+                disabled: isSubmitting,
+              },
+              {
+                label: 'Admin login',
+                icon: 'shield-outline',
+                accessibilityLabel: 'Admin sign in',
+                onPress: () => router.push('/login/admin'),
+                disabled: isSubmitting,
+              },
+            ]}
+          />
+        )
+      : phase === 'password'
+        ? (
+            <PreAuthLinkRow
+              items={[
+                {
+                  label: 'Use email code instead',
+                  onPress: () => goToPhase('email'),
+                  disabled: isSubmitting,
+                },
+              ]}
+            />
+          )
+        : undefined;
 
   return (
     <PreAuthScreenShell
-      kicker={phase === 'select_org' ? 'Sign in' : undefined}
       heading={heading}
       headingTestID="school-login-heading"
       subtext={subtext}
       error={error}
       onBack={handleBack}
       backDisabled={isSubmitting}
-      showMudKitchenLogo={phase === 'select_org'}
+      showMudKitchenLogo={showMudKitchenLogo}
       schoolLogo={
         selectedOrganization?.branding.logoSrc
           ? {
@@ -339,21 +412,13 @@ export function SchoolLoginExperience() {
             }
           : undefined
       }
-      footer={
-        phase === 'select_org' && !orgsLoading
-          ? (
-              <StoryTextLink
-                label="Admin sign in"
-                onPress={() => router.push('/login/admin')}
-              />
-            )
-          : undefined
-      }>
+      footer={loginFooter}>
       {phase === 'select_org' && orgsLoading ? (
         <OrganizationSelectorSkeleton rowCount={3} />
       ) : phase === 'select_org' ? (
         <OrganizationSelector
           organizations={organizations}
+          accessibleSlugs={isPostAuthSchoolPicker ? accessibleSlugs : null}
           onSelect={handleOrganizationSelect}
           disabled={isSubmitting}
         />
@@ -378,13 +443,6 @@ export function SchoolLoginExperience() {
             disabled={!email.trim() || isSubmitting}
             onPress={handleEmailSubmit}
           />
-
-          <StoryTextLink
-            label="Use password instead"
-            onPress={() => goToPhase('password')}
-            disabled={isSubmitting}
-            style={styles.centeredLink}
-          />
         </View>
       ) : null}
 
@@ -405,9 +463,9 @@ export function SchoolLoginExperience() {
           <StoryTextField
             label="Password"
             accessibilityLabel="Password"
+            secureTextEntry
             autoCapitalize="none"
             autoComplete="current-password"
-            secureTextEntry
             placeholder="Your password"
             value={password}
             onChangeText={setPassword}
@@ -418,13 +476,6 @@ export function SchoolLoginExperience() {
             label={isSubmitting ? 'Signing in…' : 'Sign in'}
             disabled={!email.trim() || !password || isSubmitting}
             onPress={handlePasswordSubmit}
-          />
-
-          <StoryTextLink
-            label="Use email code instead"
-            onPress={() => goToPhase('email')}
-            disabled={isSubmitting}
-            style={styles.centeredLink}
           />
         </View>
       ) : null}
@@ -464,9 +515,6 @@ export function SchoolLoginExperience() {
 const styles = StyleSheet.create({
   formSection: {
     gap: Spacing.three,
-  },
-  centeredLink: {
-    alignSelf: 'center',
   },
   verifyActions: {
     flexDirection: 'row',

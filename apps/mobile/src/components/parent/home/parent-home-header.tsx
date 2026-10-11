@@ -14,7 +14,8 @@ type ParentHomeHeaderProps = {
   bulletinPostCount?: number;
   notificationUnreadCount?: number;
   onOpenBulletin?: () => void;
-  onPressHelp?: () => void;
+  profilePhotoUrl?: string | null;
+  onPressProfile?: () => void;
   onPressNotifications?: () => void;
 };
 
@@ -26,7 +27,8 @@ export function ParentHomeHeader({
   bulletinPostCount = 0,
   notificationUnreadCount = 0,
   onOpenBulletin,
-  onPressHelp,
+  profilePhotoUrl,
+  onPressProfile,
   onPressNotifications,
 }: ParentHomeHeaderProps) {
   const theme = useParentTheme();
@@ -57,7 +59,11 @@ export function ParentHomeHeader({
             ? { postCount: bulletinPostCount, onPress: onOpenBulletin }
             : undefined
         }
-        help={onPressHelp ? { onPress: onPressHelp } : undefined}
+        profile={
+          onPressProfile
+            ? { displayName, photoUrl: profilePhotoUrl, onPress: onPressProfile }
+            : undefined
+        }
         notifications={
           onPressNotifications
             ? { unreadCount: notificationUnreadCount, onPress: onPressNotifications }

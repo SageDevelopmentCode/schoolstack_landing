@@ -42,6 +42,7 @@ import {
 } from "@/lib/tuition/tuition-activity";
 import { formatCents } from "@/lib/tuition/pricing";
 import { getRuntimeSiteUrl } from "@/lib/site";
+import { shouldSendDeferredAchReceipt } from "@/lib/stripe/ach-deferred-receipt";
 
 async function loadOrganization(
   admin: SupabaseClient,
@@ -428,6 +429,48 @@ export async function sendAchBankVerificationNotificationsForPayments(
   }
 }
 
+async function hasDeferredAchReceiptBeenSent(
+  admin: SupabaseClient,
+  paymentId: string,
+): Promise<boolean> {
+  const { data, error } = await admin
+    .from("activity_events")
+    .select("id")
+    .eq("action", ACTIVITY_ACTIONS.PAYMENT_ACH_DEFERRED_RECEIPT_SENT)
+    .eq("entity_type", "payment")
+    .eq("entity_id", paymentId)
+    .limit(1);
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}
+
+async function claimDeferredAchReceiptSend(
+  admin: SupabaseClient,
+  input: {
+    organizationId: string;
+    paymentId: string;
+  },
+): Promise<boolean> {
+  if (await hasDeferredAchReceiptBeenSent(admin, input.paymentId)) {
+    return false;
+  }
+
+  await logActivityEvent(admin, {
+    organizationId: input.organizationId,
+    actorType: "system",
+    surface: "system",
+    action: ACTIVITY_ACTIONS.PAYMENT_ACH_DEFERRED_RECEIPT_SENT,
+    entityType: "payment",
+    entityId: input.paymentId,
+    summary: "ACH deferred payment receipt sent",
+    metadata: { paymentId: input.paymentId },
+    severity: "info",
+  });
+
+  return true;
+}
+
 async function sendDeferredTuitionReceiptsForPayments(
   admin: SupabaseClient,
   payments: PaymentRecord[],
@@ -443,8 +486,14 @@ async function sendDeferredTuitionReceiptsForPayments(
     if (payment.paymentType !== "tuition" || payment.status !== "succeeded") {
       continue;
     }
-    const prior = payment.stripeProviderStatus;
-    if (prior !== "requires_action" && prior !== "processing") {
+    if (!shouldSendDeferredAchReceipt(payment.stripeProviderStatus)) {
+      continue;
+    }
+    const claimed = await claimDeferredAchReceiptSend(admin, {
+      organizationId: payment.organizationId,
+      paymentId: payment.id,
+    });
+    if (!claimed) {
       continue;
     }
     await sendTuitionPaymentReceiptNotifications(admin, payment.id);
@@ -501,8 +550,14 @@ export async function sendDeferredAdmissionsReceiptsIfAchSettled(
     if (payment.paymentType === "tuition" || payment.status !== "succeeded") {
       continue;
     }
-    const prior = payment.stripeProviderStatus;
-    if (prior !== "requires_action" && prior !== "processing") {
+    if (!shouldSendDeferredAchReceipt(payment.stripeProviderStatus)) {
+      continue;
+    }
+    const claimed = await claimDeferredAchReceiptSend(admin, {
+      organizationId: payment.organizationId,
+      paymentId: payment.id,
+    });
+    if (!claimed) {
       continue;
     }
     void sendPaymentCompletedNotifications(admin, payment.id);

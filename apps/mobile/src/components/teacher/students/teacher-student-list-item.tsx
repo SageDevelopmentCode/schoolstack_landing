@@ -57,8 +57,12 @@ export function TeacherStudentListItem({
               {studentName}
             </StoryDisplayHeading>
             <View style={styles.chipRow}>
-              {gradeLabel ? <StoryChip tone="info" label={gradeLabel} /> : null}
-              {programLabel ? <StoryChip tone="success" label={programLabel} /> : null}
+              {gradeLabel ? (
+                <StoryChip tone="info" label={gradeLabel} uppercase={false} />
+              ) : null}
+              {programLabel ? (
+                <StoryChip tone="success" label={programLabel} uppercase={false} />
+              ) : null}
             </View>
           </View>
           {classroomLabel ? (

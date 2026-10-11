@@ -21,7 +21,17 @@ function CalendarEventsHydrator() {
   return null;
 }
 
-export default function DemoParentCalendarPage() {
+type DemoParentCalendarPageProps = {
+  initialView?: "month" | "week";
+  previewAnchorDate?: string;
+  previewAgendaAsOf?: string;
+};
+
+export default function DemoParentCalendarPage({
+  initialView,
+  previewAnchorDate,
+  previewAgendaAsOf,
+}: DemoParentCalendarPageProps = {}) {
   const branding = useMemo(() => buildDemoParentBranding(), []);
 
   return (
@@ -32,6 +42,9 @@ export default function DemoParentCalendarPage() {
           organizationSlug={DEMO_PORTAL_SLUG}
           branding={branding}
           previewMode
+          initialView={initialView}
+          previewAnchorDate={previewAnchorDate}
+          previewAgendaAsOf={previewAgendaAsOf}
         >
           <CalendarEventsHydrator />
         </ParentCalendarPageShell>

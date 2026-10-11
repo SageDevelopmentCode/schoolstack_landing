@@ -1,19 +1,31 @@
-import { Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, Text, View, type PressableProps } from 'react-native';
 
 import { Story, StoryFonts } from '@/constants/story-theme';
 
 type StoryTextLinkProps = PressableProps & {
   label: string;
   variant?: 'muted' | 'primary' | 'light';
+  icon?: keyof typeof Ionicons.glyphMap;
 };
+
+function iconColorForVariant(variant: StoryTextLinkProps['variant']): string {
+  if (variant === 'muted') return Story.muted;
+  if (variant === 'light') return '#D6EFD8';
+  return Story.primary;
+}
 
 export function StoryTextLink({
   label,
   variant = 'primary',
+  icon,
   style,
   disabled,
   ...rest
 }: StoryTextLinkProps) {
+  const textColorStyle =
+    variant === 'muted' ? styles.muted : variant === 'light' ? styles.light : styles.primary;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,13 +37,14 @@ export function StoryTextLink({
         typeof style === 'function' ? style({ pressed, hovered: false }) : style,
       ]}
       {...rest}>
-      <Text
-        style={[
-          styles.text,
-          variant === 'muted' ? styles.muted : variant === 'light' ? styles.light : styles.primary,
-        ]}>
-        {label}
-      </Text>
+      {icon ? (
+        <View style={styles.labelRow}>
+          <Ionicons name={icon} size={16} color={iconColorForVariant(variant)} />
+          <Text style={[styles.text, textColorStyle]}>{label}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.text, textColorStyle]}>{label}</Text>
+      )}
     </Pressable>
   );
 }
@@ -39,6 +52,11 @@ export function StoryTextLink({
 const styles = StyleSheet.create({
   link: {
     paddingVertical: 8,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   pressed: {
     opacity: 0.7,

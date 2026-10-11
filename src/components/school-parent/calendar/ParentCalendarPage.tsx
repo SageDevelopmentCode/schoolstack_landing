@@ -31,6 +31,9 @@ type ParentCalendarPageProps = {
   previewMode?: boolean;
   agendaTitle?: string;
   programId?: string;
+  initialView?: CalendarViewMode;
+  previewAnchorDate?: string;
+  previewAgendaAsOf?: string;
 };
 
 function formatEventDate(date: string) {
@@ -237,11 +240,22 @@ export default function ParentCalendarPage({
   previewMode = false,
   agendaTitle,
   programId,
+  initialView,
+  previewAnchorDate,
+  previewAgendaAsOf,
 }: ParentCalendarPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const [fetchedEvents, setFetchedEvents] = useState<OrganizationEvent[]>([]);
   const loadedWindowsRef = useRef<Set<string>>(new Set());
-  const [view, setView] = useState<CalendarViewMode>("week");
+  const [view, setView] = useState<CalendarViewMode>(initialView ?? "week");
+  const calendarInitialDate = useMemo(
+    () => (previewAnchorDate ? parseEventDate(previewAnchorDate) : undefined),
+    [previewAnchorDate],
+  );
+  const agendaAsOfDate = useMemo(
+    () => (previewAgendaAsOf ? parseEventDate(previewAgendaAsOf) : undefined),
+    [previewAgendaAsOf],
+  );
   const [selectedEvent, setSelectedEvent] = useState<OrganizationEvent | null>(null);
   const [selectedEmptyDay, setSelectedEmptyDay] = useState<string | null>(null);
   const [periodKey, setPeriodKey] = useState("initial");
@@ -351,6 +365,7 @@ export default function ParentCalendarPage({
                 events={calendarEvents}
                 view={view}
                 onViewChange={setView}
+                initialDate={calendarInitialDate}
                 readOnly
                 variant="parent-story"
                 parentTheme={theme}
@@ -374,6 +389,7 @@ export default function ParentCalendarPage({
               selectedEventId={selectedEvent?.id ?? null}
               onEventClick={handleEventClick}
               agendaTitle={agendaTitle}
+              asOfDate={agendaAsOfDate}
             />
           </div>
         </div>

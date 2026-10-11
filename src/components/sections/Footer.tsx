@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Info, Layers, Users } from "lucide-react";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -50,7 +51,7 @@ export default function Footer() {
               </Link>
             ))}
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               className="inline-flex items-center gap-1.5 bg-white/10 text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:bg-white/15 transition-all duration-200"
             >
               Book a Demo

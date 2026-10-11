@@ -17,6 +17,7 @@ import { AdminFocusQueueCard } from '@/components/school-admin/dashboard/admin-f
 import { AdminMetricCard } from '@/components/school-admin/dashboard/admin-metric-card';
 import { AdminNeedHelpCard } from '@/components/school-admin/dashboard/admin-need-help-card';
 import { AdminQuickActionsCard } from '@/components/school-admin/dashboard/admin-quick-actions-card';
+import { PortalAccountSheet } from '@/components/portal-account-sheet';
 import { AdminSupportRequestSheet } from '@/components/school-admin/dashboard/admin-support-request-sheet';
 import {
   AdminSignalCard,
@@ -76,6 +77,8 @@ export function SchoolDashboardScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(null);
   const [activitySheetOpen, setActivitySheetOpen] = useState(false);
   const [activityUnreadCount, setActivityUnreadCount] = useState(0);
   const stripePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -206,7 +209,9 @@ export function SchoolDashboardScreen({
       userFirstName={userFirstNameFromMetadata(user ?? null)}
       unreadCount={activityUnreadCount}
       onPressBulletin={() => router.push(`/school-admin/${slug}/more/bulletin` as Href)}
-      onPressHelp={() => setSupportSheetOpen(true)}
+      displayName={userFirstNameFromMetadata(user ?? null)}
+      profilePhotoUrl={heroProfilePhotoUrl}
+      onPressProfile={() => setAccountSheetOpen(true)}
       onPressNotifications={() => setActivitySheetOpen(true)}
     />
   );
@@ -284,6 +289,16 @@ export function SchoolDashboardScreen({
         slug={slug}
         userEmail={user?.email}
         sourcePagePath={`/school-admin/${slug}/dashboard`}
+      />
+
+      <PortalAccountSheet
+        visible={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+        displayName={userFirstNameFromMetadata(user ?? null)}
+        photoUrl={heroProfilePhotoUrl}
+        organizationId={organizationId}
+        slug={slug}
+        onProfilePhotoUpdated={(url) => setHeroProfilePhotoUrl(url)}
       />
     </>
   );

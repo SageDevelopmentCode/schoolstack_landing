@@ -20,12 +20,14 @@ import { prefetchTeacherMessagesInbox } from '@/contexts/teacher-messages-inbox-
 import { prefetchSchoolAdminMessagesInbox, prefetchSchoolAdminMessagesContacts } from '@/contexts/school-admin-messages-inbox-context';
 import { prefetchSchoolAdminStudents } from '@/contexts/school-admin-students-context';
 import { prefetchSchoolAdminSubmissions } from '@/contexts/school-admin-submissions-context';
+import { resolvePortalForOption } from '@/lib/auth/resolve-portal-choice';
 import {
   resolvePlatformAdmin,
   resolvePortalForSchool,
   type PortalType,
   type ResolvedPortal,
 } from '@/lib/auth/resolve-portal';
+import type { AccountPortalId } from '@/lib/auth/school-portal-options-types';
 import type { LiveOrganization } from '@/lib/organizations';
 import { normalizeStoredOrganization } from '@/lib/organizations';
 import { clearAllPersistedPortalCaches } from '@/lib/portal-cache';
@@ -67,6 +69,10 @@ type AuthContextValue = {
   exitPortalPreview: () => Promise<void>;
   exitSchoolAdmin: () => Promise<void>;
   signOut: () => Promise<void>;
+  switchSchool: () => Promise<void>;
+  switchAccountPortal: (optionId: AccountPortalId) => Promise<ResolvedPortal>;
+  accountPortalSwitchInProgress: boolean;
+  clearAccountPortalSwitchInProgress: () => void;
   restorePortalState: () => Promise<void>;
   refreshSelectedSchool: (school: LiveOrganization) => Promise<void>;
 };
@@ -204,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isPlatformAdminSession, setIsPlatformAdminSession] = useState(false);
   const [previewSession, setPreviewSession] = useState<PortalPreviewSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accountPortalSwitchInProgress, setAccountPortalSwitchInProgress] = useState(false);
 
   const explicitSignOutRef = useRef(false);
   const hadEstablishedSessionRef = useRef(false);
@@ -453,6 +460,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await Promise.all([clearPortalState(), clearAllPersistedPortalCaches()]);
   }, [portalType, selectedSchool?.id]);
 
+  const switchSchool = useCallback(async () => {
+    setAccountPortalSwitchInProgress(true);
+  }, []);
+
+  const clearAccountPortalSwitchInProgress = useCallback(() => {
+    setAccountPortalSwitchInProgress(false);
+  }, []);
+
+  const switchAccountPortal = useCallback(
+    async (optionId: AccountPortalId) => {
+      const userId = user?.id;
+      const school = selectedSchool;
+      if (!userId || !school) {
+        throw new Error('You must be signed in to a school to switch portals.');
+      }
+
+      setAccountPortalSwitchInProgress(true);
+      const supabase = getSupabaseClient();
+      const portal = await resolvePortalForOption(supabase, userId, school, optionId);
+      await clearAllPersistedPortalCaches();
+      await setResolvedPortal(portal);
+      return portal;
+    },
+    [selectedSchool, setResolvedPortal, user?.id],
+  );
+
   const refreshSelectedSchool = useCallback(
     async (school: LiveOrganization) => {
       const normalized = normalizeStoredOrganization(school);
@@ -495,6 +528,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exitPortalPreview,
       exitSchoolAdmin,
       signOut,
+      switchSchool,
+      switchAccountPortal,
+      accountPortalSwitchInProgress,
+      clearAccountPortalSwitchInProgress,
       restorePortalState,
       refreshSelectedSchool,
     }),
@@ -512,6 +549,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exitPortalPreview,
       exitSchoolAdmin,
       signOut,
+      switchSchool,
+      switchAccountPortal,
+      accountPortalSwitchInProgress,
+      clearAccountPortalSwitchInProgress,
       restorePortalState,
       refreshSelectedSchool,
     ],

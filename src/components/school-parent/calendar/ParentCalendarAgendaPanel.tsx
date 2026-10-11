@@ -29,6 +29,7 @@ type ParentCalendarAgendaPanelProps = {
   embedded?: boolean;
   showHeader?: boolean;
   emptyMessage?: string;
+  asOfDate?: Date;
 };
 
 export default function ParentCalendarAgendaPanel({
@@ -41,8 +42,9 @@ export default function ParentCalendarAgendaPanel({
   embedded = false,
   showHeader = true,
   emptyMessage = "No upcoming events — your school calendar will appear here when events are added.",
+  asOfDate,
 }: ParentCalendarAgendaPanelProps) {
-  const upcomingEvents = listUpcomingCalendarEvents(events);
+  const upcomingEvents = listUpcomingCalendarEvents(events, undefined, asOfDate);
 
   const content = (
     <AnimatePresence mode="wait">

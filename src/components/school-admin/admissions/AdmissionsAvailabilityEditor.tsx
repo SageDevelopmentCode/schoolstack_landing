@@ -40,6 +40,8 @@ type AdmissionsAvailabilityEditorProps = {
   storySurface?: boolean;
   onMonthSlotCountChange?: (count: number) => void;
   onLoadingChange?: (loading: boolean) => void;
+  /** When set, render these slots and skip Supabase availability loads. */
+  previewSlots?: readonly AdmissionsAvailabilitySlotRecord[];
 };
 
 function wholeDayGroupStateFromSlots(
@@ -66,6 +68,34 @@ function wholeDayGroupStateFromSlots(
   return { active: false, capacity: null };
 }
 
+function previewRecordsInRange(
+  records: readonly AdmissionsAvailabilitySlotRecord[] | undefined,
+  start: string,
+  end: string,
+): AdmissionsAvailabilitySlotRecord[] {
+  if (!records) return [];
+  return records.filter((record) => record.date >= start && record.date <= end);
+}
+
+function slotsFromPreview(
+  records: readonly AdmissionsAvailabilitySlotRecord[] | undefined,
+): Set<AdmissionsAvailabilitySlotKey> {
+  return new Set(
+    (records ?? []).map((record) => availabilitySlotKey(record.date, record.timeSlot)),
+  );
+}
+
+function recordsFromPreview(
+  records: readonly AdmissionsAvailabilitySlotRecord[] | undefined,
+): Map<AdmissionsAvailabilitySlotKey, AdmissionsAvailabilitySlotRecord> {
+  return new Map(
+    (records ?? []).map((record) => [
+      availabilitySlotKey(record.date, record.timeSlot),
+      record,
+    ]),
+  );
+}
+
 export default function AdmissionsAvailabilityEditor({
   C,
   organizationId,
@@ -75,14 +105,17 @@ export default function AdmissionsAvailabilityEditor({
   storySurface = false,
   onMonthSlotCountChange,
   onLoadingChange,
+  previewSlots,
 }: AdmissionsAvailabilityEditorProps) {
   const supabase = useMemo(() => createClient(), []);
-  const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
+  const [openSlots, setOpenSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(
+    () => slotsFromPreview(previewSlots),
+  );
   const [slotRecords, setSlotRecords] = useState<
     Map<AdmissionsAvailabilitySlotKey, AdmissionsAvailabilitySlotRecord>
-  >(new Map());
+  >(() => recordsFromPreview(previewSlots));
   const [occupiedSlots, setOccupiedSlots] = useState<Set<AdmissionsAvailabilitySlotKey>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(previewSlots == null);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [activePeriod, setActivePeriod] = useState<AdmissionsTimeSlotPeriod>("morning");
@@ -108,15 +141,45 @@ export default function AdmissionsAvailabilityEditor({
     C,
   });
 
+  const previewMonthData = useMemo(() => {
+    if (previewSlots == null) return null;
+    const inMonth = previewRecordsInRange(previewSlots, monthRange.start, monthRange.end);
+    return {
+      openSlots: slotsFromPreview(inMonth),
+      slotRecords: recordsFromPreview(inMonth),
+      occupiedSlots: new Set<AdmissionsAvailabilitySlotKey>(),
+      monthSlotCount: inMonth.length,
+    };
+  }, [previewSlots, monthRange.end, monthRange.start]);
+
+  const resolvedOpenSlots = previewMonthData?.openSlots ?? openSlots;
+  const resolvedSlotRecords = previewMonthData?.slotRecords ?? slotRecords;
+  const resolvedOccupiedSlots = previewMonthData?.occupiedSlots ?? occupiedSlots;
+
   useEffect(() => {
     onMonthSlotCountChangeRef.current = onMonthSlotCountChange;
   }, [onMonthSlotCountChange]);
+
+  useEffect(() => {
+    if (previewMonthData == null) return;
+    onMonthSlotCountChangeRef.current?.(previewMonthData.monthSlotCount);
+  }, [previewMonthData]);
 
   useEffect(() => {
     onLoadingChange?.(loading);
   }, [loading, onLoadingChange]);
 
   const loadMonthData = useCallback(async () => {
+    const seeded = previewSlots;
+    if (seeded) {
+      const inMonth = previewRecordsInRange(seeded, monthRange.start, monthRange.end);
+      setOpenSlots(slotsFromPreview(inMonth));
+      setSlotRecords(recordsFromPreview(inMonth));
+      setOccupiedSlots(new Set());
+      onMonthSlotCountChangeRef.current?.(inMonth.length);
+      return;
+    }
+
     const [slots, records, occupied] = await Promise.all([
       listAdmissionsAvailabilitySlots(
         supabase,
@@ -143,9 +206,13 @@ export default function AdmissionsAvailabilityEditor({
     );
     setOccupiedSlots(occupied);
     onMonthSlotCountChangeRef.current?.(slots.size);
-  }, [monthRange.end, monthRange.start, organizationId, supabase]);
+  }, [monthRange.end, monthRange.start, organizationId, previewSlots, supabase]);
 
   useEffect(() => {
+    if (previewSlots) {
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
@@ -174,22 +241,39 @@ export default function AdmissionsAvailabilityEditor({
     return () => {
       cancelled = true;
     };
-  }, [loadMonthData]);
+  }, [loadMonthData, organizationId, previewSlots]);
+
+  useEffect(() => {
+    if (!previewSlots?.length) return;
+    const nextDate = previewSlots
+      .map((record) => record.date)
+      .filter(
+        (date) => date >= monthRange.start && date <= monthRange.end && date >= today,
+      )
+      .sort()[0];
+    if (!nextDate) return;
+    // Run after useScheduleCalendar clears the selection on mount.
+    queueMicrotask(() => {
+      queueMicrotask(() => {
+        setSelectedDate((current) => current ?? nextDate);
+      });
+    });
+  }, [monthRange.end, monthRange.start, previewSlots, setSelectedDate, today]);
 
   const availableDates = useMemo(
-    () => new Set([...openSlots].map((key) => key.split("|")[0])),
-    [openSlots],
+    () => new Set([...resolvedOpenSlots].map((key) => key.split("|")[0])),
+    [resolvedOpenSlots],
   );
 
   const bookedDates = useMemo(
-    () => occupiedSlotKeysToBookedDates(occupiedSlots),
-    [occupiedSlots],
+    () => occupiedSlotKeysToBookedDates(resolvedOccupiedSlots),
+    [resolvedOccupiedSlots],
   );
 
   const wholeDayGroupState = wholeDayGroupStateFromSlots(
-    openSlots,
+    resolvedOpenSlots,
     selectedDate,
-    slotRecords,
+    resolvedSlotRecords,
   );
 
   function handleSelectDate(date: string) {
@@ -267,9 +351,11 @@ export default function AdmissionsAvailabilityEditor({
       if (!selectedDate) return 0;
       const group = ADMISSIONS_TIME_SLOT_GROUPS.find((entry) => entry.id === period);
       if (!group) return 0;
-      return group.slots.filter((slot) => openSlots.has(availabilitySlotKey(selectedDate, slot))).length;
+      return group.slots.filter((slot) =>
+        resolvedOpenSlots.has(availabilitySlotKey(selectedDate, slot)),
+      ).length;
     },
-    [openSlots, selectedDate],
+    [resolvedOpenSlots, selectedDate],
   );
 
   const displayError = error ?? timezoneError;
@@ -379,9 +465,9 @@ export default function AdmissionsAvailabilityEditor({
                 <div className="flex flex-col gap-2" role="tabpanel">
                   {activePeriodGroup.slots.map((slot) => {
                     const slotKey = availabilitySlotKey(selectedDate, slot);
-                    const isOpen = openSlots.has(slotKey);
-                    const isBooked = occupiedSlots.has(slotKey);
-                    const record = slotRecords.get(slotKey);
+                    const isOpen = resolvedOpenSlots.has(slotKey);
+                    const isBooked = resolvedOccupiedSlots.has(slotKey);
+                    const record = resolvedSlotRecords.get(slotKey);
                     const isGroup = record?.tourBookingMode === "group";
                     const disabled = toggling === slot || readOnly || (isBooked && isOpen);
                     const rowBorderColor = isBooked
@@ -450,7 +536,7 @@ export default function AdmissionsAvailabilityEditor({
                     organizationId={organizationId}
                     date={selectedDate}
                     timeSlot={slotSettingsTime}
-                    record={slotRecords.get(
+                    record={resolvedSlotRecords.get(
                       availabilitySlotKey(selectedDate, slotSettingsTime),
                     )}
                     isWholeDayActive={wholeDayGroupState.active}

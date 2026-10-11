@@ -21,6 +21,13 @@ import {
 } from "@/lib/school-teacher/activity-notifications";
 import { loadTeacherDashboardPreviewData } from "@/lib/school-teacher/load-teacher-dashboard-data";
 import { loadTeacherCalendarPreviewData } from "@/lib/school-events/load-teacher-calendar-data";
+import { loadStudentAttendanceHistory } from "@/lib/school-admin/attendance/attendance-history";
+import {
+  AttendanceMutationError,
+  parseAttendanceDate,
+} from "@/lib/school-admin/attendance/attendance-mutations";
+import { loadAttendancePickupContacts } from "@/lib/school-admin/attendance/attendance-pickup-contacts";
+import { loadAttendanceRoster } from "@/lib/school-admin/attendance/attendance-roster";
 import {
   loadTeacherAssignedStudentDetail,
   loadTeacherMessageableFamilyStudentDetail,
@@ -294,6 +301,95 @@ export async function handleTeacherMobilePreviewGet(
       return NextResponse.json({ profile });
     }
 
+    if (segment === "attendance") {
+      if (!isTeacherFeatureEnabled(org.features, "attendance")) {
+        return apiError(route, {
+          request: req,
+          status: 404,
+          error: "Attendance is not enabled for this school.",
+          code: "feature_disabled",
+        });
+      }
+
+      const subsegment = pathSegments[1] ?? "";
+
+      if (!subsegment) {
+        const date =
+          url.searchParams.get("date")?.trim() ??
+          new Date().toISOString().slice(0, 10);
+
+        try {
+          parseAttendanceDate(date);
+        } catch (err) {
+          if (err instanceof AttendanceMutationError) {
+            return apiError(route, {
+              request: req,
+              status: err.status,
+              error: err.message,
+              code: err.code,
+              cause: err,
+            });
+          }
+          throw err;
+        }
+
+        const roster = await loadAttendanceRoster(admin, organizationId, date);
+        return NextResponse.json(roster);
+      }
+
+      if (subsegment === "history") {
+        const studentId = url.searchParams.get("studentId")?.trim() ?? "";
+        const limitParam = url.searchParams.get("limit")?.trim();
+        const offsetParam = url.searchParams.get("offset")?.trim();
+        const limit = limitParam ? Number.parseInt(limitParam, 10) : 14;
+        const offset = offsetParam ? Number.parseInt(offsetParam, 10) : 0;
+
+        if (!studentId) {
+          return apiError(route, {
+            request: req,
+            status: 400,
+            error: "studentId is required.",
+            code: "missing_fields",
+          });
+        }
+
+        const history = await loadStudentAttendanceHistory(
+          admin,
+          organizationId,
+          studentId,
+          {
+            limit: Number.isFinite(limit) ? limit : 14,
+            offset: Number.isFinite(offset) ? offset : 0,
+          },
+        );
+
+        return NextResponse.json(history);
+      }
+
+      if (subsegment === "pickup-contacts") {
+        const familyId = url.searchParams.get("familyId")?.trim() ?? "";
+        const studentId = url.searchParams.get("studentId")?.trim() ?? "";
+
+        if (!familyId || !studentId) {
+          return apiError(route, {
+            request: req,
+            status: 400,
+            error: "familyId and studentId are required.",
+            code: "missing_fields",
+          });
+        }
+
+        const contacts = await loadAttendancePickupContacts(
+          admin,
+          organizationId,
+          studentId,
+          familyId,
+        );
+
+        return NextResponse.json({ contacts });
+      }
+    }
+
     if (segment === "activity-notifications") {
       if (pathSegments[1] === "unread-count") {
         const unreadCount = await fetchUnreadTeacherActivityNotificationCount(
@@ -330,6 +426,16 @@ export async function handleTeacherMobilePreviewGet(
     });
   } catch (err) {
     if (err instanceof AuthError) {
+      return apiError(route, {
+        request,
+        status: err.status,
+        error: err.message,
+        code: err.code,
+        cause: err,
+      });
+    }
+
+    if (err instanceof AttendanceMutationError) {
       return apiError(route, {
         request,
         status: err.status,

@@ -496,7 +496,7 @@ export default function StudentsPage({
         <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
           {showMetrics ? (
             <>
-              <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mb-[19px] grid grid-cols-1 gap-[13px] showcase:grid-cols-4 sm:grid-cols-2 xl:grid-cols-4">
                 <AdminMetricCard
                   theme={theme}
                   value={String(metrics.totalCount)}
@@ -527,7 +527,7 @@ export default function StudentsPage({
 
               {metrics.unassignedCount > 0 ? (
                 <div
-                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
+                  className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 showcase:flex-row showcase:items-center sm:flex-row sm:items-center"
                   style={{
                     backgroundColor: "#EAF4EB",
                     borderColor: "#C7DFCB",

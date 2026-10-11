@@ -1,22 +1,33 @@
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, StyleSheet } from 'react-native';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
+import { BrandedSplashContent } from '@/components/branded-splash-content';
 import { Brand } from '@/constants/theme';
 import { useAuth } from '@/contexts/auth-context';
 import { isMobileE2e } from '@/lib/e2e';
 
 const SPLASH_FALLBACK_MS = 2000;
-const LOGO_SIZE = 128;
+const FADE_MS = 450;
 
 export function SplashOverlay() {
   const { isLoading } = useAuth();
   const [visible, setVisible] = useState(!isMobileE2e);
   const opacity = useSharedValue(isMobileE2e ? 0 : 1);
+  const dismissFailsafeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDismissFailsafe = () => {
+    if (dismissFailsafeRef.current) {
+      clearTimeout(dismissFailsafeRef.current);
+      dismissFailsafeRef.current = null;
+    }
+  };
+
+  const hideOverlay = () => {
+    clearDismissFailsafe();
+    setVisible(false);
+  };
 
   useEffect(() => {
     if (isMobileE2e) {
@@ -32,9 +43,14 @@ export function SplashOverlay() {
       dismissed = true;
 
       void SplashScreen.hideAsync().then(() => {
-        opacity.value = withTiming(0, { duration: 450 }, (finished) => {
+        clearDismissFailsafe();
+        dismissFailsafeRef.current = setTimeout(() => {
+          hideOverlay();
+        }, FADE_MS + 100);
+
+        opacity.value = withTiming(0, { duration: FADE_MS }, (finished) => {
           if (finished) {
-            runOnJS(setVisible)(false);
+            runOnJS(hideOverlay)();
           }
         });
       });
@@ -48,6 +64,7 @@ export function SplashOverlay() {
 
     return () => {
       clearTimeout(fallbackTimer);
+      clearDismissFailsafe();
     };
   }, [isLoading, opacity]);
 
@@ -55,61 +72,28 @@ export function SplashOverlay() {
     opacity: opacity.value,
   }));
 
-  if (!visible) return null;
+  if (isMobileE2e) {
+    return null;
+  }
 
   return (
-    <Animated.View style={[styles.overlay, animatedStyle]}>
-      <LinearGradient
-        colors={[Brand.surface, Brand.bg, Brand.claySoft]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.content}>
-        <View style={styles.pedestal}>
-          <Image
-            style={styles.logo}
-            source={require('@/assets/images/logo.png')}
-            contentFit="contain"
-          />
-        </View>
-        <ThemedText type="logo" style={styles.wordmark}>
-          MudKitchen
-        </ThemedText>
-      </View>
-    </Animated.View>
+    <Modal
+      visible={visible}
+      animationType="none"
+      presentationStyle="fullScreen"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={() => {}}>
+      <Animated.View style={[styles.modalBody, animatedStyle]}>
+        <BrandedSplashContent variant="overlay" showActivityIndicator={isLoading} />
+      </Animated.View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-  },
-  content: {
-    alignItems: 'center',
-    gap: 20,
-  },
-  pedestal: {
-    width: LOGO_SIZE + 32,
-    height: LOGO_SIZE + 32,
-    borderRadius: (LOGO_SIZE + 32) / 2,
-    backgroundColor: Brand.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  logo: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-  },
-  wordmark: {
-    fontSize: 28,
+  modalBody: {
+    flex: 1,
+    backgroundColor: Brand.bg,
   },
 });

@@ -10,3 +10,4 @@ appId: com.mudkitchen.schoolstack.mobile
 - extendedWaitUntil:
     visible: 'Sign in to your school'
     timeout: 60000
+- assertVisible: 'Email'

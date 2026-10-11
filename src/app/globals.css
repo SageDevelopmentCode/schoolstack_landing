@@ -261,3 +261,11 @@ html[data-skip-entrance] .hero-frame-enter {
   letter-spacing: normal;
   line-height: normal;
 }
+
+/* Get-started showcase: layout follows 1100px canvas, not phone viewport */
+.showcase-demo-embed {
+  container-type: inline-size;
+  container-name: showcase;
+}
+
+@custom-variant showcase (@container showcase (min-width: 1px));

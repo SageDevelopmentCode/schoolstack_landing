@@ -28,7 +28,9 @@ Repo paths are relative to `schoolstack_landing` root.
 
 - `contentHeight`: `920` (`DEMO_CONTENT_HEIGHT`)
 - `cropFocus`: `top` (use `center` when framing vertical center of demo matters)
-- Alternate `side` between slides for visual rhythm (`copyLeft` / `copyRight`)
+- `tone`: `paper` (default warm slide backing) \| `forest` (green slide backing, white copy) — alternate on product slides per [finish-line-baseline.md](finish-line-baseline.md)
+- `crop`: optional `{ zoom, originX, originY }` on `CarouselProductSlide`; define named constants in the carousel file
+- Alternate `side` between slides for visual rhythm (`copyLeft` / `copyRight`) when the brief does not specify otherwise
 
 ### Promo slide options
 
@@ -40,6 +42,14 @@ Repo paths are relative to `schoolstack_landing` root.
 
 CTA footer: white pill on forest — copy styles from `PromoSlide` in `application-finish-line.tsx` (compact) or `HomePromoSlide` in `tuition-review.tsx` (default).
 
+### Default close (finish-line)
+
+For new carousels using the finish-line baseline, the **last slide is required** unless the brief opts out. Full checklist, defaults, and scaffold snippet: [finish-line-baseline.md — Promo close slide](finish-line-baseline.md#promo-close-slide-required-default).
+
+- `promoSiteLabel`: default `trymudkitchen.com`
+- `footer`: white **Book a demo** pill on forest (not optional for marketing carousels using this baseline)
+- `MarketingMobilePromoCluster`: `admissions` or `tuition`
+
 ## Demo window catalog
 
 All wrap content in `DemoCanvas` at `CAROUSEL_DEMO_INNER_WIDTH` (1100px).
@@ -48,10 +58,11 @@ All wrap content in `DemoCanvas` at `CAROUSEL_DEMO_INNER_WIDTH` (1100px).
 |--------|-----------------|--------------|
 | `MarketingStudentsDemoWindow` | `DemoAdminStudentsPage` | `contentHeight` |
 | `MarketingTuitionDemoWindow` | `DemoAdminTuitionPage` | `initialDashboardTab` (`catalog`, `families`, …), `initialRateCatalogTab`, `initialFamilyId`, `initialOpenAdjust`, `contentHeight` |
-| `MarketingAdmissionsSubmissionsDemoWindow` | `DemoAdminAdmissionsSubmissionsPage` | `initialSelectedLeadId` — lead ids `l0`–`l8` in `DEMO_ADMIN_SUBMISSION_LEADS` |
+| `MarketingAdmissionsSubmissionsDemoWindow` | `DemoAdminAdmissionsSubmissionsPage` | `initialSelectedLeadId` — lead ids `l0`–`l8` in `DEMO_ADMIN_SUBMISSION_LEADS`; `compactForMarketing` (default `true`); optional `leads` + `highlightLeadId` for slide 1 inbox (`buildDemoMarketingSlide1Leads()` in `demo-admin-admissions-fixtures.ts`) |
+| `MarketingParentApplyDemoWindow` | `DemoParentApplyDashboardPage` | Parent apply dashboard (Sarah/Emma submitted); `contentHeight` |
 | `MarketingEnrollmentFlowsDemoWindow` | `DemoAdminEnrollmentFlowsPage` | `initialFlowSelection`: `MARKETING_DEMO_APPLY_FLOW_SELECTION` or `MARKETING_DEMO_CHECKLIST_FLOW_SELECTION` |
 | `MarketingEnrollmentChecklistPreviewDemoWindow` | `DemoAdminEnrollmentChecklistPreviewPage` | `contentHeight` |
-| `MarketingParentEnrollmentDemoWindow` | `DemoParentEnrollmentTab` | `contentHeight` |
+| `MarketingParentEnrollmentDemoWindow` | `DemoParentEnrollmentTab` (wrapped in `DemoSchoolParentStoryProvider`) | `initialActiveItem`, `contentHeight` |
 | `MarketingParentDemoWindow` | `ParentDashboardDemo` | `tab`: `home` \| `enrollment` \| `billing`, `hideNav`, `contentHeight` |
 
 Constants `MARKETING_DEMO_APPLY_FLOW_SELECTION` and `MARKETING_DEMO_CHECKLIST_FLOW_SELECTION` live in `marketing-demo-windows.tsx` and tie to `demo-admin-admissions-fixtures.ts`.
@@ -113,8 +124,9 @@ Each slide component: small function at bottom of same file; shared constants at
 
 ## Examples to read first
 
-| Carousel | File | Pattern |
-|----------|------|---------|
+| Resource | Location | Pattern |
+|----------|----------|---------|
+| **Default layout contract** | [finish-line-baseline.md](finish-line-baseline.md) | Paper/forest rhythm, demo heuristics, 7-slide skeleton, `l3` spotlight |
 | Tuition planning story | `tuition-review.tsx` | Narrative + product + default promo phones |
 | Admissions → enrollment | `application-finish-line.tsx` | Product demos + handoff narrative + compact admissions promo |
 

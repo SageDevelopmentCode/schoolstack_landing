@@ -4,6 +4,7 @@ import { luffLearningParentDemoConfig } from "@/data/school-demos/luff-learning-
 import SchoolParentDemoShell, {
   type ParentDemoNavTab,
 } from "@/components/demo/shared/SchoolParentDemoShell";
+import { useShowcaseDesktopEmbed } from "@/components/demo/shared/showcase-desktop-embed";
 
 export type NavTab = ParentDemoNavTab;
 
@@ -18,12 +19,15 @@ export default function ParentDashboardDemo({
   hideNav?: boolean;
   onMount?: () => void;
 }) {
+  const desktopEmbed = useShowcaseDesktopEmbed();
+
   return (
     <SchoolParentDemoShell
       config={luffLearningParentDemoConfig}
       initialTab={initialTab}
       disableTour={disableTour}
       hideNav={hideNav}
+      desktopEmbed={desktopEmbed}
       onMount={onMount}
     />
   );

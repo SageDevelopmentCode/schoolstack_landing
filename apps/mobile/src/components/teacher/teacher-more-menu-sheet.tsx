@@ -1,19 +1,33 @@
 import type { User } from '@supabase/supabase-js';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTeacherHome } from '@/contexts/teacher-home-context';
 import { isTeacherFeatureEnabled } from '@/lib/teacher/teacher-features';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import {
+  AccountPortalSwitcherPanel,
+  useAccountPortalSwitcherVisibility,
+} from '@/components/account-portal-switcher-panel';
 import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { StoryCard } from '@/components/story/story-card';
 import { StoryMoreMenuHeader } from '@/components/story/more/story-more-menu-header';
 import { StoryMoreMenuIcon } from '@/components/story/more/story-more-menu-icon';
 import { StoryMoreMenuItemRow } from '@/components/story/more/story-more-menu-item-row';
 import { StoryMoreMenuItemsCard } from '@/components/story/more/story-more-menu-items-card';
+import { StoryMoreMenuSectionTabs } from '@/components/story/more/story-more-menu-section-tabs';
+import { StoryMoreMenuTabPanel } from '@/components/story/more/story-more-menu-tab-panel';
 import { StoryMoreMenuSheetShell } from '@/components/story/more/story-more-menu-sheet-shell';
+import {
+  buildMoreMenuTabs,
+  shouldShowMoreMenuSectionTabs,
+  type MoreMenuTabId,
+} from '@/lib/more-menu-tab-ids';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useParentTheme } from '@/contexts/parent-theme-context';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
+import { portalTypeToAccountPortalId } from '@/lib/auth/school-portal-options-types';
 import type { TeacherMoreMenuItemId } from '@/lib/teacher/teacher-nav';
 import { StoryCardPadding, StoryFonts } from '@/constants/story-theme';
 import { Spacing } from '@/constants/theme';
@@ -86,7 +100,8 @@ export function TeacherMoreMenuSheet({
   onSelectAccount,
 }: TeacherMoreMenuSheetProps) {
   const theme = useParentTheme();
-  const { user } = useAuth();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { user, portalType, selectedSchool } = useAuth();
   const { data } = useTeacherHome();
   const displayName = useMemo(() => (user ? getDisplayName(user) : ''), [user]);
   const attendanceEnabled = isTeacherFeatureEnabled(data?.features, 'attendance');
@@ -101,6 +116,34 @@ export function TeacherMoreMenuSheet({
     [attendanceEnabled, committeesEnabled],
   );
 
+  const [activeTab, setActiveTab] = useState<MoreMenuTabId>('menu');
+  const organizationId = selectedSchool?.id;
+  const { showAccountPortalSection } = useAccountPortalSwitcherVisibility(
+    organizationId,
+    slug,
+    visible,
+  );
+  const tabs = useMemo(
+    () => buildMoreMenuTabs({ showAccountPortal: showAccountPortalSection, showProgram: false }),
+    [showAccountPortalSection],
+  );
+  const useSectionTabs = shouldShowMoreMenuSectionTabs(tabs);
+
+  useEffect(() => {
+    if (visible && organizationId && slug) {
+      void prefetchSchoolPortalOptions(organizationId, slug);
+    }
+  }, [organizationId, slug, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      setActiveTab('menu');
+    }
+  }, [visible]);
+
+  const showMenuPanel = !useSectionTabs || activeTab === 'menu';
+  const showAccountPortalPanel = useSectionTabs && activeTab === 'account_portal';
+
   return (
     <StoryMoreMenuSheetShell visible={visible} onClose={onClose}>
       <StoryMoreMenuHeader
@@ -109,6 +152,23 @@ export function TeacherMoreMenuSheet({
         subtitle="Classroom tools and account"
       />
 
+      {useSectionTabs ? (
+        <StoryMoreMenuSectionTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+      ) : null}
+
+      <StoryMoreMenuTabPanel visible={showAccountPortalPanel && Boolean(organizationId && slug)}>
+        {organizationId && slug ? (
+          <AccountPortalSwitcherPanel
+            organizationId={organizationId}
+            slug={slug}
+            currentPortalId={portalTypeToAccountPortalId(portalType)}
+            enabled={visible}
+            onAfterSelect={onClose}
+          />
+        ) : null}
+      </StoryMoreMenuTabPanel>
+
+      <StoryMoreMenuTabPanel visible={showMenuPanel}>
       <StoryMoreMenuItemsCard>
         {visibleMenuItems.map((item, index) => (
           <StoryMoreMenuItemRow
@@ -144,6 +204,7 @@ export function TeacherMoreMenuSheet({
           </Pressable>
         </StoryCard>
       ) : null}
+      </StoryMoreMenuTabPanel>
     </StoryMoreMenuSheetShell>
   );
 }

@@ -22,12 +22,14 @@ type SlideCanvasProps = {
   children: ReactNode;
   background?: string;
   logo?: "corner" | "none";
+  logoTop?: number;
 };
 
 export default function SlideCanvas({
   children,
   background = SLIDE.paper,
   logo = "corner",
+  logoTop = 28,
 }: SlideCanvasProps) {
   return (
     <article
@@ -42,7 +44,7 @@ export default function SlideCanvas({
       }}
     >
       {children}
-      {logo === "corner" ? <CornerLogo /> : null}
+      {logo === "corner" ? <CornerLogo top={logoTop} /> : null}
     </article>
   );
 }
@@ -76,9 +78,9 @@ function CornerLogoPill() {
   );
 }
 
-function CornerLogo() {
+function CornerLogo({ top = 28 }: { top?: number }) {
   return (
-    <div style={{ position: "absolute", top: 28, right: 28, zIndex: 5 }}>
+    <div style={{ position: "absolute", top, right: 28, zIndex: 5 }}>
       <CornerLogoPill />
     </div>
   );

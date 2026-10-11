@@ -131,6 +131,42 @@ export async function listLiveOrganizations(): Promise<LiveOrganization[]> {
   );
 }
 
+export async function fetchLiveOrganizationsBySlugs(
+  slugs: string[],
+): Promise<LiveOrganization[]> {
+  if (slugs.length === 0) {
+    return [];
+  }
+
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('organizations')
+    .select(
+      `
+      id,
+      slug,
+      name,
+      organization_settings (
+        branding
+      )
+    `,
+    )
+    .eq('status', 'live')
+    .in('slug', slugs)
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+
+  const bySlug = new Map(
+    (data ?? []).map((row) => [String(row.slug), mapOrganizationRow(row)]),
+  );
+
+  return slugs
+    .map((slug) => bySlug.get(slug))
+    .filter((org): org is LiveOrganization => Boolean(org));
+}
+
 export async function listAllOrganizations(): Promise<AdminOrganization[]> {
   const supabase = getSupabaseClient();
 

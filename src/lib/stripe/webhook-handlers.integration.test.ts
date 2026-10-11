@@ -561,6 +561,16 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
 
     assert.equal(paymentRow?.stripe_provider_status, "succeeded");
 
+    const { data: deferredReceiptEvents, error: deferredError } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.PAYMENT_ACH_DEFERRED_RECEIPT_SENT)
+      .eq("entity_id", fixture.paymentId);
+
+    assert.ifError(deferredError);
+    assert.equal(deferredReceiptEvents?.length, 1);
+
     setupWebhookIntegrationTestEnv();
   });
 
@@ -607,6 +617,16 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(paymentRow?.status, "succeeded");
     assert.equal(paymentRow?.stripe_provider_status, "succeeded");
     assert.equal(activityEvents?.length, 1);
+
+    const { data: deferredReceiptEvents, error: deferredError } = await admin
+      .from("activity_events")
+      .select("id")
+      .eq("organization_id", fixture.organizationId)
+      .eq("action", ACTIVITY_ACTIONS.PAYMENT_ACH_DEFERRED_RECEIPT_SENT)
+      .eq("entity_id", fixture.paymentId);
+
+    assert.ifError(deferredError);
+    assert.equal(deferredReceiptEvents?.length ?? 0, 0);
   });
 
   it("is idempotent when payment_intent.succeeded and checkout.session.completed both fire for card tuition", async () => {

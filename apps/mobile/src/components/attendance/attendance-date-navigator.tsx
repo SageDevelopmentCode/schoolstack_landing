@@ -16,6 +16,7 @@ type AttendanceDateNavigatorProps = {
   activeDate: Date;
   summary: AttendanceRosterSummary | null;
   loading?: boolean;
+  error?: string | null;
   onDateChange: (date: Date) => void;
 };
 
@@ -23,13 +24,16 @@ export function AttendanceDateNavigator({
   activeDate,
   summary,
   loading = false,
+  error = null,
   onDateChange,
 }: AttendanceDateNavigatorProps) {
   const theme = useParentTheme();
   const viewingToday = isToday(activeDate);
   const subcopy = summary
     ? formatDashboardAttendanceSubcopy(summary)
-    : 'Loading roster summary…';
+    : loading
+      ? 'Loading roster summary…'
+      : error ?? 'Summary unavailable';
 
   return (
     <View style={[styles.container, { borderColor: Story.line, backgroundColor: Story.white }]}>

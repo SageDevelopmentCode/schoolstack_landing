@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { HeroEnter } from '@/components/ui/HeroEnter'
+import { BOOK_DEMO_HREF } from '@/lib/marketing/book-demo'
 
 const TAGS = [
   'Custom enrollment flows',
@@ -123,7 +124,7 @@ export default function CustomSection() {
         <HeroEnter delayMs={260}>
           <div className="mt-10">
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               className="inline-flex items-center gap-2 bg-accent text-white rounded-pill px-7 h-12 text-sm font-medium font-secondary hover:bg-accent-hover hover:-translate-y-0.5 transition-all duration-200 shadow-xs"
             >
               Tell us what you need

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
+import HomeBookDemoSection from "@/components/sections/HomeBookDemoSection";
+import HomePageMain from "@/components/sections/HomePageMain";
 import SectionFallback from "@/components/ui/SectionFallback";
 import { InViewSectionGate } from "@/components/ui/InViewSectionGate";
 import JsonLd from "@/components/seo/JsonLd";
@@ -59,10 +61,6 @@ const CustomSection = dynamic(
   () => import("@/components/sections/CustomSection"),
   { loading: () => <SectionFallback minHeight="20rem" /> },
 );
-const FinalCTASection = dynamic(
-  () => import("@/components/sections/FinalCTASection"),
-  { loading: () => <SectionFallback minHeight="16rem" /> },
-);
 const Footer = dynamic(
   () => import("@/components/sections/Footer"),
   { loading: () => <SectionFallback minHeight="12rem" /> },
@@ -84,7 +82,7 @@ export default function Home() {
       <JsonLd />
       <FaqJsonLd faqs={HOME_FAQ} />
       <Navbar />
-      <main>
+      <HomePageMain>
         <HeroSection />
         <InViewSectionGate minHeight="32rem">
           <ProductPreviewSection />
@@ -114,10 +112,8 @@ export default function Home() {
           <CustomSection />
         </InViewSectionGate>
         <HomeFaqSection />
-        <InViewSectionGate minHeight="16rem">
-          <FinalCTASection />
-        </InViewSectionGate>
-      </main>
+        <HomeBookDemoSection />
+      </HomePageMain>
       <InViewSectionGate minHeight="12rem">
         <Footer />
       </InViewSectionGate>

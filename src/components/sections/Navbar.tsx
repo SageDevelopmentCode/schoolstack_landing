@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Info, Layers, Users } from "lucide-react";
 import NavbarFrame from "./NavbarFrame";
+import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
@@ -53,7 +54,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex">
           <a
-            href="/get-started"
+            href={BOOK_DEMO_HREF}
             className="inline-flex items-center gap-1.5 bg-clay text-white text-sm font-medium rounded-pill px-[18px] h-9 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
           >
             Book a Demo

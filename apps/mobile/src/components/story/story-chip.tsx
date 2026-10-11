@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 
-export type StoryChipTone = 'success' | 'warning' | 'alert' | 'info';
+export type StoryChipTone = 'success' | 'warning' | 'alert' | 'info' | 'neutral';
 
 type StoryChipProps = {
   tone: StoryChipTone;
@@ -22,6 +22,8 @@ function chipColors(tone: StoryChipTone, theme: ReturnType<typeof useParentTheme
       return { bg: theme.alertBg, color: theme.alert };
     case 'info':
       return { bg: theme.infoBg, color: theme.info };
+    case 'neutral':
+      return { bg: theme.line, color: theme.muted };
   }
 }
 

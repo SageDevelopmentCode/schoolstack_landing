@@ -46,6 +46,14 @@ type CarouselProductSide = "copyLeft" | "copyRight";
 type CarouselProductVariant = "default" | "promo";
 type CarouselDemoPresentation = "laptop" | "phones";
 export type CarouselPromoDensity = "default" | "compact";
+export type CarouselSlideTone = "paper" | "forest";
+
+export type CarouselDemoCrop = {
+  zoom?: number;
+  originX?: number;
+  /** Demo point that sits on the top edge of the laptop. 0 is the top; negative shifts the demo down. */
+  originY?: number;
+};
 
 type CarouselProductSlideProps = {
   title: string;
@@ -58,9 +66,21 @@ type CarouselProductSlideProps = {
   variant?: CarouselProductVariant;
   demoPresentation?: CarouselDemoPresentation;
   cropFocus?: "top" | "center";
+  crop?: CarouselDemoCrop;
+  tone?: CarouselSlideTone;
   footer?: ReactNode;
   promoSiteLabel?: string;
   promoDensity?: CarouselPromoDensity;
+  /** Right padding of the copy band (logo clearance). */
+  copyInsetLeft?: number;
+  /** Left padding of the copy band. */
+  copyPaddingLeft?: number;
+  windowInsetLeft?: number;
+  windowInsetRight?: number;
+  /** Rendered above the laptop demo (e.g. cover slide callout card). */
+  demoOverlay?: ReactNode;
+  /** Top offset of the corner logo. */
+  logoTop?: number;
 };
 
 export function CarouselProductSlide({
@@ -74,11 +94,20 @@ export function CarouselProductSlide({
   variant = "default",
   demoPresentation = "laptop",
   cropFocus = "top",
+  crop,
+  tone = "paper",
   footer,
   promoSiteLabel,
   promoDensity = "default",
+  copyInsetLeft = COPY_LOGO_GUTTER,
+  copyPaddingLeft = 64,
+  windowInsetLeft = WINDOW_LEFT,
+  windowInsetRight = WINDOW_RIGHT_BLEED,
+  demoOverlay,
+  logoTop,
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
+  const isForest = isPromo || tone === "forest";
   const isCompactPromo = isPromo && promoDensity === "compact";
   const showPromoTopRow = isPromo && Boolean(promoSiteLabel);
   const showPhones = isPromo && demoPresentation === "phones";
@@ -86,22 +115,24 @@ export function CarouselProductSlide({
     ? `${COPY_TOP_PADDING}px 64px 32px 64px`
     : isPromo
       ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
-      : `${COPY_TOP_PADDING}px ${COPY_LOGO_GUTTER}px ${COPY_BOTTOM_PADDING}px 64px`;
+      : `${COPY_TOP_PADDING}px ${copyInsetLeft}px ${COPY_BOTTOM_PADDING}px ${copyPaddingLeft}px`;
   const textAlign = isPromo ? "center" : "left";
-  const slideBackground = background ?? (isPromo ? SLIDE.forest : DEMO_SLIDE_PAPER);
-  const titleColor = isPromo ? SLIDE.white : SLIDE.ink;
-  const bodyColor = isPromo ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
+  const slideBackground = background ?? (isForest ? SLIDE.forest : DEMO_SLIDE_PAPER);
+  const titleColor = isForest ? SLIDE.white : SLIDE.ink;
+  const bodyColor = isForest ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
+  const kickerColor = isForest ? SLIDE.white : SLIDE.clay;
 
   const windowMargins = {
-    marginLeft: WINDOW_LEFT,
-    marginRight: WINDOW_RIGHT_BLEED,
+    marginLeft: windowInsetLeft,
+    marginRight: windowInsetRight,
     marginBottom: WINDOW_BOTTOM_BLEED,
   };
 
   const defaultBodyWidth = DEFAULT_BODY_WIDTH;
+  const hasDemoOverlay = Boolean(demoOverlay) && !showPhones;
 
   return (
-    <SlideCanvas background={slideBackground} logo={showPromoTopRow ? "none" : "corner"}>
+    <SlideCanvas background={slideBackground} logo={showPromoTopRow ? "none" : "corner"} logoTop={logoTop}>
       {showPromoTopRow && promoSiteLabel ? <PromoSlideTopRow siteLabel={promoSiteLabel} /> : null}
       <div
         style={{
@@ -144,7 +175,7 @@ export function CarouselProductSlide({
                     fontWeight: 700,
                     letterSpacing: "0.16em",
                     textTransform: "uppercase",
-                    color: isPromo ? SLIDE.white : SLIDE.clay,
+                    color: kickerColor,
                   }}
                 >
                   {kicker}
@@ -187,30 +218,39 @@ export function CarouselProductSlide({
               marginTop: showPhones ? (isCompactPromo ? 124 : 72) : WINDOW_GAP,
               position: "relative",
               zIndex: 1,
-              overflow: showPhones ? "visible" : "hidden",
+              overflow: showPhones || hasDemoOverlay ? "visible" : "hidden",
               ...(showPhones ? { marginLeft: 0, marginRight: 0 } : windowMargins),
             }}
           >
             {showPhones ? (
               <div style={{ position: "absolute", inset: 0, overflow: "visible" }}>{children}</div>
             ) : (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  ...(WINDOW_CHROME_SCALE !== 1
-                    ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
-                    : {}),
-                }}
-              >
-                <CarouselLaptopWindow
-                  contentHeight={contentHeight}
-                  cropFocus={cropFocus}
-                  defaultBodyWidth={defaultBodyWidth}
+              <>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 1,
+                    ...(WINDOW_CHROME_SCALE !== 1
+                      ? { transform: `scale(${WINDOW_CHROME_SCALE})`, transformOrigin: "top center" }
+                      : {}),
+                  }}
                 >
-                  {children}
-                </CarouselLaptopWindow>
-              </div>
+                  <CarouselLaptopWindow
+                    contentHeight={contentHeight}
+                    cropFocus={cropFocus}
+                    crop={crop}
+                    defaultBodyWidth={defaultBodyWidth}
+                  >
+                    {children}
+                  </CarouselLaptopWindow>
+                </div>
+                {hasDemoOverlay ? (
+                  <div style={{ position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none" }}>
+                    {demoOverlay}
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
@@ -219,17 +259,21 @@ export function CarouselProductSlide({
   );
 }
 
-function CarouselLaptopWindow({
-  children,
-  contentHeight,
-  cropFocus,
-  defaultBodyWidth,
-}: {
+export type CarouselLaptopWindowProps = {
   children: ReactNode;
   contentHeight: number;
   cropFocus: "top" | "center";
+  crop?: CarouselDemoCrop;
   defaultBodyWidth: number;
-}) {
+};
+
+export function CarouselLaptopWindow({
+  children,
+  contentHeight,
+  cropFocus,
+  crop,
+  defaultBodyWidth,
+}: CarouselLaptopWindowProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodySize, setBodySize] = useState({ width: defaultBodyWidth, height: DEFAULT_BODY_HEIGHT });
 
@@ -255,10 +299,31 @@ function CarouselLaptopWindow({
     return () => observer.disconnect();
   }, []);
 
-  const scale = Math.max(bodySize.width / CAROUSEL_DEMO_INNER_WIDTH, bodySize.height / contentHeight);
+  const fitScale = Math.max(
+    bodySize.width / CAROUSEL_DEMO_INNER_WIDTH,
+    bodySize.height / contentHeight,
+  );
+  const scale = fitScale * (crop?.zoom ?? 1);
+  const cropOriginX = crop?.originX ?? 0;
+  const cropOriginY = crop?.originY ?? 0;
 
   const originY = cropFocus === "center" ? "center" : "top";
   const scaledOriginY = cropFocus === "center" ? "50%" : "0";
+  const croppedFrame = crop
+    ? {
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
+        top: -(cropOriginY * contentHeight * scale),
+        left: -(cropOriginX * CAROUSEL_DEMO_INNER_WIDTH * scale),
+        marginTop: 0,
+      }
+    : {
+        transform: `scale(${scale})`,
+        transformOrigin: cropFocus === "center" ? `left ${originY}` : "top left",
+        top: scaledOriginY,
+        left: 0,
+        marginTop: cropFocus === "center" ? -(contentHeight * scale) / 2 : 0,
+      };
 
   return (
     <div
@@ -298,12 +363,8 @@ function CarouselLaptopWindow({
           style={{
             width: CAROUSEL_DEMO_INNER_WIDTH,
             height: contentHeight,
-            transform: `scale(${scale})`,
-            transformOrigin: cropFocus === "center" ? `left ${originY}` : "top left",
             position: "absolute",
-            top: scaledOriginY,
-            left: 0,
-            marginTop: cropFocus === "center" ? -(contentHeight * scale) / 2 : 0,
+            ...croppedFrame,
           }}
         >
           {children}

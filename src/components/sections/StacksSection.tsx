@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { FadeInView } from '@/components/ui/FadeInView'
+import { BOOK_DEMO_HREF } from '@/lib/marketing/book-demo'
 
 const ease = [0.16, 1, 0.3, 1] as const
 
@@ -134,7 +135,7 @@ export default function StacksSection() {
 
             <div className="mt-8">
               <a
-                href="/get-started"
+                href={BOOK_DEMO_HREF}
                 className="flex items-center justify-center gap-2 rounded-pill h-11 text-sm font-medium font-secondary bg-clay text-white hover:opacity-90 shadow-xs transition-all duration-200 hover:-translate-y-0.5"
               >
                 Book a Demo
@@ -160,7 +161,7 @@ export default function StacksSection() {
               We also offer tailored configurations for growing teams.
             </p>
             <a
-              href="/get-started"
+              href={BOOK_DEMO_HREF}
               className="inline-flex items-center gap-1.5 mt-3 text-[14px] text-accent hover:text-accent-hover underline underline-offset-2 transition-colors"
             >
               Talk About Your School

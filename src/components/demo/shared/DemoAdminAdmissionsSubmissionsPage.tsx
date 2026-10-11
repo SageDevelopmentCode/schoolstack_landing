@@ -15,13 +15,32 @@ import {
 } from "@/data/school-demos/demo-admin-admissions-fixtures";
 
 type DemoAdminAdmissionsSubmissionsPageProps = {
+  leads?: DemoSubmissionLead[];
   initialSelectedLeadId?: string;
+  initialDetailTab?: "overview" | "application" | "history" | "payments";
+  compactForMarketing?: boolean;
+  showcaseDense?: boolean;
+  animateNewSubmission?: boolean;
+  newSubmissionLeadId?: string;
+  revealNewSubmissionImmediately?: boolean;
+  highlightLeadId?: string | null;
 };
 
 export default function DemoAdminAdmissionsSubmissionsPage({
+  leads: leadsOverride,
   initialSelectedLeadId,
+  initialDetailTab = "overview",
+  compactForMarketing = false,
+  showcaseDense = false,
+  animateNewSubmission = false,
+  newSubmissionLeadId,
+  revealNewSubmissionImmediately = false,
+  highlightLeadId = null,
 }: DemoAdminAdmissionsSubmissionsPageProps) {
-  const leads = useMemo(() => DEMO_ADMIN_SUBMISSION_LEADS, []);
+  const leads = useMemo(
+    () => leadsOverride ?? DEMO_ADMIN_SUBMISSION_LEADS,
+    [leadsOverride],
+  );
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(
     () => initialSelectedLeadId ?? null,
   );
@@ -39,12 +58,22 @@ export default function DemoAdminAdmissionsSubmissionsPage({
   }, [leads, selectedLeadId]);
 
   return (
-    <DemoSchoolAdminStoryProvider className="h-full">
-      <div className="pointer-events-none relative h-full min-h-0 select-none overflow-hidden">
+    <DemoSchoolAdminStoryProvider
+      className={showcaseDense ? "h-auto" : "h-full"}
+    >
+      <div
+        className={`pointer-events-none relative select-none ${showcaseDense ? "overflow-visible" : "h-full min-h-0 overflow-hidden"}`}
+      >
         <DemoApplicationSubmissionsTab
           leads={leads}
           onSelectLead={(lead) => setSelectedLeadId(lead.id)}
           selectedLeadId={selectedLeadId}
+          compactForMarketing={compactForMarketing}
+          showcaseDense={showcaseDense}
+          animateNewSubmission={animateNewSubmission}
+          newSubmissionLeadId={newSubmissionLeadId}
+          revealNewSubmissionImmediately={revealNewSubmissionImmediately}
+          highlightLeadId={highlightLeadId}
         />
         <AnimatePresence>
           {selectedLead ? (
@@ -54,6 +83,8 @@ export default function DemoAdminAdmissionsSubmissionsPage({
               submission={mapDemoLeadToSubmission(selectedLead)}
               flow={getDemoSubmissionFlow(selectedLead.flowId)}
               onClose={() => setSelectedLeadId(null)}
+              initialTab={initialDetailTab}
+              appearImmediately
             />
           ) : null}
         </AnimatePresence>

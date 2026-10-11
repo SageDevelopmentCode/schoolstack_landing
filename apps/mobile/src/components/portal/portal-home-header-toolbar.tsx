@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PortalHomeHeaderDateBadge } from '@/components/portal/portal-home-header-date-badge';
+import { MessagesAvatar } from '@/components/school-admin/messages/messages-avatar';
 import { useParentTheme } from '@/contexts/parent-theme-context';
 import { StoryFonts } from '@/constants/story-theme';
 import { Radius, Spacing } from '@/constants/theme';
@@ -17,7 +18,9 @@ type PortalHomeHeaderToolbarProps = {
     postCount?: number;
     onPress: () => void;
   };
-  help?: {
+  profile?: {
+    displayName: string;
+    photoUrl?: string | null;
     onPress: () => void;
   };
   notifications?: {
@@ -34,13 +37,13 @@ export function PortalHomeHeaderToolbar({
   greeting,
   dateLabel,
   bulletin,
-  help,
+  profile,
   notifications,
 }: PortalHomeHeaderToolbarProps) {
   const theme = useParentTheme();
   const showBulletinBadge = (bulletin?.postCount ?? 0) > 0;
   const showUnreadBadge = (notifications?.unreadCount ?? 0) > 0;
-  const hasActions = Boolean(bulletin) || Boolean(help) || Boolean(notifications);
+  const hasActions = Boolean(bulletin) || Boolean(profile) || Boolean(notifications);
 
   if (!greeting && !hasActions && !dateLabel) {
     return null;
@@ -55,23 +58,6 @@ export function PortalHomeHeaderToolbar({
 
         {hasActions ? (
           <View style={styles.actions}>
-            {help ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Get help"
-                onPress={help.onPress}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  {
-                    backgroundColor: ON_PRIMARY_BUTTON_BG,
-                    borderColor: ON_PRIMARY_BUTTON_BORDER,
-                  },
-                  pressed && styles.pressed,
-                ]}>
-                <Ionicons name="help-circle-outline" size={20} color={theme.white} />
-              </Pressable>
-            ) : null}
-
             {bulletin ? (
               <Pressable
                 accessibilityRole="button"
@@ -123,6 +109,21 @@ export function PortalHomeHeaderToolbar({
                 ) : null}
               </Pressable>
             ) : null}
+
+            {profile ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Account for ${profile.displayName}`}
+                onPress={profile.onPress}
+                style={({ pressed }) => [styles.profileButton, pressed && styles.pressed]}>
+                <MessagesAvatar
+                  name={profile.displayName}
+                  color={theme.primary}
+                  photoUrl={profile.photoUrl}
+                  size="toolbar"
+                />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -156,6 +157,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   countBadge: {
     position: 'absolute',

@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -24,6 +25,11 @@ import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { Story } from '@/constants/story-theme';
 import { useAuth } from '@/contexts/auth-context';
+import {
+  useCompletePortalTransitionOnMount,
+  useReleaseAccountPortalSwitchOnBlur,
+} from '@/contexts/portal-transition-context';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
 import { toOrganizationBranding } from '@/lib/organizations';
 import {
@@ -69,14 +75,31 @@ function TeacherMessagesInboxRealtimeBridge() {
 
 function TeacherLayoutContent() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const pathname = usePathname();
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { user, selectedSchool, portalType, previewSession, isLoading } = useAuth();
+  const {
+    user,
+    selectedSchool,
+    portalType,
+    previewSession,
+    isLoading,
+    accountPortalSwitchInProgress,
+  } = useAuth();
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  useCompletePortalTransitionOnMount('teacher');
+  useReleaseAccountPortalSwitchOnBlur();
+
+  useEffect(() => {
+    if (selectedSchool?.id && slug) {
+      void prefetchSchoolPortalOptions(selectedSchool.id, slug);
+    }
+  }, [selectedSchool?.id, slug]);
 
   const pathTab = getActiveTab(pathname);
   const activeTab = moreSheetOpen ? 'more' : pathTab;
@@ -89,7 +112,7 @@ function TeacherLayoutContent() {
   useRecoverableAuthRedirect(Boolean(slug) && !user, isLoading || !slug);
 
   useEffect(() => {
-    if (isLoading || !slug || !user) return;
+    if (!isFocused || isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       !isPortalSessionAllowed(
@@ -102,7 +125,17 @@ function TeacherLayoutContent() {
     ) {
       router.replace('/portal');
     }
-  }, [isLoading, portalType, previewSession, router, selectedSchool?.slug, slug, user]);
+  }, [
+    accountPortalSwitchInProgress,
+    isFocused,
+    isLoading,
+    portalType,
+    previewSession,
+    router,
+    selectedSchool?.slug,
+    slug,
+    user,
+  ]);
 
   const handleTabChange = (tab: TeacherTab) => {
     if (!slug) return;

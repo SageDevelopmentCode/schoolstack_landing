@@ -9,7 +9,9 @@ import { SubmissionStoryTabBar } from '@/components/school-admin/admissions/subm
 import { TeacherHomeBulletinSheet } from '@/components/teacher/home/teacher-home-bulletin-sheet';
 import { TeacherHomeClassroomCard } from '@/components/teacher/home/teacher-home-classroom-card';
 import { TeacherHomeClassroomRosterSheet } from '@/components/teacher/home/teacher-home-classroom-roster-sheet';
+import { PortalAccountSheet } from '@/components/portal-account-sheet';
 import { PortalNeedHelpCard } from '@/components/portal/portal-need-help-card';
+import { useAuth } from '@/contexts/auth-context';
 import { PortalSupportRequestSheet } from '@/components/portal/portal-support-request-sheet';
 import { TeacherActivityNotificationsSheet } from '@/components/teacher/teacher-activity-notifications-sheet';
 import { TeacherHomeHeader } from '@/components/teacher/home/teacher-home-header';
@@ -59,12 +61,15 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   const router = useRouter();
   const { isPreview } = usePortalPreview();
   const { data, isLoading, isRefreshing, error, refresh, ensureLoaded } = useTeacherHome();
+  const [heroProfilePhotoUrl, setHeroProfilePhotoUrl] = useState<string | null>(null);
 
   const [homeTab, setHomeTab] = useState<TeacherHomeTab>('overview');
   const [bulletinOpen, setBulletinOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [supportSheetOpen, setSupportSheetOpen] = useState(false);
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  const { selectedSchool } = useAuth();
   const [classroomRoster, setClassroomRoster] = useState<StaffClassroomOption | null>(null);
 
   useAuthRequiredRedirect(error);
@@ -72,6 +77,12 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
   useEffect(() => {
     ensureLoaded();
   }, [ensureLoaded]);
+
+  useEffect(() => {
+    if (data?.userProfile.profilePhotoUrl !== undefined) {
+      setHeroProfilePhotoUrl(data.userProfile.profilePhotoUrl);
+    }
+  }, [data?.userProfile.profilePhotoUrl]);
 
   const loadNotificationUnreadCount = useCallback(async () => {
     if (!data?.organizationId) return;
@@ -145,7 +156,8 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
       bulletinPostCount={summary.bulletinPosts.length}
       notificationUnreadCount={notificationUnreadCount}
       onOpenBulletin={() => setBulletinOpen(true)}
-      onPressHelp={() => setSupportSheetOpen(true)}
+      profilePhotoUrl={heroProfilePhotoUrl}
+      onPressProfile={() => setAccountSheetOpen(true)}
       onPressNotifications={() => setNotificationsOpen(true)}
     />
   );
@@ -266,6 +278,19 @@ export function TeacherHomeScreen({ slug }: TeacherHomeScreenProps) {
         sourcePagePath={`/teacher/${slug}/home`}
         errorOperation="teacher_portal_support_request_submit"
         onSubmit={submitTeacherSupportRequest}
+      />
+
+      <PortalAccountSheet
+        visible={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+        displayName={data.userProfile.displayName}
+        photoUrl={heroProfilePhotoUrl}
+        organizationId={selectedSchool?.id ?? data.organizationId}
+        slug={slug}
+        onProfilePhotoUpdated={(url) => {
+          setHeroProfilePhotoUrl(url);
+          void refresh();
+        }}
       />
 
       <TeacherHomeClassroomRosterSheet

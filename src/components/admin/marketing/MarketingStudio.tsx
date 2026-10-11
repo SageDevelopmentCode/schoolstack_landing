@@ -24,6 +24,11 @@ async function slideToPng(node: HTMLElement): Promise<string> {
     canvasWidth: SLIDE_WIDTH,
     canvasHeight: SLIDE_HEIGHT,
     skipAutoScale: true,
+    filter: (domNode) => {
+      if (!(domNode instanceof HTMLElement)) return true;
+      if (domNode.dataset.marketingExportIgnore === "true") return false;
+      return window.getComputedStyle(domNode).position !== "fixed";
+    },
   });
 }
 
@@ -259,6 +264,12 @@ export default function MarketingStudio() {
               key={item.id}
               ref={(node) => {
                 exportRefs.current[itemIndex] = node;
+              }}
+              style={{
+                width: SLIDE_WIDTH,
+                height: SLIDE_HEIGHT,
+                overflow: "hidden",
+                position: "relative",
               }}
             >
               <SlideView slide={item} />

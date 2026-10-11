@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import { Slot, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -26,6 +27,11 @@ import { SchoolAdminSubmissionsProvider } from '@/contexts/school-admin-submissi
 import { SchoolAdminThemeProvider, useAdminTheme } from '@/contexts/admin-theme-context';
 import { ParentThemeProvider } from '@/contexts/parent-theme-context';
 import { useAuth } from '@/contexts/auth-context';
+import {
+  useCompletePortalTransitionOnMount,
+  useReleaseAccountPortalSwitchOnBlur,
+} from '@/contexts/portal-transition-context';
+import { prefetchSchoolPortalOptions } from '@/lib/auth/use-school-portal-options';
 import { useRecoverableAuthRedirect } from '@/lib/auth/use-recoverable-auth-redirect';
 import { fetchMessagesUnreadCount } from '@/lib/messages/api';
 import { usePortalOrganization } from '@/hooks/use-portal-organization';
@@ -64,6 +70,7 @@ function SchoolAdminMessagesInboxRealtimeBridge() {
 
 function SchoolAdminLayoutContent() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const pathname = usePathname();
   const theme = useAdminTheme();
   const { unreadCount, refreshUnreadCount } = useMessagesUnread();
@@ -76,11 +83,21 @@ function SchoolAdminLayoutContent() {
     previewSession,
     isLoading,
     enterSchoolAsPlatformAdmin,
+    accountPortalSwitchInProgress,
   } = useAuth();
   const { isPreview } = usePortalPreview();
   const exitPreview = useExitPortalPreviewNavigation();
 
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  useCompletePortalTransitionOnMount('school_admin');
+  useReleaseAccountPortalSwitchOnBlur();
+
+  useEffect(() => {
+    if (selectedSchool?.id && slug) {
+      void prefetchSchoolPortalOptions(selectedSchool.id, slug);
+    }
+  }, [selectedSchool?.id, slug]);
 
   const pathTab = getActiveTab(pathname);
   const activeTab = moreSheetOpen ? 'more' : pathTab;
@@ -93,7 +110,7 @@ function SchoolAdminLayoutContent() {
   }, [pathname, refreshUnreadCount]);
 
   useEffect(() => {
-    if (isLoading || !slug || !user) return;
+    if (!isFocused || isLoading || !slug || !user || accountPortalSwitchInProgress) return;
 
     if (
       isPortalSessionAllowed(
@@ -107,8 +124,12 @@ function SchoolAdminLayoutContent() {
       return;
     }
 
+    let cancelled = false;
+
     void (async () => {
       const organization = await fetchOrganizationBySlug(slug);
+      if (cancelled) return;
+
       if (!organization) {
         router.replace(
           previewSession ? '/platform-admin/impersonate' : '/platform-admin/organizations',
@@ -121,14 +142,25 @@ function SchoolAdminLayoutContent() {
         return;
       }
 
+      if (cancelled) return;
+
       if (isPlatformAdminSession) {
         await enterSchoolAsPlatformAdmin(organization);
-      } else {
-        router.replace('/login');
+        return;
+      }
+
+      if (!cancelled) {
+        router.replace('/portal');
       }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
+    accountPortalSwitchInProgress,
     enterSchoolAsPlatformAdmin,
+    isFocused,
     isLoading,
     isPlatformAdminSession,
     portalType,

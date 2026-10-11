@@ -16,6 +16,8 @@ type TeacherMessagesPageProps = {
   initialInbox?: MessagesInboxData;
   previewThreadMessages?: Record<string, PortalMessage[]>;
   previewMode?: boolean;
+  initialThreadId?: string | null;
+  fillHeight?: boolean;
 };
 
 function TeacherMessagesPageFallback() {
@@ -39,6 +41,8 @@ function TeacherMessagesPageContent({
   initialInbox,
   previewThreadMessages,
   previewMode = false,
+  initialThreadId = null,
+  fillHeight = false,
 }: TeacherMessagesPageProps) {
   const { theme, adminCompat: C } = useParentTheme();
   const teacherPortal = useMemo(
@@ -55,7 +59,11 @@ function TeacherMessagesPageContent({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div
+      className={`flex min-h-0 flex-col overflow-hidden ${
+        fillHeight ? "h-full flex-1" : "flex-1"
+      }`}
+    >
       <MessagesInboxLayout
         api={{
           basePath: "/api/teacher-portal/messages",
@@ -66,6 +74,8 @@ function TeacherMessagesPageContent({
         }}
         initialInbox={initialInbox}
         previewThreadMessages={previewThreadMessages}
+        initialThreadId={initialThreadId}
+        fillHeight={fillHeight}
         readOnly={previewMode}
         C={C}
         theme={theme}
@@ -77,9 +87,13 @@ function TeacherMessagesPageContent({
 }
 
 export default function TeacherMessagesPage(props: TeacherMessagesPageProps) {
-  return (
+  const page = (
     <Suspense fallback={<TeacherMessagesPageFallback />}>
       <TeacherMessagesPageContent {...props} />
     </Suspense>
   );
+
+  if (!props.fillHeight) return page;
+
+  return <div className="flex h-full min-h-0 flex-1 flex-col">{page}</div>;
 }

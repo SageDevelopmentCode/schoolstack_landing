@@ -59,6 +59,7 @@ type ApplyDashboardProps = {
   previewBasePath?: string;
   focusApplicationId?: string | null;
   shadowDaySchedulingMode?: ShadowDaySchedulingMode;
+  suppressHelpFab?: boolean;
 };
 
 function formatApplicationDate(
@@ -222,6 +223,7 @@ export default function ApplyDashboard({
   previewBasePath,
   focusApplicationId = null,
   shadowDaySchedulingMode,
+  suppressHelpFab = false,
 }: ApplyDashboardProps) {
   const router = useRouter();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -298,6 +300,7 @@ export default function ApplyDashboard({
       openPortalLinksInNewTab={openPortalLinksInNewTab}
       previewMode={previewMode}
       previewHomeHref={previewHomeHref}
+      suppressHelpFab={suppressHelpFab}
     >
       <div className="flex flex-col gap-7">
         {showPortalStarter && parentPortalHref ? (
@@ -365,7 +368,7 @@ export default function ApplyDashboard({
             variants={applyDashboardFadeUp}
           >
             <ParentCard theme={theme} className="!p-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 showcase:flex-row showcase:items-center showcase:justify-between sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
                   <div
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"

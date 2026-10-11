@@ -61,7 +61,7 @@ export function attendanceStatusTone(status: AttendanceRosterStatus): StoryChipT
     case 'picked_up':
       return 'info';
     case 'not_marked':
-      return 'warning';
+      return 'neutral';
   }
 }
 

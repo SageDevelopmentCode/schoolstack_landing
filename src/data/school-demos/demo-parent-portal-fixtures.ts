@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import type {
   ChildProfileData,
+  FamilyApplication,
   FamilyChildOverview,
   FamilyUserProfile,
 } from "@/lib/admissions/parent-portal-access";
+import type { EnrollmentProgressSummary } from "@/lib/admissions/enrollment-checklist-materialization";
 import {
   defaultApplicationFormFeeConfig,
   emptyApplicationFormSchema,
@@ -67,9 +69,77 @@ export const DEMO_PARENT_ENROLLMENT_COMPLETIONS: Record<DemoParentChildId, boole
 
 export function buildDemoParentUserProfile(): FamilyUserProfile {
   return {
-    email: "sarah.mitchell@example.com",
+    email: "sarah.mitchell@email.com",
     displayName: "Sarah Mitchell",
     profilePhotoUrl: null,
+  };
+}
+
+/** Sarah / Emma application for marketing carousels (matches admin submission lead l3). */
+export const DEMO_MARKETING_APPLY_APPLICATION_ID = "demo-marketing-apply-emma";
+
+export function buildDemoMarketingApplyApplications(): FamilyApplication[] {
+  return [
+    {
+      id: DEMO_MARKETING_APPLY_APPLICATION_ID,
+      status: "submitted",
+      submittedAt: "2026-03-20T16:00:00.000Z",
+      createdAt: "2026-03-18T10:00:00.000Z",
+      formTitle: "Apply Now Form",
+      publicSlug: "demo-emma-mitchell",
+      studentId: DEMO_STUDENT_EMMA,
+      studentName: "Emma Mitchell",
+      grade: "2nd",
+      postSubmitTasks: [],
+    },
+  ];
+}
+
+export function buildDemoMarketingApplyDashboardData(): {
+  applications: FamilyApplication[];
+  applicationsWithTasks: FamilyApplication[];
+  enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
+  userProfile: FamilyUserProfile;
+} {
+  const applications = buildDemoMarketingApplyApplications();
+  return {
+    applications,
+    applicationsWithTasks: applications,
+    enrollmentProgressByApplicationId: {},
+    userProfile: buildDemoParentUserProfile(),
+  };
+}
+
+/** Emma accepted and the enrollment checklist is open, with nothing completed yet. */
+export function buildDemoMarketingEnrollingApplyDashboardData(): {
+  applications: FamilyApplication[];
+  applicationsWithTasks: FamilyApplication[];
+  enrollmentProgressByApplicationId: Record<string, EnrollmentProgressSummary>;
+  userProfile: FamilyUserProfile;
+} {
+  const submitted = buildDemoMarketingApplyApplications()[0];
+  const applications: FamilyApplication[] = [
+    {
+      ...submitted,
+      status: "enrolling",
+    },
+  ];
+  const progress: EnrollmentProgressSummary = {
+    label: "Not started",
+    tone: "not_started",
+    completed: 0,
+    total: 6,
+    checklistStatus: "not_started",
+    paymentSummary: null,
+  };
+
+  return {
+    applications,
+    applicationsWithTasks: [],
+    enrollmentProgressByApplicationId: {
+      [DEMO_MARKETING_APPLY_APPLICATION_ID]: progress,
+    },
+    userProfile: buildDemoParentUserProfile(),
   };
 }
 

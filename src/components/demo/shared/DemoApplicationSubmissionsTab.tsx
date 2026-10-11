@@ -88,28 +88,39 @@ export default function DemoApplicationSubmissionsTab({
   selectedLeadId = null,
   animateNewSubmission = false,
   newSubmissionLeadId = DEMO_NEW_SUBMISSION_LEAD_ID,
+  revealNewSubmissionImmediately = false,
+  highlightLeadId = null,
+  compactForMarketing = false,
+  showcaseDense = false,
 }: {
   leads: DemoSubmissionLead[];
   onSelectLead: (lead: DemoSubmissionLead) => void;
   selectedLeadId?: string | null;
   animateNewSubmission?: boolean;
   newSubmissionLeadId?: string;
+  revealNewSubmissionImmediately?: boolean;
+  highlightLeadId?: string | null;
+  compactForMarketing?: boolean;
+  showcaseDense?: boolean;
 }) {
   const theme = ADMIN_DEMO_STORY_THEME;
+  const cellPy = showcaseDense ? "py-1.5" : "py-3";
   const C = ADMIN_DEMO_STORY_COMPAT;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [formFilter, setFormFilter] = useState<FormFilter>("all");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [timedReveal, setTimedReveal] = useState(false);
+  const [timedReveal, setTimedReveal] = useState(
+    () => animateNewSubmission && revealNewSubmissionImmediately,
+  );
 
   useEffect(() => {
-    if (!animateNewSubmission) return;
+    if (!animateNewSubmission || revealNewSubmissionImmediately) return;
     const timer = setTimeout(() => setTimedReveal(true), 700);
     return () => {
       clearTimeout(timer);
       setTimedReveal(false);
     };
-  }, [animateNewSubmission]);
+  }, [animateNewSubmission, revealNewSubmissionImmediately]);
 
   const submissions = useMemo(() => mapDemoLeadsToSubmissions(leads), [leads]);
   const metrics = useMemo(
@@ -144,15 +155,28 @@ export default function DemoApplicationSubmissionsTab({
   const newSubmissionRevealed = !animateNewSubmission || timedReveal;
 
   const visibleSubmissions = useMemo(() => {
-    if (!useNewSubmissionAnimation) return filteredSubmissions;
-    const withoutAnimated = filteredSubmissions.filter(
-      (row) => row.id !== newSubmissionLeadId,
-    );
-    if (!newSubmissionRevealed || !animatedSubmission) return withoutAnimated;
-    return [animatedSubmission, ...withoutAnimated];
+    let rows = filteredSubmissions;
+    if (useNewSubmissionAnimation) {
+      const withoutAnimated = filteredSubmissions.filter(
+        (row) => row.id !== newSubmissionLeadId,
+      );
+      if (!newSubmissionRevealed || !animatedSubmission) {
+        rows = withoutAnimated;
+      } else {
+        rows = [animatedSubmission, ...withoutAnimated];
+      }
+    } else if (highlightLeadId) {
+      const highlighted = rows.find((row) => row.id === highlightLeadId);
+      const rest = rows.filter((row) => row.id !== highlightLeadId);
+      if (highlighted) {
+        rows = [highlighted, ...rest];
+      }
+    }
+    return rows;
   }, [
     animatedSubmission,
     filteredSubmissions,
+    highlightLeadId,
     newSubmissionLeadId,
     newSubmissionRevealed,
     useNewSubmissionAnimation,
@@ -189,7 +213,7 @@ export default function DemoApplicationSubmissionsTab({
     return (
       <>
         {showFormColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             <div className="text-xs font-semibold" style={{ color: theme.ink }}>
               {submission.formTitle}
             </div>
@@ -200,7 +224,7 @@ export default function DemoApplicationSubmissionsTab({
             ) : null}
           </td>
         ) : null}
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionContactCell
             guardianName={submission.guardianName}
             contactEmail={submission.contactEmail}
@@ -211,16 +235,16 @@ export default function DemoApplicationSubmissionsTab({
             theme={theme}
           />
         </td>
-        <td className="px-[15px] py-3 text-xs" style={{ color: "#607078" }}>
+        <td className={`px-[15px] ${cellPy} text-xs`} style={{ color: "#607078" }}>
           {submission.studentLabel ?? "—"}
         </td>
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <AdminChip theme={theme} tone={applicationStatusChipTone(submission.status)}>
             {adminApplicationStatusLabel(submission.status)}
           </AdminChip>
         </td>
         {showEnrollmentColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             {submission.enrollmentSummary ? (
               <span
                 className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold"
@@ -238,7 +262,7 @@ export default function DemoApplicationSubmissionsTab({
           </td>
         ) : null}
         {showPostSubmitColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             {submission.postSubmitSummary ? (
               <span
                 className="inline-flex max-w-[12rem] truncate rounded-full px-2 py-0.5 text-[10px] font-extrabold"
@@ -255,14 +279,14 @@ export default function DemoApplicationSubmissionsTab({
             )}
           </td>
         ) : null}
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionProgressCell submission={submission} theme={theme} />
         </td>
-        <td className="px-[15px] py-3">
+        <td className={`px-[15px] ${cellPy}`}>
           <SubmissionNextStepCell submission={submission} theme={theme} />
         </td>
         {showFeesColumn ? (
-          <td className="px-[15px] py-3">
+          <td className={`px-[15px] ${cellPy}`}>
             <SubmissionFeeBadges submission={submission} C={C} />
           </td>
         ) : null}
@@ -286,7 +310,9 @@ export default function DemoApplicationSubmissionsTab({
       };
     },
   ) {
-    const isSelected = submission.id === selectedLeadId;
+    const isSelected =
+      submission.id === selectedLeadId ||
+      (highlightLeadId != null && submission.id === highlightLeadId);
     const isHovered = hoveredId === submission.id;
     const rowStyle = applicationSubmissionRowStyle(submission.status, C, {
       isSelected,
@@ -328,39 +354,55 @@ export default function DemoApplicationSubmissionsTab({
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col overflow-hidden"
+      className={`relative flex flex-col ${showcaseDense ? "overflow-visible" : "h-full min-h-0 overflow-hidden"}`}
       style={{ backgroundColor: DEMO_ADMIN_PAPER_BG }}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14">
-          <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
-            <AdminMetricCard
-              theme={theme}
-              value={String(metrics.activeCount)}
-              label="All applications"
-              accent="forest"
-            />
-            <AdminMetricCard
-              theme={theme}
-              value={String(metrics.draftCount)}
-              label="In progress"
-              accent="sky"
-            />
-            <AdminMetricCard
-              theme={theme}
-              value={String(metrics.submittedCount)}
-              label="Ready to review"
-              accent="gold"
-            />
-            <AdminMetricCard
-              theme={theme}
-              value={String(metrics.enrolledCount)}
-              label="Enrolled learners"
-              accent="berry"
-            />
-          </div>
+      <div
+        className={
+          showcaseDense
+            ? "overflow-visible"
+            : "min-h-0 flex-1 overflow-y-auto"
+        }
+      >
+        <div
+          className={
+            compactForMarketing
+              ? showcaseDense
+                ? "mx-auto max-w-[1350px] px-4 py-2 pb-3"
+                : "mx-auto max-w-[1350px] px-4 py-3 pb-6"
+              : "mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
+          }
+        >
+          {!compactForMarketing ? (
+            <div className="mb-[19px] grid grid-cols-1 gap-[13px] sm:grid-cols-2 xl:grid-cols-4">
+              <AdminMetricCard
+                theme={theme}
+                value={String(metrics.activeCount)}
+                label="All applications"
+                accent="forest"
+              />
+              <AdminMetricCard
+                theme={theme}
+                value={String(metrics.draftCount)}
+                label="In progress"
+                accent="sky"
+              />
+              <AdminMetricCard
+                theme={theme}
+                value={String(metrics.submittedCount)}
+                label="Ready to review"
+                accent="gold"
+              />
+              <AdminMetricCard
+                theme={theme}
+                value={String(metrics.enrolledCount)}
+                label="Enrolled learners"
+                accent="berry"
+              />
+            </div>
+          ) : null}
 
-          {latestSubmitted ? (
+          {!compactForMarketing && latestSubmitted ? (
             <div
               className="mb-[15px] flex flex-col items-start justify-between gap-3 rounded-[12px] border px-4 py-3.5 sm:flex-row sm:items-center"
               style={{
@@ -388,50 +430,54 @@ export default function DemoApplicationSubmissionsTab({
             </div>
           ) : null}
 
-          <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <StoryFilterPill
-                active={statusFilter === "all"}
-                label="All"
-                count={metrics.activeCount}
-                onClick={() => setStatusFilter("all")}
-              />
-              {APPLICATION_STATUS_FILTER_ORDER.filter(
-                (status) => metrics.statusCounts[status],
-              ).map((status) => (
-                <StoryFilterPill
-                  key={status}
-                  active={statusFilter === status}
-                  label={adminApplicationStatusLabel(status)}
-                  count={metrics.statusCounts[status]}
-                  onClick={() => setStatusFilter(status)}
-                />
-              ))}
-            </div>
-            <AdminButton theme={theme} variant="primary" type="button">
-              Public apply link
-              <ExternalLink className="h-3.5 w-3.5" />
-            </AdminButton>
-          </div>
+          {!compactForMarketing ? (
+            <>
+              <div className="mb-[15px] flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StoryFilterPill
+                    active={statusFilter === "all"}
+                    label="All"
+                    count={metrics.activeCount}
+                    onClick={() => setStatusFilter("all")}
+                  />
+                  {APPLICATION_STATUS_FILTER_ORDER.filter(
+                    (status) => metrics.statusCounts[status],
+                  ).map((status) => (
+                    <StoryFilterPill
+                      key={status}
+                      active={statusFilter === status}
+                      label={adminApplicationStatusLabel(status)}
+                      count={metrics.statusCounts[status]}
+                      onClick={() => setStatusFilter(status)}
+                    />
+                  ))}
+                </div>
+                <AdminButton theme={theme} variant="primary" type="button">
+                  Public apply link
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </AdminButton>
+              </div>
 
-          {formOptions.length > 1 ? (
-            <div className="mb-[15px] flex flex-wrap items-center gap-2">
-              <StoryFilterPill
-                active={formFilter === "all"}
-                label="All forms"
-                count={submissions.length}
-                onClick={() => setFormFilter("all")}
-              />
-              {formOptions.map((option) => (
-                <StoryFilterPill
-                  key={option.key}
-                  active={formFilter === option.key}
-                  label={option.label}
-                  count={option.count}
-                  onClick={() => setFormFilter(option.key)}
-                />
-              ))}
-            </div>
+              {formOptions.length > 1 ? (
+                <div className="mb-[15px] flex flex-wrap items-center gap-2">
+                  <StoryFilterPill
+                    active={formFilter === "all"}
+                    label="All forms"
+                    count={submissions.length}
+                    onClick={() => setFormFilter("all")}
+                  />
+                  {formOptions.map((option) => (
+                    <StoryFilterPill
+                      key={option.key}
+                      active={formFilter === option.key}
+                      label={option.label}
+                      count={option.count}
+                      onClick={() => setFormFilter(option.key)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </>
           ) : null}
 
           {submissions.length === 0 ? (
@@ -456,7 +502,7 @@ export default function DemoApplicationSubmissionsTab({
                       {tableHeadings.map((heading) => (
                         <th
                           key={heading}
-                          className="px-[15px] py-2.5 text-left text-[10px] font-extrabold uppercase tracking-[0.08em]"
+                          className={`px-[15px] ${showcaseDense ? "py-1.5" : "py-2.5"} text-left text-[10px] font-extrabold uppercase tracking-[0.08em]`}
                           style={{ color: "#8B9699" }}
                         >
                           {heading}

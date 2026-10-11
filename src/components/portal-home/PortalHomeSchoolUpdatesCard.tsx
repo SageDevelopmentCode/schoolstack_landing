@@ -27,7 +27,6 @@ export default function PortalHomeSchoolUpdatesCard({
   messagesPromo,
 }: PortalHomeSchoolUpdatesCardProps) {
   const showMessagesLink = Boolean(messagesHref);
-  const messagesOnly = !bulletinEnabled && showMessagesLink;
 
   return (
     <ParentCard theme={theme} variant="announcement" className="flex h-full flex-col">
@@ -44,7 +43,7 @@ export default function PortalHomeSchoolUpdatesCard({
         ) : null}
         {showMessagesLink ? (
           <div className={bulletinEnabled ? "mt-4 border-t border-[#E7ECE7] pt-4" : ""}>
-            {messagesOnly && messagesPromo ? (
+            {messagesPromo ? (
               <div className="flex items-center gap-3.5">
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-full"
@@ -62,7 +61,7 @@ export default function PortalHomeSchoolUpdatesCard({
                 </div>
               </div>
             ) : null}
-            <div className={messagesOnly && messagesPromo ? "mt-4" : ""}>
+            <div className={messagesPromo ? "mt-4" : ""}>
               <ParentTextLink theme={theme} href={messagesHref}>
                 Open messages
               </ParentTextLink>

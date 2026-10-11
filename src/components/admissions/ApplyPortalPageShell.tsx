@@ -34,6 +34,7 @@ type ApplyPortalPageShellProps = {
   fullBleed?: boolean;
   fillHeight?: boolean;
   helpFabClassName?: string;
+  suppressHelpFab?: boolean;
 };
 
 function ApplyPortalPageShellInner({
@@ -52,6 +53,7 @@ function ApplyPortalPageShellInner({
   fullBleed = false,
   fillHeight = false,
   helpFabClassName,
+  suppressHelpFab = false,
 }: ApplyPortalPageShellProps) {
   const pathname = usePathname();
   const previewPortalOptions = usePreviewPortalOptions();
@@ -60,7 +62,7 @@ function ApplyPortalPageShellInner({
     previewMode && previewPortalOptions.length > 0
       ? previewPortalOptions
       : portalOptions;
-  const showHelpButton = Boolean(organizationId);
+  const showHelpButton = Boolean(organizationId) && !suppressHelpFab;
 
   const shell = (
     <>

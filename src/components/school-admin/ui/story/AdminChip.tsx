@@ -35,7 +35,7 @@ export default function AdminChip({
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-[7px] py-1 text-[10px] font-extrabold ${className}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-[7px] py-1 text-[10px] font-extrabold ${className}`}
       style={{
         backgroundColor: colors.bg,
         color: colors.color,

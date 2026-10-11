@@ -21,19 +21,35 @@ type BulletinPageProps = {
   branding: OrganizationBranding;
   slug: string;
   schoolName: string;
+  previewMode?: boolean;
+  initialPosts?: BulletinPost[];
+  initialPrograms?: ProgramOption[];
+  initialEditorPostId?: string | null;
 };
 
 export default function BulletinPage({
   organizationId,
   slug,
   schoolName,
+  previewMode = false,
+  initialPosts = [],
+  initialPrograms = [],
+  initialEditorPostId = null,
 }: BulletinPageProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
-  const [loading, setLoading] = useState(true);
-  const [posts, setPosts] = useState<BulletinPost[]>([]);
-  const [programs, setPrograms] = useState<ProgramOption[]>([]);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState(!previewMode);
+  const [posts, setPosts] = useState<BulletinPost[]>(() =>
+    previewMode ? initialPosts : [],
+  );
+  const [programs, setPrograms] = useState<ProgramOption[]>(() =>
+    previewMode ? initialPrograms : [],
+  );
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(
+    previewMode ? initialEditorPostId : null,
+  );
+  const [editorOpen, setEditorOpen] = useState(
+    Boolean(previewMode && initialEditorPostId),
+  );
   const [editorIsNew, setEditorIsNew] = useState(false);
 
   const loadPosts = useCallback(async () => {
@@ -65,10 +81,11 @@ export default function BulletinPage({
   }, [organizationId, slug]);
 
   useEffect(() => {
+    if (previewMode) return;
     queueMicrotask(() => {
       void loadPosts();
     });
-  }, [loadPosts]);
+  }, [loadPosts, previewMode]);
 
   const editorPost = useMemo(() => {
     if (editorIsNew) return null;

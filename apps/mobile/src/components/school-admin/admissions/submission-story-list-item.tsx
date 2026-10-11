@@ -32,10 +32,11 @@ function nextStepChipTone(tone: SubmissionNextStepTone): StoryChipTone {
 export function SubmissionStoryListItem({ submission, onPress }: SubmissionStoryListItemProps) {
   const theme = useParentTheme();
   const studentName = submission.studentLabel?.trim() ?? '';
-  const guardianName = submission.guardianName ?? null;
-  const contactLine = [guardianName, submission.contactEmail].filter(Boolean).join(' · ');
-  const accessibilityLabel =
-    studentName || contactLine || 'Application submission';
+  const displayStudent = studentName || '—';
+  const guardianPart = submission.guardianName?.trim() || '—';
+  const contactEmail = submission.contactEmail?.trim();
+  const contactLine = contactEmail ? `${guardianPart} · ${contactEmail}` : guardianPart;
+  const accessibilityLabel = `${displayStudent}, ${contactLine}`;
   const nextStep = deriveSubmissionNextStep(submission);
   const progressLabel = formatSubmissionProgress(submission);
   const relativeUpdated = formatRelativeTime(submission.updatedAt);
@@ -55,21 +56,12 @@ export function SubmissionStoryListItem({ submission, onPress }: SubmissionStory
         <View style={styles.topRow}>
           <StudentPhoto name={studentName} size="row" />
           <View style={styles.mainCopy}>
-            {studentName ? (
-              <StoryDisplayHeading size="section" numberOfLines={1} style={styles.studentName}>
-                {studentName}
-              </StoryDisplayHeading>
-            ) : null}
-            {contactLine ? (
-              <Text
-                style={[
-                  studentName ? styles.contactLine : styles.contactLinePrimary,
-                  { color: studentName ? theme.muted : theme.ink },
-                ]}
-                numberOfLines={1}>
-                {contactLine}
-              </Text>
-            ) : null}
+            <StoryDisplayHeading size="section" numberOfLines={1} style={styles.studentName}>
+              {displayStudent}
+            </StoryDisplayHeading>
+            <Text style={[styles.contactLine, { color: theme.muted }]} numberOfLines={1}>
+              {contactLine}
+            </Text>
           </View>
         </View>
 
@@ -77,9 +69,10 @@ export function SubmissionStoryListItem({ submission, onPress }: SubmissionStory
           <StoryChip
             tone={applicationStatusChipTone(submission.status)}
             label={statusLabel}
+            uppercase={false}
           />
           {submission.programName ? (
-            <StoryChip tone="info" label={submission.programName} />
+            <StoryChip tone="info" label={submission.programName} uppercase={false} />
           ) : null}
         </View>
 
@@ -89,7 +82,11 @@ export function SubmissionStoryListItem({ submission, onPress }: SubmissionStory
 
         {nextStep.primary !== '—' ? (
           <View style={styles.nextStepRow}>
-            <StoryChip tone={nextStepChipTone(nextStep.tone)} label={nextStep.primary} />
+            <StoryChip
+              tone={nextStepChipTone(nextStep.tone)}
+              label={nextStep.primary}
+              uppercase={false}
+            />
             {nextStep.secondary ? (
               <Text style={[styles.nextStepSecondary, { color: theme.muted }]}>
                 {nextStep.secondary}
@@ -124,12 +121,6 @@ const styles = StyleSheet.create({
     fontFamily: StoryFonts.body,
     fontSize: 13,
     lineHeight: 18,
-  },
-  contactLinePrimary: {
-    fontFamily: StoryFonts.bodySemiBold,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '600',
   },
   chipRow: {
     flexDirection: 'row',

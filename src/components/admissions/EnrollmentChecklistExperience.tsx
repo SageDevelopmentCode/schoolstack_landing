@@ -483,7 +483,10 @@ export default function EnrollmentChecklistExperience({
       </div>
 
       {/* Mobile progress + current task */}
-      <div className="shrink-0 border-b border-gray-100 lg:hidden" style={{ backgroundColor: "#FFFFFF" }}>
+      <div
+        className="shrink-0 border-b border-gray-100 lg:hidden showcase:hidden"
+        style={{ backgroundColor: "#FFFFFF" }}
+      >
         <ChecklistProgressHeader C={C} progress={progress} progressPct={progressPct} />
         {activeItem ? (
           <div
@@ -516,7 +519,7 @@ export default function EnrollmentChecklistExperience({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside
-          className="hidden w-[30%] min-w-[220px] max-w-[320px] shrink-0 flex-col overflow-hidden border-r border-gray-100 lg:flex"
+          className="hidden w-[30%] min-w-[220px] max-w-[320px] shrink-0 flex-col overflow-hidden border-r border-gray-100 showcase:flex lg:flex"
           style={{ backgroundColor: "#FFFFFF" }}
         >
           <ChecklistProgressHeader C={C} progress={progress} progressPct={progressPct} />
@@ -545,7 +548,7 @@ export default function EnrollmentChecklistExperience({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] flex items-end justify-center bg-black/45 p-4 pb-safe lg:hidden"
+            className="fixed inset-0 z-[110] flex items-end justify-center bg-black/45 p-4 pb-safe showcase:hidden lg:hidden"
             onClick={() => setTaskPickerOpen(false)}
           >
             <motion.div
