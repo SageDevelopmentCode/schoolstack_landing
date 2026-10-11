@@ -2,11 +2,12 @@
 -- Run this file in Supabase SQL Editor on remote if that migration has not been applied.
 --
 -- After apply: upload get-started film to
---   website-marketing / marketing/get-started/mudkitchen-16x9.mp4
--- Set Vercel NEXT_PUBLIC_GET_STARTED_FILM_VIDEO_URL to the public object URL.
+--   website-marketing / mudkitchen-16x9.mp4  (bucket root)
+-- The site derives the public URL from NEXT_PUBLIC_SUPABASE_URL; optional override:
+--   NEXT_PUBLIC_GET_STARTED_FILM_VIDEO_URL
 
 -- Public bucket for MudKitchen marketing site assets (e.g. get-started product film).
--- Path layout: marketing/get-started/mudkitchen-16x9.mp4
+-- Canonical film object key: mudkitchen-16x9.mp4
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

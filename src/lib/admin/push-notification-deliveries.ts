@@ -85,7 +85,11 @@ export async function fetchAdminPushNotificationDeliveries(
   admin: SupabaseClient,
   organizationId: string,
   organizationSlug: string,
-  options?: { limit?: number; cursor?: string | null },
+  options?: {
+    limit?: number;
+    cursor?: string | null;
+    recipientUserId?: string | null;
+  },
 ): Promise<AdminPushNotificationsPage> {
   const requestedLimit = options?.limit ?? DEFAULT_PAGE_SIZE;
   const limit = Math.min(Math.max(requestedLimit, 1), MAX_PAGE_SIZE);
@@ -96,7 +100,13 @@ export async function fetchAdminPushNotificationDeliveries(
       "id, created_at, status, title, body, recipient_portal, recipient_email, recipient_user_id, thread_id, error_message",
     )
     .eq("organization_id", organizationId)
-    .eq("channel", "expo_push")
+    .eq("channel", "expo_push");
+
+  if (options?.recipientUserId) {
+    query = query.eq("recipient_user_id", options.recipientUserId);
+  }
+
+  query = query
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit + 1);

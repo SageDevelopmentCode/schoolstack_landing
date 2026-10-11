@@ -4,6 +4,7 @@ import { fetchAdminPushNotificationDeliveries } from "@/lib/admin/push-notificat
 import { requirePlatformAdminUser } from "@/lib/admin/require-platform-admin-api";
 import { AuthError } from "@/lib/admissions/application-auth";
 import { apiError } from "@/lib/api/route-errors";
+import { isUuid } from "@/lib/school-events/event-payload";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -30,6 +31,17 @@ export async function GET(request: Request, context: RouteContext) {
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get("cursor")?.trim() || null;
   const limit = parseLimit(searchParams.get("limit"));
+  const recipientUserIdParam =
+    searchParams.get("recipientUserId")?.trim() || null;
+
+  if (recipientUserIdParam && !isUuid(recipientUserIdParam)) {
+    return apiError(ROUTE, {
+      request,
+      status: 400,
+      error: "recipientUserId must be a valid UUID.",
+      code: "invalid_recipient_user_id",
+    });
+  }
 
   try {
     await requirePlatformAdminUser(supabase, request);
@@ -63,7 +75,7 @@ export async function GET(request: Request, context: RouteContext) {
       admin,
       organizationId,
       String(organization.slug),
-      { cursor, limit },
+      { cursor, limit, recipientUserId: recipientUserIdParam },
     );
 
     return NextResponse.json(page);

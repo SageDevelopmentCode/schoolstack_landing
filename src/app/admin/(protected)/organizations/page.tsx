@@ -16,7 +16,7 @@ import OrganizationAccountLinksPanel from "@/components/admin/OrganizationAccoun
 import OrganizationTeacherPortalPanel from "@/components/admin/OrganizationTeacherPortalPanel";
 import OrganizationMessagesPanel from "@/components/admin/OrganizationMessagesPanel";
 import OrganizationNotificationsPanel from "@/components/admin/OrganizationNotificationsPanel";
-import OrganizationPushNotificationsPanel from "@/components/admin/OrganizationPushNotificationsPanel";
+import OrganizationMobilePanel from "@/components/admin/OrganizationMobilePanel";
 import { AdminSelect } from "@/components/admin/ui/AdminSelect";
 import { AdminPageState } from "@/components/admin/ui/AdminPageState";
 import { parseAdmissionsOrgSettings } from "@/lib/admissions/admissions-org-settings";
@@ -33,7 +33,7 @@ type OrganizationDetailTab =
   | "branding"
   | "features"
   | "notifications"
-  | "push-notifications"
+  | "mobile"
   | "messages"
   | "submissions"
   | "teacher-portal"
@@ -49,7 +49,7 @@ const ORGANIZATION_DETAIL_TABS: {
   { id: "branding", label: "Branding", icon: Palette },
   { id: "features", label: "Features", icon: ToggleLeft },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "push-notifications", label: "Push Notifications", icon: Smartphone },
+  { id: "mobile", label: "Mobile", icon: Smartphone },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "submissions", label: "Submissions", icon: Inbox },
   { id: "teacher-portal", label: "Teacher portal", icon: GraduationCap },
@@ -687,12 +687,12 @@ export default function AdminOrganizationsPage() {
               </div>
             ) : null}
 
-            {visitedTabs.has("push-notifications") ? (
+            {visitedTabs.has("mobile") ? (
               <div
-                hidden={activeDetailTab !== "push-notifications"}
-                aria-hidden={activeDetailTab !== "push-notifications"}
+                hidden={activeDetailTab !== "mobile"}
+                aria-hidden={activeDetailTab !== "mobile"}
               >
-                <OrganizationPushNotificationsPanel organizationId={selected.id} />
+                <OrganizationMobilePanel organizationId={selected.id} />
               </div>
             ) : null}
 

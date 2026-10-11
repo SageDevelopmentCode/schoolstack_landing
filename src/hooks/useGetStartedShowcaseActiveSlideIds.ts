@@ -66,6 +66,16 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
+function mergeSlideIdSets(...sets: Set<string>[]): Set<string> {
+  const merged = new Set<string>();
+  for (const set of sets) {
+    for (const id of set) {
+      merged.add(id);
+    }
+  }
+  return merged;
+}
+
 type UseGetStartedShowcaseActiveSlideIdsOptions = {
   horizontalMarginPx?: number;
   /** Poll while CSS marquee animation runs (transform does not fire scroll). */
@@ -87,6 +97,9 @@ export function useGetStartedShowcaseActiveSlideIds(
   } = options;
 
   const itemRefs = useRef(new Map<string, HTMLElement>());
+  const everMountedIds = useRef(
+    new Set(defaultActiveIds(slideIds)),
+  );
   const [activeSlideIds, setActiveSlideIds] = useState<Set<string>>(() =>
     defaultActiveIds(slideIds),
   );
@@ -97,11 +110,15 @@ export function useGetStartedShowcaseActiveSlideIds(
   }, []);
 
   const recomputeSlideVisibility = useCallback(() => {
-    const next = computeActiveIds(
+    const visible = computeActiveIds(
       slideIds,
       itemRefs.current,
       horizontalMarginPx,
     );
+    for (const id of visible) {
+      everMountedIds.current.add(id);
+    }
+    const next = mergeSlideIdSets(visible, everMountedIds.current);
     setActiveSlideIds((prev) => (setsEqual(prev, next) ? prev : next));
   }, [slideIds, horizontalMarginPx]);
 

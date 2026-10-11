@@ -3,6 +3,11 @@
 import dynamic from 'next/dynamic'
 import type { ComponentProps } from 'react'
 import type { DemoModule } from '@/components/demo/demo-module-types'
+import { DemoSkeleton } from '@/components/ui/DemoSkeleton'
+
+function DemoChunkLoading() {
+  return <DemoSkeleton className="rounded-2xl border border-gray-200" />
+}
 
 const importAdmin = () => import('./AdminDashboardDemo') as Promise<DemoModule>
 const importTeacher = () => import('./TeacherDashboardDemo') as Promise<DemoModule>
@@ -59,10 +64,22 @@ function loadWebsiteCached() {
   return websitePromise
 }
 
-const AdminDashboardDemo = dynamic(() => loadAdminCached(), { ssr: false })
-const TeacherDashboardDemo = dynamic(() => loadTeacherCached(), { ssr: false })
-const ParentDashboardDemo = dynamic(() => loadParentCached(), { ssr: false })
-const WebsiteDashboardDemo = dynamic(() => loadWebsiteCached(), { ssr: false })
+const AdminDashboardDemo = dynamic(() => loadAdminCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+const TeacherDashboardDemo = dynamic(() => loadTeacherCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+const ParentDashboardDemo = dynamic(() => loadParentCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
+const WebsiteDashboardDemo = dynamic(() => loadWebsiteCached(), {
+  ssr: false,
+  loading: DemoChunkLoading,
+})
 
 export function LazyAdminDashboardDemo(props: ComponentProps<typeof AdminDashboardDemo>) {
   return <AdminDashboardDemo {...props} />
