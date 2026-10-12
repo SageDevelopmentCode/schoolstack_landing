@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import NewsletterEditorDemoCanvas from "@/components/demo/marketing/NewsletterEditorDemoCanvas";
+import { useMemo, useRef } from "react";
+import NewsletterEditorDemoCanvas, {
+  type NewsletterEditorDemoVariant,
+} from "@/components/demo/marketing/NewsletterEditorDemoCanvas";
 import SchoolAdminBaseline from "@/components/school-admin/SchoolAdminBaseline";
 import {
   DEMO_ADMIN_FEATURES,
@@ -20,15 +22,28 @@ const DEMO_ADMIN_USER: SchoolAdminUserProfile = {
   email: "demo@mudkitchen.app",
 };
 
-export default function DemoAdminNewsletterEditorPage() {
+type DemoAdminNewsletterEditorPageProps = {
+  variant?: NewsletterEditorDemoVariant;
+};
+
+export default function DemoAdminNewsletterEditorPage({
+  variant = "classUpdates",
+}: DemoAdminNewsletterEditorPageProps) {
   const branding = useMemo(() => buildDemoMudKitchenAdminBranding(), []);
   const previewPathname = useMemo(
     () => schoolAdminPath(DEMO_PORTAL_SLUG, "my_school", "newsletters"),
     [],
   );
+  const interactive = variant === "photoGallery";
+  const embedRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="showcase-demo-embed pointer-events-none mx-auto h-[920px] w-[1100px] max-w-full select-none overflow-hidden">
+    <div
+      ref={embedRef}
+      className={`showcase-demo-embed relative mx-auto h-[920px] w-[1100px] max-w-full overflow-hidden ${
+        interactive ? "pointer-events-auto" : "pointer-events-none select-none"
+      }`}
+    >
       <SchoolAdminBaseline
         slug={DEMO_PORTAL_SLUG}
         organizationId={DEMO_PORTAL_ORG_ID}
@@ -44,7 +59,7 @@ export default function DemoAdminNewsletterEditorPage() {
         initialMessagesUnreadCount={0}
         initialActivityUnreadCount={0}
       >
-        <NewsletterEditorDemoCanvas />
+        <NewsletterEditorDemoCanvas variant={variant} modalPortalRef={embedRef} />
       </SchoolAdminBaseline>
     </div>
   );

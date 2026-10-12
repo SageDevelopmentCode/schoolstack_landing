@@ -32,6 +32,7 @@ export default function BlogProductDemoFrame({
             defaultBodyWidth={DEMO_WIDTH}
             defaultBodyHeight={731}
             crop={{ zoom: cropZoom }}
+            chromeShadow={false}
           >
             {children}
           </LaptopBrowserWindow>

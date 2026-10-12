@@ -1,5 +1,6 @@
 import Link from "next/link";
 import NewsletterEditorBlogEmbed from "@/components/blog/embeds/NewsletterEditorBlogEmbed";
+import NewsletterEditorGalleryBlogEmbed from "@/components/blog/embeds/NewsletterEditorGalleryBlogEmbed";
 import { PRODUCTION_SITE_URL } from "@/lib/site";
 
 export const repoBlogMeta = {
@@ -112,6 +113,7 @@ export default function SimplifyMicroschoolNewslettersPost() {
         mention an upcoming event, and add a short note from a teacher. The exact format
         matters less than making the information useful and easy for families to follow.
       </p>
+      <NewsletterEditorGalleryBlogEmbed />
       <p>
         Start with a format that works for your school, reuse it when appropriate, and
         build a routine your team can realistically maintain.

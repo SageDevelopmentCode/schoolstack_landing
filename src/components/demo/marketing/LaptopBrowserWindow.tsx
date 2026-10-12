@@ -37,6 +37,8 @@ export type LaptopBrowserWindowProps = {
   crop?: LaptopBrowserCrop;
   defaultBodyWidth: number;
   defaultBodyHeight?: number;
+  /** Drop shadow on the browser chrome (off for flat blog embeds). */
+  chromeShadow?: boolean;
 };
 
 export function LaptopBrowserWindow({
@@ -46,6 +48,7 @@ export function LaptopBrowserWindow({
   crop,
   defaultBodyWidth,
   defaultBodyHeight = DEFAULT_FALLBACK_BODY_HEIGHT,
+  chromeShadow = true,
 }: LaptopBrowserWindowProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodySize, setBodySize] = useState({
@@ -75,11 +78,12 @@ export function LaptopBrowserWindow({
     return () => observer.disconnect();
   }, [defaultBodyWidth, defaultBodyHeight]);
 
+  const zoom = crop?.zoom ?? 1;
   const fitScale = Math.max(
-    bodySize.width / MARKETING_LAPTOP_DEMO_WIDTH,
-    bodySize.height / contentHeight,
+    bodySize.width / (MARKETING_LAPTOP_DEMO_WIDTH * zoom),
+    bodySize.height / (contentHeight * zoom),
   );
-  const scale = fitScale * (crop?.zoom ?? 1);
+  const scale = fitScale * zoom;
   const cropOriginX = crop?.originX ?? 0;
   const cropOriginY = crop?.originY ?? 0;
 
@@ -111,7 +115,7 @@ export function LaptopBrowserWindow({
         borderRadius: "22px 22px 0 0",
         background: "#FFFFFF",
         border: "1px solid #E4E8E1",
-        boxShadow: "0 28px 70px rgba(43, 36, 29, 0.14)",
+        boxShadow: chromeShadow ? "0 28px 70px rgba(43, 36, 29, 0.14)" : "none",
         overflow: "hidden",
       }}
     >

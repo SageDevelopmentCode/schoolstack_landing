@@ -555,14 +555,18 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
     input,
   );
   const updatedPayment = revertResult.payment;
-  if (
-    !revertResult.transitioned ||
-    !updatedPayment ||
-    updatedPayment.status !== "failed"
-  ) {
+  if (!updatedPayment || updatedPayment.status !== "failed") {
     throw new ChargeStatusConflictError(
       "Payment could not be marked failed after charge revert.",
     );
+  }
+
+  if (!revertResult.transitioned) {
+    return {
+      payment: updatedPayment,
+      chargeReopened: false,
+      alreadyHandled: true,
+    };
   }
 
   void logTuitionActivity(supabase, {

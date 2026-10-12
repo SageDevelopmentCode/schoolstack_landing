@@ -74,7 +74,7 @@ export const DEMO_NEWSLETTER_TEACHER_UPDATES: DemoTeacherNewsletterUpdate[] = [
     photoUrl: `${STAFF}/andre-styles-pq9npYMirk8-unsplash.jpg`,
     hasUpdate: true,
     preview:
-      "We finished our leaf sorting project and started watercolor maps of the creek trail. Ask your child which colors they mixed for the water.",
+      "We finished our leaf sorting project and started watercolor maps of the creek trail. Ask your child which colors they mixed for the water. On Thursday we hiked the north loop and sketched bark textures—several students added compass roses to their maps. Next week we will press leaves for a classroom collage.",
   },
   {
     id: "priya",
@@ -83,7 +83,7 @@ export const DEMO_NEWSLETTER_TEACHER_UPDATES: DemoTeacherNewsletterUpdate[] = [
     photoUrl: `${STAFF}/clay-elliot-mpDV4xaFP8c-unsplash.jpg`,
     hasUpdate: true,
     preview:
-      "Readers practiced fluent phrases with partner plays. Several students volunteered to perform on Friday.",
+      "Readers practiced fluent phrases with partner plays. Several students volunteered to perform on Friday. We also introduced a new vocabulary journal; look for three highlighted words in the take-home folder. Please encourage a five-minute read-aloud at home if you can—many kids are proud of their expression this week.",
   },
   {
     id: "chris",

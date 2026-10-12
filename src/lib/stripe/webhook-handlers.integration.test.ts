@@ -698,7 +698,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
 
     const { data: paymentRow } = await admin
       .from("application_payments")
-      .select("status, stripe_provider_status, amount_applied_cents")
+      .select("status, stripe_provider_status, amount_applied_cents, paid_at")
       .eq("id", fixture.paymentId)
       .single();
 
@@ -719,6 +719,7 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(paymentRow?.status, "failed");
     assert.equal(paymentRow?.stripe_provider_status, "failed");
     assert.equal(paymentRow?.amount_applied_cents, 0);
+    assert.equal(paymentRow?.paid_at, null);
     // Seed due_date is before "today" in CI — reopen is overdue, not sent.
     assert.equal(chargeRow?.status, "overdue");
     assert.equal(chargeRow?.paid_cents, 0);
@@ -826,6 +827,41 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
       await countPaymentActivity(ACTIVITY_ACTIONS.TUITION_PAYMENT_FAILED_SCHOOL_OPS),
       1,
     );
+  });
+
+  it("does not throw when concurrent handler already failed payment after charge revert", async () => {
+    const admin = createTestAdminClient();
+    const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const session = buildCheckoutSession({
+      id: fixture.checkoutSessionId,
+      paymentStatus: "unpaid",
+      metadata: {
+        payment_type: "tuition",
+        tuition_charge_id: fixture.chargeId,
+        organization_id: fixture.organizationId,
+        payment_id: fixture.paymentId,
+        payment_method: "us_bank_account",
+      },
+    });
+
+    await handleCheckoutSessionCompleted(admin, session);
+
+    const staleSucceededPayment = await getPaymentById(admin, fixture.paymentId);
+    assert.ok(staleSucceededPayment);
+    assert.equal(staleSucceededPayment.status, "succeeded");
+
+    await handleCheckoutSessionAsyncPaymentFailed(admin, session);
+
+    const revertResult = await revertTuitionPaymentAfterAchSettlementFailure(
+      admin,
+      staleSucceededPayment,
+      { stripeCheckoutSessionId: fixture.checkoutSessionId },
+    );
+
+    assert.equal(revertResult.alreadyHandled, true);
+    assert.equal(revertResult.payment.status, "failed");
+    assert.equal(revertResult.chargeReopened, false);
   });
 
   it("treats revertTuitionPaymentAfterAchSettlementFailure as already handled when payment is failed", async () => {
