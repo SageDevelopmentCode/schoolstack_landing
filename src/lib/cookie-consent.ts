@@ -49,6 +49,7 @@ export function allowsAnalyticsCookies(): boolean {
 
 const MARKETING_ROUTE_PREFIXES = [
   "/",
+  "/blog",
   "/customers",
   "/get-started",
   "/privacy",

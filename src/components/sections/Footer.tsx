@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Info, Layers, Users } from "lucide-react";
+import { BookOpen, Info, Layers, Users } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
   { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Blog", href: "/blog", icon: BookOpen },
 ];
 
 export default function Footer() {

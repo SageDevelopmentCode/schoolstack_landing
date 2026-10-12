@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Lightbulb,
   ListFilter,
+  Mail,
   Megaphone,
   MessageSquare,
   Puzzle,
@@ -26,6 +27,8 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+
+export { DEFAULT_FEATURE_ICON_SLUG } from "./feature-icon-defaults";
 
 export type FeatureIconOption = {
   slug: string;
@@ -43,6 +46,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "heart-pulse": Heart,
   "dollar-sign": DollarSign,
   megaphone: Megaphone,
+  mail: Mail,
   eye: Eye,
   puzzle: Puzzle,
   school: School,
@@ -72,6 +76,7 @@ export const FEATURE_ICON_OPTIONS: FeatureIconOption[] = [
   { slug: "heart-pulse", label: "Heart pulse", icon: Heart },
   { slug: "dollar-sign", label: "Dollar", icon: DollarSign },
   { slug: "megaphone", label: "Megaphone", icon: Megaphone },
+  { slug: "mail", label: "Mail", icon: Mail },
   { slug: "eye", label: "Eye", icon: Eye },
   { slug: "school", label: "School", icon: School },
   { slug: "message-square", label: "Message", icon: MessageSquare },
@@ -96,4 +101,3 @@ export function getFeatureIcon(slug: string | undefined): LucideIcon {
   return ICON_MAP[slug] ?? Puzzle;
 }
 
-export const DEFAULT_FEATURE_ICON_SLUG = "puzzle";

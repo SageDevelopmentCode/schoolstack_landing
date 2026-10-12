@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Info, Layers, Menu, Users, X } from "lucide-react";
+import { BookOpen, Info, Layers, Menu, Users, X } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
   { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Blog", href: "/blog", icon: BookOpen },
 ];
 
 export default function NavbarFrame({ children }: { children: React.ReactNode }) {

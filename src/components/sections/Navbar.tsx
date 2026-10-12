@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Info, Layers, Users } from "lucide-react";
+import { BookOpen, Info, Layers, Users } from "lucide-react";
 import NavbarFrame from "./NavbarFrame";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
@@ -50,6 +50,14 @@ export default function Navbar() {
             <Users size={14} className="shrink-0" />
             Customers
           </a>
+
+          <Link
+            href="/blog"
+            className="flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text transition-colors duration-150"
+          >
+            <BookOpen size={14} className="shrink-0" />
+            Blog
+          </Link>
         </nav>
 
         <div className="hidden md:flex">

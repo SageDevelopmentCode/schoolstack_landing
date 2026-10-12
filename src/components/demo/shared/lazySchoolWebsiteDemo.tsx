@@ -141,6 +141,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     ),
   "true-north": () =>
     import("@/components/demo/truenorth/TrueNorthWebsiteDashboardDemo"),
+  "wildcat-microschool": () =>
+    import(
+      "@/components/demo/wildcatmicroschool/WildcatMicroschoolWebsiteDashboardDemo"
+    ),
   "wild-hearts-adventure": () =>
     import(
       "@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo"

@@ -12,21 +12,12 @@ import { loadTeacherMessagesInbox } from "@/lib/messages/teacher-messages";
 import type { MessagesInboxData } from "@/lib/messages/types";
 import type { StaffPortalRole } from "@/lib/staff/staff-members";
 import type { StaffUserProfile } from "@/lib/staff/teacher-portal-access";
+import {
+  staffPreviewBasePath,
+  staffPreviewFeaturePath,
+} from "./staff-preview-paths";
 
-export function staffPreviewBasePath(
-  slug: string,
-  staffMemberId: string,
-): string {
-  return `/admin/preview/${slug}/teacher/${staffMemberId}`;
-}
-
-export function staffPreviewFeaturePath(
-  slug: string,
-  staffMemberId: string,
-  feature: string,
-): string {
-  return `${staffPreviewBasePath(slug, staffMemberId)}/${feature}`;
-}
+export { staffPreviewBasePath, staffPreviewFeaturePath };
 
 type StaffMemberRow = {
   id: string;

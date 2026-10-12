@@ -223,6 +223,7 @@ type SchoolAdminStorySidebarProps = {
   portalOptions?: SchoolPortalOption[];
   openPortalLinksInNewTab?: boolean;
   previewMode?: boolean;
+  pathnameOverride?: string;
   fridayBranchParentPortalPaused?: boolean;
 };
 
@@ -242,9 +243,11 @@ export default function SchoolAdminStorySidebar({
   portalOptions = [],
   openPortalLinksInNewTab = false,
   previewMode = false,
+  pathnameOverride,
   fridayBranchParentPortalPaused = false,
 }: SchoolAdminStorySidebarProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname = pathnameOverride ?? routerPathname;
   const { theme, C } = useSchoolAdminStoryTheme();
   const { logo } = branding;
   const [openParents, setOpenParents] = useState<Record<string, boolean>>({});

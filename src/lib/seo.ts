@@ -46,11 +46,13 @@ export function articleJsonLd({
   description,
   path,
   image,
+  author,
 }: {
   headline: string;
   description: string;
   path: string;
   image: string;
+  author?: { name: string; url: string };
 }) {
   return {
     "@context": "https://schema.org",
@@ -59,11 +61,17 @@ export function articleJsonLd({
     description,
     url: `${SITE_URL}${path}`,
     image: `${SITE_URL}${image}`,
-    author: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
+    author: author
+      ? {
+          "@type": "Person",
+          name: author.name,
+          url: author.url,
+        }
+      : {
+          "@type": "Organization",
+          name: SITE_NAME,
+          url: SITE_URL,
+        },
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,

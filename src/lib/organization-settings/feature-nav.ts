@@ -1,5 +1,5 @@
 import { FEATURE_CATALOG } from "./catalog";
-import { DEFAULT_FEATURE_ICON_SLUG } from "./icon-registry";
+import { DEFAULT_FEATURE_ICON_SLUG } from "./feature-icon-defaults";
 import type {
   FeatureNavChildConfig,
   FeatureNavConfig,
@@ -37,6 +37,7 @@ const DEFAULT_FEATURE_CHILDREN: Record<string, FeatureNavChildConfig[]> = {
     { key: "staff", label: "Staff", icon: "user-check" },
     { key: "classrooms", label: "Classrooms", icon: "home" },
     { key: "forms_documents", label: "Forms & documents", icon: "file-text" },
+    { key: "newsletters", label: "Newsletters", icon: "mail" },
     { key: "tuition", label: "Tuition", icon: "dollar-sign" },
     {
       key: "friday_branch",

@@ -3,8 +3,8 @@ import {
   ACTIVITY_ACTIONS,
   formatActivityActionLabel,
 } from "@/lib/activity-log";
-import { familyPreviewParentBasePath } from "@/lib/admissions/preview-portal-options";
-import { staffPreviewBasePath } from "@/lib/staff/staff-preview-access";
+import { familyPreviewParentBasePath } from "@/lib/admissions/preview-portal-paths";
+import { staffPreviewBasePath } from "@/lib/staff/staff-preview-paths";
 import type { CommitteeWorkspaceSection } from "./types";
 
 export const COMMITTEE_ACTIVITY_ACTIONS: string[] = [

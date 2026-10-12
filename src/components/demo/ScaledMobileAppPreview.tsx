@@ -80,6 +80,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"
     ),
+  "wildcat-microschool": () =>
+    import(
+      "@/components/demo/wildcatmicroschool/WildcatMicroschoolMobileAppShowcase"
+    ),
 };
 
 export default function ScaledMobileAppPreview({
