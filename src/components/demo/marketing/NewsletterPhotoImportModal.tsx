@@ -15,6 +15,7 @@ type NewsletterPhotoImportModalProps = {
   onClose: () => void;
   onConfirm: () => void;
   portalRef?: RefObject<HTMLDivElement | null>;
+  portalHost?: HTMLElement | null;
 };
 
 export default function NewsletterPhotoImportModal({
@@ -25,6 +26,7 @@ export default function NewsletterPhotoImportModal({
   onClose,
   onConfirm,
   portalRef,
+  portalHost,
 }: NewsletterPhotoImportModalProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const [mountedRoot, setMountedRoot] = useState<HTMLElement | null>(null);
@@ -34,8 +36,8 @@ export default function NewsletterPhotoImportModal({
       setMountedRoot(null);
       return;
     }
-    setMountedRoot(portalRef?.current ?? null);
-  }, [open, portalRef]);
+    setMountedRoot(portalHost ?? portalRef?.current ?? null);
+  }, [open, portalHost, portalRef]);
 
   if (!open) return null;
 
@@ -43,7 +45,7 @@ export default function NewsletterPhotoImportModal({
 
   const overlay = (
     <div
-      className="absolute inset-0 z-[200] flex items-start justify-center px-4 pt-16 pb-4"
+      className="absolute inset-0 z-[200] flex items-start justify-center px-4 pt-20 pb-4"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.55)" }}
     >
       <div
@@ -56,15 +58,15 @@ export default function NewsletterPhotoImportModal({
           backgroundColor: theme.white,
         }}
       >
-        <div className="border-b px-4 py-3" style={{ borderColor: C.border }}>
-          <h2
+        <div className="border-b px-4 pt-1.5 pb-2" style={{ borderColor: C.border }}>
+          <div
             id="newsletter-photo-import-title"
-            className="text-sm font-bold"
+            className="text-sm font-bold leading-tight"
             style={{ color: C.textPrimary }}
           >
             Import from school photos
-          </h2>
-          <p className="mt-0.5 text-[11px]" style={{ color: theme.muted }}>
+          </div>
+          <p className="!mt-0.5 text-[11px]" style={{ color: theme.muted }}>
             Choose shots already in your MudKitchen photo library for this newsletter.
           </p>
         </div>
@@ -119,11 +121,11 @@ export default function NewsletterPhotoImportModal({
     </div>
   );
 
-  const portalTarget = portalRef?.current ?? mountedRoot;
+  const portalTarget = portalHost ?? portalRef?.current ?? mountedRoot;
   if (portalTarget) {
     return createPortal(overlay, portalTarget);
   }
-  if (portalRef) {
+  if (portalHost !== undefined || portalRef) {
     return null;
   }
 

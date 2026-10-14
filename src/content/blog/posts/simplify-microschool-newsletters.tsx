@@ -1,10 +1,13 @@
 import Link from "next/link";
 import NewsletterEditorBlogEmbed from "@/components/blog/embeds/NewsletterEditorBlogEmbed";
 import NewsletterEditorGalleryBlogEmbed from "@/components/blog/embeds/NewsletterEditorGalleryBlogEmbed";
+import NewsletterEditorTeacherUpdatesBlogEmbed from "@/components/blog/embeds/NewsletterEditorTeacherUpdatesBlogEmbed";
+import type { RepoBlogPostMeta } from "@/content/blog/types";
 import { PRODUCTION_SITE_URL } from "@/lib/site";
 
-export const repoBlogMeta = {
+export const repoBlogMeta: RepoBlogPostMeta = {
   slug: "simplify-microschool-newsletters",
+  featureTags: ["school_admin", "newsletter", "teacher_updates", "photos"],
 };
 
 export default function SimplifyMicroschoolNewslettersPost() {
@@ -97,6 +100,7 @@ export default function SimplifyMicroschoolNewslettersPost() {
         These aren&apos;t about adding another communication obligation. They&apos;re about
         making an existing responsibility easier to manage.
       </p>
+      <NewsletterEditorTeacherUpdatesBlogEmbed />
       <h2>You Don&apos;t Need a Perfect Newsletter Every Week</h2>
       <p>
         One thing I&apos;d encourage microschool founders to remember is that parents

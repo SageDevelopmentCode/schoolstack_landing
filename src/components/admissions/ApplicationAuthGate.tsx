@@ -21,23 +21,12 @@ import type {
   ApplyAuthEntryOption,
   OrganizationBranding,
 } from "@/lib/organization-settings/types";
-import { AUTH_GATE_PROMO } from "@/lib/site";
-import {
-  AuthGatePromoPlaceholder,
-} from "@/components/admissions/AuthGatePromoPanel";
+import AuthGatePromoColumn from "@/components/admissions/AuthGatePromoColumn";
 import ApplyProgramSelectStep, {
   type ApplyProgramOption,
 } from "@/components/admissions/ApplyProgramSelectStep";
 import { createClient } from "@/utils/supabase/client";
 import { reportApplyOperationalError } from "@/lib/operational-errors-client";
-
-const AuthGatePromoPanelLazy = dynamic(
-  () =>
-    import("@/components/admissions/AuthGatePromoPanel").then((mod) => ({
-      default: mod.AuthGatePromoPanel,
-    })),
-  { ssr: false },
-);
 
 const AuthHelpButton = dynamic(
   () =>
@@ -177,49 +166,9 @@ export default function ApplicationAuthGate({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [showPromo, setShowPromo] = useState(false);
-  const [carouselActive, setCarouselActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
-
-  useEffect(() => {
-    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-    if (!isDesktop) {
-      return;
-    }
-
-    const enablePromo = () => setShowPromo(true);
-
-    if (typeof requestIdleCallback !== "undefined") {
-      const id = requestIdleCallback(enablePromo, { timeout: 3000 });
-      return () => cancelIdleCallback(id);
-    }
-
-    const id = window.setTimeout(enablePromo, 1000);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  useEffect(() => {
-    if (!showPromo) return;
-
-    const id = window.setTimeout(() => {
-      setCarouselActive(true);
-    }, AUTH_GATE_PROMO.slideIntervalMs);
-
-    return () => window.clearTimeout(id);
-  }, [showPromo]);
-
-  useEffect(() => {
-    if (!carouselActive) return;
-
-    const id = setInterval(() => {
-      setActiveSlide((index) => (index + 1) % AUTH_GATE_PROMO.slides.length);
-    }, AUTH_GATE_PROMO.slideIntervalMs);
-
-    return () => clearInterval(id);
-  }, [carouselActive]);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -616,11 +565,7 @@ export default function ApplicationAuthGate({
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
-      {showPromo ? (
-        <AuthGatePromoPanelLazy activeSlide={activeSlide} />
-      ) : (
-        <AuthGatePromoPlaceholder />
-      )}
+      <AuthGatePromoColumn />
 
       <div
         className="relative flex min-h-0 flex-1 flex-col lg:min-h-dvh"

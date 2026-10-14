@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import NewsletterEditorDemoCanvas, {
   type NewsletterEditorDemoVariant,
 } from "@/components/demo/marketing/NewsletterEditorDemoCanvas";
@@ -24,22 +24,31 @@ const DEMO_ADMIN_USER: SchoolAdminUserProfile = {
 
 type DemoAdminNewsletterEditorPageProps = {
   variant?: NewsletterEditorDemoVariant;
+  initialImportModalOpen?: boolean;
+  persistImportModal?: boolean;
 };
 
 export default function DemoAdminNewsletterEditorPage({
   variant = "classUpdates",
+  initialImportModalOpen = false,
+  persistImportModal = false,
 }: DemoAdminNewsletterEditorPageProps) {
   const branding = useMemo(() => buildDemoMudKitchenAdminBranding(), []);
   const previewPathname = useMemo(
     () => schoolAdminPath(DEMO_PORTAL_SLUG, "my_school", "newsletters"),
     [],
   );
-  const interactive = variant === "photoGallery";
+  const interactive = variant === "photoGallery" || variant === "teacherUpdates";
   const embedRef = useRef<HTMLDivElement>(null);
+  const [portalHost, setPortalHost] = useState<HTMLDivElement | null>(null);
+  const setEmbedRef = useCallback((node: HTMLDivElement | null) => {
+    embedRef.current = node;
+    setPortalHost(node);
+  }, []);
 
   return (
     <div
-      ref={embedRef}
+      ref={setEmbedRef}
       className={`showcase-demo-embed relative mx-auto h-[920px] w-[1100px] max-w-full overflow-hidden ${
         interactive ? "pointer-events-auto" : "pointer-events-none select-none"
       }`}
@@ -59,7 +68,13 @@ export default function DemoAdminNewsletterEditorPage({
         initialMessagesUnreadCount={0}
         initialActivityUnreadCount={0}
       >
-        <NewsletterEditorDemoCanvas variant={variant} modalPortalRef={embedRef} />
+        <NewsletterEditorDemoCanvas
+          variant={variant}
+          modalPortalRef={embedRef}
+          modalPortalHost={portalHost}
+          initialImportModalOpen={initialImportModalOpen}
+          persistImportModal={persistImportModal}
+        />
       </SchoolAdminBaseline>
     </div>
   );

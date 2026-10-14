@@ -1,14 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
 import { LaptopBrowserWindow } from "@/components/demo/marketing/LaptopBrowserWindow";
+import { InViewDemoGate } from "@/components/ui/InViewDemoGate";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 type BlogProductDemoFrameProps = {
   children: ReactNode;
   className?: string;
   contentHeight?: number;
   cropZoom?: number;
+  /** Horizontal pan (0–1) on viewports below `sm` so center demo content is visible. */
+  mobileCropOriginX?: number;
 };
 
 const DEMO_WIDTH = 1100;
@@ -18,7 +21,13 @@ export default function BlogProductDemoFrame({
   className = "",
   contentHeight = 920,
   cropZoom = 0.92,
+  mobileCropOriginX = 0.18,
 }: BlogProductDemoFrameProps) {
+  const isMobile = useMediaQuery("(max-width: 639px)");
+  const crop = isMobile
+    ? { zoom: cropZoom, originX: mobileCropOriginX }
+    : { zoom: cropZoom };
+
   return (
     <InViewDemoGate className={`w-full ${className}`}>
       <div className="flex w-full justify-center overflow-x-auto overscroll-x-contain">
@@ -31,7 +40,7 @@ export default function BlogProductDemoFrame({
             cropFocus="top"
             defaultBodyWidth={DEMO_WIDTH}
             defaultBodyHeight={731}
-            crop={{ zoom: cropZoom }}
+            crop={crop}
             chromeShadow={false}
           >
             {children}

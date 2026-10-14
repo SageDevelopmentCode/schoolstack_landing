@@ -8,6 +8,8 @@ import { FadeInView } from "@/components/ui/FadeInView";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
+import BlogPostFeatureTags from "@/components/blog/BlogPostFeatureTags";
+import { getRepoBlogFeatureTags } from "@/content/blog/registry";
 import { listPublishedWebsiteBlogPosts } from "@/lib/website-blog/storage";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -96,6 +98,10 @@ export default async function BlogPage() {
                             {dateLabel}
                           </p>
                         ) : null}
+                        <BlogPostFeatureTags
+                          tags={getRepoBlogFeatureTags(post.slug)}
+                          className="mt-3"
+                        />
                         <h2 className="font-display text-xl text-text mt-2 leading-snug">
                           {post.title}
                         </h2>

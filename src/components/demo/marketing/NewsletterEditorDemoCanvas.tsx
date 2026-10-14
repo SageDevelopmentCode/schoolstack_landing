@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useState, type RefObject } from "react";
-import { Calendar, ChevronDown, Eye, ImagePlus, Plus, Upload } from "lucide-react";
+import { useCallback, useLayoutEffect, useMemo, useState, type RefObject } from "react";
+import { Calendar, ChevronDown, Eye, FileText, ImagePlus, Plus, Upload } from "lucide-react";
 import DemoStaffAvatar from "@/components/demo/marketing/DemoStaffAvatar";
 import NewsletterPhotoImportModal from "@/components/demo/marketing/NewsletterPhotoImportModal";
+import NewsletterTeacherUpdatesImportModal from "@/components/demo/marketing/NewsletterTeacherUpdatesImportModal";
 import AdminButton from "@/components/school-admin/ui/story/AdminButton";
 import AdminCard from "@/components/school-admin/ui/story/AdminCard";
 import AdminChip from "@/components/school-admin/ui/story/AdminChip";
@@ -21,26 +22,50 @@ import {
   DEMO_NEWSLETTER_SECTIONS,
   DEMO_NEWSLETTER_TEACHER_UPDATES,
 } from "@/data/school-demos/demo-newsletter-editor-fixtures";
+import { DEMO_NEWSLETTER_TEACHER_UPDATE_LIBRARY } from "@/data/school-demos/demo-newsletter-teacher-update-library";
 
 const DEMO_RADIUS = "8px";
 
 const TAB_ROW_CLASS = "text-sm font-semibold";
 
-export type NewsletterEditorDemoVariant = "classUpdates" | "photoGallery";
+export type NewsletterEditorDemoVariant = "classUpdates" | "photoGallery" | "teacherUpdates";
 
 type NewsletterEditorDemoCanvasProps = {
   variant?: NewsletterEditorDemoVariant;
   modalPortalRef?: RefObject<HTMLDivElement | null>;
+  modalPortalHost?: HTMLElement | null;
+  initialImportModalOpen?: boolean;
+  persistImportModal?: boolean;
 };
 
 export default function NewsletterEditorDemoCanvas({
   variant = "classUpdates",
   modalPortalRef,
+  modalPortalHost,
+  initialImportModalOpen = false,
+  persistImportModal = false,
 }: NewsletterEditorDemoCanvasProps) {
   const { theme, C } = useSchoolAdminStoryTheme();
   const isPhotoGallery = variant === "photoGallery";
+  const isTeacherUpdates = variant === "teacherUpdates";
+  const isClassUpdatesSection = !isPhotoGallery;
+  const openImportOnMount =
+    persistImportModal || initialImportModalOpen || isPhotoGallery || isTeacherUpdates;
 
-  const [importModalOpen, setImportModalOpen] = useState(isPhotoGallery);
+  const [importModalOpen, setImportModalOpen] = useState(openImportOnMount);
+  const modalVisible = persistImportModal || importModalOpen;
+
+  useLayoutEffect(() => {
+    if (openImportOnMount) {
+      setImportModalOpen(true);
+    }
+  }, [openImportOnMount, variant]);
+
+  const closeImportModal = useCallback(() => {
+    if (!persistImportModal) {
+      setImportModalOpen(false);
+    }
+  }, [persistImportModal]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [importedPhotos, setImportedPhotos] = useState<DemoNewsletterGalleryPhoto[]>([]);
 
@@ -74,8 +99,17 @@ export default function NewsletterEditorDemoCanvas({
       return merged;
     });
     setSelectedIds(new Set());
-    setImportModalOpen(false);
-  }, [selectedIds]);
+    if (!persistImportModal) {
+      setImportModalOpen(false);
+    }
+  }, [persistImportModal, selectedIds]);
+
+  const teacherCards = useMemo(() => {
+    return DEMO_NEWSLETTER_TEACHER_UPDATES.map((teacher) => ({
+      ...teacher,
+      showNoUpdateChip: !teacher.hasUpdate && !teacher.preview,
+    }));
+  }, []);
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col">
@@ -236,7 +270,7 @@ export default function NewsletterEditorDemoCanvas({
                 </div>
               )}
             </>
-          ) : (
+          ) : isClassUpdatesSection ? (
             <>
               <AdminDisplayHeading
                 theme={theme}
@@ -246,9 +280,22 @@ export default function NewsletterEditorDemoCanvas({
               >
                 Class Updates
               </AdminDisplayHeading>
+              {isTeacherUpdates ? (
+                <div className="mt-2">
+                  <AdminButton
+                    theme={theme}
+                    variant="soft"
+                    className="gap-1.5"
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    <FileText className="h-3.5 w-3.5" aria-hidden />
+                    View Teacher Updates
+                  </AdminButton>
+                </div>
+              ) : null}
 
               <div className="mt-3 space-y-3">
-                {DEMO_NEWSLETTER_TEACHER_UPDATES.map((teacher) => (
+                {teacherCards.map((teacher) => (
                   <AdminCard
                     key={teacher.id}
                     theme={theme}
@@ -267,12 +314,11 @@ export default function NewsletterEditorDemoCanvas({
                           {teacher.name}
                         </span>
                       </div>
-                      <AdminChip
-                        theme={theme}
-                        tone={teacher.hasUpdate ? "success" : "purple"}
-                      >
-                        {teacher.hasUpdate ? "Update added" : "No update yet"}
-                      </AdminChip>
+                      {teacher.showNoUpdateChip ? (
+                        <AdminChip theme={theme} tone="purple">
+                          No update yet
+                        </AdminChip>
+                      ) : null}
                     </div>
                     <div
                       className="mt-3 min-h-[96px] rounded-md border px-3 py-2.5 text-sm leading-relaxed"
@@ -288,7 +334,7 @@ export default function NewsletterEditorDemoCanvas({
                 ))}
               </div>
             </>
-          )}
+          ) : null}
         </div>
 
         <aside
@@ -359,13 +405,23 @@ export default function NewsletterEditorDemoCanvas({
 
       {isPhotoGallery ? (
         <NewsletterPhotoImportModal
-          open={importModalOpen}
+          open={modalVisible}
           photos={DEMO_NEWSLETTER_STOCK_GALLERY_PHOTOS}
           selectedIds={selectedIds}
           onTogglePhoto={togglePhoto}
-          onClose={() => setImportModalOpen(false)}
+          onClose={closeImportModal}
           onConfirm={handleConfirmImport}
           portalRef={modalPortalRef}
+          portalHost={modalPortalHost}
+        />
+      ) : null}
+      {isTeacherUpdates ? (
+        <NewsletterTeacherUpdatesImportModal
+          open={modalVisible}
+          items={DEMO_NEWSLETTER_TEACHER_UPDATE_LIBRARY}
+          onClose={closeImportModal}
+          portalRef={modalPortalRef}
+          portalHost={modalPortalHost}
         />
       ) : null}
     </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Info, Layers, Users } from "lucide-react";
+import { BookOpen, Calculator, Info, Layers, Scale, Users } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
 const NAV_LINKS = [
@@ -8,6 +8,8 @@ const NAV_LINKS = [
   { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Blog", href: "/blog", icon: BookOpen },
+  { label: "Students needed", href: "/how-many-students", icon: Calculator },
+  { label: "Tuition planner", href: "/tuition-planner", icon: Scale },
 ];
 
 export default function Footer() {

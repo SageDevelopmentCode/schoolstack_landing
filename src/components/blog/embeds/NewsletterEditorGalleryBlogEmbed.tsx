@@ -13,7 +13,7 @@ export default function NewsletterEditorGalleryBlogEmbed() {
   return (
     <BlogPostWideDemo caption="Import school photos into your newsletter gallery">
       <BlogProductDemoFrame contentHeight={920} cropZoom={0.92}>
-        <DemoAdminNewsletterEditorPage variant="photoGallery" />
+        <DemoAdminNewsletterEditorPage variant="photoGallery" persistImportModal />
       </BlogProductDemoFrame>
     </BlogPostWideDemo>
   );

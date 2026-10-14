@@ -1,3 +1,4 @@
+import type { BlogFeatureTagId } from "@/content/blog/blog-feature-tags";
 import type { RepoBlogPostEntry } from "@/content/blog/types";
 import SimplifyMicroschoolNewslettersPost, {
   repoBlogMeta as simplifyMicroschoolNewslettersMeta,
@@ -12,6 +13,10 @@ const REPO_BLOG_POSTS: Record<string, RepoBlogPostEntry> = {
 
 export function getRepoBlogPost(slug: string): RepoBlogPostEntry | null {
   return REPO_BLOG_POSTS[slug] ?? null;
+}
+
+export function getRepoBlogFeatureTags(slug: string): BlogFeatureTagId[] {
+  return getRepoBlogPost(slug)?.meta.featureTags ?? [];
 }
 
 export function listRepoBlogSlugs(): string[] {

@@ -5,9 +5,10 @@ import ArticleJsonLd from "@/components/seo/ArticleJsonLd";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import BlogPostByline from "@/components/blog/BlogPostByline";
+import BlogPostFeatureTags from "@/components/blog/BlogPostFeatureTags";
 import BlogPostHtml from "@/components/blog/BlogPostHtml";
 import BlogPostProse from "@/components/blog/BlogPostProse";
-import { getRepoBlogPost } from "@/content/blog/registry";
+import { getRepoBlogFeatureTags, getRepoBlogPost } from "@/content/blog/registry";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 import { WEBSITE_BLOG_AUTHOR } from "@/lib/website-blog/author";
@@ -65,6 +66,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   }
 
   const RepoContent = repoPost?.Content;
+  const featureTags = getRepoBlogFeatureTags(slug);
 
   const breadcrumbs = buildBreadcrumbs(
     { name: "Blog", path: "/blog" },
@@ -101,6 +103,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 {publishedLabel}
               </p>
             ) : null}
+            <BlogPostFeatureTags tags={featureTags} className="mt-4" />
             <h1 className="font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.1] text-text mt-4">
               {post.title}
             </h1>
