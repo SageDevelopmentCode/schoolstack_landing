@@ -61,6 +61,7 @@ export default function EnrollmentWhatIfControl({
       fixedExpensesCents,
       variableCostPerStudentCents,
       ownerCompensationCents,
+      currentEnrollment,
     },
     value,
   );
