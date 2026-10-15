@@ -467,6 +467,7 @@ export async function revertSucceededPaymentToFailed(
     status: "failed",
     stripe_provider_status: "failed",
     amount_applied_cents: 0,
+    paid_at: null,
   };
 
   if (input.stripePaymentIntentId) {

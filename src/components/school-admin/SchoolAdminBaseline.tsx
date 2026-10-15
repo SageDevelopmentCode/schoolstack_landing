@@ -55,6 +55,11 @@ type SchoolAdminBaselineProps = {
   initialMessagesUnreadCount?: number;
   initialActivityUnreadCount?: number;
   previewMode?: boolean;
+  initialSidebarExpanded?: boolean;
+  /** Marketing / preview embeds: pretend the user is on this admin path for sidebar active states. */
+  previewPathname?: string;
+  /** Use `h-full` instead of `h-dvh` when nested in a fixed-height marketing frame. */
+  fillParentHeight?: boolean;
   fridayBranchParentPortalPaused?: boolean;
   children: ReactNode;
 };
@@ -71,10 +76,15 @@ function SchoolAdminBaselineInner({
   initialMessagesUnreadCount,
   initialActivityUnreadCount,
   previewMode = false,
+  initialSidebarExpanded = true,
+  previewPathname,
+  fillParentHeight = false,
   fridayBranchParentPortalPaused = false,
   children,
 }: SchoolAdminBaselineProps) {
-  const pathname = usePathname();
+  const routerPathname = usePathname();
+  const pathname =
+    previewMode && previewPathname ? previewPathname : routerPathname;
   const isMessagesPage = isAdminMessagesPath(pathname);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -89,7 +99,7 @@ function SchoolAdminBaselineInner({
     [features.admin, features.feature_nav?.admin],
   );
 
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(initialSidebarExpanded);
   const [supportOpen, setSupportOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(initialActivityUnreadCount ?? 0);
@@ -171,11 +181,16 @@ function SchoolAdminBaselineInner({
       enabled={messagesEnabled && !previewMode}
     >
       <NavigationLoadingProvider>
-        <div className="flex h-dvh w-full overflow-hidden">
+        <div
+          className={`flex w-full overflow-hidden ${
+            fillParentHeight ? "h-full min-h-0" : "h-dvh"
+          }`}
+        >
           <SchoolAdminStorySidebar
             branding={branding}
             schoolName={schoolName}
             slug={slug}
+            pathnameOverride={previewMode && previewPathname ? pathname : undefined}
             navGroups={navGroups}
             isExpanded={sidebarExpanded}
             onToggleExpand={() => setSidebarExpanded((v) => !v)}

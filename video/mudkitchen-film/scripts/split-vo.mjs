@@ -1,23 +1,52 @@
-// Cuts one continuous VO read into the 16 cue-locked clips (public/audio/vo/NN.wav).
+// Cuts one continuous VO read into cue-locked clips.
 // Speech segments are found with ffmpeg silencedetect, then grouped per clip.
-// Usage: node scripts/split-vo.mjs [path/to/full-read.mp3]
+// Usage:
+//   node scripts/split-vo.mjs [path/to/full-read.mp3]          60s film -> public/audio/vo/NN.wav
+//   node scripts/split-vo.mjs --ad27 [path/to/full-read.mp3]   27s ad   -> public/audio/ad27/vo/NN.wav
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const src = resolve(process.argv[2] ?? join(here, "../audio-source/vo-full-v2.mp3"));
-const outDir = resolve(here, "../public/audio/vo");
-const { VO_LINES } = await import("../src/captions.ts");
+const args = process.argv.slice(2);
+const ad27 = args.includes("--ad27");
+const fileArg = args.find((a) => !a.startsWith("--"));
 
-// Spoken segments per clip, in script order. 09, 13 and 16 contain a pause.
-const SEGMENTS_PER_CLIP = [1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 2];
-// Pitch-preserving speed-ups for reads that run past their slot.
-const TEMPO = { "03": 1.2, "04": 1.12, "05": 1.18, "06": 1.15, "09": 1.03 };
-// Longest pause kept inside a clip (seconds); longer internal pauses are shortened.
-// 13 keeps "email" on the Gmail thud (f1362).
-const MAX_INNER_PAUSE = { "09": 0.2, "13": 0.25, "16": 0.15 };
+const CONFIG = ad27
+  ? {
+      defaultSrc: "../audio-source/ad27-vo.mp3",
+      outDir: "../public/audio/ad27/vo",
+      lines: (await import("../src/ad27/captions.ts")).AD_VO_LINES,
+      // Spoken segments per clip. The Hope take pauses inside 06 ("and communication, /
+      // all in one place.") and 07 ("...what matters most, / your students."); 08 has three sentences.
+      segments: [1, 1, 1, 1, 1, 2, 2, 3],
+      // 08 runs ~5.2s natural; a light speed-up fits it under the end card.
+      tempo: { "08": 1.08 },
+      maxInnerPause: { "06": 0.25, "07": 0.35, "08": 0.2 },
+      // Longer than a comma breath, so "information," / "billing," only split on a real pause.
+      minSilence: 0.32,
+    }
+  : {
+      defaultSrc: "../audio-source/vo-full-v2.mp3",
+      outDir: "../public/audio/vo",
+      lines: (await import("../src/captions.ts")).VO_LINES,
+      // Spoken segments per clip, in script order. 09, 13 and 16 contain a pause.
+      segments: [1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 3, 1, 1, 2],
+      // Pitch-preserving speed-ups for reads that run past their slot.
+      tempo: { "03": 1.2, "04": 1.12, "05": 1.18, "06": 1.15, "09": 1.03 },
+      // Longest pause kept inside a clip (seconds); longer internal pauses are shortened.
+      // 13 keeps "email" on the Gmail thud (f1362).
+      maxInnerPause: { "09": 0.2, "13": 0.25, "16": 0.15 },
+      minSilence: 0.25,
+    };
+
+const src = resolve(fileArg ?? join(here, CONFIG.defaultSrc));
+const outDir = resolve(here, CONFIG.outDir);
+const VO_LINES = CONFIG.lines;
+const SEGMENTS_PER_CLIP = CONFIG.segments;
+const TEMPO = CONFIG.tempo;
+const MAX_INNER_PAUSE = CONFIG.maxInnerPause;
 const PAD_IN = 0.02;
 const PAD_OUT = 0.04;
 const FPS = 30;
@@ -28,7 +57,7 @@ const probeDuration = (file) =>
   );
 
 const total = probeDuration(src);
-const detect = spawnSync("ffmpeg", ["-hide_banner", "-i", src, "-af", "silencedetect=n=-35dB:d=0.25", "-f", "null", "-"], {
+const detect = spawnSync("ffmpeg", ["-hide_banner", "-i", src, "-af", `silencedetect=n=-35dB:d=${CONFIG.minSilence}`, "-f", "null", "-"], {
   encoding: "utf8",
 });
 const log = detect.stderr ?? "";

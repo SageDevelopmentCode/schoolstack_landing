@@ -28,7 +28,7 @@ const TUITION_CROP: CarouselDemoCrop = { zoom: 1.22, originX: 0, originY: 0 };
 
 export const GETTING_READY_TO_ENROLL_CAROUSEL = {
   id: "getting-ready-to-enroll",
-  title: "Getting ready to enroll families?",
+  title: "Getting ready to enroll families for your Microschool?",
   description: "Five things to set up before families enroll.",
   fileSlug: "mudkitchen-getting-ready-to-enroll",
   slides: [
@@ -74,7 +74,7 @@ function ReadySlide() {
   return (
     <CarouselProductSlide
       kicker="Enrollment"
-      title="Getting ready to enroll families?"
+      title="Getting ready to enroll families for your Microschool?"
       body="Make sure these five things are ready first."
       contentHeight={DEMO_CONTENT_HEIGHT}
       crop={HOME_CROP}

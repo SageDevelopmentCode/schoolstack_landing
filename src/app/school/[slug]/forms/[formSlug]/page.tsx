@@ -3,55 +3,21 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ApplicationFormSetupRequired from "@/components/admissions/ApplicationFormSetupRequired";
 import CanonicalApplyEntryClient from "@/components/admissions/CanonicalApplyEntryClient";
-import { loadApplyProgramPickerData } from "@/components/admissions/ApplyProgramPicker";
+import { loadProgramsByIdForApplyForms } from "@/components/admissions/ApplyProgramPicker";
 import PublicApplicationFormClient from "@/components/admissions/PublicApplicationFormClient";
-import type { ApplicationFormVersion } from "@/lib/admissions/application-form-schema";
-import {
-  getPublishedApplicationFormBySlug,
-  isCanonicalApplyEntrySlug,
-  listPublishedApplyForms,
-} from "@/lib/admissions/application-forms";
 import { getEnabledTourAuthEntryOption } from "@/lib/organization-settings/apply-auth-entry";
 import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch";
+import {
+  isApplyProgramPicker,
+  resolvePublishedApplyEntryCached,
+} from "@/lib/admissions/resolve-published-apply-entry";
 import { createClient } from "@/utils/supabase/server";
-import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; formSlug: string }>;
 };
-
-type ResolvedApplyEntry =
-  | ApplicationFormVersion
-  | { kind: "picker"; forms: ApplicationFormVersion[] }
-  | null;
-
-function isApplyProgramPicker(
-  entry: NonNullable<ResolvedApplyEntry>,
-): entry is { kind: "picker"; forms: ApplicationFormVersion[] } {
-  return "kind" in entry && entry.kind === "picker";
-}
-
-async function resolvePublishedApplyEntry(
-  supabase: ReturnType<typeof createClient>,
-  organizationId: string,
-  formSlug: string,
-): Promise<ResolvedApplyEntry> {
-  if (!isCanonicalApplyEntrySlug(formSlug)) {
-    return getPublishedApplicationFormBySlug(supabase, organizationId, formSlug);
-  }
-
-  const publishedApplyForms = await listPublishedApplyForms(supabase, organizationId);
-  if (publishedApplyForms.length === 0) {
-    return null;
-  }
-  if (publishedApplyForms.length === 1) {
-    return publishedApplyForms[0];
-  }
-
-  return { kind: "picker" as const, forms: publishedApplyForms };
-}
 
 async function userHasGuardianForOrg(
   supabase: ReturnType<typeof createClient>,
@@ -82,7 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "School Not Found" };
   }
 
-  const resolved = await resolvePublishedApplyEntry(supabase, org.id, formSlug);
+  const resolved = await resolvePublishedApplyEntryCached(org.id, formSlug);
 
   if (!resolved) {
     return { title: "Application Not Found" };
@@ -112,36 +78,34 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
     notFound();
   }
 
-  const resolved = await resolvePublishedApplyEntry(supabase, org.id, formSlug);
+  const resolved = await resolvePublishedApplyEntryCached(org.id, formSlug);
 
   if (!resolved) {
     notFound();
   }
 
   if (isApplyProgramPicker(resolved)) {
-    const { programsById } = await loadApplyProgramPickerData(supabase, org.id);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const [{ data: { user } }, programsById] = await Promise.all([
+      supabase.auth.getUser(),
+      loadProgramsByIdForApplyForms(supabase, org.id, resolved.forms),
+    ]);
     const hasGuardianForOrg = user
       ? await userHasGuardianForOrg(supabase, user.id, org.id)
       : false;
     const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
 
     return (
-      <Suspense>
-        <CanonicalApplyEntryClient
-          branding={org.branding}
-          schoolName={org.name}
-          schoolSlug={slug}
-          organizationId={org.id}
-          forms={resolved.forms}
-          programsById={programsById}
-          tourEntryOption={tourEntryOption}
-          serverAuthState={user ? "authenticated" : "unauthenticated"}
-          hasGuardianForOrg={hasGuardianForOrg}
-        />
-      </Suspense>
+      <CanonicalApplyEntryClient
+        branding={org.branding}
+        schoolName={org.name}
+        schoolSlug={slug}
+        organizationId={org.id}
+        forms={resolved.forms}
+        programsById={programsById}
+        tourEntryOption={tourEntryOption}
+        serverAuthState={user ? "authenticated" : "unauthenticated"}
+        hasGuardianForOrg={hasGuardianForOrg}
+      />
     );
   }
 
@@ -164,21 +128,19 @@ export default async function PublicApplicationFormPage({ params }: PageProps) {
   const tourEntryOption = getEnabledTourAuthEntryOption(org.features);
 
   return (
-    <Suspense>
-      <PublicApplicationFormClient
-        branding={org.branding}
-        schoolName={org.name}
-        schoolSlug={slug}
-        title={form.title}
-        intro={form.intro}
-        schema={form.schema}
-        feeConfig={form.fee_config}
-        organizationId={org.id}
-        formVersionId={form.id}
-        shellLayout="embedded"
-        serverAuthState={user ? "authenticated" : "unauthenticated"}
-        tourEntryOption={tourEntryOption}
-      />
-    </Suspense>
+    <PublicApplicationFormClient
+      branding={org.branding}
+      schoolName={org.name}
+      schoolSlug={slug}
+      title={form.title}
+      intro={form.intro}
+      schema={form.schema}
+      feeConfig={form.fee_config}
+      organizationId={org.id}
+      formVersionId={form.id}
+      shellLayout="embedded"
+      serverAuthState={user ? "authenticated" : "unauthenticated"}
+      tourEntryOption={tourEntryOption}
+    />
   );
 }

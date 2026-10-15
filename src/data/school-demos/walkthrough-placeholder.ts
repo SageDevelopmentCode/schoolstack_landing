@@ -7240,3 +7240,215 @@ export const brazosValleyHonorAcademyWalkthroughPlaceholder: DemoWalkthroughStep
     },
   },
 ];
+
+const inspiredCoralTheme = {
+  bg: "rgba(184, 64, 50, 0.12)",
+  bgHover: "rgba(184, 64, 50, 0.18)",
+  bgActive: "rgba(184, 64, 50, 0.18)",
+  border: "rgba(184, 64, 50, 0.25)",
+  iconBg: "#B84032",
+  iconColor: "#FFFFFF",
+  titleColor: "#373737",
+  descColor: "#686868",
+  connector: "#B84032",
+} as const;
+
+const inspiredClayTheme = {
+  bg: "rgba(252, 109, 93, 0.12)",
+  bgHover: "rgba(252, 109, 93, 0.18)",
+  bgActive: "rgba(252, 109, 93, 0.18)",
+  border: "rgba(252, 109, 93, 0.3)",
+  iconBg: "#FC6D5D",
+  iconColor: "#373737",
+  titleColor: "#373737",
+  descColor: "#686868",
+  connector: "#FC6D5D",
+} as const;
+
+export const inspiredLearningWalkthroughPlaceholder: DemoWalkthroughStep[] = [
+  {
+    id: "discover",
+    title: "Parents discover your school",
+    description:
+      "Families in Allen find Inspired online and explore the grades 6–12 hybrid week, mentorship, and whether it is a fit.",
+    icon: "globe",
+    scrollTarget: "top",
+    theme: inspiredCoralTheme,
+  },
+  {
+    id: "inquire",
+    title: "Parents schedule a tour",
+    description:
+      "Parents use the preview form to ask about a fit-check tour or a 15-minute call. Nothing is sent to the school.",
+    icon: "calendarDays",
+    scrollTarget: "form",
+    theme: inspiredClayTheme,
+  },
+  {
+    id: "view-lead",
+    title: "View the lead in your admin",
+    description:
+      "The tour inquiry appears in admin, including middle school interest and the high school waiting list.",
+    preview: "admin",
+    initialAdmissionsTab: "submissions",
+    animateNewSubmission: true,
+    icon: "layoutDashboard",
+    theme: inspiredCoralTheme,
+  },
+  {
+    id: "send-application-link",
+    title: "Send enrollment link",
+    description: "After a fit-check conversation, send the enrollment link to the family.",
+    preview: "admin",
+    icon: "link",
+    initialSelectedLeadId: "l0",
+    autoSendEnrollmentLink: true,
+    theme: inspiredClayTheme,
+  },
+  {
+    id: "parent-enrollment",
+    title: "Parents complete enrollment",
+    description: "Families complete the enrollment checklist and submit required forms.",
+    preview: "parent",
+    initialParentTab: "enrollment",
+    icon: "clipboardCheck",
+    theme: inspiredCoralTheme,
+  },
+  {
+    id: "parent-pays-tuition",
+    title: "Parent pays tuition",
+    description:
+      "Families pay tuition and manage invoices from the parent portal. Published tuition is $12,970 a year.",
+    preview: "parent",
+    initialParentTab: "billing",
+    icon: "creditCard",
+    theme: inspiredClayTheme,
+  },
+  {
+    id: "teacher-attendance",
+    title: "Teachers take attendance",
+    description:
+      "Facilitators log attendance for middle school, high school, passion projects, and mentoring.",
+    preview: "teacher",
+    initialTeacherTab: "attendance",
+    icon: "clipboardList",
+    theme: inspiredCoralTheme,
+  },
+  createMobileAppWalkthroughStep(inspiredClayTheme),
+  {
+    id: "get-in-touch",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
+    talkingPoint:
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for Inspired Learning Academy.",
+    preview: "contact",
+    icon: "calendarDays",
+    theme: inspiredClayTheme,
+  },
+];
+
+const wildcatNavyTheme = {
+  bg: "rgba(7, 28, 55, 0.12)",
+  bgHover: "rgba(7, 28, 55, 0.18)",
+  bgActive: "rgba(7, 28, 55, 0.18)",
+  border: "rgba(7, 28, 55, 0.25)",
+  iconBg: "#071C37",
+  iconColor: "#FFFFFF",
+  titleColor: "#071C37",
+  descColor: "#536174",
+  connector: "#071C37",
+} as const;
+
+const wildcatRedTheme = {
+  bg: "rgba(255, 2, 10, 0.12)",
+  bgHover: "rgba(255, 2, 10, 0.18)",
+  bgActive: "rgba(255, 2, 10, 0.18)",
+  border: "rgba(255, 2, 10, 0.30)",
+  iconBg: "#FF020A",
+  iconColor: "#071C37",
+  titleColor: "#071C37",
+  descColor: "#536174",
+  connector: "#FF020A",
+} as const;
+
+export const wildcatMicroschoolWalkthroughPlaceholder: DemoWalkthroughStep[] = [
+  {
+    id: "discover",
+    title: "Parents discover your school",
+    description:
+      "Families find Wildcat Microschool online and read about the homeschool learning pod in Haverhill, New Hampshire.",
+    icon: "globe",
+    scrollTarget: "top",
+    theme: wildcatNavyTheme,
+  },
+  {
+    id: "inquire",
+    title: "Parents ask a question",
+    description:
+      "Parents use the preview form for a general question or a waitlist question. Nothing is sent to the school.",
+    icon: "calendarDays",
+    scrollTarget: "form",
+    theme: wildcatRedTheme,
+  },
+  {
+    id: "view-lead",
+    title: "View the lead in your admin",
+    description:
+      "The sample inquiry appears in admin. It does not confirm an opening or a published age range.",
+    preview: "admin",
+    initialAdmissionsTab: "submissions",
+    animateNewSubmission: true,
+    icon: "layoutDashboard",
+    theme: wildcatNavyTheme,
+  },
+  {
+    id: "send-application-link",
+    title: "Send enrollment link",
+    description: "After a conversation, send the enrollment link to the family.",
+    preview: "admin",
+    icon: "link",
+    initialSelectedLeadId: "l0",
+    autoSendEnrollmentLink: true,
+    theme: wildcatRedTheme,
+  },
+  {
+    id: "parent-enrollment",
+    title: "Parents complete enrollment",
+    description: "Families complete the enrollment checklist and submit required forms.",
+    preview: "parent",
+    initialParentTab: "enrollment",
+    icon: "clipboardCheck",
+    theme: wildcatNavyTheme,
+  },
+  {
+    id: "parent-pays-tuition",
+    title: "Parent pays tuition",
+    description:
+      "Families pay and manage invoices from the parent portal in this product preview. Wildcat has not published a tuition amount.",
+    preview: "parent",
+    initialParentTab: "billing",
+    icon: "creditCard",
+    theme: wildcatRedTheme,
+  },
+  {
+    id: "teacher-attendance",
+    title: "Teachers take attendance",
+    description:
+      "Guides log attendance across student-driven learning, hands-on projects, nature-based learning, and collaborative learning.",
+    preview: "teacher",
+    initialTeacherTab: "attendance",
+    icon: "clipboardList",
+    theme: wildcatNavyTheme,
+  },
+  createMobileAppWalkthroughStep(wildcatRedTheme),
+  {
+    id: "get-in-touch",
+    title: "Ready for next steps?",
+    description: "Schedule a meeting, or email or call us to talk through this concept.",
+    talkingPoint:
+      "Pick a time on the calendar, or reach out directly — we'd love to walk through how this could work for Wildcat Microschool.",
+    preview: "contact",
+    icon: "calendarDays",
+    theme: wildcatRedTheme,
+  },
+];

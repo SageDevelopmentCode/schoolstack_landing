@@ -1,5 +1,5 @@
 import { CATALOG_ADDITIONAL_KEYS, FEATURE_CATALOG } from "./catalog";
-import { DEFAULT_FEATURE_ICON_SLUG } from "./icon-registry";
+import { DEFAULT_FEATURE_ICON_SLUG } from "./feature-icon-defaults";
 import {
   removeFeatureNavItem,
   setFeatureNavItem,

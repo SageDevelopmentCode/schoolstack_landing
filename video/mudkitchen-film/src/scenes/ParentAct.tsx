@@ -481,7 +481,10 @@ const EnrollmentScreen: React.FC<{ lf: number; fps: number }> = ({ lf, fps }) =>
 
 // ─── Billing (ParentBillingScreen, family view) ─────────────────────────────
 
-const BillingScreen: React.FC<{ lf: number; fps: number }> = ({ lf, fps }) => {
+// Local frame of the Pay press inside BillingScreen.
+export const BILLING_PRESS = PRESS;
+
+export const BillingScreen: React.FC<{ lf: number; fps: number }> = ({ lf, fps }) => {
   const paid = lf >= PRESS;
   const squash = interpolate(lf, [PRESS - 3, PRESS, PRESS + 6], [1, 0.94, 1], CLAMP);
   const banner = paid ? uiSpring(lf, fps, PRESS + 3) : 0;

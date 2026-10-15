@@ -1,10 +1,15 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { listPublishedWebsiteBlogPostSlugs } from "@/lib/website-blog/storage";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 const LAST_MODIFIED = new Date("2026-09-26");
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const admin = createAdminClient();
+  const blogPosts = await listPublishedWebsiteBlogPostSlugs(admin);
+
+  const staticEntries: MetadataRoute.Sitemap = [
     {
       url: SITE_URL,
       lastModified: LAST_MODIFIED,
@@ -20,6 +25,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: `${SITE_URL}/microschool-monday-check`,
       lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/how-many-students`,
+      lastModified: new Date("2026-10-12"),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/tuition-planner`,
+      lastModified: new Date("2026-10-12"),
+      changeFrequency: "monthly",
+      priority: 0.85,
+    },
+    {
+      url: `${SITE_URL}/tools`,
+      lastModified: new Date("2026-10-15"),
       changeFrequency: "monthly",
       priority: 0.85,
     },
@@ -40,6 +63,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/blog`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "weekly",
+      priority: 0.7,
     },
     {
       url: `${SITE_URL}/customers/sagefield`,
@@ -96,4 +125,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
   ];
+
+  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${SITE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: "weekly" as const,
+    priority: 0.65,
+  }));
+
+  return [...staticEntries, ...blogEntries];
 }

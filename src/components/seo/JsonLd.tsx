@@ -1,3 +1,4 @@
+import { serializeJsonLd } from "@/lib/seo";
 import {
   HOME_DESCRIPTION,
   SITE_NAME,
@@ -64,7 +65,7 @@ export default function JsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { breadcrumbJsonLd, type BreadcrumbItem } from "@/lib/seo";
+import { breadcrumbJsonLd, serializeJsonLd, type BreadcrumbItem } from "@/lib/seo";
 
 type BreadcrumbJsonLdProps = {
   items: BreadcrumbItem[];
@@ -9,7 +9,7 @@ export default function BreadcrumbJsonLd({ items }: BreadcrumbJsonLdProps) {
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(breadcrumbJsonLd(items)),
+        __html: serializeJsonLd(breadcrumbJsonLd(items)),
       }}
     />
   );

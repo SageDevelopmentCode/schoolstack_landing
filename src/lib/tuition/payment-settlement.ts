@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ACTIVITY_ACTIONS } from "@/lib/activity-log";
 import {
+  getPaymentById,
   revertSucceededPaymentToFailed,
   type PaymentRecord,
 } from "@/lib/stripe/application-payments";
@@ -9,7 +10,7 @@ import { chargeRemainingCents } from "./billing-splits";
 import { ChargeStatusConflictError, getChargeById } from "./charges";
 import { rowToCharge } from "./row-mappers";
 import { logTuitionActivity } from "./tuition-activity";
-import type { ChargeStatus, TuitionBillingAccountMetadata, TuitionCharge } from "./types";
+import type { TuitionBillingAccountMetadata, TuitionCharge } from "./types";
 
 const OPEN_CHARGE_STATUSES = new Set(["scheduled", "sent", "overdue"]);
 const SETTLEABLE_CHARGE_STATUSES = ["scheduled", "sent", "overdue"] as const;
@@ -420,16 +421,79 @@ export async function settleTuitionPayment(
   };
 }
 
-function openChargeStatusAfterRevert(dueDate: string): ChargeStatus {
-  const todayUtc = new Date().toISOString().slice(0, 10);
-  return dueDate < todayUtc ? "overdue" : "sent";
-}
-
 export type RevertTuitionPaymentAfterAchSettlementFailureResult = {
   payment: PaymentRecord;
   chargeReopened: boolean;
   alreadyHandled: boolean;
 };
+
+type RevertTuitionAchSettlementAtomicResult = {
+  alreadyHandled: boolean;
+  transitioned: boolean;
+  chargeReopened: boolean;
+  surplus: boolean;
+  appliedCents: number | null;
+  chargeId: string | null;
+  chargeLabel: string | null;
+};
+
+function parseRevertTuitionAchSettlementAtomicResult(
+  data: unknown,
+): RevertTuitionAchSettlementAtomicResult {
+  if (!data || typeof data !== "object") {
+    throw new Error("ACH settlement revert did not return a result.");
+  }
+
+  const row = data as Record<string, unknown>;
+  return {
+    alreadyHandled: row.already_handled === true,
+    transitioned: row.transitioned === true,
+    chargeReopened: row.charge_reopened === true,
+    surplus: row.surplus === true,
+    appliedCents: typeof row.applied_cents === "number" ? row.applied_cents : null,
+    chargeId: typeof row.charge_id === "string" ? row.charge_id : null,
+    chargeLabel: typeof row.charge_label === "string" ? row.charge_label : null,
+  };
+}
+
+async function failSucceededPaymentWithSurplus(
+  supabase: SupabaseClient,
+  payment: PaymentRecord,
+  surplusCents: number,
+  input: {
+    stripePaymentIntentId?: string;
+    stripeCheckoutSessionId?: string;
+  },
+): Promise<RevertTuitionPaymentAfterAchSettlementFailureResult> {
+  await reportOperationalError({
+    supabase,
+    surface: "system",
+    operation: "revert_tuition_ach_settlement_failure",
+    error:
+      "ACH settlement failed but payment had surplus; charge left paid for manual correction",
+    organizationId: payment.organizationId,
+    entityType: "payment",
+    entityId: payment.id,
+    actor: { type: "system" },
+    metadata: {
+      paymentId: payment.id,
+      tuitionChargeId: payment.tuitionChargeId,
+      surplusCents,
+    },
+  });
+  const revertResult = await revertSucceededPaymentToFailed(
+    supabase,
+    payment.id,
+    input,
+  );
+  const revertedPayment = revertResult.payment ?? payment;
+  return {
+    payment: revertedPayment,
+    chargeReopened: false,
+    alreadyHandled:
+      !revertResult.transitioned && revertedPayment.status === "failed",
+  };
+}
 
 export async function revertTuitionPaymentAfterAchSettlementFailure(
   supabase: SupabaseClient,
@@ -443,150 +507,103 @@ export async function revertTuitionPaymentAfterAchSettlementFailure(
     return { payment, chargeReopened: false, alreadyHandled: true };
   }
 
-  if (payment.status === "failed") {
-    return { payment, chargeReopened: false, alreadyHandled: true };
-  }
-
   if (payment.status !== "succeeded") {
     return { payment, chargeReopened: false, alreadyHandled: true };
   }
 
-  const appliedCents = payment.amountAppliedCents ?? payment.amountCents;
-  const surplusCents = Math.max(0, payment.amountCents - appliedCents);
-  if (surplusCents > 0) {
-    await reportOperationalError({
-      supabase,
-      surface: "system",
-      operation: "revert_tuition_ach_settlement_failure",
-      error:
-        "ACH settlement failed but payment had surplus; charge left paid for manual correction",
-      organizationId: payment.organizationId,
-      entityType: "payment",
-      entityId: payment.id,
-      actor: { type: "system" },
-      metadata: {
-        paymentId: payment.id,
-        tuitionChargeId: payment.tuitionChargeId,
-        surplusCents,
-      },
-    });
-    const revertResult = await revertSucceededPaymentToFailed(
-      supabase,
-      payment.id,
-      input,
-    );
-    const revertedPayment = revertResult.payment ?? payment;
-    return {
-      payment: revertedPayment,
-      chargeReopened: false,
-      alreadyHandled:
-        !revertResult.transitioned && revertedPayment.status === "failed",
-    };
-  }
-
-  const charge = await getChargeById(supabase, payment.tuitionChargeId);
-  if (!charge) {
-    throw new Error("Charge not found.");
-  }
-
-  const nextPaidCents = Math.max(0, charge.paidCents - appliedCents);
-  const patch: Record<string, unknown> = {
-    paid_cents: nextPaidCents,
-  };
-
-  if (nextPaidCents < charge.amountCents) {
-    patch.status = openChargeStatusAfterRevert(charge.dueDate);
-    patch.paid_at = null;
-  }
-
-  const { data: updatedRow, error: updateError } = await supabase
-    .from("tuition_charges")
-    .update(patch)
-    .eq("id", charge.id)
-    .eq("paid_cents", charge.paidCents)
-    .select("*")
-    .maybeSingle();
-
-  if (updateError) throw updateError;
-
-  if (!updatedRow) {
-    const refreshedCharge = await getChargeById(supabase, charge.id);
-    const expectedStatus =
-      nextPaidCents < charge.amountCents
-        ? openChargeStatusAfterRevert(charge.dueDate)
-        : charge.status;
-    const chargeAlreadyReverted =
-      refreshedCharge != null &&
-      refreshedCharge.paidCents === nextPaidCents &&
-      refreshedCharge.status === expectedStatus &&
-      (nextPaidCents >= charge.amountCents || refreshedCharge.paidAt == null);
-
-    if (!chargeAlreadyReverted) {
-      await reportOperationalError({
-        supabase,
-        surface: "system",
-        operation: "revert_tuition_ach_settlement_failure",
-        error: "Charge balance changed before ACH settlement revert",
-        organizationId: payment.organizationId,
-        entityType: "tuition_charge",
-        entityId: charge.id,
-        actor: { type: "system" },
-        metadata: { paymentId: payment.id },
-      });
-    }
-    const revertResult = await revertSucceededPaymentToFailed(
-      supabase,
-      payment.id,
-      input,
-    );
-    const revertedPayment = revertResult.payment ?? payment;
-    const paymentAlreadyFailed =
-      !revertResult.transitioned && revertedPayment.status === "failed";
-    return {
-      payment: revertedPayment,
-      chargeReopened: chargeAlreadyReverted,
-      alreadyHandled: paymentAlreadyFailed,
-    };
-  }
-
-  const revertResult = await revertSucceededPaymentToFailed(
-    supabase,
-    payment.id,
-    input,
-  );
-  const updatedPayment = revertResult.payment;
+  const current = await getPaymentById(supabase, payment.id);
   if (
-    !revertResult.transitioned ||
-    !updatedPayment ||
-    updatedPayment.status !== "failed"
+    !current ||
+    current.status !== "succeeded" ||
+    current.paymentType !== "tuition" ||
+    !current.tuitionChargeId
   ) {
+    return {
+      payment: current ?? payment,
+      chargeReopened: false,
+      alreadyHandled: true,
+    };
+  }
+
+  const appliedCents = current.amountAppliedCents ?? current.amountCents;
+  const surplusCents = Math.max(0, current.amountCents - appliedCents);
+  if (surplusCents > 0) {
+    return failSucceededPaymentWithSurplus(
+      supabase,
+      current,
+      surplusCents,
+      input,
+    );
+  }
+
+  const { data, error } = await supabase.rpc(
+    "revert_tuition_ach_settlement_atomic",
+    {
+      p_payment_id: current.id,
+      p_stripe_payment_intent_id: input.stripePaymentIntentId ?? null,
+      p_stripe_checkout_session_id: input.stripeCheckoutSessionId ?? null,
+    },
+  );
+  if (error) throw error;
+
+  const revertResult = parseRevertTuitionAchSettlementAtomicResult(data);
+  if (revertResult.surplus) {
+    const fresh = await getPaymentById(supabase, current.id);
+    if (!fresh || fresh.status !== "succeeded") {
+      return {
+        payment: fresh ?? current,
+        chargeReopened: false,
+        alreadyHandled: true,
+      };
+    }
+    const freshAppliedCents = fresh.amountAppliedCents ?? fresh.amountCents;
+    const freshSurplusCents = Math.max(0, fresh.amountCents - freshAppliedCents);
+    return failSucceededPaymentWithSurplus(
+      supabase,
+      fresh,
+      freshSurplusCents,
+      input,
+    );
+  }
+
+  const updatedPayment = await getPaymentById(supabase, current.id);
+  if (!updatedPayment || (revertResult.transitioned && updatedPayment.status !== "failed")) {
     throw new ChargeStatusConflictError(
       "Payment could not be marked failed after charge revert.",
     );
   }
 
+  if (!revertResult.transitioned) {
+    return {
+      payment: updatedPayment,
+      chargeReopened: false,
+      alreadyHandled: true,
+    };
+  }
+
+  const chargeId = revertResult.chargeId ?? current.tuitionChargeId;
   void logTuitionActivity(supabase, {
-    organizationId: payment.organizationId,
+    organizationId: current.organizationId,
     action: ACTIVITY_ACTIONS.TUITION_PAYMENT_REFUNDED,
     entityType: "tuition_charge",
-    entityId: charge.id,
+    entityId: chargeId,
     summary: "ACH settlement failed; tuition charge reopened",
     changeSummary: {
       changedFields: ["status", "paid_cents"],
       changes: [
-        `Reopened ${charge.label ?? "charge"} after bank transfer failed`,
+        `Reopened ${revertResult.chargeLabel ?? "charge"} after bank transfer failed`,
       ],
     },
     metadata: {
-      paymentId: payment.id,
-      tuitionChargeId: charge.id,
-      appliedCents,
+      paymentId: current.id,
+      tuitionChargeId: chargeId,
+      appliedCents: revertResult.appliedCents ?? appliedCents,
     },
   });
 
   return {
     payment: updatedPayment,
-    chargeReopened: true,
+    chargeReopened: revertResult.chargeReopened,
     alreadyHandled: false,
   };
 }

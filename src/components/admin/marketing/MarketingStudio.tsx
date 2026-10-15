@@ -13,7 +13,29 @@ import {
   resolveMarketingCarouselId,
 } from "@/components/admin/marketing/carousels/registry";
 import type { MarketingSlide } from "@/components/admin/marketing/carousels/types";
-import { SLIDE_HEIGHT, SLIDE_WIDTH } from "@/components/admin/marketing/slide-frame";
+import {
+  DEFAULT_CAROUSEL_AUDIENCE_BANNER,
+  MarketingSlideShell,
+  SLIDE_HEIGHT,
+  SLIDE_WIDTH,
+} from "@/components/admin/marketing/slide-frame";
+import { AdminSwitch } from "@/components/admin/ui/AdminSwitch";
+import type { MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
+import {
+  isMarketingCarouselId,
+  MARKETING_CAROUSEL_IDS,
+  type MarketingCarouselId,
+} from "@/lib/marketing/marketing-carousel-ids";
+
+function emptyPostedByCarouselId(): Record<MarketingCarouselId, MarketingCarouselPostStatus> {
+  return MARKETING_CAROUSEL_IDS.reduce(
+    (acc, id) => {
+      acc[id] = { posted: false, postedAt: null };
+      return acc;
+    },
+    {} as Record<MarketingCarouselId, MarketingCarouselPostStatus>,
+  );
+}
 
 async function slideToPng(node: HTMLElement): Promise<string> {
   return toPng(node, {
@@ -51,15 +73,103 @@ export default function MarketingStudio() {
   const [scale, setScale] = useState(0.42);
   const [exporting, setExporting] = useState<"slide" | "all" | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [postedByCarouselId, setPostedByCarouselId] = useState(() => emptyPostedByCarouselId());
+  const [postStatusLoading, setPostStatusLoading] = useState(true);
+  const [postStatusSaving, setPostStatusSaving] = useState(false);
+  const [postStatusError, setPostStatusError] = useState<string | null>(null);
 
   const carousel = getMarketingCarousel(selectedCarouselId) ?? MARKETING_CAROUSELS[0];
   const carouselId = carousel?.id ?? "";
   const slides = carousel?.slides ?? [];
   const slide = slides[index] ?? slides[0];
+  const firstSlideAudienceBanner =
+    slides.length > 1 ? (carousel?.audienceBanner ?? DEFAULT_CAROUSEL_AUDIENCE_BANNER) : undefined;
 
   useEffect(() => {
     exportRefs.current = [];
   }, [carouselId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPostStatuses() {
+      setPostStatusLoading(true);
+      setPostStatusError(null);
+      try {
+        const response = await fetch("/api/admin/marketing-carousels/post-status");
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error ?? "Could not load posted status.");
+        }
+        const payload = (await response.json()) as {
+          statuses: Record<MarketingCarouselId, MarketingCarouselPostStatus>;
+        };
+        if (!cancelled) {
+          setPostedByCarouselId({ ...emptyPostedByCarouselId(), ...payload.statuses });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPostStatusError(
+            error instanceof Error ? error.message : "Could not load posted status.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPostStatusLoading(false);
+        }
+      }
+    }
+
+    void loadPostStatuses();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const setCarouselPosted = useCallback(async (id: MarketingCarouselId, posted: boolean) => {
+    let previous: MarketingCarouselPostStatus = { posted: false, postedAt: null };
+    setPostStatusSaving(true);
+    setPostStatusError(null);
+    setPostedByCarouselId((current) => {
+      previous = current[id] ?? { posted: false, postedAt: null };
+      return {
+        ...current,
+        [id]: {
+          posted,
+          postedAt: posted ? new Date().toISOString() : null,
+        },
+      };
+    });
+
+    try {
+      const response = await fetch(`/api/admin/marketing-carousels/${id}/post-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ posted }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Could not update posted status.");
+      }
+      const payload = (await response.json()) as MarketingCarouselPostStatus & {
+        carouselId: MarketingCarouselId;
+      };
+      setPostedByCarouselId((current) => ({
+        ...current,
+        [id]: { posted: payload.posted, postedAt: payload.postedAt },
+      }));
+    } catch (error) {
+      setPostedByCarouselId((current) => ({
+        ...current,
+        [id]: previous,
+      }));
+      setPostStatusError(
+        error instanceof Error ? error.message : "Could not update posted status.",
+      );
+    } finally {
+      setPostStatusSaving(false);
+    }
+  }, []);
 
   const selectCarousel = useCallback(
     (id: string) => {
@@ -95,11 +205,15 @@ export default function MarketingStudio() {
     return () => observer.disconnect();
   }, [carouselId]);
 
+  const slideCount = slides.length;
   const go = useCallback(
     (delta: number) => {
-      setIndex((current) => (current + delta + slides.length) % slides.length);
+      setIndex((current) => {
+        if (slideCount === 0) return 0;
+        return (current + delta + slideCount) % slideCount;
+      });
     },
-    [slides.length, setIndex],
+    [slideCount, setIndex],
   );
 
   useEffect(() => {
@@ -151,6 +265,9 @@ export default function MarketingStudio() {
     }
   }
 
+  const currentCarouselPosted =
+    isMarketingCarouselId(carouselId) && (postedByCarouselId[carouselId]?.posted ?? false);
+
   if (!carousel) {
     return (
       <div className="flex h-[calc(100vh-3rem)] items-center justify-center text-sm text-admin-muted">
@@ -164,6 +281,7 @@ export default function MarketingStudio() {
       <MarketingCarouselSidebar
         carousels={MARKETING_CAROUSELS}
         selectedId={carousel.id}
+        postedByCarouselId={postedByCarouselId}
         onSelect={selectCarousel}
       />
 
@@ -173,7 +291,22 @@ export default function MarketingStudio() {
             <h1 className="text-lg font-semibold text-admin-text">Marketing</h1>
             <p className="text-sm text-admin-muted">{carousel.title}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 border-r border-admin-border pr-3">
+              <AdminSwitch
+                checked={currentCarouselPosted}
+                disabled={postStatusLoading || postStatusSaving || !isMarketingCarouselId(carouselId)}
+                label="Mark carousel as posted"
+                onChange={(posted) => {
+                  if (!isMarketingCarouselId(carouselId)) return;
+                  void setCarouselPosted(carouselId, posted);
+                }}
+              />
+              <div>
+                <p className="text-sm font-medium text-admin-text">Posted</p>
+                <p className="text-[11px] text-admin-muted">Mark when this is live on social</p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => void downloadCurrent()}
@@ -206,6 +339,9 @@ export default function MarketingStudio() {
         {exportError ? (
           <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{exportError}</p>
         ) : null}
+        {postStatusError ? (
+          <p className="border-b border-admin-border px-6 py-2 text-sm text-red-700">{postStatusError}</p>
+        ) : null}
 
         <div ref={stageRef} className="relative flex min-h-0 flex-1 items-center justify-center">
           <button
@@ -226,7 +362,11 @@ export default function MarketingStudio() {
                 transformOrigin: "top left",
               }}
             >
-              <SlideView slide={slide} />
+              <MarketingSlideShell
+                audienceBanner={index === 0 ? firstSlideAudienceBanner : undefined}
+              >
+                <SlideView slide={slide} />
+              </MarketingSlideShell>
             </div>
           </div>
 
@@ -272,7 +412,11 @@ export default function MarketingStudio() {
                 position: "relative",
               }}
             >
-              <SlideView slide={item} />
+              <MarketingSlideShell
+                audienceBanner={itemIndex === 0 ? firstSlideAudienceBanner : undefined}
+              >
+                <SlideView slide={item} />
+              </MarketingSlideShell>
             </div>
           ))}
         </div>

@@ -12,6 +12,8 @@
     "render": "npm run sync-assets && npm run render:16x9 && npm run render:9x16",
     "render:16x9": "remotion render MudKitchenFilm16x9 out/mudkitchen-16x9.mp4",
     "render:9x16": "remotion render MudKitchenFilm9x16 out/mudkitchen-9x16.mp4",
+    "render:ad27": "npm run sync-assets && remotion render MudKitchenAd27-9x16 out/mudkitchen-ad27-9x16.mp4 && remotion render MudKitchenAd27-16x9 out/mudkitchen-ad27-16x9.mp4 && remotion render MudKitchenAd27-9x16-Clean out/mudkitchen-ad27-9x16-clean.mp4 && remotion render MudKitchenAd27-16x9-Clean out/mudkitchen-ad27-16x9-clean.mp4",
+    "split-vo:ad27": "node scripts/split-vo.mjs --ad27",
     "stills": "npm run sync-assets && node scripts/render-stills.mjs",
     "shotlist": "node --experimental-strip-types scripts/print-shotlist.ts",
     "typecheck": "tsc --noEmit"

@@ -159,6 +159,24 @@ export async function listPublishedApplyForms(
   }));
 }
 
+export async function listPublishedApplyFormSummaries(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<ApplicationFormVersion[]> {
+  const { data, error } = await supabase
+    .from("application_form_versions")
+    .select(APPLICATION_FORM_SUMMARY_SELECT)
+    .eq("organization_id", organizationId)
+    .eq("form_kind", "apply")
+    .eq("status", "published")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) =>
+    applicationFormSummaryFromRow(row as Record<string, unknown>),
+  );
+}
+
 export function listProgramsWithoutApplyForm(
   programs: { id: string; name: string }[],
   forms: ApplicationFormVersion[],

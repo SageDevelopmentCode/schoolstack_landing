@@ -1,5 +1,10 @@
 import { SITE_NAME, SITE_URL } from "./site";
 
+/** Safe for dangerouslySetInnerHTML inside application/ld+json script tags. */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export type BreadcrumbItem = {
   name: string;
   path: string;
@@ -46,11 +51,13 @@ export function articleJsonLd({
   description,
   path,
   image,
+  author,
 }: {
   headline: string;
   description: string;
   path: string;
   image: string;
+  author?: { name: string; url: string };
 }) {
   return {
     "@context": "https://schema.org",
@@ -59,11 +66,17 @@ export function articleJsonLd({
     description,
     url: `${SITE_URL}${path}`,
     image: `${SITE_URL}${image}`,
-    author: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
+    author: author
+      ? {
+          "@type": "Person",
+          name: author.name,
+          url: author.url,
+        }
+      : {
+          "@type": "Organization",
+          name: SITE_NAME,
+          url: SITE_URL,
+        },
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import SchoolDemoWordmark, {
   type SchoolDemoLogo,
 } from "@/components/demo/SchoolDemoWordmark";
+import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
+import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
 import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
@@ -284,6 +286,7 @@ function DemoContactSchedulePanel({
 
   return (
     <div className="h-full overflow-y-auto bg-[#F7F1E7]">
+      <GetStartedShowcaseCarousel />
       <div className="mx-auto flex max-w-3xl flex-col px-6 py-10 sm:px-10 sm:py-12">
         <div className="mb-6 flex items-center gap-3">
           <SchoolDemoWordmark
@@ -385,6 +388,7 @@ function DemoContactSchedulePanel({
 
         <ContactDetailsFooter />
       </div>
+      <GetStartedFilmSection />
     </div>
   );
 }

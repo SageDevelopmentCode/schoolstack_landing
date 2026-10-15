@@ -1,12 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Info, Layers, Users } from "lucide-react";
+import { BookOpen, Info, Layers, Users, Wrench } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
+import {
+  FREE_TOOLS_HUB_PATH,
+  FREE_TOOLS_NAV_LABEL,
+} from "@/lib/marketing/free-tools";
 
 const NAV_LINKS = [
   { label: "About", href: "/about", icon: Info },
   { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Blog", href: "/blog", icon: BookOpen },
+  { label: FREE_TOOLS_NAV_LABEL, href: FREE_TOOLS_HUB_PATH, icon: Wrench },
 ];
 
 export default function Footer() {

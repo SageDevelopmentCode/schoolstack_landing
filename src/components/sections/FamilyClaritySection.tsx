@@ -6,7 +6,13 @@ import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame
 import { LazyParentDashboardDemo } from "@/components/sections/lazyDemos";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
-export default function FamilyClaritySection() {
+type FamilyClaritySectionProps = {
+  bookDemoHref?: string;
+};
+
+export default function FamilyClaritySection({
+  bookDemoHref = BOOK_DEMO_HREF,
+}: FamilyClaritySectionProps) {
   return (
     <section className="bg-surface py-24 overflow-x-hidden overflow-y-hidden lg:overflow-hidden">
       <div className="max-w-[1200px] mx-auto pl-6 lg:pl-12 pr-0 overflow-x-hidden">
@@ -42,7 +48,7 @@ export default function FamilyClaritySection() {
             <FadeInView delay={0.18}>
               <div className="mt-8">
                 <a
-                  href={BOOK_DEMO_HREF}
+                  href={bookDemoHref}
                   className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Book a Demo

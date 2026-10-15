@@ -33,7 +33,7 @@ const CHECK_QUESTIONS = [
 
 export const WHERE_WAS_THAT_UPDATE_CAROUSEL = {
   id: "where-was-that-update",
-  title: "Parents shouldn’t have to ask, “Where was that update?”",
+  title: "Parents at your Microschool shouldn’t have to ask, “Where was that update?”",
   description: "LinkedIn carousel for bulletin, messages, forms, and the school calendar.",
   fileSlug: "mudkitchen-where-was-that-update",
   slides: [
@@ -79,7 +79,7 @@ function ParentHomeSlide() {
   return (
     <CarouselProductSlide
       kicker="Parent home"
-      title="Parents shouldn’t have to ask, “Where was that update?”"
+      title="Parents at your Microschool shouldn’t have to ask, “Where was that update?”"
       body="Give each message a clear home and a clear next step."
       contentHeight={DEMO_CONTENT_HEIGHT}
       crop={HOME_CROP}

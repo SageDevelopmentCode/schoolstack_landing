@@ -17,6 +17,7 @@ const MARKETING_PAGES: Omit<PageTarget, "id">[] = [
     path: "/microschool-monday-check",
     requiresAuth: "none",
   },
+  { category: "marketing", label: "Free tools", path: "/tools", requiresAuth: "none" },
   { category: "marketing", label: "Customers", path: "/customers", requiresAuth: "none" },
   {
     category: "marketing",

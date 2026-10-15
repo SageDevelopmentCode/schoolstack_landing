@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import ApplicationAuthGate from "@/components/admissions/ApplicationAuthGate";
 import ApplyAuthShell from "@/components/admissions/ApplyAuthShell";
+import ApplyFormRouteLoading, {
+  ApplyFormRouteLoadingBrandingProvider,
+} from "@/components/admissions/ApplyFormRouteLoading";
 import { ApplyAuthShellLoader } from "@/components/admissions/ApplyAuthShellLoader";
 import ApplicationFormPageShell from "@/components/admissions/ApplicationFormPageShell";
 import PortalHelpFab from "@/components/school/shared/PortalHelpFab";
@@ -45,6 +47,11 @@ import { reportApplyOperationalError } from "@/lib/operational-errors-client";
 
 const ApplicationFormExperience = dynamic(
   () => import("@/components/admissions/ApplicationFormExperience"),
+);
+
+const ApplicationAuthGate = dynamic(
+  () => import("@/components/admissions/ApplicationAuthGate"),
+  { loading: () => <ApplyFormRouteLoading label="Loading sign in" /> },
 );
 
 type ServerAuthState = "unauthenticated" | "authenticated";
@@ -112,7 +119,17 @@ async function bootstrapApplicant(
   return payload;
 }
 
-export default function PublicApplicationFormClient({
+export default function PublicApplicationFormClient(
+  props: PublicApplicationFormClientProps,
+) {
+  return (
+    <ApplyFormRouteLoadingBrandingProvider branding={props.branding}>
+      <PublicApplicationFormClientContent {...props} />
+    </ApplyFormRouteLoadingBrandingProvider>
+  );
+}
+
+function PublicApplicationFormClientContent({
   branding,
   schoolName,
   schoolSlug,

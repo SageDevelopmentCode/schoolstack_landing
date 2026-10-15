@@ -52,6 +52,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
     import(
       "@/components/demo/asheborohybridacademy/AsheboroHybridAcademyMobileAppShowcase"
     ),
+  "inspired-learning-academy": () =>
+    import(
+      "@/components/demo/inspiredlearning/InspiredLearningMobileAppShowcase"
+    ),
   "family-lyceum": () =>
     import(
       "@/components/demo/familylyceum/FamilyLyceumMobileAppShowcase"
@@ -75,6 +79,10 @@ const MOBILE_SHOWCASE_LOADERS: Record<
   "tapestry-academy": () =>
     import(
       "@/components/demo/tapestryacademy/TapestryAcademyMobileAppShowcase"
+    ),
+  "wildcat-microschool": () =>
+    import(
+      "@/components/demo/wildcatmicroschool/WildcatMicroschoolMobileAppShowcase"
     ),
 };
 

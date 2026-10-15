@@ -64,7 +64,13 @@ function prefetchAllProductPreviewShowcaseSlides() {
   }
 }
 
-export default function GetStartedShowcaseCarousel() {
+type GetStartedShowcaseCarouselProps = {
+  variant?: "page" | "embedded";
+};
+
+export default function GetStartedShowcaseCarousel({
+  variant = "page",
+}: GetStartedShowcaseCarouselProps) {
   const [reduceMotion, setReduceMotion] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -236,9 +242,15 @@ export default function GetStartedShowcaseCarousel() {
         }
       : undefined;
 
+  const isEmbedded = variant === "embedded";
+
   return (
     <section
-      className="relative border-b border-white/10 bg-accent py-8"
+      className={
+        isEmbedded
+          ? "relative overflow-hidden rounded-2xl border border-border bg-accent py-8 pb-6"
+          : "relative border-b border-white/10 bg-accent py-8"
+      }
       aria-label="Product preview samples"
     >
       <div

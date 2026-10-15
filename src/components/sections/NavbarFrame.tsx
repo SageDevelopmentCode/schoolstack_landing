@@ -2,13 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Info, Layers, Menu, Users, X } from "lucide-react";
+import { BookOpen, Info, Layers, Menu, Users, Wrench, X } from "lucide-react";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
+import {
+  FREE_TOOLS_HUB_PATH,
+  FREE_TOOLS_NAV_LABEL,
+} from "@/lib/marketing/free-tools";
 
 const MOBILE_LINKS = [
   { label: "About", href: "/about", icon: Info },
   { label: "Product", href: "/#product", icon: Layers },
   { label: "Customers", href: "/customers", icon: Users },
+  { label: "Blog", href: "/blog", icon: BookOpen },
 ];
 
 export default function NavbarFrame({ children }: { children: React.ReactNode }) {
@@ -48,8 +53,8 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
         />
       ) : null}
 
-      <div className="navbar-enter relative z-10 w-full max-w-[860px] overflow-hidden rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]">
-        <div className="flex h-12 md:h-14 items-center justify-between gap-4 md:gap-8 px-4 md:px-7">
+      <div className="navbar-enter relative z-10 w-full max-w-[1080px] overflow-hidden rounded-[18px] bg-white shadow-[0_4px_28px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.07)]">
+        <div className="flex h-12 md:h-14 items-center justify-between gap-4 md:gap-6 px-4 md:px-7">
           {children}
 
           <button
@@ -101,6 +106,15 @@ export default function NavbarFrame({ children }: { children: React.ReactNode })
                 />
               </svg>
             </a>
+
+            <Link
+              href={FREE_TOOLS_HUB_PATH}
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 flex h-12 items-center justify-center gap-2 rounded-pill border border-clay/35 bg-white text-sm font-medium text-clay transition-all duration-200 hover:bg-clay/5"
+            >
+              <Wrench size={16} className="shrink-0" aria-hidden />
+              {FREE_TOOLS_NAV_LABEL}
+            </Link>
           </div>
         </nav>
       </div>

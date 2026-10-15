@@ -10,13 +10,21 @@ export type AudioCue = { file: string; from: number; volume?: number; label: str
 export const VO_EXTENSIONS = ["wav", "mp3", "m4a"] as const;
 export const VO_FALLBACK: AudioCue = { file: "vo.wav", from: 0, volume: 1, label: "VO (single full read, fallback)" };
 
-export function resolveVoCues(available: Set<string>): AudioCue[] {
-  const clips = VO_LINES.flatMap((v) => {
-    const ext = VO_EXTENSIONS.find((e) => available.has(`vo/${v.id}.${e}`));
-    return ext ? [{ file: `vo/${v.id}.${ext}`, from: v.from, volume: 1, label: `VO ${v.id}` }] : [];
+type VoWindow = { id: string; from: number; to: number };
+
+// `dir` is the folder under public/audio/ that holds vo/<id>.<ext> and the fallback.
+export function resolveVoCuesFor(lines: VoWindow[], available: Set<string>, dir = ""): AudioCue[] {
+  const clips = lines.flatMap((v) => {
+    const ext = VO_EXTENSIONS.find((e) => available.has(`${dir}vo/${v.id}.${e}`));
+    return ext ? [{ file: `${dir}vo/${v.id}.${ext}`, from: v.from, volume: 1, label: `VO ${v.id}` }] : [];
   });
   if (clips.length > 0) return clips;
-  return available.has(VO_FALLBACK.file) ? [VO_FALLBACK] : [];
+  const fallback = { ...VO_FALLBACK, file: `${dir}${VO_FALLBACK.file}` };
+  return available.has(fallback.file) ? [fallback] : [];
+}
+
+export function resolveVoCues(available: Set<string>): AudioCue[] {
+  return resolveVoCuesFor(VO_LINES, available);
 }
 
 export const MUSIC_FILE = "music.mp3";
@@ -27,18 +35,24 @@ const DUCK_RAMP = 6;
 // Master level for every sfx/ cue; the per-cue volumes set the balance between them.
 export const SFX_GAIN = 0.5;
 
-// Music gain at an absolute film frame: ducked under every VO clip window.
-export function musicGain(frame: number, voActive: boolean) {
-  if (!voActive) return MUSIC_GAIN;
-  let duck = 0;
-  for (const v of VO_LINES) {
-    if (frame < v.from - DUCK_RAMP || frame > v.to + DUCK_RAMP) continue;
-    const inRamp = Math.min(1, (frame - (v.from - DUCK_RAMP)) / DUCK_RAMP);
-    const outRamp = Math.min(1, (v.to + DUCK_RAMP - frame) / DUCK_RAMP);
-    duck = Math.max(duck, Math.max(0, Math.min(inRamp, outRamp)));
-  }
-  return MUSIC_GAIN - (MUSIC_GAIN - MUSIC_DUCKED) * duck;
+export type MusicGain = (frame: number, voActive: boolean) => number;
+
+// Music gain at an absolute frame: ducked under every VO clip window.
+export function duckedMusicGain(lines: VoWindow[], base = MUSIC_GAIN, ducked = MUSIC_DUCKED): MusicGain {
+  return (frame, voActive) => {
+    if (!voActive) return base;
+    let duck = 0;
+    for (const v of lines) {
+      if (frame < v.from - DUCK_RAMP || frame > v.to + DUCK_RAMP) continue;
+      const inRamp = Math.min(1, (frame - (v.from - DUCK_RAMP)) / DUCK_RAMP);
+      const outRamp = Math.min(1, (v.to + DUCK_RAMP - frame) / DUCK_RAMP);
+      duck = Math.max(duck, Math.max(0, Math.min(inRamp, outRamp)));
+    }
+    return base - (base - ducked) * duck;
+  };
 }
+
+export const musicGain = duckedMusicGain(VO_LINES);
 
 export const AUDIO_CUES: AudioCue[] = [
   { file: MUSIC_FILE, from: 0, volume: MUSIC_GAIN, label: "Music bed, 92 BPM, organic drums + muted synth pad (ducks to 0.22 under VO)" },

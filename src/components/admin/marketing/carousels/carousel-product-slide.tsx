@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
 import SlideCanvas, {
   displayStyle,
   PromoSlideTopRow,
@@ -9,11 +8,16 @@ import SlideCanvas, {
   SLIDE_HEIGHT,
   SLIDE_WIDTH,
 } from "@/components/admin/marketing/slide-frame";
+import {
+  CAROUSEL_DEMO_INNER_WIDTH,
+  CarouselLaptopWindow,
+  type CarouselDemoCrop,
+} from "@/components/demo/marketing/LaptopBrowserWindow";
 
 /** Slide backing for product slides; demo canvas stays #F8F8F3 for contrast inside laptop chrome. */
 export const DEMO_SLIDE_PAPER = "#F0EDE6";
 
-export const CAROUSEL_DEMO_INNER_WIDTH = 1100;
+export { CAROUSEL_DEMO_INNER_WIDTH, type CarouselDemoCrop };
 
 const CHROME_BAR_HEIGHT = 49;
 const CONTENT_TOP_INSET = 128;
@@ -33,13 +37,23 @@ const DEFAULT_BODY_WIDTH = SLIDE_WIDTH - WINDOW_LEFT + Math.abs(WINDOW_RIGHT_BLE
 const DEFAULT_BODY_HEIGHT =
   SLIDE_HEIGHT - COPY_TOP_PADDING - 320 - COPY_BOTTOM_PADDING - WINDOW_GAP + Math.abs(WINDOW_BOTTOM_BLEED) - CHROME_BAR_HEIGHT;
 
-function readChromeBodySize(element: HTMLElement) {
-  const width = element.clientWidth;
-  const height = element.clientHeight;
-  if (width > 0 && height > 0) {
-    return { width, height };
+const MICROSCHOOL_ACCENT = "Microschool";
+
+function renderCarouselTitle(title: ReactNode, accentColor: string): ReactNode {
+  if (typeof title !== "string") {
+    return title;
   }
-  return null;
+  const index = title.indexOf(MICROSCHOOL_ACCENT);
+  if (index === -1) {
+    return title;
+  }
+  return (
+    <>
+      {title.slice(0, index)}
+      <span style={{ color: accentColor }}>{MICROSCHOOL_ACCENT}</span>
+      {title.slice(index + MICROSCHOOL_ACCENT.length)}
+    </>
+  );
 }
 
 type CarouselProductSide = "copyLeft" | "copyRight";
@@ -48,15 +62,8 @@ type CarouselDemoPresentation = "laptop" | "phones";
 export type CarouselPromoDensity = "default" | "compact";
 export type CarouselSlideTone = "paper" | "forest";
 
-export type CarouselDemoCrop = {
-  zoom?: number;
-  originX?: number;
-  /** Demo point that sits on the top edge of the laptop. 0 is the top; negative shifts the demo down. */
-  originY?: number;
-};
-
 type CarouselProductSlideProps = {
-  title: string;
+  title: ReactNode;
   body: string;
   children: ReactNode;
   kicker?: string;
@@ -187,7 +194,7 @@ export function CarouselProductSlide({
                   marginTop: kicker ? 14 : 0,
                 }}
               >
-                {title}
+                {renderCarouselTitle(title, SLIDE.clay)}
               </h1>
               {body ? (
                 <p
@@ -259,121 +266,5 @@ export function CarouselProductSlide({
   );
 }
 
-export type CarouselLaptopWindowProps = {
-  children: ReactNode;
-  contentHeight: number;
-  cropFocus: "top" | "center";
-  crop?: CarouselDemoCrop;
-  defaultBodyWidth: number;
-};
-
-export function CarouselLaptopWindow({
-  children,
-  contentHeight,
-  cropFocus,
-  crop,
-  defaultBodyWidth,
-}: CarouselLaptopWindowProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [bodySize, setBodySize] = useState({ width: defaultBodyWidth, height: DEFAULT_BODY_HEIGHT });
-
-  useLayoutEffect(() => {
-    const element = bodyRef.current;
-    if (!element) return;
-
-    const update = (entry?: ResizeObserverEntry) => {
-      const fromObserver = entry?.contentRect;
-      const width = fromObserver?.width ?? element.clientWidth;
-      const height = fromObserver?.height ?? element.clientHeight;
-      if (width > 0 && height > 0) {
-        setBodySize({ width, height });
-        return;
-      }
-      const fallback = readChromeBodySize(element);
-      if (fallback) setBodySize(fallback);
-    };
-
-    update();
-    const observer = new ResizeObserver((entries) => update(entries[0]));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  const fitScale = Math.max(
-    bodySize.width / CAROUSEL_DEMO_INNER_WIDTH,
-    bodySize.height / contentHeight,
-  );
-  const scale = fitScale * (crop?.zoom ?? 1);
-  const cropOriginX = crop?.originX ?? 0;
-  const cropOriginY = crop?.originY ?? 0;
-
-  const originY = cropFocus === "center" ? "center" : "top";
-  const scaledOriginY = cropFocus === "center" ? "50%" : "0";
-  const croppedFrame = crop
-    ? {
-        transform: `scale(${scale})`,
-        transformOrigin: "top left",
-        top: -(cropOriginY * contentHeight * scale),
-        left: -(cropOriginX * CAROUSEL_DEMO_INNER_WIDTH * scale),
-        marginTop: 0,
-      }
-    : {
-        transform: `scale(${scale})`,
-        transformOrigin: cropFocus === "center" ? `left ${originY}` : "top left",
-        top: scaledOriginY,
-        left: 0,
-        marginTop: cropFocus === "center" ? -(contentHeight * scale) / 2 : 0,
-      };
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        flexDirection: "column",
-        borderRadius: "22px 22px 0 0",
-        background: "#FFFFFF",
-        border: "1px solid #E4E8E1",
-        boxShadow: "0 28px 70px rgba(43, 36, 29, 0.14)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "10px 20px",
-          height: CHROME_BAR_HEIGHT,
-          flexShrink: 0,
-          boxSizing: "border-box",
-          borderBottom: "1px solid #E4E8E1",
-          background: "#FAFAF8",
-        }}
-      >
-        <WindowDot color="#FF5F57" />
-        <WindowDot color="#FEBC2E" />
-        <WindowDot color="#28C840" />
-        {/* eslint-disable-next-line @next/next/no-img-element -- PNG export */}
-        <img src="/images/Logo.png" alt="" style={{ height: 30, width: "auto", marginLeft: 6, display: "block" }} />
-      </div>
-      <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
-        <div
-          style={{
-            width: CAROUSEL_DEMO_INNER_WIDTH,
-            height: contentHeight,
-            position: "absolute",
-            ...croppedFrame,
-          }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WindowDot({ color }: { color: string }) {
-  return <span style={{ width: 14, height: 14, borderRadius: 999, background: color, display: "block" }} />;
-}
+export { CarouselLaptopWindow };
+export type { CarouselLaptopWindowProps } from "@/components/demo/marketing/LaptopBrowserWindow";

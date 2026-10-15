@@ -173,7 +173,7 @@ function FiveNumbersCard() {
 function CoverSlide() {
   return (
     <CarouselProductSlide
-      title="Thinking about changing tuition?"
+      title="Thinking about changing tuition for your Microschool?"
       body="A full classroom on paper can still leave your school underfunded."
       contentHeight={DEMO_CONTENT_HEIGHT}
       cropFocus="top"

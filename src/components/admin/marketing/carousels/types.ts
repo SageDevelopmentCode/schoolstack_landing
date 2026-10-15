@@ -11,5 +11,7 @@ export type MarketingCarousel = {
   title: string;
   description?: string;
   fileSlug: string;
+  /** Override first-slide audience strip copy (multi-slide carousels only). */
+  audienceBanner?: string;
   slides: MarketingSlide[];
 };

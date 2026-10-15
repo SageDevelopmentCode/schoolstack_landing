@@ -14,6 +14,7 @@ type PageMetadataOptions = {
   noIndex?: boolean;
   ogImageAlt?: string;
   ogImagePath?: string;
+  keywords?: string[];
 };
 
 function defaultOgImages(alt: string, imagePath = "/opengraph-image") {
@@ -73,6 +74,7 @@ export function pageMetadata({
   noIndex = false,
   ogImageAlt,
   ogImagePath = "/opengraph-image",
+  keywords,
 }: PageMetadataOptions): Metadata {
   const canonical = path ? `${SITE_URL}${path}` : undefined;
   const imageAlt = ogImageAlt ?? title;
@@ -81,7 +83,7 @@ export function pageMetadata({
   return {
     title,
     description,
-    keywords: DEFAULT_KEYWORDS,
+    keywords: keywords?.length ? keywords : DEFAULT_KEYWORDS,
     ...(noIndex
       ? { robots: { index: false, follow: false } }
       : { robots: { index: true, follow: true } }),

@@ -3,22 +3,25 @@ import type { ReactNode } from "react";
 type GetStartedStoryShellProps = {
   wide?: boolean;
   variant?: "page" | "nested";
+  id?: string;
   children: ReactNode;
 };
 
 export default function GetStartedStoryShell({
   wide = false,
   variant = "page",
+  id,
   children,
 }: GetStartedStoryShellProps) {
   const isPage = variant === "page";
 
   return (
     <div
+      id={id}
       className={
         isPage
-          ? "min-h-screen bg-bg pt-[100px] pb-28 px-4 sm:px-6 font-secondary text-text"
-          : "px-4 pb-28 pt-6 sm:px-6 font-secondary text-text"
+          ? "min-h-screen scroll-mt-[100px] bg-bg pt-[100px] pb-28 px-4 sm:px-6 font-secondary text-text"
+          : "scroll-mt-[100px] px-4 pb-28 pt-6 sm:px-6 font-secondary text-text"
       }
     >
       <div

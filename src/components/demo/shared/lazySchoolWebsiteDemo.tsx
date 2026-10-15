@@ -67,6 +67,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     import("@/components/demo/kineoschool/KineoSchoolWebsiteDashboardDemo"),
   "lab-learning": () =>
     import("@/components/demo/lablearning/LabLearningWebsiteDashboardDemo"),
+  "inspired-learning-academy": () =>
+    import(
+      "@/components/demo/inspiredlearning/InspiredLearningWebsiteDashboardDemo"
+    ),
   "lighthouse-homeschool": () =>
     import(
       "@/components/demo/lighthousehomeschool/LighthouseHomeschoolWebsiteDashboardDemo"
@@ -137,6 +141,10 @@ const WEBSITE_DEMO_LOADERS: Record<
     ),
   "true-north": () =>
     import("@/components/demo/truenorth/TrueNorthWebsiteDashboardDemo"),
+  "wildcat-microschool": () =>
+    import(
+      "@/components/demo/wildcatmicroschool/WildcatMicroschoolWebsiteDashboardDemo"
+    ),
   "wild-hearts-adventure": () =>
     import(
       "@/components/demo/wildheartsadventure/WildHeartsAdventureWebsiteDashboardDemo"
