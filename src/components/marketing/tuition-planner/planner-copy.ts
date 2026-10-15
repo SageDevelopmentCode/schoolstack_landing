@@ -1,19 +1,15 @@
 export const PLANNER_KICKER = "Tuition planning";
 
-export const PLANNER_HEADING = "A clearer view of your next tuition plan.";
+export const PLANNER_HEADING = "What would your annual tuition revenue be?";
 
 export const PLANNER_SUPPORT =
-  "Start with your school today. Try a different tuition or enrollment, and see how your annual tuition revenue changes.";
-
-export const STARTING_NOTE =
-  "The starting numbers are examples—not a saved record of your school. Discounts apply only to the students you specify.";
+  "Start with what you collect today. Change tuition or enrollment and see the difference in annual revenue before you tell families.";
 
 export const STORAGE_NOTE = "Saved only in this browser";
 
-export const SAVE_STATUS = "Saved in this browser · no account needed";
+export const ENROLLMENT_CROSS_LINK_QUESTION = "Need the student count that covers your costs?";
 
-export const ASSUMPTIONS_NOTE =
-  "These figures are estimated tuition revenue, not profit. The estimate leaves out operating expenses, payroll, taxes, payment processing fees, unpaid tuition, one-time charges, and other revenue.";
+export const ENROLLMENT_CROSS_LINK_LABEL = "Students needed";
 
 export const TUITION_HELP = "Before discounts or scholarships.";
 
@@ -40,25 +36,69 @@ export const BREAKDOWN_ORDER =
 export const PART_TIME_NOTE =
   "This is a mixed estimate: full-time enrollment plus a separate part-time program. It is not a single averaged tuition rate.";
 
-export const CAP_NOTE = "You can compare up to 8 scenarios. Remove one to add another.";
+export const MULTIPLE_PROGRAMS_NOTE =
+  "You entered more than one monthly tuition rate. Revenue adds each age group or program separately—it is not one averaged tuition.";
+
+export const TUITION_GROUPS_HELP =
+  "Optional: add another age group if you charge different monthly tuition. Everyone in a group pays the same rate before discounts.";
+
+export function questionTuitionAll(): string {
+  return "What do you charge per student each month?";
+}
+
+export function questionEnrollmentAll(): string {
+  return "How many students are in each group?";
+}
 
 export const REVENUE_UNAVAILABLE = "Revenue unavailable";
 
-export const BASELINE_EDITOR_HELP =
-  "Enter what you charge today. Every proposed plan will be compared with these numbers.";
+export const QUESTION_DONE_TITLE = "You're set";
 
-export const PROPOSED_EDITOR_HELP =
-  "Try different numbers here. Your baseline stays unchanged.";
+export const QUESTION_DONE_KICKER = "Estimate ready";
 
-export const WORKSPACE_TITLE = "Your tuition plans";
+export const QUESTION_DONE_BODY =
+  "Your annual tuition revenue estimate is ready. Take a look at the numbers and open the breakdown if you want to see how it adds up.";
 
-export const WORKSPACE_SUPPORT = "Select a plan below to edit its numbers.";
+export const VIEW_RESULTS_BUTTON = "View your results";
 
-export const FLOW_STEPS = [
-  { title: "Set your current plan", detail: "Your starting point for comparison" },
-  { title: "Try a proposed plan", detail: "Change one thing or several" },
-  { title: "See the difference", detail: "Annual revenue, side by side" },
-] as const;
+export const QUESTION_DONE_DESKTOP_HINT = "Your live estimate is beside this card.";
+
+export function questionDoneRevenueTeaser(formattedAnnual: string): string {
+  return `Estimated annual tuition revenue: ${formattedAnnual}`;
+}
+
+export function questionTuition(groupLabel?: string): string {
+  if (groupLabel) return `What do you charge per month for ${groupLabel.toLowerCase()} students?`;
+  return "What do you charge per student each month?";
+}
+
+export function questionEnrollment(groupLabel?: string): string {
+  if (groupLabel) return `How many ${groupLabel.toLowerCase()} students are enrolled?`;
+  return "How many students are enrolled?";
+}
+
+export function questionBillingMonths(groupLabel?: string): string {
+  if (groupLabel) return `How many billing months per year for ${groupLabel.toLowerCase()}?`;
+  return "How many months do families pay tuition each year?";
+}
+
+export function questionSiblingDiscount(groupLabel?: string): string {
+  if (groupLabel) return `Do any ${groupLabel.toLowerCase()} students receive a sibling discount?`;
+  return "Do any students receive a sibling discount?";
+}
+
+export function questionSiblingDetails(): string {
+  return "How much is the sibling discount?";
+}
+
+export function questionScholarship(groupLabel?: string): string {
+  if (groupLabel) return `Do any ${groupLabel.toLowerCase()} students receive a scholarship or tuition assistance?`;
+  return "Do any students receive a scholarship or tuition assistance?";
+}
+
+export function questionScholarshipDetails(): string {
+  return "How much tuition assistance applies?";
+}
 
 export const NEXT_KICKER = "From planning to school day";
 

@@ -37,6 +37,25 @@ const DEFAULT_BODY_WIDTH = SLIDE_WIDTH - WINDOW_LEFT + Math.abs(WINDOW_RIGHT_BLE
 const DEFAULT_BODY_HEIGHT =
   SLIDE_HEIGHT - COPY_TOP_PADDING - 320 - COPY_BOTTOM_PADDING - WINDOW_GAP + Math.abs(WINDOW_BOTTOM_BLEED) - CHROME_BAR_HEIGHT;
 
+const MICROSCHOOL_ACCENT = "Microschool";
+
+function renderCarouselTitle(title: ReactNode, accentColor: string): ReactNode {
+  if (typeof title !== "string") {
+    return title;
+  }
+  const index = title.indexOf(MICROSCHOOL_ACCENT);
+  if (index === -1) {
+    return title;
+  }
+  return (
+    <>
+      {title.slice(0, index)}
+      <span style={{ color: accentColor }}>{MICROSCHOOL_ACCENT}</span>
+      {title.slice(index + MICROSCHOOL_ACCENT.length)}
+    </>
+  );
+}
+
 type CarouselProductSide = "copyLeft" | "copyRight";
 type CarouselProductVariant = "default" | "promo";
 type CarouselDemoPresentation = "laptop" | "phones";
@@ -44,7 +63,7 @@ export type CarouselPromoDensity = "default" | "compact";
 export type CarouselSlideTone = "paper" | "forest";
 
 type CarouselProductSlideProps = {
-  title: string;
+  title: ReactNode;
   body: string;
   children: ReactNode;
   kicker?: string;
@@ -175,7 +194,7 @@ export function CarouselProductSlide({
                   marginTop: kicker ? 14 : 0,
                 }}
               >
-                {title}
+                {renderCarouselTitle(title, SLIDE.clay)}
               </h1>
               {body ? (
                 <p

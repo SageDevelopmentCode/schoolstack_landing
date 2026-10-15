@@ -7,7 +7,9 @@ import GetStartedDemoFlow, {
 } from "@/components/get-started/GetStartedDemoFlow";
 import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
 import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
+import GetStartedOurStorySection from "@/components/get-started/GetStartedOurStorySection";
 import GetStartedStoryShell from "@/components/get-started/GetStartedStoryShell";
+import { GET_STARTED_DEMO_SECTION_ID } from "@/components/about/AboutOurStorySection";
 
 export default function GetStartedPage() {
   const [step, setStep] = useState<GetStartedDemoStep>(0);
@@ -17,7 +19,11 @@ export default function GetStartedPage() {
       <Navbar />
       <div className="min-h-screen bg-bg pt-[100px]">
         {step === 0 && <GetStartedShowcaseCarousel />}
-        <GetStartedStoryShell wide={step === 1} variant="nested">
+        <GetStartedStoryShell
+          id={GET_STARTED_DEMO_SECTION_ID}
+          wide={step === 1}
+          variant="nested"
+        >
           <GetStartedDemoFlow
             scrollOnStepChange="window"
             onStepChange={setStep}
@@ -25,6 +31,7 @@ export default function GetStartedPage() {
           />
         </GetStartedStoryShell>
         <GetStartedFilmSection />
+        <GetStartedOurStorySection />
       </div>
     </>
   );

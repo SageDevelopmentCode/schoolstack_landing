@@ -61,6 +61,10 @@ const CustomSection = dynamic(
   () => import("@/components/sections/CustomSection"),
   { loading: () => <SectionFallback minHeight="20rem" /> },
 );
+const GetStartedShowcaseCarousel = dynamic(
+  () => import("@/components/get-started/GetStartedShowcaseCarousel"),
+  { loading: () => <SectionFallback minHeight="20rem" /> },
+);
 const Footer = dynamic(
   () => import("@/components/sections/Footer"),
   { loading: () => <SectionFallback minHeight="12rem" /> },
@@ -107,6 +111,9 @@ export default function Home() {
         </InViewSectionGate>
         <InViewSectionGate minHeight="28rem">
           <FounderStorySection />
+        </InViewSectionGate>
+        <InViewSectionGate minHeight="20rem">
+          <GetStartedShowcaseCarousel variant="page" />
         </InViewSectionGate>
         <InViewSectionGate minHeight="20rem">
           <CustomSection />

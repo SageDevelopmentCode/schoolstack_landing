@@ -81,7 +81,7 @@ function SubmittedSlide() {
   return (
     <CarouselProductSlide
       kicker="Admissions"
-      title="A family applied. What happens next?"
+      title="A family applied to your Microschool. What happens next?"
       body="Give staff and families a clear path from application to enrollment."
       contentHeight={DEMO_CONTENT_HEIGHT}
       crop={SUBMITTED_INBOX_CROP}

@@ -3,16 +3,17 @@ import BreadcrumbJsonLd from "@/components/seo/BreadcrumbJsonLd";
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import TuitionPlannerExperience from "@/components/marketing/tuition-planner/TuitionPlannerExperience";
+import TuitionPlannerMarketingTail from "@/components/marketing/tuition-planner/TuitionPlannerMarketingTail";
 import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
 const PATH = "/tuition-planner";
 
 const DESCRIPTION =
-  "Start with your school today. Try a different tuition or enrollment, and see how your annual tuition revenue changes.";
+  "Start with what you collect today. Change tuition or enrollment and see the difference in annual revenue before you tell families.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "A clearer view of your next tuition plan.",
+  title: "What would your annual tuition revenue be?",
   description: DESCRIPTION,
   path: PATH,
   keywords: [
@@ -21,7 +22,7 @@ export const metadata: Metadata = pageMetadata({
     "microschool sibling discount",
     "part-time microschool tuition",
   ],
-  ogImageAlt: "A clearer view of your next tuition plan. — MudKitchen",
+  ogImageAlt: "What would your annual tuition revenue be? — MudKitchen",
 });
 
 const BREADCRUMBS = buildBreadcrumbs({
@@ -35,6 +36,7 @@ export default function TuitionPlannerPage() {
       <BreadcrumbJsonLd items={BREADCRUMBS} />
       <Navbar />
       <TuitionPlannerExperience />
+      <TuitionPlannerMarketingTail />
       <Footer />
     </>
   );

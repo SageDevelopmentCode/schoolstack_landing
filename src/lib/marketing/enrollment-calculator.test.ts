@@ -22,6 +22,24 @@ const exampleSchool = {
 };
 
 describe("enrollment calculator", () => {
+  it("uses blended tuition when multiple tuition groups are provided", () => {
+    const estimate = computeEnrollmentEstimate({
+      tuitionCents: 0,
+      fixedExpensesCents: 800_000,
+      variableCostPerStudentCents: 5_000,
+      ownerCompensationCents: 400_000,
+      currentEnrollment: 0,
+      tuitionGroups: [
+        { tuitionCents: 100_000, enrollment: 10 },
+        { tuitionCents: 80_000, enrollment: 10 },
+      ],
+    });
+    assert.equal(estimate.currentEnrollment, 20);
+    assert.equal(estimate.tuitionCents, 90_000);
+    assert.equal(estimate.contributionCents, 85_000);
+    assert.equal(estimate.compensationTarget, 15);
+  });
+
   it("computes the example school", () => {
     const estimate = computeEnrollmentEstimate(exampleSchool);
     assert.equal(estimate.contributionCents, 75_000);

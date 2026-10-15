@@ -91,7 +91,7 @@ export default async function BlogPage() {
                     <li key={post.slug}>
                       <Link
                         href={`/blog/${post.slug}`}
-                        className="block rounded-2xl border border-black/[0.08] bg-white px-6 py-6 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
+                        className="group block rounded-2xl border border-black/[0.08] bg-white px-6 py-6 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]"
                       >
                         {dateLabel ? (
                           <p className="text-xs font-semibold uppercase tracking-widest text-text-faint font-secondary">
@@ -110,7 +110,9 @@ export default async function BlogPage() {
                             {post.excerpt}
                           </p>
                         ) : null}
-                        <span className="mt-4 inline-flex text-sm font-medium text-clay font-secondary">
+                        <span
+                          className="mt-5 inline-flex h-9 items-center gap-1.5 rounded-pill bg-clay px-5 text-sm font-medium text-white font-secondary transition-all duration-200 group-hover:opacity-90"
+                        >
                           Read article →
                         </span>
                       </Link>

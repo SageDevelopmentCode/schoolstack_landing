@@ -25,8 +25,11 @@ import {
 } from "@/lib/marketing/tuition-scenario-planner";
 
 export const MAX_SCENARIOS = 8;
+export const MAX_PROGRAM_GROUPS = 4;
 export const PLANNER_STORAGE_KEY = "mudkitchen.tuition-planner.v1";
 export const MAX_SCENARIO_NAME_LENGTH = 80;
+
+const DEFAULT_SINGLE_GROUP_LABEL = "All students";
 
 export type PlannerState = {
   scenarios: Scenario[];
@@ -111,11 +114,7 @@ function withOrigin(scenario: Omit<Scenario, "originGroups"> & { originGroups?: 
 export function starterPlanner(): PlannerState {
   const currentGroup = createGroup({
     id: "current-group",
-    monthlyTuitionCents: STARTER_TUITION_CENTS,
-    enrollment: STARTER_ENROLLMENT,
-  });
-  const proposedGroup = createGroup({
-    id: "proposed-group",
+    label: DEFAULT_SINGLE_GROUP_LABEL,
     monthlyTuitionCents: STARTER_TUITION_CENTS,
     enrollment: STARTER_ENROLLMENT,
   });
@@ -124,15 +123,20 @@ export function starterPlanner(): PlannerState {
     name: "Current",
     groups: [currentGroup],
   });
-  const proposed = withOrigin({
-    id: "proposed",
-    name: "Proposed",
-    groups: [proposedGroup],
-  });
   return {
-    scenarios: [current, proposed],
+    scenarios: [current],
     baselineId: current.id,
-    selectedId: proposed.id,
+    selectedId: current.id,
+  };
+}
+
+/** Marketing planner keeps one editable baseline; drop extra scenarios from saved drafts. */
+export function plannerBaselineOnly(state: PlannerState): PlannerState {
+  const baseline = baselineScenario(state);
+  return {
+    scenarios: [baseline],
+    baselineId: baseline.id,
+    selectedId: baseline.id,
   };
 }
 
@@ -348,7 +352,12 @@ export function updateGroupFields(
 ): PlannerState {
   return mapGroup(state, scenarioId, groupId, (group) => ({
     ...group,
-    label: patch.label === undefined ? group.label : normalizeName(patch.label, group.label),
+    label:
+      patch.label === undefined
+        ? group.label
+        : patch.label.trim() === ""
+          ? ""
+          : normalizeName(patch.label, group.label),
     monthlyTuitionCents:
       patch.monthlyTuitionCents === undefined
         ? group.monthlyTuitionCents
@@ -357,6 +366,94 @@ export function updateGroupFields(
     billingMonths:
       patch.billingMonths === undefined ? group.billingMonths : clampBillingMonths(patch.billingMonths),
   }));
+}
+
+function scenarioById(state: PlannerState, scenarioId: string): Scenario | undefined {
+  return state.scenarios.find((scenario) => scenario.id === scenarioId);
+}
+
+export function addProgramGroup(state: PlannerState, scenarioId: string): PlannerState {
+  const scenario = scenarioById(state, scenarioId);
+  if (!scenario || scenario.groups.length >= MAX_PROGRAM_GROUPS) return state;
+  const primary = scenario.groups[0];
+  return {
+    ...state,
+    scenarios: state.scenarios.map((item) => {
+      if (item.id !== scenarioId) return item;
+      let groups = [...item.groups];
+      const sole = groups[0];
+      if (groups.length === 1 && sole?.label === DEFAULT_SINGLE_GROUP_LABEL) {
+        groups[0] = { ...sole, label: "" };
+      }
+      const newGroup = createGroup({
+        label: "",
+        monthlyTuitionCents: primary?.monthlyTuitionCents ?? STARTER_TUITION_CENTS,
+        enrollment: 0,
+        billingMonths: primary?.billingMonths ?? DEFAULT_BILLING_MONTHS,
+      });
+      groups = [...groups, newGroup];
+      return { ...item, groups };
+    }),
+  };
+}
+
+export function removeProgramGroup(state: PlannerState, scenarioId: string, groupId: string): PlannerState {
+  const scenario = scenarioById(state, scenarioId);
+  if (!scenario || scenario.groups.length <= 1) return state;
+  const remaining = scenario.groups.filter((group) => group.id !== groupId);
+  if (remaining.length === scenario.groups.length) return state;
+  const groups =
+    remaining.length === 1 && remaining[0]
+      ? [{ ...remaining[0], label: DEFAULT_SINGLE_GROUP_LABEL }]
+      : remaining;
+  return {
+    ...state,
+    scenarios: state.scenarios.map((item) => (item.id === scenarioId ? { ...item, groups } : item)),
+  };
+}
+
+export function updateAllBillingMonths(
+  state: PlannerState,
+  scenarioId: string,
+  billingMonths: number,
+): PlannerState {
+  const scenario = scenarioById(state, scenarioId);
+  if (!scenario) return state;
+  let next = state;
+  for (const group of scenario.groups) {
+    next = updateGroupFields(next, scenarioId, group.id, { billingMonths });
+  }
+  return next;
+}
+
+export function setAdjustmentEnabledForAllGroups(
+  state: PlannerState,
+  scenarioId: string,
+  kind: "siblingDiscount" | "scholarship",
+  enabled: boolean,
+): PlannerState {
+  const scenario = scenarioById(state, scenarioId);
+  if (!scenario) return state;
+  let next = state;
+  for (const group of scenario.groups) {
+    next = setAdjustmentEnabled(next, scenarioId, group.id, kind, enabled);
+  }
+  return next;
+}
+
+export function updateAdjustmentFieldsForAllGroups(
+  state: PlannerState,
+  scenarioId: string,
+  kind: "siblingDiscount" | "scholarship",
+  patch: Partial<Pick<GroupAdjustment, "mode" | "percentHundredths" | "amountCents" | "recipientCount">>,
+): PlannerState {
+  const scenario = scenarioById(state, scenarioId);
+  if (!scenario) return state;
+  let next = state;
+  for (const group of scenario.groups) {
+    next = updateAdjustmentFields(next, scenarioId, group.id, kind, patch);
+  }
+  return next;
 }
 
 function blankAdjustment(adjustment: GroupAdjustment): boolean {
@@ -490,7 +587,7 @@ function parseGroup(value: unknown): ProgramGroup | null {
   if (!siblingDiscount || !scholarship) return null;
   return {
     id: value.id,
-    label: normalizeName(value.label, "Full-time"),
+    label: value.label.trim() === "" ? "" : normalizeName(value.label, "Full-time"),
     monthlyTuitionCents: clampTuitionCents(value.monthlyTuitionCents),
     enrollment: clampEnrollment(value.enrollment),
     billingMonths: clampBillingMonths(value.billingMonths),
@@ -503,8 +600,14 @@ function parseScenario(value: unknown): Scenario | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || !value.id) return null;
   if (typeof value.name !== "string") return null;
-  if (!Array.isArray(value.groups) || value.groups.length < 1 || value.groups.length > 2) return null;
-  if (!Array.isArray(value.originGroups) || value.originGroups.length < 1 || value.originGroups.length > 2) {
+  if (!Array.isArray(value.groups) || value.groups.length < 1 || value.groups.length > MAX_PROGRAM_GROUPS) {
+    return null;
+  }
+  if (
+    !Array.isArray(value.originGroups) ||
+    value.originGroups.length < 1 ||
+    value.originGroups.length > MAX_PROGRAM_GROUPS
+  ) {
     return null;
   }
   const groups = value.groups.map(parseGroup);
@@ -540,9 +643,9 @@ export function parsePlannerDraft(raw: string | null): PlannerState | null {
     typeof parsed.selectedId === "string" && ids.has(parsed.selectedId)
       ? parsed.selectedId
       : parsed.baselineId;
-  return { scenarios: list, baselineId: parsed.baselineId, selectedId };
+  return plannerBaselineOnly({ scenarios: list, baselineId: parsed.baselineId, selectedId });
 }
 
 export function serializePlanner(state: PlannerState): string {
-  return JSON.stringify({ version: 1, ...state });
+  return JSON.stringify({ version: 1, ...plannerBaselineOnly(state) });
 }

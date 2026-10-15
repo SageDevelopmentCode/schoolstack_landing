@@ -1,16 +1,20 @@
 "use client";
 
+import { AdminStatusBadge } from "@/components/admin/ui/AdminStatusBadge";
 import type { MarketingCarousel } from "@/components/admin/marketing/carousels/types";
+import type { MarketingCarouselPostStatus } from "@/lib/marketing/carousel-post-status";
 
 type MarketingCarouselSidebarProps = {
   carousels: MarketingCarousel[];
   selectedId: string;
+  postedByCarouselId: Record<string, MarketingCarouselPostStatus | undefined>;
   onSelect: (id: string) => void;
 };
 
 export function MarketingCarouselSidebar({
   carousels,
   selectedId,
+  postedByCarouselId,
   onSelect,
 }: MarketingCarouselSidebarProps) {
   return (
@@ -24,6 +28,7 @@ export function MarketingCarouselSidebar({
           const selected = carousel.id === selectedId;
           const slideLabel =
             carousel.slides.length === 1 ? "1 slide" : `${carousel.slides.length} slides`;
+          const posted = postedByCarouselId[carousel.id]?.posted ?? false;
 
           return (
             <button
@@ -37,7 +42,13 @@ export function MarketingCarouselSidebar({
                   : "border-admin-border bg-admin-surface hover:border-admin-border-strong hover:bg-admin-canvas/50"
               }`}
             >
-              <p className="text-sm font-medium text-admin-text">{carousel.title}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 text-sm font-medium text-admin-text">{carousel.title}</p>
+                <AdminStatusBadge
+                  label={posted ? "Posted" : "Not posted"}
+                  variant={posted ? "success" : "warning"}
+                />
+              </div>
               {carousel.description ? (
                 <p className="mt-1 text-xs leading-snug text-admin-muted">{carousel.description}</p>
               ) : null}

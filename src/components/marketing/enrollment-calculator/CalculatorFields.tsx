@@ -193,6 +193,7 @@ type CalculatorCountFieldProps = {
   max: number;
   /** Highest typed value. Defaults to the calculator's enrollment ceiling. */
   inputMax?: number;
+  hideLabel?: boolean;
   onChange: (value: number) => void;
 };
 
@@ -210,6 +211,7 @@ export function CalculatorCountField({
   value,
   max,
   inputMax = MAX_CALCULATOR_ENROLLMENT,
+  hideLabel = false,
   onChange,
 }: CalculatorCountFieldProps) {
   const sliderId = useId();
@@ -286,7 +288,7 @@ export function CalculatorCountField({
 
   return (
     <div className="scroll-mt-40">
-      <div className="mb-2 flex items-start justify-between gap-2">
+      <div className={hideLabel ? "sr-only" : "mb-2 flex items-start justify-between gap-2"}>
         <div className="flex min-w-0 items-start gap-1">
           <label
             htmlFor={id}
@@ -295,7 +297,7 @@ export function CalculatorCountField({
           >
             {label}
           </label>
-          {description && !help ? (
+          {description && !help && !hideLabel ? (
             <CalculatorInfoTip
               theme={theme}
               content={description}
@@ -305,7 +307,7 @@ export function CalculatorCountField({
             />
           ) : null}
         </div>
-        {aside ? (
+        {aside && !hideLabel ? (
           <span
             className="shrink-0 text-right text-[10px] font-medium"
             style={{ color: theme.muted, fontFamily: theme.fontBody }}

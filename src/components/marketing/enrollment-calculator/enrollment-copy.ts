@@ -5,13 +5,12 @@ import {
 } from "@/lib/marketing/enrollment-calculator";
 
 export const CALCULATOR_COPY = {
-  kicker: "A little clarity for your school",
   title: "Can your school pay you?",
   subtitle:
     "Find the enrollment you need to cover your costs and pay yourself. Start with your numbers. Then explore what's possible.",
   startFresh: "Start fresh",
   savePrint: "Save / print",
-  journey: ["Your numbers", "Your enrollment goal", "Explore a scenario"] as const,
+  journey: ["Your numbers", "Your enrollment goal"] as const,
   inputsTitle: "Your numbers",
   inputsSubtitle: "Monthly amounts are all you need. Estimates are fine.",
   groups: {
@@ -32,7 +31,7 @@ export const CALCULATOR_COPY = {
     operating:
       "Costs that stay roughly the same as enrollment changes. Exclude your own pay and the student costs above.",
     pay: "The amount you want the school to set aside for your pay.",
-    current: "Your current enrollment. This stays separate from the scenario below.",
+    current: "Your current enrollment.",
     fromList: "From your expense list.",
   },
   estimateAction: "Help me estimate these costs",
@@ -76,8 +75,7 @@ export const CALCULATOR_COPY = {
     "These are estimates from the numbers you enter. They don't include taxes, unpaid tuition, or costs you didn't enter.",
   resetKicker: "Start fresh",
   resetTitle: "Reset your numbers?",
-  resetBody:
-    "This returns all inputs and your what-if scenario to the original example. Your current entries will be cleared.",
+  resetBody: "This returns all inputs to the original example. Your current entries will be cleared.",
   keepNumbers: "Keep my numbers",
   resetConfirm: "Reset to example",
   estimateKicker: "School operating costs",
@@ -93,6 +91,38 @@ export const CALCULATOR_COPY = {
   perMonth: "per month",
   monthSuffix: "/ month",
 } as const;
+
+export const ENROLLMENT_WIZARD_DONE_KICKER = "Enrollment goal ready";
+
+export const ENROLLMENT_WIZARD_DONE_TITLE = "You're set";
+
+export const ENROLLMENT_VIEW_RESULTS_BUTTON = "View your results";
+
+export function enrollmentQuestionTuition(): string {
+  return CALCULATOR_COPY.inputs.tuition;
+}
+
+export function enrollmentQuestionVariable(): string {
+  return CALCULATOR_COPY.inputs.variableCost;
+}
+
+export function enrollmentQuestionOperating(): string {
+  return CALCULATOR_COPY.inputs.fixedExpenses;
+}
+
+export function enrollmentQuestionOwnerPay(): string {
+  return CALCULATOR_COPY.inputs.ownerPay;
+}
+
+export function enrollmentQuestionEnrollmentAll(multiGroup: boolean): string {
+  return multiGroup ? "How many students are in each group?" : CALCULATOR_COPY.inputs.currentEnrollment;
+}
+
+export function enrollmentDoneTeaser(compensationTarget: number | null): string | null {
+  if (compensationTarget === null) return null;
+  const label = compensationTarget === 1 ? "1 student" : `${compensationTarget.toLocaleString("en-US")} students`;
+  return `To cover school costs and your pay goal, you need ${label}.`;
+}
 
 /** Tuition collected, minus student costs and school operating costs. Pay goal is not deducted. */
 export function availableForPayCents(breakdown: MonthlyBreakdown): number {
@@ -231,14 +261,10 @@ export function enrollmentLiveSummary({
   blank,
   estimate,
   todayAvailableCents,
-  scenarioEnrollment,
-  scenarioAvailableCents,
 }: {
   blank: boolean;
   estimate: EnrollmentEstimate;
   todayAvailableCents: number;
-  scenarioEnrollment: number;
-  scenarioAvailableCents: number;
 }): string {
   if (blank) return CALCULATOR_COPY.blankAnswer;
   if (!estimate.viable || estimate.compensationTarget === null || estimate.additionalStudents === null) {
@@ -250,6 +276,5 @@ export function enrollmentLiveSummary({
     `${formatStudentCount(estimate.compensationTarget)} to cover school costs and your pay goal.`,
     `With ${count} ${students}, here's your monthly picture.`,
     payGapNote(estimate.ownerCompensationCents, todayAvailableCents).text,
-    `${scenarioKicker(scenarioAvailableCents, scenarioEnrollment)}. ${scenarioDescription(scenarioAvailableCents, estimate.ownerCompensationCents)}`,
   ].join(" ");
 }

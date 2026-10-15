@@ -13,21 +13,40 @@ import {
   type ProgramGroup,
   type Scenario,
 } from "./tuition-scenario-planner";
+import { buildPlannerQuestionSteps } from "@/components/marketing/tuition-planner/planner-question-steps";
 import {
+  addProgramGroup,
   addScenario,
+  baselineScenario,
   isStarterPlanner,
   moveScenario,
   parsePlannerDraft,
+  removeProgramGroup,
   removeScenario,
   renameScenario,
   resetScenario,
   serializePlanner,
   setAdjustmentEnabled,
+  setAdjustmentEnabledForAllGroups,
   setBaseline,
   starterPlanner,
   updateAdjustmentFields,
+  updateAllBillingMonths,
   updateGroupFields,
 } from "./tuition-scenario-state";
+
+function withHypotheticalScenario(state = starterPlanner()) {
+  const added = addScenario(state, "from-baseline");
+  assert.ok(added.addedId);
+  const hypothetical = added.state.scenarios.find((item) => item.id === added.addedId);
+  assert.ok(hypothetical?.groups[0]);
+  return {
+    state: added.state,
+    hypotheticalId: added.addedId,
+    hypotheticalGroupId: hypothetical.groups[0].id,
+    hypotheticalName: hypothetical.name,
+  };
+}
 
 function adjustment(patch: Partial<GroupAdjustment> = {}): GroupAdjustment {
   return {
@@ -373,14 +392,15 @@ describe("tuition scenario state", () => {
   });
 
   it("duplicates a scenario into independent assumptions", () => {
-    const duplicated = addScenario(starterPlanner(), "duplicate", "proposed");
+    const { state, hypotheticalId } = withHypotheticalScenario();
+    const duplicated = addScenario(state, "duplicate", hypotheticalId);
     const copy = duplicated.state.scenarios.find((item) => item.id === duplicated.addedId);
-    assert.equal(copy?.name, "Proposed copy");
+    assert.match(copy?.name ?? "", /copy$/i);
     const copyGroupId = copy?.groups[0]?.id ?? "";
     const changed = updateGroupFields(duplicated.state, copy?.id ?? "", copyGroupId, {
       monthlyTuitionCents: 10_000,
     });
-    const original = changed.scenarios.find((item) => item.id === "proposed");
+    const original = changed.scenarios.find((item) => item.id === hypotheticalId);
     const clone = changed.scenarios.find((item) => item.id === copy?.id);
     assert.equal(original?.groups[0]?.monthlyTuitionCents, 80_000);
     assert.equal(clone?.groups[0]?.monthlyTuitionCents, 10_000);
@@ -388,27 +408,29 @@ describe("tuition scenario state", () => {
   });
 
   it("does not drop discount recipients when enrollment falls", () => {
-    let state = setAdjustmentEnabled(starterPlanner(), "proposed", "proposed-group", "siblingDiscount", true);
-    state = updateAdjustmentFields(state, "proposed", "proposed-group", "siblingDiscount", {
+    const { state: base, hypotheticalId, hypotheticalGroupId } = withHypotheticalScenario();
+    let state = setAdjustmentEnabled(base, hypotheticalId, hypotheticalGroupId, "siblingDiscount", true);
+    state = updateAdjustmentFields(state, hypotheticalId, hypotheticalGroupId, "siblingDiscount", {
       recipientCount: 8,
     });
-    state = updateGroupFields(state, "proposed", "proposed-group", { enrollment: 6 });
-    const proposed = state.scenarios.find((item) => item.id === "proposed");
-    assert.equal(proposed?.groups[0]?.siblingDiscount.recipientCount, 8);
-    assert.equal(proposed?.groups[0]?.enrollment, 6);
-    const result = computeScenario(proposed?.groups ?? []);
+    state = updateGroupFields(state, hypotheticalId, hypotheticalGroupId, { enrollment: 6 });
+    const hypothetical = state.scenarios.find((item) => item.id === hypotheticalId);
+    assert.equal(hypothetical?.groups[0]?.siblingDiscount.recipientCount, 8);
+    assert.equal(hypothetical?.groups[0]?.enrollment, 6);
+    const result = computeScenario(hypothetical?.groups ?? []);
     assert.equal(result.valid, false);
     assert.match(result.messages[0] ?? "", /8 students have a sibling discount/);
   });
 
   it("switches the baseline without rewriting scenario assumptions", () => {
-    const switched = setBaseline(starterPlanner(), "proposed");
-    assert.equal(switched.baselineId, "proposed");
+    const { state, hypotheticalId } = withHypotheticalScenario();
+    const switched = setBaseline(state, hypotheticalId);
+    assert.equal(switched.baselineId, hypotheticalId);
     const current = switched.scenarios.find((item) => item.id === "current");
     assert.equal(current?.groups[0]?.monthlyTuitionCents, 80_000);
     const comparison = compareScenario(
       computeScenario(current?.groups ?? []),
-      computeScenario(switched.scenarios.find((item) => item.id === "proposed")?.groups ?? []),
+      computeScenario(switched.scenarios.find((item) => item.id === hypotheticalId)?.groups ?? []),
       false,
     );
     assert.equal(comparison.differenceLabel, "No change in annual revenue");
@@ -416,43 +438,42 @@ describe("tuition scenario state", () => {
   });
 
   it("blocks deletion of the last scenario and promotes a new baseline", () => {
-    const only = removeScenario(
-      { ...starterPlanner(), scenarios: starterPlanner().scenarios.slice(0, 1) },
-      "current",
-    );
+    const only = removeScenario(starterPlanner(), "current");
     assert.equal(only.blocked, true);
     assert.equal(only.state.scenarios.length, 1);
 
-    const removed = removeScenario(starterPlanner(), "current");
+    const { state, hypotheticalId, hypotheticalName } = withHypotheticalScenario();
+    const removed = removeScenario(state, "current");
     assert.equal(removed.blocked, false);
-    assert.equal(removed.promotedBaselineName, "Proposed");
-    assert.equal(removed.state.baselineId, "proposed");
+    assert.equal(removed.promotedBaselineName, hypotheticalName);
+    assert.equal(removed.state.baselineId, hypotheticalId);
     assert.equal(removed.state.scenarios.length, 1);
     assert.equal(removed.state.scenarios.some((item) => item.id === "current"), false);
   });
 
   it("allows duplicate names, reorders, and resets to the original assumptions", () => {
-    const renamed = renameScenario(renameScenario(starterPlanner(), "proposed", "Current"), "current", "Current");
+    const { state, hypotheticalId, hypotheticalGroupId } = withHypotheticalScenario();
+    const renamed = renameScenario(renameScenario(state, hypotheticalId, "Current"), "current", "Current");
     assert.equal(renamed.scenarios.filter((item) => item.name === "Current").length, 2);
 
     const moved = moveScenario(renamed, "current", "later");
-    assert.equal(moved.scenarios[0]?.id, "proposed");
+    assert.equal(moved.scenarios[0]?.id, hypotheticalId);
     assert.equal(moved.scenarios[1]?.id, "current");
-    assert.equal(moveScenario(moved, "proposed", "earlier").scenarios[0]?.id, "proposed");
+    assert.equal(moveScenario(moved, hypotheticalId, "earlier").scenarios[0]?.id, hypotheticalId);
 
-    const edited = updateGroupFields(starterPlanner(), "proposed", "proposed-group", {
+    const edited = updateGroupFields(state, hypotheticalId, hypotheticalGroupId, {
       monthlyTuitionCents: 12_500,
       enrollment: 3,
     });
-    const reset = resetScenario(edited, "proposed");
-    assert.equal(reset.scenarios.find((item) => item.id === "proposed")?.groups[0]?.monthlyTuitionCents, 80_000);
-    assert.equal(reset.scenarios.find((item) => item.id === "proposed")?.groups[0]?.enrollment, 12);
+    const reset = resetScenario(edited, hypotheticalId);
+    assert.equal(reset.scenarios.find((item) => item.id === hypotheticalId)?.groups[0]?.monthlyTuitionCents, 80_000);
+    assert.equal(reset.scenarios.find((item) => item.id === hypotheticalId)?.groups[0]?.enrollment, 12);
     assert.equal(reset.scenarios.find((item) => item.id === "current")?.groups[0]?.monthlyTuitionCents, 80_000);
   });
 
   it("stops at eight scenarios and round-trips a draft without clamping recipients to enrollment", () => {
     let state = starterPlanner();
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 7; index += 1) {
       state = addScenario(state, "from-baseline").state;
     }
     assert.equal(state.scenarios.length, 8);
@@ -461,30 +482,82 @@ describe("tuition scenario state", () => {
     assert.equal(capped.state.scenarios.length, 8);
 
     const overflow = updateAdjustmentFields(
-      setAdjustmentEnabled(starterPlanner(), "proposed", "proposed-group", "scholarship", true),
-      "proposed",
-      "proposed-group",
+      setAdjustmentEnabled(starterPlanner(), "current", "current-group", "scholarship", true),
+      "current",
+      "current-group",
       "scholarship",
       { recipientCount: 40 },
     );
     const parsed = parsePlannerDraft(serializePlanner(overflow));
     assert.ok(parsed);
-    assert.equal(parsed?.scenarios.find((item) => item.id === "proposed")?.groups[0]?.scholarship.recipientCount, 40);
+    assert.equal(parsed?.scenarios.length, 1);
+    assert.equal(parsed?.scenarios[0]?.groups[0]?.scholarship.recipientCount, 40);
     assert.equal(isStarterPlanner(starterPlanner()), true);
     assert.equal(isStarterPlanner(overflow), false);
     assert.equal(parsePlannerDraft("{"), null);
     assert.equal(parsePlannerDraft(JSON.stringify({ version: 2 })), null);
   });
 
+  it("adds and removes age groups for the baseline scenario", () => {
+    let state = starterPlanner();
+    assert.equal(state.scenarios[0]?.groups[0]?.label, "All students");
+    state = addProgramGroup(state, "current");
+    assert.equal(state.scenarios[0]?.groups.length, 2);
+    assert.equal(state.scenarios[0]?.groups[0]?.label, "");
+    assert.equal(state.scenarios[0]?.groups[1]?.label, "");
+    const secondId = state.scenarios[0]?.groups[1]?.id ?? "";
+    state = removeProgramGroup(state, "current", secondId);
+    assert.equal(state.scenarios[0]?.groups.length, 1);
+    assert.equal(state.scenarios[0]?.groups[0]?.label, "All students");
+  });
+
+  it("syncs billing months and discounts across all program groups", () => {
+    let state = addProgramGroup(starterPlanner(), "current");
+    state = updateAllBillingMonths(state, "current", 9);
+    for (const group of state.scenarios[0]?.groups ?? []) {
+      assert.equal(group.billingMonths, 9);
+    }
+    state = setAdjustmentEnabledForAllGroups(state, "current", "siblingDiscount", true);
+    for (const group of state.scenarios[0]?.groups ?? []) {
+      assert.equal(group.siblingDiscount.enabled, true);
+    }
+  });
+
+  it("round-trips up to four program groups in local storage", () => {
+    let state = starterPlanner();
+    state = addProgramGroup(state, "current");
+    state = addProgramGroup(state, "current");
+    state = addProgramGroup(state, "current");
+    assert.equal(state.scenarios[0]?.groups.length, 4);
+    const parsed = parsePlannerDraft(serializePlanner(state));
+    assert.equal(parsed?.scenarios[0]?.groups.length, 4);
+    state = addProgramGroup(state, "current");
+    assert.equal(state.scenarios[0]?.groups.length, 4);
+  });
+
+  it("builds a short wizard with combined tuition and enrollment steps", () => {
+    const steps = buildPlannerQuestionSteps(baselineScenario(starterPlanner()));
+    assert.deepEqual(
+      steps.map((item) => item.kind),
+      ["tuition_all", "enrollment_all", "months", "sibling_toggle", "scholarship_toggle", "done"],
+    );
+    const withSibling = setAdjustmentEnabled(starterPlanner(), "current", "current-group", "siblingDiscount", true);
+    const siblingSteps = buildPlannerQuestionSteps(baselineScenario(withSibling));
+    assert.equal(siblingSteps.some((item) => item.kind === "sibling_details"), true);
+  });
+
   it("does not let one scenario's tuition edit change another scenario's revenue", () => {
-    const changed = updateGroupFields(starterPlanner(), "proposed", "proposed-group", {
+    const { state, hypotheticalId, hypotheticalGroupId } = withHypotheticalScenario();
+    const changed = updateGroupFields(state, hypotheticalId, hypotheticalGroupId, {
       monthlyTuitionCents: 70_000,
     });
-    const current = computeScenario(changed.scenarios[0]?.groups ?? []);
-    const proposed = computeScenario(changed.scenarios[1]?.groups ?? []);
+    const current = computeScenario(changed.scenarios.find((item) => item.id === "current")?.groups ?? []);
+    const hypothetical = computeScenario(
+      changed.scenarios.find((item) => item.id === hypotheticalId)?.groups ?? [],
+    );
     assert.equal(current.netCents, 9_600_000);
-    assert.equal(proposed.netCents, 70_000 * 12 * 10);
-    const comparison = compareScenario(proposed, current, false);
+    assert.equal(hypothetical.netCents, 70_000 * 12 * 10);
+    const comparison = compareScenario(hypothetical, current, false);
     assert.equal(comparison.direction, "lower");
     assert.match(comparison.differenceLabel, /^−\$/);
   });

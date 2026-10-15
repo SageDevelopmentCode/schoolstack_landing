@@ -6,7 +6,13 @@ import { LandingScaledDemoFrame } from "@/components/demo/LandingScaledDemoFrame
 import { LazyAdminDashboardDemo } from "@/components/sections/lazyDemos";
 import { BOOK_DEMO_HREF } from "@/lib/marketing/book-demo";
 
-export default function AdminGrowthSection() {
+type AdminGrowthSectionProps = {
+  bookDemoHref?: string;
+};
+
+export default function AdminGrowthSection({
+  bookDemoHref = BOOK_DEMO_HREF,
+}: AdminGrowthSectionProps) {
   return (
     <section className="bg-surface py-24 overflow-x-hidden overflow-y-hidden lg:overflow-hidden">
       <div className="max-w-[1200px] mx-auto pl-0 pr-6 lg:pr-12 lg:pl-0 overflow-x-hidden">
@@ -53,7 +59,7 @@ export default function AdminGrowthSection() {
             <FadeInView delay={0.18}>
               <div className="mt-8 max-lg:flex max-lg:justify-end">
                 <a
-                  href={BOOK_DEMO_HREF}
+                  href={bookDemoHref}
                   className="inline-flex items-center gap-2 bg-clay text-white text-sm font-medium font-secondary rounded-pill px-7 h-11 hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
                 >
                   Book a Demo

@@ -3,12 +3,19 @@
 export const MAX_CALCULATOR_CENTS = 100_000_000_00;
 export const MAX_CALCULATOR_ENROLLMENT = 100_000;
 
+export type EnrollmentTuitionGroupInput = {
+  tuitionCents: number;
+  enrollment: number;
+};
+
 export type EnrollmentCalculatorInput = {
   tuitionCents: number;
   fixedExpensesCents: number;
   variableCostPerStudentCents: number;
   ownerCompensationCents: number;
   currentEnrollment: number;
+  /** When set, enrollment is summed and tuition is enrollment-weighted for targets. */
+  tuitionGroups?: EnrollmentTuitionGroupInput[];
 };
 
 export type MonthlyPosition = "surplus" | "shortfall" | "even";
@@ -45,6 +52,38 @@ function toCents(value: number): number {
 function toCount(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(MAX_CALCULATOR_ENROLLMENT, Math.max(0, Math.round(value)));
+}
+
+export function blendedTuitionCents(groups: EnrollmentTuitionGroupInput[]): number {
+  if (groups.length === 0) return 0;
+  let revenue = 0;
+  let students = 0;
+  for (const group of groups) {
+    const enrollment = toCount(group.enrollment);
+    const tuition = toCents(group.tuitionCents);
+    revenue += enrollment * tuition;
+    students += enrollment;
+  }
+  if (students <= 0) return toCents(groups[0]?.tuitionCents ?? 0);
+  return Math.round(revenue / students);
+}
+
+function resolveEnrollmentInput(input: EnrollmentCalculatorInput): {
+  tuitionCents: number;
+  currentEnrollment: number;
+} {
+  const groups = input.tuitionGroups;
+  if (!groups || groups.length === 0) {
+    return {
+      tuitionCents: toCents(input.tuitionCents),
+      currentEnrollment: toCount(input.currentEnrollment),
+    };
+  }
+  const currentEnrollment = groups.reduce((sum, group) => sum + toCount(group.enrollment), 0);
+  return {
+    tuitionCents: blendedTuitionCents(groups),
+    currentEnrollment,
+  };
 }
 
 /**
@@ -96,10 +135,19 @@ export function monthlyBreakdown(
     | "fixedExpensesCents"
     | "variableCostPerStudentCents"
     | "ownerCompensationCents"
+    | "currentEnrollment"
+    | "tuitionGroups"
   >,
   enrollment: number,
 ): MonthlyBreakdown {
-  const tuitionCents = toCents(input.tuitionCents);
+  const tuitionCents = resolveEnrollmentInput({
+    tuitionCents: input.tuitionCents,
+    fixedExpensesCents: input.fixedExpensesCents,
+    variableCostPerStudentCents: input.variableCostPerStudentCents,
+    ownerCompensationCents: input.ownerCompensationCents,
+    currentEnrollment: input.currentEnrollment ?? 0,
+    tuitionGroups: input.tuitionGroups,
+  }).tuitionCents;
   const variableCostPerStudentCents = toCents(input.variableCostPerStudentCents);
   const fixedExpensesCents = toCents(input.fixedExpensesCents);
   const ownerCompensationCents = toCents(input.ownerCompensationCents);
@@ -125,11 +173,12 @@ export function monthlyPosition(resultCents: number): MonthlyPosition {
 export function computeEnrollmentEstimate(
   input: EnrollmentCalculatorInput,
 ): EnrollmentEstimate {
-  const tuitionCents = toCents(input.tuitionCents);
+  const resolved = resolveEnrollmentInput(input);
+  const tuitionCents = resolved.tuitionCents;
   const fixedExpensesCents = toCents(input.fixedExpensesCents);
   const variableCostPerStudentCents = toCents(input.variableCostPerStudentCents);
   const ownerCompensationCents = toCents(input.ownerCompensationCents);
-  const currentEnrollment = toCount(input.currentEnrollment);
+  const currentEnrollment = resolved.currentEnrollment;
   const contributionCents = tuitionCents - variableCostPerStudentCents;
   const viable = contributionCents > 0;
   const operatingBreakEven = studentsForAmount(fixedExpensesCents, contributionCents);
