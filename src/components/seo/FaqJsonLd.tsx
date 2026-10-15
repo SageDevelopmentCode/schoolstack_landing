@@ -1,4 +1,4 @@
-import { faqPageJsonLd } from "@/lib/seo";
+import { faqPageJsonLd, serializeJsonLd } from "@/lib/seo";
 import type { FaqItem } from "@/lib/faq";
 
 type FaqJsonLdProps = {
@@ -10,7 +10,7 @@ export default function FaqJsonLd({ faqs }: FaqJsonLdProps) {
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(faqPageJsonLd(faqs)),
+        __html: serializeJsonLd(faqPageJsonLd(faqs)),
       }}
     />
   );

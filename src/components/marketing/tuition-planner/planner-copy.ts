@@ -37,7 +37,7 @@ export const PART_TIME_NOTE =
   "This is a mixed estimate: full-time enrollment plus a separate part-time program. It is not a single averaged tuition rate.";
 
 export const MULTIPLE_PROGRAMS_NOTE =
-  "You entered more than one monthly tuition rate. Revenue adds each age group or program separately—it is not one averaged tuition.";
+  "You entered more than one monthly tuition rate. Revenue adds each age group or program separately—it is not one averaged tuition. Sibling discounts and scholarships use one school-wide recipient count, split across groups by enrollment.";
 
 export const TUITION_GROUPS_HELP =
   "Optional: add another age group if you charge different monthly tuition. Everyone in a group pays the same rate before discounts.";

@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { CUES } from "../captions";
+import { CUES, type Cue } from "../captions";
 import { SHOTS } from "../timeline";
 import { CLAMP, FONT } from "../theme";
 import { useLayout } from "./layout";
@@ -12,14 +12,32 @@ const SUPPRESS: [number, number][] = [
   [1658, 1800],
 ];
 
-export const CaptionTrack: React.FC = () => {
+const filmOnLight = (frame: number) => SHOTS.find((s) => frame >= s.from && frame < s.to)?.color === "cream";
+
+export type CaptionSpec = {
+  cues: Cue[];
+  suppress: [number, number][];
+  onLight: (frame: number) => boolean;
+  // Distance from the bottom edge to the caption pill.
+  bottom: { vertical: number; horizontal: number };
+  // Lifts the cream pill off white product UI.
+  shadowOnLight?: boolean;
+};
+
+const FILM_SPEC: CaptionSpec = {
+  cues: CUES,
+  suppress: SUPPRESS,
+  onLight: filmOnLight,
+  bottom: { vertical: 250, horizontal: 54 },
+};
+
+export const CaptionTrack: React.FC<{ spec?: CaptionSpec }> = ({ spec = FILM_SPEC }) => {
   const frame = useCurrentFrame();
   const L = useLayout();
-  if (SUPPRESS.some(([a, b]) => frame >= a && frame < b)) return null;
-  const cue = CUES.find((c) => frame >= c.from && frame < c.to);
+  if (spec.suppress.some(([a, b]) => frame >= a && frame < b)) return null;
+  const cue = spec.cues.find((c) => frame >= c.from && frame < c.to);
   if (!cue) return null;
-  const shot = SHOTS.find((s) => frame >= s.from && frame < s.to);
-  const onLight = shot?.color === "cream";
+  const onLight = spec.onLight(frame);
   const p = interpolate(frame, [cue.from, cue.from + 5, cue.to - 4, cue.to], [0, 1, 1, 0], CLAMP);
   const size = L.vertical ? 46 : 36;
   return (
@@ -27,7 +45,7 @@ export const CaptionTrack: React.FC = () => {
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        paddingBottom: L.vertical ? 250 : 54,
+        paddingBottom: L.vertical ? spec.bottom.vertical : spec.bottom.horizontal,
         pointerEvents: "none",
       }}
     >
@@ -45,6 +63,10 @@ export const CaptionTrack: React.FC = () => {
           borderRadius: size * 0.4,
           opacity: p,
           textShadow: onLight ? "none" : "0 1px 2px rgba(0,0,0,0.35)",
+          boxShadow:
+            onLight && spec.shadowOnLight
+              ? "0 0 0 1px rgba(31,51,41,0.08), 0 6px 18px rgba(31,51,41,0.14)"
+              : "none",
         }}
       >
         {cue.text}

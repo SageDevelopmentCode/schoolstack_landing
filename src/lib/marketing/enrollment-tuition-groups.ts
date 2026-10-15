@@ -30,7 +30,7 @@ export function starterEnrollmentGroups(
 export function addEnrollmentTuitionGroup(groups: EnrollmentTuitionGroup[]): EnrollmentTuitionGroup[] {
   if (groups.length >= MAX_PROGRAM_GROUPS) return groups;
   const primary = groups[0];
-  let next = [...groups];
+  const next = [...groups];
   const sole = next[0];
   if (next.length === 1 && sole?.label === ENROLLMENT_DEFAULT_SINGLE_GROUP_LABEL) {
     next[0] = { ...sole, label: "" };

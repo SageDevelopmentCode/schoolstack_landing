@@ -434,10 +434,32 @@ export function setAdjustmentEnabledForAllGroups(
 ): PlannerState {
   const scenario = scenarioById(state, scenarioId);
   if (!scenario) return state;
+  const totalEnrollment = scenario.groups.reduce(
+    (sum, group) => sum + (group.enrollment > 0 ? group.enrollment : 0),
+    0,
+  );
   let next = state;
-  for (const group of scenario.groups) {
-    next = setAdjustmentEnabled(next, scenarioId, group.id, kind, enabled);
-  }
+  scenario.groups.forEach((group, index) => {
+    if (!enabled) {
+      next = setAdjustmentEnabled(next, scenarioId, group.id, kind, false);
+      return;
+    }
+    next = mapGroup(next, scenarioId, group.id, (current) => {
+      const adjustment = current[kind];
+      if (!blankAdjustment(adjustment)) {
+        return {
+          ...current,
+          [kind]: {
+            ...adjustment,
+            enabled: true,
+            recipientCount: index === 0 ? adjustment.recipientCount : 0,
+          },
+        };
+      }
+      const seedEnrollment = index === 0 ? totalEnrollment : 0;
+      return { ...current, [kind]: withDefaults(kind, seedEnrollment) };
+    });
+  });
   return next;
 }
 
@@ -449,8 +471,17 @@ export function updateAdjustmentFieldsForAllGroups(
 ): PlannerState {
   const scenario = scenarioById(state, scenarioId);
   if (!scenario) return state;
+  const firstGroupId = scenario.groups[0]?.id;
   let next = state;
   for (const group of scenario.groups) {
+    if (patch.recipientCount !== undefined && group.id !== firstGroupId) {
+      const { recipientCount: _ignored, ...ratePatch } = patch;
+      next = updateAdjustmentFields(next, scenarioId, group.id, kind, {
+        ...ratePatch,
+        recipientCount: 0,
+      });
+      continue;
+    }
     next = updateAdjustmentFields(next, scenarioId, group.id, kind, patch);
   }
   return next;
@@ -596,6 +627,18 @@ function parseGroup(value: unknown): ProgramGroup | null {
   };
 }
 
+function normalizeSchoolWideRecipientCounts(groups: ProgramGroup[]): ProgramGroup[] {
+  if (groups.length <= 1) return groups;
+  return groups.map((group, index) => {
+    if (index === 0) return group;
+    return {
+      ...group,
+      siblingDiscount: { ...group.siblingDiscount, recipientCount: 0 },
+      scholarship: { ...group.scholarship, recipientCount: 0 },
+    };
+  });
+}
+
 function parseScenario(value: unknown): Scenario | null {
   if (!isRecord(value)) return null;
   if (typeof value.id !== "string" || !value.id) return null;
@@ -613,11 +656,13 @@ function parseScenario(value: unknown): Scenario | null {
   const groups = value.groups.map(parseGroup);
   const originGroups = value.originGroups.map(parseGroup);
   if (groups.some((group) => group === null) || originGroups.some((group) => group === null)) return null;
+  const parsedGroups = normalizeSchoolWideRecipientCounts(groups as ProgramGroup[]);
+  const parsedOriginGroups = normalizeSchoolWideRecipientCounts(originGroups as ProgramGroup[]);
   return {
     id: value.id,
     name: normalizeName(value.name, "Scenario"),
-    groups: groups as ProgramGroup[],
-    originGroups: originGroups as ProgramGroup[],
+    groups: parsedGroups,
+    originGroups: parsedOriginGroups,
   };
 }
 

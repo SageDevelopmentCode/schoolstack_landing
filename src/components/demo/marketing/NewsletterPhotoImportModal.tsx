@@ -32,10 +32,7 @@ export default function NewsletterPhotoImportModal({
   const [mountedRoot, setMountedRoot] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    if (!open) {
-      setMountedRoot(null);
-      return;
-    }
+    if (!open) return;
     setMountedRoot(portalHost ?? portalRef?.current ?? null);
   }, [open, portalHost, portalRef]);
 
@@ -121,7 +118,7 @@ export default function NewsletterPhotoImportModal({
     </div>
   );
 
-  const portalTarget = portalHost ?? portalRef?.current ?? mountedRoot;
+  const portalTarget = portalHost ?? mountedRoot;
   if (portalTarget) {
     return createPortal(overlay, portalTarget);
   }

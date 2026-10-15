@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useLayoutEffect, useMemo, useState, type RefObject } from "react";
+import { useCallback, useMemo, useState, type RefObject } from "react";
 import { Calendar, ChevronDown, Eye, FileText, ImagePlus, Plus, Upload } from "lucide-react";
 import DemoStaffAvatar from "@/components/demo/marketing/DemoStaffAvatar";
 import NewsletterPhotoImportModal from "@/components/demo/marketing/NewsletterPhotoImportModal";
@@ -52,20 +52,24 @@ export default function NewsletterEditorDemoCanvas({
   const openImportOnMount =
     persistImportModal || initialImportModalOpen || isPhotoGallery || isTeacherUpdates;
 
-  const [importModalOpen, setImportModalOpen] = useState(openImportOnMount);
+  const [importDismissed, setImportDismissed] = useState(false);
+  const [lastVariant, setLastVariant] = useState(variant);
+  if (lastVariant !== variant) {
+    setLastVariant(variant);
+    setImportDismissed(false);
+  }
+  const importModalOpen = openImportOnMount && !importDismissed;
   const modalVisible = persistImportModal || importModalOpen;
-
-  useLayoutEffect(() => {
-    if (openImportOnMount) {
-      setImportModalOpen(true);
-    }
-  }, [openImportOnMount, variant]);
 
   const closeImportModal = useCallback(() => {
     if (!persistImportModal) {
-      setImportModalOpen(false);
+      setImportDismissed(true);
     }
   }, [persistImportModal]);
+
+  const openImportModal = useCallback(() => {
+    setImportDismissed(false);
+  }, []);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [importedPhotos, setImportedPhotos] = useState<DemoNewsletterGalleryPhoto[]>([]);
 
@@ -100,7 +104,7 @@ export default function NewsletterEditorDemoCanvas({
     });
     setSelectedIds(new Set());
     if (!persistImportModal) {
-      setImportModalOpen(false);
+      setImportDismissed(true);
     }
   }, [persistImportModal, selectedIds]);
 
@@ -237,7 +241,7 @@ export default function NewsletterEditorDemoCanvas({
                   theme={theme}
                   variant="soft"
                   className="gap-1.5"
-                  onClick={() => setImportModalOpen(true)}
+                  onClick={openImportModal}
                 >
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Import photos
@@ -286,7 +290,7 @@ export default function NewsletterEditorDemoCanvas({
                     theme={theme}
                     variant="soft"
                     className="gap-1.5"
-                    onClick={() => setImportModalOpen(true)}
+                    onClick={openImportModal}
                   >
                     <FileText className="h-3.5 w-3.5" aria-hidden />
                     View Teacher Updates

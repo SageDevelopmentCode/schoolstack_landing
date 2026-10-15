@@ -5,7 +5,7 @@ import Footer from "@/components/sections/Footer";
 import MondayCheckExperience from "@/components/marketing/monday-check/MondayCheckExperience";
 import { MONDAY_CHECK_INTRO_FAQS } from "@/lib/marketing/microschool-monday-check";
 import { pageMetadata } from "@/lib/metadata";
-import { buildBreadcrumbs, faqPageJsonLd } from "@/lib/seo";
+import { buildBreadcrumbs, faqPageJsonLd, serializeJsonLd } from "@/lib/seo";
 
 const PATH = "/microschool-monday-check";
 
@@ -31,7 +31,7 @@ export default function MicroschoolMondayCheckPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqPageJsonLd(MONDAY_CHECK_INTRO_FAQS)),
+          __html: serializeJsonLd(faqPageJsonLd(MONDAY_CHECK_INTRO_FAQS)),
         }}
       />
       <Navbar />

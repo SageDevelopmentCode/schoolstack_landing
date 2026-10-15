@@ -1092,32 +1092,24 @@ const ThreadMorph: React.FC<{ f: number; L: Layout }> = ({ f, L }) => {
   );
 };
 
-// ─── Act ────────────────────────────────────────────────────────────────────
+// ─── Admin window (frame + sidebar + page + tour cursor) ────────────────────
 
-export const AdminAct: React.FC = () => {
-  const f = useCurrentFrame();
+export type AdminWindowGeom = { w: number; h: number; dw: number; collapsed: boolean };
+
+// The admin demo at act frame `f` (0-288): dashboard, admissions, my students,
+// finances, in that order. The ad remaps its own clock onto this one.
+export const AdminWindow: React.FC<{ f: number; g: AdminWindowGeom; vertical: boolean }> = ({ f, g, vertical }) => {
   const { fps } = useVideoConfig();
-  const L = useLayout();
   const beat = beatAt(f);
   const lf = f - beat.from;
-  const enter = interpolate(f, [0, 18], [0, 1], { ...CLAMP, easing: EXPO_OUT });
-  const exitFrame = interpolate(f, [BEATS[3].to - 4, BEATS[3].to], [0, 1], { ...CLAMP, easing: EXPO_IN });
-  const drift = interpolate(f, [0, 288], [8, -8]);
-
-  if (f >= FIN.from && f < FIN.to) return <FinanceFlash f={f} L={L} />;
-  if (f >= FIN.to) return <ThreadMorph f={f} L={L} />;
-
-  const g = L.vertical
-    ? { left: 40, top: 540, w: 1000, h: 800, dw: 700, collapsed: true }
-    : { left: 660, top: 165, w: 1160, h: 730, dw: 880, collapsed: false };
   const sb = g.collapsed ? 52 : 185;
   const cw = g.dw - sb;
   const dh = g.h / (g.w / g.dw);
   const navX = g.collapsed ? 26 : 72;
   const navY = (key: string, at: number) => navLayout(at, g.collapsed).items[key] + SB.itemH / 2;
-  const rivera = riveraStatusPoint(sb, L.vertical);
-  const cellA = emmaCell(sb, L.vertical, "Classroom");
-  const cellB = emmaCell(sb, L.vertical, "Teacher");
+  const rivera = riveraStatusPoint(sb, vertical);
+  const cellA = emmaCell(sb, vertical, "Classroom");
+  const cellB = emmaCell(sb, vertical, "Teacher");
   const stops: CursorStop[] = [
     { at: 34, x: sb + cw - 110, y: 96 },
     { at: 68, x: navX, y: navY("leads", 60), click: true },
@@ -1133,12 +1125,52 @@ export const AdminAct: React.FC = () => {
     beat.page === "dashboard" ? (
       <DashboardPage lf={lf} cw={cw} />
     ) : beat.page === "leads" ? (
-      <AdmissionsPage lf={lf} cw={cw} vertical={L.vertical} />
+      <AdmissionsPage lf={lf} cw={cw} vertical={vertical} />
     ) : beat.page === "myschool" ? (
-      <MyStudentsPage lf={lf} cw={cw} vertical={L.vertical} fps={fps} />
+      <MyStudentsPage lf={lf} cw={cw} vertical={vertical} fps={fps} />
     ) : (
-      <FinancesPage lf={lf} cw={cw} vertical={L.vertical} fps={fps} />
+      <FinancesPage lf={lf} cw={cw} vertical={vertical} fps={fps} />
     );
+
+  return (
+    <DemoFrame width={g.w} height={g.h} designWidth={g.dw} background={ADMIN.bg}>
+      <Sidebar f={f} collapsed={g.collapsed} height={dh} />
+      <div key={beat.page} style={{ width: cw, height: dh, overflow: "hidden", position: "relative", backgroundColor: ADMIN.bg }}>
+        {page}
+      </div>
+      <DemoCursor f={f} stops={stops} />
+    </DemoFrame>
+  );
+};
+
+// Window-space click points the ad marks with tap ripples (design px, before DemoFrame scaling).
+export const adminHotspots = (g: AdminWindowGeom, vertical: boolean) => {
+  const sb = g.collapsed ? 52 : 185;
+  return {
+    riveraStatus: riveraStatusPoint(sb, vertical),
+    emmaClassroom: emmaCell(sb, vertical, "Classroom"),
+    emmaTeacher: emmaCell(sb, vertical, "Teacher"),
+    riveraClick: RIVERA_CLICK,
+    pingA: PING_A,
+    pingB: PING_B,
+  };
+};
+
+// ─── Act ────────────────────────────────────────────────────────────────────
+
+export const AdminAct: React.FC = () => {
+  const f = useCurrentFrame();
+  const L = useLayout();
+  const enter = interpolate(f, [0, 18], [0, 1], { ...CLAMP, easing: EXPO_OUT });
+  const exitFrame = interpolate(f, [BEATS[3].to - 4, BEATS[3].to], [0, 1], { ...CLAMP, easing: EXPO_IN });
+  const drift = interpolate(f, [0, 288], [8, -8]);
+
+  if (f >= FIN.from && f < FIN.to) return <FinanceFlash f={f} L={L} />;
+  if (f >= FIN.to) return <ThreadMorph f={f} L={L} />;
+
+  const g = L.vertical
+    ? { left: 40, top: 540, w: 1000, h: 800, dw: 700, collapsed: true }
+    : { left: 660, top: 165, w: 1160, h: 730, dw: 880, collapsed: false };
 
   return (
     <AbsoluteFill>
@@ -1152,13 +1184,7 @@ export const AdminAct: React.FC = () => {
           opacity: enter * (1 - exitFrame),
         }}
       >
-        <DemoFrame width={g.w} height={g.h} designWidth={g.dw} background={ADMIN.bg}>
-          <Sidebar f={f} collapsed={g.collapsed} height={dh} />
-          <div key={beat.page} style={{ width: cw, height: dh, overflow: "hidden", position: "relative", backgroundColor: ADMIN.bg }}>
-            {page}
-          </div>
-          <DemoCursor f={f} stops={stops} />
-        </DemoFrame>
+        <AdminWindow f={f} g={g} vertical={L.vertical} />
       </div>
 
       <div

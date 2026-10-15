@@ -48,10 +48,7 @@ export default function NewsletterTeacherUpdatesImportModal({
   const showTeacherOnCard = activeTeacherFilter === "all";
 
   useLayoutEffect(() => {
-    if (!open) {
-      setMountedRoot(null);
-      return;
-    }
+    if (!open) return;
     setMountedRoot(portalHost ?? portalRef?.current ?? null);
   }, [open, portalHost, portalRef]);
 
@@ -205,7 +202,7 @@ export default function NewsletterTeacherUpdatesImportModal({
     </div>
   );
 
-  const portalTarget = portalHost ?? portalRef?.current ?? mountedRoot;
+  const portalTarget = portalHost ?? mountedRoot;
   if (portalTarget) {
     return createPortal(overlay, portalTarget);
   }

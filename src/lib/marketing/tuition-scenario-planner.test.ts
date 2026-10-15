@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  allocateRecipientsAcrossGroups,
   compareScenario,
   computeGroup,
   computeScenario,
@@ -31,6 +32,7 @@ import {
   setBaseline,
   starterPlanner,
   updateAdjustmentFields,
+  updateAdjustmentFieldsForAllGroups,
   updateAllBillingMonths,
   updateGroupFields,
 } from "./tuition-scenario-state";
@@ -141,6 +143,31 @@ describe("tuition scenario revenue", () => {
     ]);
     assert.equal(result.annualSiblingDiscountCents, 5_000 * 2 * 10);
     assert.equal(result.netCents, 9_600_000 - 100_000);
+  });
+
+  it("allocates school-wide recipients across groups by enrollment", () => {
+    assert.deepEqual(allocateRecipientsAcrossGroups(2, [12, 12]), [1, 1]);
+    assert.deepEqual(allocateRecipientsAcrossGroups(2, [18, 6]), [2, 0]);
+  });
+
+  it("applies school-wide sibling recipients once across multiple groups", () => {
+    const siblingTerms = adjustment({
+      enabled: true,
+      mode: "percent",
+      percentHundredths: 1_000,
+      recipientCount: 2,
+    });
+    const result = computeScenario([
+      group({ id: "lower", label: "Lower", enrollment: 12, siblingDiscount: siblingTerms }),
+      group({
+        id: "upper",
+        label: "Upper",
+        enrollment: 12,
+        siblingDiscount: { ...siblingTerms, recipientCount: 0 },
+      }),
+    ]);
+    assert.equal(result.valid, true);
+    assert.equal(result.annualSiblingDiscountCents, 8_000 * 2 * 10);
   });
 
   it("applies scholarships to different students than the sibling discount", () => {
@@ -511,16 +538,30 @@ describe("tuition scenario state", () => {
     assert.equal(state.scenarios[0]?.groups[0]?.label, "All students");
   });
 
-  it("syncs billing months and discounts across all program groups", () => {
+  it("syncs billing months and discount terms across all program groups", () => {
     let state = addProgramGroup(starterPlanner(), "current");
     state = updateAllBillingMonths(state, "current", 9);
     for (const group of state.scenarios[0]?.groups ?? []) {
       assert.equal(group.billingMonths, 9);
     }
     state = setAdjustmentEnabledForAllGroups(state, "current", "siblingDiscount", true);
-    for (const group of state.scenarios[0]?.groups ?? []) {
-      assert.equal(group.siblingDiscount.enabled, true);
+    const groups = state.scenarios[0]?.groups ?? [];
+    for (const item of groups) {
+      assert.equal(item.siblingDiscount.enabled, true);
     }
+    assert.equal(groups[0]?.siblingDiscount.recipientCount, 1);
+    for (const item of groups.slice(1)) {
+      assert.equal(item.siblingDiscount.recipientCount, 0);
+    }
+    state = updateAdjustmentFieldsForAllGroups(state, "current", "siblingDiscount", {
+      recipientCount: 2,
+      percentHundredths: 1_500,
+    });
+    const updated = state.scenarios[0]?.groups ?? [];
+    assert.equal(updated[0]?.siblingDiscount.recipientCount, 2);
+    assert.equal(updated[0]?.siblingDiscount.percentHundredths, 1_500);
+    assert.equal(updated[1]?.siblingDiscount.recipientCount, 0);
+    assert.equal(updated[1]?.siblingDiscount.percentHundredths, 1_500);
   });
 
   it("round-trips up to four program groups in local storage", () => {

@@ -1,5 +1,10 @@
 import { SITE_NAME, SITE_URL } from "./site";
 
+/** Safe for dangerouslySetInnerHTML inside application/ld+json script tags. */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export type BreadcrumbItem = {
   name: string;
   path: string;

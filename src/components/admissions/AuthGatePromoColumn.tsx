@@ -22,17 +22,15 @@ export default function AuthGatePromoColumn({
   immediate = false,
 }: AuthGatePromoColumnProps) {
   const [activeSlide, setActiveSlide] = useState(0);
-  const [showPromo, setShowPromo] = useState(false);
+  const [showPromo, setShowPromo] = useState(() => {
+    if (typeof window === "undefined" || !immediate) return false;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
   const [carouselActive, setCarouselActive] = useState(false);
 
   useEffect(() => {
     const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
-    if (!isDesktop) {
-      return;
-    }
-
-    if (immediate) {
-      setShowPromo(true);
+    if (!isDesktop || immediate) {
       return;
     }
 

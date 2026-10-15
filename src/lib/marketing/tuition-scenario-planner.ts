@@ -156,17 +156,25 @@ function recipientOverEnrollmentMessage(
   return `${subject}, but this group has ${enrollment} ${studentWord(enrollment)}.`;
 }
 
-function adjustmentIssues(
+function recipientOverTotalEnrollmentMessage(
+  kind: "sibling" | "scholarship",
+  recipients: number,
+  enrollment: number,
+): string {
+  const subject =
+    kind === "sibling"
+      ? `${recipients} ${recipients === 1 ? "student has" : "students have"} a sibling discount`
+      : `${recipients} ${recipients === 1 ? "student has" : "students have"} a scholarship`;
+  return `${subject}, but this estimate has ${enrollment} ${studentWord(enrollment)}.`;
+}
+
+function adjustmentRateIssues(
   adjustment: GroupAdjustment,
   kind: "sibling" | "scholarship",
   tuitionCents: number,
-  enrollment: number,
 ): string[] {
-  if (!adjustment.enabled || adjustment.recipientCount <= 0) return [];
+  if (!adjustment.enabled) return [];
   const issues: string[] = [];
-  if (adjustment.recipientCount > enrollment) {
-    issues.push(recipientOverEnrollmentMessage(kind, adjustment.recipientCount, enrollment));
-  }
   if (adjustment.mode === "percent" && adjustment.percentHundredths > MAX_PERCENT_HUNDREDTHS) {
     issues.push("A discount can't be more than 100% of tuition.");
   }
@@ -180,18 +188,77 @@ function adjustmentIssues(
   return issues;
 }
 
-function monthlyReductionCents(
-  tuitionCents: number,
+function adjustmentIssues(
   adjustment: GroupAdjustment,
-): number {
-  if (!adjustment.enabled || adjustment.recipientCount <= 0) return 0;
+  kind: "sibling" | "scholarship",
+  tuitionCents: number,
+  enrollment: number,
+): string[] {
+  if (!adjustment.enabled || adjustment.recipientCount <= 0) return adjustmentRateIssues(adjustment, kind, tuitionCents);
+  const issues = adjustmentRateIssues(adjustment, kind, tuitionCents);
+  if (adjustment.recipientCount > enrollment) {
+    issues.push(recipientOverEnrollmentMessage(kind, adjustment.recipientCount, enrollment));
+  }
+  return issues;
+}
+
+function monthlyReductionCents(tuitionCents: number, adjustment: GroupAdjustment): number {
+  if (!adjustment.enabled) return 0;
   if (adjustment.mode === "percent") {
     return Math.round((tuitionCents * adjustment.percentHundredths) / MAX_PERCENT_HUNDREDTHS);
   }
   return adjustment.amountCents;
 }
 
-export function computeGroup(group: ProgramGroup): GroupComputation {
+/** Split a school-wide recipient count across groups by enrollment (largest remainder). */
+export function allocateRecipientsAcrossGroups(totalRecipients: number, enrollments: number[]): number[] {
+  const total = clampRecipientCount(totalRecipients);
+  if (total === 0 || enrollments.length === 0) {
+    return enrollments.map(() => 0);
+  }
+
+  const safeEnrollments = enrollments.map((value) =>
+    Number.isInteger(value) && value > 0 ? value : 0,
+  );
+  const enrollmentSum = safeEnrollments.reduce((sum, value) => sum + value, 0);
+  if (enrollmentSum === 0) {
+    return enrollments.map(() => 0);
+  }
+
+  const capped = Math.min(total, enrollmentSum);
+  const exact = safeEnrollments.map((enrollment) => (enrollment / enrollmentSum) * capped);
+  const floors = exact.map((value) => Math.floor(value));
+  let remainder = capped - floors.reduce((sum, value) => sum + value, 0);
+  const ranked = exact
+    .map((value, index) => ({ index, remainder: value - floors[index] }))
+    .sort((left, right) => right.remainder - left.remainder);
+
+  const allocated = [...floors];
+  for (let slot = 0; remainder > 0; slot += 1) {
+    const target = ranked[slot % ranked.length];
+    if (!target) break;
+    allocated[target.index] += 1;
+    remainder -= 1;
+  }
+
+  return allocated.map((count, index) => Math.min(count, safeEnrollments[index] ?? 0));
+}
+
+function schoolWideRecipientCount(
+  groups: ProgramGroup[],
+  kind: "siblingDiscount" | "scholarship",
+): number {
+  const adjustment = groups[0]?.[kind];
+  if (!adjustment?.enabled) return 0;
+  return adjustment.recipientCount;
+}
+
+export type ComputeGroupOverrides = {
+  siblingRecipients?: number;
+  scholarshipRecipients?: number;
+};
+
+export function computeGroup(group: ProgramGroup, overrides?: ComputeGroupOverrides): GroupComputation {
   const messages: string[] = [];
   const tuition = group.monthlyTuitionCents;
   const enrollment = group.enrollment;
@@ -211,28 +278,43 @@ export function computeGroup(group: ProgramGroup): GroupComputation {
     messages.push("Billing months must be between 1 and 12.");
   }
 
-  const siblingIssues = adjustmentIssues(group.siblingDiscount, "sibling", Math.max(0, tuition), Math.max(0, enrollment));
-  const scholarshipIssues = adjustmentIssues(
-    group.scholarship,
-    "scholarship",
-    Math.max(0, tuition),
-    Math.max(0, enrollment),
-  );
-  messages.push(...siblingIssues, ...scholarshipIssues);
+  const safeTuition = Math.max(0, tuition);
+  const safeEnrollment = Math.max(0, enrollment);
+  const siblingRecipients =
+    overrides?.siblingRecipients ??
+    (group.siblingDiscount.enabled ? group.siblingDiscount.recipientCount : 0);
+  const scholarshipRecipients =
+    overrides?.scholarshipRecipients ??
+    (group.scholarship.enabled ? group.scholarship.recipientCount : 0);
 
-  const siblingRecipients = group.siblingDiscount.enabled ? group.siblingDiscount.recipientCount : 0;
-  const scholarshipRecipients = group.scholarship.enabled ? group.scholarship.recipientCount : 0;
-  const individualsFit =
-    siblingRecipients <= enrollment && scholarshipRecipients <= enrollment;
-  if (
-    individualsFit &&
-    siblingRecipients > 0 &&
-    scholarshipRecipients > 0 &&
-    siblingRecipients + scholarshipRecipients > enrollment
-  ) {
+  if (overrides) {
     messages.push(
-      `Sibling discounts and scholarships apply to different students. Those ${siblingRecipients + scholarshipRecipients} recipients don't fit within ${enrollment} ${studentWord(enrollment)}.`,
+      ...adjustmentRateIssues(group.siblingDiscount, "sibling", safeTuition),
+      ...adjustmentRateIssues(group.scholarship, "scholarship", safeTuition),
     );
+    if (group.siblingDiscount.enabled && siblingRecipients > safeEnrollment) {
+      messages.push(recipientOverEnrollmentMessage("sibling", siblingRecipients, safeEnrollment));
+    }
+    if (group.scholarship.enabled && scholarshipRecipients > safeEnrollment) {
+      messages.push(recipientOverEnrollmentMessage("scholarship", scholarshipRecipients, safeEnrollment));
+    }
+  } else {
+    messages.push(
+      ...adjustmentIssues(group.siblingDiscount, "sibling", safeTuition, safeEnrollment),
+      ...adjustmentIssues(group.scholarship, "scholarship", safeTuition, safeEnrollment),
+    );
+    const individualsFit =
+      siblingRecipients <= safeEnrollment && scholarshipRecipients <= safeEnrollment;
+    if (
+      individualsFit &&
+      siblingRecipients > 0 &&
+      scholarshipRecipients > 0 &&
+      siblingRecipients + scholarshipRecipients > safeEnrollment
+    ) {
+      messages.push(
+        `Sibling discounts and scholarships apply to different students. Those ${siblingRecipients + scholarshipRecipients} recipients don't fit within ${safeEnrollment} ${studentWord(safeEnrollment)}.`,
+      );
+    }
   }
 
   if (messages.length > 0) {
@@ -266,17 +348,69 @@ export function computeGroup(group: ProgramGroup): GroupComputation {
 }
 
 export function computeScenario(groups: ProgramGroup[]): ScenarioComputation {
-  const groupResults = groups.map(computeGroup);
   const prefix = groups.length > 1;
-  const messages = groupResults.flatMap((result, index) => {
-    if (result.messages.length === 0) return [];
-    const label = groups[index]?.label || "Group";
-    return prefix ? result.messages.map((message) => `${label}: ${message}`) : result.messages;
-  });
-  const valid = groupResults.every((result) => result.valid) && groupResults.length > 0;
   const totalStudents = groups.reduce((sum, group) => {
     return sum + (Number.isInteger(group.enrollment) && group.enrollment > 0 ? group.enrollment : 0);
   }, 0);
+
+  const scenarioMessages: string[] = [];
+  if (groups.length > 1) {
+    const schoolWideSibling = schoolWideRecipientCount(groups, "siblingDiscount");
+    const schoolWideScholarship = schoolWideRecipientCount(groups, "scholarship");
+    if (schoolWideSibling > totalStudents) {
+      scenarioMessages.push(
+        recipientOverTotalEnrollmentMessage("sibling", schoolWideSibling, totalStudents),
+      );
+    }
+    if (schoolWideScholarship > totalStudents) {
+      scenarioMessages.push(
+        recipientOverTotalEnrollmentMessage("scholarship", schoolWideScholarship, totalStudents),
+      );
+    }
+    if (
+      schoolWideSibling > 0 &&
+      schoolWideScholarship > 0 &&
+      schoolWideSibling + schoolWideScholarship > totalStudents
+    ) {
+      scenarioMessages.push(
+        `Sibling discounts and scholarships apply to different students. Those ${schoolWideSibling + schoolWideScholarship} recipients don't fit within ${totalStudents} ${studentWord(totalStudents)}.`,
+      );
+    }
+  }
+
+  const siblingAllocation =
+    groups.length > 1
+      ? allocateRecipientsAcrossGroups(
+          schoolWideRecipientCount(groups, "siblingDiscount"),
+          groups.map((group) => group.enrollment),
+        )
+      : [];
+  const scholarshipAllocation =
+    groups.length > 1
+      ? allocateRecipientsAcrossGroups(
+          schoolWideRecipientCount(groups, "scholarship"),
+          groups.map((group) => group.enrollment),
+        )
+      : [];
+
+  const groupResults = groups.map((group, index) => {
+    if (groups.length <= 1) return computeGroup(group);
+    return computeGroup(group, {
+      siblingRecipients: siblingAllocation[index] ?? 0,
+      scholarshipRecipients: scholarshipAllocation[index] ?? 0,
+    });
+  });
+
+  const messages = [
+    ...scenarioMessages,
+    ...groupResults.flatMap((result, index) => {
+      if (result.messages.length === 0) return [];
+      const label = groups[index]?.label || "Group";
+      return prefix ? result.messages.map((message) => `${label}: ${message}`) : result.messages;
+    }),
+  ];
+  const valid =
+    groupResults.every((result) => result.valid) && groupResults.length > 0 && scenarioMessages.length === 0;
   const studentMonths = groups.reduce((sum, group) => {
     if (!Number.isInteger(group.enrollment) || group.enrollment < 0) return sum;
     if (!Number.isInteger(group.billingMonths) || group.billingMonths < 1) return sum;

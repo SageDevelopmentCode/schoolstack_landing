@@ -829,9 +829,21 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     );
   });
 
-  it("does not throw when concurrent handler already failed payment after charge revert", async () => {
+  it("does not subtract a prior payment when a stale succeeded snapshot arrives after revert", async () => {
     const admin = createTestAdminClient();
     const fixture = await seedTuitionPaymentWebhook(admin);
+
+    const { error: priorPaymentError } = await admin
+      .from("tuition_charges")
+      .update({ paid_cents: 200_000 })
+      .eq("id", fixture.chargeId);
+    assert.ifError(priorPaymentError);
+
+    const { error: achAmountError } = await admin
+      .from("application_payments")
+      .update({ amount_cents: 520_000 })
+      .eq("id", fixture.paymentId);
+    assert.ifError(achAmountError);
 
     const session = buildCheckoutSession({
       id: fixture.checkoutSessionId,
@@ -847,11 +859,30 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
 
     await handleCheckoutSessionCompleted(admin, session);
 
+    const { data: settledCharge, error: settledChargeError } = await admin
+      .from("tuition_charges")
+      .select("status, paid_cents")
+      .eq("id", fixture.chargeId)
+      .single();
+    assert.ifError(settledChargeError);
+    assert.equal(settledCharge?.status, "paid");
+    assert.equal(settledCharge?.paid_cents, 720_000);
+
     const staleSucceededPayment = await getPaymentById(admin, fixture.paymentId);
     assert.ok(staleSucceededPayment);
     assert.equal(staleSucceededPayment.status, "succeeded");
+    assert.equal(staleSucceededPayment.amountAppliedCents, 520_000);
 
     await handleCheckoutSessionAsyncPaymentFailed(admin, session);
+
+    const { data: reopenedCharge, error: reopenedChargeError } = await admin
+      .from("tuition_charges")
+      .select("status, paid_cents")
+      .eq("id", fixture.chargeId)
+      .single();
+    assert.ifError(reopenedChargeError);
+    assert.equal(reopenedCharge?.status, "overdue");
+    assert.equal(reopenedCharge?.paid_cents, 200_000);
 
     const revertResult = await revertTuitionPaymentAfterAchSettlementFailure(
       admin,
@@ -862,6 +893,15 @@ describeIntegration("handleTuitionCheckoutCompleted", () => {
     assert.equal(revertResult.alreadyHandled, true);
     assert.equal(revertResult.payment.status, "failed");
     assert.equal(revertResult.chargeReopened, false);
+
+    const { data: chargeAfterSecond, error: chargeAfterSecondError } = await admin
+      .from("tuition_charges")
+      .select("status, paid_cents")
+      .eq("id", fixture.chargeId)
+      .single();
+    assert.ifError(chargeAfterSecondError);
+    assert.equal(chargeAfterSecond?.status, "overdue");
+    assert.equal(chargeAfterSecond?.paid_cents, 200_000);
   });
 
   it("treats revertTuitionPaymentAfterAchSettlementFailure as already handled when payment is failed", async () => {

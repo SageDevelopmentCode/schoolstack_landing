@@ -1,4 +1,4 @@
-import { articleJsonLd } from "@/lib/seo";
+import { articleJsonLd, serializeJsonLd } from "@/lib/seo";
 
 type ArticleJsonLdProps = {
   headline: string;
@@ -19,7 +19,7 @@ export default function ArticleJsonLd({
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(
+        __html: serializeJsonLd(
           articleJsonLd({ headline, description, path, image, author }),
         ),
       }}

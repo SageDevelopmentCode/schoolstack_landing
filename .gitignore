@@ -58,6 +58,7 @@ apps/mobile/android/app/build/
 /video/mudkitchen-film/out/
 /video/mudkitchen-film/public/brand/
 /video/mudkitchen-film/public/audio/
+/video/mudkitchen-film/public/footage/
 /video/mudkitchen-film/audio-source/
 *.MP4
 

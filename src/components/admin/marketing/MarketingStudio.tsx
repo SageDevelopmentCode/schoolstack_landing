@@ -205,11 +205,15 @@ export default function MarketingStudio() {
     return () => observer.disconnect();
   }, [carouselId]);
 
+  const slideCount = slides.length;
   const go = useCallback(
     (delta: number) => {
-      setIndex((current) => (current + delta + slides.length) % slides.length);
+      setIndex((current) => {
+        if (slideCount === 0) return 0;
+        return (current + delta + slideCount) % slideCount;
+      });
     },
-    [slides.length, setIndex],
+    [slideCount, setIndex],
   );
 
   useEffect(() => {
