@@ -7,7 +7,10 @@ import SchoolDemoWordmark, {
 } from "@/components/demo/SchoolDemoWordmark";
 import GetStartedFilmSection from "@/components/get-started/GetStartedFilmSection";
 import GetStartedShowcaseCarousel from "@/components/get-started/GetStartedShowcaseCarousel";
-import { DemoScheduler } from "@/components/scheduler/DemoScheduler";
+import {
+  DemoScheduler,
+  type DemoSchedulerBooking,
+} from "@/components/scheduler/DemoScheduler";
 import ButtonLoadingLabel, {
   BUTTON_LOADING_LAYOUT_CLASS,
 } from "@/components/ui/ButtonLoadingLabel";
@@ -194,7 +197,7 @@ function DemoContactSchedulePanel({
   const { heading, subheading, scheduler, form } = mudkitchenDemoContact;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [booking, setBooking] = useState<{ date: string; time: string } | null>(null);
+  const [booking, setBooking] = useState<DemoSchedulerBooking | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [availabilitySlots, setAvailabilitySlots] = useState<Record<string, string[]>>({});
@@ -239,7 +242,7 @@ function DemoContactSchedulePanel({
     };
   }, []);
 
-  const handleScheduled = async (selected: { date: string; time: string }) => {
+  const handleScheduled = async (selected: DemoSchedulerBooking) => {
     if (isSubmitting || !canBook) return;
 
     setIsSubmitting(true);
@@ -259,6 +262,7 @@ function DemoContactSchedulePanel({
           prepNotes: `Booked from school concept demo walkthrough (${schoolSlug}).`,
           scheduledDate: selected.date,
           scheduledTime: selected.time,
+          timezone: selected.displayTimezone,
           [PUBLIC_FORM_HONEYPOT_FIELD]: companyWebsite,
         }),
       });

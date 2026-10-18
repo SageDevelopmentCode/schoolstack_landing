@@ -9,6 +9,7 @@ import MondayCheckIntro from "@/components/marketing/monday-check/MondayCheckInt
 import MondayCheckProgress from "@/components/marketing/monday-check/MondayCheckProgress";
 import MondayCheckQuestion from "@/components/marketing/monday-check/MondayCheckQuestion";
 import MondayCheckResults from "@/components/marketing/monday-check/MondayCheckResults";
+import { clearOpsCheckLocalPlanStorage } from "@/components/marketing/monday-check/useOpsCheckLocalPlan";
 import { DEFAULT_BRANDING } from "@/lib/organization-settings/catalog";
 import { buildParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import {
@@ -58,6 +59,8 @@ export default function MondayCheckExperience() {
   }, []);
 
   const handleStart = () => {
+    clearOpsCheckLocalPlanStorage();
+    setAnswers({});
     setPhase("question");
     setQuestionIndex(0);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -101,11 +104,11 @@ export default function MondayCheckExperience() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleRetake = () => {
-    setAnswers({});
+  const handleReviewAnswers = () => {
+    setPhase("question");
     setQuestionIndex(0);
-    setPhase("intro");
     window.scrollTo({ top: 0, behavior: "smooth" });
+    focusQuestion();
   };
 
   const wide = phase === "results";
@@ -130,6 +133,8 @@ export default function MondayCheckExperience() {
               <MondayCheckQuestion
                 theme={theme}
                 question={currentQuestion}
+                questionNumber={questionIndex + 1}
+                totalQuestions={MONDAY_CHECK_QUESTIONS.length}
                 selectedOptionId={selectedOptionId}
                 onSelect={handleSelect}
               />
@@ -169,7 +174,11 @@ export default function MondayCheckExperience() {
 
         {phase === "results" && results && (
           <motion.div key="results" {...slideIn}>
-            <MondayCheckResults theme={theme} results={results} onRetake={handleRetake} />
+            <MondayCheckResults
+              theme={theme}
+              results={results}
+              onReviewAnswers={handleReviewAnswers}
+            />
           </motion.div>
         )}
       </AnimatePresence>

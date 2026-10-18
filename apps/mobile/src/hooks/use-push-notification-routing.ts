@@ -3,12 +3,18 @@ import { type Href, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import {
-  parseMessagePushNotificationData,
+  parsePushNotificationData,
+  type CommitteePushNotificationData,
   type MessagePushNotificationData,
+  type PushNotificationData,
 } from '@/lib/push-notifications';
-import { parentMessageThreadRoute } from '@/lib/parent/parent-nav';
-import { schoolAdminMessageThreadRoute } from '@/lib/school-admin/school-admin-nav';
-import { teacherMessageThreadRoute } from '@/lib/teacher/teacher-nav';
+import { parentCommitteeWorkspaceRoute, parentMessageThreadRoute } from '@/lib/parent/parent-nav';
+import {
+  schoolAdminCommitteesRoute,
+  schoolAdminCommitteeWorkspaceRoute,
+  schoolAdminMessageThreadRoute,
+} from '@/lib/school-admin/school-admin-nav';
+import { teacherCommitteeWorkspaceRoute, teacherMessageThreadRoute } from '@/lib/teacher/teacher-nav';
 
 function messageThreadRoute(data: MessagePushNotificationData): Href | null {
   if (data.portal === 'parent') {
@@ -26,14 +32,44 @@ function messageThreadRoute(data: MessagePushNotificationData): Href | null {
   return null;
 }
 
-function navigateToMessageNotification(
+function committeeRoute(data: CommitteePushNotificationData): Href | null {
+  const { organizationSlug, committeeId, section, portal, intent } = data;
+
+  if (portal === 'admin' && intent === 'join_request') {
+    return schoolAdminCommitteesRoute(organizationSlug) as Href;
+  }
+
+  if (portal === 'admin') {
+    return schoolAdminCommitteeWorkspaceRoute(organizationSlug, committeeId, section) as Href;
+  }
+
+  if (portal === 'teacher') {
+    return teacherCommitteeWorkspaceRoute(organizationSlug, committeeId, section) as Href;
+  }
+
+  if (portal === 'parent') {
+    return parentCommitteeWorkspaceRoute(organizationSlug, committeeId, section) as Href;
+  }
+
+  return null;
+}
+
+function pushNotificationRoute(data: PushNotificationData): Href | null {
+  if (data.kind === 'message') {
+    return messageThreadRoute(data);
+  }
+
+  return committeeRoute(data);
+}
+
+function navigateToPushNotification(
   router: ReturnType<typeof useRouter>,
   data: Record<string, unknown> | undefined,
 ): void {
-  const parsed = parseMessagePushNotificationData(data);
+  const parsed = parsePushNotificationData(data);
   if (!parsed) return;
 
-  const route = messageThreadRoute(parsed);
+  const route = pushNotificationRoute(parsed);
   if (!route) return;
 
   router.push(route);
@@ -51,7 +87,7 @@ export function usePushNotificationRouting({ enabled }: UsePushNotificationRouti
     if (!enabled) return;
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      navigateToMessageNotification(
+      navigateToPushNotification(
         router,
         response.notification.request.content.data as Record<string, unknown> | undefined,
       );
@@ -70,7 +106,7 @@ export function usePushNotificationRouting({ enabled }: UsePushNotificationRouti
     void Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
 
-      navigateToMessageNotification(
+      navigateToPushNotification(
         router,
         response.notification.request.content.data as Record<string, unknown> | undefined,
       );

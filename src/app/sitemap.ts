@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${SITE_URL}/microschool-monday-check`,
+      url: `${SITE_URL}/microschool-ops-check`,
       lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.85,

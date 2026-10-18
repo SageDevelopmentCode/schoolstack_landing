@@ -39,6 +39,7 @@ type CommitteeWorkspaceScreenProps = {
   committeeId: string;
   portalApiNamespace?: CommitteePortalApiNamespace;
   fetchWorkspace: (organizationId: string, committeeId: string) => Promise<Committee>;
+  initialSection?: CommitteeWorkspaceSection;
 };
 
 function resolveVisibleSection(
@@ -61,6 +62,7 @@ function CommitteeWorkspaceScreen({
   committeeId,
   portalApiNamespace = 'parent-portal',
   fetchWorkspace,
+  initialSection = 'home',
 }: CommitteeWorkspaceScreenProps) {
   const theme = useParentTheme();
   const { reportError } = useMobileErrorReporter(organizationId);
@@ -77,7 +79,7 @@ function CommitteeWorkspaceScreen({
   const [currentMemberId, setCurrentMemberId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<CommitteeWorkspaceSection>('home');
+  const [activeSection, setActiveSection] = useState<CommitteeWorkspaceSection>(initialSection);
 
   const loadWorkspace = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -256,17 +258,20 @@ function CommitteeWorkspaceScreen({
 type ParentCommitteeWorkspaceScreenProps = {
   organizationId: string;
   committeeId: string;
+  initialSection?: CommitteeWorkspaceSection;
 };
 
 export function ParentCommitteeWorkspaceScreen({
   organizationId,
   committeeId,
+  initialSection,
 }: ParentCommitteeWorkspaceScreenProps) {
   return (
     <CommitteeWorkspaceScreen
       organizationId={organizationId}
       committeeId={committeeId}
       fetchWorkspace={fetchParentCommitteeWorkspace}
+      initialSection={initialSection}
     />
   );
 }

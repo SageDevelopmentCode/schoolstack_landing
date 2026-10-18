@@ -633,7 +633,7 @@ export type MondayCheckTier = {
 export const MONDAY_CHECK_TIERS: MondayCheckTier[] = [
   {
     id: "steady",
-    title: "Steady Monday",
+    title: "Solid foundations",
     minScore: 0,
     maxScore: 7,
     summary:
@@ -657,13 +657,13 @@ export const MONDAY_CHECK_TIERS: MondayCheckTier[] = [
     minScore: 15,
     maxScore: 21,
     summary:
-      "You're doing the work—but it's scattered across apps, messages, and folders. That tax shows up on Mondays.",
+      "You're doing the work—but it's scattered across apps, messages, and folders. That tax shows up every week.",
     mudkitchenPitch:
       "MudKitchen replaces the patchwork with one place to enroll families, collect tuition, share documents, and message parents.",
   },
   {
     id: "monday_never_ends",
-    title: "Monday never ends",
+    title: "Admin never stops",
     minScore: 22,
     maxScore: 27,
     summary:
@@ -675,7 +675,7 @@ export const MONDAY_CHECK_TIERS: MondayCheckTier[] = [
 
 export const MONDAY_CHECK_INTRO_FAQS = [
   {
-    question: "What is the Microschool Monday Check?",
+    question: "What is the Microschool Ops Check?",
     answer:
       "A free ten-question check for how inquiries, enrollment, tuition, and parent communication run at your school.",
   },

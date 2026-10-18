@@ -39,7 +39,7 @@ const GLOBAL_CHANGE_PATTERNS: RegExp[] = [
 const MARKETING_CHANGE_PATTERNS: RegExp[] = [
   /^src\/app\/page\.tsx$/,
   /^src\/app\/get-started\//,
-  /^src\/app\/microschool-monday-check\//,
+  /^src\/app\/microschool-ops-check\//,
   /^src\/app\/customers\//,
   /^src\/components\/sections\//,
   /^src\/components\/marketing\/monday-check\//,

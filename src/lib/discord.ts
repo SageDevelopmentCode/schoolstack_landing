@@ -1635,6 +1635,7 @@ export async function notifyDemoBooking(payload: {
   conceptDemoSlug?: string | null;
   scheduledDate: string;
   scheduledTime: string;
+  visitorTimezone?: string;
 }) {
   const roleLabel = demoRequestRoleLabel(payload.role);
   const priorityLabels = payload.priorities
@@ -1685,6 +1686,11 @@ export async function notifyDemoBooking(payload: {
   }
 
   const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
+  const visitorTz = payload.visitorTimezone?.trim();
+  const visitorTzField: DiscordEmbedField[] =
+    visitorTz && visitorTz !== "America/Chicago"
+      ? [embedField("Visitor timezone", visitorTz, true)]
+      : [];
 
   const conceptDemoField: DiscordEmbedField[] = isWalkthrough
     ? [
@@ -1714,7 +1720,8 @@ export async function notifyDemoBooking(payload: {
         true,
       ),
       ...conceptDemoField,
-      embedField("When", when, true),
+      embedField("When (Central)", when, true),
+      ...visitorTzField,
       embedField("Where today", roleLabel, true),
       ...(priorityLabels
         ? [embedField("Priorities", truncate(priorityLabels))]

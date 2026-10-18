@@ -5,9 +5,23 @@ import { Platform } from 'react-native';
 
 import { fetchWithAuth } from '@/lib/auth/auth-session';
 
+export type {
+  CommitteePushNotificationData,
+  CommitteePushSection,
+  MessagePushNotificationData,
+  PushNotificationData,
+  PushPortal,
+} from '@/lib/push-notification-payload';
+export {
+  parseCommitteePushNotificationData,
+  parseMessagePushNotificationData,
+  parsePushNotificationData,
+} from '@/lib/push-notification-payload';
+
 const siteUrl = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'https://trymudkitchen.com';
 
 const MESSAGES_CHANNEL_ID = 'messages';
+const COMMITTEES_CHANNEL_ID = 'committees';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -29,11 +43,18 @@ function getEasProjectId(): string | null {
   return typeof projectId === 'string' && projectId.trim() ? projectId.trim() : null;
 }
 
-async function ensureAndroidNotificationChannel(): Promise<void> {
+async function ensureAndroidNotificationChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
   await Notifications.setNotificationChannelAsync(MESSAGES_CHANNEL_ID, {
     name: 'Messages',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
+  });
+
+  await Notifications.setNotificationChannelAsync(COMMITTEES_CHANNEL_ID, {
+    name: 'Committees',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: 'default',
     vibrationPattern: [0, 250, 250, 250],
@@ -50,7 +71,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return null;
   }
 
-  await ensureAndroidNotificationChannel();
+  await ensureAndroidNotificationChannels();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
@@ -118,34 +139,3 @@ export async function syncPushNotificationsForSession(): Promise<void> {
   await saveExpoPushToken(pushToken);
 }
 
-export type MessagePushNotificationData = {
-  portal: 'parent' | 'teacher' | 'admin';
-  organizationSlug: string;
-  threadId: string;
-};
-
-export function parseMessagePushNotificationData(
-  data: Record<string, unknown> | undefined,
-): MessagePushNotificationData | null {
-  if (!data) return null;
-
-  const portal = data.portal;
-  const organizationSlug = data.organizationSlug;
-  const threadId = data.threadId;
-
-  if (
-    (portal !== 'parent' && portal !== 'teacher' && portal !== 'admin') ||
-    typeof organizationSlug !== 'string' ||
-    !organizationSlug.trim() ||
-    typeof threadId !== 'string' ||
-    !threadId.trim()
-  ) {
-    return null;
-  }
-
-  return {
-    portal,
-    organizationSlug: organizationSlug.trim(),
-    threadId: threadId.trim(),
-  };
-}

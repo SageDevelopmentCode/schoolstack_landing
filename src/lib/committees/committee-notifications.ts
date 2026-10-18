@@ -18,6 +18,13 @@ import {
   sendCommitteeWorkspaceUpdateNotification,
 } from "@/lib/emails";
 import {
+  sendCommitteeInstantPushToMembers,
+  sendCommitteeInstantPushToUser,
+  sendCommitteeJoinRequestAdminPush,
+  resolveCommitteeMemberPushPortal,
+  resolveCommitteeMemberPushUserId,
+} from "@/lib/committees/committee-expo-push";
+import {
   committeeMemberWorkspaceUrl,
   type CommitteePortalMember,
 } from "@/lib/committees/committee-portal-urls";
@@ -131,6 +138,15 @@ export async function sendCommitteeJoinRequestedNotifications(
     },
     results,
   );
+
+  await sendCommitteeJoinRequestAdminPush(supabase, {
+    organizationId: input.organizationId,
+    organizationName: input.schoolName,
+    organizationSlug: input.schoolSlug,
+    committeeId: input.committeeId,
+    requesterName: input.requesterName,
+    committeeName: input.committeeName,
+  });
 }
 
 export async function sendCommitteeJoinApprovedNotifications(
@@ -190,40 +206,56 @@ export async function sendCommitteeJoinApprovedNotifications(
   const committeesUrl = `${getRuntimeSiteUrl()}${portalPath}?${committeeParams.toString()}`;
 
   const trimmedEmail = input.memberEmail?.trim() ?? "";
-  if (!trimmedEmail) return;
 
-  const results = await Promise.allSettled([
-    sendCommitteeJoinApprovedNotification({
-      email: trimmedEmail,
-      schoolName,
-      committeeName: input.committeeName,
-      memberName: input.memberName,
-      committeesUrl,
-      notificationContext: buildEmailNotificationContext({
+  if (trimmedEmail) {
+    const results = await Promise.allSettled([
+      sendCommitteeJoinApprovedNotification({
+        email: trimmedEmail,
+        schoolName,
+        committeeName: input.committeeName,
+        memberName: input.memberName,
+        committeesUrl,
+        notificationContext: buildEmailNotificationContext({
+          organizationId: input.organizationId,
+          organizationSlug: input.schoolSlug,
+          surface: "web",
+          entityType: "committee_join_request",
+          entityId: input.requestId,
+        }),
+      }),
+    ]);
+
+    await logSettledNotificationFailures(
+      supabase,
+      {
         organizationId: input.organizationId,
-        organizationSlug: input.schoolSlug,
-        surface: "web",
+        operation: "committee.join_approved.notify",
         entityType: "committee_join_request",
         entityId: input.requestId,
-      }),
-    }),
-  ]);
-
-  await logSettledNotificationFailures(
-    supabase,
-    {
-      organizationId: input.organizationId,
-      operation: "committee.join_approved.notify",
-      entityType: "committee_join_request",
-      entityId: input.requestId,
-      metadata: {
-        committeeId: input.committeeId,
-        requesterUserId: input.requesterUserId,
-        requesterType: input.requesterType,
+        metadata: {
+          committeeId: input.committeeId,
+          requesterUserId: input.requesterUserId,
+          requesterType: input.requesterType,
+        },
       },
-    },
-    results,
-  );
+      results,
+    );
+  }
+
+  const requesterPortal = input.requesterType === "staff" ? "teacher" : "parent";
+  await sendCommitteeInstantPushToUser(supabase, {
+    organizationId: input.organizationId,
+    organizationName: schoolName,
+    organizationSlug: input.schoolSlug,
+    committeeId: input.committeeId,
+    userId: input.requesterUserId,
+    portal: requesterPortal,
+    recipientEmail: trimmedEmail || null,
+    title: `${schoolName} — ${input.committeeName}`,
+    body: "You're in — open your committee workspace",
+    section: "home",
+    failureOperation: "committee.join_approved.expo_push",
+  });
 }
 
 export async function sendCommitteeJoinDeclinedNotifications(
@@ -408,6 +440,26 @@ export async function sendCommitteeTaskAssignedNotifications(
     },
     emailResult,
   );
+
+  const assigneeUserId = await resolveCommitteeMemberPushUserId(
+    supabase,
+    input.assigneeMember,
+  );
+  if (!assigneeUserId) return;
+
+  await sendCommitteeInstantPushToUser(supabase, {
+    organizationId: input.organizationId,
+    organizationName: input.schoolName,
+    organizationSlug: input.schoolSlug,
+    committeeId: input.committeeId,
+    userId: assigneeUserId,
+    portal: resolveCommitteeMemberPushPortal(input.assigneeMember),
+    recipientEmail: input.assigneeEmail,
+    title: `${input.schoolName} — ${input.committeeName}`,
+    body: `"${input.taskTitle}" assigned by ${input.assignerName}`,
+    section: "tasks",
+    failureOperation: "committee.task.assigned.expo_push",
+  });
 }
 
 export async function loadCommitteeTaskAssigneeMember(
@@ -538,6 +590,20 @@ export async function sendCommitteeMessagePostedNotifications(
     },
     emailResults,
   );
+
+  await sendCommitteeInstantPushToMembers(supabase, {
+    organizationId: input.organizationId,
+    organizationName: schoolName,
+    organizationSlug: schoolSlug,
+    committeeId: input.committeeId,
+    title: `${schoolName} — ${input.committeeName}`,
+    body: `${input.senderName}: ${input.messagePreview}`,
+    section: "messages",
+    members: recipients,
+    excludeMemberIds: input.senderMemberId ? [input.senderMemberId] : undefined,
+    excludeUserIds: [input.actorUserId],
+    failureOperation: "committee.message.posted.expo_push",
+  });
 }
 
 const WORKSPACE_UPDATE_ACTIONS: Record<
@@ -629,4 +695,17 @@ export async function sendCommitteeWorkspaceUpdateNotifications(
     },
     emailResults,
   );
+
+  await sendCommitteeInstantPushToMembers(supabase, {
+    organizationId: input.organizationId,
+    organizationName: schoolName,
+    organizationSlug: schoolSlug,
+    committeeId: input.committeeId,
+    title: `${schoolName} — ${input.committeeName}`,
+    body: `${config.title}: ${input.summary}`,
+    section: config.section,
+    members: recipients,
+    excludeMemberIds: input.senderMemberId ? [input.senderMemberId] : undefined,
+    failureOperation: "committee.workspace_update.expo_push",
+  });
 }

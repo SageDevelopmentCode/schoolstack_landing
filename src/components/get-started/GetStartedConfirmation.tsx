@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import ParentCard from "@/components/school-parent/ui/ParentCard";
 import ParentDisplayHeading from "@/components/school-parent/ui/ParentDisplayHeading";
+import type { DemoSchedulerBooking } from "@/components/scheduler/DemoScheduler";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
-import { formatSelectedDate } from "@/lib/demo-scheduler";
+import { formatSelectedDate, SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
+import { formatDemoWhenInTimezone } from "@/lib/demo-scheduler-timezone";
 
 const PREP_ITEMS = [
   "Your current enrollment process",
@@ -15,7 +17,7 @@ type GetStartedConfirmationProps = {
   theme: ParentThemeTokens;
   schoolName: string;
   roleLabel: string;
-  booking: { date: string; time: string } | null;
+  booking: DemoSchedulerBooking | null;
 };
 
 export default function GetStartedConfirmation({
@@ -25,6 +27,19 @@ export default function GetStartedConfirmation({
   booking,
 }: GetStartedConfirmationProps) {
   const school = schoolName.trim() || "your school";
+
+  const visitorWhen =
+    booking &&
+    formatDemoWhenInTimezone(
+      booking.date,
+      booking.time,
+      booking.displayTimezone,
+    );
+  const canonicalWhen = booking
+    ? `${formatSelectedDate(booking.date)} at ${booking.time}`
+    : null;
+  const showCanonicalSecondary =
+    booking && booking.displayTimezone !== SCHEDULER_TIMEZONE;
 
   return (
     <div className="text-center">
@@ -61,14 +76,22 @@ export default function GetStartedConfirmation({
         We sent a confirmation to the email you provided.
       </p>
 
-      {booking ? (
-        <p
+      {booking && visitorWhen ? (
+        <div
           className="mb-10 text-[15px] font-semibold"
           style={{ color: theme.ink, fontFamily: theme.fontBody }}
         >
-          {formatSelectedDate(booking.date)} at {booking.time}{" "}
-          <span style={{ color: theme.muted, fontWeight: 400 }}>Central (CT)</span>
-        </p>
+          <p>{visitorWhen}</p>
+          {showCanonicalSecondary && canonicalWhen ? (
+            <p
+              className="mt-1 text-[13px] font-normal"
+              style={{ color: theme.muted, fontFamily: theme.fontBody }}
+            >
+              {canonicalWhen}{" "}
+              <span>Central Time (our scheduling time)</span>
+            </p>
+          ) : null}
+        </div>
       ) : (
         <div className="mb-10" />
       )}

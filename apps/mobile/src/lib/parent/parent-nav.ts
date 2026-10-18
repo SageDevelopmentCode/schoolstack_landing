@@ -179,6 +179,16 @@ export function parentMessageThreadRoute(slug: string, threadId: string): Href {
   return `/parent/${slug}/messages/${encodeURIComponent(threadId)}` as Href;
 }
 
+export function parentCommitteeWorkspaceRoute(
+  slug: string,
+  committeeId: string,
+  section?: string,
+): Href {
+  const base = `/parent/${slug}/more/committees/workspace/${encodeURIComponent(committeeId)}`;
+  if (!section) return base as Href;
+  return `${base}?section=${encodeURIComponent(section)}` as Href;
+}
+
 export function parentProgramMessageThreadRoute(
   slug: string,
   programSlug: string,

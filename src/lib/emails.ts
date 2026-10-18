@@ -20,6 +20,8 @@ import {
 } from "@/lib/admissions/admissions-availability";
 import { formatFeeAmount } from "@/lib/admissions/application-form-schema";
 import { getRuntimeSiteUrl, SITE_NAME } from "@/lib/site";
+import { SCHEDULER_TIMEZONE } from "@/lib/demo-scheduler";
+import { formatDemoWhenInTimezone } from "@/lib/demo-scheduler-timezone";
 import type {
   OutboundEmailAudience,
   OutboundEmailDiscordMeta,
@@ -87,14 +89,35 @@ function firstName(name: string): string {
   return escapeHtml(name.split(" ")[0] || name);
 }
 
+function formatDemoBookingWhenHtml(payload: {
+  scheduledDate: string;
+  scheduledTime: string;
+  visitorTimezone?: string;
+}): string {
+  const canonicalWhen = `${escapeHtml(formatSelectedDate(payload.scheduledDate))} at ${escapeHtml(payload.scheduledTime)} CT`;
+  const visitorTz = payload.visitorTimezone?.trim() || SCHEDULER_TIMEZONE;
+  const visitorWhen = formatDemoWhenInTimezone(
+    payload.scheduledDate,
+    payload.scheduledTime,
+    visitorTz,
+  );
+
+  if (!visitorWhen || visitorTz === SCHEDULER_TIMEZONE) {
+    return canonicalWhen;
+  }
+
+  return `${escapeHtml(visitorWhen)}<br/>${canonicalWhen} <span style="color:#6b7280;">(our scheduling time)</span>`;
+}
+
 export function buildDemoBookingConfirmationHtml(payload: {
   name: string;
   schoolName: string;
   roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
+  visitorTimezone?: string;
 }): string {
-  const when = `${formatSelectedDate(payload.scheduledDate)} at ${payload.scheduledTime} CT`;
+  const when = formatDemoBookingWhenHtml(payload);
   const detailRows = [
     { label: "When", value: when },
     { label: "School / program", value: payload.schoolName },
@@ -168,6 +191,7 @@ export async function sendDemoBookingConfirmation(payload: {
   roleLabel?: string;
   scheduledDate: string;
   scheduledTime: string;
+  visitorTimezone?: string;
 }): Promise<void> {
   if (!(await isZohoConfigured())) return;
 

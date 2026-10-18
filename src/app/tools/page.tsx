@@ -8,10 +8,10 @@ import { pageMetadata } from "@/lib/metadata";
 import { buildBreadcrumbs } from "@/lib/seo";
 
 const DESCRIPTION =
-  "Free calculators and checklists for microschool founders: enrollment math, tuition revenue scenarios, and the Microschool Monday Check.";
+  "Three practical tools for microschool founders: enrollment math, tuition planning, and an operations check.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Free tools for microschool founders",
+  title: "Free tools for your school",
   description: DESCRIPTION,
   path: FREE_TOOLS_HUB_PATH,
   keywords: [

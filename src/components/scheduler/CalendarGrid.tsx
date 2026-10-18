@@ -104,6 +104,7 @@ export function CalendarGrid({
   datePickerMode = false,
   colors,
   largeCells = false,
+  variant = "default",
 }: {
   year: number;
   month: number;
@@ -122,10 +123,15 @@ export function CalendarGrid({
   colors?: CalendarGridColors;
   /** Larger day cells for touch-friendly apply-form date picking */
   largeCells?: boolean;
+  variant?: "default" | "demoStory";
 }) {
-  const cellSizeClass = largeCells
-    ? "h-11 w-11 sm:h-10 sm:w-10"
-    : "h-10 w-10";
+  const cellSizeClass =
+    variant === "demoStory"
+      ? "h-[43px] w-full min-w-0"
+      : largeCells
+        ? "h-11 w-11 sm:h-10 sm:w-10"
+        : "h-10 w-10";
+  const gridGapClass = variant === "demoStory" ? "gap-1.5" : "gap-y-1";
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [
@@ -151,7 +157,7 @@ export function CalendarGrid({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-1">
+      <div className={`grid grid-cols-7 ${gridGapClass}`}>
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} />;
           const key = dateKey(year, month, day);
@@ -165,6 +171,47 @@ export function CalendarGrid({
           const isSelected = selectedDates?.has(key) ?? selected === key;
 
           if (colors) {
+            if (variant === "demoStory" && !editable) {
+              const showAvailDot = hasSlots && isSelectable && !isSelected;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={!isSelectable}
+                  onClick={() => isSelectable && onSelect(key)}
+                  className={`relative flex ${cellSizeClass} items-center justify-center rounded-[11px] text-[12px] font-medium transition-all duration-150`}
+                  style={
+                    isSelected
+                      ? {
+                          backgroundColor: colors.accent,
+                          color: "#FFFFFF",
+                          fontWeight: 800,
+                        }
+                      : isSelectable && hasSlots
+                        ? {
+                            backgroundColor: "#F2F6F0",
+                            color: "#456351",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                          }
+                        : {
+                            color: "#B7BFB7",
+                            backgroundColor: "transparent",
+                            cursor: "default",
+                          }
+                  }
+                >
+                  {day}
+                  {showAvailDot ? (
+                    <span
+                      className="absolute bottom-1.5 h-[3px] w-[3px] rounded-full bg-[#8AAF91]"
+                      aria-hidden
+                    />
+                  ) : null}
+                </button>
+              );
+            }
+
             const editableState = editable
               ? getEditableDayState({
                   isSelected,
