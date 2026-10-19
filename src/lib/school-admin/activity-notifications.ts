@@ -66,6 +66,7 @@ export const SCHOOL_ADMIN_NOTIFICATION_ACTIONS = [
   ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED,
   ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED,
   ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN,
+  ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED,
 ] as const;
 
 export type ActivityNotificationCategory =
@@ -162,6 +163,7 @@ const NOTIFICATION_TITLE_BY_ACTION: Partial<Record<string, string>> = {
   [ACTIVITY_ACTIONS.TEACHER_PARENT_FORM_RESPONSE_SIGNED]: "Teacher form signed",
   [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_ENROLLED]: "Program sign-up",
   [ACTIVITY_ACTIONS.FRIDAY_BRANCH_CLASS_WITHDRAWN]: "Program withdrawal",
+  [ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED]: "Photos uploaded",
 };
 
 const DEFAULT_NOTIFICATION_DAYS = 30;
@@ -1383,6 +1385,13 @@ export async function resolveActivityNotificationLink(
       };
     }
     return { href: tuitionHref(slug), ctaLabel: "View tuition" };
+  }
+
+  if (event.action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED) {
+    return {
+      href: schoolAdminPath(slug, "photos"),
+      ctaLabel: "View photos",
+    };
   }
 
   if (

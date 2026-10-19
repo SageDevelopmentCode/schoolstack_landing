@@ -54,6 +54,10 @@ import { fetchOrganizationWithSettings } from "@/lib/organization-settings/fetch
 import { resolveMainParentOrganizationFeatures } from "@/lib/organization-settings/resolve-program-parent-features";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import SchoolGalleryPage from "@/components/school-gallery/SchoolGalleryPage";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { isSchoolGalleryFeatureKey } from "@/lib/school-gallery/gallery-nav";
+import { listGalleryPhotosPage } from "@/lib/school-gallery/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +75,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? resolveMainParentOrganizationFeatures(org.features)
     : null;
 
-  if (!org || !features || !isParentFeatureEnabled(features, feature)) {
+  if (!org || !features) {
+    return { title: "Preview Not Found" };
+  }
+
+  if (isSchoolGalleryFeatureKey(feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      return { title: "Preview Not Found" };
+    }
+    return {
+      title: `Photos · ${org.name} Parent Preview`,
+    };
+  }
+
+  if (!isParentFeatureEnabled(features, feature)) {
     return { title: "Preview Not Found" };
   }
 
@@ -98,7 +115,15 @@ export default async function FamilyPreviewParentFeaturePage({
     ? resolveMainParentOrganizationFeatures(org.features)
     : null;
 
-  if (!org || !features || !isParentFeatureEnabled(features, feature)) {
+  if (!org || !features) {
+    notFound();
+  }
+
+  if (isSchoolGalleryFeatureKey(feature)) {
+    if (!isSchoolGalleryEnabled(org.features)) {
+      notFound();
+    }
+  } else if (!isParentFeatureEnabled(features, feature)) {
     notFound();
   }
 
@@ -392,6 +417,23 @@ export default async function FamilyPreviewParentFeaturePage({
           previewMode
           initialHistoryByStudentId={initialHistoryByStudentId}
         />
+      </SchoolParentPageShell>
+    );
+  }
+
+  if (feature === "photos") {
+    const initialFeed = await listGalleryPhotosPage(admin, org.id);
+    return (
+      <SchoolParentPageShell title="Photos">
+        <div className="px-[clamp(20px,4vw,48px)] py-8">
+          <SchoolGalleryPage
+            organizationId={org.id}
+            slug={slug}
+            portal="parent"
+            initialFeed={initialFeed}
+            readOnly
+          />
+        </div>
       </SchoolParentPageShell>
     );
   }

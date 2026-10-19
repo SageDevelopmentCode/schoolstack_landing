@@ -32,6 +32,8 @@ const WINDOW_LEFT = 48;
 const WINDOW_RIGHT_BLEED = -100;
 const WINDOW_BOTTOM_BLEED = -72;
 
+const DARK_COVER_BODY = "rgba(247, 241, 231, 0.82)";
+
 const DEFAULT_BODY_WIDTH = SLIDE_WIDTH - WINDOW_LEFT + Math.abs(WINDOW_RIGHT_BLEED);
 /** Approx flex slot below copy band; refined on layout measure. */
 const DEFAULT_BODY_HEIGHT =
@@ -60,7 +62,53 @@ type CarouselProductSide = "copyLeft" | "copyRight";
 type CarouselProductVariant = "default" | "promo";
 type CarouselDemoPresentation = "laptop" | "phones";
 export type CarouselPromoDensity = "default" | "compact";
-export type CarouselSlideTone = "paper" | "forest";
+export type CarouselSlideTone = "paper" | "forest" | "slate" | "dusk";
+
+type SlideTheme = {
+  slideBackground: string;
+  titleColor: string;
+  bodyColor: string;
+  kickerColor: string;
+  microschoolAccent: string;
+};
+
+function resolveSlideTheme(tone: CarouselSlideTone, background?: string): SlideTheme {
+  switch (tone) {
+    case "forest":
+      return {
+        slideBackground: background ?? SLIDE.forest,
+        titleColor: SLIDE.white,
+        bodyColor: DARK_COVER_BODY,
+        kickerColor: SLIDE.white,
+        microschoolAccent: SLIDE.wheat,
+      };
+    case "slate":
+      return {
+        slideBackground: background ?? SLIDE.coverSlate,
+        titleColor: SLIDE.white,
+        bodyColor: DARK_COVER_BODY,
+        kickerColor: SLIDE.white,
+        microschoolAccent: SLIDE.wheat,
+      };
+    case "dusk":
+      return {
+        slideBackground: background ?? SLIDE.coverDusk,
+        titleColor: SLIDE.white,
+        bodyColor: DARK_COVER_BODY,
+        kickerColor: SLIDE.white,
+        microschoolAccent: SLIDE.wheat,
+      };
+    case "paper":
+    default:
+      return {
+        slideBackground: background ?? DEMO_SLIDE_PAPER,
+        titleColor: SLIDE.ink,
+        bodyColor: SLIDE.muted,
+        kickerColor: SLIDE.clay,
+        microschoolAccent: SLIDE.clay,
+      };
+  }
+}
 
 type CarouselProductSlideProps = {
   title: ReactNode;
@@ -114,7 +162,6 @@ export function CarouselProductSlide({
   logoTop,
 }: CarouselProductSlideProps) {
   const isPromo = variant === "promo";
-  const isForest = isPromo || tone === "forest";
   const isCompactPromo = isPromo && promoDensity === "compact";
   const showPromoTopRow = isPromo && Boolean(promoSiteLabel);
   const showPhones = isPromo && demoPresentation === "phones";
@@ -124,10 +171,17 @@ export function CarouselProductSlide({
       ? `${COPY_TOP_PADDING}px 64px ${COPY_BOTTOM_PADDING}px 64px`
       : `${COPY_TOP_PADDING}px ${copyInsetLeft}px ${COPY_BOTTOM_PADDING}px ${copyPaddingLeft}px`;
   const textAlign = isPromo ? "center" : "left";
-  const slideBackground = background ?? (isForest ? SLIDE.forest : DEMO_SLIDE_PAPER);
-  const titleColor = isForest ? SLIDE.white : SLIDE.ink;
-  const bodyColor = isForest ? "rgba(247, 241, 231, 0.82)" : SLIDE.muted;
-  const kickerColor = isForest ? SLIDE.white : SLIDE.clay;
+
+  const promoTheme: SlideTheme = {
+    slideBackground: background ?? SLIDE.forest,
+    titleColor: SLIDE.white,
+    bodyColor: DARK_COVER_BODY,
+    kickerColor: SLIDE.white,
+    microschoolAccent: SLIDE.wheat,
+  };
+  const { slideBackground, titleColor, bodyColor, kickerColor, microschoolAccent } = isPromo
+    ? promoTheme
+    : resolveSlideTheme(tone, background);
 
   const windowMargins = {
     marginLeft: windowInsetLeft,
@@ -194,7 +248,7 @@ export function CarouselProductSlide({
                   marginTop: kicker ? 14 : 0,
                 }}
               >
-                {renderCarouselTitle(title, SLIDE.clay)}
+                {renderCarouselTitle(title, microschoolAccent)}
               </h1>
               {body ? (
                 <p

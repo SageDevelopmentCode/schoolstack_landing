@@ -21,6 +21,8 @@ import {
   type TeacherNavItem,
 } from "@/lib/organization-settings/teacher-nav";
 import { getParentFeatureIconColor } from "@/lib/organization-settings/parent-feature-icon-styles";
+import { isSchoolGalleryEnabled } from "@/lib/school-gallery/gallery-enabled";
+import { injectSchoolGalleryTeacherNavItem } from "@/lib/school-gallery/gallery-nav";
 import type { ParentThemeTokens } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 import { detectPortalFromPathname } from "@/lib/auth/portal-switcher-types";
@@ -130,16 +132,20 @@ export default function SchoolTeacherHeader({
   const moreRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const navItems = useMemo(
-    () =>
-      buildTeacherNavItems(
-        slug,
-        features.teacher,
-        features.feature_nav?.teacher,
-        previewBasePath,
-      ),
-    [slug, features.teacher, features.feature_nav?.teacher, previewBasePath],
-  );
+  const navItems = useMemo(() => {
+    const items = buildTeacherNavItems(
+      slug,
+      features.teacher,
+      features.feature_nav?.teacher,
+      previewBasePath,
+    );
+    return injectSchoolGalleryTeacherNavItem(
+      slug,
+      items,
+      isSchoolGalleryEnabled(features),
+      previewBasePath,
+    );
+  }, [slug, features, previewBasePath]);
   const messagesEnabled = Boolean(features.teacher.messages) && !previewMode;
   const { unreadCount: messagesUnreadCount } = useMessagesUnreadCount(
     "/api/teacher-portal/messages",

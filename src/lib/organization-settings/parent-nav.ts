@@ -44,6 +44,7 @@ const PARENT_MORE_NAV_KEYS = new Set([
   "classroom_signups",
   "forms_documents",
   "friday_branch",
+  "children",
 ]);
 
 function toParentFeatureRecord(
@@ -140,7 +141,6 @@ export function splitParentNavForHeader(
   const moreKeys = new Set(PARENT_MORE_NAV_KEYS);
   if (options?.coopMode) {
     moreKeys.add("committees");
-    moreKeys.add("children");
   }
 
   const primaryKeys = new Set(

@@ -51,7 +51,7 @@ export const FREE_TOOLS_HUB_TOOLS: FreeToolsHubTool[] = [
     id: "operations",
     href: "/microschool-ops-check",
     kicker: "03 · Operations",
-    title: "Where are the loose threads?",
+    title: "What's holding your school back?",
     description:
       "Look at admissions, tuition, paperwork, and communication to find your next practical step.",
     ctaLabel: "Get my personalized report",

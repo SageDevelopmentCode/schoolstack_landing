@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   GraduationCap,
+  Image,
   Heart,
   Megaphone,
   MessageSquare,
@@ -37,6 +38,14 @@ export function getParentNotificationVisual(
       Icon: FileText,
       iconBg: theme.warningBg,
       iconColor: theme.warning,
+    };
+  }
+
+  if (action === ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED) {
+    return {
+      Icon: Image,
+      iconBg: theme.primarySoft,
+      iconColor: theme.primary,
     };
   }
 

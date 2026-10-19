@@ -31,6 +31,15 @@ describe("getParentActivityNotificationCategory", () => {
     );
   });
 
+  it("maps school gallery uploads to announcements", () => {
+    assert.equal(
+      getParentActivityNotificationCategory(
+        ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED,
+      ),
+      "announcements",
+    );
+  });
+
   it("maps calendar synthetic action to events", () => {
     assert.equal(
       getParentActivityNotificationCategory("calendar.event_posted"),
@@ -397,6 +406,35 @@ function createCommitteeFilterSupabase(
     },
   } as unknown as SupabaseClient;
 }
+
+describe("filterParentActivityEventsForFamily org-wide gallery", () => {
+  it("includes school gallery upload events for every family", async () => {
+    const supabase = createCommitteeFilterSupabase({
+      guardians: [{ family_id: "family-1", user_id: "guardian-1" }],
+      committeeMembers: [],
+    });
+
+    const filtered = await filterParentActivityEventsForFamily(
+      supabase,
+      "org-1",
+      "family-1",
+      [
+        {
+          id: "gallery-1",
+          action: ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED,
+          entity_type: "school_gallery_upload_batch",
+          entity_id: "batch-1",
+          summary: "Jordan Taylor uploaded 3 photos for Oct 18, 2026",
+          metadata: { photoCount: 3, uploaderName: "Jordan Taylor" },
+          created_at: "2026-10-18T12:00:00.000Z",
+        },
+      ],
+    );
+
+    assert.equal(filtered.length, 1);
+    assert.equal(filtered[0]?.action, ACTIVITY_ACTIONS.SCHOOL_GALLERY_PHOTOS_UPLOADED);
+  });
+});
 
 describe("filterParentActivityEventsForFamily committee broadcasts", () => {
   const organizationId = "org-1";
