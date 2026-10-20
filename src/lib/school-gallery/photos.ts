@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { GalleryError } from "./gallery-errors";
 import { mapGalleryPhotoRow } from "./mappers";
 import {
@@ -154,26 +155,69 @@ export type CreateGalleryPhotoBatchInput = {
   logActivity?: boolean;
 };
 
+type GalleryPhotoBatchRollbackContext = {
+  organizationId: string;
+  surface: GalleryUploadSurface;
+  actorType: GalleryUploadActorType;
+  actorUserId: string;
+};
+
 async function rollbackGalleryPhotoBatch(
   supabase: SupabaseClient,
-  organizationId: string,
   insertedPhotoIds: string[],
   uploadedStoragePaths: string[],
+  context: GalleryPhotoBatchRollbackContext,
 ): Promise<void> {
+  const { organizationId, surface, actorType, actorUserId } = context;
+  const actor = { type: actorType, userId: actorUserId };
+
   if (insertedPhotoIds.length > 0) {
-    try {
-      await supabase
-        .from("school_gallery_photos")
-        .delete()
-        .in("id", insertedPhotoIds)
-        .eq("organization_id", organizationId);
-    } catch {
-      // Best-effort rollback.
+    const { error: deleteError } = await supabase
+      .from("school_gallery_photos")
+      .delete()
+      .in("id", insertedPhotoIds)
+      .eq("organization_id", organizationId);
+
+    if (deleteError) {
+      void reportOperationalError({
+        supabase,
+        surface,
+        organizationId,
+        operation: "school_gallery.photo_batch_rollback_delete",
+        error:
+          "Failed to delete gallery photo rows during batch rollback.",
+        code: "rollback_delete_failed",
+        entityType: "organization",
+        entityId: organizationId,
+        metadata: { photoIds: insertedPhotoIds },
+        notify: true,
+        actor,
+        cause: deleteError,
+      });
     }
   }
-  await removeGalleryPhotoFiles(supabase, uploadedStoragePaths).catch(
-    () => undefined,
-  );
+
+  if (uploadedStoragePaths.length > 0) {
+    try {
+      await removeGalleryPhotoFiles(supabase, uploadedStoragePaths);
+    } catch (cause) {
+      void reportOperationalError({
+        supabase,
+        surface,
+        organizationId,
+        operation: "school_gallery.photo_batch_rollback_storage",
+        error:
+          "Failed to remove gallery photo files during batch rollback.",
+        code: "rollback_storage_failed",
+        entityType: "organization",
+        entityId: organizationId,
+        metadata: { storagePaths: uploadedStoragePaths },
+        notify: true,
+        actor,
+        cause,
+      });
+    }
+  }
 }
 
 export async function createGalleryPhotoBatch(
@@ -258,9 +302,14 @@ export async function createGalleryPhotoBatch(
   } catch (err) {
     await rollbackGalleryPhotoBatch(
       supabase,
-      input.organizationId,
       insertedPhotoIds,
       uploadedStoragePaths,
+      {
+        organizationId: input.organizationId,
+        surface: input.surface,
+        actorType: input.actorType,
+        actorUserId: input.uploadedBy,
+      },
     );
     throw err;
   }

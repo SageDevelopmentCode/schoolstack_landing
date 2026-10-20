@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -152,13 +152,11 @@ export default function MondayCheckResults({
 
   useLayoutEffect(() => {
     if (!pendingPrintResults) return;
-    window.print();
-  }, [pendingPrintResults]);
 
-  useEffect(() => {
-    if (!pendingPrintResults) return;
     const endPrint = () => setPendingPrintResults(false);
     window.addEventListener("afterprint", endPrint);
+    window.print();
+
     return () => window.removeEventListener("afterprint", endPrint);
   }, [pendingPrintResults]);
 

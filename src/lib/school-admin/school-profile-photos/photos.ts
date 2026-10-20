@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportOperationalError } from "@/lib/operational-errors";
 import { MAX_SCHOOL_PROFILE_PHOTOS } from "./constants";
 import {
   prepareSchoolProfilePhotoForUpload,
@@ -146,22 +147,56 @@ async function rollbackSchoolProfilePhotoBatch(
   organizationId: string,
   insertedPhotoIds: string[],
   uploadedStoragePaths: string[],
+  uploadedBy: string | null,
 ): Promise<void> {
+  const actor = { type: "school_admin" as const, userId: uploadedBy };
+
   if (insertedPhotoIds.length > 0) {
-    try {
-      await supabase
-        .from("organization_school_profile_photos")
-        .delete()
-        .in("id", insertedPhotoIds)
-        .eq("organization_id", organizationId);
-    } catch {
-      // Best-effort rollback.
+    const { error: deleteError } = await supabase
+      .from("organization_school_profile_photos")
+      .delete()
+      .in("id", insertedPhotoIds)
+      .eq("organization_id", organizationId);
+
+    if (deleteError) {
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId,
+        operation: "school_profile_photo.batch_rollback_delete",
+        error:
+          "Failed to delete school profile photo rows during batch rollback.",
+        code: "rollback_delete_failed",
+        entityType: "organization",
+        entityId: organizationId,
+        metadata: { photoIds: insertedPhotoIds },
+        notify: true,
+        actor,
+        cause: deleteError,
+      });
     }
   }
+
   for (const storagePath of uploadedStoragePaths) {
-    await removeSchoolProfilePhotoFile(supabase, storagePath).catch(
-      () => undefined,
-    );
+    try {
+      await removeSchoolProfilePhotoFile(supabase, storagePath);
+    } catch (cause) {
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId,
+        operation: "school_profile_photo.batch_rollback_storage",
+        error:
+          "Failed to remove school profile photo file during batch rollback.",
+        code: "rollback_storage_failed",
+        entityType: "organization",
+        entityId: organizationId,
+        metadata: { storagePath },
+        notify: true,
+        actor,
+        cause,
+      });
+    }
   }
 }
 
@@ -240,6 +275,7 @@ export async function createSchoolProfilePhotosBatch(
       input.organizationId,
       insertedPhotoIds,
       uploadedStoragePaths,
+      input.uploadedBy,
     );
     throw err;
   }
