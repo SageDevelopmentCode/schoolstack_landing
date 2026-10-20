@@ -631,25 +631,77 @@ export async function logActivityEvent(
       .single();
 
     if (error) {
-      await reportActivityLogInsertFailure(error, event);
+      await safeReportActivityLogInsertFailure(error, event);
       return null;
     }
 
     return data?.id ? String(data.id) : null;
   } catch (error) {
-    await reportActivityLogInsertFailure(error, event);
+    await safeReportActivityLogInsertFailure(error, event);
     return null;
   }
+}
+
+async function safeReportActivityLogInsertFailure(
+  error: unknown,
+  event: ActivityEventInput,
+): Promise<void> {
+  try {
+    await reportActivityLogInsertFailure(error, event);
+  } catch (reportError) {
+    console.error("[activity-log] failed to report insert failure:", reportError);
+  }
+}
+
+function activityLogInsertFailureDetails(
+  event: ActivityEventInput,
+  parsedDetails: string | undefined,
+): string {
+  return [
+    `Original action: ${event.action}`,
+    `Original surface: ${event.surface}`,
+    parsedDetails,
+  ]
+    .filter(Boolean)
+    .join(" | ");
 }
 
 async function reportActivityLogInsertFailure(
   error: unknown,
   event: ActivityEventInput,
 ): Promise<void> {
-  const { parseOperationalError } = await import("@/lib/operational-errors-client");
-  const { reportOperationalError } = await import("@/lib/operational-errors");
+  const { parseOperationalError, reportClientOperationalError } = await import(
+    "@/lib/operational-errors-client"
+  );
   const parsed = parseOperationalError(error);
   const message = messageFromCause(error) ?? parsed.message;
+  const originalEventDetails = activityLogInsertFailureDetails(
+    event,
+    parsed.details,
+  );
+
+  if (typeof window !== "undefined") {
+    if (event.organizationId) {
+      await reportClientOperationalError({
+        organizationId: event.organizationId,
+        operation: "activity_log_insert",
+        error: message,
+        code: parsed.code,
+        details: originalEventDetails || undefined,
+        entityType: event.entityType ?? undefined,
+        entityId: event.entityId ?? undefined,
+        metadata: {
+          action: event.action,
+          eventSurface: event.surface,
+        },
+      });
+    } else {
+      console.error("[activity-log] insert failed:", message, originalEventDetails);
+    }
+    return;
+  }
+
+  const { reportOperationalError } = await import("@/lib/operational-errors");
   const admin = await getActivityLogAdminClient();
 
   let organizationName: string | null = null;
@@ -667,14 +719,6 @@ async function reportActivityLogInsertFailure(
     organizationSlug =
       typeof organization?.slug === "string" ? organization.slug : null;
   }
-
-  const originalEventDetails = [
-    `Original action: ${event.action}`,
-    `Original surface: ${event.surface}`,
-    parsed.details,
-  ]
-    .filter(Boolean)
-    .join(" | ");
 
   await reportOperationalError({
     supabase: admin,

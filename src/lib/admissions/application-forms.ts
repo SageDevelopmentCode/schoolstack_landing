@@ -715,23 +715,41 @@ export async function updateApplicationForm(
       });
     }
 
-    const activityEventId = await logActivityEvent(supabase, {
-      organizationId: form.organization_id,
-      actorType: "school_admin",
-      surface: "school_admin",
-      action: ACTIVITY_ACTIONS.FORM_SAVED,
-      entityType: "application_form_version",
-      entityId: form.id,
-      summary,
-      metadata: {
-        publicSlug: form.public_slug,
-        version: form.version,
-        status: form.status,
-        changedFields: changeSummary.changedFields,
-        changes: changeSummary.changes,
-        ...(revisionId ? { revisionId } : {}),
-      },
-    });
+    let activityEventId: string | null = null;
+    try {
+      activityEventId = await logActivityEvent(supabase, {
+        organizationId: form.organization_id,
+        actorType: "school_admin",
+        surface: "school_admin",
+        action: ACTIVITY_ACTIONS.FORM_SAVED,
+        entityType: "application_form_version",
+        entityId: form.id,
+        summary,
+        metadata: {
+          publicSlug: form.public_slug,
+          version: form.version,
+          status: form.status,
+          changedFields: changeSummary.changedFields,
+          changes: changeSummary.changes,
+          ...(revisionId ? { revisionId } : {}),
+        },
+      });
+    } catch (activityLogError) {
+      void reportOperationalError({
+        supabase,
+        surface: "school_admin",
+        organizationId: form.organization_id,
+        operation: "application_forms.activity_log",
+        error:
+          activityLogError instanceof Error
+            ? activityLogError.message
+            : "Failed to log application form save activity.",
+        entityType: "application_form_version",
+        entityId: form.id,
+        actor: { type: "school_admin" },
+        cause: activityLogError,
+      });
+    }
 
     if (revisionId && activityEventId) {
       const { error: linkError } = await supabase
