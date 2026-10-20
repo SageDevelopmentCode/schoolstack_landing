@@ -4,8 +4,10 @@ import { mapGalleryPhotoRow } from "./mappers";
 import {
   attachSignedUrlsToGalleryPhotos,
   parseGalleryPhotoDate,
+  prepareGalleryPhotoForUpload,
   removeGalleryPhotoFiles,
-  uploadGalleryPhotoFile,
+  uploadPreparedGalleryPhotoFile,
+  validateGalleryPhotoFile,
 } from "./storage";
 import type {
   GalleryUploadActorType,
@@ -152,6 +154,28 @@ export type CreateGalleryPhotoBatchInput = {
   logActivity?: boolean;
 };
 
+async function rollbackGalleryPhotoBatch(
+  supabase: SupabaseClient,
+  organizationId: string,
+  insertedPhotoIds: string[],
+  uploadedStoragePaths: string[],
+): Promise<void> {
+  if (insertedPhotoIds.length > 0) {
+    try {
+      await supabase
+        .from("school_gallery_photos")
+        .delete()
+        .in("id", insertedPhotoIds)
+        .eq("organization_id", organizationId);
+    } catch {
+      // Best-effort rollback.
+    }
+  }
+  await removeGalleryPhotoFiles(supabase, uploadedStoragePaths).catch(
+    () => undefined,
+  );
+}
+
 export async function createGalleryPhotoBatch(
   supabase: SupabaseClient,
   input: CreateGalleryPhotoBatchInput,
@@ -174,42 +198,71 @@ export async function createGalleryPhotoBatch(
     );
   }
 
+  for (const file of input.files) {
+    try {
+      validateGalleryPhotoFile(file);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Invalid photo file.";
+      throw new GalleryError(message, "invalid_request", 400);
+    }
+  }
+
+  const preparedFiles: { original: File; prepared: File }[] = [];
+  for (const file of input.files) {
+    preparedFiles.push({
+      original: file,
+      prepared: await prepareGalleryPhotoForUpload(file),
+    });
+  }
+
   const uploadBatchId = crypto.randomUUID();
   const created: GalleryPhoto[] = [];
+  const insertedPhotoIds: string[] = [];
+  const uploadedStoragePaths: string[] = [];
 
-  for (const file of input.files) {
-    const photoId = crypto.randomUUID();
-    const uploaded = await uploadGalleryPhotoFile(
+  try {
+    for (const { original, prepared } of preparedFiles) {
+      const photoId = crypto.randomUUID();
+      const uploaded = await uploadPreparedGalleryPhotoFile(
+        supabase,
+        input.organizationId,
+        photoId,
+        prepared,
+      );
+      uploadedStoragePaths.push(uploaded.storagePath);
+
+      const { data, error } = await supabase
+        .from("school_gallery_photos")
+        .insert({
+          id: photoId,
+          organization_id: input.organizationId,
+          photo_date: photoDate,
+          storage_path: uploaded.storagePath,
+          file_name: original.name,
+          mime_type: uploaded.mimeType,
+          size_bytes: uploaded.sizeBytes,
+          upload_batch_id: uploadBatchId,
+          uploaded_by: input.uploadedBy,
+        })
+        .select(PHOTO_SELECT)
+        .single();
+
+      if (error) {
+        throw new GalleryError(error.message, "insert_failed", 500);
+      }
+
+      insertedPhotoIds.push(photoId);
+      created.push(mapGalleryPhotoRow(data as GalleryPhotoRow));
+    }
+  } catch (err) {
+    await rollbackGalleryPhotoBatch(
       supabase,
       input.organizationId,
-      photoId,
-      file,
+      insertedPhotoIds,
+      uploadedStoragePaths,
     );
-
-    const { data, error } = await supabase
-      .from("school_gallery_photos")
-      .insert({
-        id: photoId,
-        organization_id: input.organizationId,
-        photo_date: photoDate,
-        storage_path: uploaded.storagePath,
-        file_name: file.name,
-        mime_type: uploaded.mimeType,
-        size_bytes: uploaded.sizeBytes,
-        upload_batch_id: uploadBatchId,
-        uploaded_by: input.uploadedBy,
-      })
-      .select(PHOTO_SELECT)
-      .single();
-
-    if (error) {
-      await removeGalleryPhotoFiles(supabase, [uploaded.storagePath]).catch(
-        () => undefined,
-      );
-      throw new GalleryError(error.message, "insert_failed", 500);
-    }
-
-    created.push(mapGalleryPhotoRow(data as GalleryPhotoRow));
+    throw err;
   }
 
   if (input.logActivity !== false && created.length > 0) {
@@ -284,6 +337,8 @@ export async function deleteGalleryPhoto(
 
   const storagePath = String(data.storage_path);
 
+  await removeGalleryPhotoFiles(supabase, [storagePath]);
+
   const { error: deleteRowError } = await supabase
     .from("school_gallery_photos")
     .delete()
@@ -293,6 +348,4 @@ export async function deleteGalleryPhoto(
   if (deleteRowError) {
     throw new GalleryError(deleteRowError.message, "delete_failed", 500);
   }
-
-  await removeGalleryPhotoFiles(supabase, [storagePath]);
 }

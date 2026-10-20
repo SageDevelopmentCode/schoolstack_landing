@@ -57,6 +57,7 @@ export default function SchoolProfileStoryHeader({
       label: section.label,
       icon: <Icon className={SCHOOL_PROFILE_SECTION_ICON_CLASS} aria-hidden />,
       testId: `school-profile-section-${section.id}`,
+      disabled: saving,
       ariaBusy: tabLoading,
       suffix: tabLoading ? (
         <Loader2

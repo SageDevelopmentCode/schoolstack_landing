@@ -13,10 +13,15 @@ begin
   end if;
 
   if new.organization_id is distinct from old.organization_id
-     or new.storage_path is distinct from old.storage_path
-     or new.uploaded_by is distinct from old.uploaded_by then
+     or new.storage_path is distinct from old.storage_path then
     raise exception 'school_gallery_photo_identity_immutable'
-      using hint = 'organization_id, storage_path, and uploaded_by cannot be changed';
+      using hint = 'organization_id and storage_path cannot be changed';
+  end if;
+
+  if new.uploaded_by is distinct from old.uploaded_by
+     and not (old.uploaded_by is not null and new.uploaded_by is null) then
+    raise exception 'school_gallery_photo_identity_immutable'
+      using hint = 'organization_id and storage_path cannot be changed; uploaded_by cannot be reassigned';
   end if;
 
   return new;

@@ -84,6 +84,32 @@ function resolvePostSubmitConfig(
   return row?.post_submit_config ?? null;
 }
 
+type ClaimedPostSubmitReminderApplication = {
+  applicationId: string;
+  previousCount: number;
+  previousSentAt: string | null;
+};
+
+async function revertClaimedPostSubmitReminderApplications(
+  supabase: SupabaseClient,
+  organizationId: string,
+  claimedApplications: ClaimedPostSubmitReminderApplication[],
+): Promise<void> {
+  for (const application of claimedApplications) {
+    const { error: revertError } = await supabase
+      .from("applications")
+      .update({
+        post_submit_reminder_count: application.previousCount,
+        post_submit_reminder_sent_at: application.previousSentAt,
+      })
+      .eq("id", application.applicationId)
+      .eq("organization_id", organizationId)
+      .eq("post_submit_reminder_count", application.previousCount + 1);
+
+    if (revertError) throw revertError;
+  }
+}
+
 export async function sendPostSubmitRequiredReminders(
   supabase: SupabaseClient,
   organizationId: string,
@@ -228,11 +254,7 @@ export async function sendPostSubmitRequiredReminders(
     const recipientEmails = await loadFamilyEmails(supabase, familyWork.familyId);
     if (recipientEmails.length === 0) continue;
 
-    const claimedApplications: Array<{
-      applicationId: string;
-      previousCount: number;
-      previousSentAt: string | null;
-    }> = [];
+    const claimedApplications: ClaimedPostSubmitReminderApplication[] = [];
 
     for (const application of familyWork.applications) {
       const { data: claimedRows, error: claimError } = await supabase
@@ -274,86 +296,89 @@ export async function sendPostSubmitRequiredReminders(
       ),
     );
 
-    const { data: contactApplication, error: contactApplicationError } =
-      await supabase
-        .from("applications")
-        .select("primary_guardian_id, created_by_user_id")
-        .eq("organization_id", organizationId)
-        .eq("family_id", familyWork.familyId)
-        .in(
-          "id",
-          claimedApplications.map((application) => application.applicationId),
-        )
-        .limit(1)
-        .maybeSingle();
-
-    if (contactApplicationError) throw contactApplicationError;
-
-    const contact = await resolveContact(supabase, {
-      family_id: familyWork.familyId,
-      created_by_user_id: contactApplication?.created_by_user_id ?? null,
-      primary_guardian_id: contactApplication?.primary_guardian_id ?? null,
-    });
-
-    const displayName = contact?.displayName || "there";
-    const subject = buildPostSubmitRequiredReminderSubject({
-      schoolName,
-      reminderNumber: emailedReminderNumber,
-    });
-    const html = buildPostSubmitRequiredReminderHtml({
-      name: displayName,
-      schoolName,
-      applyDashboardUrl,
-      reminderNumber: emailedReminderNumber,
-      applications: emailedApplications.map((application) => ({
-        label: application.studentLabel,
-        formTitle: application.formTitle,
-        stepTitles: application.stepTitles,
-      })),
-    });
-
     let delivered = false;
-    for (const email of recipientEmails) {
-      const result = await sendEmail({
-        to: email,
-        schoolName,
-        subject,
-        html,
-        notificationContext: buildEmailNotificationContext({
-          organizationId,
-          organizationSlug: schoolSlug,
-          surface: "cron",
-          entityType: "family",
-          entityId: familyWork.familyId,
-        }),
+    let displayName = "there";
+
+    try {
+      const { data: contactApplication, error: contactApplicationError } =
+        await supabase
+          .from("applications")
+          .select("primary_guardian_id, created_by_user_id")
+          .eq("organization_id", organizationId)
+          .eq("family_id", familyWork.familyId)
+          .in(
+            "id",
+            claimedApplications.map((application) => application.applicationId),
+          )
+          .limit(1)
+          .maybeSingle();
+
+      if (contactApplicationError) throw contactApplicationError;
+
+      const contact = await resolveContact(supabase, {
+        family_id: familyWork.familyId,
+        created_by_user_id: contactApplication?.created_by_user_id ?? null,
+        primary_guardian_id: contactApplication?.primary_guardian_id ?? null,
       });
-      if (result.ok) {
-        delivered = true;
-      } else {
-        await logNotificationFailure(supabase, {
-          organizationId,
-          operation: "post_submit_required_reminder_email",
-          error: `Failed to send post-submit required reminder to ${email}`,
-          entityType: "family",
-          entityId: familyWork.familyId,
+
+      displayName = contact?.displayName || "there";
+      const subject = buildPostSubmitRequiredReminderSubject({
+        schoolName,
+        reminderNumber: emailedReminderNumber,
+      });
+      const html = buildPostSubmitRequiredReminderHtml({
+        name: displayName,
+        schoolName,
+        applyDashboardUrl,
+        reminderNumber: emailedReminderNumber,
+        applications: emailedApplications.map((application) => ({
+          label: application.studentLabel,
+          formTitle: application.formTitle,
+          stepTitles: application.stepTitles,
+        })),
+      });
+
+      for (const email of recipientEmails) {
+        const result = await sendEmail({
+          to: email,
+          schoolName,
+          subject,
+          html,
+          notificationContext: buildEmailNotificationContext({
+            organizationId,
+            organizationSlug: schoolSlug,
+            surface: "cron",
+            entityType: "family",
+            entityId: familyWork.familyId,
+          }),
         });
+        if (result.ok) {
+          delivered = true;
+        } else {
+          await logNotificationFailure(supabase, {
+            organizationId,
+            operation: "post_submit_required_reminder_email",
+            error: `Failed to send post-submit required reminder to ${email}`,
+            entityType: "family",
+            entityId: familyWork.familyId,
+          });
+        }
       }
+    } catch (error) {
+      await revertClaimedPostSubmitReminderApplications(
+        supabase,
+        organizationId,
+        claimedApplications,
+      );
+      throw error;
     }
 
     if (!delivered) {
-      for (const application of claimedApplications) {
-        const { error: revertError } = await supabase
-          .from("applications")
-          .update({
-            post_submit_reminder_count: application.previousCount,
-            post_submit_reminder_sent_at: application.previousSentAt,
-          })
-          .eq("id", application.applicationId)
-          .eq("organization_id", organizationId)
-          .eq("post_submit_reminder_count", application.previousCount + 1);
-
-        if (revertError) throw revertError;
-      }
+      await revertClaimedPostSubmitReminderApplications(
+        supabase,
+        organizationId,
+        claimedApplications,
+      );
       continue;
     }
 
@@ -370,7 +395,13 @@ export async function sendPostSubmitRequiredReminders(
       ),
       sentAt: now.toISOString(),
     }).catch((error) => {
-      console.error("Post-submit required reminder Discord notification failed:", error);
+      void logNotificationFailure(supabase, {
+        organizationId,
+        operation: "post_submit_required_reminder.discord_notification",
+        error,
+        entityType: "family",
+        entityId: familyWork.familyId,
+      });
     });
 
     sent += 1;

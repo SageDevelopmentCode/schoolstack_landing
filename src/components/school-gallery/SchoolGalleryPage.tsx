@@ -31,6 +31,7 @@ type SchoolGalleryPageProps = {
   portal: "parent" | "teacher";
   initialFeed?: GalleryPhotosFeedInitial | null;
   readOnly?: boolean;
+  previewFamilyId?: string;
   currentUserId?: string;
   branding?: OrganizationBranding;
 };
@@ -42,6 +43,7 @@ export default function SchoolGalleryPage({
   portal,
   initialFeed,
   readOnly = true,
+  previewFamilyId,
   currentUserId,
   branding,
 }: SchoolGalleryPageProps) {
@@ -50,6 +52,14 @@ export default function SchoolGalleryPage({
 
   const listUrl = useMemo(() => {
     if (!slug) return null;
+    if (previewFamilyId) {
+      const params = new URLSearchParams({
+        familyId: previewFamilyId,
+        slug,
+      });
+      if (programId) params.set("programId", programId);
+      return `/api/admin/organizations/${encodeURIComponent(organizationId)}/gallery?${params.toString()}`;
+    }
     const params = new URLSearchParams({ organizationId, slug });
     if (programId) params.set("programId", programId);
     const base =
@@ -57,18 +67,21 @@ export default function SchoolGalleryPage({
         ? "/api/parent-portal/gallery"
         : "/api/teacher-portal/gallery";
     return `${base}?${params.toString()}`;
-  }, [organizationId, portal, programId, slug]);
+  }, [organizationId, portal, previewFamilyId, programId, slug]);
 
   const {
     photos,
     loading,
     loadingMore,
+    initialError,
+    loadMoreError,
     hasMore,
     loadMore,
     loadMoreRef,
     prependPhotos,
     replacePhoto,
     removePhoto,
+    reload,
   } = useGalleryPhotosFeed({
     listUrl,
     initial: initialFeed,
@@ -178,6 +191,10 @@ export default function SchoolGalleryPage({
             ? "Your school has not shared any photos yet."
             : "No photos yet."
         }
+        initialError={initialError}
+        onRetryInitial={() => void reload()}
+        loadMoreError={loadMoreError}
+        onRetryLoadMore={() => void loadMore()}
         hasMore={hasMore}
         loadingMore={loadingMore}
         loadMoreRef={loadMoreRef}
@@ -205,9 +222,24 @@ export default function SchoolGalleryPage({
       </div>
 
       {groups.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center text-sm text-[#65747A]">
-          No photos yet. Upload your first batch to share with families.
-        </p>
+        initialError ? (
+          <div
+            className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center"
+          >
+            <p className="text-sm text-[#65747A]">{initialError}</p>
+            <button
+              type="button"
+              className="rounded-lg border border-[#D8DEDF] bg-white px-4 py-2 text-sm font-medium text-[#1F2A2E] hover:bg-[#F3F5F6]"
+              onClick={() => void reload()}
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center text-sm text-[#65747A]">
+            No photos yet. Upload your first batch to share with families.
+          </p>
+        )
       ) : (
         <div className="space-y-10">
           {groups.map((group) => (
@@ -249,6 +281,8 @@ export default function SchoolGalleryPage({
       <GalleryLoadMoreFooter
         loadMoreRef={loadMoreRef}
         loadingMore={loadingMore}
+        error={loadMoreError}
+        onRetry={() => void loadMore()}
       />
 
       <GalleryUploadSheet

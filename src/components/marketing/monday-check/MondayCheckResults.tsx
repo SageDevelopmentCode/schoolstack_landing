@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -117,6 +117,7 @@ export default function MondayCheckResults({
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [pendingPrintResults, setPendingPrintResults] = useState(false);
   const [activeTab, setActiveTab] = useState<ResultsTab>("priorities");
 
   const statusCounts = useMemo(
@@ -139,6 +140,27 @@ export default function MondayCheckResults({
       return haystack.includes(q);
     });
   }, [personalizedInsights, filter, search]);
+
+  const insightsForAnswersList = pendingPrintResults
+    ? personalizedInsights
+    : filteredInsights;
+
+  const requestPrintResults = useCallback(() => {
+    setExpanded(new Set(personalizedInsights.map((i) => i.questionId)));
+    setPendingPrintResults(true);
+  }, [personalizedInsights]);
+
+  useLayoutEffect(() => {
+    if (!pendingPrintResults) return;
+    window.print();
+  }, [pendingPrintResults]);
+
+  useEffect(() => {
+    if (!pendingPrintResults) return;
+    const endPrint = () => setPendingPrintResults(false);
+    window.addEventListener("afterprint", endPrint);
+    return () => window.removeEventListener("afterprint", endPrint);
+  }, [pendingPrintResults]);
 
   const planComplete = plan.taskIds.filter((id) => plan.doneIds.includes(id)).length;
 
@@ -819,7 +841,7 @@ export default function MondayCheckResults({
             boxShadow: theme.shadowCard,
           }}
         >
-          {filteredInsights.length === 0 ? (
+          {insightsForAnswersList.length === 0 ? (
             <p
               className="px-6 py-8 text-center text-[12px]"
               style={{ color: theme.muted, fontFamily: theme.fontBody }}
@@ -827,7 +849,7 @@ export default function MondayCheckResults({
               No answers match. Try a different search or filter.
             </p>
           ) : (
-            filteredInsights.map((item) => {
+            insightsForAnswersList.map((item) => {
               const status = classifyAnswerStatus(item.option.score);
               const isOpen = expanded.has(item.questionId);
               const inPlan = plan.taskIds.includes(item.questionId);
@@ -942,10 +964,7 @@ export default function MondayCheckResults({
           <span>These groups organize your snapshot—they don&apos;t change your score.</span>
           <button
             type="button"
-            onClick={() => {
-              setExpanded(new Set(personalizedInsights.map((i) => i.questionId)));
-              window.print();
-            }}
+            onClick={requestPrintResults}
             className="inline-flex items-center gap-1.5 font-bold"
             style={{ color: theme.primary }}
           >

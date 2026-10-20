@@ -96,25 +96,79 @@ export default function SchoolProfilePage({
   const [savedCampus, setSavedCampus] = useState<OrganizationCampus>(
     getDefaultPrimaryCampus(organizationId),
   );
+  const profileRef = useRef(profile);
+  const campusRef = useRef(campus);
+
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
+  useEffect(() => {
+    campusRef.current = campus;
+  }, [campus]);
+
+  const parseBundle = useCallback(
+    (
+      nextProfile: OrganizationSchoolProfile,
+      nextCampus: OrganizationCampus,
+    ) => ({
+      profile: parseOrganizationSchoolProfile(
+        nextProfile as unknown as Record<string, unknown>,
+      ),
+      campus: parseOrganizationCampusRow(
+        organizationId,
+        nextCampus as unknown as Record<string, unknown>,
+      ),
+    }),
+    [organizationId],
+  );
 
   const commitSavedBundle = useCallback(
     (
       nextProfile: OrganizationSchoolProfile,
       nextCampus: OrganizationCampus,
     ) => {
-      const profileParsed = parseOrganizationSchoolProfile(
-        nextProfile as unknown as Record<string, unknown>,
-      );
-      const campusParsed = parseOrganizationCampusRow(
-        organizationId,
-        nextCampus as unknown as Record<string, unknown>,
+      const { profile: profileParsed, campus: campusParsed } = parseBundle(
+        nextProfile,
+        nextCampus,
       );
       setProfile(profileParsed);
       setCampus(campusParsed);
       setSavedProfile(profileParsed);
       setSavedCampus(campusParsed);
     },
-    [organizationId],
+    [parseBundle],
+  );
+
+  const applySaveSuccess = useCallback(
+    (
+      nextProfile: OrganizationSchoolProfile,
+      nextCampus: OrganizationCampus,
+      sentAtSaveStart: {
+        profile: OrganizationSchoolProfile;
+        primaryCampus: OrganizationCampus;
+      },
+    ) => {
+      const { profile: profileParsed, campus: campusParsed } = parseBundle(
+        nextProfile,
+        nextCampus,
+      );
+      setSavedProfile(profileParsed);
+      setSavedCampus(campusParsed);
+
+      const editedDuringSave = isSchoolProfileBundleDirty(
+        {
+          profile: profileRef.current,
+          primaryCampus: campusRef.current,
+        },
+        sentAtSaveStart,
+      );
+      if (!editedDuringSave) {
+        setProfile(profileParsed);
+        setCampus(campusParsed);
+      }
+    },
+    [parseBundle],
   );
 
   const isDirty = useMemo(() => {
@@ -132,8 +186,14 @@ export default function SchoolProfilePage({
     cancelLeave,
   } = useUnsavedChangesGuard({
     isDirty,
-    enabled: bundleLoaded && !saving,
+    enabled: bundleLoaded,
   });
+
+  const handleConfirmLeave = useCallback(() => {
+    setProfile(savedProfile);
+    setCampus(savedCampus);
+    confirmLeave();
+  }, [confirmLeave, savedCampus, savedProfile]);
 
   const ensureBundleLoaded = useCallback(
     async (triggerSection: SchoolProfileSectionId) => {
@@ -213,10 +273,10 @@ export default function SchoolProfilePage({
 
   const handleSectionChange = useCallback(
     (section: SchoolProfileSectionId) => {
-      if (section === activeSection) return;
+      if (saving || section === activeSection) return;
       requestAction(() => applySectionChange(section));
     },
-    [activeSection, applySectionChange, requestAction],
+    [activeSection, applySectionChange, requestAction, saving],
   );
 
   useEffect(() => {
@@ -226,6 +286,7 @@ export default function SchoolProfilePage({
   }, [ensureBundleLoaded]);
 
   async function handleSave() {
+    const sentAtSaveStart = { profile, primaryCampus: campus };
     setSaving(true);
     try {
       const response = await fetch("/api/school-admin/school-profile", {
@@ -233,8 +294,8 @@ export default function SchoolProfilePage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           organizationId,
-          profile,
-          primaryCampus: campus,
+          profile: sentAtSaveStart.profile,
+          primaryCampus: sentAtSaveStart.primaryCampus,
         }),
       });
       const payload = (await response.json()) as {
@@ -245,9 +306,10 @@ export default function SchoolProfilePage({
       if (!response.ok) {
         throw new Error(payload.error ?? "Failed to save school profile.");
       }
-      commitSavedBundle(
-        payload.profile ?? profile,
-        payload.primaryCampus ?? campus,
+      applySaveSuccess(
+        payload.profile ?? sentAtSaveStart.profile,
+        payload.primaryCampus ?? sentAtSaveStart.primaryCampus,
+        sentAtSaveStart,
       );
       adminToast.success("School profile saved");
     } catch (err) {
@@ -740,7 +802,7 @@ export default function SchoolProfilePage({
         confirmLabel="Leave without saving"
         cancelLabel="Keep editing"
         variant="destructive"
-        onConfirm={confirmLeave}
+        onConfirm={handleConfirmLeave}
         onClose={cancelLeave}
       />
     </div>

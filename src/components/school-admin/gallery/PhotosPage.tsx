@@ -42,12 +42,15 @@ export default function PhotosPage({
     photos,
     loading,
     loadingMore,
+    initialError,
+    loadMoreError,
     hasMore,
     loadMore,
     loadMoreRef,
     prependPhotos,
     replacePhoto,
     removePhoto,
+    reload,
   } = useGalleryPhotosFeed({
     listUrl: `/api/school/${slug}/gallery`,
   });
@@ -155,6 +158,22 @@ export default function PhotosPage({
     );
   }
 
+  if (initialError && photos.length === 0) {
+    return (
+      <div
+        className="mx-auto max-w-[1350px] px-[clamp(25px,4vw,56px)] py-[30px] pb-14"
+        style={{ color: theme.ink }}
+      >
+        <div className="space-y-4 rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center">
+          <p className="text-sm text-[#65747A]">{initialError}</p>
+          <AdminButton theme={theme} variant="outline" onClick={() => void reload()}>
+            Try again
+          </AdminButton>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
@@ -255,6 +274,8 @@ export default function PhotosPage({
         <GalleryLoadMoreFooter
           loadMoreRef={loadMoreRef}
           loadingMore={loadingMore}
+          error={loadMoreError}
+          onRetry={() => void loadMore()}
         />
       </div>
 

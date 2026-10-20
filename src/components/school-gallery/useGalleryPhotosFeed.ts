@@ -16,6 +16,10 @@ type GalleryPageResponse = {
   error?: string;
 };
 
+function messageFromError(error: unknown): string {
+  return error instanceof Error ? error.message : "Could not load photos.";
+}
+
 export function useGalleryPhotosFeed(options: {
   listUrl: string | null;
   enabled?: boolean;
@@ -27,12 +31,24 @@ export function useGalleryPhotosFeed(options: {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initial?.hasMore ?? false);
   const [nextOffset, setNextOffset] = useState(initial?.nextOffset ?? 0);
+  const [initialError, setInitialError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
+  const loadMoreErrorRef = useRef(false);
+  const photosRef = useRef(photos);
 
   useEffect(() => {
     loadingMoreRef.current = loadingMore;
   }, [loadingMore]);
+
+  useEffect(() => {
+    loadMoreErrorRef.current = Boolean(loadMoreError);
+  }, [loadMoreError]);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   const fetchPage = useCallback(
     async (offset: number, append: boolean) => {
@@ -57,15 +73,23 @@ export function useGalleryPhotosFeed(options: {
           ? data.nextOffset
           : offset + pagePhotos.length,
       );
+      if (append) {
+        setLoadMoreError(null);
+      } else {
+        setInitialError(null);
+      }
     },
     [listUrl],
   );
 
   const loadInitial = useCallback(async () => {
     if (!listUrl || !enabled) return;
+    setInitialError(null);
     setLoading(true);
     try {
       await fetchPage(0, false);
+    } catch (error) {
+      setInitialError(messageFromError(error));
     } finally {
       setLoading(false);
     }
@@ -73,16 +97,21 @@ export function useGalleryPhotosFeed(options: {
 
   const loadMore = useCallback(async () => {
     if (!listUrl || !enabled || !hasMore || loadingMore) return;
+    setLoadMoreError(null);
     setLoadingMore(true);
     try {
       await fetchPage(nextOffset, true);
+    } catch (error) {
+      setLoadMoreError(messageFromError(error));
     } finally {
       setLoadingMore(false);
     }
   }, [enabled, fetchPage, hasMore, listUrl, loadingMore, nextOffset]);
 
   const prependPhotos = useCallback((uploaded: GalleryPhoto[]) => {
+    if (uploaded.length === 0) return;
     setPhotos((current) => [...uploaded, ...current]);
+    setNextOffset((offset) => offset + uploaded.length);
   }, []);
 
   const replacePhoto = useCallback((photo: GalleryPhoto) => {
@@ -92,7 +121,9 @@ export function useGalleryPhotosFeed(options: {
   }, []);
 
   const removePhoto = useCallback((photoId: string) => {
+    if (!photosRef.current.some((photo) => photo.id === photoId)) return;
     setPhotos((current) => current.filter((photo) => photo.id !== photoId));
+    setNextOffset((offset) => Math.max(0, offset - 1));
   }, []);
 
   useEffect(() => {
@@ -110,6 +141,7 @@ export function useGalleryPhotosFeed(options: {
     const observer = new IntersectionObserver(
       (entries) => {
         if (loadingMoreRef.current) return;
+        if (loadMoreErrorRef.current) return;
         if (entries.some((entry) => entry.isIntersecting)) {
           void loadMore();
         }
@@ -125,6 +157,8 @@ export function useGalleryPhotosFeed(options: {
     setPhotos,
     loading,
     loadingMore,
+    initialError,
+    loadMoreError,
     hasMore,
     loadMore,
     loadMoreRef,

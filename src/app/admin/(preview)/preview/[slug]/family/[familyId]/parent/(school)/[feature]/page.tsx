@@ -432,6 +432,7 @@ export default async function FamilyPreviewParentFeaturePage({
             portal="parent"
             initialFeed={initialFeed}
             readOnly
+            previewFamilyId={familyId}
           />
         </div>
       </SchoolParentPageShell>

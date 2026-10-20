@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { compressImageForUpload } from "@/lib/images/compress-image";
+import { reportOperationalError } from "@/lib/operational-errors";
 
 export const SCHOOL_GALLERY_FILES_BUCKET = "school-gallery-files";
 
@@ -68,14 +69,12 @@ export async function prepareGalleryPhotoForUpload(file: File): Promise<File> {
   return file;
 }
 
-export async function uploadGalleryPhotoFile(
+export async function uploadPreparedGalleryPhotoFile(
   supabase: SupabaseClient,
   organizationId: string,
   photoId: string,
-  file: File,
+  prepared: File,
 ): Promise<{ storagePath: string; mimeType: string | null; sizeBytes: number }> {
-  validateGalleryPhotoFile(file);
-  const prepared = await prepareGalleryPhotoForUpload(file);
   const storagePath = buildGalleryPhotoStoragePath(
     organizationId,
     photoId,
@@ -96,6 +95,22 @@ export async function uploadGalleryPhotoFile(
     mimeType: prepared.type || null,
     sizeBytes: prepared.size,
   };
+}
+
+export async function uploadGalleryPhotoFile(
+  supabase: SupabaseClient,
+  organizationId: string,
+  photoId: string,
+  file: File,
+): Promise<{ storagePath: string; mimeType: string | null; sizeBytes: number }> {
+  validateGalleryPhotoFile(file);
+  const prepared = await prepareGalleryPhotoForUpload(file);
+  return uploadPreparedGalleryPhotoFile(
+    supabase,
+    organizationId,
+    photoId,
+    prepared,
+  );
 }
 
 export async function removeGalleryPhotoFiles(
@@ -129,6 +144,33 @@ export async function getGalleryPhotoSignedUrl(
   return data.signedUrl;
 }
 
+function reportGalleryPhotoSignedUrlFailure(
+  supabase: SupabaseClient,
+  photo: { organizationId: string; id: string; storagePath: string },
+  cause: unknown,
+): void {
+  void reportOperationalError({
+    supabase,
+    surface: "system",
+    organizationId: photo.organizationId,
+    operation: "school_gallery.photo_signed_url",
+    error:
+      cause instanceof Error
+        ? cause.message
+        : "Failed to create a signed URL for a gallery photo.",
+    entityType: "school_gallery_photo",
+    entityId: photo.id,
+    metadata: {
+      storagePath: photo.storagePath,
+      bucket: SCHOOL_GALLERY_FILES_BUCKET,
+    },
+    severity: "warning",
+    notify: true,
+    actor: { type: "system" },
+    cause,
+  });
+}
+
 export async function attachSignedUrlsToGalleryPhotos(
   supabase: SupabaseClient,
   photos: import("./types").GalleryPhoto[],
@@ -141,7 +183,10 @@ export async function attachSignedUrlsToGalleryPhotos(
         photo.organizationId,
         photo.id,
         photo.storagePath,
-      ).catch(() => undefined),
+      ).catch((err) => {
+        reportGalleryPhotoSignedUrlFailure(supabase, photo, err);
+        return undefined;
+      }),
     })),
   );
 }

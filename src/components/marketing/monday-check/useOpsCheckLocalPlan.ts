@@ -45,47 +45,57 @@ export function useOpsCheckLocalPlan(defaultTaskIds: string[], validQuestionIds:
     });
   }, [defaultKey, defaultTaskIds, validKey, validQuestionIds]);
 
-  const persist = useCallback((next: OpsCheckLocalPlan) => {
-    setPlan(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore quota errors */
-    }
+  const updatePlan = useCallback((updater: (prev: OpsCheckLocalPlan) => OpsCheckLocalPlan) => {
+    setPlan((prev) => {
+      const next = updater(prev);
+      if (next === prev) return prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore quota errors */
+      }
+      return next;
+    });
   }, []);
 
   const toggleDone = useCallback(
     (taskId: string) => {
-      const doneIds = plan.doneIds.includes(taskId)
-        ? plan.doneIds.filter((id) => id !== taskId)
-        : [...plan.doneIds, taskId];
-      persist({ ...plan, doneIds });
+      updatePlan((prev) => {
+        const doneIds = prev.doneIds.includes(taskId)
+          ? prev.doneIds.filter((id) => id !== taskId)
+          : [...prev.doneIds, taskId];
+        return { ...prev, doneIds };
+      });
     },
-    [plan, persist],
+    [updatePlan],
   );
 
   const addTask = useCallback(
     (taskId: string) => {
-      if (plan.taskIds.includes(taskId)) return false;
-      persist({ ...plan, taskIds: [...plan.taskIds, taskId] });
-      return true;
+      let added = false;
+      updatePlan((prev) => {
+        if (prev.taskIds.includes(taskId)) return prev;
+        added = true;
+        return { ...prev, taskIds: [...prev.taskIds, taskId] };
+      });
+      return added;
     },
-    [plan, persist],
+    [updatePlan],
   );
 
   const removeTask = useCallback(
     (taskId: string) => {
-      persist({
-        taskIds: plan.taskIds.filter((id) => id !== taskId),
-        doneIds: plan.doneIds.filter((id) => id !== taskId),
-      });
+      updatePlan((prev) => ({
+        taskIds: prev.taskIds.filter((id) => id !== taskId),
+        doneIds: prev.doneIds.filter((id) => id !== taskId),
+      }));
     },
-    [plan, persist],
+    [updatePlan],
   );
 
   const resetPlan = useCallback(() => {
-    persist({ taskIds: defaultTaskIds, doneIds: [] });
-  }, [defaultTaskIds, persist]);
+    updatePlan(() => ({ taskIds: defaultTaskIds, doneIds: [] }));
+  }, [defaultTaskIds, updatePlan]);
 
   return {
     plan,

@@ -252,4 +252,113 @@ describe("sendPostSubmitRequiredReminders", () => {
     assert.equal(application.post_submit_reminder_count, 1);
     assert.ok(application.post_submit_reminder_sent_at);
   });
+
+  it("reverts the claim when sendEmail throws", async () => {
+    const previousSentAt = "2026-10-18T16:00:00.000Z";
+    const application = {
+      id: "app-1",
+      family_id: "family-1",
+      submitted_at: "2026-10-16T15:00:00.000Z",
+      responses: { student_first_name: "Levi" },
+      post_submit_reminder_count: 1,
+      post_submit_reminder_sent_at: previousSentAt,
+      application_form_versions: {
+        title: "Rooted Meadows 2026 Application",
+        post_submit_config: postSubmitConfig,
+      },
+    };
+
+    const applicationUpdates: Array<{
+      applicationId: string;
+      patch: Record<string, unknown>;
+    }> = [];
+    const supabase = createReminderSupabase({
+      applications: [application],
+      onApplicationUpdate: (applicationId, patch) => {
+        applicationUpdates.push({ applicationId, patch });
+      },
+    });
+
+    await assert.rejects(
+      () =>
+        sendPostSubmitRequiredReminders(supabase as never, "org-1", {
+          now: new Date("2026-10-19T12:00:00.000Z"),
+          getOrganizationTimezone: async () => "America/Chicago",
+          listScheduledVisitsForApplications: async () => [],
+          loadFamilyNotificationEmails: async () => ["parent@example.com"],
+          resolveApplicantContact: async () => ({
+            email: "parent@example.com",
+            emails: ["parent@example.com"],
+            displayName: "Amanda Landeen",
+          }),
+          sendEmail: async () => {
+            throw new Error("SMTP unavailable");
+          },
+          notifyDiscord: async () => {},
+        }),
+      /SMTP unavailable/,
+    );
+
+    assert.equal(application.post_submit_reminder_count, 1);
+    assert.equal(application.post_submit_reminder_sent_at, previousSentAt);
+    assert.equal(applicationUpdates.length, 2);
+    assert.equal(applicationUpdates[0]?.patch.post_submit_reminder_count, 2);
+    assert.equal(applicationUpdates[1]?.patch.post_submit_reminder_count, 1);
+    assert.equal(
+      applicationUpdates[1]?.patch.post_submit_reminder_sent_at,
+      previousSentAt,
+    );
+  });
+
+  it("reverts the claim when all reminder emails fail to send", async () => {
+    const previousSentAt = "2026-10-18T16:00:00.000Z";
+    const application = {
+      id: "app-1",
+      family_id: "family-1",
+      submitted_at: "2026-10-16T15:00:00.000Z",
+      responses: { student_first_name: "Levi" },
+      post_submit_reminder_count: 1,
+      post_submit_reminder_sent_at: previousSentAt,
+      application_form_versions: {
+        title: "Rooted Meadows 2026 Application",
+        post_submit_config: postSubmitConfig,
+      },
+    };
+
+    const applicationUpdates: Array<{
+      applicationId: string;
+      patch: Record<string, unknown>;
+    }> = [];
+    const supabase = createReminderSupabase({
+      applications: [application],
+      onApplicationUpdate: (applicationId, patch) => {
+        applicationUpdates.push({ applicationId, patch });
+      },
+    });
+
+    const sent = await sendPostSubmitRequiredReminders(supabase as never, "org-1", {
+      now: new Date("2026-10-19T12:00:00.000Z"),
+      getOrganizationTimezone: async () => "America/Chicago",
+      listScheduledVisitsForApplications: async () => [],
+      loadFamilyNotificationEmails: async () => ["parent@example.com"],
+      resolveApplicantContact: async () => ({
+        email: "parent@example.com",
+        emails: ["parent@example.com"],
+        displayName: "Amanda Landeen",
+      }),
+      sendEmail: async () => ({ ok: false }),
+      notifyDiscord: async () => {},
+    });
+
+    assert.equal(sent, 0);
+    assert.equal(application.post_submit_reminder_count, 1);
+    assert.equal(application.post_submit_reminder_sent_at, previousSentAt);
+    assert.equal(applicationUpdates.length, 2);
+    assert.equal(applicationUpdates[0]?.patch.post_submit_reminder_count, 2);
+    assert.equal(applicationUpdates[1]?.patch.post_submit_reminder_count, 1);
+    assert.equal(
+      applicationUpdates[1]?.patch.post_submit_reminder_sent_at,
+      previousSentAt,
+    );
+  });
 });

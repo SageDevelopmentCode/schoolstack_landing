@@ -12,6 +12,10 @@ import type { GalleryPhoto } from "@/lib/school-gallery/types";
 type SchoolGalleryViewProps = {
   photos: GalleryPhoto[];
   emptyMessage?: string;
+  initialError?: string | null;
+  onRetryInitial?: () => void;
+  loadMoreError?: string | null;
+  onRetryLoadMore?: () => void;
   hasMore?: boolean;
   loadingMore?: boolean;
   loadMoreRef?: React.RefObject<HTMLDivElement | null>;
@@ -21,6 +25,10 @@ type SchoolGalleryViewProps = {
 export default function SchoolGalleryView({
   photos,
   emptyMessage = "No photos yet.",
+  initialError = null,
+  onRetryInitial,
+  loadMoreError = null,
+  onRetryLoadMore,
   hasMore = false,
   loadingMore = false,
   loadMoreRef,
@@ -35,6 +43,25 @@ export default function SchoolGalleryView({
   };
 
   if (groups.length === 0) {
+    if (initialError) {
+      return (
+        <div
+          className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center"
+        >
+          <p className="text-sm text-[#65747A]">{initialError}</p>
+          {onRetryInitial ? (
+            <button
+              type="button"
+              className="rounded-lg border border-[#D8DEDF] bg-white px-4 py-2 text-sm font-medium text-[#1F2A2E] hover:bg-[#F3F5F6]"
+              onClick={() => onRetryInitial()}
+            >
+              Try again
+            </button>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
       <p className="rounded-2xl border border-dashed border-[#D8DEDF] bg-white/60 px-6 py-12 text-center text-sm text-[#65747A]">
         {emptyMessage}
@@ -73,6 +100,8 @@ export default function SchoolGalleryView({
         <GalleryLoadMoreFooter
           loadMoreRef={loadMoreRef}
           loadingMore={loadingMore}
+          error={loadMoreError}
+          onRetry={onRetryLoadMore}
         />
       ) : null}
 

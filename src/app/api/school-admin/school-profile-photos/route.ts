@@ -4,7 +4,7 @@ import { apiError } from "@/lib/api/route-errors";
 import {
   assertCanAddSchoolProfilePhotos,
   countSchoolProfilePhotos,
-  createSchoolProfilePhoto,
+  createSchoolProfilePhotosBatch,
   getNextSchoolProfilePhotoSortOrder,
   listSchoolProfilePhotos,
   SchoolProfilePhotoError,
@@ -95,19 +95,16 @@ export async function POST(request: Request) {
     const currentCount = await countSchoolProfilePhotos(admin, organizationId);
     assertCanAddSchoolProfilePhotos(currentCount, files.length);
 
-    const created = [];
-    let sortOrder = await getNextSchoolProfilePhotoSortOrder(admin, organizationId);
-
-    for (const file of files) {
-      const photo = await createSchoolProfilePhoto(admin, {
-        organizationId,
-        file,
-        uploadedBy: user.id,
-        sortOrder,
-      });
-      sortOrder += 1;
-      created.push(photo);
-    }
+    const startSortOrder = await getNextSchoolProfilePhotoSortOrder(
+      admin,
+      organizationId,
+    );
+    const created = await createSchoolProfilePhotosBatch(admin, {
+      organizationId,
+      files,
+      uploadedBy: user.id,
+      startSortOrder,
+    });
 
     return NextResponse.json({ photos: created });
   } catch (err) {
