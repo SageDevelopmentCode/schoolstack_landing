@@ -92,6 +92,17 @@ export function mergeFeatures(
       : null,
   );
 
+  const storedParent = isPlainObject(stored?.parent)
+    ? (stored.parent as Record<string, unknown>)
+    : null;
+  if (
+    merged.admin?.committees &&
+    storedParent?.committees !== false &&
+    merged.parent
+  ) {
+    merged.parent = { ...merged.parent, committees: true };
+  }
+
   return merged;
 }
 

@@ -7,6 +7,8 @@ const PARENT_MORE_NAV_KEYS = new Set([
   'classroom_signups',
   'forms_documents',
   'friday_branch',
+  'children',
+  'photos',
 ]);
 
 const CATALOG_PAGE_LABELS: Record<string, string> = {
@@ -190,7 +192,6 @@ export function splitMobileParentNavForTabBar(
   const moreKeys = new Set(PARENT_MORE_NAV_KEYS);
   if (options?.coopMode) {
     moreKeys.add('committees');
-    moreKeys.add('children');
   }
 
   const primaryKeys = new Set(
@@ -201,9 +202,15 @@ export function splitMobileParentNavForTabBar(
   );
 
   if (options?.coopMode) {
+    primaryKeys.delete('committees');
     const teachingSchedule = items.find((item) => item.key === 'teaching_schedule');
     if (teachingSchedule) {
       primaryKeys.add('teaching_schedule');
+    }
+  } else {
+    const committees = items.find((item) => item.key === 'committees');
+    if (committees) {
+      primaryKeys.add('committees');
     }
   }
 

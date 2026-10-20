@@ -290,6 +290,25 @@ describe("resolveProgramParentFeatures", () => {
     assert.equal(resolved.billing, true);
   });
 
+  it("enables committees for isolated programs when org has committees unless program opts out", () => {
+    const orgWithCommittees = {
+      ...orgFeatures,
+      parent: { ...orgFeatures.parent, committees: true },
+    };
+
+    const enabled = resolveProgramParentFeatures(orgWithCommittees, {
+      mode: "isolated",
+      features: { portal: true },
+    });
+    assert.equal(enabled.committees, true);
+
+    const optOut = resolveProgramParentFeatures(orgWithCommittees, {
+      mode: "isolated",
+      features: { portal: true, committees: false },
+    });
+    assert.equal(optOut.committees, false);
+  });
+
   it("blocks program features disabled at org level", () => {
     const orgWithMessagesOff = {
       ...orgFeatures,

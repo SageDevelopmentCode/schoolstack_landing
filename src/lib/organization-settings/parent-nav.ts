@@ -45,6 +45,7 @@ const PARENT_MORE_NAV_KEYS = new Set([
   "forms_documents",
   "friday_branch",
   "children",
+  "photos",
 ]);
 
 function toParentFeatureRecord(
@@ -151,9 +152,15 @@ export function splitParentNavForHeader(
   );
 
   if (options?.coopMode) {
+    primaryKeys.delete("committees");
     const teachingSchedule = items.find((item) => item.key === "teaching_schedule");
     if (teachingSchedule) {
       primaryKeys.add("teaching_schedule");
+    }
+  } else {
+    const committees = items.find((item) => item.key === "committees");
+    if (committees) {
+      primaryKeys.add("committees");
     }
   }
 

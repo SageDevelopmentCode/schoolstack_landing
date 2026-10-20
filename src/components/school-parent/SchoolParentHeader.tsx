@@ -378,7 +378,7 @@ export default function SchoolParentHeader({
       }}
     >
       <ParentPortalContextTopBar />
-      <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
+      <div className="mx-auto flex min-h-[64px] max-w-[1440px] items-center justify-between gap-3 overflow-visible px-4 sm:min-h-[78px] sm:gap-4 sm:px-7">
         <div className="flex min-w-0 shrink items-center gap-2 sm:gap-3">
           <Link
             href="/"
@@ -439,21 +439,25 @@ export default function SchoolParentHeader({
           )}
         </div>
 
-        <nav className="hidden items-center gap-1 lg:flex">
-          {primary.map((item) => (
-            <NavLink
-              key={item.key}
-              item={item}
-              pathname={pathname}
-              theme={theme}
-              adminCompat={C}
-              messagesUnreadCount={messagesUnreadCount}
-              committeesUnreadCount={committeesUnreadCount}
-              onNavigate={onPreviewNavigate}
-            />
-          ))}
+        <nav className="hidden min-w-0 max-w-[min(100%,52rem)] items-center gap-1 lg:flex">
+          <div
+            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {primary.map((item) => (
+              <NavLink
+                key={item.key}
+                item={item}
+                pathname={pathname}
+                theme={theme}
+                adminCompat={C}
+                messagesUnreadCount={messagesUnreadCount}
+                committeesUnreadCount={committeesUnreadCount}
+                onNavigate={onPreviewNavigate}
+              />
+            ))}
+          </div>
           {more.length > 0 ? (
-            <div className="relative" ref={moreRef}>
+            <div className="relative shrink-0" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((open) => !open)}
@@ -697,21 +701,25 @@ export default function SchoolParentHeader({
 
       {navItems.length > 0 ? (
         <nav
-          className="flex gap-1 overflow-x-auto border-t px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+          className="flex items-center gap-1 overflow-visible border-t px-4 py-2 lg:hidden"
           style={{ borderColor: theme.line }}
         >
-          {primary.map((item) => (
-            <NavLink
-              key={item.key}
-              item={item}
-              pathname={pathname}
-              theme={theme}
-              adminCompat={C}
-              messagesUnreadCount={messagesUnreadCount}
-              committeesUnreadCount={committeesUnreadCount}
-              onNavigate={onPreviewNavigate}
-            />
-          ))}
+          <div
+            className="flex min-w-0 flex-1 gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {primary.map((item) => (
+              <NavLink
+                key={item.key}
+                item={item}
+                pathname={pathname}
+                theme={theme}
+                adminCompat={C}
+                messagesUnreadCount={messagesUnreadCount}
+                committeesUnreadCount={committeesUnreadCount}
+                onNavigate={onPreviewNavigate}
+              />
+            ))}
+          </div>
           {more.length > 0 ? (
             <div className="relative shrink-0" ref={mobileMoreRef}>
               <button

@@ -362,7 +362,7 @@ function buildGuideTemplates(slug: string): AdminDocGuideTemplate[] {
         {
           title: "Add parent in Family portal access",
           description:
-            "On the Overview tab, click Add parent. Enter name and email — an account is created automatically.",
+            "Open the Family portal access tab and click Add parent. Enter name and email — an account is created automatically.",
         },
         {
           title: "Tell them how to sign in",
