@@ -68,7 +68,11 @@ import {
 } from "@/lib/organization-settings/parent-theme";
 import type { AdminThemeTokens } from "@/lib/organization-settings/theme";
 
-import { adminToast, formatActionError } from "@/lib/school-admin/admin-toast";
+import {
+  adminToast,
+  formatActionError,
+  sessionExpiredUserMessage,
+} from "@/lib/school-admin/admin-toast";
 import type { OrganizationBranding } from "@/lib/organization-settings/types";
 import { createClient } from "@/utils/supabase/client";
 import AdmissionsFamilyAccessGuideButton from "./AdmissionsFamilyAccessGuide";
@@ -246,6 +250,8 @@ function cloneChecklistItems(items: EnrollmentChecklistItem[]): EnrollmentCheckl
 }
 
 function formatSupabaseError(err: unknown, fallback: string): string {
+  const sessionMessage = sessionExpiredUserMessage(err);
+  if (sessionMessage) return sessionMessage;
   const parsed = parseOperationalError(err);
   return parsed.message === "Unknown error" ? fallback : parsed.message;
 }
@@ -648,7 +654,7 @@ export default function ApplicationFormsPage({
         operation: "forms.load",
         error: "",
       }, err);
-      setError(err instanceof Error ? err.message : "Failed to load forms.");
+      setError(formatActionError(err, "Failed to load forms."));
     } finally {
       setLoading(false);
     }
@@ -794,9 +800,7 @@ export default function ApplicationFormsPage({
           error: "",
         }, err);
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load enrollment checklist.",
-          );
+          setError(formatActionError(err, "Failed to load enrollment checklist."));
         }
       }
     }
